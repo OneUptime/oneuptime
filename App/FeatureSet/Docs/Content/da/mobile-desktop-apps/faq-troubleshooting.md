@@ -91,37 +91,44 @@ PWA'en opdateres automatisk, hver gang du åbner den, mens du er online. For at 
 ### Problemer med mobilappen
 
 **Appen kan ikke logge ind / "Netværksfejl":**
+
 - Bekræft, at **Server-URL** er korrekt og kan nås fra din telefon.
 - Tjek, at din telefon er forbundet til internettet.
 - For selvhostede instanser bag en VPN skal du sikre, at VPN'en er aktiv.
 
 **Push-notifikationer forsinkes eller mangler (Android):**
+
 - Deaktiver batterioptimering: **Indstillinger → Apps → OneUptime On-Call → Batteri → Ubegrænset**.
 - Deaktiver Datasparer for appen.
 - På Samsung-enheder skal du slå **Enhedspleje → Batteri → Grænser for baggrundsforbrug** fra for OneUptime On-Call.
 
 **Push-notifikationer forsinkes eller mangler (iOS):**
+
 - Undgå at tvangslukke appen — iOS kan sætte baggrundslevering på pause.
 - Slå Strømsparetilstand fra, mens du har on-call-vagt.
 - Føj OneUptime On-Call til alle aktive Fokus-tilstandes tilladelseslister.
 
 **Face ID / Touch ID / fingeraftryk virker ikke:**
+
 - Sørg for, at biometri er registreret i dine OS-indstillinger.
 - Genaktivér biometrisk oplåsning fra **Indstillinger**-skærmen i OneUptime On-Call-appen.
 
 ### Problemer med desktop-appen (PWA)
 
 **Installer-knappen mangler:**
+
 - Brug en understøttet browser (Chromium-baseret eller Safari på macOS Sonoma+).
 - Sørg for, at OneUptime-instansen serveres over HTTPS.
 - Vent på, at siden er færdig med at indlæse, og tjek derefter adresselinjen for installer-ikonet.
 
 **Desktop-notifikationer vises ikke:**
+
 - Tillad notifikationer, når browseren beder om det.
 - Tjek OS-notifikationsindstillinger (Windows Fokushjælp, macOS-notifikationer, Linux-notifikationsdæmon).
 - For selvhostede instanser skal du sikre, at konfigurationen af [Push-notifikationer](/docs/self-hosted/push-notifications) er fuldført.
 
 **Appen viser ikke de nyeste data:**
+
 - Genindlæs med **Ctrl+R** / **Cmd+R**.
 - Luk og åbn vinduet igen.
 - Tjek din netværksforbindelse.

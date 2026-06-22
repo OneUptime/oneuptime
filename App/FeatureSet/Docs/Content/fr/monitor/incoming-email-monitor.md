@@ -40,46 +40,48 @@ Vous pouvez copier cette adresse depuis la page de détails du moniteur et confi
 
 Vous pouvez créer des critères basés sur les champs d'e-mail suivants :
 
-| Champ | Description |
-|-------|-------------|
-| **Objet de l'e-mail** | La ligne d'objet de l'e-mail entrant |
-| **De l'e-mail** | L'adresse e-mail de l'expéditeur |
-| **Corps de l'e-mail** | Le contenu en texte brut du corps de l'e-mail |
-| **À l'e-mail** | L'adresse e-mail du destinataire |
-| **E-mail reçu** | Critères basés sur le temps pour les e-mails reçus |
+| Champ                 | Description                                        |
+| --------------------- | -------------------------------------------------- |
+| **Objet de l'e-mail** | La ligne d'objet de l'e-mail entrant               |
+| **De l'e-mail**       | L'adresse e-mail de l'expéditeur                   |
+| **Corps de l'e-mail** | Le contenu en texte brut du corps de l'e-mail      |
+| **À l'e-mail**        | L'adresse e-mail du destinataire                   |
+| **E-mail reçu**       | Critères basés sur le temps pour les e-mails reçus |
 
 ## Types de filtres disponibles
 
 ### Filtres de chaîne (Objet, De, Corps, À)
 
-| Filtre | Description | Exemple |
-|--------|-------------|---------|
-| **Contient** | Le champ contient le texte spécifié | Objet contient « CRITIQUE » |
-| **Ne contient pas** | Le champ ne contient pas le texte spécifié | Objet ne contient pas « TEST » |
-| **Égal à** | Le champ correspond exactement au texte spécifié | De égal à « alertes@service.com » |
-| **Différent de** | Le champ ne correspond pas au texte spécifié | Objet différent de « OK » |
-| **Commence par** | Le champ commence par le texte spécifié | Objet commence par « [ALERTE] » |
-| **Se termine par** | Le champ se termine par le texte spécifié | Objet se termine par « - Production » |
-| **Est vide** | Le champ est vide ou blanc | Corps est vide |
-| **N'est pas vide** | Le champ a du contenu | Objet n'est pas vide |
+| Filtre              | Description                                      | Exemple                               |
+| ------------------- | ------------------------------------------------ | ------------------------------------- |
+| **Contient**        | Le champ contient le texte spécifié              | Objet contient « CRITIQUE »           |
+| **Ne contient pas** | Le champ ne contient pas le texte spécifié       | Objet ne contient pas « TEST »        |
+| **Égal à**          | Le champ correspond exactement au texte spécifié | De égal à « alertes@service.com »     |
+| **Différent de**    | Le champ ne correspond pas au texte spécifié     | Objet différent de « OK »             |
+| **Commence par**    | Le champ commence par le texte spécifié          | Objet commence par « [ALERTE] »       |
+| **Se termine par**  | Le champ se termine par le texte spécifié        | Objet se termine par « - Production » |
+| **Est vide**        | Le champ est vide ou blanc                       | Corps est vide                        |
+| **N'est pas vide**  | Le champ a du contenu                            | Objet n'est pas vide                  |
 
 ### Filtres basés sur le temps (E-mail reçu)
 
-| Filtre | Description | Exemple |
-|--------|-------------|---------|
-| **Reçu en minutes** | L'e-mail a été reçu dans les X dernières minutes | E-mail reçu en 30 minutes |
-| **Non reçu en minutes** | Aucun e-mail reçu dans les X dernières minutes | E-mail non reçu en 60 minutes |
+| Filtre                  | Description                                      | Exemple                       |
+| ----------------------- | ------------------------------------------------ | ----------------------------- |
+| **Reçu en minutes**     | L'e-mail a été reçu dans les X dernières minutes | E-mail reçu en 30 minutes     |
+| **Non reçu en minutes** | Aucun e-mail reçu dans les X dernières minutes   | E-mail non reçu en 60 minutes |
 
 ## Exemples de configuration
 
 ### Exemple 1 : Créer une alerte pour les e-mails critiques
 
 **Critères de création d'alerte :**
+
 - Objet de l'e-mail **Contient** « CRITIQUE »
 - OU Objet de l'e-mail **Contient** « ALERTE »
 - OU Objet de l'e-mail **Contient** « ERREUR »
 
 **Critères de résolution d'alerte :**
+
 - Objet de l'e-mail **Contient** « RÉSOLU »
 - OU Objet de l'e-mail **Contient** « OK »
 - OU Objet de l'e-mail **Contient** « RÉTABLI »
@@ -87,21 +89,25 @@ Vous pouvez créer des critères basés sur les champs d'e-mail suivants :
 ### Exemple 2 : Surveiller un expéditeur spécifique
 
 **Critères de création d'alerte :**
+
 - De l'e-mail **Égal à** « surveillance@systeme-legacy.com »
 - ET Objet de l'e-mail **Contient** « Échec »
 
 **Critères de résolution d'alerte :**
+
 - De l'e-mail **Égal à** « surveillance@systeme-legacy.com »
 - ET Objet de l'e-mail **Contient** « Succès »
 
 ### Exemple 3 : Moniteur de signal de vie (Aucun e-mail = Alerte)
 
 **Critères de création d'alerte :**
+
 - E-mail reçu **Non reçu en minutes** avec la valeur `60`
 
 Cela crée une alerte si aucun e-mail n'est reçu pendant 60 minutes — utile pour surveiller les tâches planifiées ou les traitements par lots qui doivent envoyer des e-mails de confirmation.
 
 **Critères de résolution d'alerte :**
+
 - E-mail reçu **Reçu en minutes** avec la valeur `5`
 
 Cela résout l'alerte lorsqu'un e-mail est reçu.
@@ -111,6 +117,7 @@ Cela résout l'alerte lorsqu'un e-mail est reçu.
 ### Intégration de systèmes hérités
 
 De nombreux anciens systèmes ne prennent en charge que les alertes par e-mail. Utilisez le moniteur d'e-mails entrants pour :
+
 - Convertir les alertes par e-mail en incidents OneUptime
 - Résoudre automatiquement les incidents lorsque des e-mails de récupération arrivent
 - Centraliser les alertes de plusieurs systèmes hérités
@@ -118,6 +125,7 @@ De nombreux anciens systèmes ne prennent en charge que les alertes par e-mail. 
 ### Surveillance de services tiers
 
 Intégrez-vous avec des services qui envoient des notifications par e-mail :
+
 - Alertes des fournisseurs cloud (AWS, GCP, Azure)
 - Outils d'analyse de sécurité
 - Notifications de fin de sauvegarde
@@ -126,6 +134,7 @@ Intégrez-vous avec des services qui envoient des notifications par e-mail :
 ### Surveillance des tâches planifiées
 
 Surveillez les traitements par lots et les tâches planifiées :
+
 - Créez des alertes si les e-mails de confirmation ne sont pas reçus à temps
 - Suivez les échecs de tâches via les e-mails de notification d'erreurs
 - Surveillez les complétions de pipelines de données
@@ -133,6 +142,7 @@ Surveillez les traitements par lots et les tâches planifiées :
 ### Agrégation d'alertes multi-fournisseurs
 
 Consolidez les alertes de plusieurs outils de surveillance :
+
 - Recevez des alertes de Nagios, Zabbix ou d'autres outils par e-mail
 - Unifiez la gestion des incidents dans OneUptime
 - Maintenez une source unique de vérité pour toutes les alertes
@@ -141,17 +151,18 @@ Consolidez les alertes de plusieurs outils de surveillance :
 
 Lors de la configuration des modèles d'incidents, vous pouvez utiliser ces variables provenant des e-mails entrants :
 
-| Variable | Description |
-|----------|-------------|
-| `{{emailSubject}}` | L'objet de l'e-mail reçu |
-| `{{emailFrom}}` | L'adresse e-mail de l'expéditeur |
-| `{{emailTo}}` | L'adresse e-mail du destinataire |
-| `{{emailBody}}` | Le corps en texte brut de l'e-mail |
-| `{{emailReceivedAt}}` | Quand l'e-mail a été reçu |
+| Variable              | Description                        |
+| --------------------- | ---------------------------------- |
+| `{{emailSubject}}`    | L'objet de l'e-mail reçu           |
+| `{{emailFrom}}`       | L'adresse e-mail de l'expéditeur   |
+| `{{emailTo}}`         | L'adresse e-mail du destinataire   |
+| `{{emailBody}}`       | Le corps en texte brut de l'e-mail |
+| `{{emailReceivedAt}}` | Quand l'e-mail a été reçu          |
 
 ## Vue récapitulative du moniteur
 
 Le récapitulatif du moniteur affiche :
+
 - **Dernier e-mail reçu le :** Quand le dernier e-mail a été reçu
 - **De :** L'expéditeur du dernier e-mail
 - **Objet :** La ligne d'objet du dernier e-mail

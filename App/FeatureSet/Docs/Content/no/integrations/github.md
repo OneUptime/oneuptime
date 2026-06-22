@@ -4,7 +4,7 @@
 
 Denne integrasjonen er **utgående**: OneUptime kaller [GitHub REST API](https://docs.github.com/en/rest/issues/issues). Den bruker en OneUptime **[Arbeidsflyt](/docs/workflows/index)** med en **Incident → On Create**-trigger og en **API-komponent**.
 
-> **Ser du etter den dypere GitHub-tilkoblingen?** OneUptime har også en innebygd **GitHub App**-integrasjon for tilkobling av kodelagre (brukt av AI-agenten og kodefunksjoner). Den konfigureres med miljøvariabler, ikke arbeidsflyter — se [GitHub-integrasjon (selvhostet)](/docs/self-hosted/github-integration). Denne siden handler spesifikt om *å opprette saker fra hendelser*.
+> **Ser du etter den dypere GitHub-tilkoblingen?** OneUptime har også en innebygd **GitHub App**-integrasjon for tilkobling av kodelagre (brukt av AI-agenten og kodefunksjoner). Den konfigureres med miljøvariabler, ikke arbeidsflyter — se [GitHub-integrasjon (selvhostet)](/docs/self-hosted/github-integration). Denne siden handler spesifikt om _å opprette saker fra hendelser_.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -14,10 +14,12 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 - Et GitHub-repo der du vil at saker skal opprettes.
 - Et token som kan opprette saker:
+
   - **Finkornet PAT** begrenset til det repoet med **Issues: Read and write**, eller
   - et **klassisk PAT** med `repo`-omfanget.
 
   Opprett ett på [github.com/settings/tokens](https://github.com/settings/tokens).
+
 - Et OneUptime-prosjekt der du kan opprette arbeidsflyter.
 
 ## Steg 1 — Lagre tokenet
@@ -30,6 +32,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 1. Åpne **Workflows → Create Workflow**, gi den navnet `Incidents → GitHub Issues`, og åpne **Builder**.
 2. Legg til en **Incident**-trigger satt til **On Create**. Gi den nytt navn `Incident`.
 3. Legg til en **API**-blokk koblet til triggeren:
+
    - **Method**: `POST`
    - **URL**: `https://api.github.com/repos/your-org/your-repo/issues`
    - **Headers**:

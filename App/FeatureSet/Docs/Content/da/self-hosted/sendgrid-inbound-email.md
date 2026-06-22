@@ -33,9 +33,9 @@ Dette underdomæne bruges udelukkende til OneUptime-monitore-e-mails.
 
 Tilføj en MX-post til din DNS-konfiguration for at dirigere e-mails for dit indgående underdomæne til SendGrid.
 
-| Type | Host/Navn | Prioritet | Værdi |
-|------|-----------|----------|-------|
-| MX | inbound | 10 | mx.sendgrid.net |
+| Type | Host/Navn | Prioritet | Værdi           |
+| ---- | --------- | --------- | --------------- |
+| MX   | inbound   | 10        | mx.sendgrid.net |
 
 **Eksempel:** Hvis dit domæne er `example.com` og du bruger `inbound.example.com`:
 
@@ -61,13 +61,13 @@ For bedre levering og for at undgå, at e-mails markeres som spam:
 3. Klik på **Add Host & URL**
 4. Konfigurer følgende:
 
-| Felt | Værdi |
-|-------|-------|
-| **Modtagerdomæne** | Dit indgående underdomæne (f.eks. `inbound.yourdomain.com`) |
-| **Destinations-URL** | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
-| **Kontroller indgående e-mails for spam** | Valgfrit – aktiver, hvis ønsket |
-| **Send rå, fuld MIME-meddelelse** | Lad stå umarkeret (ikke påkrævet) |
-| **POST den rå, fulde MIME-meddelelse** | Lad stå umarkeret (ikke påkrævet) |
+| Felt                                      | Værdi                                                                   |
+| ----------------------------------------- | ----------------------------------------------------------------------- |
+| **Modtagerdomæne**                        | Dit indgående underdomæne (f.eks. `inbound.yourdomain.com`)             |
+| **Destinations-URL**                      | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
+| **Kontroller indgående e-mails for spam** | Valgfrit – aktiver, hvis ønsket                                         |
+| **Send rå, fuld MIME-meddelelse**         | Lad stå umarkeret (ikke påkrævet)                                       |
+| **POST den rå, fulde MIME-meddelelse**    | Lad stå umarkeret (ikke påkrævet)                                       |
 
 5. Klik på **Add**
 
@@ -123,35 +123,37 @@ Efter oprettelse vil du se den unikke e-mailadresse til denne monitor (f.eks. `m
 
 ## Miljøvariabelreference
 
-| Variabel | Beskrivelse | Påkrævet | Standard |
-|----------|-------------|----------|---------|
-| `INBOUND_EMAIL_PROVIDER` | Den indgående e-mailudbyder, der skal bruges | Ja | – |
-| `INBOUND_EMAIL_DOMAIN` | Det underdomæne, der er konfigureret til indgående e-mails | Ja | – |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | Hemmelighed til validering af webhook-anmodninger. Når indstillet, skal du tilføje denne hemmelighed til webhook-URL'en: `/incoming-email/sendgrid/YOUR_SECRET` | Nej | – |
+| Variabel                       | Beskrivelse                                                                                                                                                     | Påkrævet | Standard |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
+| `INBOUND_EMAIL_PROVIDER`       | Den indgående e-mailudbyder, der skal bruges                                                                                                                    | Ja       | –        |
+| `INBOUND_EMAIL_DOMAIN`         | Det underdomæne, der er konfigureret til indgående e-mails                                                                                                      | Ja       | –        |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | Hemmelighed til validering af webhook-anmodninger. Når indstillet, skal du tilføje denne hemmelighed til webhook-URL'en: `/incoming-email/sendgrid/YOUR_SECRET` | Nej      | –        |
 
 ## Understøttede e-mailkriterier
 
 Når du konfigurerer din Indgående e-mailmonitor, kan du oprette kriterier baseret på:
 
-| Felt | Beskrivelse | Tilgængelige filtre |
-|-------|-------------|-------------------|
-| **E-mailemne** | Emnelinjen i e-mailen | Indeholder, Indeholder ikke, Er lig med, Er ikke lig med, Starter med, Slutter med, Er tomt, Er ikke tomt |
-| **E-mail fra** | Afsenderens e-mailadresse | Indeholder, Indeholder ikke, Er lig med, Er ikke lig med, Starter med, Slutter med, Er tomt, Er ikke tomt |
-| **E-mailindhold** | Den rene tekstkrop i e-mailen | Indeholder, Indeholder ikke, Er lig med, Er ikke lig med, Starter med, Slutter med, Er tomt, Er ikke tomt |
-| **E-mail til** | Modtagerens e-mailadresse | Indeholder, Indeholder ikke, Er lig med, Er ikke lig med, Starter med, Slutter med, Er tomt, Er ikke tomt |
-| **E-mail modtaget** | Tid siden seneste e-mail blev modtaget | Modtaget inden for minutter, Ikke modtaget inden for minutter |
+| Felt                | Beskrivelse                            | Tilgængelige filtre                                                                                       |
+| ------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| **E-mailemne**      | Emnelinjen i e-mailen                  | Indeholder, Indeholder ikke, Er lig med, Er ikke lig med, Starter med, Slutter med, Er tomt, Er ikke tomt |
+| **E-mail fra**      | Afsenderens e-mailadresse              | Indeholder, Indeholder ikke, Er lig med, Er ikke lig med, Starter med, Slutter med, Er tomt, Er ikke tomt |
+| **E-mailindhold**   | Den rene tekstkrop i e-mailen          | Indeholder, Indeholder ikke, Er lig med, Er ikke lig med, Starter med, Slutter med, Er tomt, Er ikke tomt |
+| **E-mail til**      | Modtagerens e-mailadresse              | Indeholder, Indeholder ikke, Er lig med, Er ikke lig med, Starter med, Slutter med, Er tomt, Er ikke tomt |
+| **E-mail modtaget** | Tid siden seneste e-mail blev modtaget | Modtaget inden for minutter, Ikke modtaget inden for minutter                                             |
 
 ## Eksempel på anvendelsesscenarier
 
 ### Advarsler fra ældre systemer
 
 Mange ældre systemer kan kun sende e-mailadvarsler. Opret en Indgående e-mailmonitor til at:
+
 - Oprette OneUptime-advarsler, når det ældre system sender `[KRITISK]`-e-mails
 - Løse advarsler, når `[LØST]`-e-mails modtages
 
 ### Integration med tredjepartstjenester
 
 Integrer med tjenester, der sender e-mailnotifikationer:
+
 - Overvågningsværktøjer uden API-integrationer
 - Cloud-udbydernotifikationer
 - Sikkerhedsscanningsværktøjer
@@ -159,6 +161,7 @@ Integrer med tjenester, der sender e-mailnotifikationer:
 ### Hjerteslag via e-mail
 
 Brug "E-mail modtaget"-kriterier for at sikre, at du modtager periodiske e-mails:
+
 - Opret advarsel, hvis ingen e-mail modtages inden for 60 minutter
 - Nyttigt til overvågning af batchjobs eller planlagte opgaver, der sender afslutnings-e-mails
 
@@ -167,12 +170,15 @@ Brug "E-mail modtaget"-kriterier for at sikre, at du modtager periodiske e-mails
 ### E-mails modtages ikke
 
 1. **Kontroller DNS-spredning:**
+
    ```bash
    dig MX inbound.yourdomain.com
    ```
+
    Bør returnere `mx.sendgrid.net`
 
 2. **Bekræft SendGrid Inbound Parse-indstillinger:**
+
    - Log ind på SendGrid-dashboardet
    - Gå til Indstillinger > Inbound Parse
    - Bekræft dit domæne og webhook-URL er korrekte
@@ -184,10 +190,12 @@ Brug "E-mail modtaget"-kriterier for at sikre, at du modtager periodiske e-mails
 ### Webhooks mislykkes
 
 1. **Sørg for, at OneUptime er offentligt tilgængeligt:**
+
    - Webhook-URL'en skal være tilgængeligt fra internettet
    - Test med: `curl -X POST https://your-oneuptime-domain.com/incoming-email/sendgrid`
 
 2. **Kontroller firewallregler:**
+
    - Tillad indgående HTTPS-trafik fra SendGrids IP-intervaller
 
 3. **Bekræft SSL-certifikat:**
@@ -197,10 +205,12 @@ Brug "E-mail modtaget"-kriterier for at sikre, at du modtager periodiske e-mails
 ### Monitor opretter ikke advarsler
 
 1. **Bekræft kriteriekonfiguration:**
+
    - Kontroller, at dine advarselsopretnelseskriterier matcher e-mailindholdet
    - Test med nøjagtige strenge inden du bruger mønstermatch
 
 2. **Kontroller monitorstatus:**
+
    - Sørg for, at monitoren ikke er deaktiveret
    - Bekræft, at monitortypen er "Indgående e-mail"
 
@@ -228,10 +238,10 @@ For at kontrollere, om SendGrid med succes sender webhooks:
 
 OneUptime er designet til at understøtte flere indgående e-mailudbydere. Understøttede i øjeblikket:
 
-| Udbyder | Status |
-|----------|--------|
-| SendGrid | Understøttet |
-| Haraka (selvhostet) | Planlagt |
+| Udbyder             | Status       |
+| ------------------- | ------------ |
+| SendGrid            | Understøttet |
+| Haraka (selvhostet) | Planlagt     |
 
 Hvis du har brug for understøttelse af en anden udbyder, bedes du kontakte os eller indsende en funktionsanmodning.
 

@@ -10,14 +10,14 @@ Le tre pagine modificano lo stesso modello di regole sottostante — sono solo f
 
 ## Anatomia di una regola
 
-| Campo | Scopo |
-| --- | --- |
-| **Nome** | Etichetta breve e leggibile. Compare nei log di audit. |
-| **Descrizione** | Contesto opzionale per i colleghi. |
-| **Abilitata** | Toggle per sospendere una regola senza cancellarla. |
-| **Title Pattern** | Regex case-insensitive confrontata col titolo dell'entità. Vuoto = qualsiasi titolo. |
+| Campo                   | Scopo                                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------------------- |
+| **Nome**                | Etichetta breve e leggibile. Compare nei log di audit.                                            |
+| **Descrizione**         | Contesto opzionale per i colleghi.                                                                |
+| **Abilitata**           | Toggle per sospendere una regola senza cancellarla.                                               |
+| **Title Pattern**       | Regex case-insensitive confrontata col titolo dell'entità. Vuoto = qualsiasi titolo.              |
 | **Description Pattern** | Regex case-insensitive confrontata con la descrizione dell'entità. Vuoto = qualsiasi descrizione. |
-| **Runbook da avviare** | Uno o più runbook da lanciare quando la regola scatta. |
+| **Runbook da avviare**  | Uno o più runbook da lanciare quando la regola scatta.                                            |
 
 ## Semantica del matching
 

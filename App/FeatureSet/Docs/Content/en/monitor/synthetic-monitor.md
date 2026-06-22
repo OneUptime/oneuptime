@@ -7,7 +7,6 @@ Synthetic monitoring is a way to proactively monitor your applications by simula
 The following example shows how to use a Synthetic Monitor:
 
 ```javascript
-
 // Objects available in the context of the script are:
 
 // - axios: Axios module to make HTTP requests
@@ -17,15 +16,15 @@ The following example shows how to use a Synthetic Monitor:
 
 // You can use these objects to interact with the browser and make HTTP requests.
 
-await page.goto('https://playwright.dev/');
+await page.goto("https://playwright.dev/");
 
 // Playwright Documentation here: https://playwright.dev/docs/intro
 
 // Here are some of the variables that you can use in the context of the monitored object:
 
-console.log(browserType) // This will list the browser type in the current run context - Chromium, Firefox, Webkit
+console.log(browserType); // This will list the browser type in the current run context - Chromium, Firefox, Webkit
 
-console.log(screenSizeType) // This will list the screen size type in the current run context - Mobile, Tablet, Desktop
+console.log(screenSizeType); // This will list the screen size type in the current run context - Mobile, Tablet, Desktop
 
 // Playwright page object belongs to that specific browser context, so you can use it to interact with the browser.
 
@@ -33,7 +32,7 @@ console.log(screenSizeType) // This will list the screen size type in the curren
 // in the script context. Screenshots captured this way are preserved even if the
 // script later throws — useful for debugging failed runs.
 
-screenshots['screenshot-name'] = await page.screenshot(); // you can save multiple screenshots and have them with different names.
+screenshots["screenshot-name"] = await page.screenshot(); // you can save multiple screenshots and have them with different names.
 
 // when you want to return a value, use return statement with data as a prop.
 
@@ -42,40 +41,37 @@ screenshots['screenshot-name'] = await page.screenshot(); // you can save multip
 
 // You can access the browser context via page.context() if needed (for example, to create a new page or dealing with popups).
 
-
 return {
-    data: 'Hello World'
+  data: "Hello World",
 };
 ```
 
 ### Use of Playwright
 
-We use Playwright to simulate user interactions. You can use Playwright `page` object to interact with the browser and perform actions like clicking buttons, filling forms, and taking screenshots. 
+We use Playwright to simulate user interactions. You can use Playwright `page` object to interact with the browser and perform actions like clicking buttons, filling forms, and taking screenshots.
 
 ### Screenshots
 
 A pre-declared `screenshots` object is available in the script context. Assign screenshots to it at any point in the script — these screenshots are captured **even if the script throws** (including assertion failures, timeouts, or unexpected errors), so you can see exactly what the page looked like when the run failed. Captured screenshots appear in the OneUptime Dashboard for that specific monitor run.
 
 ```javascript
-
 // Capture screenshots via the `screenshots` side-channel — they are preserved on both success and failure.
 
-await page.goto('https://app.example.com/login');
-screenshots['login-page'] = await page.screenshot();
+await page.goto("https://app.example.com/login");
+screenshots["login-page"] = await page.screenshot();
 
-await page.fill('#email', 'user@example.com');
-await page.fill('#password', 'wrong');
-await page.click('button[type=submit]');
+await page.fill("#email", "user@example.com");
+await page.fill("#password", "wrong");
+await page.click("button[type=submit]");
 
 // If the next assertion throws, the `login-page` screenshot above is still captured.
-await page.waitForSelector('.dashboard', { timeout: 5000 });
+await page.waitForSelector(".dashboard", { timeout: 5000 });
 
-screenshots['dashboard'] = await page.screenshot();
+screenshots["dashboard"] = await page.screenshot();
 
 return {
-    data: 'Login succeeded'
+  data: "Login succeeded",
 };
-
 ```
 
 #### Returning screenshots (legacy)
@@ -85,14 +81,13 @@ For backward compatibility, you can also return screenshots from the script as p
 ```javascript
 // Legacy pattern — screenshots only captured on successful return.
 const screenshots = {};
-screenshots['screenshot-name'] = await page.screenshot();
+screenshots["screenshot-name"] = await page.screenshot();
 
 return {
-    data: 'Hello World',
-    screenshots: screenshots
+  data: "Hello World",
+  screenshots: screenshots,
 };
 ```
-
 
 ### Using Monitor Secrets
 
@@ -104,7 +99,7 @@ To add a secret, please go to OneUptime Dashboard -> Project Settings -> Monitor
 
 You can select which monitors have access to the secret. In this case we added `ApiKey` secret and selected monitors to have access to it.
 
-**Please note**: Secrets are encrypted and stored securely. If you lose the secret, you will need to create a new secret. You cannot view or update the secret after its saved. 
+**Please note**: Secrets are encrypted and stored securely. If you lose the secret, you will need to create a new secret. You cannot view or update the secret after its saved.
 
 #### Using a secret
 
@@ -121,7 +116,7 @@ let numberSecret = {{monitorSecrets.NumberSecret}};
 let booleanSecret = {{monitorSecrets.BooleanSecret}};
 
 // you can even console log to see if the secrets is being fetched correctly
-console.log(stringSecret); 
+console.log(stringSecret);
 ```
 
 ### Custom Metrics
@@ -139,32 +134,34 @@ oneuptime.captureMetric(name, value, attributes);
 #### Example
 
 ```javascript
-await page.goto('https://app.example.com');
+await page.goto("https://app.example.com");
 
 const startTime = Date.now();
-await page.waitForSelector('#dashboard-loaded');
+await page.waitForSelector("#dashboard-loaded");
 const loadTime = Date.now() - startTime;
 
 // Capture page load time as a custom metric
-oneuptime.captureMetric('dashboard.load.time', loadTime, {
-    page: 'dashboard'
+oneuptime.captureMetric("dashboard.load.time", loadTime, {
+  page: "dashboard",
 });
 
-screenshots['dashboard'] = await page.screenshot();
+screenshots["dashboard"] = await page.screenshot();
 
 return {
-    data: { loadTime }
+  data: { loadTime },
 };
 ```
 
 Once captured, these metrics appear in the Metric Explorer under names like `custom.monitor.dashboard.load.time`. You can add them to dashboard charts, set up alerts, and filter by monitor, probe, browser type, screen size, or any custom attributes you provided.
 
 **Limits:**
+
 - Maximum 100 metrics per script execution.
 - Metric names are limited to 200 characters.
 - Values must be numeric.
 
 ### Modules available in the script
+
 - `page`: You can use this module to interact with the browser. It is a Playwright Page object that allows you to perform actions like clicking buttons, filling forms, and taking screenshots. You can access the browser context via `page.context()` if needed (for example, to create a new page or deal with popups).
 - `screenshots`: A pre-declared object that you assign screenshots to (e.g. `screenshots['login-page'] = await page.screenshot()`). Screenshots assigned here are captured even if the script later throws.
 - `axios`: You can use this module to make HTTP requests. It is a promise-based HTTP client for the browser and Node.js.
@@ -179,8 +176,8 @@ Once captured, these metrics appear in the Metric Explorer under names like `cus
 - The `page` object is the primary interface for interacting with the browser. This is from the Playwright Page class. You can access the browser context via `page.context()` if needed.
 - You can use `console.log` to log the data in the console. This will be available in the logs section of the monitor.
 - You can return the data from the script using the `return` statement. Assign screenshots to the provided `screenshots` object so they are preserved even if the script throws.
-- You can use `browserType` and `screenSizeType` variables to get the browser type and screen size type in the current run context. Feel free to use them in your script if you like. 
+- You can use `browserType` and `screenSizeType` variables to get the browser type and screen size type in the current run context. Feel free to use them in your script if you like.
 - This is a JavaScript script, so you can use all the JavaScript features in the script.
 - You can use `axios` module to make HTTP requests in the script. You can use it to make API calls from the script.
-- If you are using oneuptime.com, you will always have the latest version of Playwright & browsers available in the context of the script. If you're self-hosting, please make sure you update the probes to have the latest version of Playwright and the browsers. 
+- If you are using oneuptime.com, you will always have the latest version of Playwright & browsers available in the context of the script. If you're self-hosting, please make sure you update the probes to have the latest version of Playwright and the browsers.
 - Timeout for the script is 2 minutes. If the script takes more than 2 mins, it will be terminated.

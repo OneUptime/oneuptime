@@ -10,11 +10,11 @@
 
 OneUptime 在正式環境中需要三個資料儲存區。它們依完全不同的輸入進行擴展，因此請各自獨立進行規模規劃。
 
-| 資料儲存區 | 儲存的內容 | 驅動其規模的因素 |
-| --- | --- | --- |
-| **ClickHouse** | 所有遙測資料 — logs、metrics、traces、exceptions、profiles | 遙測**擷取速率 × 保留期**。這約佔您儲存空間的 95%，也是最主要的成本。 |
-| **PostgreSQL** | 設定與狀態 — monitors、incidents、alerts、使用者、團隊、專案、workflows、status pages、dashboards | **實體數量與歷史紀錄**，而非遙測資料量。增長緩慢。 |
-| **Redis** | 快取、工作佇列與工作階段 | **佇列深度與作用中工作階段**。受記憶體限制且規模不大。並非真實來源。 |
+| 資料儲存區     | 儲存的內容                                                                                        | 驅動其規模的因素                                                      |
+| -------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **ClickHouse** | 所有遙測資料 — logs、metrics、traces、exceptions、profiles                                        | 遙測**擷取速率 × 保留期**。這約佔您儲存空間的 95%，也是最主要的成本。 |
+| **PostgreSQL** | 設定與狀態 — monitors、incidents、alerts、使用者、團隊、專案、workflows、status pages、dashboards | **實體數量與歷史紀錄**，而非遙測資料量。增長緩慢。                    |
+| **Redis**      | 快取、工作佇列與工作階段                                                                          | **佇列深度與作用中工作階段**。受記憶體限制且規模不大。並非真實來源。  |
 
 OneUptime 執行**不**需要物件儲存（S3/MinIO）。它僅選擇性地用於資料庫**備份**（透過 PostgreSQL 的 CloudNativePG Barman plugin，或 ClickHouse 的 `clickhouse-backup`）。OneUptime 不會將遙測資料分層儲存至物件儲存 — 請參閱下方「保留期及其對儲存空間的影響」一節。
 
@@ -38,10 +38,10 @@ ClickHouse disk ≈ (daily raw telemetry GB ÷ compression) × retention days ×
 
 一個由 **10 個叢集**組成的機群，每個叢集約有 10 個節點 / 約 100 個 pod 並以 INFO 等級的詳盡程度運作，在 30 天內每個叢集會產生大約 **50–150 GB 的原始 logs**（每個叢集每天約 1.7–5 GB）。整個機群在加入 metrics 與 traces 並經壓縮後，請編列大約 **每天 5–15 GB 的壓縮遙測資料**預算。
 
-| 保留期 | 單一 replica | 2 個 replicas + 30% headroom |
-| --- | --- | --- |
-| 30 天 | ~150–450 GB | **~0.4–1.2 TB** |
-| 90 天 | ~0.45–1.35 TB | **~1.2–3.5 TB** |
+| 保留期 | 單一 replica  | 2 個 replicas + 30% headroom |
+| ------ | ------------- | ---------------------------- |
+| 30 天  | ~150–450 GB   | **~0.4–1.2 TB**              |
+| 90 天  | ~0.45–1.35 TB | **~1.2–3.5 TB**              |
 
 儲存空間會**隨保留期線性擴展** — 90 天的時間窗成本約為 30 天時間窗的 3 倍。
 
@@ -73,12 +73,12 @@ Redis 用作快取、工作佇列與工作階段儲存。它**受記憶體限制
 - **中型 / 正式環境機群** — 約 10 個叢集、約 100 個節點、每天 10–30 GB 原始遙測資料、30–90 天保留期。
 - **大型 / 多機群** — 50 個以上叢集、500 個以上節點、每天 100 GB 以上原始遙測資料、90 天保留期。
 
-| | 小型 / PoC | 中型 / 正式環境機群 | 大型 / 多機群 |
-| --- | --- | --- | --- |
-| **ClickHouse** | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe，**分片（sharded）** |
-| **PostgreSQL** | 2 vCPU / 4 GB / 50 GB SSD | 4 vCPU / 8 GB / 100 GB SSD | 8 vCPU / 16–32 GB / 250 GB SSD（+ PgBouncer） |
-| **Redis** | 1 vCPU / 2 GB | 2 vCPU / 4 GB | 4 vCPU / 8–16 GB |
-| **假設的保留期** | 30 天 | 30–90 天 | 90 天 |
+|                  | 小型 / PoC                   | 中型 / 正式環境機群          | 大型 / 多機群                                            |
+| ---------------- | ---------------------------- | ---------------------------- | -------------------------------------------------------- |
+| **ClickHouse**   | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe，**分片（sharded）** |
+| **PostgreSQL**   | 2 vCPU / 4 GB / 50 GB SSD    | 4 vCPU / 8 GB / 100 GB SSD   | 8 vCPU / 16–32 GB / 250 GB SSD（+ PgBouncer）            |
+| **Redis**        | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                         |
+| **假設的保留期** | 30 天                        | 30–90 天                     | 90 天                                                    |
 
 這些是 OneUptime **後端**的規模。在每個受監控叢集上執行的 OneUptime 收集器需各自規劃規模 — 請參閱 [Kubernetes Agent](/docs/telemetry/kubernetes-agent) 的規模層級。
 

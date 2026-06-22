@@ -4,21 +4,21 @@ Every time a workflow runs, OneUptime saves a record of what happened — when i
 
 ## Where to find them
 
-| Page | What you see |
-| --- | --- |
+| Page                        | What you see                                                                        |
+| --------------------------- | ----------------------------------------------------------------------------------- |
 | **Workflows → Runs & Logs** | Every run from every workflow in the project. Filter by workflow, status, and time. |
-| **Workflow → Logs tab** | Just the runs of this one workflow. |
-| **A single run** | One execution, with the output of every block. |
+| **Workflow → Logs tab**     | Just the runs of this one workflow.                                                 |
+| **A single run**            | One execution, with the output of every block.                                      |
 
 ## Run statuses
 
-| Status | What it means |
-| --- | --- |
-| **Scheduled** | The trigger fired and the run is about to start. Usually only takes a fraction of a second. |
-| **Running** | The workflow is in progress. Long-running blocks keep a run in this state. |
-| **Success** | Every block that ran finished without error. (Taking an **error** branch on purpose still counts as success — the workflow itself didn't fail.) |
-| **Error** | A block failed and there was no **error** path connected to handle it. The run stopped there. |
-| **Timeout** | The run ran longer than allowed. See [Configuration & Safety](/docs/workflows/configuration). |
+| Status        | What it means                                                                                                                                   |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Scheduled** | The trigger fired and the run is about to start. Usually only takes a fraction of a second.                                                     |
+| **Running**   | The workflow is in progress. Long-running blocks keep a run in this state.                                                                      |
+| **Success**   | Every block that ran finished without error. (Taking an **error** branch on purpose still counts as success — the workflow itself didn't fail.) |
+| **Error**     | A block failed and there was no **error** path connected to handle it. The run stopped there.                                                   |
+| **Timeout**   | The run ran longer than allowed. See [Configuration & Safety](/docs/workflows/configuration).                                                   |
 
 ## Reading a run
 

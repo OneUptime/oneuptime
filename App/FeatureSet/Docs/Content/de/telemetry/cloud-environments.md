@@ -2,23 +2,23 @@
 
 ## Überblick
 
-OneUptime fasst verwaltete Cloud-Compute-Ressourcen in **Cloud-Umgebungen** zusammen — AWS ECS / Fargate, Google Cloud Run, Azure Container Apps / Container Instances, AWS Elastic Beanstalk, AWS App Runner und Azure App Service. Pro eindeutiger Kombination aus `cloud.platform` + `cloud.account.id` + `cloud.region` wird eine Umgebung erstellt, sodass etwa *"AWS ECS · us-east-1 · 123456789012"* eine einzelne Entität ist, die jeden darauf laufenden Workload aggregiert.
+OneUptime fasst verwaltete Cloud-Compute-Ressourcen in **Cloud-Umgebungen** zusammen — AWS ECS / Fargate, Google Cloud Run, Azure Container Apps / Container Instances, AWS Elastic Beanstalk, AWS App Runner und Azure App Service. Pro eindeutiger Kombination aus `cloud.platform` + `cloud.account.id` + `cloud.region` wird eine Umgebung erstellt, sodass etwa _"AWS ECS · us-east-1 · 123456789012"_ eine einzelne Entität ist, die jeden darauf laufenden Workload aggregiert.
 
 Reine virtuelle Maschinen (EC2, Compute Engine, Azure VM) bleiben **Hosts**, und Kubernetes verbleibt unter **Kubernetes**. Diese Ansicht ist speziell für verwaltete / PaaS-Compute-Ressourcen gedacht.
 
 ## Voraussetzungen
 
-- Ein **OneUptime Telemetry Ingestion Token** — erstellen Sie eines unter *Project Settings → Telemetry Ingestion Keys*.
+- Ein **OneUptime Telemetry Ingestion Token** — erstellen Sie eines unter _Project Settings → Telemetry Ingestion Keys_.
 - Ein OpenTelemetry Collector oder SDK, das in oder neben Ihren Workloads läuft.
 
 ## Wie OneUptime eine Umgebung identifiziert
 
-| Attribut | Erforderlich | Zweck |
-|---|---|---|
-| `cloud.platform` | **ja** | Muss eine Managed-Compute-Plattform sein (z. B. `aws_ecs`, `gcp_cloud_run`, `azure_container_apps`) |
-| `cloud.account.id` | nein | Teil des Umgebungsschlüssels |
-| `cloud.region` | nein | Teil des Umgebungsschlüssels |
-| `service.instance.id` | nein | Pro Task/Instanz unter **Instances** erfasst (mit Live-CPU / -Speicher) |
+| Attribut              | Erforderlich | Zweck                                                                                               |
+| --------------------- | ------------ | --------------------------------------------------------------------------------------------------- |
+| `cloud.platform`      | **ja**       | Muss eine Managed-Compute-Plattform sein (z. B. `aws_ecs`, `gcp_cloud_run`, `azure_container_apps`) |
+| `cloud.account.id`    | nein         | Teil des Umgebungsschlüssels                                                                        |
+| `cloud.region`        | nein         | Teil des Umgebungsschlüssels                                                                        |
+| `service.instance.id` | nein         | Pro Task/Instanz unter **Instances** erfasst (mit Live-CPU / -Speicher)                             |
 
 Diese werden normalerweise automatisch durch die OpenTelemetry **Resource Detectors** befüllt.
 
@@ -29,7 +29,7 @@ Fügen Sie im OpenTelemetry Collector den `resourcedetection`-Processor hinzu:
 ```yaml
 processors:
   resourcedetection:
-    detectors: [env, ecs]   # use [gcp] on Cloud Run, [azure] on Azure
+    detectors: [env, ecs] # use [gcp] on Cloud Run, [azure] on Azure
     timeout: 5s
 ```
 

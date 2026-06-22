@@ -82,9 +82,12 @@
 iframe을 사용해 자체 사이트에 공개 대시보드를 임베드할 수 있습니다.
 
 ```html
-<iframe src="https://dashboard.acme.com/view"
-        width="100%" height="800"
-        frameborder="0"></iframe>
+<iframe
+  src="https://dashboard.acme.com/view"
+  width="100%"
+  height="800"
+  frameborder="0"
+></iframe>
 ```
 
 대시보드에 마스터 비밀번호가 있다면 방문자는 iframe 내에서 비밀번호 프롬프트를 보게 됩니다.

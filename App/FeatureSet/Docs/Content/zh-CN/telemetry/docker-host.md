@@ -10,7 +10,7 @@ OneUptime Docker Agent 是一个预构建的容器镜像，内置了经过调优
 
 - Docker Engine 20.10+
 - 可访问主机上的 `/var/run/docker.sock`
-- 一个 **OneUptime 遥测摄取令牌（Telemetry Ingestion Token）** —— 从 *Project Settings → Telemetry Ingestion Keys* 创建一个并复制其值
+- 一个 **OneUptime 遥测摄取令牌（Telemetry Ingestion Token）** —— 从 _Project Settings → Telemetry Ingestion Keys_ 创建一个并复制其值
 
 ## 快速开始（一条命令）
 
@@ -64,11 +64,11 @@ docker compose up -d
 
 ## 环境变量
 
-| 变量 | 是否必需 | 说明 |
-|----------|----------|-------------|
-| `ONEUPTIME_URL` | 是 | 你的 OneUptime 实例 URL（例如 `https://oneuptime.com` 或你自托管的主机地址） |
-| `ONEUPTIME_SERVICE_TOKEN` | 是 | 来自 *Project Settings → Telemetry Ingestion Keys* 的遥测摄取令牌 |
-| `DOCKER_HOST_NAME` | 否 | 该主机的友好名称。默认值为 `docker-host`。请为每台主机设置一个稳定的值（例如 `prod-docker-01`） |
+| 变量                      | 是否必需 | 说明                                                                                            |
+| ------------------------- | -------- | ----------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`           | 是       | 你的 OneUptime 实例 URL（例如 `https://oneuptime.com` 或你自托管的主机地址）                    |
+| `ONEUPTIME_SERVICE_TOKEN` | 是       | 来自 _Project Settings → Telemetry Ingestion Keys_ 的遥测摄取令牌                               |
+| `DOCKER_HOST_NAME`        | 否       | 该主机的友好名称。默认值为 `docker-host`。请为每台主机设置一个稳定的值（例如 `prod-docker-01`） |
 
 ## 验证安装
 
@@ -117,14 +117,14 @@ docker compose down
 
 ## 采集了哪些数据
 
-| 类别 | 数据 |
-|----------|------|
-| **CPU 指标** | 总使用量、使用百分比、节流时间（按容器） |
-| **内存指标** | 使用量、上限、百分比、RSS、缓存（按容器） |
-| **网络指标** | 接收 / 发送的字节数和数据包数（按容器） |
-| **块 I/O 指标** | 读 / 写的字节数和操作数（按容器） |
-| **容器信息** | 运行时长、重启次数、进程数 |
-| **容器日志** | 所有容器的 stdout / stderr 日志 |
+| 类别            | 数据                                      |
+| --------------- | ----------------------------------------- |
+| **CPU 指标**    | 总使用量、使用百分比、节流时间（按容器）  |
+| **内存指标**    | 使用量、上限、百分比、RSS、缓存（按容器） |
+| **网络指标**    | 接收 / 发送的字节数和数据包数（按容器）   |
+| **块 I/O 指标** | 读 / 写的字节数和操作数（按容器）         |
+| **容器信息**    | 运行时长、重启次数、进程数                |
+| **容器日志**    | 所有容器的 stdout / stderr 日志           |
 
 ## 自托管的 OneUptime
 

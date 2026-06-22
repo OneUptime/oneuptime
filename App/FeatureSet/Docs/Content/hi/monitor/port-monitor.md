@@ -29,16 +29,16 @@ target host का hostname या IP address दर्ज करें (जै�
 
 monitor करने के लिए port number दर्ज करें (1–65535)। सामान्य उदाहरण:
 
-| Port | Service |
-|------|---------|
-| 22 | SSH |
-| 25 | SMTP |
-| 80 | HTTP |
-| 443 | HTTPS |
-| 3306 | MySQL |
-| 5432 | PostgreSQL |
-| 6379 | Redis |
-| 27017 | MongoDB |
+| Port  | Service    |
+| ----- | ---------- |
+| 22    | SSH        |
+| 25    | SMTP       |
+| 80    | HTTP       |
+| 443   | HTTPS      |
+| 3306  | MySQL      |
+| 5432  | PostgreSQL |
+| 6379  | Redis      |
+| 27017 | MongoDB    |
 
 ## Monitoring Criteria
 
@@ -46,11 +46,11 @@ monitor करने के लिए port number दर्ज करें (1�
 
 ### उपलब्ध Check Types
 
-| Check Type | विवरण |
-|------------|-------|
-| Is Online | port open है और connections accept कर रहा है या नहीं |
-| Response Time (in ms) | milliseconds में connection establish करने का समय |
-| Is Request Timeout | connection attempt timeout हुआ या नहीं |
+| Check Type            | विवरण                                                |
+| --------------------- | ---------------------------------------------------- |
+| Is Online             | port open है और connections accept कर रहा है या नहीं |
+| Response Time (in ms) | milliseconds में connection establish करने का समय    |
+| Is Request Timeout    | connection attempt timeout हुआ या नहीं               |
 
 ### Filter Types
 

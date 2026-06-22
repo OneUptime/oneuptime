@@ -134,23 +134,23 @@ Anpassa meddelandena som uppringare hör:
 
 ### Policyinställningar
 
-| Inställning | Beskrivning | Standard |
-|------------|-------------|----------|
-| Hälsningsmeddelande | TTS-meddelande som spelas upp när samtal besvaras | "Please wait while we connect you to the on-call engineer." |
-| Inget svar-meddelande | Meddelande när alla eskaleringsregler misslyckas | "No one is available. Please try again later." |
-| Ingen tillgänglig-meddelande | Meddelande när ingen är i jour | "We're sorry, but no on-call engineer is currently available." |
-| Upprepa policy om ingen svarar | Starta om från första regeln om alla misslyckas | Inaktiverat |
-| Antal upprepningar | Maximalt antal upprepningsförsök | 1 |
+| Inställning                    | Beskrivning                                       | Standard                                                       |
+| ------------------------------ | ------------------------------------------------- | -------------------------------------------------------------- |
+| Hälsningsmeddelande            | TTS-meddelande som spelas upp när samtal besvaras | "Please wait while we connect you to the on-call engineer."    |
+| Inget svar-meddelande          | Meddelande när alla eskaleringsregler misslyckas  | "No one is available. Please try again later."                 |
+| Ingen tillgänglig-meddelande   | Meddelande när ingen är i jour                    | "We're sorry, but no on-call engineer is currently available." |
+| Upprepa policy om ingen svarar | Starta om från första regeln om alla misslyckas   | Inaktiverat                                                    |
+| Antal upprepningar             | Maximalt antal upprepningsförsök                  | 1                                                              |
 
 ### Inställningar för eskaleringsregel
 
-| Inställning | Beskrivning |
-|------------|-------------|
-| Ordning | Prioritetsordning (1 = högst prioritet) |
+| Inställning             | Beskrivning                                        |
+| ----------------------- | -------------------------------------------------- |
+| Ordning                 | Prioritetsordning (1 = högst prioritet)            |
 | Eskalera efter sekunder | Väntetid innan nästa regel prövas (standard: 30 s) |
-| Jourschemat | Dirigera till vem som för närvarande är i jour |
-| Team | Dirigera till alla medlemmar i valda team |
-| Användare | Dirigera till specifika användare |
+| Jourschemat             | Dirigera till vem som för närvarande är i jour     |
+| Team                    | Dirigera till alla medlemmar i valda team          |
+| Användare               | Dirigera till specifika användare                  |
 
 ## Visa samtalsloggar
 
@@ -161,6 +161,7 @@ För att visa historik över inkommande samtal:
 3. Gå till fliken **Samtalsloggar**
 
 Loggarna visar:
+
 - Uppringarens telefonnummer
 - Samtalsstatus (Slutfört, Inget svar, Misslyckat etc.)
 - Vem som besvarade samtalet

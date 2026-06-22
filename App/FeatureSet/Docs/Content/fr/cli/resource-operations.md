@@ -22,16 +22,16 @@ oneuptime resources --type analytics
 
 Les ressources courantes comprennent :
 
-| Ressource | Commande |
-|-----------|---------|
-| Incident | `oneuptime incident` |
-| Alerte | `oneuptime alert` |
-| Moniteur | `oneuptime monitor` |
-| Statut de moniteur | `oneuptime monitor-status` |
-| État d'incident | `oneuptime incident-state` |
-| Page de statut | `oneuptime status-page` |
-| Politique d'astreinte | `oneuptime on-call-policy` |
-| Équipe | `oneuptime team` |
+| Ressource                           | Commande                                |
+| ----------------------------------- | --------------------------------------- |
+| Incident                            | `oneuptime incident`                    |
+| Alerte                              | `oneuptime alert`                       |
+| Moniteur                            | `oneuptime monitor`                     |
+| Statut de moniteur                  | `oneuptime monitor-status`              |
+| État d'incident                     | `oneuptime incident-state`              |
+| Page de statut                      | `oneuptime status-page`                 |
+| Politique d'astreinte               | `oneuptime on-call-policy`              |
+| Équipe                              | `oneuptime team`                        |
 | Événement de maintenance programmée | `oneuptime scheduled-maintenance-event` |
 
 ## Lister les ressources
@@ -44,13 +44,13 @@ oneuptime <resource> list [options]
 
 **Options :**
 
-| Option | Description | Défaut |
-|--------|-------------|--------|
-| `--query <json>` | Critères de filtre au format JSON | Aucun |
-| `--limit <n>` | Nombre maximum de résultats | `10` |
-| `--skip <n>` | Nombre de résultats à ignorer | `0` |
-| `--sort <json>` | Ordre de tri au format JSON | Aucun |
-| `-o, --output <format>` | Format de sortie | `table` |
+| Option                  | Description                       | Défaut  |
+| ----------------------- | --------------------------------- | ------- |
+| `--query <json>`        | Critères de filtre au format JSON | Aucun   |
+| `--limit <n>`           | Nombre maximum de résultats       | `10`    |
+| `--skip <n>`            | Nombre de résultats à ignorer     | `0`     |
+| `--sort <json>`         | Ordre de tri au format JSON       | Aucun   |
+| `-o, --output <format>` | Format de sortie                  | `table` |
 
 **Exemples :**
 
@@ -81,9 +81,9 @@ oneuptime <resource> get <id>
 
 **Arguments :**
 
-| Argument | Description |
-|----------|-------------|
-| `<id>` | L'identifiant de la ressource (UUID) |
+| Argument | Description                          |
+| -------- | ------------------------------------ |
+| `<id>`   | L'identifiant de la ressource (UUID) |
 
 **Exemples :**
 
@@ -105,11 +105,11 @@ oneuptime <resource> create [options]
 
 **Options :**
 
-| Option | Description |
-|--------|-------------|
-| `--data <json>` | Données de la ressource sous forme d'objet JSON |
-| `--file <path>` | Chemin vers un fichier JSON contenant les données de la ressource |
-| `-o, --output <format>` | Format de sortie |
+| Option                  | Description                                                       |
+| ----------------------- | ----------------------------------------------------------------- |
+| `--data <json>`         | Données de la ressource sous forme d'objet JSON                   |
+| `--file <path>`         | Chemin vers un fichier JSON contenant les données de la ressource |
+| `-o, --output <format>` | Format de sortie                                                  |
 
 Vous devez fournir soit `--data` soit `--file`.
 
@@ -136,16 +136,16 @@ oneuptime <resource> update <id> [options]
 
 **Arguments :**
 
-| Argument | Description |
-|----------|-------------|
-| `<id>` | L'identifiant de la ressource |
+| Argument | Description                   |
+| -------- | ----------------------------- |
+| `<id>`   | L'identifiant de la ressource |
 
 **Options :**
 
-| Option | Description |
-|--------|-------------|
-| `--data <json>` | Champs à mettre à jour au format JSON (requis) |
-| `-o, --output <format>` | Format de sortie |
+| Option                  | Description                                    |
+| ----------------------- | ---------------------------------------------- |
+| `--data <json>`         | Champs à mettre à jour au format JSON (requis) |
+| `-o, --output <format>` | Format de sortie                               |
 
 **Exemples :**
 
@@ -167,14 +167,14 @@ oneuptime <resource> delete <id> [--force]
 
 **Arguments :**
 
-| Argument | Description |
-|----------|-------------|
-| `<id>` | L'identifiant de la ressource |
+| Argument | Description                   |
+| -------- | ----------------------------- |
+| `<id>`   | L'identifiant de la ressource |
 
 **Options :**
 
-| Option | Description |
-|--------|-------------|
+| Option    | Description                        |
+| --------- | ---------------------------------- |
 | `--force` | Ignorer la demande de confirmation |
 
 **Exemples :**
@@ -197,8 +197,8 @@ oneuptime <resource> count [options]
 
 **Options :**
 
-| Option | Description |
-|--------|-------------|
+| Option           | Description                       |
+| ---------------- | --------------------------------- |
 | `--query <json>` | Critères de filtre au format JSON |
 
 **Exemples :**
@@ -219,12 +219,12 @@ oneuptime monitor count
 Les ressources analytiques prennent en charge un ensemble limité d'opérations par rapport aux ressources de base de données :
 
 | Opération | Prise en charge |
-|-----------|----------------|
-| `list` | Oui |
-| `create` | Oui |
-| `count` | Oui |
-| `get` | Non |
-| `update` | Non |
-| `delete` | Non |
+| --------- | --------------- |
+| `list`    | Oui             |
+| `create`  | Oui             |
+| `count`   | Oui             |
+| `get`     | Non             |
+| `update`  | Non             |
+| `delete`  | Non             |
 
 Utilisez `oneuptime resources --type analytics` pour voir les ressources analytiques disponibles sur votre instance.

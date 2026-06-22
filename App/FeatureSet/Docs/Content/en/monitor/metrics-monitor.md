@@ -27,12 +27,12 @@ Metrics monitors query and evaluate numeric metrics from your telemetry services
 
 Define one or more metric queries. Each query includes:
 
-| Field | Description | Required |
-|-------|-------------|----------|
-| Metric Name | The name of the metric to query | Yes |
-| Aggregation Type | How to aggregate raw metric values (sum, avg, min, max, count) | Yes |
-| Attributes | Key-value filters to narrow the metric data | No |
-| Aggregate By | Dimensions to group the metric by | No |
+| Field            | Description                                                    | Required |
+| ---------------- | -------------------------------------------------------------- | -------- |
+| Metric Name      | The name of the metric to query                                | Yes      |
+| Aggregation Type | How to aggregate raw metric values (sum, avg, min, max, count) | Yes      |
+| Attributes       | Key-value filters to narrow the metric data                    | No       |
+| Aggregate By     | Dimensions to group the metric by                              | No       |
 
 Each query is assigned an alias (e.g., `a`, `b`, `c`) for use in formulas.
 
@@ -59,21 +59,21 @@ Select the time window for metric evaluation:
 
 Choose how to aggregate the metric values for evaluation:
 
-| Strategy | Description |
-|----------|-------------|
-| Average | Average value over the time window |
-| Sum | Sum of all values |
-| Maximum Value | Highest value in the time window |
-| Minimum Value | Lowest value in the time window |
-| All Values | All values must match the criteria |
-| Any Value | At least one value must match |
+| Strategy      | Description                        |
+| ------------- | ---------------------------------- |
+| Average       | Average value over the time window |
+| Sum           | Sum of all values                  |
+| Maximum Value | Highest value in the time window   |
+| Minimum Value | Lowest value in the time window    |
+| All Values    | All values must match the criteria |
+| Any Value     | At least one value must match      |
 
 ## Monitoring Criteria
 
 ### Available Check Types
 
-| Check Type | Description |
-|------------|-------------|
+| Check Type   | Description                                                    |
+| ------------ | -------------------------------------------------------------- |
 | Metric Value | The aggregated value of the configured metric query or formula |
 
 ### Filter Types

@@ -54,6 +54,7 @@ De OneUptime Terraform-provider wordt automatisch gegenereerd vanuit de OneUptim
 - Gewijzigde validatieregels
 
 Het gebruik van een providerversie die niet overeenkomt met uw OneUptime-installatie kan leiden tot:
+
 - API-compatibiliteitsfouten
 - Mislukte resource-aanmaak/-updates
 - Onverwacht gedrag
@@ -62,16 +63,19 @@ Het gebruik van een providerversie die niet overeenkomt met uw OneUptime-install
 ## Uw OneUptime-versie vinden
 
 ### Methode 1: Dashboard
+
 1. Log in op uw OneUptime-dashboard
 2. Ga naar **Instellingen** → **Over**
 3. Noteer het versienummer (bijv. "7.0.123")
 
 ### Methode 2: API
+
 ```bash
 curl https://your-oneuptime-instance.com/api/version | jq '.version'
 ```
 
 ### Methode 3: Docker
+
 ```bash
 docker images | grep oneuptime
 # Zoek naar de tag, bijv. oneuptime/dashboard:7.0.123
@@ -86,11 +90,11 @@ docker images | grep oneuptime
 
 ## Versiecompatibiliteitsmatrix
 
-| OneUptime-versie | Providerversie | Terraform-configuratie |
-|-------------------|------------------|------------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| Nieuwste Cloud | Nieuwste Provider | `version = "~> 7.0"` |
+| OneUptime-versie | Providerversie    | Terraform-configuratie |
+| ---------------- | ----------------- | ---------------------- |
+| 7.0.x            | 7.0.x             | `version = "~> 7.0.0"` |
+| 7.1.x            | 7.1.x             | `version = "~> 7.1.0"` |
+| Nieuwste Cloud   | Nieuwste Provider | `version = "~> 7.0"`   |
 
 ## Snelstartvoorbeeld
 
@@ -120,11 +124,11 @@ resource "oneuptime_project" "example" {
 resource "oneuptime_monitor" "website" {
   name       = "Website Monitor"
   project_id = oneuptime_project.example.id
-  
+
   monitor_type = "website"
   url          = "https://example.com"
   interval     = "5m"
-  
+
   tags = {
     managed_by = "terraform"
   }

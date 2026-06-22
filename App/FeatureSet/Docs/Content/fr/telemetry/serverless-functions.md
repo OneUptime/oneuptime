@@ -8,20 +8,20 @@ Cela fonctionne pour AWS Lambda, Google Cloud Functions, Azure Functions, Cloudf
 
 ## Prérequis
 
-- Un **jeton d'ingestion de télémétrie OneUptime** — créez-en un depuis *Project Settings → Telemetry Ingestion Keys* et copiez la valeur `x-oneuptime-token`.
+- Un **jeton d'ingestion de télémétrie OneUptime** — créez-en un depuis _Project Settings → Telemetry Ingestion Keys_ et copiez la valeur `x-oneuptime-token`.
 - Le SDK OpenTelemetry (ou une couche d'auto-instrumentation) pour le langage de votre fonction.
 
 ## Comment OneUptime identifie une fonction
 
 OneUptime indexe chaque fonction sur l'attribut de ressource `faas.name` :
 
-| Attribut | Requis | Objectif |
-|---|---|---|
-| `faas.name` | **oui** | Identité de la fonction (par ex. `checkout-handler`) |
-| `faas.version` | non | Affiché dans la vue d'ensemble |
-| `faas.instance` | non | Suivi par instance sous l'onglet **Instances** |
-| `cloud.platform` | non | `aws_lambda`, `gcp_cloud_functions`, `azure_functions`, ... |
-| `cloud.provider` / `cloud.region` / `cloud.account.id` | non | Affiché dans la vue d'ensemble |
+| Attribut                                               | Requis  | Objectif                                                    |
+| ------------------------------------------------------ | ------- | ----------------------------------------------------------- |
+| `faas.name`                                            | **oui** | Identité de la fonction (par ex. `checkout-handler`)        |
+| `faas.version`                                         | non     | Affiché dans la vue d'ensemble                              |
+| `faas.instance`                                        | non     | Suivi par instance sous l'onglet **Instances**              |
+| `cloud.platform`                                       | non     | `aws_lambda`, `gcp_cloud_functions`, `azure_functions`, ... |
+| `cloud.provider` / `cloud.region` / `cloud.account.id` | non     | Affiché dans la vue d'ensemble                              |
 
 > Une fonction qui définit également `service.name` apparaît toujours aussi sous **Services**. La vue **Fonctions serverless** est le prisme axé sur le FaaS, délimité par `faas.name`.
 
@@ -57,4 +57,4 @@ Dès que la fonction émet une span, un journal ou une métrique, elle apparaît
 - **Instances** — un décompte en temps réel des valeurs `faas.instance` observées.
 - Des onglets complets **Logs**, **Traces** et **Metrics** délimités à cette fonction.
 
-Vous pouvez également appliquer automatiquement des libellés et des propriétaires via *Serverless → Settings → Label Rules / Owner Rules*.
+Vous pouvez également appliquer automatiquement des libellés et des propriétaires via _Serverless → Settings → Label Rules / Owner Rules_.

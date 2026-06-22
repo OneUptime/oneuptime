@@ -28,21 +28,21 @@ Sélectionnez un ou plusieurs services depuis lesquels surveiller les exceptions
 
 ### Filtres d'exceptions
 
-| Filtre | Description | Obligatoire |
-|--------|-------------|-------------|
-| Types d'exceptions | Filtrer par noms de types d'exceptions (ex. : `NullPointerException`, `TypeError`) | Non |
-| Message | Recherche textuelle dans les messages d'exception | Non |
-| Inclure les résolues | Inclure les exceptions marquées comme résolues (par défaut : false) | Non |
-| Inclure les archivées | Inclure les exceptions archivées (par défaut : false) | Non |
-| Fenêtre temporelle | Jusqu'où chercher les exceptions (en secondes, par défaut : 60) | Non |
+| Filtre                | Description                                                                        | Obligatoire |
+| --------------------- | ---------------------------------------------------------------------------------- | ----------- |
+| Types d'exceptions    | Filtrer par noms de types d'exceptions (ex. : `NullPointerException`, `TypeError`) | Non         |
+| Message               | Recherche textuelle dans les messages d'exception                                  | Non         |
+| Inclure les résolues  | Inclure les exceptions marquées comme résolues (par défaut : false)                | Non         |
+| Inclure les archivées | Inclure les exceptions archivées (par défaut : false)                              | Non         |
+| Fenêtre temporelle    | Jusqu'où chercher les exceptions (en secondes, par défaut : 60)                    | Non         |
 
 ## Critères de surveillance
 
 ### Types de vérifications disponibles
 
-| Type de vérification | Description |
-|----------------------|-------------|
-| Nombre d'exceptions | Le nombre d'exceptions correspondant à vos filtres dans la fenêtre temporelle |
+| Type de vérification | Description                                                                   |
+| -------------------- | ----------------------------------------------------------------------------- |
+| Nombre d'exceptions  | Le nombre d'exceptions correspondant à vos filtres dans la fenêtre temporelle |
 
 ### Types de filtres
 

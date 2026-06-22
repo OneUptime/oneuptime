@@ -20,6 +20,7 @@ oneuptime incident list
 ```
 
 Table format behavior:
+
 - Selects up to 6 columns, prioritizing: `_id`, `name`, `title`, `createdAt`, `updatedAt`
 - Truncates values longer than 60 characters with `...`
 - Uses color-coded headers (disable with `--no-color`)
@@ -72,9 +73,9 @@ NO_COLOR=1 oneuptime incident list
 
 ## Special Output Cases
 
-| Scenario | Output |
-|----------|--------|
-| Empty result set | `"No results found."` |
-| No data returned | `"No data returned."` |
+| Scenario                    | Output                 |
+| --------------------------- | ---------------------- |
+| Empty result set            | `"No results found."`  |
+| No data returned            | `"No data returned."`  |
 | Single object (e.g., `get`) | Key-value table format |
-| `count` command | Plain numeric value |
+| `count` command             | Plain numeric value    |

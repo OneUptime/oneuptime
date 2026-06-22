@@ -1,6 +1,6 @@
 # Custom Code Monitor
 
-Custom Code Monitor आपको अपने applications monitor करने के लिए custom scripts लिखने की अनुमति देता है। आप इस feature का उपयोग अपने applications को उस तरीके से monitor करने के लिए कर सकते हैं जो मौजूदा monitors के साथ संभव नहीं है। उदाहरण के लिए, आपके पास multi-step API requests हो सकती हैं। 
+Custom Code Monitor आपको अपने applications monitor करने के लिए custom scripts लिखने की अनुमति देता है। आप इस feature का उपयोग अपने applications को उस तरीके से monitor करने के लिए कर सकते हैं जो मौजूदा monitors के साथ संभव नहीं है। उदाहरण के लिए, आपके पास multi-step API requests हो सकती हैं।
 
 #### उदाहरण
 
@@ -9,15 +9,14 @@ Custom Code Monitor आपको अपने applications monitor करने 
 ```javascript
 // आप axios module उपयोग कर सकते हैं।
 
-await axios.get('https://api.example.com/');
+await axios.get("https://api.example.com/");
 
 // Axios Documentation यहाँ: https://axios-http.com/docs/intro
 
 return {
-    data: 'Hello World' // यहाँ कोई भी data return करें जो आप चाहते हैं। 
+  data: "Hello World", // यहाँ कोई भी data return करें जो आप चाहते हैं।
 };
 ```
-
 
 ### Monitor Secrets का उपयोग
 
@@ -29,7 +28,7 @@ secret जोड़ने के लिए, कृपया OneUptime Dashboard 
 
 आप चुन सकते हैं कि कौन से monitors को secret तक पहुंच हो। इस मामले में हमने `ApiKey` secret जोड़ा और monitors को उस तक पहुंच देने के लिए चुना।
 
-**कृपया ध्यान दें**: Secrets encrypted और सुरक्षित रूप से संग्रहीत होते हैं। यदि आप secret खो देते हैं, तो आपको एक नया secret बनाना होगा। Save होने के बाद आप secret देख या अपडेट नहीं कर सकते। 
+**कृपया ध्यान दें**: Secrets encrypted और सुरक्षित रूप से संग्रहीत होते हैं। यदि आप secret खो देते हैं, तो आपको एक नया secret बनाना होगा। Save होने के बाद आप secret देख या अपडेट नहीं कर सकते।
 
 #### एक secret का उपयोग
 
@@ -46,9 +45,8 @@ let numberSecret = {{monitorSecrets.NumberSecret}};
 let booleanSecret = {{monitorSecrets.BooleanSecret}};
 
 // आप console log भी कर सकते हैं यह देखने के लिए कि secrets सही तरीके से fetch हो रहे हैं
-console.log(stringSecret); 
+console.log(stringSecret);
 ```
-
 
 ### Custom Metrics
 
@@ -65,30 +63,32 @@ oneuptime.captureMetric(name, value, attributes);
 #### उदाहरण
 
 ```javascript
-const response = await axios.get('https://api.example.com/health');
+const response = await axios.get("https://api.example.com/health");
 
 // एक simple metric capture करें
-oneuptime.captureMetric('api.response.time', response.data.latency);
+oneuptime.captureMetric("api.response.time", response.data.latency);
 
 // attributes के साथ metric capture करें
-oneuptime.captureMetric('api.queue.depth', response.data.queueDepth, {
-    region: 'us-east-1',
-    environment: 'production'
+oneuptime.captureMetric("api.queue.depth", response.data.queueDepth, {
+  region: "us-east-1",
+  environment: "production",
 });
 
 return {
-    data: response.data
+  data: response.data,
 };
 ```
 
 capture होने के बाद, ये metrics `custom.monitor.api.response.time` जैसे नामों से Metric Explorer में दिखाई देती हैं। आप उन्हें dashboard charts में जोड़ सकते हैं, alerts सेट अप कर सकते हैं और monitor, probe, या आपके द्वारा प्रदान की गई किसी भी custom attributes से filter कर सकते हैं।
 
 **सीमाएं:**
+
 - प्रति script execution अधिकतम 100 metrics।
 - Metric names 200 characters तक सीमित।
 - Values numeric होनी चाहिए।
 
 ### Script में उपलब्ध Modules
+
 - `axios`: आप इस module का उपयोग HTTP requests करने के लिए कर सकते हैं। यह browser और Node.js के लिए एक promise-based HTTP client है।
 - `crypto`: आप इस module का उपयोग cryptographic operations करने के लिए कर सकते हैं। यह एक built-in Node.js module है जो OpenSSL के hash, HMAC, cipher, decipher, sign और verify functions के wrappers का एक set प्रदान करता है।
 - `console.log`: आप इस module का उपयोग console में data log करने के लिए कर सकते हैं। यह debugging के लिए उपयोगी है।
@@ -99,6 +99,6 @@ capture होने के बाद, ये metrics `custom.monitor.api.respon
 ### ध्यान देने योग्य बातें
 
 - आप `console.log` का उपयोग console में data log करने के लिए कर सकते हैं। यह monitor के logs section में उपलब्ध होगा (Probes > View Logs)।
-- आप `return` statement का उपयोग करके script से data return कर सकते हैं। 
+- आप `return` statement का उपयोग करके script से data return कर सकते हैं।
 - यह एक JavaScript script है, इसलिए आप script में सभी JavaScript features उपयोग कर सकते हैं।
 - Script का Timeout 2 minutes है। यदि script 2 minutes से अधिक लेती है, तो इसे terminate कर दिया जाएगा।

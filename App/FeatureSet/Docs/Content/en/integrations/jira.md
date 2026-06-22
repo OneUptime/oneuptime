@@ -36,6 +36,7 @@ Now you can use `Basic {{variable.JIRA_AUTH}}` as an auth header and the token n
 1. Open **Workflows → Create Workflow**, name it `Incidents → Jira`, and open the **Builder**.
 2. Drag an **Incident** trigger onto the canvas and choose the **On Create** event. Rename it `Incident`.
 3. Drag an **API** block and connect the trigger to it. Configure:
+
    - **Method**: `POST`
    - **URL**: `https://your-domain.atlassian.net/rest/api/3/issue`
    - **Headers**:
@@ -70,6 +71,7 @@ Now you can use `Basic {{variable.JIRA_AUTH}}` as an auth header and the token n
      ```
 
    Replace `OPS` with your project key and `Bug` with an issue type that exists in that project.
+
 4. **Save.** Leave the workflow disabled until you've tested it.
 
 ## Step 3 — Test it
@@ -96,8 +98,9 @@ To resolve the OneUptime incident when someone closes the Jira issue, add an **i
 
 1. Create a second workflow that starts with a **Webhook** trigger and copy its URL.
 2. In Jira, go to **Project settings → Automation → Create rule**:
-   - **Trigger**: *Issue transitioned* to **Done** (or *Issue resolved*).
-   - **Action**: *Send web request* → method `POST`, URL = your workflow webhook URL, body includes the issue key and OneUptime incident id, e.g.:
+
+   - **Trigger**: _Issue transitioned_ to **Done** (or _Issue resolved_).
+   - **Action**: _Send web request_ → method `POST`, URL = your workflow webhook URL, body includes the issue key and OneUptime incident id, e.g.:
 
      ```json
      { "issueKey": "{{issue.key}}", "status": "resolved" }
@@ -121,16 +124,20 @@ To discover the exact field names a project expects, call Jira's `GET /rest/api/
 ## Troubleshooting
 
 **`401 Unauthorized`.**
+
 - Re-encode `email:api_token` and update the `JIRA_AUTH` variable. A trailing newline is the usual culprit — use `printf` (not `echo`) when encoding.
 - Confirm the account owning the API token can create issues in the project.
 
 **`400 Bad Request` mentioning a field.**
+
 - The issue type or a required field is wrong. Check the project's **issue type** name and whether it has required custom fields. Use `createmeta` (above) to see what's mandatory.
 
 **`404 Not Found`.**
+
 - Double-check the base URL and that you're hitting `/rest/api/3/issue` (Cloud) or `/rest/api/2/issue` (Server/Data Center).
 
 **The description shows as a single line / looks odd.**
+
 - v3 requires the Atlassian Document Format shown above. If you'd rather send plain text, use the `/rest/api/2/issue` endpoint with `"description": "{{Incident.description}}"` as a plain string.
 
 ## Where to read next

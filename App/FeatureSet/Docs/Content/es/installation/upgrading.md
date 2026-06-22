@@ -173,7 +173,6 @@ DROP TABLE IF EXISTS MetricItemAggMV1mByHost_backup SETTINGS max_table_size_to_d
 
 > Consejo: como en toda actualización mayor, pruebe primero en un entorno de staging y confirme que la telemetría fluye hacia las tablas nuevas antes de confiar en la copia en producción.
 
-
 ## Actualización de OneUptime 9 → 10
 
 No hay cambios que requieran acción manual. Simplemente sigue el proceso de actualización estándar.
@@ -187,7 +186,6 @@ El gráfico Helm ya no aprovisiona un recurso Kubernetes Ingress. OneUptime incl
 - Verifica que cualquier registro DNS para páginas de estado o hosts principales aún apunte al Servicio o balanceador de carga que está frente a la puerta de enlace de ingreso de OneUptime.
 - Después de la actualización, confirma que los certificados TLS continúen renovándose a través de la puerta de enlace integrada y que los dominios de las páginas de estado se resuelvan correctamente.
 
-
 ## Actualización de OneUptime 7 → 8
 
 Si estás ejecutando en Kubernetes, hay cambios importantes que rompen la compatibilidad:
@@ -195,6 +193,5 @@ Si estás ejecutando en Kubernetes, hay cambios importantes que rompen la compat
 - Ya no usamos gráficos de Bitnami para Postgres, Redis y ClickHouse debido a [cambios en la licencia de Bitnami](https://github.com/bitnami/charts/issues/35164)
 - Estos cambios no son compatibles con versiones anteriores. Debes seguir la nueva estructura en el `values.yaml` del gráfico Helm.
 - Realiza una copia de seguridad de tus datos (Postgres, ClickHouse y cualquier volumen persistente) antes de actualizar.
-
 
 > Consejo: Prueba la actualización en un entorno de staging primero. Confirma que tus cargas de trabajo están saludables y que los datos están intactos antes de actualizar en producción.

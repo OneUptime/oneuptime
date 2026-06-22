@@ -5,20 +5,25 @@ Der OneUptime Terraform-Provider ermöglicht die Infrastructure-as-Code (IaC)-Ve
 ## Dokumentationsabschnitte
 
 ### [Erste Schritte](./quick-start.md)
+
 Schnelleinrichtungsanleitung, um in wenigen Minuten mit dem OneUptime Terraform-Provider loszulegen.
 
 ### [Vollständige Provider-Anleitung](./complete-guide.md)
+
 Umfassende Dokumentation zu Installation, Konfiguration, Ressourcen und Best Practices.
 
 ### [Selbst gehostete Konfiguration](./self-hosted.md)
+
 **Kritisch für selbst gehostete Kunden**: Versions-Pinning, Kompatibilität und Bereitstellungsstrategien.
 
 ### [Beispiele](./examples.md)
+
 Praxisnahe Beispiele und Muster für häufige OneUptime-Terraform-Konfigurationen.
 
 ## Schnelllinks
 
 ### Für OneUptime-Cloud-Kunden
+
 ```hcl
 terraform {
   required_providers {
@@ -36,6 +41,7 @@ provider "oneuptime" {
 ```
 
 ### Für selbst gehostete Kunden
+
 ```hcl
 terraform {
   required_providers {

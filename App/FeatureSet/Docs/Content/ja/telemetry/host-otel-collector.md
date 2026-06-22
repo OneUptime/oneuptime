@@ -9,13 +9,13 @@
 - [`journaldreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/journaldreceiver) による **systemd ジャーナル**（Linux）
 - tail した `log stream` の出力をラップする [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor) による **Apple Unified Log**（macOS）
 - [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver) による **Windows イベントログ**
-- [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) による **Windows サービスのステータス**（ホストの **Services** タブを支えます） — *アップストリームのビルド済みコレクターには含まれていません。ビルド済みの **OneUptime Host Collector** か、カスタムビルドを使用してください（下記の「Windows サービス（メトリクス）」を参照）*
+- [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) による **Windows サービスのステータス**（ホストの **Services** タブを支えます） — _アップストリームのビルド済みコレクターには含まれていません。ビルド済みの **OneUptime Host Collector** か、カスタムビルドを使用してください（下記の「Windows サービス（メトリクス）」を参照）_
 
-> **OneUptime Infrastructure Agent はどうなのか？** そのエージェントは、基本的なメトリクスと *Server / VM Monitor* 機能（ステータス、プロセス、アラート）に特化した、独立した軽量の Go デーモンです。ここで説明している OpenTelemetry Collector はそれとは独立しており、ログ（ファイルログ、journald、Windows イベントログ）やより充実したホストメトリクスを標準的な OTLP として取り込みたい場合に適したツールです。両者は同じホスト上で互いに干渉することなく実行できます。
+> **OneUptime Infrastructure Agent はどうなのか？** そのエージェントは、基本的なメトリクスと _Server / VM Monitor_ 機能（ステータス、プロセス、アラート）に特化した、独立した軽量の Go デーモンです。ここで説明している OpenTelemetry Collector はそれとは独立しており、ログ（ファイルログ、journald、Windows イベントログ）やより充実したホストメトリクスを標準的な OTLP として取り込みたい場合に適したツールです。両者は同じホスト上で互いに干渉することなく実行できます。
 
 ## 前提条件
 
-- **OneUptime Telemetry Ingestion Token** — *Project Settings → Telemetry Ingestion Keys* から作成し、`x-oneuptime-token` の値をコピーします。
+- **OneUptime Telemetry Ingestion Token** — _Project Settings → Telemetry Ingestion Keys_ から作成し、`x-oneuptime-token` の値をコピーします。
 - **OpenTelemetry Collector Contrib** ディストリビューション（`otelcol-contrib`）。デフォルトの `otelcol` ビルドには `windowseventlogreceiver`、`journaldreceiver`、`hostmetrics` の追加機能などのレシーバーは**含まれていません** — 必ず `contrib` ディストリビューションを使用してください。あらかじめ知っておくべき例外が 1 つあります。Windows の **Services** タブを支える alpha の `windowsservicereceiver` は、アップストリームのビルド済み `contrib` バイナリには**同梱されていません** — それを含むビルド済みの **OneUptime Host Collector** を使用するか、ご自身でビルドしてください。下記の「Windows サービス（メトリクス）」を参照してください。
 - コレクターをサービスとしてインストールし、（該当する場合は）権限が必要なログソースを読み取るための、ホスト上の Root / Administrator 権限。
 
@@ -87,10 +87,10 @@ Expand-Archive -Path $zip -DestinationPath $dest -Force
 
 設定ファイルは以下の場所に置かれます。
 
-| OS | パス |
-|---|---|
-| Linux | `/etc/otelcol-contrib/config.yaml` |
-| macOS | `/etc/otelcol-contrib/config.yaml` |
+| OS      | パス                                                  |
+| ------- | ----------------------------------------------------- |
+| Linux   | `/etc/otelcol-contrib/config.yaml`                    |
+| macOS   | `/etc/otelcol-contrib/config.yaml`                    |
 | Windows | `C:\Program Files\OneUptimeHostCollector\config.yaml` |
 
 どの設定も同じ形をしています — 必要なレシーバーを選び、`batch` プロセッサと `resource` プロセッサを追加し、OTLP HTTP 経由で OneUptime にエクスポートします。以下の例では、OS ごとに完全でコピー＆ペースト可能な設定を示し、その後に各レシーバーブロックを順に説明するので、自由に組み合わせられます。
@@ -223,7 +223,7 @@ receivers:
       - type: json_parser
         timestamp:
           parse_from: attributes.timestamp
-          layout: '%Y-%m-%d %H:%M:%S.%f%j'
+          layout: "%Y-%m-%d %H:%M:%S.%f%j"
 ```
 
 （Unified Log が不要な場合はこれをスキップしてください — Mac のフリートは、ホストメトリクスといくつかのファイルログだけで問題なく動作することがよくあります。）
@@ -250,18 +250,18 @@ receivers:
 大量のイベントが発生する `Security` チャンネルを特定のイベント ID に絞り込むには次のようにします。
 
 ```yaml
-  windowseventlog/security:
-    channel: Security
-    start_at: end
-    query: "*[System[(EventID=4625 or EventID=4740)]]"
+windowseventlog/security:
+  channel: Security
+  start_at: end
+  query: "*[System[(EventID=4625 or EventID=4740)]]"
 ```
 
-カスタムまたはアプリケーション固有のチャンネル（*Event Viewer → Applications and Services Logs* 配下に表示されるもの）を読み取るには、その正確な表示名を使用します。
+カスタムまたはアプリケーション固有のチャンネル（_Event Viewer → Applications and Services Logs_ 配下に表示されるもの）を読み取るには、その正確な表示名を使用します。
 
 ```yaml
-  windowseventlog/iis:
-    channel: Microsoft-IIS-Logging/Logs
-    start_at: end
+windowseventlog/iis:
+  channel: Microsoft-IIS-Logging/Logs
+  start_at: end
 ```
 
 ### Windows サービス（メトリクス）
@@ -597,10 +597,10 @@ OpenTelemetry Collector は、標準の `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY
 - **OneUptime にテレメトリが表示されない**
   - 詳細な出力を得るために、設定に `service.telemetry.logs.level: debug` を追加してコレクターを再起動します。
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f`（Linux）または `tail -f /var/log/otelcol-contrib.err.log`（macOS）。
-  - **Windows:** *Event Viewer → Windows Logs → Application* でソース `otelcol-contrib` を確認します。
+  - **Windows:** _Event Viewer → Windows Logs → Application_ でソース `otelcol-contrib` を確認します。
   - ホストが `https://oneuptime.com/otlp`（またはセルフホストのエンドポイント）に到達できることを確認します。同じマシンから `curl -v https://oneuptime.com/otlp` を実行します。
-- **エクスポーターから HTTP 401 が返る** — 取り込みトークンが無効か失効しています。*Project Settings → Telemetry Ingestion Keys* から新しいものを生成してください。
-- **`Security` の Windows イベントログでアクセス拒否が返る** — サービスが十分な権限で実行されていません。`LocalSystem`（`sc.exe create` のデフォルト）の下で再作成するか、サービスアカウントに *Manage auditing and security log*（監査とセキュリティログの管理）ユーザー権利を付与してください。
+- **エクスポーターから HTTP 401 が返る** — 取り込みトークンが無効か失効しています。_Project Settings → Telemetry Ingestion Keys_ から新しいものを生成してください。
+- **`Security` の Windows イベントログでアクセス拒否が返る** — サービスが十分な権限で実行されていません。`LocalSystem`（`sc.exe create` のデフォルト）の下で再作成するか、サービスアカウントに _Manage auditing and security log_（監査とセキュリティログの管理）ユーザー権利を付与してください。
 - **`journald` レシーバーが起動に失敗する** — `journalctl` がコレクターの `PATH` 上にあること、および `/var/log/journal` が存在することを確認してください（存在しない場合は `sudo systemd-tmpfiles --create --prefix /var/log/journal` を実行）。
 - **大量データ / コスト** — レシーバーを絞り込むか（特定の Windows チャンネル、特定の systemd ユニット、特定のログファイル）、Windows イベントログレシーバーに `query:` フィルターを追加するか、エクスポート前に低重要度のイベントを破棄する `filter` プロセッサを追加します。
 

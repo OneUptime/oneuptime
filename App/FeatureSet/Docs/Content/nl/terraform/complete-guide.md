@@ -98,10 +98,10 @@ provider "oneuptime" {
 
 ### Configuratie-opties
 
-| Argument | Omgevingsvariabele | Beschrijving | Vereist |
-|----------|---------------------|-------------|----------|
-| `oneuptime_url` | `ONEUPTIME_URL` | OneUptime-URL | Ja |
-| `api_key` | `ONEUPTIME_API_KEY` | OneUptime API-sleutel | Ja |
+| Argument        | Omgevingsvariabele  | Beschrijving          | Vereist |
+| --------------- | ------------------- | --------------------- | ------- |
+| `oneuptime_url` | `ONEUPTIME_URL`     | OneUptime-URL         | Ja      |
+| `api_key`       | `ONEUPTIME_API_KEY` | OneUptime API-sleutel | Ja      |
 
 ## Snel starten
 
@@ -195,11 +195,11 @@ terraform {
 
 **Kritiek**: Zelf-gehoste klanten moeten de providerversie vastzetten zodat deze overeenkomt met hun OneUptime-installatie:
 
-| OneUptime-versie | Providerversie | Configuratie |
-|-------------------|------------------|---------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| 7.2.x | 7.2.x | `version = "~> 7.2.0"` |
+| OneUptime-versie | Providerversie | Configuratie           |
+| ---------------- | -------------- | ---------------------- |
+| 7.0.x            | 7.0.x          | `version = "~> 7.0.0"` |
+| 7.1.x            | 7.1.x          | `version = "~> 7.1.0"` |
+| 7.2.x            | 7.2.x          | `version = "~> 7.2.0"` |
 
 Voorbeeld voor OneUptime 7.0.123:
 
@@ -219,26 +219,33 @@ terraform {
 De OneUptime Terraform-provider ondersteunt de volgende resources:
 
 ### Kernresources
+
 - `oneuptime_team` - Teams beheren
 
 ### Monitoring
+
 - `oneuptime_monitor` - Monitors aanmaken en beheren
 - `oneuptime_probe` - Monitoringprobes beheren
 
 ### Piketbeheer
+
 - `oneuptime_on_call_duty_policy` - Piketschema's instellen
 
 ### Statuspagina's
+
 - `oneuptime_status_page` - Statuspagina's aanmaken
 
 ### Servicecatalogus
+
 - `oneuptime_service_catalog` - Servicecatalogusitems beheren
 
 ### Diensten
+
 - `oneuptime_service` - Diensten definiëren
 - `oneuptime_service_dependency` - Dienstafhankelijkheden in kaart brengen
 
 ### Gegevensbronnen
+
 Opmerking: Gegevensbronnen zijn momenteel niet beschikbaar in de provider.
 
 ## Best practices
@@ -246,10 +253,12 @@ Opmerking: Gegevensbronnen zijn momenteel niet beschikbaar in de provider.
 ### 1. Versiebeheer
 
 **Voor cloudklanten:**
+
 - Gebruik semantisch versiebeheer met `~>` om compatibele updates te ontvangen
 - Bekijk het wijzigingenlogboek voor grote versie-upgrades
 
 **Voor zelf-gehoste klanten:**
+
 - Zet altijd vast op de exacte versie die overeenkomt met uw installatie
 - Werk de providerversie bij wanneer u OneUptime upgradet
 - Test eerst in een niet-productieomgeving
@@ -384,15 +393,19 @@ terraform apply
 ### Veelgebruikte problemen
 
 1. **Versie-mismatch (zelf-gehost)**
+
    ```
    Error: API version incompatible
    ```
+
    **Oplossing**: Zorg dat de providerversie overeenkomt met de OneUptime-installatie
 
 2. **Authenticatieproblemen**
+
    ```
    Error: Invalid API key
    ```
+
    **Oplossing**: Verifieer de API-sleutel en machtigingen
 
 3. **Resource niet gevonden**

@@ -113,6 +113,7 @@ flowchart TB
 ```
 
 ## Cosa Mostra
+
 - Gli utenti finali accedono a OneUptime tramite l'Ingress del cluster (NGINX), che instrada verso l'UI e l'API.
 - I servizi core leggono/scrivono lo stato su PostgreSQL, Redis e ClickHouse.
 - I Probe possono essere eseguiti all'interno del cluster (consigliato) e/o altrove nella propria rete. Possono monitorare:

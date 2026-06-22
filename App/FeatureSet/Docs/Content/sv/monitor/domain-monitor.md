@@ -24,16 +24,16 @@ Domänmonitorer frågar WHOIS-data för dina domäner för att spåra registreri
 
 ### Grundinställningar
 
-| Fält | Beskrivning | Obligatorisk |
-|------|-------------|--------------|
-| Domännamn | Domänen att övervaka (t.ex. `example.com`) | Ja |
+| Fält      | Beskrivning                                | Obligatorisk |
+| --------- | ------------------------------------------ | ------------ |
+| Domännamn | Domänen att övervaka (t.ex. `example.com`) | Ja           |
 
 ### Avancerade inställningar
 
-| Fält | Beskrivning | Standard |
-|------|-------------|----------|
-| Timeout (ms) | Hur länge man väntar på ett WHOIS-svar | 10000 |
-| Återförsök | Antal återförsök vid fel | 3 |
+| Fält         | Beskrivning                            | Standard |
+| ------------ | -------------------------------------- | -------- |
+| Timeout (ms) | Hur länge man väntar på ett WHOIS-svar | 10000    |
+| Återförsök   | Antal återförsök vid fel               | 3        |
 
 ## Övervakningskriterier
 
@@ -41,13 +41,13 @@ Du kan konfigurera kriterier för att avgöra när din domän anses vara online,
 
 ### Tillgängliga kontrolltyper
 
-| Kontrolltyp | Beskrivning |
-|------------|-------------|
+| Kontrolltyp               | Beskrivning                                    |
+| ------------------------- | ---------------------------------------------- |
 | Domänen löper ut om dagar | Antal dagar tills domänregistreringen löper ut |
-| Domänregistrator | Registratorns namn |
-| Domänens namnserver | Namnserver-värdnamn för domänen |
-| Domänstatuskod | WHOIS-domänstatuskoder |
-| Domänen är utgången | Om domänen har löpt ut |
+| Domänregistrator          | Registratorns namn                             |
+| Domänens namnserver       | Namnserver-värdnamn för domänen                |
+| Domänstatuskod            | WHOIS-domänstatuskoder                         |
+| Domänen är utgången       | Om domänen har löpt ut                         |
 
 ### Filtertyper
 

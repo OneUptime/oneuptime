@@ -22,6 +22,7 @@ import React, {
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -184,6 +185,10 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
       resourceIdField: "hostId",
     });
 
+  const { archiveBulkActions } = useBulkArchiveActions<Host>({
+    modelType: Host,
+  });
+
   const hostExtraFacets: Array<ResourceFacet> = [
     {
       key: "otelCollectorStatus",
@@ -307,7 +312,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         topContent={filterBar}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
-        query={mergeFiltersIntoQuery(undefined)}
+        query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<Host>) => {
           onResourcesFetched(data);
         }}
@@ -317,7 +322,11 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         showRefreshButton={true}
         searchableFields={["name", "description"]}
         bulkActions={{
-          buttons: [...labelBulkActions, ...ownerBulkActions],
+          buttons: [
+            ...labelBulkActions,
+            ...ownerBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         name="Hosts"
         isViewable={true}

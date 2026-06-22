@@ -40,46 +40,48 @@ You can copy this address from the monitor details page and configure your exter
 
 You can create criteria based on the following email fields:
 
-| Field | Description |
-|-------|-------------|
-| **Email Subject** | The subject line of the incoming email |
-| **Email From** | The sender's email address |
-| **Email Body** | The plain text content of the email body |
-| **Email To** | The recipient email address |
+| Field              | Description                                      |
+| ------------------ | ------------------------------------------------ |
+| **Email Subject**  | The subject line of the incoming email           |
+| **Email From**     | The sender's email address                       |
+| **Email Body**     | The plain text content of the email body         |
+| **Email To**       | The recipient email address                      |
 | **Email Received** | Time-based criteria for when emails are received |
 
 ## Available Filter Types
 
 ### String Filters (Subject, From, Body, To)
 
-| Filter | Description | Example |
-|--------|-------------|---------|
-| **Contains** | Field contains the specified text | Subject contains "CRITICAL" |
-| **Not Contains** | Field does not contain the specified text | Subject not contains "TEST" |
-| **Equals** | Field exactly matches the specified text | From equals "alerts@service.com" |
-| **Not Equals** | Field does not match the specified text | Subject not equals "OK" |
-| **Starts With** | Field starts with the specified text | Subject starts with "[ALERT]" |
-| **Ends With** | Field ends with the specified text | Subject ends with "- Production" |
-| **Is Empty** | Field is empty or blank | Body is empty |
-| **Is Not Empty** | Field has content | Subject is not empty |
+| Filter           | Description                               | Example                          |
+| ---------------- | ----------------------------------------- | -------------------------------- |
+| **Contains**     | Field contains the specified text         | Subject contains "CRITICAL"      |
+| **Not Contains** | Field does not contain the specified text | Subject not contains "TEST"      |
+| **Equals**       | Field exactly matches the specified text  | From equals "alerts@service.com" |
+| **Not Equals**   | Field does not match the specified text   | Subject not equals "OK"          |
+| **Starts With**  | Field starts with the specified text      | Subject starts with "[ALERT]"    |
+| **Ends With**    | Field ends with the specified text        | Subject ends with "- Production" |
+| **Is Empty**     | Field is empty or blank                   | Body is empty                    |
+| **Is Not Empty** | Field has content                         | Subject is not empty             |
 
 ### Time-Based Filters (Email Received)
 
-| Filter | Description | Example |
-|--------|-------------|---------|
-| **Received In Minutes** | Email was received within X minutes | Email received in 30 minutes |
-| **Not Received In Minutes** | No email received in X minutes | Email not received in 60 minutes |
+| Filter                      | Description                         | Example                          |
+| --------------------------- | ----------------------------------- | -------------------------------- |
+| **Received In Minutes**     | Email was received within X minutes | Email received in 30 minutes     |
+| **Not Received In Minutes** | No email received in X minutes      | Email not received in 60 minutes |
 
 ## Example Configurations
 
 ### Example 1: Create Alert on Critical Emails
 
 **Alert Creation Criteria:**
+
 - Email Subject **Contains** "CRITICAL"
 - OR Email Subject **Contains** "ALERT"
 - OR Email Subject **Contains** "ERROR"
 
 **Alert Resolution Criteria:**
+
 - Email Subject **Contains** "RESOLVED"
 - OR Email Subject **Contains** "OK"
 - OR Email Subject **Contains** "RECOVERED"
@@ -87,21 +89,25 @@ You can create criteria based on the following email fields:
 ### Example 2: Monitor Specific Sender
 
 **Alert Creation Criteria:**
+
 - Email From **Equals** "monitoring@legacy-system.com"
 - AND Email Subject **Contains** "Failed"
 
 **Alert Resolution Criteria:**
+
 - Email From **Equals** "monitoring@legacy-system.com"
 - AND Email Subject **Contains** "Success"
 
 ### Example 3: Heartbeat Monitor (No Email = Alert)
 
 **Alert Creation Criteria:**
+
 - Email Received **Not Received In Minutes** with value `60`
 
 This creates an alert if no email is received for 60 minutes - useful for monitoring scheduled jobs or batch processes that should send completion emails.
 
 **Alert Resolution Criteria:**
+
 - Email Received **Received In Minutes** with value `5`
 
 This resolves the alert when an email is received.
@@ -111,6 +117,7 @@ This resolves the alert when an email is received.
 ### Legacy System Integration
 
 Many older systems only support email-based alerting. Use Incoming Email Monitor to:
+
 - Convert email alerts into OneUptime incidents
 - Automatically resolve incidents when recovery emails arrive
 - Centralize alerting from multiple legacy systems
@@ -118,6 +125,7 @@ Many older systems only support email-based alerting. Use Incoming Email Monitor
 ### Third-Party Service Monitoring
 
 Integrate with services that send email notifications:
+
 - Cloud provider alerts (AWS, GCP, Azure)
 - Security scanning tools
 - Backup completion notifications
@@ -126,6 +134,7 @@ Integrate with services that send email notifications:
 ### Scheduled Job Monitoring
 
 Monitor batch jobs and scheduled tasks:
+
 - Create alerts if completion emails aren't received on time
 - Track job failures through error notification emails
 - Monitor data pipeline completions
@@ -133,6 +142,7 @@ Monitor batch jobs and scheduled tasks:
 ### Multi-Vendor Alert Aggregation
 
 Consolidate alerts from multiple monitoring tools:
+
 - Receive alerts from Nagios, Zabbix, or other tools via email
 - Unify incident management in OneUptime
 - Maintain a single source of truth for all alerts
@@ -141,17 +151,18 @@ Consolidate alerts from multiple monitoring tools:
 
 When configuring incident templates, you can use these variables from incoming emails:
 
-| Variable | Description |
-|----------|-------------|
-| `{{emailSubject}}` | The subject of the received email |
-| `{{emailFrom}}` | The sender's email address |
-| `{{emailTo}}` | The recipient email address |
-| `{{emailBody}}` | The plain text body of the email |
-| `{{emailReceivedAt}}` | When the email was received |
+| Variable              | Description                       |
+| --------------------- | --------------------------------- |
+| `{{emailSubject}}`    | The subject of the received email |
+| `{{emailFrom}}`       | The sender's email address        |
+| `{{emailTo}}`         | The recipient email address       |
+| `{{emailBody}}`       | The plain text body of the email  |
+| `{{emailReceivedAt}}` | When the email was received       |
 
 ## Monitor Summary View
 
 The monitor summary shows:
+
 - **Last Email Received At:** When the most recent email was received
 - **From:** The sender of the last email
 - **Subject:** The subject line of the last email

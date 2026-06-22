@@ -21,13 +21,11 @@ U kunt secrets gebruiken in de volgende monitoringtypen:
 - Synthetische monitor, Aangepaste code-monitor (in de code)
 - SNMP-monitor (in communitystring, SNMPv3 auth-sleutel en priv-sleutel)
 
-
 ![Secret gebruiken](/docs/static/images/UsingMonitorSecret.png)
 
 Om een secret te gebruiken, voegt u `{{monitorSecrets.SECRET_NAME}}` toe in het veld waar u het secret wilt gebruiken. In dit geval hebben we bijvoorbeeld `{{monitorSecrets.ApiKey}}` toegevoegd in het veld Verzoekheader.
 
 Secrets worden op de probe ingespoten voordat Synthetische of Aangepaste code-monitorscripts worden uitgevoerd, zodat verwijzingen zoals `{{monitorSecrets.ApiKey}}` worden omgezet naar de ontsleutelde waarde in het actieve script.
-
 
 ### Monitor Secret-machtigingen
 

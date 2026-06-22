@@ -67,15 +67,15 @@ sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --one
 
 Der Infrastruktur-Agent unterstützt die folgenden Befehle:
 
-| Befehl | Beschreibung |
-|---------|-------------|
+| Befehl      | Beschreibung                                                           |
+| ----------- | ---------------------------------------------------------------------- |
 | `configure` | Agent mit Ihrem geheimen Schlüssel und der OneUptime-URL konfigurieren |
-| `start` | Agent-Dienst starten |
-| `stop` | Agent-Dienst stoppen |
-| `restart` | Agent-Dienst neu starten |
-| `status` | Aktuellen Dienststatus anzeigen |
-| `logs` | Agent-Logs anzeigen (mit `-n` für Zeilenanzahl, `-f` zum Folgen) |
-| `uninstall` | Agent-Dienst deinstallieren |
+| `start`     | Agent-Dienst starten                                                   |
+| `stop`      | Agent-Dienst stoppen                                                   |
+| `restart`   | Agent-Dienst neu starten                                               |
+| `status`    | Aktuellen Dienststatus anzeigen                                        |
+| `logs`      | Agent-Logs anzeigen (mit `-n` für Zeilenanzahl, `-f` zum Folgen)       |
+| `uninstall` | Agent-Dienst deinstallieren                                            |
 
 ## Erfasste Metriken
 
@@ -115,15 +115,15 @@ Sie können Kriterien konfigurieren, um zu bestimmen, wann Ihr Server als online
 
 ### Verfügbare Prüftypen
 
-| Prüftyp | Beschreibung |
-|------------|-------------|
-| Ist online | Ob der Server-Agent berichtet (basierend auf Heartbeat) |
-| CPU-Auslastung in Prozent | Aktuelle CPU-Auslastung in Prozent |
-| Arbeitsspeicher-Auslastung in Prozent | Aktuelle Arbeitsspeicher-Auslastung in Prozent |
-| Festplatten-Auslastung in Prozent | Aktuelle Festplatten-Auslastung in Prozent (für einen bestimmten Festplattenpfad) |
-| Server-Prozessname | Prüfen, ob ein Prozess mit einem bestimmten Namen läuft |
-| Server-Prozessbefehl | Prüfen, ob ein Prozess mit einem bestimmten Befehl läuft |
-| Server-Prozess-PID | Prüfen, ob ein Prozess mit einer bestimmten PID läuft |
+| Prüftyp                               | Beschreibung                                                                      |
+| ------------------------------------- | --------------------------------------------------------------------------------- |
+| Ist online                            | Ob der Server-Agent berichtet (basierend auf Heartbeat)                           |
+| CPU-Auslastung in Prozent             | Aktuelle CPU-Auslastung in Prozent                                                |
+| Arbeitsspeicher-Auslastung in Prozent | Aktuelle Arbeitsspeicher-Auslastung in Prozent                                    |
+| Festplatten-Auslastung in Prozent     | Aktuelle Festplatten-Auslastung in Prozent (für einen bestimmten Festplattenpfad) |
+| Server-Prozessname                    | Prüfen, ob ein Prozess mit einem bestimmten Namen läuft                           |
+| Server-Prozessbefehl                  | Prüfen, ob ein Prozess mit einem bestimmten Befehl läuft                          |
+| Server-Prozess-PID                    | Prüfen, ob ein Prozess mit einer bestimmten PID läuft                             |
 
 ### Filtertypen
 

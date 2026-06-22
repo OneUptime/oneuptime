@@ -27,20 +27,23 @@ For at integrere Microsoft Teams med din selvhostede OneUptime-instans skal du k
 2. Klik på "Add a permission" og vælg "Microsoft Graph"
 
 **Tilføj delegerede tilladelser** (når du handler på vegne af en logget ind bruger):
-   - **User.Read** – Kræves for at hente den autentificerede brugers profiloplysninger (visningsnavn, e-mail) under OAuth-flowet
-   - **Team.ReadBasic.All** – Kræves for at liste teams, som brugeren er medlem af, når den forbundne team vælges
-   - **Channel.ReadBasic.All** – Kræves for at læse kanaloplysninger og liste kanaler inden for teams til levering af notifikationer
-   - **ChannelMessage.Send** – Kræves for at sende alert- og incidentnotifikationer til Teams-kanaler
+
+- **User.Read** – Kræves for at hente den autentificerede brugers profiloplysninger (visningsnavn, e-mail) under OAuth-flowet
+- **Team.ReadBasic.All** – Kræves for at liste teams, som brugeren er medlem af, når den forbundne team vælges
+- **Channel.ReadBasic.All** – Kræves for at læse kanaloplysninger og liste kanaler inden for teams til levering af notifikationer
+- **ChannelMessage.Send** – Kræves for at sende alert- og incidentnotifikationer til Teams-kanaler
 
 **Tilføj applikationstilladelser** (når du handler som selve appen, uden logget ind bruger):
-   - **Team.ReadBasic.All** – Kræves for at liste alle teams i organisationen efter admin-samtykke er givet
-   - **Channel.ReadBasic.All** – Kræves for at verificere kanaleksistens og hente kanaldetaljer
-   - **ChannelMessage.Send** – Kræves for at sende meddelelser til kanaler programmatisk
+
+- **Team.ReadBasic.All** – Kræves for at liste alle teams i organisationen efter admin-samtykke er givet
+- **Channel.ReadBasic.All** – Kræves for at verificere kanaleksistens og hente kanaldetaljer
+- **ChannelMessage.Send** – Kræves for at sende meddelelser til kanaler programmatisk
 
 **Bemærk:** Bot Framework håndterer meddelelseslevering ved hjælp af Resource-Specific Consent (RSC)-tilladelser defineret i Teams-app-manifestet. Disse tilladelser er:
-   - **ChannelMessage.Send.Group** – Giver bot'en mulighed for at sende meddelelser til teamkanaler
-   - **ChannelMessage.Read.Group** – Giver bot'en mulighed for at læse kanalmeddelelser til interaktive kommandoer
-   - **Channel.Create.Group** – Giver bot'en mulighed for at oprette kanaler, når det er nødvendigt
+
+- **ChannelMessage.Send.Group** – Giver bot'en mulighed for at sende meddelelser til teamkanaler
+- **ChannelMessage.Read.Group** – Giver bot'en mulighed for at læse kanalmeddelelser til interaktive kommandoer
+- **Channel.Create.Group** – Giver bot'en mulighed for at oprette kanaler, når det er nødvendigt
 
 3. Klik på "Grant admin consent" for din organisation
 
@@ -57,6 +60,7 @@ For at integrere Microsoft Teams med din selvhostede OneUptime-instans skal du k
 
 1. I Azure Portal skal du navigere til "Azure Bot" og klikke på "Create"
 2. Udfyld bot-oprettelsesformularen:
+
    - **Bot-handle:** oneuptime-bot
    - **Abonnement:** Dit Azure-abonnement
    - **Ressourcegruppe:** Opret en ny eller brug en eksisterende

@@ -24,12 +24,12 @@ All das bauen Sie visuell auf einer Arbeitsfläche zusammen. Für die meisten Wo
 
 ## Wichtige Begriffe
 
-| Begriff | Bedeutung |
-| --- | --- |
-| **Workflow** | Die gesamte Automatisierung – ein Name, eine Arbeitsfläche und ein Schalter zum Ein- oder Ausschalten. |
-| **Auslöser** | Der erste Baustein. Er bestimmt, wann der Workflow läuft. Jeder Workflow hat genau einen Auslöser. |
-| **Komponente** | Ein Aktionsbaustein – sendet eine Nachricht, stellt eine Anfrage, prüft eine Bedingung. |
-| **Ausführung** | Eine einzelne Ausführung des Workflows. Mit Zeitstempeln und der Ausgabe jedes Bausteins gespeichert. |
+| Begriff              | Bedeutung                                                                                                  |
+| -------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Workflow**         | Die gesamte Automatisierung – ein Name, eine Arbeitsfläche und ein Schalter zum Ein- oder Ausschalten.     |
+| **Auslöser**         | Der erste Baustein. Er bestimmt, wann der Workflow läuft. Jeder Workflow hat genau einen Auslöser.         |
+| **Komponente**       | Ein Aktionsbaustein – sendet eine Nachricht, stellt eine Anfrage, prüft eine Bedingung.                    |
+| **Ausführung**       | Eine einzelne Ausführung des Workflows. Mit Zeitstempeln und der Ausgabe jedes Bausteins gespeichert.      |
 | **Globale Variable** | Ein Wert (zum Beispiel ein API-Schlüssel), den Sie einmal speichern und in jedem Workflow wiederverwenden. |
 
 ## Wo Sie Workflows in OneUptime finden

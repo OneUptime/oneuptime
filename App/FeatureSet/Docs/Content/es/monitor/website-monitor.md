@@ -32,10 +32,10 @@ Al monitorear URLs detrás de CDNs o proxies de caché, el monitor puede recibir
 
 #### Marcadores de posición compatibles
 
-| Marcador de posición | Descripción | Valor de ejemplo |
-|-------------|-------------|---------------|
-| `{{timestamp}}` | Se reemplaza con la marca de tiempo Unix actual (segundos) | `1719500000` |
-| `{{random}}` | Se reemplaza con una cadena única aleatoria | `a3f8b2c1d4e5f6a7b8c9d0e1f2a3b4c5` |
+| Marcador de posición | Descripción                                                | Valor de ejemplo                   |
+| -------------------- | ---------------------------------------------------------- | ---------------------------------- |
+| `{{timestamp}}`      | Se reemplaza con la marca de tiempo Unix actual (segundos) | `1719500000`                       |
+| `{{random}}`         | Se reemplaza con una cadena única aleatoria                | `a3f8b2c1d4e5f6a7b8c9d0e1f2a3b4c5` |
 
 #### Ejemplo
 
@@ -75,7 +75,7 @@ If your endpoint requires mutual TLS authentication, enable **Use client certifi
 
 - **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
 - **Client Private Key (PEM)** — the matching PEM-encoded private key.
-- **Client Private Key Passphrase** *(optional)* — required only if the private key is encrypted.
+- **Client Private Key Passphrase** _(optional)_ — required only if the private key is encrypted.
 
 This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
 

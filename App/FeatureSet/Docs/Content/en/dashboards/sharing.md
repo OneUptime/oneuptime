@@ -82,9 +82,12 @@ Branding applies only when the dashboard is viewed publicly. Internal viewers al
 You can embed a public dashboard in your own site with an iframe:
 
 ```html
-<iframe src="https://dashboard.acme.com/view"
-        width="100%" height="800"
-        frameborder="0"></iframe>
+<iframe
+  src="https://dashboard.acme.com/view"
+  width="100%"
+  height="800"
+  frameborder="0"
+></iframe>
 ```
 
 If the dashboard has a master password, visitors will see the password prompt inside the iframe.

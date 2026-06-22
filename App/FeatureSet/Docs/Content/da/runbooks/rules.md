@@ -10,14 +10,14 @@ Alle tre sider redigerer den samme underliggende regelmodel — de er bare filtr
 
 ## Anatomi af en regel
 
-| Felt | Formål |
-| --- | --- |
-| **Navn** | Kort, læsbart label. Vises i revisionslogs. |
-| **Beskrivelse** | Valgfri kontekst til kolleger. |
-| **Aktiveret** | Slå til/fra for at suspendere en regel uden at slette den. |
-| **Titelmønster** | Case-uafhængigt regex matchet mod entitetens titel. Tom = match alle titler. |
-| **Beskrivelsesmønster** | Case-uafhængigt regex matchet mod entitetens beskrivelse. Tom = match alle beskrivelser. |
-| **Runbooks der skal startes** | Et eller flere runbooks der startes, når reglen udløses. |
+| Felt                          | Formål                                                                                   |
+| ----------------------------- | ---------------------------------------------------------------------------------------- |
+| **Navn**                      | Kort, læsbart label. Vises i revisionslogs.                                              |
+| **Beskrivelse**               | Valgfri kontekst til kolleger.                                                           |
+| **Aktiveret**                 | Slå til/fra for at suspendere en regel uden at slette den.                               |
+| **Titelmønster**              | Case-uafhængigt regex matchet mod entitetens titel. Tom = match alle titler.             |
+| **Beskrivelsesmønster**       | Case-uafhængigt regex matchet mod entitetens beskrivelse. Tom = match alle beskrivelser. |
+| **Runbooks der skal startes** | Et eller flere runbooks der startes, når reglen udløses.                                 |
 
 ## Match-semantik
 

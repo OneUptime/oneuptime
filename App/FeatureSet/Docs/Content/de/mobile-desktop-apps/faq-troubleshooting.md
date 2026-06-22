@@ -91,37 +91,44 @@ Die PWA wird automatisch aktualisiert, sobald Sie sie online öffnen. Um ein Upd
 ### Probleme mit der mobilen App
 
 **App lässt sich nicht anmelden / „Netzwerkfehler":**
+
 - Vergewissern Sie sich, dass die **Server-URL** korrekt und von Ihrem Telefon aus erreichbar ist.
 - Prüfen Sie, ob Ihr Telefon mit dem Internet verbunden ist.
 - Bei selbst gehosteten Instanzen hinter einem VPN stellen Sie sicher, dass das VPN aktiv ist.
 
 **Push-Benachrichtigungen verzögert oder fehlend (Android):**
+
 - Deaktivieren Sie die Akkuoptimierung: **Einstellungen → Apps → OneUptime On-Call → Akku → Unbeschränkt**.
 - Deaktivieren Sie den Datensparmodus für die App.
 - Schalten Sie auf Samsung-Geräten unter **Gerätewartung → Akku → Begrenzungen für Hintergrundaktivität** die Begrenzung für OneUptime On-Call aus.
 
 **Push-Benachrichtigungen verzögert oder fehlend (iOS):**
+
 - Vermeiden Sie es, die App per „Sofort beenden" zu beenden — iOS kann die Hintergrundzustellung pausieren.
 - Deaktivieren Sie den Stromsparmodus, während Sie im Bereitschaftsdienst sind.
 - Fügen Sie OneUptime On-Call zur Erlaubnisliste eines aktiven Fokus-Modus hinzu.
 
 **Face ID / Touch ID / Fingerabdruck funktioniert nicht:**
+
 - Stellen Sie sicher, dass Biometrie in den Einstellungen Ihres Betriebssystems eingerichtet ist.
 - Aktivieren Sie die biometrische Entsperrung erneut im **Einstellungen**-Bildschirm innerhalb der OneUptime On-Call-App.
 
 ### Probleme mit der Desktop-App (PWA)
 
 **Schaltfläche „Installieren" fehlt:**
+
 - Verwenden Sie einen unterstützten Browser (Chromium-basiert oder Safari auf macOS Sonoma oder neuer).
 - Stellen Sie sicher, dass die OneUptime-Instanz über HTTPS bereitgestellt wird.
 - Warten Sie, bis die Seite vollständig geladen ist, und prüfen Sie dann die Adressleiste auf das Installationssymbol.
 
 **Desktop-Benachrichtigungen erscheinen nicht:**
+
 - Erlauben Sie Benachrichtigungen, wenn der Browser danach fragt.
 - Überprüfen Sie die Benachrichtigungseinstellungen Ihres Betriebssystems (Windows Benachrichtigungsassistent, macOS Mitteilungen, Linux Benachrichtigungs-Daemon).
 - Stellen Sie bei selbst gehosteten Instanzen sicher, dass die Konfiguration für [Push Notifications](/docs/self-hosted/push-notifications) vollständig ist.
 
 **App zeigt nicht die neuesten Daten an:**
+
 - Aktualisieren Sie mit **Strg+R** / **Cmd+R**.
 - Schließen Sie das Fenster und öffnen Sie es erneut.
 - Überprüfen Sie Ihre Netzwerkverbindung.

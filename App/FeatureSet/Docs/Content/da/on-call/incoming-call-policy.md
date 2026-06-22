@@ -178,11 +178,11 @@ flowchart TD
     end
 ```
 
-| Rækkefølge | Eskaler efter | Mål |
-|-------|----------------|--------|
-| 1 | 30 sekunder | Primær vagtplan |
-| 2 | 30 sekunder | Sekundær vagtplan |
-| 3 | 30 sekunder | Ingeniørteamets leder |
+| Rækkefølge | Eskaler efter | Mål                   |
+| ---------- | ------------- | --------------------- |
+| 1          | 30 sekunder   | Primær vagtplan       |
+| 2          | 30 sekunder   | Sekundær vagtplan     |
+| 3          | 30 sekunder   | Ingeniørteamets leder |
 
 ## Trin 7: Konfigurer stemmebeskeder (valgfrit)
 
@@ -199,23 +199,23 @@ Tilpas de beskeder, opkaldere hører:
 
 ### Politikindstillinger
 
-| Indstilling | Beskrivelse | Standard |
-|---------|-------------|---------|
-| Hilsenbesked | TTS-besked afspillet, når opkaldet besvares | "Vent venligst mens vi forbinder dig til vagthavende ingeniør." |
-| Besked om intet svar | Besked, når alle eskaleringsregler fejler | "Ingen er tilgængelig. Prøv venligst igen senere." |
-| Ingen vagthavende ingeniør tilgængelig-besked | Besked, når ingen er på vagt | "Vi beklager, men ingen vagthavende ingeniør er i øjeblikket tilgængelig." |
-| Gentag politik, hvis ingen svarer | Genstart fra første regel, hvis alle fejler | Deaktiveret |
-| Gentag politik antal gange | Maks. antal genforsøg | 1 |
+| Indstilling                                   | Beskrivelse                                 | Standard                                                                   |
+| --------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------- |
+| Hilsenbesked                                  | TTS-besked afspillet, når opkaldet besvares | "Vent venligst mens vi forbinder dig til vagthavende ingeniør."            |
+| Besked om intet svar                          | Besked, når alle eskaleringsregler fejler   | "Ingen er tilgængelig. Prøv venligst igen senere."                         |
+| Ingen vagthavende ingeniør tilgængelig-besked | Besked, når ingen er på vagt                | "Vi beklager, men ingen vagthavende ingeniør er i øjeblikket tilgængelig." |
+| Gentag politik, hvis ingen svarer             | Genstart fra første regel, hvis alle fejler | Deaktiveret                                                                |
+| Gentag politik antal gange                    | Maks. antal genforsøg                       | 1                                                                          |
 
 ### Eskaleringsregel-indstillinger
 
-| Indstilling | Beskrivelse |
-|---------|-------------|
-| Rækkefølge | Prioritetsrækkefølge (1 = højeste prioritet) |
+| Indstilling            | Beskrivelse                                         |
+| ---------------------- | --------------------------------------------------- |
+| Rækkefølge             | Prioritetsrækkefølge (1 = højeste prioritet)        |
 | Eskaler efter sekunder | Ventetid, inden næste regel prøves (standard: 30 s) |
-| Vagtplan | Diriger til den, der i øjeblikket er på vagt |
-| Teams | Diriger til alle medlemmer af valgte teams |
-| Brugere | Diriger til specifikke brugere |
+| Vagtplan               | Diriger til den, der i øjeblikket er på vagt        |
+| Teams                  | Diriger til alle medlemmer af valgte teams          |
+| Brugere                | Diriger til specifikke brugere                      |
 
 ## Visning af opkaldslogge
 
@@ -226,6 +226,7 @@ For at se historikken for indgående opkald:
 3. Gå til fanen **Opkaldslogge**
 
 Loggene viser:
+
 - Opkalderens telefonnummer
 - Opkaldsstatus (Gennemført, Intet svar, Mislykket osv.)
 - Hvem der besvarede opkaldet

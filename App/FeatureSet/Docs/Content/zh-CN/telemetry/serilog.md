@@ -24,11 +24,11 @@
 
 ## 你需要从 OneUptime 获取的信息
 
-| 设置项 | 值 |
-| --- | --- |
-| OTLP 端点 | `https://oneuptime.com/otlp` |
+| 设置项     | 值                                                  |
+| ---------- | --------------------------------------------------- |
+| OTLP 端点  | `https://oneuptime.com/otlp`                        |
 | 认证请求头 | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
-| 服务名称 | 你的服务应显示的名称，例如 `my-service` |
+| 服务名称   | 你的服务应显示的名称，例如 `my-service`             |
 
 > **自托管 OneUptime？** 将 `https://oneuptime.com/otlp` 替换为 `https://YOUR-ONEUPTIME-HOST/otlp`（如果你不进行 TLS 终止，则为 `http://...`）。其余所有内容保持不变。
 
@@ -109,7 +109,7 @@ finally
 ```json
 {
   "Serilog": {
-    "Using": [ "Serilog.Sinks.OpenTelemetry" ],
+    "Using": ["Serilog.Sinks.OpenTelemetry"],
     "MinimumLevel": "Information",
     "WriteTo": [
       {

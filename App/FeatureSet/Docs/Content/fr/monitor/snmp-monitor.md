@@ -23,11 +23,11 @@ Les moniteurs SNMP interrogent les périphériques réseau pour des informations
 
 ### Paramètres de base
 
-| Champ | Description | Obligatoire |
-|-------|-------------|-------------|
-| Version SNMP | Version du protocole : v1, v2c ou v3 | Oui |
-| Nom d'hôte/IP | Le nom d'hôte ou l'adresse IP du périphérique SNMP | Oui |
-| Port | Port SNMP (par défaut : 161) | Oui |
+| Champ         | Description                                        | Obligatoire |
+| ------------- | -------------------------------------------------- | ----------- |
+| Version SNMP  | Version du protocole : v1, v2c ou v3               | Oui         |
+| Nom d'hôte/IP | Le nom d'hôte ou l'adresse IP du périphérique SNMP | Oui         |
+| Port          | Port SNMP (par défaut : 161)                       | Oui         |
 
 ### Authentification
 
@@ -35,32 +35,32 @@ Les moniteurs SNMP interrogent les périphériques réseau pour des informations
 
 Pour SNMP v1 et v2c, vous n'avez besoin que de fournir une chaîne de communauté :
 
-| Champ | Description | Obligatoire |
-|-------|-------------|-------------|
-| Chaîne de communauté | La chaîne de communauté SNMP (ex. : « public ») | Oui |
+| Champ                | Description                                     | Obligatoire |
+| -------------------- | ----------------------------------------------- | ----------- |
+| Chaîne de communauté | La chaîne de communauté SNMP (ex. : « public ») | Oui         |
 
 #### SNMP v3
 
 SNMPv3 offre une sécurité renforcée avec authentification et chiffrement :
 
-| Champ | Description | Obligatoire |
-|-------|-------------|-------------|
-| Niveau de sécurité | noAuthNoPriv, authNoPriv ou authPriv | Oui |
-| Nom d'utilisateur | Nom d'utilisateur SNMPv3 | Oui |
-| Protocole d'authentification | MD5, SHA, SHA256 ou SHA512 | Si authNoPriv ou authPriv |
-| Clé d'authentification | Mot de passe d'authentification | Si authNoPriv ou authPriv |
-| Protocole de confidentialité | DES, AES ou AES256 | Si authPriv |
-| Clé de confidentialité | Mot de passe de confidentialité/chiffrement | Si authPriv |
+| Champ                        | Description                                 | Obligatoire               |
+| ---------------------------- | ------------------------------------------- | ------------------------- |
+| Niveau de sécurité           | noAuthNoPriv, authNoPriv ou authPriv        | Oui                       |
+| Nom d'utilisateur            | Nom d'utilisateur SNMPv3                    | Oui                       |
+| Protocole d'authentification | MD5, SHA, SHA256 ou SHA512                  | Si authNoPriv ou authPriv |
+| Clé d'authentification       | Mot de passe d'authentification             | Si authNoPriv ou authPriv |
+| Protocole de confidentialité | DES, AES ou AES256                          | Si authPriv               |
+| Clé de confidentialité       | Mot de passe de confidentialité/chiffrement | Si authPriv               |
 
 ### OID à surveiller
 
 Ajoutez les OID que vous souhaitez interroger depuis le périphérique. Pour chaque OID, vous pouvez spécifier :
 
-| Champ | Description | Obligatoire |
-|-------|-------------|-------------|
-| OID | L'OID numérique (ex. : 1.3.6.1.2.1.1.1.0) | Oui |
-| Nom | Un nom convivial pour l'OID (ex. : sysDescr) | Non |
-| Description | Une description de ce que représente cet OID | Non |
+| Champ       | Description                                  | Obligatoire |
+| ----------- | -------------------------------------------- | ----------- |
+| OID         | L'OID numérique (ex. : 1.3.6.1.2.1.1.1.0)    | Oui         |
+| Nom         | Un nom convivial pour l'OID (ex. : sysDescr) | Non         |
+| Description | Une description de ce que représente cet OID | Non         |
 
 ### Modèles OID courants
 
@@ -68,38 +68,38 @@ OneUptime fournit des modèles pour les OID couramment surveillés :
 
 #### MIB système
 
-| OID | Nom | Description |
-|-----|-----|-------------|
-| 1.3.6.1.2.1.1.1.0 | sysDescr | Description du système |
-| 1.3.6.1.2.1.1.3.0 | sysUpTime | Temps de fonctionnement du système (en ticks) |
-| 1.3.6.1.2.1.1.5.0 | sysName | Nom du système |
-| 1.3.6.1.2.1.1.6.0 | sysLocation | Emplacement du système |
-| 1.3.6.1.2.1.1.4.0 | sysContact | Contact du système |
+| OID               | Nom         | Description                                   |
+| ----------------- | ----------- | --------------------------------------------- |
+| 1.3.6.1.2.1.1.1.0 | sysDescr    | Description du système                        |
+| 1.3.6.1.2.1.1.3.0 | sysUpTime   | Temps de fonctionnement du système (en ticks) |
+| 1.3.6.1.2.1.1.5.0 | sysName     | Nom du système                                |
+| 1.3.6.1.2.1.1.6.0 | sysLocation | Emplacement du système                        |
+| 1.3.6.1.2.1.1.4.0 | sysContact  | Contact du système                            |
 
 #### MIB d'interface
 
-| OID | Nom | Description |
-|-----|-----|-------------|
-| 1.3.6.1.2.1.2.1.0 | ifNumber | Nombre d'interfaces réseau |
-| 1.3.6.1.2.1.2.2.1.8.X | ifOperStatus | Statut opérationnel de l'interface (X = index d'interface) |
-| 1.3.6.1.2.1.2.2.1.10.X | ifInOctets | Octets entrants (X = index d'interface) |
-| 1.3.6.1.2.1.2.2.1.16.X | ifOutOctets | Octets sortants (X = index d'interface) |
+| OID                    | Nom          | Description                                                |
+| ---------------------- | ------------ | ---------------------------------------------------------- |
+| 1.3.6.1.2.1.2.1.0      | ifNumber     | Nombre d'interfaces réseau                                 |
+| 1.3.6.1.2.1.2.2.1.8.X  | ifOperStatus | Statut opérationnel de l'interface (X = index d'interface) |
+| 1.3.6.1.2.1.2.2.1.10.X | ifInOctets   | Octets entrants (X = index d'interface)                    |
+| 1.3.6.1.2.1.2.2.1.16.X | ifOutOctets  | Octets sortants (X = index d'interface)                    |
 
 #### MIB de ressources hôte
 
-| OID | Nom | Description |
-|-----|-----|-------------|
-| 1.3.6.1.2.1.25.1.1.0 | hrSystemUptime | Temps de fonctionnement du système hôte |
-| 1.3.6.1.2.1.25.1.5.0 | hrSystemNumUsers | Nombre d'utilisateurs |
-| 1.3.6.1.2.1.25.1.6.0 | hrSystemProcesses | Nombre de processus en cours d'exécution |
-| 1.3.6.1.2.1.25.3.3.1.2.X | hrProcessorLoad | Charge CPU (X = index du processeur) |
+| OID                      | Nom               | Description                              |
+| ------------------------ | ----------------- | ---------------------------------------- |
+| 1.3.6.1.2.1.25.1.1.0     | hrSystemUptime    | Temps de fonctionnement du système hôte  |
+| 1.3.6.1.2.1.25.1.5.0     | hrSystemNumUsers  | Nombre d'utilisateurs                    |
+| 1.3.6.1.2.1.25.1.6.0     | hrSystemProcesses | Nombre de processus en cours d'exécution |
+| 1.3.6.1.2.1.25.3.3.1.2.X | hrProcessorLoad   | Charge CPU (X = index du processeur)     |
 
 ### Paramètres avancés
 
-| Champ | Description | Par défaut |
-|-------|-------------|------------|
-| Délai d'attente | Durée d'attente d'une réponse (ms) | 5000 |
-| Tentatives | Nombre de tentatives en cas d'échec | 3 |
+| Champ           | Description                         | Par défaut |
+| --------------- | ----------------------------------- | ---------- |
+| Délai d'attente | Durée d'attente d'une réponse (ms)  | 5000       |
+| Tentatives      | Nombre de tentatives en cas d'échec | 3          |
 
 ## Critères de surveillance
 
@@ -107,31 +107,35 @@ Vous pouvez configurer des critères pour vérifier les réponses SNMP et décle
 
 ### Types de vérifications disponibles
 
-| Type de vérification | Description |
-|----------------------|-------------|
-| Périphérique SNMP en ligne | Vérifier si le périphérique répond aux requêtes SNMP |
-| Temps de réponse SNMP | Vérifier le temps de réponse de la requête en millisecondes |
-| Valeur OID SNMP | Vérifier la valeur retournée par un OID spécifique |
-| OID SNMP existant | Vérifier si un OID retourne une valeur (non nulle) |
+| Type de vérification       | Description                                                 |
+| -------------------------- | ----------------------------------------------------------- |
+| Périphérique SNMP en ligne | Vérifier si le périphérique répond aux requêtes SNMP        |
+| Temps de réponse SNMP      | Vérifier le temps de réponse de la requête en millisecondes |
+| Valeur OID SNMP            | Vérifier la valeur retournée par un OID spécifique          |
+| OID SNMP existant          | Vérifier si un OID retourne une valeur (non nulle)          |
 
 ### Exemples de critères
 
 #### Vérifier si le périphérique est en ligne
+
 - **Vérifier sur** : Périphérique SNMP en ligne
 - **Type de filtre** : Vrai
 
 #### Alerter si le temps de réponse dépasse le seuil
+
 - **Vérifier sur** : Temps de réponse SNMP (en ms)
 - **Type de filtre** : Supérieur à
 - **Valeur** : 1000
 
 #### Vérifier le statut de l'interface
+
 - **Vérifier sur** : Valeur OID SNMP
 - **OID** : 1.3.6.1.2.1.2.2.1.8.1
 - **Type de filtre** : Égal à
 - **Valeur** : 1 (1 = actif, 2 = inactif)
 
 #### Vérifier le seuil de charge CPU
+
 - **Vérifier sur** : Valeur OID SNMP
 - **OID** : 1.3.6.1.2.1.25.3.3.1.2.1
 - **Type de filtre** : Supérieur à
@@ -159,30 +163,33 @@ Utilisez la syntaxe `{{monitorSecrets.NOM_DU_SECRET}}` dans tout champ sensible 
 
 Lors de la création de modèles d'incidents ou d'alertes, vous pouvez utiliser les variables suivantes :
 
-| Variable | Description |
-|----------|-------------|
-| `{{isOnline}}` | Si le périphérique est en ligne (true/false) |
-| `{{responseTimeInMs}}` | Temps de réponse de la requête en millisecondes |
-| `{{failureCause}}` | Message d'erreur si la requête a échoué |
-| `{{oidResponses}}` | Tableau d'objets de réponse OID |
-| `{{OID_NAME}}` | Valeur d'un OID spécifique par nom (ex. : `{{sysUpTime}}`) |
+| Variable               | Description                                                |
+| ---------------------- | ---------------------------------------------------------- |
+| `{{isOnline}}`         | Si le périphérique est en ligne (true/false)               |
+| `{{responseTimeInMs}}` | Temps de réponse de la requête en millisecondes            |
+| `{{failureCause}}`     | Message d'erreur si la requête a échoué                    |
+| `{{oidResponses}}`     | Tableau d'objets de réponse OID                            |
+| `{{OID_NAME}}`         | Valeur d'un OID spécifique par nom (ex. : `{{sysUpTime}}`) |
 
 ## Dépannage
 
 ### Problèmes courants
 
 #### Périphérique ne répondant pas
+
 - Vérifiez que l'IP/nom d'hôte du périphérique est correct
 - Vérifiez que SNMP est activé sur le périphérique
 - Vérifiez que les règles de pare-feu autorisent le port UDP 161
 - Confirmez que la chaîne de communauté est correcte
 
 #### Échecs d'authentification (v3)
+
 - Vérifiez le nom d'utilisateur, le protocole d'authentification et la clé d'authentification
 - Assurez-vous que le niveau de sécurité correspond à la configuration du périphérique
 - Vérifiez que le protocole de confidentialité et la clé sont corrects pour le niveau authPriv
 
 #### OID introuvable
+
 - Vérifiez que l'OID est pris en charge par votre périphérique
 - Vérifiez si l'OID nécessite le chargement d'un MIB spécifique
 - Essayez d'interroger l'OID directement avec les outils snmpget/snmpwalk

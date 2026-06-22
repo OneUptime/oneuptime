@@ -24,16 +24,16 @@ Domain monitors आपके domains के लिए WHOIS data query करत
 
 ### Basic Settings
 
-| Field | विवरण | आवश्यक |
-|-------|-------|--------|
-| Domain Name | monitor करने के लिए domain (जैसे `example.com`) | हाँ |
+| Field       | विवरण                                           | आवश्यक |
+| ----------- | ----------------------------------------------- | ------ |
+| Domain Name | monitor करने के लिए domain (जैसे `example.com`) | हाँ    |
 
 ### Advanced Settings
 
-| Field | विवरण | Default |
-|-------|-------|---------|
-| Timeout (ms) | WHOIS response के लिए कितना इंतज़ार करें | 10000 |
-| Retries | failure पर retry attempts की संख्या | 3 |
+| Field        | विवरण                                    | Default |
+| ------------ | ---------------------------------------- | ------- |
+| Timeout (ms) | WHOIS response के लिए कितना इंतज़ार करें | 10000   |
+| Retries      | failure पर retry attempts की संख्या      | 3       |
 
 ## Monitoring Criteria
 
@@ -41,13 +41,13 @@ Domain monitors आपके domains के लिए WHOIS data query करत
 
 ### उपलब्ध Check Types
 
-| Check Type | विवरण |
-|------------|-------|
+| Check Type             | विवरण                                              |
+| ---------------------- | -------------------------------------------------- |
 | Domain Expires In Days | domain registration expire होने तक दिनों की संख्या |
-| Domain Registrar | domain registrar का नाम |
-| Domain Name Server | domain के लिए Nameserver hostnames |
-| Domain Status Code | WHOIS domain status codes |
-| Domain Is Expired | domain expired हुआ है या नहीं |
+| Domain Registrar       | domain registrar का नाम                            |
+| Domain Name Server     | domain के लिए Nameserver hostnames                 |
+| Domain Status Code     | WHOIS domain status codes                          |
+| Domain Is Expired      | domain expired हुआ है या नहीं                      |
 
 ### Filter Types
 

@@ -22,16 +22,16 @@ oneuptime resources --type analytics
 
 सामान्य resources में शामिल हैं:
 
-| Resource | Command |
-|----------|---------|
-| Incident | `oneuptime incident` |
-| Alert | `oneuptime alert` |
-| Monitor | `oneuptime monitor` |
-| Monitor Status | `oneuptime monitor-status` |
-| Incident State | `oneuptime incident-state` |
-| Status Page | `oneuptime status-page` |
-| On-Call Policy | `oneuptime on-call-policy` |
-| Team | `oneuptime team` |
+| Resource                    | Command                                 |
+| --------------------------- | --------------------------------------- |
+| Incident                    | `oneuptime incident`                    |
+| Alert                       | `oneuptime alert`                       |
+| Monitor                     | `oneuptime monitor`                     |
+| Monitor Status              | `oneuptime monitor-status`              |
+| Incident State              | `oneuptime incident-state`              |
+| Status Page                 | `oneuptime status-page`                 |
+| On-Call Policy              | `oneuptime on-call-policy`              |
+| Team                        | `oneuptime team`                        |
 | Scheduled Maintenance Event | `oneuptime scheduled-maintenance-event` |
 
 ## Resources सूचीबद्ध करें
@@ -44,13 +44,13 @@ oneuptime <resource> list [options]
 
 **Options:**
 
-| Option | विवरण | Default |
-|--------|-------|---------|
-| `--query <json>` | JSON के रूप में filter criteria | None |
-| `--limit <n>` | results की अधिकतम संख्या | `10` |
-| `--skip <n>` | skip करने के लिए results की संख्या | `0` |
-| `--sort <json>` | JSON के रूप में sort order | None |
-| `-o, --output <format>` | Output format | `table` |
+| Option                  | विवरण                              | Default |
+| ----------------------- | ---------------------------------- | ------- |
+| `--query <json>`        | JSON के रूप में filter criteria    | None    |
+| `--limit <n>`           | results की अधिकतम संख्या           | `10`    |
+| `--skip <n>`            | skip करने के लिए results की संख्या | `0`     |
+| `--sort <json>`         | JSON के रूप में sort order         | None    |
+| `-o, --output <format>` | Output format                      | `table` |
 
 **उदाहरण:**
 
@@ -81,9 +81,9 @@ oneuptime <resource> get <id>
 
 **Arguments:**
 
-| Argument | विवरण |
-|----------|-------|
-| `<id>` | Resource ID (UUID) |
+| Argument | विवरण              |
+| -------- | ------------------ |
+| `<id>`   | Resource ID (UUID) |
 
 **उदाहरण:**
 
@@ -105,11 +105,11 @@ oneuptime <resource> create [options]
 
 **Options:**
 
-| Option | विवरण |
-|--------|-------|
-| `--data <json>` | JSON object के रूप में Resource data |
-| `--file <path>` | Resource data युक्त JSON फ़ाइल का path |
-| `-o, --output <format>` | Output format |
+| Option                  | विवरण                                  |
+| ----------------------- | -------------------------------------- |
+| `--data <json>`         | JSON object के रूप में Resource data   |
+| `--file <path>`         | Resource data युक्त JSON फ़ाइल का path |
+| `-o, --output <format>` | Output format                          |
 
 आपको `--data` या `--file` में से एक प्रदान करना होगा।
 
@@ -136,16 +136,16 @@ oneuptime <resource> update <id> [options]
 
 **Arguments:**
 
-| Argument | विवरण |
-|----------|-------|
-| `<id>` | Resource ID |
+| Argument | विवरण       |
+| -------- | ----------- |
+| `<id>`   | Resource ID |
 
 **Options:**
 
-| Option | विवरण |
-|--------|-------|
-| `--data <json>` | JSON के रूप में update करने के लिए fields (आवश्यक) |
-| `-o, --output <format>` | Output format |
+| Option                  | विवरण                                              |
+| ----------------------- | -------------------------------------------------- |
+| `--data <json>`         | JSON के रूप में update करने के लिए fields (आवश्यक) |
+| `-o, --output <format>` | Output format                                      |
 
 **उदाहरण:**
 
@@ -167,14 +167,14 @@ oneuptime <resource> delete <id> [--force]
 
 **Arguments:**
 
-| Argument | विवरण |
-|----------|-------|
-| `<id>` | Resource ID |
+| Argument | विवरण       |
+| -------- | ----------- |
+| `<id>`   | Resource ID |
 
 **Options:**
 
-| Option | विवरण |
-|--------|-------|
+| Option    | विवरण                      |
+| --------- | -------------------------- |
 | `--force` | confirmation prompt छोड़ें |
 
 **उदाहरण:**
@@ -197,8 +197,8 @@ oneuptime <resource> count [options]
 
 **Options:**
 
-| Option | विवरण |
-|--------|-------|
+| Option           | विवरण                           |
+| ---------------- | ------------------------------- |
 | `--query <json>` | JSON के रूप में filter criteria |
 
 **उदाहरण:**
@@ -219,12 +219,12 @@ oneuptime monitor count
 Analytics resources, database resources की तुलना में सीमित operations का समर्थन करते हैं:
 
 | Operation | समर्थित |
-|-----------|---------|
-| `list` | हाँ |
-| `create` | हाँ |
-| `count` | हाँ |
-| `get` | नहीं |
-| `update` | नहीं |
-| `delete` | नहीं |
+| --------- | ------- |
+| `list`    | हाँ     |
+| `create`  | हाँ     |
+| `count`   | हाँ     |
+| `get`     | नहीं    |
+| `update`  | नहीं    |
+| `delete`  | नहीं    |
 
 अपने instance पर कौन से analytics resources उपलब्ध हैं, यह देखने के लिए `oneuptime resources --type analytics` उपयोग करें।

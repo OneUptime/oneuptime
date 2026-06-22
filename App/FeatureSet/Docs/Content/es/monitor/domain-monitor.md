@@ -24,16 +24,16 @@ Los monitores de dominio consultan datos WHOIS para tus dominios con el fin de r
 
 ### Configuración básica
 
-| Campo | Descripción | Requerido |
-|-------|-------------|----------|
-| Nombre de dominio | El dominio a monitorear (por ejemplo, `example.com`) | Sí |
+| Campo             | Descripción                                          | Requerido |
+| ----------------- | ---------------------------------------------------- | --------- |
+| Nombre de dominio | El dominio a monitorear (por ejemplo, `example.com`) | Sí        |
 
 ### Configuración avanzada
 
-| Campo | Descripción | Predeterminado |
-|-------|-------------|---------|
-| Tiempo de espera (ms) | Tiempo de espera para una respuesta WHOIS | 10000 |
-| Reintentos | Número de intentos de reintento en caso de fallo | 3 |
+| Campo                 | Descripción                                      | Predeterminado |
+| --------------------- | ------------------------------------------------ | -------------- |
+| Tiempo de espera (ms) | Tiempo de espera para una respuesta WHOIS        | 10000          |
+| Reintentos            | Número de intentos de reintento en caso de fallo | 3              |
 
 ## Criterios de monitoreo
 
@@ -41,13 +41,13 @@ Puedes configurar criterios para determinar cuándo tu dominio se considera en l
 
 ### Tipos de verificación disponibles
 
-| Tipo de verificación | Descripción |
-|------------|-------------|
-| El dominio caduca en días | Número de días hasta que caduca el registro del dominio |
-| Registrador del dominio | El nombre del registrador del dominio |
+| Tipo de verificación            | Descripción                                              |
+| ------------------------------- | -------------------------------------------------------- |
+| El dominio caduca en días       | Número de días hasta que caduca el registro del dominio  |
+| Registrador del dominio         | El nombre del registrador del dominio                    |
 | Servidor de nombres del dominio | Nombres de host de servidores de nombres para el dominio |
-| Código de estado del dominio | Códigos de estado WHOIS del dominio |
-| El dominio está caducado | Si el dominio ha caducado |
+| Código de estado del dominio    | Códigos de estado WHOIS del dominio                      |
+| El dominio está caducado        | Si el dominio ha caducado                                |
 
 ### Tipos de filtro
 

@@ -24,11 +24,11 @@ Uma vez que você tenha criado um token, clique em "View" para visualizar o toke
 
 ## O que você precisa do OneUptime
 
-| Configuração | Valor |
-| --- | --- |
-| Endpoint OTLP | `https://oneuptime.com/otlp` |
-| Cabeçalho de autenticação | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
-| Nome do serviço | O nome sob o qual seu serviço deve aparecer, por exemplo, `my-service` |
+| Configuração              | Valor                                                                  |
+| ------------------------- | ---------------------------------------------------------------------- |
+| Endpoint OTLP             | `https://oneuptime.com/otlp`                                           |
+| Cabeçalho de autenticação | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN`                    |
+| Nome do serviço           | O nome sob o qual seu serviço deve aparecer, por exemplo, `my-service` |
 
 > **Hospedando o OneUptime por conta própria?** Substitua `https://oneuptime.com/otlp` por `https://YOUR-ONEUPTIME-HOST/otlp` (ou `http://...` se você não estiver encerrando TLS). Todo o resto permanece o mesmo.
 
@@ -109,7 +109,7 @@ Se você prefere configuração em vez de código, use o `Serilog.Settings.Confi
 ```json
 {
   "Serilog": {
-    "Using": [ "Serilog.Sinks.OpenTelemetry" ],
+    "Using": ["Serilog.Sinks.OpenTelemetry"],
     "MinimumLevel": "Information",
     "WriteTo": [
       {

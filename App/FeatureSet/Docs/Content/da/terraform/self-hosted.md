@@ -11,8 +11,9 @@ Denne vejledning er specifikt til kunder, der kører selvhostede OneUptime-insta
 ## Ressourcestruktur
 
 Alle OneUptime Terraform-ressourcer følger en forenklet struktur:
+
 - `name` (påkrævet) – Ressourcenavn
-- `description` (valgfrit) – Ressourcebeskrivelse  
+- `description` (valgfrit) – Ressourcebeskrivelse
 - `data` (valgfrit) – Kompleks konfiguration som JSON
 
 ## Kritisk: Versionskompatibilitet
@@ -29,31 +30,39 @@ Alle OneUptime Terraform-ressourcer følger en forenklet struktur:
 ## Find din OneUptime-version
 
 ### Metode 1: Dashboard
+
 1. Log ind på dit OneUptime-dashboard
 2. Gå til **Indstillinger** → **Om**
 3. Se efter versionsnummeret (f.eks. "7.0.123")
 
 ### Metode 2: API-endpoint
+
 ```bash
 curl https://your-oneuptime-instance.com/api/status
 ```
 
 ### Metode 3: Docker-billeder
+
 Hvis du kører OneUptime med Docker:
+
 ```bash
 docker images | grep oneuptime
 # Se efter tagget, f.eks. oneuptime/dashboard:7.0.123
 ```
 
 ### Metode 4: Helm-chart
+
 Hvis du bruger Helm:
+
 ```bash
 helm list -n oneuptime
 # Kontroller chartversionen
 ```
 
 ### Metode 5: Miljøvariabler
+
 Kontroller dine konfigurationsfiler for versionsvariabler:
+
 ```bash
 grep -r "APP_VERSION\|IMAGE_TAG" /path/to/your/oneuptime/config
 ```
@@ -112,7 +121,7 @@ terraform {
     }
   }
   required_version = ">= 1.0"
-  
+
   # Valgfrit: Brug fjernlager til teamsamarbejde
   backend "s3" {
     bucket = "your-terraform-state-bucket"
@@ -161,7 +170,7 @@ resource "oneuptime_team" "infrastructure" {
 
 resource "oneuptime_team" "development" {
   name        = "Development Team"
-  description = "Applikationsudviklingsteam"  
+  description = "Applikationsudviklingsteam"
   project_id = oneuptime_project.main.id
 }
 
@@ -169,13 +178,13 @@ resource "oneuptime_team" "development" {
 resource "oneuptime_monitor" "database" {
   name       = "${var.environment}-database"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "port"
   hostname     = "db.internal.yourcompany.com"
   port         = 5432
   interval     = "2m"
   timeout      = "10s"
-  
+
   tags = {
     team        = "infrastructure"
     service     = "database"
@@ -187,14 +196,14 @@ resource "oneuptime_monitor" "database" {
 resource "oneuptime_monitor" "application" {
   name       = "${var.environment}-application"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "website"
   url          = "https://app.yourcompany.com/health"
   interval     = "1m"
   timeout      = "30s"
-  
+
   expected_status_codes = [200]
-  
+
   tags = {
     team        = "development"
     service     = "application"
@@ -208,11 +217,11 @@ resource "oneuptime_on_call_policy" "infrastructure_oncall" {
   name       = "Infrastructure On-Call"
   project_id = oneuptime_project.main.id
   team_id    = oneuptime_team.infrastructure.id
-  
+
   schedules {
     name     = "24x7 Infrastructure"
     timezone = "America/New_York"
-    
+
     layers {
       name          = "Primary"
       users         = ["infra1@yourcompany.com", "infra2@yourcompany.com"]
@@ -228,17 +237,17 @@ resource "oneuptime_on_call_policy" "infrastructure_oncall" {
 resource "oneuptime_alert_policy" "critical_infrastructure" {
   name       = "Critical Infrastructure Alerts"
   project_id = oneuptime_project.main.id
-  
+
   conditions {
     monitor_id = oneuptime_monitor.database.id
     threshold  = "down"
   }
-  
+
   actions {
     type = "email"
     recipients = ["infrastructure@yourcompany.com"]
   }
-  
+
   actions {
     type             = "oncall_escalation"
     oncall_policy_id = oneuptime_on_call_policy.infrastructure_oncall.id
@@ -249,14 +258,14 @@ resource "oneuptime_alert_policy" "critical_infrastructure" {
 resource "oneuptime_status_page" "internal" {
   name       = "Internal Services Status"
   project_id = oneuptime_project.main.id
-  
+
   domain = "status.internal.yourcompany.com"
-  
+
   components {
     name       = "Database"
     monitor_id = oneuptime_monitor.database.id
   }
-  
+
   components {
     name       = "Application"
     monitor_id = oneuptime_monitor.application.id
@@ -289,7 +298,7 @@ environment = "development"
 
 ```hcl
 # staging.tfvars
-oneuptime_url = "https://oneuptime-staging.yourcompany.com"  
+oneuptime_url = "https://oneuptime-staging.yourcompany.com"
 environment = "staging"
 ```
 
@@ -354,6 +363,7 @@ terraform apply
 ### Firewallregler
 
 Sørg for, at din Terraform-runner kan tilgå:
+
 - OneUptime API-endpoint (normalt port 443/HTTPS)
 - Eventuelle interne ressourcer der overvåges
 
@@ -383,6 +393,7 @@ export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
 ### 2. API-nøgler med mindste privilegium
 
 Opret API-nøgler med minimale påkrævede tilladelser:
+
 - Monitoradministration
 - Advarsels-politikadministration
 - Teamadministration (hvis nødvendigt)
@@ -394,7 +405,7 @@ Opret API-nøgler med minimale påkrævede tilladelser:
 provider "oneuptime" {
   oneuptime_url = "https://oneuptime.yourcompany.com"
   api_key       = var.oneuptime_api_key
-  
+
   # Yderligere sikkerhedsmuligheder, hvis understøttet
   verify_ssl = true
   timeout    = "30s"
@@ -409,10 +420,10 @@ Opret monitorer til din Terraform-automatisering:
 resource "oneuptime_monitor" "terraform_runner" {
   name       = "Terraform Runner Health"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "heartbeat"
   interval     = "15m"
-  
+
   tags = {
     automation = "terraform"
     criticality = "medium"
@@ -429,6 +440,7 @@ Error: connection refused
 ```
 
 **Løsninger**:
+
 1. Kontroller, at OneUptime-instansen kører
 2. Bekræft, at API-URL'en er korrekt
 3. Kontroller firewall-/netværksforbindelsen
@@ -441,6 +453,7 @@ Error: API version incompatible
 ```
 
 **Løsninger**:
+
 1. Kontroller OneUptime-version: `curl https://your-instance/api/status`
 2. Opdater providerversion til at matche
 3. Kør `terraform init -upgrade`
@@ -485,7 +498,7 @@ tar -czf terraform-config-$(date +%Y%m%d).tar.gz *.tf *.tfvars
 ```bash
 # Opret miljøer
 terraform workspace new dev
-terraform workspace new staging  
+terraform workspace new staging
 terraform workspace new prod
 
 # Skift mellem miljøer

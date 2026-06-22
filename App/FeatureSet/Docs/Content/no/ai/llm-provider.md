@@ -22,11 +22,11 @@ Hvis du foretrekker å bruke egne API-nøkler eller en spesifikk leverandør, ka
 
 OneUptime støtter for øyeblikket følgende LLM-leverandører:
 
-| Leverandør | Beskrivelse | API-nøkkel påkrevd | Basis-URL påkrevd |
-|------------|-------------|---------------------|-------------------|
-| **OpenAI** | GPT-4, GPT-4o, GPT-3.5 Turbo og andre OpenAI-modeller | Ja | Nei (bruker standard) |
-| **Anthropic** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku og andre Claude-modeller | Ja | Nei (bruker standard) |
-| **Ollama** | Selvhostede åpen kildekode-modeller som Llama 2, Mistral, CodeLlama osv. | Nei | Ja |
+| Leverandør    | Beskrivelse                                                              | API-nøkkel påkrevd | Basis-URL påkrevd     |
+| ------------- | ------------------------------------------------------------------------ | ------------------ | --------------------- |
+| **OpenAI**    | GPT-4, GPT-4o, GPT-3.5 Turbo og andre OpenAI-modeller                    | Ja                 | Nei (bruker standard) |
+| **Anthropic** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku og andre Claude-modeller  | Ja                 | Nei (bruker standard) |
+| **Ollama**    | Selvhostede åpen kildekode-modeller som Llama 2, Mistral, CodeLlama osv. | Nei                | Ja                    |
 
 ## Konfigurere en LLM-leverandør
 
@@ -61,6 +61,7 @@ Fyll inn følgende felt:
    - `gpt-3.5-turbo` – Rask og økonomisk
 
 **Eksempelkonfigurasjon:**
+
 ```
 Name: Production OpenAI
 LLM Type: OpenAI
@@ -80,6 +81,7 @@ Model Name: gpt-4o
    - `claude-3-5-sonnet-20241022` – Nyeste Sonnet-modell
 
 **Eksempelkonfigurasjon:**
+
 ```
 Name: Production Anthropic
 LLM Type: Anthropic
@@ -99,6 +101,7 @@ Ollama lar deg kjøre åpen kildekode-LLM-er lokalt eller på din egen infrastru
 6. Skriv inn modellnavnet du hentet
 
 **Eksempelkonfigurasjon:**
+
 ```
 Name: Local Ollama
 LLM Type: Ollama
@@ -107,6 +110,7 @@ Model Name: llama2
 ```
 
 **Populære Ollama-modeller:**
+
 - `llama2` – Metas Llama 2-modell
 - `llama3` – Metas Llama 3-modell
 - `mistral` – Mistral AIs modell

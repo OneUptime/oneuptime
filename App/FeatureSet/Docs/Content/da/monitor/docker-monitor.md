@@ -31,10 +31,10 @@ Vælg den Docker-host, der skal overvåges. Hosts registreres automatisk første
 
 Vælg det niveau, som ressourcer skal overvåges på:
 
-| Omfang | Beskrivelse |
-|-------|-------------|
-| Host | Overvåg hele Docker-hosten, aggregeret på tværs af alle containere |
-| Container | Overvåg en specifik container efter navn eller billede |
+| Omfang    | Beskrivelse                                                        |
+| --------- | ------------------------------------------------------------------ |
+| Host      | Overvåg hele Docker-hosten, aggregeret på tværs af alle containere |
+| Container | Overvåg en specifik container efter navn eller billede             |
 
 ### Metriske forespørgsler
 
@@ -64,61 +64,61 @@ Docker Agent bruger OpenTelemetry `docker_stats`-modtageren, som skraber Docker 
 
 ### CPU
 
-| Metrik | Beskrivelse |
-|--------|-------------|
-| `container.cpu.utilization` | CPU-udnyttelse som en procentdel af host-CPU'en |
-| `container.cpu.usage.total` | Kumulativ CPU-tid forbrugt af containeren |
-| `container.cpu.throttling_data.throttled_time` | Tid, containeren var begrænset af cgroups |
-| `container.cpu.throttling_data.throttled_periods` | Antal begrænsningsperioder |
+| Metrik                                            | Beskrivelse                                     |
+| ------------------------------------------------- | ----------------------------------------------- |
+| `container.cpu.utilization`                       | CPU-udnyttelse som en procentdel af host-CPU'en |
+| `container.cpu.usage.total`                       | Kumulativ CPU-tid forbrugt af containeren       |
+| `container.cpu.throttling_data.throttled_time`    | Tid, containeren var begrænset af cgroups       |
+| `container.cpu.throttling_data.throttled_periods` | Antal begrænsningsperioder                      |
 
 ### Hukommelse
 
-| Metrik | Beskrivelse |
-|--------|-------------|
-| `container.memory.usage.total` | Aktuel hukommelsesanvendelse i bytes |
-| `container.memory.usage.limit` | Hukommelsesgrænse i bytes |
-| `container.memory.percent` | Hukommelsesanvendelse som en procentdel af grænsen |
+| Metrik                         | Beskrivelse                                        |
+| ------------------------------ | -------------------------------------------------- |
+| `container.memory.usage.total` | Aktuel hukommelsesanvendelse i bytes               |
+| `container.memory.usage.limit` | Hukommelsesgrænse i bytes                          |
+| `container.memory.percent`     | Hukommelsesanvendelse som en procentdel af grænsen |
 
 ### Netværk
 
-| Metrik | Beskrivelse |
-|--------|-------------|
-| `container.network.io.usage.rx_bytes` | Samlede bytes modtaget |
+| Metrik                                | Beskrivelse                 |
+| ------------------------------------- | --------------------------- |
+| `container.network.io.usage.rx_bytes` | Samlede bytes modtaget      |
 | `container.network.io.usage.tx_bytes` | Samlede bytes transmitteret |
 
 ### Blok-I/O
 
-| Metrik | Beskrivelse |
-|--------|-------------|
-| `container.blockio.io_service_bytes_recursive.read` | Bytes læst fra blokenheder |
+| Metrik                                               | Beskrivelse                   |
+| ---------------------------------------------------- | ----------------------------- |
+| `container.blockio.io_service_bytes_recursive.read`  | Bytes læst fra blokenheder    |
 | `container.blockio.io_service_bytes_recursive.write` | Bytes skrevet til blokenheder |
 
 ### Containerinfo
 
-| Metrik | Beskrivelse |
-|--------|-------------|
-| `container.uptime` | Container-oppetid i sekunder |
-| `container.restarts` | Antal gange containeren er genstartet |
-| `container.pids.count` | Antal processer inde i containeren |
+| Metrik                 | Beskrivelse                           |
+| ---------------------- | ------------------------------------- |
+| `container.uptime`     | Container-oppetid i sekunder          |
+| `container.restarts`   | Antal gange containeren er genstartet |
+| `container.pids.count` | Antal processer inde i containeren    |
 
 ## Overvågningskriterier
 
 ### Tilgængelige kontroltyper
 
-| Kontroltype | Beskrivelse |
-|------------|-------------|
+| Kontroltype   | Beskrivelse                                                     |
+| ------------- | --------------------------------------------------------------- |
 | Metrisk værdi | Værdien af den konfigurerede metriske forespørgsel eller formel |
 
 ### Aggregeringstyper
 
-| Aggregering | Beskrivelse |
-|-------------|-------------|
-| Gennemsnit | Gennemsnitsværdi over tidsvinduet |
-| Sum | Sum af alle værdier |
-| Maksimumsværdi | Højeste værdi i tidsvinduet |
-| Minimumsværdi | Laveste værdi i tidsvinduet |
-| Alle værdier | Alle værdier skal opfylde kriterierne |
-| Enhver værdi | Mindst én værdi skal opfylde kriterierne |
+| Aggregering    | Beskrivelse                              |
+| -------------- | ---------------------------------------- |
+| Gennemsnit     | Gennemsnitsværdi over tidsvinduet        |
+| Sum            | Sum af alle værdier                      |
+| Maksimumsværdi | Højeste værdi i tidsvinduet              |
+| Minimumsværdi  | Laveste værdi i tidsvinduet              |
+| Alle værdier   | Alle værdier skal opfylde kriterierne    |
+| Enhver værdi   | Mindst én værdi skal opfylde kriterierne |
 
 ### Filtertyper
 
@@ -128,13 +128,13 @@ Docker Agent bruger OpenTelemetry `docker_stats`-modtageren, som skraber Docker 
 
 OneUptime leverer skabeloner til almindelige Docker-overvågningsscenarier:
 
-| Skabelon | Beskrivelse | Grænseværdi | Aggregering |
-|----------|-------------|-----------|-------------|
-| Høj container-CPU | CPU-udnyttelse pr. container | > 90% | Maks. (pr. container) |
-| Høj container-hukommelse | Hukommelsesanvendelse som procent af grænsen | > 85% | Maks. (pr. container) |
-| Høj CPU-begrænsning | Antal begrænsede CPU-perioder | > 0 | Maks. (pr. container) |
-| Container-genstartssløjfe | Antal containergenstart | > 3 | Sum |
-| Container nede | Container-oppetid nulstillet til 0 | = 0 | Min. |
+| Skabelon                  | Beskrivelse                                  | Grænseværdi | Aggregering           |
+| ------------------------- | -------------------------------------------- | ----------- | --------------------- |
+| Høj container-CPU         | CPU-udnyttelse pr. container                 | > 90%       | Maks. (pr. container) |
+| Høj container-hukommelse  | Hukommelsesanvendelse som procent af grænsen | > 85%       | Maks. (pr. container) |
+| Høj CPU-begrænsning       | Antal begrænsede CPU-perioder                | > 0         | Maks. (pr. container) |
+| Container-genstartssløjfe | Antal containergenstart                      | > 3         | Sum                   |
+| Container nede            | Container-oppetid nulstillet til 0           | = 0         | Min.                  |
 
 > Bemærk: CPU-, hukommelses- og begrænsningsskabeloner bruger **Maks.**-aggregering grupperet efter `resource.container.name`. Dette forhindrer, at en enkelt varm containers signal fortyndes af mange inaktive containere på den samme host.
 

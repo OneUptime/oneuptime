@@ -32,16 +32,16 @@ Du kan konfigurere kriterier til at afgøre, hvornår din certifikatstatus betra
 
 ### Tilgængelige kontroltyper
 
-| Kontroltype | Beskrivelse |
-|------------|-------------|
-| Er online | Om serveren er tilgængelig |
-| Er gyldigt certifikat | Om certifikatet er gyldigt (ikke udløbet, ikke selvsigneret) |
-| Er selvsigneret certifikat | Om certifikatet er selvsigneret |
-| Er udløbet certifikat | Om certifikatet er udløbet |
-| Er ikke et gyldigt certifikat | Om certifikatet er ugyldigt |
-| Udløber om timer | Antal timer, indtil certifikatet udløber |
-| Udløber om dage | Antal dage, indtil certifikatet udløber |
-| Er anmodning-timeout | Om forbindelsen fik timeout |
+| Kontroltype                   | Beskrivelse                                                  |
+| ----------------------------- | ------------------------------------------------------------ |
+| Er online                     | Om serveren er tilgængelig                                   |
+| Er gyldigt certifikat         | Om certifikatet er gyldigt (ikke udløbet, ikke selvsigneret) |
+| Er selvsigneret certifikat    | Om certifikatet er selvsigneret                              |
+| Er udløbet certifikat         | Om certifikatet er udløbet                                   |
+| Er ikke et gyldigt certifikat | Om certifikatet er ugyldigt                                  |
+| Udløber om timer              | Antal timer, indtil certifikatet udløber                     |
+| Udløber om dage               | Antal dage, indtil certifikatet udløber                      |
+| Er anmodning-timeout          | Om forbindelsen fik timeout                                  |
 
 ### Filtertyper
 

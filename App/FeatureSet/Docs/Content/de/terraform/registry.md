@@ -58,16 +58,19 @@ Die Verwendung einer Provider-Version, die nicht mit Ihrer OneUptime-Installatio
 ## Ihre OneUptime-Version finden
 
 ### Methode 1: Dashboard
+
 1. Melden Sie sich bei Ihrem OneUptime-Dashboard an
 2. Gehen Sie zu **Einstellungen** → **Über**
 3. Notieren Sie die Versionsnummer (z. B. "7.0.123")
 
 ### Methode 2: API
+
 ```bash
 curl https://your-oneuptime-instance.com/api/version | jq '.version'
 ```
 
 ### Methode 3: Docker
+
 ```bash
 docker images | grep oneuptime
 # Nach dem Tag suchen, z. B. oneuptime/dashboard:7.0.123
@@ -81,11 +84,11 @@ docker images | grep oneuptime
 
 ## Versionskompatibilitätsmatrix
 
-| OneUptime-Version | Provider-Version | Terraform-Konfiguration |
-|-------------------|------------------|------------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| Neueste Cloud | Neuester Provider | `version = "~> 7.0"` |
+| OneUptime-Version | Provider-Version  | Terraform-Konfiguration |
+| ----------------- | ----------------- | ----------------------- |
+| 7.0.x             | 7.0.x             | `version = "~> 7.0.0"`  |
+| 7.1.x             | 7.1.x             | `version = "~> 7.1.0"`  |
+| Neueste Cloud     | Neuester Provider | `version = "~> 7.0"`    |
 
 ## Registry-Updates
 

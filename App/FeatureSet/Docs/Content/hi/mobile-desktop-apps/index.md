@@ -29,11 +29,13 @@ OneUptime का web dashboard एक Progressive Web App है, इसलि�
 ### Desktop Troubleshooting
 
 **Install option दिखाई नहीं दे रहा:**
+
 - सुनिश्चित करें कि आप एक supported browser का उपयोग कर रहे हैं।
 - पुष्टि करें कि आपका OneUptime instance HTTPS पर serve हो रहा है।
 - page को refresh करें या अपना browser cache clear करें।
 
 **Push notifications काम नहीं कर रहे:**
+
 - जब browser prompt करे तो notification permissions grant करें।
 - अपने operating system की browser के लिए notification settings check करें।
 - Self-hosted users: पुष्टि करें कि push notifications आपके OneUptime instance पर configure हैं।

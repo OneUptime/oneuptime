@@ -67,15 +67,15 @@ sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --one
 
 El agente de infraestructura admite los siguientes comandos:
 
-| Comando | Descripción |
-|---------|-------------|
-| `configure` | Configurar el agente con tu clave secreta y la URL de OneUptime |
-| `start` | Iniciar el servicio del agente |
-| `stop` | Detener el servicio del agente |
-| `restart` | Reiniciar el servicio del agente |
-| `status` | Mostrar el estado actual del servicio |
-| `logs` | Ver los registros del agente (usa `-n` para el recuento de líneas, `-f` para seguir) |
-| `uninstall` | Desinstalar el servicio del agente |
+| Comando     | Descripción                                                                          |
+| ----------- | ------------------------------------------------------------------------------------ |
+| `configure` | Configurar el agente con tu clave secreta y la URL de OneUptime                      |
+| `start`     | Iniciar el servicio del agente                                                       |
+| `stop`      | Detener el servicio del agente                                                       |
+| `restart`   | Reiniciar el servicio del agente                                                     |
+| `status`    | Mostrar el estado actual del servicio                                                |
+| `logs`      | Ver los registros del agente (usa `-n` para el recuento de líneas, `-f` para seguir) |
+| `uninstall` | Desinstalar el servicio del agente                                                   |
 
 ## Métricas recopiladas
 
@@ -115,15 +115,15 @@ Puedes configurar criterios para determinar cuándo tu servidor se considera en 
 
 ### Tipos de verificación disponibles
 
-| Tipo de verificación | Descripción |
-|------------|-------------|
-| Está en línea | Si el agente del servidor está reportando (basado en el latido) |
-| Porcentaje de uso de CPU | Porcentaje de utilización de CPU actual |
-| Porcentaje de uso de memoria | Porcentaje de utilización de memoria actual |
-| Porcentaje de uso del disco | Porcentaje de utilización del disco actual (para una ruta de disco específica) |
-| Nombre del proceso del servidor | Verifica si hay un proceso con un nombre específico en ejecución |
-| Comando del proceso del servidor | Verifica si hay un proceso con un comando específico en ejecución |
-| PID del proceso del servidor | Verifica si hay un proceso con un PID específico en ejecución |
+| Tipo de verificación             | Descripción                                                                    |
+| -------------------------------- | ------------------------------------------------------------------------------ |
+| Está en línea                    | Si el agente del servidor está reportando (basado en el latido)                |
+| Porcentaje de uso de CPU         | Porcentaje de utilización de CPU actual                                        |
+| Porcentaje de uso de memoria     | Porcentaje de utilización de memoria actual                                    |
+| Porcentaje de uso del disco      | Porcentaje de utilización del disco actual (para una ruta de disco específica) |
+| Nombre del proceso del servidor  | Verifica si hay un proceso con un nombre específico en ejecución               |
+| Comando del proceso del servidor | Verifica si hay un proceso con un comando específico en ejecución              |
+| PID del proceso del servidor     | Verifica si hay un proceso con un PID específico en ejecución                  |
 
 ### Tipos de filtro
 
@@ -185,6 +185,7 @@ Para verificaciones de procesos:
 ### Uso elevado de recursos por el agente
 
 El agente está diseñado para ser ligero. Si notas un uso elevado de recursos:
+
 - Reinicia el agente: `sudo oneuptime-infrastructure-agent restart`
 - Revisa los registros del agente para detectar errores
 

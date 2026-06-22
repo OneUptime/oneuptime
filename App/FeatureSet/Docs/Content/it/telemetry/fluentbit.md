@@ -21,9 +21,9 @@ FluentBit supporta centinaia di sorgenti dati ed è possibile acquisire log e te
 - Java
 - PHP
 - Go
-- Rust 
+- Rust
 
-e molte altre. 
+e molte altre.
 
 È possibile trovare l'elenco completo delle sorgenti supportate [qui](https://docs.fluentbit.io/manual)
 
@@ -36,7 +36,7 @@ e molte altre.
 
 Dopo aver effettuato la registrazione a OneUptime e creato un progetto, fare clic su "Altro" nella barra di navigazione e fare clic su "Impostazioni Progetto".
 
-Nella pagina Chiave di Acquisizione Telemetria, fare clic su "Crea Chiave di Acquisizione" per creare un token. 
+Nella pagina Chiave di Acquisizione Telemetria, fare clic su "Crea Chiave di Acquisizione" per creare un token.
 
 ![Crea Servizio](/docs/static/images/TelemetryIngestionKeys.png)
 
@@ -44,29 +44,24 @@ Una volta creato il token, fare clic su "Visualizza" per vederlo.
 
 ![Visualizza Servizio](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
 ## Configurazione
 
 È possibile usare la seguente configurazione per inviare i dati di telemetria al Collector HTTP OpenTelemetry di OneUptime. È possibile aggiungere questa configurazione al file di configurazione di FluentBit. Il file di configurazione si trova solitamente in `/etc/fluent-bit/fluent-bit.yaml`. Ecco come apparirebbe una sezione outputs del file di configurazione:
 
-
 ```yaml
-
-
 outputs:
   - name: stdout
-    match: '*'
+    match: "*"
   - name: opentelemetry
-    match: '*'
-    host: 'oneuptime.com'
+    match: "*"
+    host: "oneuptime.com"
     port: 443
-    metrics_uri: '/otlp/v1/metrics'
-    logs_uri: '/otlp/v1/logs'
-    traces_uri: '/otlp/v1/traces'
+    metrics_uri: "/otlp/v1/metrics"
+    logs_uri: "/otlp/v1/logs"
+    traces_uri: "/otlp/v1/traces"
     tls: On
     header:
       - x-oneuptime-token VOSTRO_TOKEN_ACQUISIZIONE_TELEMETRIA
-
 ```
 
 Assicurarsi di avere opentelemetry_envelope nella propria sezione input. Ecco un esempio di come apparirebbe la sezione input:
@@ -74,18 +69,18 @@ Assicurarsi di avere opentelemetry_envelope nella propria sezione input. Ecco un
 ```yaml
 pipeline:
   inputs:
-      # I propri input
+    # I propri input
 
-      processors:
-        logs:
-          - name: opentelemetry_envelope
+    processors:
+      logs:
+        - name: opentelemetry_envelope
 
-          - name: content_modifier
-            context: otel_resource_attributes
-            action: upsert
-            key: service.name
-            # Sostituire NOME_VOSTRO_SERVIZIO con il nome del proprio servizio
-            value: NOME_VOSTRO_SERVIZIO
+        - name: content_modifier
+          context: otel_resource_attributes
+          action: upsert
+          key: service.name
+          # Sostituire NOME_VOSTRO_SERVIZIO con il nome del proprio servizio
+          value: NOME_VOSTRO_SERVIZIO
 ```
 
 Ecco il file di configurazione completo di esempio:
@@ -113,19 +108,18 @@ pipeline:
 
   outputs:
     - name: stdout
-      match: '*'
+      match: "*"
     - name: opentelemetry
-      match: '*'
-      host: 'oneuptime.com'
+      match: "*"
+      host: "oneuptime.com"
       port: 443
-      metrics_uri: '/otlp/v1/metrics'
-      logs_uri: '/otlp/v1/logs'
-      traces_uri: '/otlp/v1/traces'
+      metrics_uri: "/otlp/v1/metrics"
+      logs_uri: "/otlp/v1/logs"
+      traces_uri: "/otlp/v1/traces"
       tls: On
       header:
         - x-oneuptime-token VOSTRO_TOKEN_ACQUISIZIONE_TELEMETRIA
 ```
-
 
 **Se si ospita autonomamente OneUptime**: Se si ospita autonomamente OneUptime, è possibile sostituire `host` con l'host della propria istanza OneUptime. Se si ospita su un server http e non https, è possibile sostituire `port` con la porta della propria istanza OneUptime (probabilmente la porta 80).
 
@@ -134,14 +128,14 @@ In tal caso la configurazione apparirebbe così:
 ```yaml
 outputs:
   - name: stdout
-    match: '*'
+    match: "*"
   - name: opentelemetry
-    match: '*'
-    host: 'vostra-istanza-oneuptime.com'
+    match: "*"
+    host: "vostra-istanza-oneuptime.com"
     port: 80
-    metrics_uri: '/otlp/v1/metrics'
-    logs_uri: '/otlp/v1/logs'
-    traces_uri: '/otlp/v1/traces'
+    metrics_uri: "/otlp/v1/metrics"
+    logs_uri: "/otlp/v1/logs"
+    traces_uri: "/otlp/v1/traces"
     header:
       - x-oneuptime-token VOSTRO_TOKEN_ACQUISIZIONE_TELEMETRIA
 ```

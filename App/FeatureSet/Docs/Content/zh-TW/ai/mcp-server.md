@@ -202,13 +202,13 @@ VS Code 原生支援搭配 GitHub Copilot（版本 1.99 以上）使用 MCP serv
 
 ## 可用端點
 
-| 端點 | 方法 | 說明 |
-|----------|--------|-------------|
-| `/mcp` | GET | 用於伺服器對用戶端通知的 Server-sent events 串流 |
-| `/mcp` | POST | 用於工具呼叫及其他操作的 JSON-RPC 請求 |
-| `/mcp` | DELETE | 工作階段清理與終止 |
-| `/mcp/health` | GET | 健康狀態檢查端點 |
-| `/mcp/tools` | GET | 用於列出可用工具的 REST API |
+| 端點          | 方法   | 說明                                             |
+| ------------- | ------ | ------------------------------------------------ |
+| `/mcp`        | GET    | 用於伺服器對用戶端通知的 Server-sent events 串流 |
+| `/mcp`        | POST   | 用於工具呼叫及其他操作的 JSON-RPC 請求           |
+| `/mcp`        | DELETE | 工作階段清理與終止                               |
+| `/mcp/health` | GET    | 健康狀態檢查端點                                 |
+| `/mcp/tools`  | GET    | 用於列出可用工具的 REST API                      |
 
 ## 驗證
 
@@ -319,12 +319,15 @@ curl https://your-oneuptime-domain.com/mcp/tools
 ## API 金鑰權限
 
 ### 唯讀存取
+
 若僅供檢視資料，請為您的 API 金鑰加入讀取權限。
 
 ### 完整存取
+
 若要完整存取以建立、更新與刪除資源，請確保您的 API 金鑰具備 Project Admin 權限。
 
 ### 最佳實務
+
 - 使用特定權限：僅授予所需的最低權限
 - 輪替 API 金鑰：定期輪替您的 API 金鑰
 - 監控使用情況：在 OneUptime 中持續追蹤 API 金鑰的使用情況
@@ -333,24 +336,30 @@ curl https://your-oneuptime-domain.com/mcp/tools
 ## 疑難排解
 
 ### 權限錯誤
+
 請確保您的 API 金鑰具備必要的權限：
+
 - 列出資源所需的讀取存取權
 - 建立／更新資源所需的寫入存取權
 - 若想移除資源，則需刪除存取權
 
 ### 連線問題
+
 1. 確認您的 OneUptime URL 是否正確
 2. 檢查您的 API 金鑰是否有效
 3. 確保您的 OneUptime 執行個體可供存取
 4. 測試健康狀態檢查端點
 
 ### 無效的 API 金鑰
+
 - 在您的 OneUptime 設定中確認 API 金鑰
 - 檢查是否有多餘的空格或字元
 - 確保金鑰尚未過期
 
 ### 工作階段錯誤
+
 若您收到與工作階段相關的錯誤：
+
 - MCP server 使用 `mcp-session-id` 標頭來追蹤工作階段
 - 請確保您的用戶端正確處理伺服器回傳的工作階段 ID
 - 工作階段會在連線關閉時自動清理

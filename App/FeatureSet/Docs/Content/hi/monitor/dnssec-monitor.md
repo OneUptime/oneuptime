@@ -24,19 +24,19 @@ DNSSEC monitors root zone से आपके domain तक के पूरे 
 
 ### Basic Settings
 
-| Field | विवरण | आवश्यक |
-|-------|-------|--------|
-| Zone (Domain Name) | DNSSEC के माध्यम से validate करने के लिए zone (जैसे `example.com`) | हाँ |
-| Resolvers | query करने के लिए validating resolvers की comma-separated सूची (जैसे `1.1.1.1, 8.8.8.8, 9.9.9.9`) | हाँ |
-| Check Nameserver Consistency | प्रत्येक authoritative nameserver को सीधे query करें और verify करें कि वे एक ही SOA serial लौटाते हैं | नहीं |
+| Field                        | विवरण                                                                                                 | आवश्यक |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------- | ------ |
+| Zone (Domain Name)           | DNSSEC के माध्यम से validate करने के लिए zone (जैसे `example.com`)                                    | हाँ    |
+| Resolvers                    | query करने के लिए validating resolvers की comma-separated सूची (जैसे `1.1.1.1, 8.8.8.8, 9.9.9.9`)     | हाँ    |
+| Check Nameserver Consistency | प्रत्येक authoritative nameserver को सीधे query करें और verify करें कि वे एक ही SOA serial लौटाते हैं | नहीं   |
 
 ### Advanced Settings
 
-| Field | विवरण | Default |
-|-------|-------|---------|
-| Signature Expiry Warning (days) | RRSIG expiry filter के लिए default threshold | 7 |
-| Timeout (ms) | प्रत्येक DNS query के लिए कितना इंतज़ार करें | 10000 |
-| Retries | failure पर retry attempts की संख्या | 3 |
+| Field                           | विवरण                                        | Default |
+| ------------------------------- | -------------------------------------------- | ------- |
+| Signature Expiry Warning (days) | RRSIG expiry filter के लिए default threshold | 7       |
+| Timeout (ms)                    | प्रत्येक DNS query के लिए कितना इंतज़ार करें | 10000   |
+| Retries                         | failure पर retry attempts की संख्या          | 3       |
 
 ## Monitoring Criteria
 
@@ -44,15 +44,15 @@ DNSSEC monitors root zone से आपके domain तक के पूरे 
 
 ### उपलब्ध Check Types
 
-| Check Type | विवरण |
-|------------|-------|
-| DNSSEC Chain Is Valid | संपूर्ण validation chain (root → TLD → zone) सही ढंग से resolve होती है |
-| DNSSEC DNSKEY Record Exists | zone कम से कम एक DNSKEY record publish करता है |
-| DNSSEC DS Record Exists At Parent | parent zone एक DS record publish करता है जो zone के KSK से मेल खाता है |
-| DNSSEC Signature Expires In Days | जल्द ही expire होने वाले RRSIG signature तक के दिन |
-| DNSSEC Resolver Consensus (AD Flag) | प्रत्येक queried resolver AD (Authenticated Data) flag लौटाता है |
-| DNSSEC Nameservers Are Consistent | सभी authoritative nameservers एक ही SOA serial लौटाते हैं |
-| DNSSEC Is Valid | सभी validation checks में समग्र pass/fail |
+| Check Type                          | विवरण                                                                   |
+| ----------------------------------- | ----------------------------------------------------------------------- |
+| DNSSEC Chain Is Valid               | संपूर्ण validation chain (root → TLD → zone) सही ढंग से resolve होती है |
+| DNSSEC DNSKEY Record Exists         | zone कम से कम एक DNSKEY record publish करता है                          |
+| DNSSEC DS Record Exists At Parent   | parent zone एक DS record publish करता है जो zone के KSK से मेल खाता है  |
+| DNSSEC Signature Expires In Days    | जल्द ही expire होने वाले RRSIG signature तक के दिन                      |
+| DNSSEC Resolver Consensus (AD Flag) | प्रत्येक queried resolver AD (Authenticated Data) flag लौटाता है        |
+| DNSSEC Nameservers Are Consistent   | सभी authoritative nameservers एक ही SOA serial लौटाते हैं               |
+| DNSSEC Is Valid                     | सभी validation checks में समग्र pass/fail                               |
 
 ### Filter Types
 

@@ -56,24 +56,29 @@ Ditt OneUptime-konto och dina jourscheman lagras på serversidan och tas inte bo
 ## Felsökning
 
 **App Store säger att appen "inte är tillgänglig i din region":**
+
 - Appen är publicerad i den globala App Store. Om den inte visas i din region, kontakta [supporten](mailto:support@oneuptime.com).
 
 **"Nätverksfel" vid inloggning:**
+
 - Kontrollera att **Server-URL** är korrekt och nåbar från din enhet.
 - Om du befinner dig på ett företagsnätverk eller VPN, säkerställ att OneUptime-instansen är åtkomlig.
 - Bekräfta att servern levereras via HTTPS med ett giltigt certifikat.
 
 **Tar inte emot push-aviseringar:**
+
 - Öppna **Inställningar → Aviseringar → OneUptime On-Call** och bekräfta att aviseringar är tillåtna.
 - Inaktivera **Stör ej** eller lägg till OneUptime On-Call i listan över tillåtna appar för ditt aktiva Fokus-läge.
 - Logga ut och logga in igen för att uppdatera push-token som är registrerad hos servern.
 - Användare med egen drift: bekräfta att push-aviseringar är konfigurerade på din OneUptime-instans (se guiden [Push-aviseringar](/docs/self-hosted/push-notifications) för egen drift).
 
 **Face ID / Touch ID fungerar inte:**
+
 - Se till att biometrisk data är registrerad i **Inställningar → Face ID och lösenkod** eller **Inställningar → Touch ID och lösenkod**.
 - Aktivera biometrisk upplåsning på nytt från skärmen **Inställningar** inuti appen OneUptime On-Call.
 
 **Appen kraschar vid start:**
+
 - Uppdatera till den senaste versionen från App Store.
 - Starta om enheten.
 - Om problemet kvarstår, radera och installera om appen och logga sedan in igen.

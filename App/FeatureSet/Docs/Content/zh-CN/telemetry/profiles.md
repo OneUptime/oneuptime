@@ -10,14 +10,14 @@
 
 OneUptime 支持以下性能分析类型：
 
-| 分析类型 | 描述 | 单位 |
-|---------|------|------|
-| cpu | 执行代码所花费的 CPU 时间 | 纳秒 |
-| wall | 挂钟时间（包括等待/休眠） | 纳秒 |
-| alloc_objects | 堆分配次数 | 次数 |
-| alloc_space | 分配的堆内存字节数 | 字节 |
-| goroutine | 活跃的 goroutine 数量（Go） | 次数 |
-| contention | 等待锁/互斥锁所花费的时间 | 纳秒 |
+| 分析类型      | 描述                        | 单位 |
+| ------------- | --------------------------- | ---- |
+| cpu           | 执行代码所花费的 CPU 时间   | 纳秒 |
+| wall          | 挂钟时间（包括等待/休眠）   | 纳秒 |
+| alloc_objects | 堆分配次数                  | 次数 |
+| alloc_space   | 分配的堆内存字节数          | 字节 |
+| goroutine     | 活跃的 goroutine 数量（Go） | 次数 |
+| contention    | 等待锁/互斥锁所花费的时间   | 纳秒 |
 
 ## 入门
 
@@ -37,10 +37,10 @@ OneUptime 支持以下性能分析类型：
 
 OneUptime 通过 OTLP 性能分析协议同时接受 gRPC 和 HTTP 的性能分析数据。
 
-| 协议 | 端点 |
-|------|------|
+| 协议 | 端点                                              |
+| ---- | ------------------------------------------------- |
 | gRPC | `your-oneuptime-host:4317`（OTLP 标准 gRPC 端口） |
-| HTTP | `https://your-oneuptime-host/otlp/v1/profiles` |
+| HTTP | `https://your-oneuptime-host/otlp/v1/profiles`    |
 
 **环境变量**
 

@@ -28,18 +28,18 @@ Velg én eller flere tjenester det skal overvåkes profiler fra. Tjenester må s
 
 ### Profilfiltre
 
-| Filter | Beskrivelse | Påkrevd |
-|--------|-------------|---------|
-| Profile Types | Filtrer etter profiltypenavnet (f.eks. CPU, memory, goroutines) | Nei |
-| Attributes | Nøkkel-verdi-par for filtrering på egendefinerte profilattributter | Nei |
-| Time Window | Hvor langt tilbake det skal søkes etter profiler (i sekunder, standard: 60) | Nei |
+| Filter        | Beskrivelse                                                                 | Påkrevd |
+| ------------- | --------------------------------------------------------------------------- | ------- |
+| Profile Types | Filtrer etter profiltypenavnet (f.eks. CPU, memory, goroutines)             | Nei     |
+| Attributes    | Nøkkel-verdi-par for filtrering på egendefinerte profilattributter          | Nei     |
+| Time Window   | Hvor langt tilbake det skal søkes etter profiler (i sekunder, standard: 60) | Nei     |
 
 ## Overvåkingskriterier
 
 ### Tilgjengelige kontrolltyper
 
-| Kontrolltype | Beskrivelse |
-|-------------|-------------|
+| Kontrolltype  | Beskrivelse                                                   |
+| ------------- | ------------------------------------------------------------- |
 | Profile Count | Antall profiler som samsvarer med filtrene dine i tidsvinduet |
 
 ### Filtertyper

@@ -121,11 +121,11 @@ As regras de escalonamento determinam como as chamadas são roteadas:
 
 ### Exemplo de Regra de Escalonamento
 
-| Ordem | Escalonar Após | Alvo |
-|-------|----------------|--------|
-| 1 | 30 segundos | Escala de Plantão Primária |
-| 2 | 30 segundos | Escala de Plantão Secundária |
-| 3 | 30 segundos | Líder de Engenharia |
+| Ordem | Escalonar Após | Alvo                         |
+| ----- | -------------- | ---------------------------- |
+| 1     | 30 segundos    | Escala de Plantão Primária   |
+| 2     | 30 segundos    | Escala de Plantão Secundária |
+| 3     | 30 segundos    | Líder de Engenharia          |
 
 ## Passo 7: Configurar Mensagens de Voz (Opcional)
 
@@ -142,23 +142,23 @@ Personalize as mensagens que os chamadores ouvem:
 
 ### Configurações da Política
 
-| Configuração | Descrição | Padrão |
-|---------|-------------|---------|
-| Greeting Message | Mensagem TTS reproduzida quando a chamada é atendida | "Por favor, aguarde enquanto o conectamos ao engenheiro de plantão." |
-| No Answer Message | Mensagem quando todas as regras de escalonamento falham | "Ninguém está disponível. Por favor, tente novamente mais tarde." |
-| No One Available Message | Mensagem quando ninguém está de plantão | "Lamentamos, mas nenhum engenheiro de plantão está disponível no momento." |
-| Repeat Policy If No One Answers | Reiniciar da primeira regra se todas falharem | Desabilitado |
-| Repeat Policy Times | Tentativas de repetição máximas | 1 |
+| Configuração                    | Descrição                                               | Padrão                                                                     |
+| ------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Greeting Message                | Mensagem TTS reproduzida quando a chamada é atendida    | "Por favor, aguarde enquanto o conectamos ao engenheiro de plantão."       |
+| No Answer Message               | Mensagem quando todas as regras de escalonamento falham | "Ninguém está disponível. Por favor, tente novamente mais tarde."          |
+| No One Available Message        | Mensagem quando ninguém está de plantão                 | "Lamentamos, mas nenhum engenheiro de plantão está disponível no momento." |
+| Repeat Policy If No One Answers | Reiniciar da primeira regra se todas falharem           | Desabilitado                                                               |
+| Repeat Policy Times             | Tentativas de repetição máximas                         | 1                                                                          |
 
 ### Configurações de Regra de Escalonamento
 
-| Configuração | Descrição |
-|---------|-------------|
-| Order | Ordem de prioridade (1 = maior prioridade) |
+| Configuração           | Descrição                                                     |
+| ---------------------- | ------------------------------------------------------------- |
+| Order                  | Ordem de prioridade (1 = maior prioridade)                    |
 | Escalate After Seconds | Tempo de espera antes de tentar a próxima regra (padrão: 30s) |
-| On-Call Schedule | Rotear para quem está de plantão no momento |
-| Teams | Rotear para todos os membros das equipes selecionadas |
-| Users | Rotear para usuários específicos |
+| On-Call Schedule       | Rotear para quem está de plantão no momento                   |
+| Teams                  | Rotear para todos os membros das equipes selecionadas         |
+| Users                  | Rotear para usuários específicos                              |
 
 ## Visualizando Logs de Chamadas
 
@@ -169,6 +169,7 @@ Para visualizar o histórico de chamadas de entrada:
 3. Vá para a aba **Call Logs**
 
 Os logs mostram:
+
 - Número de telefone do chamador
 - Status da chamada (Completada, Sem Resposta, Falhou, etc.)
 - Quem atendeu a chamada

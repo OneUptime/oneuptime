@@ -32,25 +32,25 @@ Selecteer het Kubernetes-cluster om te monitoren. Clusters moeten via OpenTeleme
 
 Kies het niveau waarop u resources wilt monitoren:
 
-| Scope | Beschrijving |
-|-------|-------------|
-| Cluster | Monitor het hele cluster |
-| Namespace | Monitor resources binnen een specifieke namespace |
-| Workload | Monitor een specifieke deployment, statefulset, daemonset, job of cronjob |
-| Node | Monitor een specifieke cluster-node |
-| Pod | Monitor een specifieke pod |
+| Scope     | Beschrijving                                                              |
+| --------- | ------------------------------------------------------------------------- |
+| Cluster   | Monitor het hele cluster                                                  |
+| Namespace | Monitor resources binnen een specifieke namespace                         |
+| Workload  | Monitor een specifieke deployment, statefulset, daemonset, job of cronjob |
+| Node      | Monitor een specifieke cluster-node                                       |
+| Pod       | Monitor een specifieke pod                                                |
 
 ### Resource-filters
 
 Versmal de scope met optionele filters:
 
-| Filter | Beschrijving | Toepasselijke scopes |
-|--------|-------------|-------------------|
-| Namespace | Kubernetes-namespace | Namespace, Workload, Pod |
-| Workload Type | deployment, statefulset, daemonset, job, cronjob | Workload |
-| Workload Name | Naam van de workload | Workload |
-| Node Name | Naam van de node | Node |
-| Pod Name | Naam van de pod | Pod |
+| Filter        | Beschrijving                                     | Toepasselijke scopes     |
+| ------------- | ------------------------------------------------ | ------------------------ |
+| Namespace     | Kubernetes-namespace                             | Namespace, Workload, Pod |
+| Workload Type | deployment, statefulset, daemonset, job, cronjob | Workload                 |
+| Workload Name | Naam van de workload                             | Workload                 |
+| Node Name     | Naam van de node                                 | Node                     |
+| Pod Name      | Naam van de pod                                  | Pod                      |
 
 ### Metric-queries
 
@@ -77,60 +77,60 @@ Selecteer het tijdvenster voor metric-evaluatie:
 
 ### Pod-metrics
 
-| Metric | Beschrijving |
-|--------|-------------|
-| Pod CPU Usage | CPU-verbruik door pods |
-| Pod Memory Usage | Geheugenverbruik door pods |
-| Pod Filesystem Usage | Schijfgebruik door pods |
-| Pod Network Receive/Transmit | Netwerkverkeer |
-| Pod Phase | Huidige pod-fase (Running, Pending, Failed, etc.) |
+| Metric                       | Beschrijving                                      |
+| ---------------------------- | ------------------------------------------------- |
+| Pod CPU Usage                | CPU-verbruik door pods                            |
+| Pod Memory Usage             | Geheugenverbruik door pods                        |
+| Pod Filesystem Usage         | Schijfgebruik door pods                           |
+| Pod Network Receive/Transmit | Netwerkverkeer                                    |
+| Pod Phase                    | Huidige pod-fase (Running, Pending, Failed, etc.) |
 
 ### Node-metrics
 
-| Metric | Beschrijving |
-|--------|-------------|
-| Node CPU Usage | CPU-benutting per node |
-| Node Memory Usage | Geheugenbenutting per node |
-| Node Filesystem Usage | Schijfgebruik per node |
-| Node Disk I/O | Lees-/schrijfbewerkingen |
-| Node Ready Condition | Of de node gereed is |
+| Metric                | Beschrijving               |
+| --------------------- | -------------------------- |
+| Node CPU Usage        | CPU-benutting per node     |
+| Node Memory Usage     | Geheugenbenutting per node |
+| Node Filesystem Usage | Schijfgebruik per node     |
+| Node Disk I/O         | Lees-/schrijfbewerkingen   |
+| Node Ready Condition  | Of de node gereed is       |
 
 ### Container-metrics
 
-| Metric | Beschrijving |
-|--------|-------------|
-| Container Restarts | Aantal container-herstarts |
-| Container CPU/Memory Limits | Resource-limits |
-| Container CPU/Memory Requests | Resource-requests |
-| Container Ready Status | Of containers gereed zijn |
+| Metric                        | Beschrijving               |
+| ----------------------------- | -------------------------- |
+| Container Restarts            | Aantal container-herstarts |
+| Container CPU/Memory Limits   | Resource-limits            |
+| Container CPU/Memory Requests | Resource-requests          |
+| Container Ready Status        | Of containers gereed zijn  |
 
 ### Workload-metrics
 
-| Metric | Beschrijving |
-|--------|-------------|
-| Deployment Available/Unavailable Replicas | Aantal replicas |
-| DaemonSet Misscheduled Nodes | Planningsproblemen |
-| StatefulSet Ready Replicas | Aantal gereede replicas |
-| Job Active/Failed/Succeeded Pods | Job-status |
+| Metric                                    | Beschrijving            |
+| ----------------------------------------- | ----------------------- |
+| Deployment Available/Unavailable Replicas | Aantal replicas         |
+| DaemonSet Misscheduled Nodes              | Planningsproblemen      |
+| StatefulSet Ready Replicas                | Aantal gereede replicas |
+| Job Active/Failed/Succeeded Pods          | Job-status              |
 
 ## Monitoring-criteria
 
 ### Beschikbare check-types
 
-| Check Type | Beschrijving |
-|------------|-------------|
+| Check Type   | Beschrijving                                             |
+| ------------ | -------------------------------------------------------- |
 | Metric Value | De waarde van de geconfigureerde metric-query of formule |
 
 ### Aggregatietypes
 
-| Aggregation | Beschrijving |
-|-------------|-------------|
-| Average | Gemiddelde waarde over het tijdvenster |
-| Sum | Som van alle waarden |
-| Maximum Value | Hoogste waarde in het tijdvenster |
-| Minimum Value | Laagste waarde in het tijdvenster |
-| All Values | Alle waarden moeten aan de criteria voldoen |
-| Any Value | Ten minste één waarde moet overeenkomen |
+| Aggregation   | Beschrijving                                |
+| ------------- | ------------------------------------------- |
+| Average       | Gemiddelde waarde over het tijdvenster      |
+| Sum           | Som van alle waarden                        |
+| Maximum Value | Hoogste waarde in het tijdvenster           |
+| Minimum Value | Laagste waarde in het tijdvenster           |
+| All Values    | Alle waarden moeten aan de criteria voldoen |
+| Any Value     | Ten minste één waarde moet overeenkomen     |
 
 ### Filtertypes
 
@@ -140,20 +140,20 @@ Selecteer het tijdvenster voor metric-evaluatie:
 
 OneUptime biedt templates voor veelvoorkomende Kubernetes-monitoring-scenario's:
 
-| Template | Beschrijving | Drempel |
-|----------|-------------|-----------|
-| CrashLoopBackOff Detection | Aantal container-herstarts | > 5 herstarts |
-| Pod Stuck in Pending | Pods in Pending-fase | > 0 pods |
-| Node Not Ready | Node-gereedheidsstatus | = 0 (niet gereed) |
-| High Node CPU | CPU-benutting van node | > 90% |
-| High Node Memory | Geheugenbenutting van node | > 85% |
-| Deployment Replica Mismatch | Niet-beschikbare replicas | > 0 replicas |
-| Job Failures | Mislukte pods in een job | > 0 mislukkingen |
-| etcd No Leader | etcd-cluster-leader ontbreekt | = 0 (geen leider) |
-| API Server Throttling | Afgewezen API-verzoeken | > 0 verzoeken |
-| Scheduler Backlog | Pods in afwachting in scheduler | > 0 pods |
-| High Node Disk Usage | Bestandssysteemgebruik van node | > 90% |
-| DaemonSet Unavailable | Verkeerd geplande nodes | > 0 nodes |
+| Template                    | Beschrijving                    | Drempel           |
+| --------------------------- | ------------------------------- | ----------------- |
+| CrashLoopBackOff Detection  | Aantal container-herstarts      | > 5 herstarts     |
+| Pod Stuck in Pending        | Pods in Pending-fase            | > 0 pods          |
+| Node Not Ready              | Node-gereedheidsstatus          | = 0 (niet gereed) |
+| High Node CPU               | CPU-benutting van node          | > 90%             |
+| High Node Memory            | Geheugenbenutting van node      | > 85%             |
+| Deployment Replica Mismatch | Niet-beschikbare replicas       | > 0 replicas      |
+| Job Failures                | Mislukte pods in een job        | > 0 mislukkingen  |
+| etcd No Leader              | etcd-cluster-leader ontbreekt   | = 0 (geen leider) |
+| API Server Throttling       | Afgewezen API-verzoeken         | > 0 verzoeken     |
+| Scheduler Backlog           | Pods in afwachting in scheduler | > 0 pods          |
+| High Node Disk Usage        | Bestandssysteemgebruik van node | > 90%             |
+| DaemonSet Unavailable       | Verkeerd geplande nodes         | > 0 nodes         |
 
 ## Installatievereisten
 

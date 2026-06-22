@@ -36,6 +36,7 @@ Jetzt können Sie `Basic {{variable.JIRA_AUTH}}` als Auth-Header verwenden, und 
 1. Öffnen Sie **Workflows → Create Workflow**, benennen Sie ihn `Incidents → Jira`, und öffnen Sie den **Builder**.
 2. Ziehen Sie einen **Incident**-Auslöser auf die Arbeitsfläche und wählen Sie das Ereignis **On Create**. Benennen Sie ihn in `Incident` um.
 3. Ziehen Sie einen **API**-Block und verbinden Sie den Auslöser damit. Konfigurieren Sie:
+
    - **Method**: `POST`
    - **URL**: `https://your-domain.atlassian.net/rest/api/3/issue`
    - **Headers**:
@@ -70,6 +71,7 @@ Jetzt können Sie `Basic {{variable.JIRA_AUTH}}` als Auth-Header verwenden, und 
      ```
 
    Ersetzen Sie `OPS` durch Ihren Projektschlüssel und `Bug` durch einen Issue-Typ, der in diesem Projekt existiert.
+
 4. **Speichern.** Lassen Sie den Workflow deaktiviert, bis Sie ihn getestet haben.
 
 ## Schritt 3 — Testen
@@ -96,8 +98,9 @@ Um den OneUptime-Vorfall aufzulösen, wenn jemand das Jira-Issue schließt, füg
 
 1. Erstellen Sie einen zweiten Workflow, der mit einem **Webhook**-Auslöser beginnt, und kopieren Sie dessen URL.
 2. Gehen Sie in Jira zu **Project settings → Automation → Create rule**:
-   - **Trigger**: *Issue transitioned* zu **Done** (oder *Issue resolved*).
-   - **Action**: *Send web request* → Methode `POST`, URL = Ihre Workflow-Webhook-URL, Body enthält den Issue-Key und die OneUptime-Vorfall-ID, z. B.:
+
+   - **Trigger**: _Issue transitioned_ zu **Done** (oder _Issue resolved_).
+   - **Action**: _Send web request_ → Methode `POST`, URL = Ihre Workflow-Webhook-URL, Body enthält den Issue-Key und die OneUptime-Vorfall-ID, z. B.:
 
      ```json
      { "issueKey": "{{issue.key}}", "status": "resolved" }
@@ -121,16 +124,20 @@ Um die genauen Feldnamen zu ermitteln, die ein Projekt erwartet, rufen Sie den E
 ## Fehlerbehebung
 
 **`401 Unauthorized`.**
+
 - Kodieren Sie `email:api_token` erneut und aktualisieren Sie die Variable `JIRA_AUTH`. Ein abschließender Zeilenumbruch ist der häufigste Grund – verwenden Sie beim Kodieren `printf` (nicht `echo`).
 - Überprüfen Sie, ob das Konto, dem der API-Token gehört, Issues im Projekt erstellen darf.
 
 **`400 Bad Request` mit Erwähnung eines Felds.**
+
 - Der Issue-Typ oder ein Pflichtfeld ist falsch. Prüfen Sie den Namen des **Issue-Typs** im Projekt und ob es erforderliche benutzerdefinierte Felder hat. Verwenden Sie `createmeta` (oben), um zu sehen, was Pflicht ist.
 
 **`404 Not Found`.**
+
 - Überprüfen Sie die Basis-URL und stellen Sie sicher, dass Sie `/rest/api/3/issue` (Cloud) oder `/rest/api/2/issue` (Server/Data Center) aufrufen.
 
 **Die Beschreibung erscheint als einzelne Zeile / sieht merkwürdig aus.**
+
 - v3 erfordert das oben gezeigte Atlassian Document Format. Wenn Sie lieber Klartext senden möchten, verwenden Sie den Endpunkt `/rest/api/2/issue` mit `"description": "{{Incident.description}}"` als einfache Zeichenkette.
 
 ## Weiterführende Themen

@@ -33,9 +33,9 @@ OneUptime का **Incoming Email Monitor** आपको unique monitor-specific
 
 अपने DNS configuration में एक MX record जोड़ें ताकि आपके inbound subdomain के लिए emails SendGrid पर route हों।
 
-| Type | Host/Name | Priority | Value |
-|------|-----------|----------|-------|
-| MX | inbound | 10 | mx.sendgrid.net |
+| Type | Host/Name | Priority | Value           |
+| ---- | --------- | -------- | --------------- |
+| MX   | inbound   | 10       | mx.sendgrid.net |
 
 **उदाहरण:** यदि आपका domain `example.com` है और आप `inbound.example.com` उपयोग कर रहे हैं:
 
@@ -61,12 +61,12 @@ inbound.example.com.  IN  MX  10  mx.sendgrid.net.
 3. **Add Host & URL** पर क्लिक करें
 4. निम्नलिखित configure करें:
 
-| Field | Value |
-|-------|-------|
-| **Receiving Domain** | आपका inbound subdomain (जैसे `inbound.yourdomain.com`) |
-| **Destination URL** | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
-| **Check incoming emails for spam** | वैकल्पिक - यदि चाहें तो सक्षम करें |
-| **Send raw, full MIME message** | Unchecked छोड़ें (आवश्यक नहीं) |
+| Field                              | Value                                                                   |
+| ---------------------------------- | ----------------------------------------------------------------------- |
+| **Receiving Domain**               | आपका inbound subdomain (जैसे `inbound.yourdomain.com`)                  |
+| **Destination URL**                | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
+| **Check incoming emails for spam** | वैकल्पिक - यदि चाहें तो सक्षम करें                                      |
+| **Send raw, full MIME message**    | Unchecked छोड़ें (आवश्यक नहीं)                                          |
 
 5. **Add** पर क्लिक करें
 
@@ -118,20 +118,22 @@ Creation के बाद, आपको इस monitor के लिए unique e
 
 ## Environment Variables Reference
 
-| Variable | विवरण | आवश्यक | Default |
-|----------|-------|--------|---------|
-| `INBOUND_EMAIL_PROVIDER` | उपयोग करने के लिए inbound email provider | हाँ | - |
-| `INBOUND_EMAIL_DOMAIN` | inbound emails के लिए configured subdomain | हाँ | - |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | webhook requests validate करने के लिए Secret। सेट होने पर, इस secret को webhook URL में append करें: `/incoming-email/sendgrid/YOUR_SECRET` | नहीं | - |
+| Variable                       | विवरण                                                                                                                                       | आवश्यक | Default |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------- |
+| `INBOUND_EMAIL_PROVIDER`       | उपयोग करने के लिए inbound email provider                                                                                                    | हाँ    | -       |
+| `INBOUND_EMAIL_DOMAIN`         | inbound emails के लिए configured subdomain                                                                                                  | हाँ    | -       |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | webhook requests validate करने के लिए Secret। सेट होने पर, इस secret को webhook URL में append करें: `/incoming-email/sendgrid/YOUR_SECRET` | नहीं   | -       |
 
 ## Troubleshooting
 
 ### Emails नहीं मिल रहे
 
 1. **DNS propagation जांचें:**
+
    ```bash
    dig MX inbound.yourdomain.com
    ```
+
    `mx.sendgrid.net` return करना चाहिए
 
 2. **SendGrid Inbound Parse settings सत्यापित करें:**
@@ -142,6 +144,7 @@ Creation के बाद, आपको इस monitor के लिए unique e
 ### Webhooks Fail हो रहे हैं
 
 1. **सुनिश्चित करें कि OneUptime publicly accessible है:**
+
    - Webhook URL internet से reachable होनी चाहिए
    - इससे test करें: `curl -X POST https://your-oneuptime-domain.com/incoming-email/sendgrid`
 

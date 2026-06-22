@@ -56,8 +56,8 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 ```javascript
 // Node.js-Beispiel
-const https = require('https');
-https.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY');
+const https = require("https");
+https.get("https://oneuptime.com/heartbeat/YOUR_SECRET_KEY");
 ```
 
 ```python
@@ -74,12 +74,12 @@ Sie können Kriterien konfigurieren, um zu bestimmen, wann Ihr Dienst als online
 
 ### Verfügbare Prüftypen
 
-| Prüftyp | Beschreibung |
-|------------|-------------|
-| Eingehende Anfrage | Ob ein Heartbeat innerhalb eines Zeitfensters empfangen wurde |
-| Anfragetext | Inhalt des mit dem Heartbeat gesendeten Anfragetexts |
-| Anfrage-Header | Name eines bestimmten Anfrage-Headers |
-| Anfrage-Header-Wert | Wert eines bestimmten Anfrage-Headers |
+| Prüftyp             | Beschreibung                                                  |
+| ------------------- | ------------------------------------------------------------- |
+| Eingehende Anfrage  | Ob ein Heartbeat innerhalb eines Zeitfensters empfangen wurde |
+| Anfragetext         | Inhalt des mit dem Heartbeat gesendeten Anfragetexts          |
+| Anfrage-Header      | Name eines bestimmten Anfrage-Headers                         |
+| Anfrage-Header-Wert | Wert eines bestimmten Anfrage-Headers                         |
 
 ### Filtertypen
 

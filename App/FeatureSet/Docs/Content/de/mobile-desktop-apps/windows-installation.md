@@ -2,7 +2,6 @@
 
 Installieren Sie OneUptime als Desktop-Anwendung unter Windows für umfassendes Monitoring und Incident-Management.
 
-
 ## Installationsmethoden
 
 ### Methode 1: Microsoft Edge (Empfohlen)
@@ -10,17 +9,20 @@ Installieren Sie OneUptime als Desktop-Anwendung unter Windows für umfassendes 
 Edge bietet die beste Windows-PWA-Integration mit nativen Funktionen.
 
 1. **OneUptime in Edge öffnen**
+
    - Microsoft Edge-Browser starten
    - Zur URL Ihrer OneUptime-Instanz navigieren
    - Bei Ihrem OneUptime-Konto anmelden
    - Auf vollständiges Laden der Seite warten
 
 2. **App installieren**
+
    - Nach dem **Installations-Symbol** (⊞) in der Adressleiste suchen
    - Auf die Schaltfläche **„OneUptime installieren"** klicken
    - Oder auf **Drei-Punkte-Menü** → **Apps** → **Diese Website als App installieren** klicken
 
 3. **Installation anpassen**
+
    - **App-Name**: Bei Wunsch ändern (Standard: OneUptime)
    - **Startmenü**: Wählen, ob zum Startmenü hinzufügen
    - **Taskleiste**: Option zum Anheften an die Taskleiste
@@ -36,17 +38,20 @@ Edge bietet die beste Windows-PWA-Integration mit nativen Funktionen.
 Chrome bietet exzellente PWA-Unterstützung mit umfangreicher Desktop-Integration.
 
 1. **OneUptime in Chrome öffnen**
+
    - Google Chrome starten
    - Zur OneUptime-Instanz gehen
    - Angemeldet sein
    - Vollständiges Laden der Seite abwarten
 
 2. **Über Adressleiste installieren**
+
    - Nach **Installations-Symbol** (⊞) in der Adressleiste suchen
    - Auf **„OneUptime installieren"** klicken
    - Oder Menü: **Drei Punkte** → **Weitere Tools** → **Verknüpfung erstellen** verwenden
 
 3. **Installationsoptionen**
+
    - **„Als Fenster öffnen"** für app-ähnliches Erlebnis aktivieren
    - App-Namen nach Wunsch anpassen
    - Auf **„Installieren"** oder **„Erstellen"** klicken
@@ -61,6 +66,7 @@ Chrome bietet exzellente PWA-Unterstützung mit umfangreicher Desktop-Integratio
 Firefox unterstützt die PWA-Installation mit grundlegender Desktop-Integration.
 
 1. **OneUptime in Firefox öffnen**
+
    - Firefox-Browser starten
    - Zur OneUptime-URL navigieren
    - Anmeldeprozess abschließen
@@ -70,15 +76,17 @@ Firefox unterstützt die PWA-Installation mit grundlegender Desktop-Integration.
    - Oder auf **Menü** → **Installieren** klicken
    - Falls verfügbar, auf entsprechendes „Zum Home-Bildschirm hinzufügen" klicken
 
-
 ### Startkonfiguration
+
 1. **Autostart**: OneUptime so konfigurieren, dass es mit Windows startet
    - Rechtsklick auf Taskleiste → Task-Manager → Start
    - OneUptime bei Bedarf aktivieren
 2. **Standardgröße**: Bevorzugte Fenstergröße und -position einstellen
 
 ### Benachrichtigungseinstellungen
+
 1. **Windows-Benachrichtigungen**
+
    - Einstellungen → System → Benachrichtigungen & Aktionen
    - OneUptime finden und Benachrichtigungspräferenzen konfigurieren
    - Banner-Benachrichtigungen für Incidents aktivieren
@@ -93,6 +101,7 @@ Firefox unterstützt die PWA-Installation mit grundlegender Desktop-Integration.
 ### Installationsprobleme
 
 **Installationsschaltfläche erscheint nicht:**
+
 ```
 Lösungen:
 1. Sicherstellen, dass Edge oder Chrome verwendet wird (empfohlene Browser)
@@ -104,6 +113,7 @@ Lösungen:
 ```
 
 **Installation schlägt fehl oder stürzt ab:**
+
 ```
 Lösungen:
 1. Browser als Administrator ausführen
@@ -115,6 +125,7 @@ Lösungen:
 ```
 
 **App erscheint nicht im Startmenü:**
+
 ```
 Lösungen:
 1. In der Windows-Suche nach „OneUptime" suchen
@@ -127,6 +138,7 @@ Lösungen:
 ### Benachrichtigungsprobleme
 
 **Windows-Benachrichtigungen funktionieren nicht:**
+
 ```
 Lösungen:
 1. Windows-Einstellungen → System → Benachrichtigungen & Aktionen
@@ -139,12 +151,15 @@ Lösungen:
 ## Deinstallation
 
 ### Vollständige Entfernung
+
 1. **Methode über Windows-Einstellungen**
+
    - Einstellungen → Apps → Apps & Features
    - Nach „OneUptime" suchen
    - Klicken und „Deinstallieren" auswählen
 
 2. **Browser-Methode**
+
    - Edge/Chrome öffnen
    - Zu edge://apps/ oder chrome://apps/ gehen
    - OneUptime finden
@@ -155,10 +170,10 @@ Lösungen:
    - „Deinstallieren" auswählen
    - Entfernung bestätigen
 
-
 ## Updates und Wartung
 
 ### Automatische Updates
+
 - OneUptime PWA aktualisiert sich automatisch bei Online-Verbindung
 - Kein manueller Eingriff erforderlich
 - Updates werden sofort nach dem Neustart angewendet

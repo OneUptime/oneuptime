@@ -28,20 +28,20 @@ exceptions monitor करने के लिए एक या अधिक serv
 
 ### Exception Filters
 
-| Filter | विवरण | आवश्यक |
-|--------|-------|--------|
-| Exception Types | exception type names से filter करें (जैसे `NullPointerException`, `TypeError`) | नहीं |
-| Message | exception messages में text search | नहीं |
-| Include Resolved | resolved marked exceptions शामिल करें (default: false) | नहीं |
-| Include Archived | archived exceptions शामिल करें (default: false) | नहीं |
-| Time Window | exceptions के लिए कितना पीछे search करें (seconds में, default: 60) | नहीं |
+| Filter           | विवरण                                                                          | आवश्यक |
+| ---------------- | ------------------------------------------------------------------------------ | ------ |
+| Exception Types  | exception type names से filter करें (जैसे `NullPointerException`, `TypeError`) | नहीं   |
+| Message          | exception messages में text search                                             | नहीं   |
+| Include Resolved | resolved marked exceptions शामिल करें (default: false)                         | नहीं   |
+| Include Archived | archived exceptions शामिल करें (default: false)                                | नहीं   |
+| Time Window      | exceptions के लिए कितना पीछे search करें (seconds में, default: 60)            | नहीं   |
 
 ## Monitoring Criteria
 
 ### उपलब्ध Check Types
 
-| Check Type | विवरण |
-|------------|-------|
+| Check Type      | विवरण                                                                |
+| --------------- | -------------------------------------------------------------------- |
 | Exception Count | time window में आपके filters से match करने वाले exceptions की संख्या |
 
 ### Filter Types

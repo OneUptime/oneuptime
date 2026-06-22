@@ -21,6 +21,15 @@ const RumSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.List,
         },
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUM_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
       ],
     },
     {

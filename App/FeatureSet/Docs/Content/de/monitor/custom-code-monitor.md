@@ -9,15 +9,14 @@ Das folgende Beispiel zeigt, wie ein Benutzerdefinierter Code-Monitor verwendet 
 ```javascript
 // You can use axios module.
 
-await axios.get('https://api.example.com/');
+await axios.get("https://api.example.com/");
 
 // Axios Documentation here: https://axios-http.com/docs/intro
 
 return {
-    data: 'Hello World' // return any data you like here. 
+  data: "Hello World", // return any data you like here.
 };
 ```
-
 
 ### Monitor-Geheimnisse verwenden
 
@@ -46,9 +45,8 @@ let numberSecret = {{monitorSecrets.NumberSecret}};
 let booleanSecret = {{monitorSecrets.BooleanSecret}};
 
 // you can even console log to see if the secrets is being fetched correctly
-console.log(stringSecret); 
+console.log(stringSecret);
 ```
-
 
 ### Benutzerdefinierte Metriken
 
@@ -65,30 +63,32 @@ oneuptime.captureMetric(name, value, attributes);
 #### Beispiel
 
 ```javascript
-const response = await axios.get('https://api.example.com/health');
+const response = await axios.get("https://api.example.com/health");
 
 // Capture a simple metric
-oneuptime.captureMetric('api.response.time', response.data.latency);
+oneuptime.captureMetric("api.response.time", response.data.latency);
 
 // Capture a metric with attributes
-oneuptime.captureMetric('api.queue.depth', response.data.queueDepth, {
-    region: 'us-east-1',
-    environment: 'production'
+oneuptime.captureMetric("api.queue.depth", response.data.queueDepth, {
+  region: "us-east-1",
+  environment: "production",
 });
 
 return {
-    data: response.data
+  data: response.data,
 };
 ```
 
 Nach der Erfassung erscheinen diese Metriken im Metric Explorer unter Namen wie `custom.monitor.api.response.time`. Sie können sie zu Dashboard-Diagrammen hinzufügen, Benachrichtigungen einrichten und nach Monitor, Probe oder benutzerdefinierten Attributen filtern.
 
 **Limits:**
+
 - Maximal 100 Metriken pro Skriptausführung.
 - Metriknamen sind auf 200 Zeichen begrenzt.
 - Werte müssen numerisch sein.
 
 ### Im Skript verfügbare Module
+
 - `axios`: Dieses Modul können Sie verwenden, um HTTP-Anfragen zu stellen. Es ist ein promise-basierter HTTP-Client für Browser und Node.js.
 - `crypto`: Dieses Modul können Sie für kryptographische Operationen verwenden. Es ist ein integriertes Node.js-Modul mit kryptographischer Funktionalität, einschließlich Wrapper für OpenSSL-Hash-, HMAC-, Verschlüsselungs-, Entschlüsselungs-, Signatur- und Verifizierungsfunktionen.
 - `console.log`: Dieses Modul können Sie verwenden, um Daten in der Konsole zu protokollieren. Dies ist nützlich für Debugging-Zwecke.

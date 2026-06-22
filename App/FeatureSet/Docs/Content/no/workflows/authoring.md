@@ -10,12 +10,12 @@ Hver arbeidsflyt starter med én **trigger** i begynnelsen. Alt annet er en **ko
 
 ## Hva som finnes på en blokk
 
-| Felt | Hva det gjør |
-| --- | --- |
-| **Tittel** | Navnet som vises på lerretet. Gi det nytt navn for å gjøre komplekse arbeidsflyter lettere å lese. |
-| **Innstillinger** | Hva blokken trenger for å gjøre jobben sin — en URL, en Slack-kanal, en meldingstekst, osv. Obligatoriske felter er markert med en stjerne. |
-| **Inngang** | Prikken til venstre der linjer kommer inn fra tidligere blokker. |
-| **Utganger** | Prikkene til høyre der linjer går ut til de neste blokkene. Mange blokker har separate utganger for **suksess** og **feil** slik at du kan håndtere begge tilfeller. |
+| Felt              | Hva det gjør                                                                                                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tittel**        | Navnet som vises på lerretet. Gi det nytt navn for å gjøre komplekse arbeidsflyter lettere å lese.                                                                   |
+| **Innstillinger** | Hva blokken trenger for å gjøre jobben sin — en URL, en Slack-kanal, en meldingstekst, osv. Obligatoriske felter er markert med en stjerne.                          |
+| **Inngang**       | Prikken til venstre der linjer kommer inn fra tidligere blokker.                                                                                                     |
+| **Utganger**      | Prikkene til høyre der linjer går ut til de neste blokkene. Mange blokker har separate utganger for **suksess** og **feil** slik at du kan håndtere begge tilfeller. |
 
 ## Koble blokker sammen
 

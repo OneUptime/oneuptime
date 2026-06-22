@@ -173,7 +173,6 @@ DROP TABLE IF EXISTS MetricItemAggMV1mByHost_backup SETTINGS max_table_size_to_d
 
 > Astuce : comme pour toute mise à niveau majeure, testez d'abord dans un environnement de staging et confirmez que la télémétrie arrive bien dans les nouvelles tables avant de vous appuyer sur la copie en production.
 
-
 ## Mise à niveau de OneUptime 9 → 10
 
 Aucun changement nécessitant une action manuelle. Suivez simplement le processus de mise à niveau standard.
@@ -187,7 +186,6 @@ Le chart Helm ne provisionne plus de ressource Kubernetes Ingress. OneUptime inc
 - Vérifiez que les enregistrements DNS pour les pages de statut ou les hôtes primaires pointent toujours vers le Service ou l'équilibreur de charge qui protège la passerelle d'entrée OneUptime.
 - Après la mise à niveau, confirmez que les certificats TLS continuent d'être renouvelés via la passerelle intégrée et que les domaines des pages de statut se résolvent correctement.
 
-
 ## Mise à niveau de OneUptime 7 → 8
 
 Si vous exécutez sur Kubernetes, il y a des changements importants avec rupture de compatibilité :
@@ -195,6 +193,5 @@ Si vous exécutez sur Kubernetes, il y a des changements importants avec rupture
 - Nous n'utilisons plus les charts Bitnami pour Postgres, Redis et ClickHouse en raison des [changements de licence Bitnami](https://github.com/bitnami/charts/issues/35164)
 - Ces changements ne sont pas rétrocompatibles. Vous devez suivre la nouvelle structure dans le fichier `values.yaml` du chart Helm.
 - Sauvegardez vos données (Postgres, ClickHouse et tout volume persistant) avant la mise à niveau.
-
 
 > Conseil : Testez d'abord la mise à niveau dans un environnement de staging. Vérifiez que vos charges de travail sont saines et que les données sont intactes avant de mettre à niveau la production.

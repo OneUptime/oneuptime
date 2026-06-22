@@ -3,6 +3,7 @@
 Se preferir hospedar o OneUptime no seu próprio servidor, você pode usar o Docker Compose para implantar uma instância de servidor único do OneUptime no Debian, Ubuntu ou RHEL. Esta opção oferece mais controle e personalização sobre sua instância, mas também requer mais habilidades técnicas e recursos para implantá-la e mantê-la.
 
 #### Escolha Seus Requisitos de Sistema
+
 Dependendo do seu uso e orçamento, você pode escolher entre diferentes requisitos de sistema para o seu servidor. Para desempenho ideal, sugerimos usar o OneUptime com:
 
 - **Requisitos de Sistema Recomendados**
@@ -17,7 +18,6 @@ Dependendo do seu uso e orçamento, você pode escolher entre diferentes requisi
     - 4 Núcleos
     - 20 GB de Disco
     - Docker e Docker Compose instalados
-
 
 #### Pré-requisitos para Implantação em Servidor Único
 
@@ -52,7 +52,6 @@ Se você não quiser usar npm ou não o tiver instalado, execute isso em vez dis
 # Use sudo se tiver problemas de permissão ao vincular portas.
 sudo bash -c "(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)"
 ```
-
 
 ### Acessando o OneUptime
 
@@ -95,7 +94,6 @@ npm run update
 ### Considerações
 
 - Na nossa configuração Docker, empregamos um driver de log local. O OneUptime, particularmente dentro dos contêineres de probe e ingest, gera uma quantidade substancial de logs. Para evitar que seu armazenamento fique cheio, é crucial limitar o armazenamento de log no Docker. Para instruções detalhadas sobre como fazer isso, consulte a documentação oficial do Docker [aqui](https://docs.docker.com/config/containers/logging/local/).
-
 
 ### Desinstalando o OneUptime
 

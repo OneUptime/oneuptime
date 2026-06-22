@@ -82,9 +82,12 @@ L'identité visuelle ne s'applique que lorsque le tableau de bord est consulté 
 Vous pouvez intégrer un tableau de bord public dans votre propre site à l'aide d'une iframe :
 
 ```html
-<iframe src="https://dashboard.acme.com/view"
-        width="100%" height="800"
-        frameborder="0"></iframe>
+<iframe
+  src="https://dashboard.acme.com/view"
+  width="100%"
+  height="800"
+  frameborder="0"
+></iframe>
 ```
 
 Si le tableau de bord est protégé par un mot de passe maître, les visiteurs verront l'invite de mot de passe à l'intérieur de l'iframe.

@@ -32,25 +32,25 @@ Velg Kubernetes-klyngen som skal overvåkes. Klynger må være integrert med One
 
 Velg nivået ressurser skal overvåkes på:
 
-| Omfang | Beskrivelse |
-|-------|-------------|
-| Cluster | Overvåk hele klyngen |
-| Namespace | Overvåk ressurser innenfor et spesifikt namespace |
-| Workload | Overvåk en spesifikk deployment, statefulset, daemonset, job eller cronjob |
-| Node | Overvåk en spesifikk klyngenode |
-| Pod | Overvåk en spesifikk pod |
+| Omfang    | Beskrivelse                                                                |
+| --------- | -------------------------------------------------------------------------- |
+| Cluster   | Overvåk hele klyngen                                                       |
+| Namespace | Overvåk ressurser innenfor et spesifikt namespace                          |
+| Workload  | Overvåk en spesifikk deployment, statefulset, daemonset, job eller cronjob |
+| Node      | Overvåk en spesifikk klyngenode                                            |
+| Pod       | Overvåk en spesifikk pod                                                   |
 
 ### Ressursfiltre
 
 Snevre inn omfanget med valgfrie filtre:
 
-| Filter | Beskrivelse | Aktuelle omfang |
-|--------|-------------|-------------------|
-| Namespace | Kubernetes namespace | Namespace, Workload, Pod |
-| Workload Type | deployment, statefulset, daemonset, job, cronjob | Workload |
-| Workload Name | Navnet på arbeidsmengden | Workload |
-| Node Name | Navnet på noden | Node |
-| Pod Name | Navnet på poden | Pod |
+| Filter        | Beskrivelse                                      | Aktuelle omfang          |
+| ------------- | ------------------------------------------------ | ------------------------ |
+| Namespace     | Kubernetes namespace                             | Namespace, Workload, Pod |
+| Workload Type | deployment, statefulset, daemonset, job, cronjob | Workload                 |
+| Workload Name | Navnet på arbeidsmengden                         | Workload                 |
+| Node Name     | Navnet på noden                                  | Node                     |
+| Pod Name      | Navnet på poden                                  | Pod                      |
 
 ### Metrikkspørringer
 
@@ -77,60 +77,60 @@ Velg tidsvinduet for metrikkevaluering:
 
 ### Pod-metrikker
 
-| Metrikk | Beskrivelse |
-|--------|-------------|
-| Pod CPU Usage | CPU-forbruk av pods |
-| Pod Memory Usage | Minneforbruk av pods |
-| Pod Filesystem Usage | Diskbruk av pods |
-| Pod Network Receive/Transmit | Nettverkstrafikk |
-| Pod Phase | Nåværende pod-fase (Running, Pending, Failed osv.) |
+| Metrikk                      | Beskrivelse                                        |
+| ---------------------------- | -------------------------------------------------- |
+| Pod CPU Usage                | CPU-forbruk av pods                                |
+| Pod Memory Usage             | Minneforbruk av pods                               |
+| Pod Filesystem Usage         | Diskbruk av pods                                   |
+| Pod Network Receive/Transmit | Nettverkstrafikk                                   |
+| Pod Phase                    | Nåværende pod-fase (Running, Pending, Failed osv.) |
 
 ### Node-metrikker
 
-| Metrikk | Beskrivelse |
-|--------|-------------|
-| Node CPU Usage | CPU-utnyttelse per node |
-| Node Memory Usage | Minneutnyttelse per node |
-| Node Filesystem Usage | Diskbruk per node |
-| Node Disk I/O | Lese-/skriveoperasjoner |
-| Node Ready Condition | Om noden er klar |
+| Metrikk               | Beskrivelse              |
+| --------------------- | ------------------------ |
+| Node CPU Usage        | CPU-utnyttelse per node  |
+| Node Memory Usage     | Minneutnyttelse per node |
+| Node Filesystem Usage | Diskbruk per node        |
+| Node Disk I/O         | Lese-/skriveoperasjoner  |
+| Node Ready Condition  | Om noden er klar         |
 
 ### Container-metrikker
 
-| Metrikk | Beskrivelse |
-|--------|-------------|
-| Container Restarts | Antall container-omstarter |
-| Container CPU/Memory Limits | Ressursgrenser |
-| Container CPU/Memory Requests | Ressursforespørsler |
-| Container Ready Status | Om containerne er klare |
+| Metrikk                       | Beskrivelse                |
+| ----------------------------- | -------------------------- |
+| Container Restarts            | Antall container-omstarter |
+| Container CPU/Memory Limits   | Ressursgrenser             |
+| Container CPU/Memory Requests | Ressursforespørsler        |
+| Container Ready Status        | Om containerne er klare    |
 
 ### Arbeidsmengdemetrikker
 
-| Metrikk | Beskrivelse |
-|--------|-------------|
-| Deployment Available/Unavailable Replicas | Antall replikaer |
-| DaemonSet Misscheduled Nodes | Planleggingsproblemer |
-| StatefulSet Ready Replicas | Antall klare replikaer |
-| Job Active/Failed/Succeeded Pods | Jobbstatus |
+| Metrikk                                   | Beskrivelse            |
+| ----------------------------------------- | ---------------------- |
+| Deployment Available/Unavailable Replicas | Antall replikaer       |
+| DaemonSet Misscheduled Nodes              | Planleggingsproblemer  |
+| StatefulSet Ready Replicas                | Antall klare replikaer |
+| Job Active/Failed/Succeeded Pods          | Jobbstatus             |
 
 ## Overvåkingskriterier
 
 ### Tilgjengelige sjekktyper
 
-| Sjekktype | Beskrivelse |
-|------------|-------------|
+| Sjekktype    | Beskrivelse                                                  |
+| ------------ | ------------------------------------------------------------ |
 | Metric Value | Verdien av den konfigurerte metrikkspørringen eller formelen |
 
 ### Aggregeringstyper
 
-| Aggregering | Beskrivelse |
-|-------------|-------------|
-| Average | Gjennomsnittsverdi over tidsvinduet |
-| Sum | Summen av alle verdier |
-| Maximum Value | Høyeste verdi i tidsvinduet |
-| Minimum Value | Laveste verdi i tidsvinduet |
-| All Values | Alle verdier må matche kriteriet |
-| Any Value | Minst én verdi må matche |
+| Aggregering   | Beskrivelse                         |
+| ------------- | ----------------------------------- |
+| Average       | Gjennomsnittsverdi over tidsvinduet |
+| Sum           | Summen av alle verdier              |
+| Maximum Value | Høyeste verdi i tidsvinduet         |
+| Minimum Value | Laveste verdi i tidsvinduet         |
+| All Values    | Alle verdier må matche kriteriet    |
+| Any Value     | Minst én verdi må matche            |
 
 ### Filtertyper
 
@@ -140,20 +140,20 @@ Velg tidsvinduet for metrikkevaluering:
 
 OneUptime tilbyr maler for vanlige Kubernetes-overvåkingsscenarier:
 
-| Mal | Beskrivelse | Terskel |
-|----------|-------------|-----------|
-| CrashLoopBackOff Detection | Antall container-omstarter | > 5 omstarter |
-| Pod Stuck in Pending | Pods i Pending-fase | > 0 pods |
-| Node Not Ready | Nodens klartilstand | = 0 (ikke klar) |
-| High Node CPU | Node CPU-utnyttelse | > 90 % |
-| High Node Memory | Node minneutnyttelse | > 85 % |
-| Deployment Replica Mismatch | Utilgjengelige replikaer | > 0 replikaer |
-| Job Failures | Mislykkede pods i en jobb | > 0 feil |
-| etcd No Leader | etcd-klyngens leder mangler | = 0 (ingen leder) |
-| API Server Throttling | Avslåtte API-forespørsler | > 0 forespørsler |
-| Scheduler Backlog | Ventende pods i scheduler | > 0 pods |
-| High Node Disk Usage | Node filsystembruk | > 90 % |
-| DaemonSet Unavailable | Feilplanlagte noder | > 0 noder |
+| Mal                         | Beskrivelse                 | Terskel           |
+| --------------------------- | --------------------------- | ----------------- |
+| CrashLoopBackOff Detection  | Antall container-omstarter  | > 5 omstarter     |
+| Pod Stuck in Pending        | Pods i Pending-fase         | > 0 pods          |
+| Node Not Ready              | Nodens klartilstand         | = 0 (ikke klar)   |
+| High Node CPU               | Node CPU-utnyttelse         | > 90 %            |
+| High Node Memory            | Node minneutnyttelse        | > 85 %            |
+| Deployment Replica Mismatch | Utilgjengelige replikaer    | > 0 replikaer     |
+| Job Failures                | Mislykkede pods i en jobb   | > 0 feil          |
+| etcd No Leader              | etcd-klyngens leder mangler | = 0 (ingen leder) |
+| API Server Throttling       | Avslåtte API-forespørsler   | > 0 forespørsler  |
+| Scheduler Backlog           | Ventende pods i scheduler   | > 0 pods          |
+| High Node Disk Usage        | Node filsystembruk          | > 90 %            |
+| DaemonSet Unavailable       | Feilplanlagte noder         | > 0 noder         |
 
 ## Oppsettskrav
 

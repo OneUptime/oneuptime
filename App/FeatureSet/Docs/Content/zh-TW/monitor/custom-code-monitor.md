@@ -9,15 +9,14 @@
 ```javascript
 // You can use axios module.
 
-await axios.get('https://api.example.com/');
+await axios.get("https://api.example.com/");
 
 // Axios Documentation here: https://axios-http.com/docs/intro
 
 return {
-    data: 'Hello World' // return any data you like here. 
+  data: "Hello World", // return any data you like here.
 };
 ```
-
 
 ### 使用監控器密鑰
 
@@ -46,9 +45,8 @@ let numberSecret = {{monitorSecrets.NumberSecret}};
 let booleanSecret = {{monitorSecrets.BooleanSecret}};
 
 // you can even console log to see if the secrets is being fetched correctly
-console.log(stringSecret); 
+console.log(stringSecret);
 ```
-
 
 ### 自訂指標
 
@@ -65,30 +63,32 @@ oneuptime.captureMetric(name, value, attributes);
 #### 範例
 
 ```javascript
-const response = await axios.get('https://api.example.com/health');
+const response = await axios.get("https://api.example.com/health");
 
 // Capture a simple metric
-oneuptime.captureMetric('api.response.time', response.data.latency);
+oneuptime.captureMetric("api.response.time", response.data.latency);
 
 // Capture a metric with attributes
-oneuptime.captureMetric('api.queue.depth', response.data.queueDepth, {
-    region: 'us-east-1',
-    environment: 'production'
+oneuptime.captureMetric("api.queue.depth", response.data.queueDepth, {
+  region: "us-east-1",
+  environment: "production",
 });
 
 return {
-    data: response.data
+  data: response.data,
 };
 ```
 
 一旦擷取後，這些指標就會以類似 `custom.monitor.api.response.time` 的名稱出現在 Metric Explorer 中。您可以將它們加入儀表板圖表、設定警報，並依監控器、探針或您所提供的任何自訂屬性進行篩選。
 
 **限制：**
+
 - 每次指令碼執行最多 100 個指標。
 - 指標名稱限制為 200 個字元。
 - 值必須為數值型。
 
 ### 指令碼中可用的模組
+
 - `axios`：您可以使用此模組來發出 HTTP 請求。它是一個以 promise 為基礎的 HTTP 用戶端，適用於瀏覽器與 Node.js。
 - `crypto`：您可以使用此模組來執行加密運算。它是 Node.js 的內建模組，提供加密功能，其中包含一組針對 OpenSSL 的 hash、HMAC、cipher、decipher、sign 與 verify 函式的封裝。
 - `console.log`：您可以使用此模組將資料記錄至主控台。這對於除錯目的很有用。

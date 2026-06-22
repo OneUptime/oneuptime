@@ -178,11 +178,11 @@ flowchart TD
     end
 ```
 
-| Ordre | Escalader après | Cible |
-|-------|-----------------|-------|
-| 1 | 30 secondes | Planning d'astreinte principal |
-| 2 | 30 secondes | Planning d'astreinte secondaire |
-| 3 | 30 secondes | Responsable de l'équipe ingénierie |
+| Ordre | Escalader après | Cible                              |
+| ----- | --------------- | ---------------------------------- |
+| 1     | 30 secondes     | Planning d'astreinte principal     |
+| 2     | 30 secondes     | Planning d'astreinte secondaire    |
+| 3     | 30 secondes     | Responsable de l'équipe ingénierie |
 
 ## Étape 7 : Configurer les messages vocaux (optionnel)
 
@@ -199,23 +199,23 @@ Personnalisez les messages entendus par les appelants :
 
 ### Paramètres de la politique
 
-| Paramètre | Description | Par défaut |
-|-----------|-------------|------------|
-| Message d'accueil | Message TTS joué lors de la réponse à l'appel | « Veuillez patienter pendant que nous vous connectons à l'ingénieur d'astreinte. » |
-| Message sans réponse | Message quand toutes les règles d'escalade échouent | « Personne n'est disponible. Veuillez réessayer plus tard. » |
-| Message aucune personne disponible | Message quand personne n'est d'astreinte | « Nous sommes désolés, mais aucun ingénieur d'astreinte n'est actuellement disponible. » |
-| Répéter la politique si personne ne répond | Redémarrer depuis la première règle si toutes échouent | Désactivé |
-| Nombre de répétitions de la politique | Nombre maximum de tentatives de répétition | 1 |
+| Paramètre                                  | Description                                            | Par défaut                                                                               |
+| ------------------------------------------ | ------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Message d'accueil                          | Message TTS joué lors de la réponse à l'appel          | « Veuillez patienter pendant que nous vous connectons à l'ingénieur d'astreinte. »       |
+| Message sans réponse                       | Message quand toutes les règles d'escalade échouent    | « Personne n'est disponible. Veuillez réessayer plus tard. »                             |
+| Message aucune personne disponible         | Message quand personne n'est d'astreinte               | « Nous sommes désolés, mais aucun ingénieur d'astreinte n'est actuellement disponible. » |
+| Répéter la politique si personne ne répond | Redémarrer depuis la première règle si toutes échouent | Désactivé                                                                                |
+| Nombre de répétitions de la politique      | Nombre maximum de tentatives de répétition             | 1                                                                                        |
 
 ### Paramètres des règles d'escalade
 
-| Paramètre | Description |
-|-----------|-------------|
-| Ordre | Ordre de priorité (1 = priorité la plus élevée) |
+| Paramètre                  | Description                                                          |
+| -------------------------- | -------------------------------------------------------------------- |
+| Ordre                      | Ordre de priorité (1 = priorité la plus élevée)                      |
 | Escalader après (secondes) | Temps d'attente avant d'essayer la règle suivante (par défaut : 30s) |
-| Planning d'astreinte | Acheminer vers la personne actuellement d'astreinte |
-| Équipes | Acheminer vers tous les membres des équipes sélectionnées |
-| Utilisateurs | Acheminer vers des utilisateurs spécifiques |
+| Planning d'astreinte       | Acheminer vers la personne actuellement d'astreinte                  |
+| Équipes                    | Acheminer vers tous les membres des équipes sélectionnées            |
+| Utilisateurs               | Acheminer vers des utilisateurs spécifiques                          |
 
 ## Consultation des journaux d'appels
 
@@ -226,6 +226,7 @@ Pour consulter l'historique des appels entrants :
 3. Allez dans l'onglet **Journaux d'appels**
 
 Les journaux affichent :
+
 - Numéro de téléphone de l'appelant
 - Statut de l'appel (Terminé, Sans réponse, Échoué, etc.)
 - Qui a répondu à l'appel

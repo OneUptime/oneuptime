@@ -31,10 +31,10 @@ Selecteer de te bewaken Docker-host. Hosts worden automatisch geregistreerd de e
 
 Kies het niveau waarop u resources wilt bewaken:
 
-| Bereik | Beschrijving |
-|-------|-------------|
-| Host | De gehele Docker-host bewaken, geaggregeerd over alle containers |
-| Container | Een specifieke container bewaken op naam of afbeelding |
+| Bereik    | Beschrijving                                                     |
+| --------- | ---------------------------------------------------------------- |
+| Host      | De gehele Docker-host bewaken, geaggregeerd over alle containers |
+| Container | Een specifieke container bewaken op naam of afbeelding           |
 
 ### Metriekopvragen
 
@@ -64,61 +64,61 @@ De Docker Agent gebruikt de OpenTelemetry `docker_stats`-ontvanger, die de Docke
 
 ### CPU
 
-| Metriek | Beschrijving |
-|--------|-------------|
-| `container.cpu.utilization` | CPU-gebruik als percentage van de host-CPU |
-| `container.cpu.usage.total` | Cumulatieve CPU-tijd verbruikt door de container |
-| `container.cpu.throttling_data.throttled_time` | Tijd dat de container werd beperkt door cgroups |
-| `container.cpu.throttling_data.throttled_periods` | Aantal beperkingsperioden |
+| Metriek                                           | Beschrijving                                     |
+| ------------------------------------------------- | ------------------------------------------------ |
+| `container.cpu.utilization`                       | CPU-gebruik als percentage van de host-CPU       |
+| `container.cpu.usage.total`                       | Cumulatieve CPU-tijd verbruikt door de container |
+| `container.cpu.throttling_data.throttled_time`    | Tijd dat de container werd beperkt door cgroups  |
+| `container.cpu.throttling_data.throttled_periods` | Aantal beperkingsperioden                        |
 
 ### Geheugen
 
-| Metriek | Beschrijving |
-|--------|-------------|
-| `container.memory.usage.total` | Huidig geheugengebruik in bytes |
-| `container.memory.usage.limit` | Geheugenlimiet in bytes |
-| `container.memory.percent` | Geheugengebruik als percentage van de limiet |
+| Metriek                        | Beschrijving                                 |
+| ------------------------------ | -------------------------------------------- |
+| `container.memory.usage.total` | Huidig geheugengebruik in bytes              |
+| `container.memory.usage.limit` | Geheugenlimiet in bytes                      |
+| `container.memory.percent`     | Geheugengebruik als percentage van de limiet |
 
 ### Netwerk
 
-| Metriek | Beschrijving |
-|--------|-------------|
+| Metriek                               | Beschrijving           |
+| ------------------------------------- | ---------------------- |
 | `container.network.io.usage.rx_bytes` | Totaal ontvangen bytes |
 | `container.network.io.usage.tx_bytes` | Totaal verzonden bytes |
 
 ### Blok-I/O
 
-| Metriek | Beschrijving |
-|--------|-------------|
-| `container.blockio.io_service_bytes_recursive.read` | Bytes gelezen van blokapparaten |
+| Metriek                                              | Beschrijving                        |
+| ---------------------------------------------------- | ----------------------------------- |
+| `container.blockio.io_service_bytes_recursive.read`  | Bytes gelezen van blokapparaten     |
 | `container.blockio.io_service_bytes_recursive.write` | Bytes geschreven naar blokapparaten |
 
 ### Containerinfo
 
-| Metriek | Beschrijving |
-|--------|-------------|
-| `container.uptime` | Container-uptime in seconden |
-| `container.restarts` | Aantal keren dat de container is herstart |
-| `container.pids.count` | Aantal processen in de container |
+| Metriek                | Beschrijving                              |
+| ---------------------- | ----------------------------------------- |
+| `container.uptime`     | Container-uptime in seconden              |
+| `container.restarts`   | Aantal keren dat de container is herstart |
+| `container.pids.count` | Aantal processen in de container          |
 
 ## Monitoringcriteria
 
 ### Beschikbare controletypen
 
-| Controletype | Beschrijving |
-|------------|-------------|
+| Controletype  | Beschrijving                                               |
+| ------------- | ---------------------------------------------------------- |
 | Metriekwaarde | De waarde van de geconfigureerde metriekopvraag of formule |
 
 ### Aggregatietypen
 
-| Aggregatie | Beschrijving |
-|-------------|-------------|
-| Gemiddelde | Gemiddelde waarde over het tijdvenster |
-| Som | Som van alle waarden |
-| Maximumwaarde | Hoogste waarde in het tijdvenster |
-| Minimumwaarde | Laagste waarde in het tijdvenster |
-| Alle waarden | Alle waarden moeten voldoen aan de criteria |
-| Elke waarde | Ten minste één waarde moet voldoen |
+| Aggregatie    | Beschrijving                                |
+| ------------- | ------------------------------------------- |
+| Gemiddelde    | Gemiddelde waarde over het tijdvenster      |
+| Som           | Som van alle waarden                        |
+| Maximumwaarde | Hoogste waarde in het tijdvenster           |
+| Minimumwaarde | Laagste waarde in het tijdvenster           |
+| Alle waarden  | Alle waarden moeten voldoen aan de criteria |
+| Elke waarde   | Ten minste één waarde moet voldoen          |
 
 ### Filtertypen
 
@@ -128,13 +128,13 @@ De Docker Agent gebruikt de OpenTelemetry `docker_stats`-ontvanger, die de Docke
 
 OneUptime biedt sjablonen voor veelgebruikte Docker-monitoringscenario's:
 
-| Sjabloon | Beschrijving | Drempelwaarde | Aggregatie |
-|----------|-------------|-----------|-------------|
-| Hoog container-CPU | CPU-gebruik per container | > 90% | Max (per container) |
-| Hoog containergeheugen | Geheugengebruik als percentage van limiet | > 85% | Max (per container) |
-| Hoge CPU-beperking | Beperkte CPU-perioden | > 0 | Max (per container) |
-| Container-herstart-lus | Aantal container-herstarts | > 3 | Som |
-| Container neer | Container-uptime gereset naar 0 | = 0 | Min |
+| Sjabloon               | Beschrijving                              | Drempelwaarde | Aggregatie          |
+| ---------------------- | ----------------------------------------- | ------------- | ------------------- |
+| Hoog container-CPU     | CPU-gebruik per container                 | > 90%         | Max (per container) |
+| Hoog containergeheugen | Geheugengebruik als percentage van limiet | > 85%         | Max (per container) |
+| Hoge CPU-beperking     | Beperkte CPU-perioden                     | > 0           | Max (per container) |
+| Container-herstart-lus | Aantal container-herstarts                | > 3           | Som                 |
+| Container neer         | Container-uptime gereset naar 0           | = 0           | Min                 |
 
 > Opmerking: CPU-, geheugen- en beperkingssjablonen gebruiken **Max**-aggregatie gegroepeerd op `resource.container.name`. Dit voorkomt dat het signaal van één drukke container wordt verdund door veel inactieve containers op dezelfde host.
 

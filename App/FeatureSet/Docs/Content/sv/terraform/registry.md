@@ -54,6 +54,7 @@ OneUptime Terraform-leverantören genereras automatiskt från OneUptime API-spec
 - Ändrade valideringsregler
 
 Att använda en leverantörsversion som inte matchar din OneUptime-installation kan resultera i:
+
 - API-kompatibilitetsfel
 - Misslyckad resursskapande/uppdatering
 - Oväntat beteende
@@ -62,16 +63,19 @@ Att använda en leverantörsversion som inte matchar din OneUptime-installation 
 ## Hitta din OneUptime-version
 
 ### Metod 1: Instrumentpanel
+
 1. Logga in på din OneUptime-instrumentpanel
 2. Gå till **Inställningar** → **Om**
 3. Notera versionsnumret (t.ex. "7.0.123")
 
 ### Metod 2: API
+
 ```bash
 curl https://your-oneuptime-instance.com/api/version | jq '.version'
 ```
 
 ### Metod 3: Docker
+
 ```bash
 docker images | grep oneuptime
 # Look for the tag, e.g., oneuptime/dashboard:7.0.123
@@ -87,10 +91,10 @@ docker images | grep oneuptime
 ## Versionskompatibilitetsmatris
 
 | OneUptime-version | Leverantörsversion | Terraform-konfiguration |
-|-------------------|--------------------|-------------------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| Senaste Cloud | Senaste leverantör | `version = "~> 7.0"` |
+| ----------------- | ------------------ | ----------------------- |
+| 7.0.x             | 7.0.x              | `version = "~> 7.0.0"`  |
+| 7.1.x             | 7.1.x              | `version = "~> 7.1.0"`  |
+| Senaste Cloud     | Senaste leverantör | `version = "~> 7.0"`    |
 
 ## Installationssteg
 

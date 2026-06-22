@@ -10,12 +10,12 @@ Elke workflow begint met één **trigger** aan het begin. Al het andere is een *
 
 ## Wat er op een blok staat
 
-| Veld | Wat het doet |
-| --- | --- |
-| **Titel** | De naam die op het canvas wordt weergegeven. Hernoem hem om complexe workflows beter leesbaar te maken. |
-| **Settings** | Wat het blok nodig heeft om zijn werk te doen — een URL, een Slack-kanaal, een berichttekst, enz. Verplichte velden zijn gemarkeerd met een asterisk. |
-| **Input** | De stip aan de linkerkant waar lijnen binnenkomen van eerdere blokken. |
-| **Outputs** | De stippen aan de rechterkant waar lijnen vertrekken naar de volgende blokken. Veel blokken hebben aparte **success**- en **error**-outputs zodat je beide gevallen kunt afhandelen. |
+| Veld         | Wat het doet                                                                                                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Titel**    | De naam die op het canvas wordt weergegeven. Hernoem hem om complexe workflows beter leesbaar te maken.                                                                              |
+| **Settings** | Wat het blok nodig heeft om zijn werk te doen — een URL, een Slack-kanaal, een berichttekst, enz. Verplichte velden zijn gemarkeerd met een asterisk.                                |
+| **Input**    | De stip aan de linkerkant waar lijnen binnenkomen van eerdere blokken.                                                                                                               |
+| **Outputs**  | De stippen aan de rechterkant waar lijnen vertrekken naar de volgende blokken. Veel blokken hebben aparte **success**- en **error**-outputs zodat je beide gevallen kunt afhandelen. |
 
 ## Blokken verbinden
 

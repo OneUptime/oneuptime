@@ -6,13 +6,13 @@ Opret et runbook under **Runbooks → Opret runbook**, åbn det derefter og gå 
 
 Hvert trin har:
 
-| Felt | Formål |
-| --- | --- |
-| **Titel** | Kort label vist i tjeklisten i UI'en. Påkrævet. |
-| **Beskrivelse** | Valgfri kontekst til responderen. Markdown-sikker tekst. |
-| **Fortsæt ved fejl** | Hvis aktiveret stopper et fejlende trin ikke kørslen — næste trin udføres alligevel. |
-| **Kræv godkendelse** | Hvis aktiveret pauser runbook'et efter dette trin og venter på, at en bruger godkender, før næste trin køres. |
-| **Typespecifik konfiguration** | Script, URL, agent osv. — se nedenfor. |
+| Felt                           | Formål                                                                                                        |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| **Titel**                      | Kort label vist i tjeklisten i UI'en. Påkrævet.                                                               |
+| **Beskrivelse**                | Valgfri kontekst til responderen. Markdown-sikker tekst.                                                      |
+| **Fortsæt ved fejl**           | Hvis aktiveret stopper et fejlende trin ikke kørslen — næste trin udføres alligevel.                          |
+| **Kræv godkendelse**           | Hvis aktiveret pauser runbook'et efter dette trin og venter på, at en bruger godkender, før næste trin køres. |
+| **Typespecifik konfiguration** | Script, URL, agent osv. — se nedenfor.                                                                        |
 
 Trin kører **i rækkefølge**. Omarranger dem med op/ned-pilene i trin-editoren.
 

@@ -24,19 +24,19 @@ I monitor DNSSEC validano l'intera catena di fiducia dalla zona radice fino al t
 
 ### Impostazioni di Base
 
-| Campo | Descrizione | Obbligatorio |
-|-------|-------------|----------|
-| Zona (Nome Dominio) | La zona da validare tramite DNSSEC (es. `example.com`) | Sì |
-| Resolver | Elenco separato da virgole di resolver validatori da interrogare (es. `1.1.1.1, 8.8.8.8, 9.9.9.9`) | Sì |
-| Verifica Coerenza Nameserver | Interroga direttamente ciascun nameserver autoritativo e verifica che restituiscano lo stesso numero di serie SOA | No |
+| Campo                        | Descrizione                                                                                                       | Obbligatorio |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------ |
+| Zona (Nome Dominio)          | La zona da validare tramite DNSSEC (es. `example.com`)                                                            | Sì           |
+| Resolver                     | Elenco separato da virgole di resolver validatori da interrogare (es. `1.1.1.1, 8.8.8.8, 9.9.9.9`)                | Sì           |
+| Verifica Coerenza Nameserver | Interroga direttamente ciascun nameserver autoritativo e verifica che restituiscano lo stesso numero di serie SOA | No           |
 
 ### Impostazioni Avanzate
 
-| Campo | Descrizione | Predefinito |
-|-------|-------------|---------|
-| Avviso Scadenza Firma (giorni) | Soglia predefinita per il filtro di scadenza RRSIG | 7 |
-| Timeout (ms) | Tempo di attesa per ogni query DNS | 10000 |
-| Tentativi | Numero di tentativi in caso di fallimento | 3 |
+| Campo                          | Descrizione                                        | Predefinito |
+| ------------------------------ | -------------------------------------------------- | ----------- |
+| Avviso Scadenza Firma (giorni) | Soglia predefinita per il filtro di scadenza RRSIG | 7           |
+| Timeout (ms)                   | Tempo di attesa per ogni query DNS                 | 10000       |
+| Tentativi                      | Numero di tentativi in caso di fallimento          | 3           |
 
 ## Criteri di Monitoraggio
 
@@ -44,15 +44,15 @@ Puoi configurare criteri per determinare quando la tua zona è considerata onlin
 
 ### Tipi di Controllo Disponibili
 
-| Tipo di Controllo | Descrizione |
-|------------|-------------|
-| DNSSEC Chain Is Valid | L'intera catena di validazione (radice → TLD → zona) si risolve correttamente |
-| DNSSEC DNSKEY Record Exists | La zona pubblica almeno un record DNSKEY |
-| DNSSEC DS Record Exists At Parent | La zona padre pubblica un record DS corrispondente alla KSK della zona |
-| DNSSEC Signature Expires In Days | Giorni rimanenti alla scadenza della prossima firma RRSIG |
-| DNSSEC Resolver Consensus (AD Flag) | Ogni resolver interrogato restituisce il flag AD (Authenticated Data) |
-| DNSSEC Nameservers Are Consistent | Tutti i nameserver autoritativi restituiscono lo stesso numero di serie SOA |
-| DNSSEC Is Valid | Risultato aggregato passa/fallisce su tutti i controlli di validazione |
+| Tipo di Controllo                   | Descrizione                                                                   |
+| ----------------------------------- | ----------------------------------------------------------------------------- |
+| DNSSEC Chain Is Valid               | L'intera catena di validazione (radice → TLD → zona) si risolve correttamente |
+| DNSSEC DNSKEY Record Exists         | La zona pubblica almeno un record DNSKEY                                      |
+| DNSSEC DS Record Exists At Parent   | La zona padre pubblica un record DS corrispondente alla KSK della zona        |
+| DNSSEC Signature Expires In Days    | Giorni rimanenti alla scadenza della prossima firma RRSIG                     |
+| DNSSEC Resolver Consensus (AD Flag) | Ogni resolver interrogato restituisce il flag AD (Authenticated Data)         |
+| DNSSEC Nameservers Are Consistent   | Tutti i nameserver autoritativi restituiscono lo stesso numero di serie SOA   |
+| DNSSEC Is Valid                     | Risultato aggregato passa/fallisce su tutti i controlli di validazione        |
 
 ### Tipi di Filtro
 

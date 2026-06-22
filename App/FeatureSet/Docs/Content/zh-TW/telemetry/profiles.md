@@ -10,14 +10,14 @@
 
 OneUptime 支援以下剖析類型：
 
-| 剖析類型 | 說明 | 單位 |
-| --- | --- | --- |
-| cpu | 執行程式碼所花費的 CPU 時間 | nanoseconds |
-| wall | 牆鐘時間（包含等待／休眠） | nanoseconds |
-| alloc_objects | 堆積配置的數量 | count |
-| alloc_space | 配置的堆積記憶體位元組數 | bytes |
-| goroutine | 作用中的 goroutine 數量（Go） | count |
-| contention | 等待鎖／互斥鎖所花費的時間 | nanoseconds |
+| 剖析類型      | 說明                          | 單位        |
+| ------------- | ----------------------------- | ----------- |
+| cpu           | 執行程式碼所花費的 CPU 時間   | nanoseconds |
+| wall          | 牆鐘時間（包含等待／休眠）    | nanoseconds |
+| alloc_objects | 堆積配置的數量                | count       |
+| alloc_space   | 配置的堆積記憶體位元組數      | bytes       |
+| goroutine     | 作用中的 goroutine 數量（Go） | count       |
+| contention    | 等待鎖／互斥鎖所花費的時間    | nanoseconds |
 
 ## 開始使用
 
@@ -37,10 +37,10 @@ OneUptime 支援以下剖析類型：
 
 OneUptime 使用 OTLP profiles 通訊協定，同時透過 gRPC 與 HTTP 接受剖析資料。
 
-| 通訊協定 | 端點 |
-| --- | --- |
-| gRPC | `your-oneuptime-host:4317`（OTLP 標準 gRPC 連接埠） |
-| HTTP | `https://your-oneuptime-host/otlp/v1/profiles` |
+| 通訊協定 | 端點                                                |
+| -------- | --------------------------------------------------- |
+| gRPC     | `your-oneuptime-host:4317`（OTLP 標準 gRPC 連接埠） |
+| HTTP     | `https://your-oneuptime-host/otlp/v1/profiles`      |
 
 **環境變數**
 

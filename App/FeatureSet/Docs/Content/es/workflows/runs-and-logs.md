@@ -4,21 +4,21 @@ Cada vez que se ejecuta un workflow, OneUptime guarda un registro de lo que ocur
 
 ## Dónde encontrarlas
 
-| Página | Lo que ves |
-| --- | --- |
+| Página                                  | Lo que ves                                                                                |
+| --------------------------------------- | ----------------------------------------------------------------------------------------- |
 | **Workflows → Ejecuciones y Registros** | Cada ejecución de todos los workflows del proyecto. Filtra por workflow, estado y tiempo. |
-| **Workflow → Pestaña Registros** | Solo las ejecuciones de este workflow concreto. |
-| **Una ejecución individual** | Una ejecución, con la salida de cada bloque. |
+| **Workflow → Pestaña Registros**        | Solo las ejecuciones de este workflow concreto.                                           |
+| **Una ejecución individual**            | Una ejecución, con la salida de cada bloque.                                              |
 
 ## Estados de ejecución
 
-| Estado | Qué significa |
-| --- | --- |
-| **Programada** | El disparador se activó y la ejecución está a punto de comenzar. Normalmente solo dura una fracción de segundo. |
-| **En curso** | El workflow está en progreso. Los bloques de larga duración mantienen una ejecución en este estado. |
-| **Éxito** | Todos los bloques que se ejecutaron terminaron sin error. (Tomar una rama de **error** a propósito sigue contando como éxito; el workflow en sí no falló.) |
-| **Error** | Un bloque falló y no había un camino de **error** conectado para manejarlo. La ejecución se detuvo allí. |
-| **Tiempo agotado** | La ejecución duró más de lo permitido. Consulta [Configuración y Seguridad](/docs/workflows/configuration). |
+| Estado             | Qué significa                                                                                                                                              |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Programada**     | El disparador se activó y la ejecución está a punto de comenzar. Normalmente solo dura una fracción de segundo.                                            |
+| **En curso**       | El workflow está en progreso. Los bloques de larga duración mantienen una ejecución en este estado.                                                        |
+| **Éxito**          | Todos los bloques que se ejecutaron terminaron sin error. (Tomar una rama de **error** a propósito sigue contando como éxito; el workflow en sí no falló.) |
+| **Error**          | Un bloque falló y no había un camino de **error** conectado para manejarlo. La ejecución se detuvo allí.                                                   |
+| **Tiempo agotado** | La ejecución duró más de lo permitido. Consulta [Configuración y Seguridad](/docs/workflows/configuration).                                                |
 
 ## Leer una ejecución
 

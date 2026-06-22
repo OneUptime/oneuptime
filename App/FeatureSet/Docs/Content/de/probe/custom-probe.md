@@ -117,15 +117,15 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 Führen Sie dann den folgenden Befehl aus:
@@ -139,11 +139,13 @@ kubectl apply -f oneuptime-probe.yaml
 Die Probe unterstützt die folgenden Umgebungsvariablen:
 
 #### Erforderliche Variablen
+
 - `PROBE_KEY` - Der Probe-Schlüssel aus Ihrem OneUptime-Dashboard
 - `PROBE_ID` - Die Probe-ID aus Ihrem OneUptime-Dashboard
 - `ONEUPTIME_URL` - Die URL Ihrer OneUptime-Instanz (Standard: https://oneuptime.com)
 
 #### Optionale Variablen
+
 - `HTTP_PROXY_URL` - HTTP-Proxy-Server-URL für HTTP-Anfragen
 - `HTTPS_PROXY_URL` - HTTP-Proxy-Server-URL für HTTPS-Anfragen
 - `NO_PROXY` - Kommagetrennte Hosts oder Domains, die den Proxy umgehen sollen

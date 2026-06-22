@@ -9,18 +9,22 @@ Installer OneUptime som en desktop-applikation på Linux-distributioner til omfa
 Chrome og Chromium leverer den bedste Linux PWA-oplevelse med native desktop-integration.
 
 #### PWA-installationstrin:
+
 1. **Åbn OneUptime i Chrome/Chromium**
+
    - Start din browser
    - Naviger til din OneUptime-instans-URL
    - Log ind på din OneUptime-konto
    - Vent på fuldstændig sideindlæsning
 
 2. **Installer PWA**
+
    - Se efter **installer-ikonet** (⊞) i adresselinjen
    - Klik på **"Installer OneUptime"**
    - Eller brug **Chrome-menuen** (⋮) → **Flere værktøjer** → **Opret genvej**
 
 3. **Installationsindstillinger**
+
    - Marker **"Åbn som vindue"** for native app-oplevelse
    - Tilpas app-navn, hvis ønsket
    - Vælg oprettelse af skrivebordsgenvej
@@ -47,22 +51,20 @@ Edge er tilgængeligt på Linux og leverer god PWA-understøttelse.
 
 1. **Installer PWA**: Følg samme trin som Chrome-metoden
 
-
-
-
 ## Opdateringer og vedligeholdelse
 
 ### Automatiske opdateringer
+
 OneUptime PWA opdateres automatisk:
+
 - Opdateringer anventes, når browseren opdaterer appen
 - Kritiske sikkerhedsopdateringer deployeres øjeblikkeligt
 - Ingen manuel indgriben kræves
 
-
 ## Afinstallation
 
-
 ### Browserspecifik fjernelse
+
 ```bash
 # Chrome PWA-administration
 google-chrome chrome://apps/
@@ -75,7 +77,9 @@ rm -rf ~/.cache/google-chrome/Default/
 ## Opdateringer og vedligeholdelse
 
 ### Automatiske opdateringer
+
 OneUptime PWA opdateres automatisk:
+
 - Opdateringer anventes, når browseren opdaterer appen
 - Kritiske sikkerhedsopdateringer deployeres øjeblikkeligt
 - Ingen manuel indgriben kræves

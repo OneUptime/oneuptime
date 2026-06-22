@@ -24,19 +24,19 @@ Les moniteurs DNSSEC valident l'ensemble de la chaîne de confiance, de la zone 
 
 ### Paramètres de base
 
-| Champ | Description | Obligatoire |
-|-------|-------------|-------------|
-| Zone (Nom de domaine) | La zone à valider via DNSSEC (ex. : `example.com`) | Oui |
-| Résolveurs | Liste séparée par des virgules de résolveurs validateurs à interroger (ex. : `1.1.1.1, 8.8.8.8, 9.9.9.9`) | Oui |
-| Vérifier la cohérence des serveurs de noms | Interroger chaque serveur de noms autoritaire directement et vérifier qu'ils retournent le même numéro de série SOA | Non |
+| Champ                                      | Description                                                                                                         | Obligatoire |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- | ----------- |
+| Zone (Nom de domaine)                      | La zone à valider via DNSSEC (ex. : `example.com`)                                                                  | Oui         |
+| Résolveurs                                 | Liste séparée par des virgules de résolveurs validateurs à interroger (ex. : `1.1.1.1, 8.8.8.8, 9.9.9.9`)           | Oui         |
+| Vérifier la cohérence des serveurs de noms | Interroger chaque serveur de noms autoritaire directement et vérifier qu'ils retournent le même numéro de série SOA | Non         |
 
 ### Paramètres avancés
 
-| Champ | Description | Par défaut |
-|-------|-------------|------------|
-| Avertissement d'expiration de signature (jours) | Seuil par défaut pour le filtre d'expiration RRSIG | 7 |
-| Délai d'attente (ms) | Durée d'attente pour chaque requête DNS | 10000 |
-| Tentatives | Nombre de tentatives en cas d'échec | 3 |
+| Champ                                           | Description                                        | Par défaut |
+| ----------------------------------------------- | -------------------------------------------------- | ---------- |
+| Avertissement d'expiration de signature (jours) | Seuil par défaut pour le filtre d'expiration RRSIG | 7          |
+| Délai d'attente (ms)                            | Durée d'attente pour chaque requête DNS            | 10000      |
+| Tentatives                                      | Nombre de tentatives en cas d'échec                | 3          |
 
 ## Critères de surveillance
 
@@ -44,15 +44,15 @@ Vous pouvez configurer des critères pour déterminer quand votre zone est consi
 
 ### Types de vérifications disponibles
 
-| Type de vérification | Description |
-|----------------------|-------------|
-| Chaîne DNSSEC valide | L'ensemble de la chaîne de validation (racine → TLD → zone) se résout correctement |
-| Enregistrement DNSKEY DNSSEC existant | La zone publie au moins un enregistrement DNSKEY |
-| Enregistrement DS DNSSEC existant dans la zone parente | La zone parente publie un enregistrement DS correspondant à la KSK de la zone |
-| Expiration de la signature DNSSEC en jours | Nombre de jours avant l'expiration de la prochaine signature RRSIG |
-| Consensus des résolveurs DNSSEC (drapeau AD) | Chaque résolveur interrogé retourne le drapeau AD (Authenticated Data) |
-| Serveurs de noms DNSSEC cohérents | Tous les serveurs de noms autoritaires retournent le même numéro de série SOA |
-| DNSSEC valide | Résultat global de réussite/échec sur toutes les vérifications de validation |
+| Type de vérification                                   | Description                                                                        |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| Chaîne DNSSEC valide                                   | L'ensemble de la chaîne de validation (racine → TLD → zone) se résout correctement |
+| Enregistrement DNSKEY DNSSEC existant                  | La zone publie au moins un enregistrement DNSKEY                                   |
+| Enregistrement DS DNSSEC existant dans la zone parente | La zone parente publie un enregistrement DS correspondant à la KSK de la zone      |
+| Expiration de la signature DNSSEC en jours             | Nombre de jours avant l'expiration de la prochaine signature RRSIG                 |
+| Consensus des résolveurs DNSSEC (drapeau AD)           | Chaque résolveur interrogé retourne le drapeau AD (Authenticated Data)             |
+| Serveurs de noms DNSSEC cohérents                      | Tous les serveurs de noms autoritaires retournent le même numéro de série SOA      |
+| DNSSEC valide                                          | Résultat global de réussite/échec sur toutes les vérifications de validation       |
 
 ### Types de filtres
 

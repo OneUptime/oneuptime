@@ -54,9 +54,11 @@ Pushmeldingen worden afgeleverd via Firebase Cloud Messaging (FCM) via Expo Push
 ## Updates
 
 **Google Play:**
+
 - Updates worden automatisch geïnstalleerd. Om er handmatig een te activeren, opent u **Play Store → Profiel → Apps en apparaat beheren → Updates beschikbaar → OneUptime On-Call → Bijwerken**.
 
 **APK sideload:**
+
 - Download de nieuwste APK opnieuw via de bovenstaande GitHub Releases-link en installeer deze over de bestaande app heen — uw gegevens, server-URL en login worden behouden.
 
 ## Verwijderen
@@ -70,11 +72,13 @@ Uw OneUptime account en wachtdienstroosters worden aan de serverkant opgeslagen 
 ## Probleemoplossing
 
 **"Netwerkfout" bij het inloggen:**
+
 - Controleer of de **Server URL** correct is en bereikbaar is vanaf uw apparaat.
 - Als u zich op een bedrijfsnetwerk of VPN bevindt, zorg er dan voor dat de OneUptime instantie toegankelijk is.
 - Bevestig dat de server via HTTPS met een geldig certificaat wordt aangeboden.
 
 **Geen pushmeldingen ontvangen:**
+
 - Bevestig dat meldingen zijn ingeschakeld bij **Instellingen → Apps → OneUptime On-Call → Meldingen**.
 - Schakel batterijoptimalisatie uit voor OneUptime On-Call (zie Pushmeldingen hierboven).
 - Zorg ervoor dat Niet storen is uitgeschakeld, of dat OneUptime On-Call op de uitzonderingslijst staat.
@@ -82,14 +86,17 @@ Uw OneUptime account en wachtdienstroosters worden aan de serverkant opgeslagen 
 - Zelf-gehoste gebruikers: bevestig dat pushmeldingen zijn geconfigureerd op uw OneUptime instantie (zie de zelf-gehoste handleiding [Pushmeldingen](/docs/self-hosted/push-notifications)).
 
 **Biometrische ontgrendeling werkt niet:**
+
 - Schrijf een vingerafdruk in bij **Instellingen → Beveiliging → Vingerafdruk**.
 - Schakel biometrische ontgrendeling opnieuw in vanuit het scherm **Instellingen** binnen de OneUptime On-Call app.
 
 **APK-installatie geblokkeerd:**
+
 - U moet de browser toestemming geven om onbekende apps te installeren (zie Optie 2 hierboven).
 - Sommige providers of bedrijfsapparaatprofielen blokkeren sideloading volledig; gebruik in dat geval in plaats daarvan de Google Play versie.
 
 **App crasht bij het opstarten:**
+
 - Werk bij naar de nieuwste versie via Google Play of de nieuwste APK.
 - Start uw apparaat opnieuw op.
 - Als het probleem aanhoudt, verwijder en herinstalleer de app, en log dan opnieuw in.

@@ -8,4 +8,3 @@ Moving an existing install from a standalone database to its bundled operator:
 
 - [PostgreSQL: Standalone → CloudNativePG operator](Docs/MigratePostgresStandaloneToOperator.md)
 - [ClickHouse: Standalone → Altinity operator](Docs/MigrateClickhouseStandaloneToOperator.md)
-

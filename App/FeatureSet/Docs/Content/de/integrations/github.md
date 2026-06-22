@@ -4,7 +4,7 @@
 
 Diese Integration ist **ausgehend**: OneUptime ruft die [GitHub REST API](https://docs.github.com/en/rest/issues/issues) auf. Sie verwendet einen OneUptime-**[Workflow](/docs/workflows/index)** mit einem **Incident → On Create**-Auslöser und einer **API-Komponente**.
 
-> **Suchen Sie die tiefere GitHub-Verbindung?** OneUptime hat auch eine native **GitHub App**-Integration zum Verbinden von Code-Repositories (verwendet von der KI-Agent- und Code-Funktion). Diese wird mit Umgebungsvariablen konfiguriert, nicht mit Workflows – siehe [GitHub-Integration (selbst gehostet)](/docs/self-hosted/github-integration). Diese Seite behandelt speziell das *Anlegen von Issues aus Vorfällen*.
+> **Suchen Sie die tiefere GitHub-Verbindung?** OneUptime hat auch eine native **GitHub App**-Integration zum Verbinden von Code-Repositories (verwendet von der KI-Agent- und Code-Funktion). Diese wird mit Umgebungsvariablen konfiguriert, nicht mit Workflows – siehe [GitHub-Integration (selbst gehostet)](/docs/self-hosted/github-integration). Diese Seite behandelt speziell das _Anlegen von Issues aus Vorfällen_.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -14,10 +14,12 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 - Ein GitHub-Repository, in dem Issues angelegt werden sollen.
 - Ein Token, der Issues erstellen kann:
+
   - **Feingranulares PAT** auf dieses Repository beschränkt mit **Issues: Read and write**, oder
   - ein **klassisches PAT** mit dem Scope `repo`.
 
   Erstellen Sie eines unter [github.com/settings/tokens](https://github.com/settings/tokens).
+
 - Ein OneUptime-Projekt, in dem Sie Workflows erstellen können.
 
 ## Schritt 1 — Den Token speichern
@@ -30,6 +32,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 1. Öffnen Sie **Workflows → Create Workflow**, benennen Sie ihn `Incidents → GitHub Issues`, und öffnen Sie den **Builder**.
 2. Fügen Sie einen **Incident**-Auslöser mit **On Create** hinzu. Benennen Sie ihn in `Incident` um.
 3. Fügen Sie einen **API**-Block verbunden mit dem Auslöser hinzu:
+
    - **Method**: `POST`
    - **URL**: `https://api.github.com/repos/your-org/your-repo/issues`
    - **Headers**:

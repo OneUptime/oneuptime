@@ -10,14 +10,14 @@ Alla tre sidorna redigerar samma underliggande regelmodell — de är bara filtr
 
 ## Anatomin av en regel
 
-| Fält | Syfte |
-| --- | --- |
-| **Namn** | Kort, mänsklig etikett. Visas i audit-loggar. |
-| **Beskrivning** | Valfri kontext för kollegor. |
-| **Aktiverad** | Växel för att pausa en regel utan att radera den. |
-| **Titelmönster** | Skiftlägesokänslig regex som matchas mot entitetens titel. Tom = matchar vilken titel som helst. |
+| Fält                    | Syfte                                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Namn**                | Kort, mänsklig etikett. Visas i audit-loggar.                                                                |
+| **Beskrivning**         | Valfri kontext för kollegor.                                                                                 |
+| **Aktiverad**           | Växel för att pausa en regel utan att radera den.                                                            |
+| **Titelmönster**        | Skiftlägesokänslig regex som matchas mot entitetens titel. Tom = matchar vilken titel som helst.             |
 | **Beskrivningsmönster** | Skiftlägesokänslig regex som matchas mot entitetens beskrivning. Tom = matchar vilken beskrivning som helst. |
-| **Runbooks att starta** | Ett eller flera runbooks som lanseras när regeln utlöses. |
+| **Runbooks att starta** | Ett eller flera runbooks som lanseras när regeln utlöses.                                                    |
 
 ## Matchningssemantik
 

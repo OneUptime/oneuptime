@@ -27,20 +27,23 @@
 2. "권한 추가"를 클릭하고 "Microsoft Graph"를 선택합니다
 
 **위임된 권한 추가** (로그인한 사용자를 대신하여 작동할 때):
-   - **User.Read** - OAuth 흐름 중에 인증된 사용자의 프로필 정보 (표시 이름, 이메일)를 가져오는 데 필요합니다
-   - **Team.ReadBasic.All** - 연결할 팀을 선택할 때 사용자가 구성원인 팀을 나열하는 데 필요합니다
-   - **Channel.ReadBasic.All** - 알림 전달을 위한 팀 내 채널 읽기 및 나열에 필요합니다
-   - **ChannelMessage.Send** - Teams 채널에 알림 및 인시던트 알림을 전송하는 데 필요합니다
+
+- **User.Read** - OAuth 흐름 중에 인증된 사용자의 프로필 정보 (표시 이름, 이메일)를 가져오는 데 필요합니다
+- **Team.ReadBasic.All** - 연결할 팀을 선택할 때 사용자가 구성원인 팀을 나열하는 데 필요합니다
+- **Channel.ReadBasic.All** - 알림 전달을 위한 팀 내 채널 읽기 및 나열에 필요합니다
+- **ChannelMessage.Send** - Teams 채널에 알림 및 인시던트 알림을 전송하는 데 필요합니다
 
 **애플리케이션 권한 추가** (로그인한 사용자 없이 앱 자체로 작동할 때):
-   - **Team.ReadBasic.All** - 관리자 동의가 부여된 후 조직의 모든 팀을 나열하는 데 필요합니다
-   - **Channel.ReadBasic.All** - 채널 존재 확인 및 채널 세부 정보 검색에 필요합니다
-   - **ChannelMessage.Send** - 프로그래밍 방식으로 채널에 메시지를 전송하는 데 필요합니다
+
+- **Team.ReadBasic.All** - 관리자 동의가 부여된 후 조직의 모든 팀을 나열하는 데 필요합니다
+- **Channel.ReadBasic.All** - 채널 존재 확인 및 채널 세부 정보 검색에 필요합니다
+- **ChannelMessage.Send** - 프로그래밍 방식으로 채널에 메시지를 전송하는 데 필요합니다
 
 **참고:** Bot Framework는 Teams 앱 매니페스트에 정의된 리소스별 동의 (RSC) 권한을 사용하여 메시지 전달을 처리합니다. 이러한 권한은:
-   - **ChannelMessage.Send.Group** - 봇이 팀 채널에 메시지를 전송할 수 있도록 합니다
-   - **ChannelMessage.Read.Group** - 봇이 대화형 명령을 위한 채널 메시지를 읽을 수 있도록 합니다
-   - **Channel.Create.Group** - 봇이 필요할 때 채널을 만들 수 있도록 합니다
+
+- **ChannelMessage.Send.Group** - 봇이 팀 채널에 메시지를 전송할 수 있도록 합니다
+- **ChannelMessage.Read.Group** - 봇이 대화형 명령을 위한 채널 메시지를 읽을 수 있도록 합니다
+- **Channel.Create.Group** - 봇이 필요할 때 채널을 만들 수 있도록 합니다
 
 3. 조직에 대한 "관리자 동의 부여"를 클릭합니다
 
@@ -57,6 +60,7 @@
 
 1. Azure 포털에서 "Azure Bot"으로 이동하고 "만들기"를 클릭합니다
 2. 봇 생성 양식을 작성합니다:
+
    - **봇 핸들:** oneuptime-bot
    - **구독:** Azure 구독
    - **리소스 그룹:** 새로 만들거나 기존 사용

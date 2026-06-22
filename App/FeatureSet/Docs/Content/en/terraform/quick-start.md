@@ -11,6 +11,7 @@ This guide will help you get started with the OneUptime Terraform Provider in ju
 ## Step 1: Create API Key
 
 ### For OneUptime Cloud
+
 1. Go to [OneUptime Cloud](https://oneuptime.com) and log in
 2. Navigate to **Settings** → **API Keys**
 3. Click **Create API Key**
@@ -19,6 +20,7 @@ This guide will help you get started with the OneUptime Terraform Provider in ju
 6. Copy the generated API key
 
 ### For Self-Hosted OneUptime
+
 1. Access your OneUptime instance
 2. Navigate to **Settings** → **API Keys**
 3. Click **Create API Key**
@@ -37,7 +39,7 @@ terraform {
       source  = "oneuptime/oneuptime"
       # For Cloud customers
       version = "~> 7.0"
-      
+
       # For Self-Hosted customers - pin to your exact version
       # version = "= 7.0.123"  # Replace with your OneUptime version
     }
@@ -48,10 +50,10 @@ terraform {
 provider "oneuptime" {
   # For Cloud customers
   oneuptime_url = "https://oneuptime.com"
-  
+
   # For Self-Hosted customers - use your instance URL
   # oneuptime_url = "https://oneuptime.yourcompany.com"
-  
+
   api_key = var.oneuptime_api_key
 }
 
@@ -164,25 +166,33 @@ provider "oneuptime" {
 ## Troubleshooting Quick Start
 
 ### Issue: Provider not found
+
 ```
 Error: Failed to query available provider packages
 ```
+
 **Solution**: Run `terraform init` to download the provider
 
 ### Issue: Authentication failed
+
 ```
 Error: Invalid API key
 ```
-**Solution**: 
+
+**Solution**:
+
 1. Verify your API key in OneUptime dashboard
 2. Check the API key has sufficient permissions
 3. Ensure `oneuptime_url` is correct for your instance
 
 ### Issue: Version mismatch (Self-Hosted)
+
 ```
 Error: API version incompatible
 ```
-**Solution**: 
+
+**Solution**:
+
 1. Check your OneUptime version in the dashboard
 2. Update the provider version to match exactly
 3. Run `terraform init -upgrade`

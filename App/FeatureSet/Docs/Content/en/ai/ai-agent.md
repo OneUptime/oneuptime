@@ -55,6 +55,7 @@ Global AI Agents are automatically available to all projects unless disabled in 
 For organizations that need to run AI agents within their own infrastructure (e.g., for security, compliance, or network access requirements), OneUptime supports self-hosted AI agents.
 
 Self-hosted AI agents:
+
 - Run within your private network
 - Can access internal resources and systems
 - Give you full control over the agent's environment
@@ -134,15 +135,15 @@ spec:
         app: oneuptime-ai-agent
     spec:
       containers:
-      - name: oneuptime-ai-agent
-        image: oneuptime/ai-agent:release
-        env:
-          - name: AI_AGENT_KEY
-            value: "<ai-agent-key>"
-          - name: AI_AGENT_ID
-            value: "<ai-agent-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-ai-agent
+          image: oneuptime/ai-agent:release
+          env:
+            - name: AI_AGENT_KEY
+              value: "<ai-agent-key>"
+            - name: AI_AGENT_ID
+              value: "<ai-agent-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 Apply the configuration:
@@ -157,12 +158,11 @@ The AI agent supports the following environment variables:
 
 #### Required Variables
 
-| Variable | Description |
-|----------|-------------|
-| `AI_AGENT_KEY` | The AI agent key from your OneUptime dashboard |
-| `AI_AGENT_ID` | The AI agent ID from your OneUptime dashboard |
+| Variable        | Description                                                         |
+| --------------- | ------------------------------------------------------------------- |
+| `AI_AGENT_KEY`  | The AI agent key from your OneUptime dashboard                      |
+| `AI_AGENT_ID`   | The AI agent ID from your OneUptime dashboard                       |
 | `ONEUPTIME_URL` | The URL of your OneUptime instance (default: https://oneuptime.com) |
-
 
 ## Verifying Your AI Agent
 

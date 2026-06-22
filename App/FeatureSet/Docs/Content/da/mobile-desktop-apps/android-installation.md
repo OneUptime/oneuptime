@@ -54,9 +54,11 @@ Push-notifikationer leveres via Firebase Cloud Messaging (FCM) gennem Expo Push.
 ## Opdateringer
 
 **Google Play:**
+
 - Opdateringer installeres automatisk. For at udløse en manuelt skal du åbne **Play Store → Profil → Administrer apps og enhed → Opdateringer tilgængelige → OneUptime On-Call → Opdater**.
 
 **APK-sideload:**
+
 - Download den nyeste APK igen fra GitHub Releases-linket ovenfor, og installer oven på den eksisterende app — dine data, server-URL og log ind bevares.
 
 ## Afinstaller
@@ -70,11 +72,13 @@ Din OneUptime-konto og dine on-call-planer er lagret på serversiden og fjernes 
 ## Fejlfinding
 
 **"Netværksfejl" ved log ind:**
+
 - Bekræft, at **Server-URL** er korrekt og kan nås fra din enhed.
 - Hvis du er på et virksomhedsnetværk eller en VPN, så sørg for, at OneUptime-instansen er tilgængelig.
 - Bekræft, at serveren serveres over HTTPS med et gyldigt certifikat.
 
 **Modtager ikke push-notifikationer:**
+
 - Bekræft, at notifikationer er aktiveret under **Indstillinger → Apps → OneUptime On-Call → Notifikationer**.
 - Deaktiver batterioptimering for OneUptime On-Call (se Push-notifikationer ovenfor).
 - Sørg for, at Do Not Disturb er slået fra, eller at OneUptime On-Call er på undtagelseslisten.
@@ -82,14 +86,17 @@ Din OneUptime-konto og dine on-call-planer er lagret på serversiden og fjernes 
 - Selvhostede brugere: bekræft, at push-notifikationer er konfigureret på din OneUptime-instans (se vejledningen [Push-notifikationer](/docs/self-hosted/push-notifications) for selvhostning).
 
 **Biometrisk oplåsning virker ikke:**
+
 - Registrer et fingeraftryk under **Indstillinger → Sikkerhed → Fingeraftryk**.
 - Genaktivér biometrisk oplåsning fra **Indstillinger**-skærmen i OneUptime On-Call-appen.
 
 **APK-installation blokeret:**
+
 - Du skal give browseren tilladelse til at installere ukendte apps (se Mulighed 2 ovenfor).
 - Visse teleudbydere eller virksomhedsenhedsprofiler blokerer sideloading fuldstændigt; brug i så fald Google Play-versionen i stedet.
 
 **Appen går ned ved start:**
+
 - Opdater til den nyeste version fra Google Play eller den nyeste APK.
 - Genstart din enhed.
 - Hvis problemet fortsætter, så afinstaller og geninstaller, og log ind igen.

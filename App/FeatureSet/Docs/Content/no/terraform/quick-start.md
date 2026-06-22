@@ -11,6 +11,7 @@ Denne guiden hjelper deg med å komme i gang med OneUptime Terraform-leverandør
 ## Trinn 1: Opprett API-nøkkel
 
 ### For OneUptime Cloud
+
 1. Gå til [OneUptime Cloud](https://oneuptime.com) og logg inn
 2. Naviger til **Settings** → **API Keys**
 3. Klikk **Create API Key**
@@ -19,6 +20,7 @@ Denne guiden hjelper deg med å komme i gang med OneUptime Terraform-leverandør
 6. Kopier den genererte API-nøkkelen
 
 ### For selvhostet OneUptime
+
 1. Åpne OneUptime-instansen din
 2. Naviger til **Settings** → **API Keys**
 3. Klikk **Create API Key**
@@ -37,7 +39,7 @@ terraform {
       source  = "oneuptime/oneuptime"
       # For Sky-kunder
       version = "~> 7.0"
-      
+
       # For selvhostede kunder – fest til din nøyaktige versjon
       # version = "= 7.0.123"  # Erstatt med din OneUptime-versjon
     }
@@ -48,10 +50,10 @@ terraform {
 provider "oneuptime" {
   # For Sky-kunder
   oneuptime_url = "https://oneuptime.com"
-  
+
   # For selvhostede kunder – bruk din instans-URL
   # oneuptime_url = "https://oneuptime.yourcompany.com"
-  
+
   api_key = var.oneuptime_api_key
 }
 
@@ -164,25 +166,33 @@ provider "oneuptime" {
 ## Feilsøking av hurtigstart
 
 ### Problem: Leverandør ikke funnet
+
 ```
 Error: Failed to query available provider packages
 ```
+
 **Løsning**: Kjør `terraform init` for å laste ned leverandøren
 
 ### Problem: Autentisering mislyktes
+
 ```
 Error: Invalid API key
 ```
-**Løsning**: 
+
+**Løsning**:
+
 1. Verifiser API-nøkkelen i OneUptime-dashbordet
 2. Sjekk at API-nøkkelen har tilstrekkelige tillatelser
 3. Sørg for at `oneuptime_url` er korrekt for instansen din
 
 ### Problem: Versjonskonflikt (selvhostet)
+
 ```
 Error: API version incompatible
 ```
-**Løsning**: 
+
+**Løsning**:
+
 1. Sjekk din OneUptime-versjon i dashbordet
 2. Oppdater leverandørversjonen til å samsvare nøyaktig
 3. Kjør `terraform init -upgrade`

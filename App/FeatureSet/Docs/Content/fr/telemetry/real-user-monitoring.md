@@ -8,17 +8,17 @@ Utilisez-la pour voir ce que vos utilisateurs vivent réellement : pages vues, e
 
 ## Prérequis
 
-- Un **jeton d'ingestion de télémétrie OneUptime** — créez-en un depuis *Paramètres du projet → Clés d'ingestion de télémétrie*.
+- Un **jeton d'ingestion de télémétrie OneUptime** — créez-en un depuis _Paramètres du projet → Clés d'ingestion de télémétrie_.
 - Le SDK OpenTelemetry pour navigateur ou mobile.
 
 ## Comment OneUptime identifie une application RUM
 
-| Attribut | Requis | Objectif |
-|---|---|---|
-| `service.name` | **oui** | Identité de l'application (par exemple `storefront-web`) |
-| `browser.*` | pour le web | Marque la télémétrie comme RUM navigateur |
-| `device.*` | pour le mobile | Marque la télémétrie comme RUM mobile |
-| `telemetry.sdk.language` | non | par exemple `webjs`, `swift`, affiché sur la vue d'ensemble |
+| Attribut                 | Requis         | Objectif                                                    |
+| ------------------------ | -------------- | ----------------------------------------------------------- |
+| `service.name`           | **oui**        | Identité de l'application (par exemple `storefront-web`)    |
+| `browser.*`              | pour le web    | Marque la télémétrie comme RUM navigateur                   |
+| `device.*`               | pour le mobile | Marque la télémétrie comme RUM mobile                       |
+| `telemetry.sdk.language` | non            | par exemple `webjs`, `swift`, affiché sur la vue d'ensemble |
 
 ## Navigateur (OpenTelemetry Web)
 

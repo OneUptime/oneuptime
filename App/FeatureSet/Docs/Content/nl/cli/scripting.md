@@ -15,12 +15,12 @@ Deze hebben prioriteit boven opgeslagen contexten maar worden overschreven door 
 
 ## Exitcodes
 
-| Code | Betekenis |
-|------|---------|
-| `0` | Geslaagd |
-| `1` | Algemene fout |
-| `2` | Authenticatiefout (ontbrekende of ongeldige inloggegevens) |
-| `3` | Niet gevonden (404) |
+| Code | Betekenis                                                  |
+| ---- | ---------------------------------------------------------- |
+| `0`  | Geslaagd                                                   |
+| `1`  | Algemene fout                                              |
+| `2`  | Authenticatiefout (ontbrekende of ongeldige inloggegevens) |
+| `3`  | Niet gevonden (404)                                        |
 
 Gebruik exitcodes in scripts om fouten af te handelen:
 
@@ -80,7 +80,7 @@ done
 name: Check Active Incidents
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: "*/5 * * * *"
 
 jobs:
   health-check:

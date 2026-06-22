@@ -111,12 +111,15 @@ describe("StatementGenerator", () => {
       expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(2, statement);
 
       /* eslint-disable prettier/prettier */
-            expectStatement(statement, SQL`
-                ALTER TABLE ${'oneuptime'}.${'<table-name>'}
+      expectStatement(
+        statement,
+        SQL`
+                ALTER TABLE ${"oneuptime"}.${"<table-name>"}
                 UPDATE <set-statement>
                 WHERE TRUE <where-statement>
-            `);
-            /* eslint-enable prettier/prettier */
+            `,
+      );
+      /* eslint-enable prettier/prettier */
     });
   });
 
@@ -790,18 +793,18 @@ describe("StatementGenerator", () => {
       expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(2, statement);
 
       /* eslint-disable prettier/prettier */
-            const expectedStatement: Statement = SQL`
-            CREATE TABLE IF NOT EXISTS ${'oneuptime'}.${'<table-name>'}
+      const expectedStatement: Statement = SQL`
+            CREATE TABLE IF NOT EXISTS ${"oneuptime"}.${"<table-name>"}
     (
         <columns-create-statement>
     )
     ENGINE = MergeTree
 PARTITION BY (column_ObjectID)
 
-    PRIMARY KEY (${'column_ObjectID'})
-    ORDER BY (${'column_ObjectID'})
+    PRIMARY KEY (${"column_ObjectID"})
+    ORDER BY (${"column_ObjectID"})
     `;
-            /* eslint-enable prettier/prettier */
+      /* eslint-enable prettier/prettier */
 
       // Normalize whitespace for comparison to avoid formatting issues
       const normalizeWhitespace: (s: string) => string = (

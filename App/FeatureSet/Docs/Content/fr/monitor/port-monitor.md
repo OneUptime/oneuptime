@@ -29,16 +29,16 @@ Entrez le nom d'hôte ou l'adresse IP de l'hôte cible (ex. : `example.com` ou `
 
 Entrez le numéro de port à surveiller (1–65535). Exemples courants :
 
-| Port | Service |
-|------|---------|
-| 22 | SSH |
-| 25 | SMTP |
-| 80 | HTTP |
-| 443 | HTTPS |
-| 3306 | MySQL |
-| 5432 | PostgreSQL |
-| 6379 | Redis |
-| 27017 | MongoDB |
+| Port  | Service    |
+| ----- | ---------- |
+| 22    | SSH        |
+| 25    | SMTP       |
+| 80    | HTTP       |
+| 443   | HTTPS      |
+| 3306  | MySQL      |
+| 5432  | PostgreSQL |
+| 6379  | Redis      |
+| 27017 | MongoDB    |
 
 ## Critères de surveillance
 
@@ -46,11 +46,11 @@ Vous pouvez configurer des critères pour déterminer quand votre port est consi
 
 ### Types de vérifications disponibles
 
-| Type de vérification | Description |
-|----------------------|-------------|
-| En ligne | Si le port est ouvert et accepte des connexions |
-| Temps de réponse (en ms) | Temps pour établir une connexion en millisecondes |
-| Délai d'attente de la requête | Si la tentative de connexion a expiré |
+| Type de vérification          | Description                                       |
+| ----------------------------- | ------------------------------------------------- |
+| En ligne                      | Si le port est ouvert et accepte des connexions   |
+| Temps de réponse (en ms)      | Temps pour établir une connexion en millisecondes |
+| Délai d'attente de la requête | Si la tentative de connexion a expiré             |
 
 ### Types de filtres
 

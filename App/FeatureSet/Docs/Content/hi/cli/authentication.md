@@ -12,15 +12,15 @@ oneuptime login <api-key> <instance-url>
 
 **Arguments:**
 
-| Argument | विवरण |
-|----------|-------|
-| `<api-key>` | आपकी OneUptime API key (जैसे `sk-your-api-key`) |
+| Argument         | विवरण                                                         |
+| ---------------- | ------------------------------------------------------------- |
+| `<api-key>`      | आपकी OneUptime API key (जैसे `sk-your-api-key`)               |
 | `<instance-url>` | आपके OneUptime instance का URL (जैसे `https://oneuptime.com`) |
 
 **Options:**
 
-| Option | विवरण |
-|--------|-------|
+| Option                  | विवरण                                         |
+| ----------------------- | --------------------------------------------- |
 | `--context-name <name>` | इस context के लिए नाम (डिफ़ॉल्ट: `"default"`) |
 
 **उदाहरण:**
@@ -122,6 +122,7 @@ oneuptime whoami
 ```
 
 यह प्रदर्शित करता है:
+
 - Instance URL
 - Masked API key
 - वर्तमान context नाम (केवल तभी दिखाया जाता है जब कोई saved context active हो)

@@ -15,6 +15,7 @@ exist (config-only). Dashboard pages not yet created. Where v1 work is still in
 flight, v2 items state the contract the v1 code must satisfy.
 
 Naming conventions used throughout:
+
 - Proxmox identity attribute: `proxmox.cluster.name` (resource attr, stamped by agent).
 - Ceph identity attribute: `ceph.cluster.name`.
 - The Postgres join key is the cluster model's `name` column (v1 decision; analog
@@ -37,6 +38,7 @@ all equality).
 
 **Proxmox:** add an OTTL `transform` processor to the collector config that splits
 `id` into two new datapoint attributes:
+
 - `pve.scope` ∈ `node|guest|storage|cluster` (`qemu` and `lxc` both map to `guest`)
 - `pve.type` ∈ `node|qemu|lxc|storage`
 - `pve.id` = the part after the slash (`pve1`, `100`, `local`)
@@ -78,6 +80,7 @@ race re-fetch, fingerprint-throttled `updateLastSeen(extras)`, and
 
 **Cron:** one new worker per product, `EVERY_FIVE_MINUTE`, registered in
 `App/FeatureSet/Workers/Index.ts` (K8s registers at L141–152):
+
 - `App/FeatureSet/Workers/Jobs/Proxmox/CleanupStaleResources.ts` — step 1
   `markDisconnectedProxmoxClusters()`, step 2 inventory pruning (WI-6).
 - `App/FeatureSet/Workers/Jobs/Ceph/CleanupStaleResources.ts` — same shape.
@@ -108,6 +111,7 @@ must never affect ClickHouse ingest", L1033–1051).
 Proxmox (`PVE_SNAPSHOT_METRIC_NAMES` = `pve_up`, `pve_node_info`, `pve_guest_info`,
 `pve_storage_info`, `pve_version_info`, `pve_ha_state`), scan gated on
 `proxmoxClusterId`:
+
 - `nodeCount` ← distinct `id` with `pve.scope=node` across the batch (prefer
   `pve_node_info` series; fall back to `pve_up`).
 - `onlineNodeCount` (NEW column, see migration below) ← distinct node ids where
@@ -120,6 +124,7 @@ Ceph (`CEPH_SNAPSHOT_METRIC_NAMES` = `ceph_health_status`, `ceph_mon_quorum_stat
 `ceph_mon_metadata`, `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_metadata`,
 `ceph_pool_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes`),
 gated on `cephClusterId`:
+
 - `monCount` ← distinct `ceph_daemon` on `ceph_mon_metadata`.
 - `osdCount` ← distinct `ceph_daemon` on `ceph_osd_metadata`.
 - `osdUpCount` / `osdInCount` (NEW columns) ← count of `ceph_osd_up == 1` /
@@ -172,6 +177,7 @@ bulk label/owner actions, and the empty-state contract (count first → render
 cost scaled per `primaryEntityId` (L323–343).
 
 **Proxmox + Ceph analogs (identical work):**
+
 1. Add `ServiceType.ProxmoxCluster` / `ServiceType.CephCluster` (wherever v1 put
    the primary-entity routing — `selectPrimaryEntity` ladder slots after
    KubernetesCluster, display names `proxmox/<name>`, `ceph/<name>`).
@@ -216,8 +222,8 @@ purpose, mirroring the K8s comment at `TelemetryEntity.ts` L456–534 — read-s
 `keyFor*` helpers. V2 adds nothing server-side; it mandates the tab wiring:
 
 - `Pages/Proxmox/View/Metrics.tsx` / `Logs.tsx`: `entityScope: {entityKeys:
-  [keyForProxmoxCluster(projectId, cluster.name)], attributeKey:
-  "resource.proxmox.cluster.name", attributeValue: cluster.name}`. Same for Ceph.
+[keyForProxmoxCluster(projectId, cluster.name)], attributeKey:
+"resource.proxmox.cluster.name", attributeValue: cluster.name}`. Same for Ceph.
 - Copy the K8s warning comment: do NOT also AND a separate attributes-equality
   filter (`View/Metrics.tsx` L85–102 documents why — it defeats the OR).
 - No Traces/Profiles tabs (see Rejected list — these agents produce no traces or
@@ -240,7 +246,7 @@ clusters skipped deliberately to preserve last-known inventory — file comment
 L11–27); summary endpoint `Common/Server/API/KubernetesResourceAPI.ts` L235–270.
 
 **Decision and justification:** SHIP in v2, not deferred. K8s needed a separate
-k8sobjects *log* stream to build its inventory; Proxmox/Ceph identity + status
+k8sobjects _log_ stream to build its inventory; Proxmox/Ceph identity + status
 already arrive in every metric scrape that WI-3 is scanning anyway. The marginal
 cost over WI-3 is one model + one bulkUpsert per product + the cleanup step in the
 WI-2 crons. The payoff is the entire K8s list/detail UX: Postgres-served list
@@ -250,6 +256,7 @@ widgets (WI-14). Without it, every per-cluster page is a ClickHouse group-by and
 the products stay at Docker depth forever.
 
 **ProxmoxResource** (`Common/Models/DatabaseModels/ProxmoxResource.ts`):
+
 - `kind`: `Node | Guest | Storage`. Unique index
   `(projectId, proxmoxClusterId, kind, externalId)` where `externalId` = the pve
   `id` label (`node/pve1`, `qemu/100`, `storage/local`) — immutable, collision-free.
@@ -268,6 +275,7 @@ the products stay at Docker depth forever.
   `metricsUpdatedAt`, `lastSeenAt`.
 
 **CephResource** (`Common/Models/DatabaseModels/CephResource.ts`):
+
 - `kind`: `Osd | Pool | Mon | Mgr | Mds | Rgw`. Unique index
   `(projectId, cephClusterId, kind, externalId)`; `externalId` = `ceph_daemon`
   (e.g. `osd.3`, `mon.a`) or `pool_id`.
@@ -329,6 +337,7 @@ ResourceOverviewTab,ResourceMetricsTab}.tsx` with product-neutral prop names; th
 K8s pages re-export. Do NOT clone 900 lines of generic table per product.
 
 **Proxmox pages** (`Pages/Proxmox/View/`):
+
 - `Nodes.tsx` → `NodeDetail.tsx` (tabs: Overview — status/uptime/version/HA
   summary fields; Metrics — `pve_cpu_usage_ratio×100`, memory usage/size, network
   rx/tx rate via WI-8 helper, disk r/w rate, all filtered
@@ -341,6 +350,7 @@ K8s pages re-export. Do NOT clone 900 lines of generic table per product.
 - Replace v1's planned ClickHouse-group-by list pages with inventory-backed ones.
 
 **Ceph pages** (`Pages/Ceph/View/`):
+
 - `Osds.tsx` (columns: ID, Host, Device class, Up pill, In pill, Used/Total bar,
   PGs, Apply/Commit latency) → `OsdDetail.tsx` (Overview; Metrics — latency,
   usage, PG count over time filtered `ceph_daemon = osd.N`).
@@ -379,6 +389,7 @@ auto-refresh. Network rates: `Utils/KubernetesNetworkUtils.ts` `computeNetworkRa
 `ceph_pool_rd/wr/rd_bytes/wr_bytes`.
 
 **Proxmox Overview computes:**
+
 - Hero: connection badge; health badge — **Unhealthy** if any node `pve_up=0` or
   any HA resource in `error`/`fence` state; **Degraded** if any storage >85% used,
   any guest with `onboot=1` stopped, or `onlineNodeCount < nodeCount`.
@@ -386,7 +397,7 @@ auto-refresh. Network rates: `Utils/KubernetesNetworkUtils.ts` `computeNetworkRa
   `nodeCount` (pve-exporter exposes no corosync metric; do NOT invent one —
   document that this is node-visibility-derived, red when ≤ 50%).
 - Golden tiles: Node availability %, Cluster CPU % (Σ `pve_cpu_usage_ratio ×
-  pve_cpu_usage_limit` / Σ limit over node series — capacity-weighted), Memory %
+pve_cpu_usage_limit` / Σ limit over node series — capacity-weighted), Memory %
   (Σ usage / Σ size), Storage % (worst storage), Guests running/total.
 - Golden charts (synced): CPU %, Memory, Storage usage, Network throughput.
 - HA state distribution chips (counts per `pve_ha_state` state label).
@@ -397,6 +408,7 @@ auto-refresh. Network rates: `Utils/KubernetesNetworkUtils.ts` `computeNetworkRa
 - `CardModelDetail` footer + InfoCards (counts), `ResourceActivityCards`.
 
 **Ceph Overview computes:**
+
 - Hero: health pill OK/WARN/ERR from `healthStatus`; **health checks breakdown** —
   list active `ceph_health_detail` series (name + severity, e.g. `OSD_DOWN`,
   `PG_DEGRADED`) as the "why" drill-down. Add `ceph_health_detail` to the agent
@@ -588,6 +600,7 @@ OTLP endpoints deliberately return silent 200 on bad tokens, so it calls
 — it explains the #1 support question ("pods healthy, still Disconnected").
 
 `ProxmoxAgent/troubleshoot.sh` sections (docker-compose/systemd context, not kubectl):
+
 1. **Runtime** — detect compose vs systemd install; service/container running.
 2. **pve-exporter reachability** — curl `$PVE_EXPORTER_URL/metrics` (or `/pve`);
    verify `pve_up` series present; if zero series, diagnose PVE API auth

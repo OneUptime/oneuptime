@@ -18,10 +18,12 @@ Projekt-SCIM ermöglicht Identity Providern, Teammitglieder innerhalb von OneUpt
 ### Projekt-SCIM einrichten
 
 1. **Zu Projekteinstellungen navigieren**
+
    - Gehen Sie zu Ihrem OneUptime-Projekt
    - Navigieren Sie zu **Projekteinstellungen** > **Team** > **SCIM**
 
 2. **SCIM-Einstellungen konfigurieren**
+
    - Aktivieren Sie **Benutzer automatisch bereitstellen**, um Benutzer automatisch hinzuzufügen, wenn sie im IdP zugewiesen werden
    - Aktivieren Sie **Benutzer automatisch entbereitstellen**, um Benutzer automatisch zu entfernen, wenn sie im IdP nicht mehr zugewiesen sind
    - Wählen Sie die **Standard-Teams**, denen neue Benutzer hinzugefügt werden sollen
@@ -55,10 +57,12 @@ Status-Seiten-SCIM ermöglicht Identity Providern, Abonnenten privater Status-Se
 ### Status-Seiten-SCIM einrichten
 
 1. **Zu Status-Seiten-Einstellungen navigieren**
+
    - Gehen Sie zu Ihrer OneUptime Status-Seite
    - Navigieren Sie zu **Status-Seiten-Einstellungen** > **Private Benutzer** > **SCIM**
 
 2. **SCIM-Einstellungen konfigurieren**
+
    - Aktivieren Sie **Benutzer automatisch bereitstellen** und **Benutzer automatisch entbereitstellen**
    - Kopieren Sie die **SCIM-Basis-URL** und das **Bearer-Token** für Ihre IdP-Konfiguration
 

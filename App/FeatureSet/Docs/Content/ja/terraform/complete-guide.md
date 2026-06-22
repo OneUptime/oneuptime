@@ -98,10 +98,10 @@ provider "oneuptime" {
 
 ### 設定オプション
 
-| 引数 | 環境変数 | 説明 | 必須 |
-|----------|---------------------|-------------|----------|
-| `oneuptime_url` | `ONEUPTIME_URL` | OneUptime URL | はい |
-| `api_key` | `ONEUPTIME_API_KEY` | OneUptime APIキー | はい |
+| 引数            | 環境変数            | 説明              | 必須 |
+| --------------- | ------------------- | ----------------- | ---- |
+| `oneuptime_url` | `ONEUPTIME_URL`     | OneUptime URL     | はい |
+| `api_key`       | `ONEUPTIME_API_KEY` | OneUptime APIキー | はい |
 
 ## クイックスタート
 
@@ -195,11 +195,11 @@ terraform {
 
 **重要**：セルフホストのお客様はOneUptimeのインストールに合わせてプロバイダーバージョンを固定する必要があります：
 
-| OneUptimeバージョン | プロバイダーバージョン | 設定 |
-|-------------------|------------------|---------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| 7.2.x | 7.2.x | `version = "~> 7.2.0"` |
+| OneUptimeバージョン | プロバイダーバージョン | 設定                   |
+| ------------------- | ---------------------- | ---------------------- |
+| 7.0.x               | 7.0.x                  | `version = "~> 7.0.0"` |
+| 7.1.x               | 7.1.x                  | `version = "~> 7.1.0"` |
+| 7.2.x               | 7.2.x                  | `version = "~> 7.2.0"` |
 
 OneUptime 7.0.123の例：
 
@@ -219,26 +219,33 @@ terraform {
 OneUptime Terraformプロバイダーは以下のリソースをサポートしています：
 
 ### コアリソース
+
 - `oneuptime_team` — チームの管理
 
 ### モニタリング
+
 - `oneuptime_monitor` — モニターの作成と管理
 - `oneuptime_probe` — 監視プローブの管理
 
 ### オンコール管理
+
 - `oneuptime_on_call_duty_policy` — オンコールスケジュールの設定
 
 ### ステータスページ
+
 - `oneuptime_status_page` — ステータスページの作成
 
 ### サービスカタログ
+
 - `oneuptime_service_catalog` — サービスカタログエントリの管理
 
 ### サービスカタログ
+
 - `oneuptime_service` — サービスの定義
 - `oneuptime_service_dependency` — サービス依存関係のマッピング
 
 ### データソース
+
 注意：プロバイダースキーマにデータソースが定義されていないため、データソースは現在プロバイダーで利用できません。
 
 ## 使用例
@@ -301,12 +308,12 @@ resource "oneuptime_monitor" "api" {
 resource "oneuptime_monitor" "database" {
   name       = "データベース接続"
   project_id = oneuptime_project.production.id
-  
+
   monitor_type = "port"
   hostname     = "db.mycompany.com"
   port         = 5432
   interval     = "2m"
-  
+
   tags = {
     service     = "database"
     environment = "production"
@@ -319,11 +326,11 @@ resource "oneuptime_on_call_policy" "platform_oncall" {
   name       = "プラットフォームオンコール"
   project_id = oneuptime_project.production.id
   team_id    = oneuptime_team.platform.id
-  
+
   schedules {
     name      = "営業時間"
     timezone  = "America/New_York"
-    
+
     layers {
       name = "プライマリ"
       users = ["user1@mycompany.com", "user2@mycompany.com"]
@@ -339,22 +346,22 @@ resource "oneuptime_on_call_policy" "platform_oncall" {
 resource "oneuptime_alert_policy" "critical_alerts" {
   name       = "重要システムアラート"
   project_id = oneuptime_project.production.id
-  
+
   conditions {
     monitor_id = oneuptime_monitor.api.id
     threshold  = "down"
   }
-  
+
   conditions {
     monitor_id = oneuptime_monitor.database.id
     threshold  = "down"
   }
-  
+
   actions {
     type = "webhook"
     url  = "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
   }
-  
+
   actions {
     type           = "oncall_escalation"
     oncall_policy_id = oneuptime_on_call_policy.platform_oncall.id
@@ -365,14 +372,14 @@ resource "oneuptime_alert_policy" "critical_alerts" {
 resource "oneuptime_status_page" "public" {
   name       = "MyCompanyステータス"
   project_id = oneuptime_project.production.id
-  
+
   domain = "status.mycompany.com"
-  
+
   components {
     name       = "API"
     monitor_id = oneuptime_monitor.api.id
   }
-  
+
   components {
     name       = "データベース"
     monitor_id = oneuptime_monitor.database.id
@@ -407,10 +414,12 @@ provider "oneuptime" {
 ### 1. バージョン管理
 
 **クラウドのお客様：**
+
 - セマンティックバージョニングを `~>` で使用して互換性のある更新を取得する
 - メジャーバージョンアップグレード前にchangelogを確認する
 
 **セルフホストのお客様：**
+
 - インストールに合わせて常に正確なバージョンに固定する
 - OneUptimeのアップグレード時にプロバイダーバージョンを更新する
 - まず非本番環境でテストする
@@ -545,15 +554,19 @@ terraform apply
 ### 一般的な問題
 
 1. **バージョンの不一致（セルフホスト）**
+
    ```
    Error: API version incompatible
    ```
+
    **解決策**：プロバイダーバージョンがOneUptimeのインストールと一致していることを確認する
 
 2. **認証の問題**
+
    ```
    Error: Invalid API key
    ```
+
    **解決策**：APIキーと権限を確認する
 
 3. **リソースが見つからない**

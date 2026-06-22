@@ -23,6 +23,15 @@ const PodmanSideMenu: FunctionComponent = (): ReactElement => {
         },
         {
           link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.PODMAN_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
+        {
+          link: {
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PODMAN_DOCUMENTATION] as Route,

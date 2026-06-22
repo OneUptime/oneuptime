@@ -7,7 +7,6 @@ La surveillance synthétique est une méthode de surveillance proactive de vos a
 L'exemple suivant montre comment utiliser un moniteur synthétique :
 
 ```javascript
-
 // Les objets disponibles dans le contexte du script sont :
 
 // - axios : module Axios pour effectuer des requêtes HTTP
@@ -17,15 +16,15 @@ L'exemple suivant montre comment utiliser un moniteur synthétique :
 
 // Vous pouvez utiliser ces objets pour interagir avec le navigateur et effectuer des requêtes HTTP.
 
-await page.goto('https://playwright.dev/');
+await page.goto("https://playwright.dev/");
 
 // Documentation Playwright ici : https://playwright.dev/docs/intro
 
 // Voici quelques-unes des variables que vous pouvez utiliser dans le contexte de l'objet surveillé :
 
-console.log(browserType) // Cela affichera le type de navigateur dans le contexte d'exécution actuel - Chromium, Firefox, Webkit
+console.log(browserType); // Cela affichera le type de navigateur dans le contexte d'exécution actuel - Chromium, Firefox, Webkit
 
-console.log(screenSizeType) // Cela affichera le type de taille d'écran dans le contexte d'exécution actuel - Mobile, Tablet, Desktop
+console.log(screenSizeType); // Cela affichera le type de taille d'écran dans le contexte d'exécution actuel - Mobile, Tablet, Desktop
 
 // L'objet page Playwright appartient à ce contexte de navigateur spécifique, vous pouvez donc l'utiliser pour interagir avec le navigateur.
 
@@ -33,7 +32,7 @@ console.log(screenSizeType) // Cela affichera le type de taille d'écran dans le
 // dans le contexte du script. Les captures d'écran capturées de cette façon sont préservées même si le
 // script lève une erreur par la suite — utile pour déboguer les exécutions échouées.
 
-screenshots['nom-capture'] = await page.screenshot(); // vous pouvez sauvegarder plusieurs captures d'écran avec des noms différents.
+screenshots["nom-capture"] = await page.screenshot(); // vous pouvez sauvegarder plusieurs captures d'écran avec des noms différents.
 
 // lorsque vous souhaitez retourner une valeur, utilisez l'instruction return avec data comme prop.
 
@@ -42,9 +41,8 @@ screenshots['nom-capture'] = await page.screenshot(); // vous pouvez sauvegarder
 
 // Vous pouvez accéder au contexte du navigateur via page.context() si nécessaire (par exemple, pour créer une nouvelle page ou gérer des popups).
 
-
 return {
-    data: 'Hello World'
+  data: "Hello World",
 };
 ```
 
@@ -57,25 +55,23 @@ Nous utilisons Playwright pour simuler les interactions des utilisateurs. Vous p
 Un objet `screenshots` prédéclaré est disponible dans le contexte du script. Assignez-y des captures d'écran à tout moment dans le script — ces captures d'écran sont préservées **même si le script lève une erreur** (y compris les échecs d'assertion, les délais d'attente ou les erreurs inattendues), vous pouvez donc voir exactement à quoi ressemblait la page lors de l'échec de l'exécution. Les captures d'écran apparaissent dans le tableau de bord OneUptime pour cette exécution de moniteur spécifique.
 
 ```javascript
-
 // Capturez les captures d'écran via le canal secondaire `screenshots` — elles sont préservées en cas de succès et d'échec.
 
-await page.goto('https://app.example.com/login');
-screenshots['page-connexion'] = await page.screenshot();
+await page.goto("https://app.example.com/login");
+screenshots["page-connexion"] = await page.screenshot();
 
-await page.fill('#email', 'user@example.com');
-await page.fill('#password', 'wrong');
-await page.click('button[type=submit]');
+await page.fill("#email", "user@example.com");
+await page.fill("#password", "wrong");
+await page.click("button[type=submit]");
 
 // Si l'assertion suivante lève une erreur, la capture d'écran `page-connexion` ci-dessus est toujours préservée.
-await page.waitForSelector('.dashboard', { timeout: 5000 });
+await page.waitForSelector(".dashboard", { timeout: 5000 });
 
-screenshots['tableau-de-bord'] = await page.screenshot();
+screenshots["tableau-de-bord"] = await page.screenshot();
 
 return {
-    data: 'Connexion réussie'
+  data: "Connexion réussie",
 };
-
 ```
 
 #### Retourner des captures d'écran (héritage)
@@ -85,14 +81,13 @@ Pour des raisons de compatibilité descendante, vous pouvez également retourner
 ```javascript
 // Modèle héritage — captures d'écran uniquement préservées lors d'un retour réussi.
 const screenshots = {};
-screenshots['nom-capture'] = await page.screenshot();
+screenshots["nom-capture"] = await page.screenshot();
 
 return {
-    data: 'Hello World',
-    screenshots: screenshots
+  data: "Hello World",
+  screenshots: screenshots,
 };
 ```
-
 
 ### Utilisation des secrets de moniteur
 
@@ -121,7 +116,7 @@ let secretNombre = {{monitorSecrets.NumberSecret}};
 let secretBooleen = {{monitorSecrets.BooleanSecret}};
 
 // vous pouvez même utiliser console.log pour vérifier si le secret est correctement récupéré
-console.log(secretString); 
+console.log(secretString);
 ```
 
 ### Métriques personnalisées
@@ -139,32 +134,34 @@ oneuptime.captureMetric(name, value, attributes);
 #### Exemple
 
 ```javascript
-await page.goto('https://app.example.com');
+await page.goto("https://app.example.com");
 
 const startTime = Date.now();
-await page.waitForSelector('#dashboard-loaded');
+await page.waitForSelector("#dashboard-loaded");
 const loadTime = Date.now() - startTime;
 
 // Capturer le temps de chargement de la page comme métrique personnalisée
-oneuptime.captureMetric('dashboard.load.time', loadTime, {
-    page: 'dashboard'
+oneuptime.captureMetric("dashboard.load.time", loadTime, {
+  page: "dashboard",
 });
 
-screenshots['tableau-de-bord'] = await page.screenshot();
+screenshots["tableau-de-bord"] = await page.screenshot();
 
 return {
-    data: { loadTime }
+  data: { loadTime },
 };
 ```
 
 Une fois capturées, ces métriques apparaissent dans le Metric Explorer sous des noms comme `custom.monitor.dashboard.load.time`. Vous pouvez les ajouter à des graphiques de tableau de bord, configurer des alertes et filtrer par moniteur, sonde, type de navigateur, taille d'écran ou tout attribut personnalisé que vous avez fourni.
 
 **Limites :**
+
 - Maximum 100 métriques par exécution de script.
 - Les noms de métriques sont limités à 200 caractères.
 - Les valeurs doivent être numériques.
 
 ### Modules disponibles dans le script
+
 - `page` : Vous pouvez utiliser ce module pour interagir avec le navigateur. Il s'agit d'un objet Page Playwright qui vous permet d'effectuer des actions comme cliquer sur des boutons, remplir des formulaires et prendre des captures d'écran. Vous pouvez accéder au contexte du navigateur via `page.context()` si nécessaire (par exemple, pour créer une nouvelle page ou gérer des popups).
 - `screenshots` : Un objet prédéclaré auquel vous assignez des captures d'écran (ex. : `screenshots['page-connexion'] = await page.screenshot()`). Les captures d'écran assignées ici sont préservées même si le script lève une erreur par la suite.
 - `axios` : Vous pouvez utiliser ce module pour effectuer des requêtes HTTP. Il s'agit d'un client HTTP basé sur les promesses pour le navigateur et Node.js.

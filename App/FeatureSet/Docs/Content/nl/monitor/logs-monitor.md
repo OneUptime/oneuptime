@@ -28,12 +28,12 @@ Selecteer een of meer diensten waarvan logboeken worden bewaakt. Diensten moeten
 
 ### Logboekfilters
 
-| Filter | Beschrijving | Vereist |
-|--------|-------------|----------|
-| Ernstniveaus | Filteren op logboekernst (ERROR, WARN, INFO, DEBUG, enz.) | Nee |
-| Lichaam | Zoek in tekst van het logboekberichtlichaam | Nee |
-| Attributen | Sleutel-waardeparen om te filteren op aangepaste logboekattributen | Nee |
-| Tijdvenster | Hoe ver terug te zoeken naar logboeken (in seconden, standaard: 60) | Nee |
+| Filter       | Beschrijving                                                        | Vereist |
+| ------------ | ------------------------------------------------------------------- | ------- |
+| Ernstniveaus | Filteren op logboekernst (ERROR, WARN, INFO, DEBUG, enz.)           | Nee     |
+| Lichaam      | Zoek in tekst van het logboekberichtlichaam                         | Nee     |
+| Attributen   | Sleutel-waardeparen om te filteren op aangepaste logboekattributen  | Nee     |
+| Tijdvenster  | Hoe ver terug te zoeken naar logboeken (in seconden, standaard: 60) | Nee     |
 
 ### Ernstniveaus
 
@@ -51,8 +51,8 @@ Filter logboeken op een of meer ernstniveaus:
 
 ### Beschikbare controletypen
 
-| Controletype | Beschrijving |
-|------------|-------------|
+| Controletype   | Beschrijving                                                       |
+| -------------- | ------------------------------------------------------------------ |
 | Logboektelling | Het aantal logboeken dat voldoet aan uw filters in het tijdvenster |
 
 ### Filtertypen

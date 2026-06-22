@@ -24,34 +24,34 @@ Os monitores de DNS consultam servidores DNS para tipos de registro específicos
 
 ### Configurações Básicas
 
-| Campo | Descrição | Obrigatório |
-|-------|-------------|----------|
-| Domain Name | O domínio a consultar (ex.: `example.com`) | Sim |
-| Record Type | O tipo de registro DNS a consultar | Sim |
-| DNS Server | Servidor DNS personalizado a usar (ex.: `8.8.8.8`). Deixe vazio para o padrão do sistema | Não |
+| Campo       | Descrição                                                                                | Obrigatório |
+| ----------- | ---------------------------------------------------------------------------------------- | ----------- |
+| Domain Name | O domínio a consultar (ex.: `example.com`)                                               | Sim         |
+| Record Type | O tipo de registro DNS a consultar                                                       | Sim         |
+| DNS Server  | Servidor DNS personalizado a usar (ex.: `8.8.8.8`). Deixe vazio para o padrão do sistema | Não         |
 
 ### Tipos de Registro Suportados
 
-| Tipo de Registro | Descrição |
-|-------------|-------------|
-| A | Registros de endereço IPv4 |
-| AAAA | Registros de endereço IPv6 |
-| CNAME | Registros de nome canônico (alias) |
-| MX | Registros de troca de email |
-| NS | Registros de servidor de nomes |
-| TXT | Registros de texto (SPF, DKIM, etc.) |
-| SOA | Registros de Início de Autoridade |
-| PTR | Registros de ponteiro (DNS reverso) |
-| SRV | Registros de localizador de serviço |
-| CAA | Registros de Autorização de Autoridade de Certificado |
+| Tipo de Registro | Descrição                                             |
+| ---------------- | ----------------------------------------------------- |
+| A                | Registros de endereço IPv4                            |
+| AAAA             | Registros de endereço IPv6                            |
+| CNAME            | Registros de nome canônico (alias)                    |
+| MX               | Registros de troca de email                           |
+| NS               | Registros de servidor de nomes                        |
+| TXT              | Registros de texto (SPF, DKIM, etc.)                  |
+| SOA              | Registros de Início de Autoridade                     |
+| PTR              | Registros de ponteiro (DNS reverso)                   |
+| SRV              | Registros de localizador de serviço                   |
+| CAA              | Registros de Autorização de Autoridade de Certificado |
 
 ### Configurações Avançadas
 
-| Campo | Descrição | Padrão |
-|-------|-------------|---------|
-| Port | Número da porta DNS | 53 |
-| Timeout (ms) | Tempo de espera por uma resposta | 5000 |
-| Retries | Número de tentativas de repetição em caso de falha | 3 |
+| Campo        | Descrição                                          | Padrão |
+| ------------ | -------------------------------------------------- | ------ |
+| Port         | Número da porta DNS                                | 53     |
+| Timeout (ms) | Tempo de espera por uma resposta                   | 5000   |
+| Retries      | Número de tentativas de repetição em caso de falha | 3      |
 
 ## Critérios de Monitoramento
 
@@ -59,13 +59,13 @@ Você pode configurar critérios para determinar quando seu DNS é considerado o
 
 ### Tipos de Verificação Disponíveis
 
-| Tipo de Verificação | Descrição |
-|------------|-------------|
-| DNS Is Online | Se o servidor DNS responde a consultas |
+| Tipo de Verificação       | Descrição                                      |
+| ------------------------- | ---------------------------------------------- |
+| DNS Is Online             | Se o servidor DNS responde a consultas         |
 | DNS Response Time (in ms) | Tempo de resposta de consulta em milissegundos |
-| DNS Record Exists | Se existem registros DNS para a consulta |
-| DNS Record Value | O valor retornado por um registro DNS |
-| DNSSEC Is Valid | Se a validação DNSSEC passa |
+| DNS Record Exists         | Se existem registros DNS para a consulta       |
+| DNS Record Value          | O valor retornado por um registro DNS          |
+| DNSSEC Is Valid           | Se a validação DNSSEC passa                    |
 
 ### Tipos de Filtro
 

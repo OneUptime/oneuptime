@@ -31,11 +31,11 @@ Puedes configurar criterios para determinar cuándo tu host se considera en lín
 
 ### Tipos de verificación disponibles
 
-| Tipo de verificación | Descripción |
-|------------|-------------|
-| Está en línea | Si el host responde a las solicitudes de ping |
-| Tiempo de respuesta (en ms) | Tiempo de ida y vuelta de la solicitud de ping en milisegundos |
-| La solicitud superó el tiempo de espera | Si la solicitud de ping superó el tiempo de espera |
+| Tipo de verificación                    | Descripción                                                    |
+| --------------------------------------- | -------------------------------------------------------------- |
+| Está en línea                           | Si el host responde a las solicitudes de ping                  |
+| Tiempo de respuesta (en ms)             | Tiempo de ida y vuelta de la solicitud de ping en milisegundos |
+| La solicitud superó el tiempo de espera | Si la solicitud de ping superó el tiempo de espera             |
 
 ### Tipos de filtro
 

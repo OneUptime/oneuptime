@@ -28,20 +28,20 @@ Velg én eller flere tjenester det skal overvåkes unntak fra. Tjenester må sen
 
 ### Unntaksfiltre
 
-| Filter | Beskrivelse | Påkrevd |
-|--------|-------------|---------|
-| Exception Types | Filtrer etter unntakstypens navn (f.eks. `NullPointerException`, `TypeError`) | Nei |
-| Message | Tekstsøk i unntaksmeldinger | Nei |
-| Include Resolved | Inkluder unntak som er merket som løst (standard: false) | Nei |
-| Include Archived | Inkluder unntak som er arkivert (standard: false) | Nei |
-| Time Window | Hvor langt tilbake det skal søkes etter unntak (i sekunder, standard: 60) | Nei |
+| Filter           | Beskrivelse                                                                   | Påkrevd |
+| ---------------- | ----------------------------------------------------------------------------- | ------- |
+| Exception Types  | Filtrer etter unntakstypens navn (f.eks. `NullPointerException`, `TypeError`) | Nei     |
+| Message          | Tekstsøk i unntaksmeldinger                                                   | Nei     |
+| Include Resolved | Inkluder unntak som er merket som løst (standard: false)                      | Nei     |
+| Include Archived | Inkluder unntak som er arkivert (standard: false)                             | Nei     |
+| Time Window      | Hvor langt tilbake det skal søkes etter unntak (i sekunder, standard: 60)     | Nei     |
 
 ## Overvåkingskriterier
 
 ### Tilgjengelige kontrolltyper
 
-| Kontrolltype | Beskrivelse |
-|-------------|-------------|
+| Kontrolltype    | Beskrivelse                                                 |
+| --------------- | ----------------------------------------------------------- |
 | Exception Count | Antall unntak som samsvarer med filtrene dine i tidsvinduet |
 
 ### Filtertyper

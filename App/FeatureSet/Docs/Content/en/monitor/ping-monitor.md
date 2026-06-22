@@ -31,11 +31,11 @@ You can configure criteria to determine when your host is considered online, deg
 
 ### Available Check Types
 
-| Check Type | Description |
-|------------|-------------|
-| Is Online | Whether the host responds to ping requests |
+| Check Type            | Description                                         |
+| --------------------- | --------------------------------------------------- |
+| Is Online             | Whether the host responds to ping requests          |
 | Response Time (in ms) | Round-trip time of the ping request in milliseconds |
-| Is Request Timeout | Whether the ping request timed out |
+| Is Request Timeout    | Whether the ping request timed out                  |
 
 ### Filter Types
 

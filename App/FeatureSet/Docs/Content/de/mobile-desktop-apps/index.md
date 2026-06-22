@@ -29,11 +29,13 @@ Das Web-Dashboard von OneUptime ist eine Progressive Web App, sodass Sie es aus 
 ### Fehlerbehebung auf dem Desktop
 
 **Installationsoption wird nicht angezeigt:**
+
 - Stellen Sie sicher, dass Sie einen unterstützten Browser verwenden.
 - Vergewissern Sie sich, dass Ihre OneUptime-Instanz über HTTPS bereitgestellt wird.
 - Laden Sie die Seite neu oder leeren Sie den Browser-Cache.
 
 **Push-Benachrichtigungen funktionieren nicht:**
+
 - Erteilen Sie die Benachrichtigungsberechtigungen, wenn der Browser danach fragt.
 - Überprüfen Sie die Benachrichtigungseinstellungen Ihres Betriebssystems für den Browser.
 - Selbst gehostete Benutzer: Vergewissern Sie sich, dass Push-Benachrichtigungen auf Ihrer OneUptime-Instanz konfiguriert sind.

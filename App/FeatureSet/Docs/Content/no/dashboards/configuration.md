@@ -29,12 +29,12 @@ Vanlige mønstre:
 
 Dashbord fungerer med prosjektets rollebaserte tilgangskontroll. De relevante tillatelsene:
 
-| Tillatelse | Hva den tillater |
-| --- | --- |
-| **Opprett dashbord** | Opprett nye dashbord. |
-| **Les dashbord** | Vis dashbord (i privatmodus). |
+| Tillatelse           | Hva den tillater                           |
+| -------------------- | ------------------------------------------ |
+| **Opprett dashbord** | Opprett nye dashbord.                      |
+| **Les dashbord**     | Vis dashbord (i privatmodus).              |
 | **Rediger dashbord** | Endre widgets, variabler og innstillinger. |
-| **Slett dashbord** | Slett et dashbord. |
+| **Slett dashbord**   | Slett et dashbord.                         |
 
 Det finnes tilsvarende tillatelser for dashbord-eiere og egendefinerte domener, slik at du kan gi "administrer eiere" uten å gi "rediger dashbordet."
 

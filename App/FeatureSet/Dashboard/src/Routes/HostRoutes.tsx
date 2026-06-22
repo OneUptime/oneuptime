@@ -8,6 +8,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
 import Hosts from "../Pages/Host/Hosts";
+import HostArchived from "../Pages/Host/Archived";
 import HostDocumentation from "../Pages/Host/Documentation";
 import HostSettingsOwnerRules from "../Pages/Host/Settings/OwnerRules";
 import HostSettingsLabelRules from "../Pages/Host/Settings/LabelRules";
@@ -64,6 +65,15 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
             <HostSettingsLabelRules
               {...props}
               pageRoute={RouteMap[PageMap.HOST_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={HostRoutePath[PageMap.HOST_ARCHIVED] || ""}
+          element={
+            <HostArchived
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_ARCHIVED] as Route}
             />
           }
         />

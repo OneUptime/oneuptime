@@ -161,17 +161,17 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 
 ## Environment variables
 
-| Variable | Default | विवरण |
-|---|---|---|
-| `PROBE_INGRESS_PORT` | _unset_ (disabled) | Inbound listener जिस Port से bind होता है। कोई भी value `> 0` ingress सक्षम करती है। |
-| `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | OneUptime को प्रत्येक forward attempt के लिए Timeout (ms)। Minimum `1000`। |
-| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | probe द्वारा forward छोड़ने से पहले retries की संख्या। retries disable करने के लिए `0` पर सेट करें। |
+| Variable                            | Default            | विवरण                                                                                               |
+| ----------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------- |
+| `PROBE_INGRESS_PORT`                | _unset_ (disabled) | Inbound listener जिस Port से bind होता है। कोई भी value `> 0` ingress सक्षम करती है।                |
+| `PROBE_INGRESS_FORWARD_TIMEOUT_MS`  | `10000`            | OneUptime को प्रत्येक forward attempt के लिए Timeout (ms)। Minimum `1000`।                          |
+| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3`                | probe द्वारा forward छोड़ने से पहले retries की संख्या। retries disable करने के लिए `0` पर सेट करें। |
 
 Standard probe variables (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL`, proxy vars) सभी लागू होते हैं — पूरी list के लिए [Custom Probes](/docs/probe/custom-probe) देखें।
 
 ## Security considerations
 
-- **Endpoint design से unauthenticated है** — URL path में secret key *ही* authentication है, जैसा public `oneuptime.com` endpoint पर होता है। Secret key को credential के रूप में treat करें।
+- **Endpoint design से unauthenticated है** — URL path में secret key _ही_ authentication है, जैसा public `oneuptime.com` endpoint पर होता है। Secret key को credential के रूप में treat करें।
 - **केवल private interface पर Bind करें।** Ingress listener public internet से reachable नहीं होना चाहिए। Access restrict करने के लिए network policy, firewall rule, या `ClusterIP` service उपयोग करें।
 - **यदि आपको transit में encryption की आवश्यकता है तो HTTPS termination उपयोग करें।** Probe का listener plain HTTP बोलता है। यदि आपको inbound hop पर TLS चाहिए तो इसे internal load balancer/ingress controller के पीछे रखें। Forward leg probe → OneUptime always HTTPS उपयोग करती है (assuming `ONEUPTIME_URL` `https://` है)।
 - **Resource limits.** Listener 50 MB तक request bodies accept करता है। यदि आपको tighter cap चाहिए, तो probe के सामने reverse proxy रखें।

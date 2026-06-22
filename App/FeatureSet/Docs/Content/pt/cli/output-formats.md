@@ -20,6 +20,7 @@ oneuptime incident list
 ```
 
 Comportamento do formato de tabela:
+
 - Seleciona até 6 colunas, priorizando: `_id`, `name`, `title`, `createdAt`, `updatedAt`
 - Trunca valores com mais de 60 caracteres com `...`
 - Usa cabeçalhos codificados por cores (desative com `--no-color`)
@@ -72,9 +73,9 @@ NO_COLOR=1 oneuptime incident list
 
 ## Casos Especiais de Saída
 
-| Cenário | Saída |
-|----------|--------|
-| Conjunto de resultados vazio | `"No results found."` |
-| Nenhum dado retornado | `"No data returned."` |
-| Objeto único (ex.: `get`) | Formato de tabela chave-valor |
-| Comando `count` | Valor numérico simples |
+| Cenário                      | Saída                         |
+| ---------------------------- | ----------------------------- |
+| Conjunto de resultados vazio | `"No results found."`         |
+| Nenhum dado retornado        | `"No data returned."`         |
+| Objeto único (ex.: `get`)    | Formato de tabela chave-valor |
+| Comando `count`              | Valor numérico simples        |

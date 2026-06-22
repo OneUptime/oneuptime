@@ -24,34 +24,34 @@ Los monitores DNS consultan servidores DNS para tipos de registros específicos 
 
 ### Configuración básica
 
-| Campo | Descripción | Requerido |
-|-------|-------------|----------|
-| Nombre de dominio | El dominio a consultar (por ejemplo, `example.com`) | Sí |
-| Tipo de registro | El tipo de registro DNS a consultar | Sí |
-| Servidor DNS | Servidor DNS personalizado a usar (por ejemplo, `8.8.8.8`). Deja vacío para usar el predeterminado del sistema | No |
+| Campo             | Descripción                                                                                                    | Requerido |
+| ----------------- | -------------------------------------------------------------------------------------------------------------- | --------- |
+| Nombre de dominio | El dominio a consultar (por ejemplo, `example.com`)                                                            | Sí        |
+| Tipo de registro  | El tipo de registro DNS a consultar                                                                            | Sí        |
+| Servidor DNS      | Servidor DNS personalizado a usar (por ejemplo, `8.8.8.8`). Deja vacío para usar el predeterminado del sistema | No        |
 
 ### Tipos de registro compatibles
 
-| Tipo de registro | Descripción |
-|-------------|-------------|
-| A | Registros de dirección IPv4 |
-| AAAA | Registros de dirección IPv6 |
-| CNAME | Registros de nombre canónico (alias) |
-| MX | Registros de intercambio de correo |
-| NS | Registros de servidor de nombres |
-| TXT | Registros de texto (SPF, DKIM, etc.) |
-| SOA | Registros de inicio de autoridad |
-| PTR | Registros de puntero (DNS inverso) |
-| SRV | Registros de localizador de servicios |
-| CAA | Registros de autorización de entidad certificadora |
+| Tipo de registro | Descripción                                        |
+| ---------------- | -------------------------------------------------- |
+| A                | Registros de dirección IPv4                        |
+| AAAA             | Registros de dirección IPv6                        |
+| CNAME            | Registros de nombre canónico (alias)               |
+| MX               | Registros de intercambio de correo                 |
+| NS               | Registros de servidor de nombres                   |
+| TXT              | Registros de texto (SPF, DKIM, etc.)               |
+| SOA              | Registros de inicio de autoridad                   |
+| PTR              | Registros de puntero (DNS inverso)                 |
+| SRV              | Registros de localizador de servicios              |
+| CAA              | Registros de autorización de entidad certificadora |
 
 ### Configuración avanzada
 
-| Campo | Descripción | Predeterminado |
-|-------|-------------|---------|
-| Puerto | Número de puerto DNS | 53 |
-| Tiempo de espera (ms) | Tiempo de espera para una respuesta | 5000 |
-| Reintentos | Número de intentos de reintento en caso de fallo | 3 |
+| Campo                 | Descripción                                      | Predeterminado |
+| --------------------- | ------------------------------------------------ | -------------- |
+| Puerto                | Número de puerto DNS                             | 53             |
+| Tiempo de espera (ms) | Tiempo de espera para una respuesta              | 5000           |
+| Reintentos            | Número de intentos de reintento en caso de fallo | 3              |
 
 ## Criterios de monitoreo
 
@@ -59,13 +59,13 @@ Puedes configurar criterios para determinar cuándo tu DNS se considera en líne
 
 ### Tipos de verificación disponibles
 
-| Tipo de verificación | Descripción |
-|------------|-------------|
-| DNS está en línea | Si el servidor DNS responde a las consultas |
+| Tipo de verificación            | Descripción                                        |
+| ------------------------------- | -------------------------------------------------- |
+| DNS está en línea               | Si el servidor DNS responde a las consultas        |
 | Tiempo de respuesta DNS (en ms) | Tiempo de respuesta de la consulta en milisegundos |
-| El registro DNS existe | Si existen registros DNS para la consulta |
-| Valor del registro DNS | El valor devuelto por un registro DNS |
-| DNSSEC es válido | Si pasa la validación DNSSEC |
+| El registro DNS existe          | Si existen registros DNS para la consulta          |
+| Valor del registro DNS          | El valor devuelto por un registro DNS              |
+| DNSSEC es válido                | Si pasa la validación DNSSEC                       |
 
 ### Tipos de filtro
 

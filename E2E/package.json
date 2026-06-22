@@ -24,7 +24,6 @@
   "dependencies": {
     "@playwright/test": "^1.60.0",
     "Common": "file:../Common",
-
     "playwright": "^1.60.0",
     "typescript": "^5.9.2"
   }

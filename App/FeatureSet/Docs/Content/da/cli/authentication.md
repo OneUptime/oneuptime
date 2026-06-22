@@ -12,15 +12,15 @@ oneuptime login <api-key> <instance-url>
 
 **Argumenter:**
 
-| Argument | Beskrivelse |
-|----------|-------------|
-| `<api-key>` | Din OneUptime API-nøgle (f.eks. `sk-your-api-key`) |
+| Argument         | Beskrivelse                                                       |
+| ---------------- | ----------------------------------------------------------------- |
+| `<api-key>`      | Din OneUptime API-nøgle (f.eks. `sk-your-api-key`)                |
 | `<instance-url>` | URL'en til din OneUptime-instans (f.eks. `https://oneuptime.com`) |
 
 **Indstillinger:**
 
-| Indstilling | Beskrivelse |
-|--------|-------------|
+| Indstilling             | Beskrivelse                                     |
+| ----------------------- | ----------------------------------------------- |
 | `--context-name <name>` | Navn til denne kontekst (standard: `"default"`) |
 
 **Eksempler:**
@@ -122,6 +122,7 @@ oneuptime whoami
 ```
 
 Dette viser:
+
 - Instans-URL
 - Maskeret API-nøgle
 - Aktuel kontekstnavn (vises kun, hvis en gemt kontekst er aktiv)

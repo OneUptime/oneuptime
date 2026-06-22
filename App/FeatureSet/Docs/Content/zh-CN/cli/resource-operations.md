@@ -22,16 +22,16 @@ oneuptime resources --type analytics
 
 常用资源包括：
 
-| 资源 | 命令 |
-|------|------|
-| 事件 | `oneuptime incident` |
-| 告警 | `oneuptime alert` |
-| 监控器 | `oneuptime monitor` |
-| 监控器状态 | `oneuptime monitor-status` |
-| 事件状态 | `oneuptime incident-state` |
-| 状态页面 | `oneuptime status-page` |
-| 值班策略 | `oneuptime on-call-policy` |
-| 团队 | `oneuptime team` |
+| 资源         | 命令                                    |
+| ------------ | --------------------------------------- |
+| 事件         | `oneuptime incident`                    |
+| 告警         | `oneuptime alert`                       |
+| 监控器       | `oneuptime monitor`                     |
+| 监控器状态   | `oneuptime monitor-status`              |
+| 事件状态     | `oneuptime incident-state`              |
+| 状态页面     | `oneuptime status-page`                 |
+| 值班策略     | `oneuptime on-call-policy`              |
+| 团队         | `oneuptime team`                        |
 | 计划维护事件 | `oneuptime scheduled-maintenance-event` |
 
 ## 列出资源
@@ -44,13 +44,13 @@ oneuptime <resource> list [options]
 
 **选项：**
 
-| 选项 | 描述 | 默认值 |
-|------|------|--------|
-| `--query <json>` | JSON 格式的过滤条件 | 无 |
-| `--limit <n>` | 最大结果数 | `10` |
-| `--skip <n>` | 跳过的结果数 | `0` |
-| `--sort <json>` | JSON 格式的排序顺序 | 无 |
-| `-o, --output <format>` | 输出格式 | `table` |
+| 选项                    | 描述                | 默认值  |
+| ----------------------- | ------------------- | ------- |
+| `--query <json>`        | JSON 格式的过滤条件 | 无      |
+| `--limit <n>`           | 最大结果数          | `10`    |
+| `--skip <n>`            | 跳过的结果数        | `0`     |
+| `--sort <json>`         | JSON 格式的排序顺序 | 无      |
+| `-o, --output <format>` | 输出格式            | `table` |
 
 **示例：**
 
@@ -81,8 +81,8 @@ oneuptime <resource> get <id>
 
 **参数：**
 
-| 参数 | 描述 |
-|------|------|
+| 参数   | 描述            |
+| ------ | --------------- |
 | `<id>` | 资源 ID（UUID） |
 
 **示例：**
@@ -105,11 +105,11 @@ oneuptime <resource> create [options]
 
 **选项：**
 
-| 选项 | 描述 |
-|------|------|
-| `--data <json>` | JSON 对象格式的资源数据 |
-| `--file <path>` | 包含资源数据的 JSON 文件路径 |
-| `-o, --output <format>` | 输出格式 |
+| 选项                    | 描述                         |
+| ----------------------- | ---------------------------- |
+| `--data <json>`         | JSON 对象格式的资源数据      |
+| `--file <path>`         | 包含资源数据的 JSON 文件路径 |
+| `-o, --output <format>` | 输出格式                     |
 
 必须提供 `--data` 或 `--file` 之一。
 
@@ -136,16 +136,16 @@ oneuptime <resource> update <id> [options]
 
 **参数：**
 
-| 参数 | 描述 |
-|------|------|
+| 参数   | 描述    |
+| ------ | ------- |
 | `<id>` | 资源 ID |
 
 **选项：**
 
-| 选项 | 描述 |
-|------|------|
-| `--data <json>` | JSON 格式的待更新字段（必填） |
-| `-o, --output <format>` | 输出格式 |
+| 选项                    | 描述                          |
+| ----------------------- | ----------------------------- |
+| `--data <json>`         | JSON 格式的待更新字段（必填） |
+| `-o, --output <format>` | 输出格式                      |
 
 **示例：**
 
@@ -167,14 +167,14 @@ oneuptime <resource> delete <id> [--force]
 
 **参数：**
 
-| 参数 | 描述 |
-|------|------|
+| 参数   | 描述    |
+| ------ | ------- |
 | `<id>` | 资源 ID |
 
 **选项：**
 
-| 选项 | 描述 |
-|------|------|
+| 选项      | 描述         |
+| --------- | ------------ |
 | `--force` | 跳过确认提示 |
 
 **示例：**
@@ -197,8 +197,8 @@ oneuptime <resource> count [options]
 
 **选项：**
 
-| 选项 | 描述 |
-|------|------|
+| 选项             | 描述                |
+| ---------------- | ------------------- |
 | `--query <json>` | JSON 格式的过滤条件 |
 
 **示例：**
@@ -218,13 +218,13 @@ oneuptime monitor count
 
 分析资源与数据库资源相比，支持的操作较为有限：
 
-| 操作 | 是否支持 |
-|------|---------|
-| `list` | 是 |
-| `create` | 是 |
-| `count` | 是 |
-| `get` | 否 |
-| `update` | 否 |
-| `delete` | 否 |
+| 操作     | 是否支持 |
+| -------- | -------- |
+| `list`   | 是       |
+| `create` | 是       |
+| `count`  | 是       |
+| `get`    | 否       |
+| `update` | 否       |
+| `delete` | 否       |
 
 使用 `oneuptime resources --type analytics` 查看您的实例上可用的分析资源。

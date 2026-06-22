@@ -6,23 +6,26 @@ Global SSO is a **OneUptime Enterprise Edition** feature and is only available o
 
 ## Global SSO vs. Project SSO
 
-| | Project SSO | Global SSO |
-|---|---|---|
-| Configured by | Project owner/admin (Project Settings) | Instance master admin (Admin Dashboard) |
-| Scope | A single project | The whole instance — connectable to any project |
-| Sign-in result | Access to that one project | Access to every project the user can reach |
+|                | Project SSO                            | Global SSO                                      |
+| -------------- | -------------------------------------- | ----------------------------------------------- |
+| Configured by  | Project owner/admin (Project Settings) | Instance master admin (Admin Dashboard)         |
+| Scope          | A single project                       | The whole instance — connectable to any project |
+| Sign-in result | Access to that one project             | Access to every project the user can reach      |
 
 ## Setting Up Global SSO
 
 1. **Open the Admin Dashboard**
+
    - Sign in as a master admin and open **Admin** > **Settings** > **Global SSO** (for SAML) or **Global OIDC** (for OpenID Connect).
 
 2. **Create a provider**
+
    - Click **Create Global SSO**.
    - For SAML: enter a **Name**, the **Sign On URL** and **Issuer** from your identity provider, and paste the **Public Certificate**. Choose the **Signature** and **Digest** methods (leave the defaults — `RSA-SHA256` / `SHA256` — if you are unsure).
    - For OIDC: enter the **Discovery URL**, **Issuer**, **Client ID**, **Client Secret**, **Scopes** (must include `openid`), and the **email** / **name** claim names.
 
 3. **Copy the OneUptime URLs into your identity provider**
+
    - Open the provider (click its row in the list) to reveal the **Identity Provider URLs** card.
    - For SAML, copy the **ACS URL (Reply URL)** and **Issuer (Entity ID)** into your IdP (Okta, Azure AD, OneLogin, JumpCloud and more).
    - For OIDC, copy the **Redirect URI** into your IdP's allowed redirect list.
@@ -44,7 +47,7 @@ If you want to prevent any automatic account creation even when projects are att
 
 Configuring a global provider does not force anyone to use it; password login still works. To require SSO, use the **Require SSO for Login** controls:
 
-- **Per project:** a project can require SSO, and optionally require a *specific* provider (project or global).
+- **Per project:** a project can require SSO, and optionally require a _specific_ provider (project or global).
 - **Instance-wide:** **Admin** > **Settings** > **Authentication** has a **Require SSO for Login** toggle that forces SSO for every user across the instance. Master admins remain exempt so they cannot be locked out.
 
 ## Related

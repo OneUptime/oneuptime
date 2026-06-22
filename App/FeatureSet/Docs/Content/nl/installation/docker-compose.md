@@ -3,6 +3,7 @@
 Als u er de voorkeur aan geeft OneUptime op uw eigen server te hosten, kunt u Docker Compose gebruiken om een enkele server-instantie van OneUptime te implementeren op Debian, Ubuntu of RHEL. Deze optie geeft u meer controle en aanpassingsmogelijkheden over uw instantie, maar vereist ook meer technische vaardigheden en resources om te implementeren en te onderhouden.
 
 #### Kies uw systeemvereisten
+
 Afhankelijk van uw gebruik en budget kunt u kiezen uit verschillende systeemvereisten voor uw server. Voor optimale prestaties raden wij aan OneUptime te gebruiken met:
 
 - **Aanbevolen systeemvereisten**
@@ -17,7 +18,6 @@ Afhankelijk van uw gebruik en budget kunt u kiezen uit verschillende systeemvere
     - 4 Cores
     - 20 GB Schijfruimte
     - Docker en Docker Compose geïnstalleerd
-
 
 #### Vereisten voor implementatie op één server
 
@@ -52,7 +52,6 @@ Als u npm liever niet gebruikt of dit niet geïnstalleerd heeft, voer dan dit ui
 # Gebruik sudo als u problemen heeft met machtigingen bij het binden van poorten.
 sudo bash -c "(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)"
 ```
-
 
 ### OneUptime openen
 
@@ -95,7 +94,6 @@ npm run update
 ### Aandachtspunten
 
 - In onze Docker-configuratie gebruiken we een lokaal logstuurprogramma. OneUptime, met name in de probe- en ingest-containers, genereert een aanzienlijke hoeveelheid logs. Om te voorkomen dat uw opslag vol raakt, is het cruciaal de logopslag in Docker te beperken. Raadpleeg voor gedetailleerde instructies de officiële Docker-documentatie [hier](https://docs.docker.com/config/containers/logging/local/).
-
 
 ### OneUptime verwijderen
 

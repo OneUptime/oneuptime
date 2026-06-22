@@ -16,12 +16,12 @@
 
 OneUptime 支援透過下列方法監控狀態頁面:
 
-| 供應商類型 | 說明 |
-|---|---|
-| **Auto**(預設) | 自動偵測狀態頁面格式 |
+| 供應商類型               | 說明                                                 |
+| ------------------------ | ---------------------------------------------------- |
+| **Auto**(預設)           | 自動偵測狀態頁面格式                                 |
 | **Atlassian Statuspage** | 由 Atlassian Statuspage 提供支援的狀態頁面(JSON API) |
-| **RSS** | 提供 RSS 摘要的狀態頁面 |
-| **Atom** | 提供 Atom 摘要的狀態頁面 |
+| **RSS**                  | 提供 RSS 摘要的狀態頁面                              |
+| **Atom**                 | 提供 Atom 摘要的狀態頁面                             |
 
 ### 自動偵測
 
@@ -81,28 +81,28 @@ OneUptime 支援透過下列方法監控狀態頁面:
 
 以下是您可以監控的熱門服務狀態頁面 URL 精選清單:
 
-| 服務 | 狀態頁面 URL |
-|---|---|
-| AWS | `https://health.aws.amazon.com/health/status` |
-| Google Cloud Platform | `https://status.cloud.google.com` |
-| Microsoft Azure | `https://status.azure.com` |
-| GitHub | `https://www.githubstatus.com` |
-| Cloudflare | `https://www.cloudflarestatus.com` |
-| Datadog | `https://status.datadoghq.com` |
-| PagerDuty | `https://status.pagerduty.com` |
-| Twilio | `https://status.twilio.com` |
-| Stripe | `https://status.stripe.com` |
-| Slack | `https://status.slack.com` |
-| Atlassian(Jira、Confluence) | `https://status.atlassian.com` |
-| Vercel | `https://www.vercel-status.com` |
-| Netlify | `https://www.netlifystatus.com` |
-| DigitalOcean | `https://status.digitalocean.com` |
-| Heroku | `https://status.heroku.com` |
-| MongoDB Atlas | `https://status.cloud.mongodb.com` |
-| Fastly | `https://status.fastly.com` |
-| New Relic | `https://status.newrelic.com` |
-| Sentry | `https://status.sentry.io` |
-| CircleCI | `https://status.circleci.com` |
+| 服務                        | 狀態頁面 URL                                  |
+| --------------------------- | --------------------------------------------- |
+| AWS                         | `https://health.aws.amazon.com/health/status` |
+| Google Cloud Platform       | `https://status.cloud.google.com`             |
+| Microsoft Azure             | `https://status.azure.com`                    |
+| GitHub                      | `https://www.githubstatus.com`                |
+| Cloudflare                  | `https://www.cloudflarestatus.com`            |
+| Datadog                     | `https://status.datadoghq.com`                |
+| PagerDuty                   | `https://status.pagerduty.com`                |
+| Twilio                      | `https://status.twilio.com`                   |
+| Stripe                      | `https://status.stripe.com`                   |
+| Slack                       | `https://status.slack.com`                    |
+| Atlassian(Jira、Confluence) | `https://status.atlassian.com`                |
+| Vercel                      | `https://www.vercel-status.com`               |
+| Netlify                     | `https://www.netlifystatus.com`               |
+| DigitalOcean                | `https://status.digitalocean.com`             |
+| Heroku                      | `https://status.heroku.com`                   |
+| MongoDB Atlas               | `https://status.cloud.mongodb.com`            |
+| Fastly                      | `https://status.fastly.com`                   |
+| New Relic                   | `https://status.newrelic.com`                 |
+| Sentry                      | `https://status.sentry.io`                    |
+| CircleCI                    | `https://status.circleci.com`                 |
 
 > **注意:** 其中許多服務使用 Atlassian Statuspage,因此 **Auto** 供應商類型會自動偵測它們。
 
@@ -110,14 +110,14 @@ OneUptime 支援透過下列方法監控狀態頁面:
 
 從外部狀態頁面監控建立事件或警示時,您可以使用下列範本變數:
 
-| 變數 | 說明 |
-|---|---|
-| `{{isOnline}}` | 狀態頁面是否上線(true/false) |
-| `{{responseTimeInMs}}` | 回應時間(以毫秒為單位) |
-| `{{failureCause}}` | 失敗原因(如有) |
-| `{{overallStatus}}` | 整體狀態指標值 |
-| `{{activeIncidentCount}}` | 進行中的事件數量 |
-| `{{componentStatuses}}` | 元件狀態的 JSON 陣列 |
+| 變數                      | 說明                         |
+| ------------------------- | ---------------------------- |
+| `{{isOnline}}`            | 狀態頁面是否上線(true/false) |
+| `{{responseTimeInMs}}`    | 回應時間(以毫秒為單位)       |
+| `{{failureCause}}`        | 失敗原因(如有)               |
+| `{{overallStatus}}`       | 整體狀態指標值               |
+| `{{activeIncidentCount}}` | 進行中的事件數量             |
+| `{{componentStatuses}}`   | 元件狀態的 JSON 陣列         |
 
 ## 最佳實務
 

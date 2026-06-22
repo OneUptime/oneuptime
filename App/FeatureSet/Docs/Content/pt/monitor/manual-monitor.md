@@ -39,10 +39,10 @@ Você pode criar incidentes e alertas em monitores manuais assim como qualquer o
 
 ## Quando Usar Monitores Manuais
 
-| Caso de Uso | Descrição |
-|----------|-------------|
-| Serviços de terceiros | Rastreie o status de serviços externos dos quais você depende, mas não pode monitorar diretamente |
-| Infraestrutura física | Represente hardware ou sistemas físicos sem monitoramento de rede |
-| Processos de negócios | Rastreie processos não técnicos que afetam o status do serviço |
-| Status orientado por API | Permita que ferramentas externas atualizem o status do monitor via API do OneUptime |
-| Espaços reservados da página de status | Mostre componentes na sua página de status que são gerenciados fora do OneUptime |
+| Caso de Uso                            | Descrição                                                                                         |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Serviços de terceiros                  | Rastreie o status de serviços externos dos quais você depende, mas não pode monitorar diretamente |
+| Infraestrutura física                  | Represente hardware ou sistemas físicos sem monitoramento de rede                                 |
+| Processos de negócios                  | Rastreie processos não técnicos que afetam o status do serviço                                    |
+| Status orientado por API               | Permita que ferramentas externas atualizem o status do monitor via API do OneUptime               |
+| Espaços reservados da página de status | Mostre componentes na sua página de status que são gerenciados fora do OneUptime                  |

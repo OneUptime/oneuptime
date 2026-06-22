@@ -6,7 +6,7 @@ Il servizio di Ingest OpenTelemetry ora accetta payload Syslog nativi. È possib
 
 ## Prerequisiti
 
-- **Token di Acquisizione Telemetria** – crearne uno da *Impostazioni Progetto → Chiavi di Acquisizione Telemetria* e copiare il valore di `x-oneuptime-token`.
+- **Token di Acquisizione Telemetria** – crearne uno da _Impostazioni Progetto → Chiavi di Acquisizione Telemetria_ e copiare il valore di `x-oneuptime-token`.
 - **Forwarder Syslog** – qualsiasi strumento in grado di inviare richieste HTTP POST (ad esempio `curl`, `rsyslog` tramite `omhttp`, o `syslog-ng` con il plugin di destinazione HTTP).
 - **Nome servizio (opzionale)** – impostare l'intestazione `x-oneuptime-service-name` per raggruppare i log in entrata sotto un servizio di telemetria specifico. Se omesso, OneUptime usa come fallback il syslog `APP-NAME`, l'hostname o `Syslog`.
 
@@ -60,6 +60,7 @@ curl \
    sudo apt-get install rsyslog-omhttp
    ```
 2. Aggiungere la destinazione a `/etc/rsyslog.d/oneuptime.conf`:
+
    ```
    module(load="omhttp")
 
@@ -81,6 +82,7 @@ curl \
      template="OneUptimeJson"
    )
    ```
+
 3. Riavviare rsyslog:
    ```bash
    sudo systemctl restart rsyslog

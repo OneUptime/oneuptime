@@ -33,9 +33,9 @@ Este subdominio se usará exclusivamente para los correos electrónicos del moni
 
 Agrega un registro MX a tu configuración DNS para enrutar los correos electrónicos de tu subdominio entrante a SendGrid.
 
-| Tipo | Host/Nombre | Prioridad | Valor |
-|------|-----------|----------|-------|
-| MX | inbound | 10 | mx.sendgrid.net |
+| Tipo | Host/Nombre | Prioridad | Valor           |
+| ---- | ----------- | --------- | --------------- |
+| MX   | inbound     | 10        | mx.sendgrid.net |
 
 **Ejemplo:** Si tu dominio es `example.com` y usas `inbound.example.com`:
 
@@ -61,13 +61,13 @@ Para una mejor entregabilidad y evitar que los correos se marquen como spam:
 3. Haz clic en **Agregar host y URL**
 4. Configura lo siguiente:
 
-| Campo | Valor |
-|-------|-------|
-| **Dominio receptor** | Tu subdominio entrante (por ejemplo, `inbound.yourdomain.com`) |
-| **URL de destino** | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
-| **Verificar correos entrantes en busca de spam** | Opcional: habilita si lo deseas |
-| **Enviar mensaje MIME completo sin procesar** | Deja sin marcar (no requerido) |
-| **POST del mensaje MIME completo sin procesar** | Deja sin marcar (no requerido) |
+| Campo                                            | Valor                                                                   |
+| ------------------------------------------------ | ----------------------------------------------------------------------- |
+| **Dominio receptor**                             | Tu subdominio entrante (por ejemplo, `inbound.yourdomain.com`)          |
+| **URL de destino**                               | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
+| **Verificar correos entrantes en busca de spam** | Opcional: habilita si lo deseas                                         |
+| **Enviar mensaje MIME completo sin procesar**    | Deja sin marcar (no requerido)                                          |
+| **POST del mensaje MIME completo sin procesar**  | Deja sin marcar (no requerido)                                          |
 
 5. Haz clic en **Agregar**
 
@@ -123,35 +123,37 @@ Después de la creación, verás la dirección de correo electrónico única par
 
 ## Referencia de variables de entorno
 
-| Variable | Descripción | Requerida | Predeterminado |
-|----------|-------------|----------|---------|
-| `INBOUND_EMAIL_PROVIDER` | El proveedor de correo electrónico entrante a usar | Sí | - |
-| `INBOUND_EMAIL_DOMAIN` | El subdominio configurado para correos electrónicos entrantes | Sí | - |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | Secreto para validar las solicitudes de webhook. Cuando se establece, agrega este secreto a la URL del webhook: `/incoming-email/sendgrid/YOUR_SECRET` | No | - |
+| Variable                       | Descripción                                                                                                                                            | Requerida | Predeterminado |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | -------------- |
+| `INBOUND_EMAIL_PROVIDER`       | El proveedor de correo electrónico entrante a usar                                                                                                     | Sí        | -              |
+| `INBOUND_EMAIL_DOMAIN`         | El subdominio configurado para correos electrónicos entrantes                                                                                          | Sí        | -              |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | Secreto para validar las solicitudes de webhook. Cuando se establece, agrega este secreto a la URL del webhook: `/incoming-email/sendgrid/YOUR_SECRET` | No        | -              |
 
 ## Criterios de correo electrónico admitidos
 
 Al configurar tu Monitor de correo electrónico entrante, puedes crear criterios basados en:
 
-| Campo | Descripción | Filtros disponibles |
-|-------|-------------|-------------------|
-| **Asunto del correo** | La línea de asunto del correo electrónico | Contiene, No contiene, Igual a, Diferente de, Comienza con, Termina con, Está vacío, No está vacío |
-| **Remitente del correo** | La dirección de correo electrónico del remitente | Contiene, No contiene, Igual a, Diferente de, Comienza con, Termina con, Está vacío, No está vacío |
-| **Cuerpo del correo** | El cuerpo de texto simple del correo electrónico | Contiene, No contiene, Igual a, Diferente de, Comienza con, Termina con, Está vacío, No está vacío |
+| Campo                       | Descripción                                         | Filtros disponibles                                                                                |
+| --------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **Asunto del correo**       | La línea de asunto del correo electrónico           | Contiene, No contiene, Igual a, Diferente de, Comienza con, Termina con, Está vacío, No está vacío |
+| **Remitente del correo**    | La dirección de correo electrónico del remitente    | Contiene, No contiene, Igual a, Diferente de, Comienza con, Termina con, Está vacío, No está vacío |
+| **Cuerpo del correo**       | El cuerpo de texto simple del correo electrónico    | Contiene, No contiene, Igual a, Diferente de, Comienza con, Termina con, Está vacío, No está vacío |
 | **Destinatario del correo** | La dirección de correo electrónico del destinatario | Contiene, No contiene, Igual a, Diferente de, Comienza con, Termina con, Está vacío, No está vacío |
-| **Correo recibido** | Tiempo desde que se recibió el último correo | Recibido en minutos, No recibido en minutos |
+| **Correo recibido**         | Tiempo desde que se recibió el último correo        | Recibido en minutos, No recibido en minutos                                                        |
 
 ## Casos de uso de ejemplo
 
 ### Alertas de sistemas heredados
 
 Muchos sistemas heredados solo pueden enviar alertas por correo electrónico. Crea un Monitor de correo electrónico entrante para:
+
 - Crear alertas de OneUptime cuando el sistema heredado envíe correos `[CRÍTICO]`
 - Resolver alertas cuando se reciban correos `[RESUELTO]`
 
 ### Integración con servicios de terceros
 
 Intégrate con servicios que envían notificaciones por correo electrónico:
+
 - Herramientas de monitoreo sin integraciones de API
 - Notificaciones de proveedores de nube
 - Herramientas de análisis de seguridad
@@ -159,6 +161,7 @@ Intégrate con servicios que envían notificaciones por correo electrónico:
 ### Latido por correo electrónico
 
 Usa criterios de "Correo recibido" para asegurarte de recibir correos periódicos:
+
 - Crea una alerta si no se recibe ningún correo en 60 minutos
 - Útil para monitorear trabajos por lotes o tareas programadas que envían correos de finalización
 
@@ -167,12 +170,15 @@ Usa criterios de "Correo recibido" para asegurarte de recibir correos periódico
 ### Correos no recibidos
 
 1. **Comprueba la propagación del DNS:**
+
    ```bash
    dig MX inbound.yourdomain.com
    ```
+
    Debería devolver `mx.sendgrid.net`
 
 2. **Verifica la configuración de SendGrid Inbound Parse:**
+
    - Inicia sesión en el panel de SendGrid
    - Ve a Configuración > Inbound Parse
    - Verifica que tu dominio y la URL del webhook sean correctos
@@ -184,10 +190,12 @@ Usa criterios de "Correo recibido" para asegurarte de recibir correos periódico
 ### Webhooks fallando
 
 1. **Asegúrate de que OneUptime sea accesible públicamente:**
+
    - La URL del webhook debe ser accesible desde internet
    - Prueba con: `curl -X POST https://your-oneuptime-domain.com/incoming-email/sendgrid`
 
 2. **Comprueba las reglas del firewall:**
+
    - Permite el tráfico HTTPS entrante de los rangos de IP de SendGrid
 
 3. **Verifica el certificado SSL:**
@@ -197,10 +205,12 @@ Usa criterios de "Correo recibido" para asegurarte de recibir correos periódico
 ### El monitor no crea alertas
 
 1. **Verifica la configuración de criterios:**
+
    - Comprueba que tus criterios de creación de alertas coincidan con el contenido del correo electrónico
    - Prueba con cadenas exactas primero antes de usar la coincidencia de patrones
 
 2. **Comprueba el estado del monitor:**
+
    - Asegúrate de que el monitor no esté deshabilitado
    - Verifica que el tipo de monitor sea "Correo electrónico entrante"
 
@@ -228,9 +238,9 @@ Para comprobar si SendGrid está enviando webhooks correctamente:
 
 OneUptime está diseñado para admitir múltiples proveedores de correo electrónico entrante. Actualmente compatibles:
 
-| Proveedor | Estado |
-|----------|--------|
-| SendGrid | Compatible |
+| Proveedor             | Estado      |
+| --------------------- | ----------- |
+| SendGrid              | Compatible  |
 | Haraka (Auto-alojado) | Planificado |
 
 Si necesitas soporte para un proveedor diferente, contáctanos o envía una solicitud de función.

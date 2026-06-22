@@ -180,7 +180,7 @@ const DockerSwarmClusters: FunctionComponent<
         topContent={filterBar}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
-        query={mergeFiltersIntoQuery(undefined)}
+        query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<DockerSwarmCluster>) => {
           onResourcesFetched(data);
         }}
@@ -189,7 +189,11 @@ const DockerSwarmClusters: FunctionComponent<
         isCreateable={true}
         showRefreshButton={true}
         bulkActions={{
-          buttons: [...labelBulkActions, ...ownerBulkActions],
+          buttons: [
+            ...labelBulkActions,
+            ...ownerBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         name="Docker Swarm Clusters"
         isViewable={true}

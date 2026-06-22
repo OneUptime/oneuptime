@@ -24,13 +24,13 @@ Du bygger det hele visuelt på et lærred. Ingen kodning krævet til de fleste w
 
 ## Nøglebegreber
 
-| Begreb | Betydning |
-| --- | --- |
-| **Workflow** | Hele automatiseringen — et navn, et lærred og en kontakt til at tænde eller slukke for det. |
-| **Trigger** | Den første blok. Den bestemmer, hvornår workflowet kører. Hvert workflow har præcis én trigger. |
-| **Komponent** | En handlingsblok — sender en besked, foretager en forespørgsel, tjekker en betingelse. |
-| **Kørsel** | Én afvikling af workflowet. Gemmes med tidsstempler og output fra hver blok. |
-| **Global variabel** | En værdi (såsom en API-nøgle), du gemmer én gang og genbruger i ethvert workflow. |
+| Begreb              | Betydning                                                                                       |
+| ------------------- | ----------------------------------------------------------------------------------------------- |
+| **Workflow**        | Hele automatiseringen — et navn, et lærred og en kontakt til at tænde eller slukke for det.     |
+| **Trigger**         | Den første blok. Den bestemmer, hvornår workflowet kører. Hvert workflow har præcis én trigger. |
+| **Komponent**       | En handlingsblok — sender en besked, foretager en forespørgsel, tjekker en betingelse.          |
+| **Kørsel**          | Én afvikling af workflowet. Gemmes med tidsstempler og output fra hver blok.                    |
+| **Global variabel** | En værdi (såsom en API-nøgle), du gemmer én gang og genbruger i ethvert workflow.               |
 
 ## Hvor du finder workflows i OneUptime
 

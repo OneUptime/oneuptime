@@ -31,6 +31,7 @@ L'API Table de ServiceNow accepte **Basic auth**.
 1. Ouvrez **Workflows → Create Workflow**, nommez-le `Incidents → ServiceNow`, et ouvrez le **Builder**.
 2. Ajoutez un déclencheur **Incident** sur **On Create**. Renommez-le `Incident`.
 3. Ajoutez un bloc **API** connecté au déclencheur :
+
    - **Method** : `POST`
    - **URL** : `https://your-instance.service-now.com/api/now/table/incident`
    - **Headers** :
@@ -54,6 +55,7 @@ L'API Table de ServiceNow accepte **Basic auth**.
      ```
 
    `correlation_id` garde un lien vers l'incident OneUptime — pratique si vous ajoutez une étape de résolution plus tard. ServiceNow utilise `1` (élevé), `2` (moyen), `3` (faible) pour `urgency`/`impact`.
+
 4. **Enregistrez**, activez, et créez un incident de test. Une réponse `201 Created` dans les journaux du workflow retourne le `sys_id` et le `number` du nouvel enregistrement (par exemple `INC0012345`).
 
 ## Étape 3 — Résoudre lors de la résolution OneUptime (optionnel)

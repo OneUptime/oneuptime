@@ -7,7 +7,6 @@ El monitoreo sintético es una forma de monitorear proactivamente tus aplicacion
 El siguiente ejemplo muestra cómo usar un Monitor sintético:
 
 ```javascript
-
 // Los objetos disponibles en el contexto del script son:
 
 // - axios: Módulo Axios para realizar solicitudes HTTP
@@ -17,15 +16,15 @@ El siguiente ejemplo muestra cómo usar un Monitor sintético:
 
 // Puedes usar estos objetos para interactuar con el navegador y realizar solicitudes HTTP.
 
-await page.goto('https://playwright.dev/');
+await page.goto("https://playwright.dev/");
 
 // Documentación de Playwright aquí: https://playwright.dev/docs/intro
 
 // Aquí tienes algunas de las variables que puedes usar en el contexto del objeto monitoreado:
 
-console.log(browserType) // Esto listará el tipo de navegador en el contexto de ejecución actual: Chromium, Firefox, Webkit
+console.log(browserType); // Esto listará el tipo de navegador en el contexto de ejecución actual: Chromium, Firefox, Webkit
 
-console.log(screenSizeType) // Esto listará el tipo de tamaño de pantalla en el contexto de ejecución actual: Mobile, Tablet, Desktop
+console.log(screenSizeType); // Esto listará el tipo de tamaño de pantalla en el contexto de ejecución actual: Mobile, Tablet, Desktop
 
 // El objeto page de Playwright pertenece a ese contexto de navegador específico, por lo que puedes usarlo para interactuar con el navegador.
 
@@ -33,7 +32,7 @@ console.log(screenSizeType) // Esto listará el tipo de tamaño de pantalla en e
 // en el contexto del script. Las capturas de pantalla capturadas de esta forma se preservan incluso si el
 // script lanza un error después, lo que es útil para depurar ejecuciones fallidas.
 
-screenshots['screenshot-name'] = await page.screenshot(); // puedes guardar múltiples capturas de pantalla y asignarles diferentes nombres.
+screenshots["screenshot-name"] = await page.screenshot(); // puedes guardar múltiples capturas de pantalla y asignarles diferentes nombres.
 
 // cuando quieras devolver un valor, usa la declaración return con data como prop.
 
@@ -42,40 +41,37 @@ screenshots['screenshot-name'] = await page.screenshot(); // puedes guardar múl
 
 // Puedes acceder al contexto del navegador mediante page.context() si es necesario (por ejemplo, para crear una nueva página o gestionar ventanas emergentes).
 
-
 return {
-    data: 'Hello World'
+  data: "Hello World",
 };
 ```
 
 ### Uso de Playwright
 
-Usamos Playwright para simular las interacciones del usuario. Puedes usar el objeto `page` de Playwright para interactuar con el navegador y realizar acciones como hacer clic en botones, rellenar formularios y tomar capturas de pantalla. 
+Usamos Playwright para simular las interacciones del usuario. Puedes usar el objeto `page` de Playwright para interactuar con el navegador y realizar acciones como hacer clic en botones, rellenar formularios y tomar capturas de pantalla.
 
 ### Capturas de pantalla
 
 En el contexto del script hay disponible un objeto `screenshots` predeclarado. Asígnale capturas de pantalla en cualquier punto del script: estas capturas se capturan **incluso si el script lanza un error** (incluidos fallos de aserción, tiempos de espera o errores inesperados), para que puedas ver exactamente cómo se veía la página cuando falló la ejecución. Las capturas capturadas aparecen en el Panel de OneUptime para esa ejecución específica del monitor.
 
 ```javascript
-
 // Captura capturas de pantalla mediante el canal lateral `screenshots`: se preservan tanto en caso de éxito como de fallo.
 
-await page.goto('https://app.example.com/login');
-screenshots['login-page'] = await page.screenshot();
+await page.goto("https://app.example.com/login");
+screenshots["login-page"] = await page.screenshot();
 
-await page.fill('#email', 'user@example.com');
-await page.fill('#password', 'wrong');
-await page.click('button[type=submit]');
+await page.fill("#email", "user@example.com");
+await page.fill("#password", "wrong");
+await page.click("button[type=submit]");
 
 // Si la siguiente aserción lanza un error, la captura de pantalla de 'login-page' anterior todavía se captura.
-await page.waitForSelector('.dashboard', { timeout: 5000 });
+await page.waitForSelector(".dashboard", { timeout: 5000 });
 
-screenshots['dashboard'] = await page.screenshot();
+screenshots["dashboard"] = await page.screenshot();
 
 return {
-    data: 'Login succeeded'
+  data: "Login succeeded",
 };
-
 ```
 
 #### Devolución de capturas de pantalla (método heredado)
@@ -85,14 +81,13 @@ Por compatibilidad con versiones anteriores, también puedes devolver capturas d
 ```javascript
 // Patrón heredado: las capturas de pantalla solo se capturan en el retorno exitoso.
 const screenshots = {};
-screenshots['screenshot-name'] = await page.screenshot();
+screenshots["screenshot-name"] = await page.screenshot();
 
 return {
-    data: 'Hello World',
-    screenshots: screenshots
+  data: "Hello World",
+  screenshots: screenshots,
 };
 ```
-
 
 ### Uso de secretos de monitor
 
@@ -104,7 +99,7 @@ Para agregar un secreto, ve al Panel de OneUptime → Configuración del proyect
 
 Puedes seleccionar qué monitores tienen acceso al secreto. En este caso agregamos el secreto `ApiKey` y seleccionamos los monitores que tendrán acceso a él.
 
-**Ten en cuenta**: Los secretos están cifrados y almacenados de forma segura. Si pierdes el secreto, deberás crear uno nuevo. No puedes ver ni actualizar el secreto después de guardarlo. 
+**Ten en cuenta**: Los secretos están cifrados y almacenados de forma segura. Si pierdes el secreto, deberás crear uno nuevo. No puedes ver ni actualizar el secreto después de guardarlo.
 
 #### Usar un secreto
 
@@ -121,7 +116,7 @@ let numberSecret = {{monitorSecrets.NumberSecret}};
 let booleanSecret = {{monitorSecrets.BooleanSecret}};
 
 // incluso puedes usar console.log para verificar si el secreto se está obteniendo correctamente
-console.log(stringSecret); 
+console.log(stringSecret);
 ```
 
 ### Métricas personalizadas
@@ -139,32 +134,34 @@ oneuptime.captureMetric(name, value, attributes);
 #### Ejemplo
 
 ```javascript
-await page.goto('https://app.example.com');
+await page.goto("https://app.example.com");
 
 const startTime = Date.now();
-await page.waitForSelector('#dashboard-loaded');
+await page.waitForSelector("#dashboard-loaded");
 const loadTime = Date.now() - startTime;
 
 // Capturar el tiempo de carga de la página como métrica personalizada
-oneuptime.captureMetric('dashboard.load.time', loadTime, {
-    page: 'dashboard'
+oneuptime.captureMetric("dashboard.load.time", loadTime, {
+  page: "dashboard",
 });
 
-screenshots['dashboard'] = await page.screenshot();
+screenshots["dashboard"] = await page.screenshot();
 
 return {
-    data: { loadTime }
+  data: { loadTime },
 };
 ```
 
 Una vez capturadas, estas métricas aparecen en el Explorador de métricas con nombres como `custom.monitor.dashboard.load.time`. Puedes agregarlas a los gráficos del panel, configurar alertas y filtrar por monitor, sonda, tipo de navegador, tamaño de pantalla o cualquier atributo personalizado que hayas proporcionado.
 
 **Límites:**
+
 - Máximo 100 métricas por ejecución de script.
 - Los nombres de métricas están limitados a 200 caracteres.
 - Los valores deben ser numéricos.
 
 ### Módulos disponibles en el script
+
 - `page`: Puedes usar este módulo para interactuar con el navegador. Es un objeto Page de Playwright que te permite realizar acciones como hacer clic en botones, rellenar formularios y tomar capturas de pantalla. Puedes acceder al contexto del navegador mediante `page.context()` si es necesario (por ejemplo, para crear una nueva página o gestionar ventanas emergentes).
 - `screenshots`: Un objeto predeclarado al que asignas capturas de pantalla (por ejemplo, `screenshots['login-page'] = await page.screenshot()`). Las capturas asignadas aquí se capturan incluso si el script lanza un error posteriormente.
 - `axios`: Puedes usar este módulo para realizar solicitudes HTTP. Es un cliente HTTP basado en promesas para el navegador y Node.js.
@@ -182,5 +179,5 @@ Una vez capturadas, estas métricas aparecen en el Explorador de métricas con n
 - Puedes usar las variables `browserType` y `screenSizeType` para obtener el tipo de navegador y el tipo de tamaño de pantalla en el contexto de ejecución actual.
 - Este es un script JavaScript, por lo que puedes usar todas las características de JavaScript en el script.
 - Puedes usar el módulo `axios` para realizar solicitudes HTTP en el script.
-- Si estás usando oneuptime.com, siempre tendrás la última versión de Playwright y los navegadores disponibles en el contexto del script. Si te auto-alojas, asegúrate de actualizar las sondas para tener la última versión de Playwright y los navegadores. 
+- Si estás usando oneuptime.com, siempre tendrás la última versión de Playwright y los navegadores disponibles en el contexto del script. Si te auto-alojas, asegúrate de actualizar las sondas para tener la última versión de Playwright y los navegadores.
 - El tiempo de espera del script es de 2 minutos. Si el script tarda más de 2 minutos, será terminado.

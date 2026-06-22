@@ -216,7 +216,7 @@ export class MonitorTypeHelper {
         title: "Docker Swarm",
         description:
           "This monitor type lets you monitor Docker Swarm clusters — per-task container CPU, memory, network, process count, and uptime across the cluster's services and nodes.",
-        icon: IconProp.Cube,
+        icon: IconProp.DockerSwarm,
       },
       {
         monitorType: MonitorType.Proxmox,

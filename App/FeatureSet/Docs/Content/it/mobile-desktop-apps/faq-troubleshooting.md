@@ -91,37 +91,44 @@ La PWA si aggiorna automaticamente ogni volta che la apri mentre sei online. Per
 ### Problemi dell'app mobile
 
 **L'app non accede / "Errore di rete":**
+
 - Verifica che l'**URL del server** sia corretto e raggiungibile dal tuo telefono.
 - Verifica che il tuo telefono sia connesso a Internet.
 - Per istanze self-hosted dietro una VPN, assicurati che la VPN sia attiva.
 
 **Notifiche push in ritardo o mancanti (Android):**
+
 - Disattiva l'ottimizzazione della batteria: **Impostazioni → App → OneUptime On-Call → Batteria → Senza restrizioni**.
 - Disattiva il Risparmio dati per l'app.
 - Sui dispositivi Samsung, disattiva **Manutenzione dispositivo → Batteria → Limiti utilizzo in background** per OneUptime On-Call.
 
 **Notifiche push in ritardo o mancanti (iOS):**
+
 - Evita di forzare la chiusura dell'app — iOS potrebbe sospendere la consegna in background.
 - Disattiva la Modalità a basso consumo mentre sei in reperibilità.
 - Aggiungi OneUptime On-Call all'elenco delle eccezioni di qualsiasi modalità Full Immersion attiva.
 
 **Face ID / Touch ID / impronta digitale non funzionano:**
+
 - Assicurati che la biometria sia registrata nelle impostazioni del sistema operativo.
 - Riattiva lo sblocco biometrico dalla schermata **Impostazioni** all'interno dell'app OneUptime On-Call.
 
 ### Problemi dell'app desktop (PWA)
 
 **Pulsante Installa mancante:**
+
 - Utilizza un browser supportato (basato su Chromium o Safari su macOS Sonoma+).
 - Assicurati che l'istanza OneUptime sia servita tramite HTTPS.
 - Attendi il completamento del caricamento della pagina, quindi controlla la barra degli indirizzi per l'icona di installazione.
 
 **Le notifiche desktop non appaiono:**
+
 - Consenti le notifiche quando il browser te lo richiede.
 - Controlla le impostazioni delle notifiche del sistema operativo (Assistente notifiche di Windows, Notifiche di macOS, daemon delle notifiche di Linux).
 - Per le istanze self-hosted, assicurati che la configurazione di [Push Notifications](/docs/self-hosted/push-notifications) sia completa.
 
 **L'app non mostra i dati più recenti:**
+
 - Aggiorna con **Ctrl+R** / **Cmd+R**.
 - Chiudi e riapri la finestra.
 - Verifica la tua connessione di rete.

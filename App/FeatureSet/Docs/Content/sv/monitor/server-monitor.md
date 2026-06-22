@@ -67,15 +67,15 @@ sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --one
 
 Infrastrukturagenten stöder följande kommandon:
 
-| Kommando | Beskrivning |
-|---------|-------------|
-| `configure` | Konfigurera agenten med din hemliga nyckel och OneUptime-URL |
-| `start` | Starta agenttjänsten |
-| `stop` | Stoppa agenttjänsten |
-| `restart` | Starta om agenttjänsten |
-| `status` | Visa aktuell tjänstestatus |
-| `logs` | Visa agentloggar (använd `-n` för radantal, `-f` för att följa) |
-| `uninstall` | Avinstallera agenttjänsten |
+| Kommando    | Beskrivning                                                     |
+| ----------- | --------------------------------------------------------------- |
+| `configure` | Konfigurera agenten med din hemliga nyckel och OneUptime-URL    |
+| `start`     | Starta agenttjänsten                                            |
+| `stop`      | Stoppa agenttjänsten                                            |
+| `restart`   | Starta om agenttjänsten                                         |
+| `status`    | Visa aktuell tjänstestatus                                      |
+| `logs`      | Visa agentloggar (använd `-n` för radantal, `-f` för att följa) |
+| `uninstall` | Avinstallera agenttjänsten                                      |
 
 ## Insamlade mätvärden
 
@@ -115,15 +115,15 @@ Du kan konfigurera kriterier för att avgöra när din server anses vara online,
 
 ### Tillgängliga kontrolltyper
 
-| Kontrolltyp | Beskrivning |
-|------------|-------------|
-| Är online | Om serveragenten rapporterar (baserat på hjärtslag) |
-| CPU-användningsprocent | Aktuell CPU-utnyttjandeprocentens |
-| Minnesanvändningsprocent | Aktuell minnesutnyttjandeprocentens |
-| Diskanvändningsprocent | Aktuell diskutnyttjandeprocentens (för en specifik disksökväg) |
-| Serverprocessnamn | Kontrollera om en process med ett specifikt namn körs |
-| Serverprocesskommando | Kontrollera om en process med ett specifikt kommando körs |
-| Serverprocess-PID | Kontrollera om en process med ett specifikt PID körs |
+| Kontrolltyp              | Beskrivning                                                    |
+| ------------------------ | -------------------------------------------------------------- |
+| Är online                | Om serveragenten rapporterar (baserat på hjärtslag)            |
+| CPU-användningsprocent   | Aktuell CPU-utnyttjandeprocentens                              |
+| Minnesanvändningsprocent | Aktuell minnesutnyttjandeprocentens                            |
+| Diskanvändningsprocent   | Aktuell diskutnyttjandeprocentens (för en specifik disksökväg) |
+| Serverprocessnamn        | Kontrollera om en process med ett specifikt namn körs          |
+| Serverprocesskommando    | Kontrollera om en process med ett specifikt kommando körs      |
+| Serverprocess-PID        | Kontrollera om en process med ett specifikt PID körs           |
 
 ### Filtertyper
 
@@ -179,6 +179,7 @@ För processkontroller:
 ### Hög resursanvändning av agenten
 
 Agenten är designad för att vara lätt. Om du märker hög resursanvändning:
+
 - Starta om agenten: `sudo oneuptime-infrastructure-agent restart`
 - Kontrollera agentloggar efter fel
 

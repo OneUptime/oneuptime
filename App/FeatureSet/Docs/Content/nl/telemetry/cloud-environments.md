@@ -2,23 +2,23 @@
 
 ## Overzicht
 
-OneUptime groepeert beheerde cloud-compute in **Cloud-omgevingen** — AWS ECS / Fargate, Google Cloud Run, Azure Container Apps / Container Instances, AWS Elastic Beanstalk, AWS App Runner en Azure App Service. Er wordt één omgeving aangemaakt per unieke combinatie van `cloud.platform` + `cloud.account.id` + `cloud.region`, dus iets als *"AWS ECS · us-east-1 · 123456789012"* is één entiteit die elke workload aggregeert die erop draait.
+OneUptime groepeert beheerde cloud-compute in **Cloud-omgevingen** — AWS ECS / Fargate, Google Cloud Run, Azure Container Apps / Container Instances, AWS Elastic Beanstalk, AWS App Runner en Azure App Service. Er wordt één omgeving aangemaakt per unieke combinatie van `cloud.platform` + `cloud.account.id` + `cloud.region`, dus iets als _"AWS ECS · us-east-1 · 123456789012"_ is één entiteit die elke workload aggregeert die erop draait.
 
 Onbewerkte virtuele machines (EC2, Compute Engine, Azure VM) blijven **Hosts**, en Kubernetes blijft onder **Kubernetes** vallen. Deze weergave is specifiek voor beheerde / PaaS-compute.
 
 ## Vereisten
 
-- Een **OneUptime Telemetry Ingestion Token** — maak er een aan via *Project Settings → Telemetry Ingestion Keys*.
+- Een **OneUptime Telemetry Ingestion Token** — maak er een aan via _Project Settings → Telemetry Ingestion Keys_.
 - Een OpenTelemetry Collector of SDK die in/naast je workloads draait.
 
 ## Hoe OneUptime een omgeving identificeert
 
-| Attribuut | Vereist | Doel |
-|---|---|---|
-| `cloud.platform` | **ja** | Moet een beheerd-compute-platform zijn (bijv. `aws_ecs`, `gcp_cloud_run`, `azure_container_apps`) |
-| `cloud.account.id` | nee | Onderdeel van de omgevingssleutel |
-| `cloud.region` | nee | Onderdeel van de omgevingssleutel |
-| `service.instance.id` | nee | Per taak/instance bijgehouden onder **Instances** (met live CPU / geheugen) |
+| Attribuut             | Vereist | Doel                                                                                              |
+| --------------------- | ------- | ------------------------------------------------------------------------------------------------- |
+| `cloud.platform`      | **ja**  | Moet een beheerd-compute-platform zijn (bijv. `aws_ecs`, `gcp_cloud_run`, `azure_container_apps`) |
+| `cloud.account.id`    | nee     | Onderdeel van de omgevingssleutel                                                                 |
+| `cloud.region`        | nee     | Onderdeel van de omgevingssleutel                                                                 |
+| `service.instance.id` | nee     | Per taak/instance bijgehouden onder **Instances** (met live CPU / geheugen)                       |
 
 Deze worden normaal gesproken automatisch ingevuld door de OpenTelemetry **resource detectors**.
 
@@ -29,7 +29,7 @@ Voeg in de OpenTelemetry Collector de `resourcedetection`-processor toe:
 ```yaml
 processors:
   resourcedetection:
-    detectors: [env, ecs]   # use [gcp] on Cloud Run, [azure] on Azure
+    detectors: [env, ecs] # use [gcp] on Cloud Run, [azure] on Azure
     timeout: 5s
 ```
 

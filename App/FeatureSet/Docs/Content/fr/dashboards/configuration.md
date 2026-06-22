@@ -29,12 +29,12 @@ La liste **Dashboards** vous permet de filtrer par étiquette, ce qui est le moy
 
 Les tableaux de bord fonctionnent avec le contrôle d'accès basé sur les rôles de votre projet. Les permissions pertinentes :
 
-| Permission | Ce qu'elle autorise |
-| --- | --- |
-| **Create Dashboard** | Créer de nouveaux tableaux de bord. |
-| **Read Dashboard** | Consulter les tableaux de bord (en mode privé). |
-| **Edit Dashboard** | Modifier les widgets, les variables et les paramètres. |
-| **Delete Dashboard** | Supprimer un tableau de bord. |
+| Permission           | Ce qu'elle autorise                                    |
+| -------------------- | ------------------------------------------------------ |
+| **Create Dashboard** | Créer de nouveaux tableaux de bord.                    |
+| **Read Dashboard**   | Consulter les tableaux de bord (en mode privé).        |
+| **Edit Dashboard**   | Modifier les widgets, les variables et les paramètres. |
+| **Delete Dashboard** | Supprimer un tableau de bord.                          |
 
 Il existe des permissions équivalentes pour les propriétaires de tableaux de bord et les domaines personnalisés, vous pouvez donc accorder « gérer les propriétaires » sans accorder « modifier le tableau de bord ».
 

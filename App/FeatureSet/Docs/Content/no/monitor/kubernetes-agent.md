@@ -22,11 +22,11 @@ Klyngen din vil vises i OneUptime i løpet av få minutter.
 
 Ulike Kubernetes-distribusjoner har ulike begrensninger — særlig om arbeidsmengder kan montere `hostPath`-volumer. I stedet for at du må lese sikkerhetsdokumentasjon, eksponerer Helm-kartet ett enkelt toppnivåvalg: `preset`.
 
-| Preset | Brukes for | Logginnsamling | Merknader |
-| --- | --- | --- | --- |
-| `standard` (standard) | Selvadministrert, **EKS på EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | DaemonSet som leser `/var/log/pods` via hostPath | Lavest overhead. hostPath er tilgjengelig på disse plattformene. |
-| `gke-autopilot` | **GKE Autopilot** | Kubernetes API-tailer (Deployment) | hostPath er blokkert på Autopilot. Setter en herdet sikkerhetskontekst som består Autopilots Pod Security Standards. |
-| `eks-fargate` | **EKS Fargate** | Kubernetes API-tailer (Deployment) | Samme som `gke-autopilot`. Fargate blokkerer hostPath og DaemonSets. |
+| Preset                | Brukes for                                                                       | Logginnsamling                                   | Merknader                                                                                                            |
+| --------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `standard` (standard) | Selvadministrert, **EKS på EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | DaemonSet som leser `/var/log/pods` via hostPath | Lavest overhead. hostPath er tilgjengelig på disse plattformene.                                                     |
+| `gke-autopilot`       | **GKE Autopilot**                                                                | Kubernetes API-tailer (Deployment)               | hostPath er blokkert på Autopilot. Setter en herdet sikkerhetskontekst som består Autopilots Pod Security Standards. |
+| `eks-fargate`         | **EKS Fargate**                                                                  | Kubernetes API-tailer (Deployment)               | Samme som `gke-autopilot`. Fargate blokkerer hostPath og DaemonSets.                                                 |
 
 Hvis du er usikker, la `preset` stå usatt — du får `standard`-standardverdiene. Hvis klyngen din avviser installasjonen med en Pod Security-policyfeil som nevner `hostPath`, bytt til `gke-autopilot` (eller `eks-fargate` på EKS Fargate) og installer på nytt.
 
@@ -106,22 +106,22 @@ eBPF er **aktivert som standard**. Du bør deaktivere det (`--set ebpf.enabled=f
 
 OBI trekker ut flere signalfamilier fra den fangede trafikken. Alle er aktivert som standard; hver kan deaktiveres uavhengig med `--set ebpf.features.<key>=false`:
 
-| Signal | Standard | Hva det legger til |
-| --- | --- | --- |
-| `ebpf.features.httpMetrics` | på | HTTP/gRPC RED-metrikker — forespørselsrate, latenshistogrammer, feiltellinger — per tjeneste. |
-| `ebpf.features.spanMetrics` | på | Span-attributtbaserte metrikker: forespørselsstørrelse, svarstørrelse, varighet brutt ned per rute/operasjon. |
-| `ebpf.features.serviceGraph` | på | Tjeneste-til-tjeneste kantmetrikker (kaller → kallt forespørselsrate + latens). Driver tjenestekartet. |
-| `ebpf.features.hostMetrics` | på | CPU og minne per instrumentert prosess — sparer deg for å kjøre en separat profiler for grunnleggende kapasitetsspørsmål. |
-| `ebpf.features.networkMetrics` | på | Pod-til-pod TCP/UDP-flyttellere for byte og pakker med k8s-metadata. Synliggjør hvert podpar som snakker sammen, inkludert de som kjører protokoller OBI ikke kan parse. |
-| `ebpf.features.networkInterZoneMetrics` | av | Inter-sone-variant av nettverksmetrikker. Dobler kardinaliteten; bare verdt å aktivere hvis du faktisk bruker sonebasert planlegging. |
-| `ebpf.features.tcpStats` | på | TCP-statistikk på nodenivå: RTT-histogrammer, mislykkede tilkoblingstellinger, retransmisjoner. |
+| Signal                                  | Standard | Hva det legger til                                                                                                                                                       |
+| --------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ebpf.features.httpMetrics`             | på       | HTTP/gRPC RED-metrikker — forespørselsrate, latenshistogrammer, feiltellinger — per tjeneste.                                                                            |
+| `ebpf.features.spanMetrics`             | på       | Span-attributtbaserte metrikker: forespørselsstørrelse, svarstørrelse, varighet brutt ned per rute/operasjon.                                                            |
+| `ebpf.features.serviceGraph`            | på       | Tjeneste-til-tjeneste kantmetrikker (kaller → kallt forespørselsrate + latens). Driver tjenestekartet.                                                                   |
+| `ebpf.features.hostMetrics`             | på       | CPU og minne per instrumentert prosess — sparer deg for å kjøre en separat profiler for grunnleggende kapasitetsspørsmål.                                                |
+| `ebpf.features.networkMetrics`          | på       | Pod-til-pod TCP/UDP-flyttellere for byte og pakker med k8s-metadata. Synliggjør hvert podpar som snakker sammen, inkludert de som kjører protokoller OBI ikke kan parse. |
+| `ebpf.features.networkInterZoneMetrics` | av       | Inter-sone-variant av nettverksmetrikker. Dobler kardinaliteten; bare verdt å aktivere hvis du faktisk bruker sonebasert planlegging.                                    |
+| `ebpf.features.tcpStats`                | på       | TCP-statistikk på nodenivå: RTT-histogrammer, mislykkede tilkoblingstellinger, retransmisjoner.                                                                          |
 
 OBI propagerer også sporingskontekst på tvers av tjenestegrenser som standard. Når pod A gjør en HTTP/gRPC-forespørsel til pod B, injiserer OBI en W3C `traceparent`-header i den utgående forespørselen — slik at det resulterende spannet på pod B-siden lenkes inn i samme sporing som pod A's utgående. Ingen SDK-endringer er nødvendige i noen av appene.
 
-| Valg | Standard | Beskrivelse |
-| --- | --- | --- |
-| `ebpf.contextPropagation` | på | Injiser W3C `traceparent` i utgående trafikk (HTTP-headere + tilpasset TCP-valg). Sett til `false` for å holde hver tjenestes spans lokale. |
-| `ebpf.trackRequestHeaders` | på | Forespørselshodersporing på kjernesiden slik at propagering også fungerer på rene HTTP-servere (ikke-Go, ikke-TLS). Trer kun i kraft når `contextPropagation` er true. |
+| Valg                       | Standard | Beskrivelse                                                                                                                                                            |
+| -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ebpf.contextPropagation`  | på       | Injiser W3C `traceparent` i utgående trafikk (HTTP-headere + tilpasset TCP-valg). Sett til `false` for å holde hver tjenestes spans lokale.                            |
+| `ebpf.trackRequestHeaders` | på       | Forespørselshodersporing på kjernesiden slik at propagering også fungerer på rene HTTP-servere (ikke-Go, ikke-TLS). Trer kun i kraft når `contextPropagation` er true. |
 
 ### Korrelasjon mellom logg og sporing
 
@@ -130,9 +130,9 @@ Også aktivert som standard. OBIs loggberiker fanger pod-stdout-skrivinger fra i
 - For **JSON-formaterte logger**: injiserer feltene `trace_id` og `span_id` i linjen (eventuelle eksisterende verdier i loggen bevares). Filelog-DaemonSetet løfter deretter disse feltene inn i LogRecordens innebygde trace_id/span_id-plasser, slik at klikk på et span i sporingsvisningen hopper til loggene i OneUptime — og klikk på en logglinje hopper til den overordnede sporingen.
 - For **ikke-JSON-logger**: linjen bevares uendret — fortsatt samlet inn, bare ikke automatisk lenket.
 
-| Valg | Standard | Beskrivelse |
-| --- | --- | --- |
-| `ebpf.logToTraceCorrelation` | på | Aktiver OBI-loggberikeren og filelog-pipelinens trace_id-løft. Sett til `false` for å hoppe over begge. |
+| Valg                         | Standard | Beskrivelse                                                                                             |
+| ---------------------------- | -------- | ------------------------------------------------------------------------------------------------------- |
+| `ebpf.logToTraceCorrelation` | på       | Aktiver OBI-loggberikeren og filelog-pipelinens trace_id-løft. Sett til `false` for å hoppe over begge. |
 
 Forbehold:
 
@@ -144,15 +144,15 @@ Forbehold:
 
 ### Tuning
 
-| Valg | Standard | Beskrivelse |
-| --- | --- | --- |
-| `ebpf.enabled` | `true` | Hovedbryter. Sett til `false` for å hoppe over eBPF-DaemonSetet helt. |
-| `ebpf.image.tag` | `v0.9.0` | OBI-bildetag. OBI er pre-1.0; fest til en kjent god versjon og test på nytt ved oppdateringer. |
-| `ebpf.autoTargetExe` | `*` | Glob av kjørbare filer som skal instrumenteres. Snevre inn dette (f.eks. `*/python,*/java`) hvis du vil avgrense auto-instrumenteringen. |
-| `ebpf.excludeExePaths` | (skall, kubelet, runc, containerd, otelcol, OBI selv) | Kommaseparerte globber som skal hoppes over. |
-| `ebpf.logLevel` | `info` | `debug`, `info`, `warn` eller `error`. Sett til `debug` under feilsøking. |
-| `ebpf.printTraces` | `false` | Skriv spans til OBIs stdout i tillegg til OTLP-eksport — nyttig for å verifisere innsamling under installasjon. |
-| `ebpf.resources.*` | `100m / 256Mi` requests, `1000m / 1Gi` limits | Øk for klynger med mye trafikk. |
+| Valg                   | Standard                                              | Beskrivelse                                                                                                                              |
+| ---------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `ebpf.enabled`         | `true`                                                | Hovedbryter. Sett til `false` for å hoppe over eBPF-DaemonSetet helt.                                                                    |
+| `ebpf.image.tag`       | `v0.9.0`                                              | OBI-bildetag. OBI er pre-1.0; fest til en kjent god versjon og test på nytt ved oppdateringer.                                           |
+| `ebpf.autoTargetExe`   | `*`                                                   | Glob av kjørbare filer som skal instrumenteres. Snevre inn dette (f.eks. `*/python,*/java`) hvis du vil avgrense auto-instrumenteringen. |
+| `ebpf.excludeExePaths` | (skall, kubelet, runc, containerd, otelcol, OBI selv) | Kommaseparerte globber som skal hoppes over.                                                                                             |
+| `ebpf.logLevel`        | `info`                                                | `debug`, `info`, `warn` eller `error`. Sett til `debug` under feilsøking.                                                                |
+| `ebpf.printTraces`     | `false`                                               | Skriv spans til OBIs stdout i tillegg til OTLP-eksport — nyttig for å verifisere innsamling under installasjon.                          |
+| `ebpf.resources.*`     | `100m / 256Mi` requests, `1000m / 1Gi` limits         | Øk for klynger med mye trafikk.                                                                                                          |
 
 For å sjekke at OBI kjører og ser trafikk:
 
@@ -176,54 +176,54 @@ Krav:
 
 Tuning:
 
-| Valg | Standard | Beskrivelse |
-| --- | --- | --- |
-| `profiling.enabled` | `false` | Hovedbryter. Deaktivert som standard; meld deg på for kontinuerlige CPU-flammegrafer. |
-| `profiling.image.tag` | `0.152.0` | Bildetag for `otel/opentelemetry-collector-ebpf-profiler`. Profileren er pre-1.0; fest til en kjent god versjon. |
-| `profiling.samplesPerSecond` | `19` | Samplingsfrekvens i Hz. Oppstrøms standard; unngår utilsiktet aliasing med vanlige timerfrekvenser. |
-| `profiling.offCpuThreshold` | `0` | (0–1] aktiverer off-CPU-profilering — diagnostiserer låskonflikt og blokkerende I/O. Av som standard fordi det legger til tracepoint-overhead. |
-| `profiling.tracers` | `""` *(alle kjøretider)* | Kommaseparert liste over språk-tracere som skal lastes. |
-| `profiling.obiProcessContext` | `true` | Korreler samples med OBIs sporingskontekst for sporing ↔ profil-lenking. |
+| Valg                          | Standard                 | Beskrivelse                                                                                                                                    |
+| ----------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `profiling.enabled`           | `false`                  | Hovedbryter. Deaktivert som standard; meld deg på for kontinuerlige CPU-flammegrafer.                                                          |
+| `profiling.image.tag`         | `0.152.0`                | Bildetag for `otel/opentelemetry-collector-ebpf-profiler`. Profileren er pre-1.0; fest til en kjent god versjon.                               |
+| `profiling.samplesPerSecond`  | `19`                     | Samplingsfrekvens i Hz. Oppstrøms standard; unngår utilsiktet aliasing med vanlige timerfrekvenser.                                            |
+| `profiling.offCpuThreshold`   | `0`                      | (0–1] aktiverer off-CPU-profilering — diagnostiserer låskonflikt og blokkerende I/O. Av som standard fordi det legger til tracepoint-overhead. |
+| `profiling.tracers`           | `""` _(alle kjøretider)_ | Kommaseparert liste over språk-tracere som skal lastes.                                                                                        |
+| `profiling.obiProcessContext` | `true`                   | Korreler samples med OBIs sporingskontekst for sporing ↔ profil-lenking.                                                                      |
 
 ## Annen datainnsamling (host-metrikker, metning, cAdvisor, KSM, audit-logger, CSI, CoreDNS)
 
 Helm-kartet kan også samle inn:
 
-| `<key>.enabled` | Standard | Hva det legger til |
-| --- | --- | --- |
-| `hostMetrics` | på | OS-metrikker per node fra `/proc` og `/sys` — disk-I/O-kødybde, filsystem-inode-bruk, NIC-feiltellere, paging-statistikk, lastgjennomsnitt. Bor inne i logginnsamler-DaemonSetet (ingen ekstra pods). |
-| `kubeletstats.utilizationMetrics` | på | Metningsmetrikker — container- og pod-CPU/minne uttrykt som en prosentandel av request og limit. Åtte avledede metrikkfamilier som driver «CPU/Memory vs Request»- og «CPU/Memory vs Limit»-monitorene. Samme skrap som den eksisterende `kubeletstats`-mottakeren, ingen ekstra pods. Alltid 0 når en pod ikke har request/limit satt. |
-| `kubeletstats.volumeMetrics` | på | Diskbruk per PVC (`k8s.volume.available`, `k8s.volume.capacity`). Driver «PVC Low Disk Space»-monitoren. Én serie per PVC per pod — begrenset for de fleste klynger, tyngre på stateful arbeidsmengder med tusenvis av PVC-er. |
-| `cadvisor` | på | Skraper kubeletens `/metrics/cadvisor`-endepunkt fra hver nodes DaemonSet-pod for de containermetrikkene som `kubeletstats` ikke oversetter: CFS-strupning (`container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total`) og OOM-drepehendelser (`container_oom_events_total`). En relabel-tillatelsesliste dropper alt annet ved mottakeren slik at kardinaliteten holdes begrenset. |
-| `kubeStateMetrics` | av | Henter klyngetilstandsmetrikker fra kube-state-metrics: pod-faser (Pending / Terminating), container-venteårsaker (CrashLoopBackOff, ImagePullBackOff) og bruk av ressurskvoter. `mode: bundled` (standard) distribuerer en liten KSM-Deployment for deg; `mode: external` skraper en eksisterende KSM via `endpoint`. Av som standard fordi den medfølgende modusen legger til en Deployment i kartets fotavtrykk. |
-| `auditLogs` | av | Les `/var/log/kubernetes/audit.log` fra verten. Fanger hver Kubernetes API-forespørsel — hvem gjorde hva med hvilken ressurs. Kun selvadministrerte klynger — administrert K8s (EKS, GKE, AKS, DOKS) ruter audit-logger til skyleverandørens sink. |
-| `csi` | av | Oppdager automatisk pods merket `app=csi-driver` (eller `app.kubernetes.io/component=csi-driver`) og skraper deres Prometheus-`metrics`-port — volum attach/detach-latens, provisjoneringsfeil, IOPS. |
-| `coreDns` | av | Skraper klyngens CoreDNS-tjeneste på `:9153/metrics`. Synliggjør spørringsrate, latens, cache-hit-rate, feiltellinger — vanlige P99-latensskurker. |
+| `<key>.enabled`                   | Standard | Hva det legger til                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hostMetrics`                     | på       | OS-metrikker per node fra `/proc` og `/sys` — disk-I/O-kødybde, filsystem-inode-bruk, NIC-feiltellere, paging-statistikk, lastgjennomsnitt. Bor inne i logginnsamler-DaemonSetet (ingen ekstra pods).                                                                                                                                                                                                               |
+| `kubeletstats.utilizationMetrics` | på       | Metningsmetrikker — container- og pod-CPU/minne uttrykt som en prosentandel av request og limit. Åtte avledede metrikkfamilier som driver «CPU/Memory vs Request»- og «CPU/Memory vs Limit»-monitorene. Samme skrap som den eksisterende `kubeletstats`-mottakeren, ingen ekstra pods. Alltid 0 når en pod ikke har request/limit satt.                                                                             |
+| `kubeletstats.volumeMetrics`      | på       | Diskbruk per PVC (`k8s.volume.available`, `k8s.volume.capacity`). Driver «PVC Low Disk Space»-monitoren. Én serie per PVC per pod — begrenset for de fleste klynger, tyngre på stateful arbeidsmengder med tusenvis av PVC-er.                                                                                                                                                                                      |
+| `cadvisor`                        | på       | Skraper kubeletens `/metrics/cadvisor`-endepunkt fra hver nodes DaemonSet-pod for de containermetrikkene som `kubeletstats` ikke oversetter: CFS-strupning (`container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total`) og OOM-drepehendelser (`container_oom_events_total`). En relabel-tillatelsesliste dropper alt annet ved mottakeren slik at kardinaliteten holdes begrenset.             |
+| `kubeStateMetrics`                | av       | Henter klyngetilstandsmetrikker fra kube-state-metrics: pod-faser (Pending / Terminating), container-venteårsaker (CrashLoopBackOff, ImagePullBackOff) og bruk av ressurskvoter. `mode: bundled` (standard) distribuerer en liten KSM-Deployment for deg; `mode: external` skraper en eksisterende KSM via `endpoint`. Av som standard fordi den medfølgende modusen legger til en Deployment i kartets fotavtrykk. |
+| `auditLogs`                       | av       | Les `/var/log/kubernetes/audit.log` fra verten. Fanger hver Kubernetes API-forespørsel — hvem gjorde hva med hvilken ressurs. Kun selvadministrerte klynger — administrert K8s (EKS, GKE, AKS, DOKS) ruter audit-logger til skyleverandørens sink.                                                                                                                                                                  |
+| `csi`                             | av       | Oppdager automatisk pods merket `app=csi-driver` (eller `app.kubernetes.io/component=csi-driver`) og skraper deres Prometheus-`metrics`-port — volum attach/detach-latens, provisjoneringsfeil, IOPS.                                                                                                                                                                                                               |
+| `coreDns`                         | av       | Skraper klyngens CoreDNS-tjeneste på `:9153/metrics`. Synliggjør spørringsrate, latens, cache-hit-rate, feiltellinger — vanlige P99-latensskurker.                                                                                                                                                                                                                                                                  |
 
 ## Vanlige valg
 
-| Valg | Standard | Beskrivelse |
-| --- | --- | --- |
-| `preset` | (tom — behandles som `standard`) | Se tabellen ovenfor. |
-| `oneuptime.url` | *(påkrevd)* | URL til OneUptime-instansen din. |
-| `oneuptime.apiKey` | *(påkrevd)* | Prosjekt-API-nøkkel (Settings → API Keys). |
-| `clusterName` | *(påkrevd)* | Unikt navn for denne klyngen. Stemples som `k8s.cluster.name` på hver post. |
-| `namespaceFilters.include` | `[]` | Hvis satt, overvåkes kun disse namespacene. |
-| `namespaceFilters.exclude` | `["kube-system"]` | Namespaces som skal hoppes over. |
-| `logs.enabled` | `true` | Slå logginnsamling på eller av. |
-| `logs.mode` | (utledet fra `preset`) | `daemonset`, `api` eller `disabled`. Overstyrer forhåndsinnstillingen. |
-| `logs.api.replicas` | `1` | Antall log-tailer Deployment-replikaer (kun i API-modus). |
-| `ebpf.enabled` | `true` | Auto-fang HTTP/gRPC-sporinger fra hver pod via OpenTelemetry eBPF Instrumentation. Se delen ovenfor. |
-| `profiling.enabled` | `false` | Kontinuerlige CPU-flammegrafer via OpenTelemetry eBPF Profiler. Deaktivert som standard; meld deg på for mer telemetri. Se delen ovenfor. |
-| `hostMetrics.enabled` | `true` | OS-metrikker per node. |
-| `kubeletstats.utilizationMetrics.enabled` | `true` | Container- og pod-CPU/minne-metning (% av request og limit). Ingen ekstra skrap — utledet fra kubeletstats-data. |
-| `kubeletstats.volumeMetrics.enabled` | `true` | Diskbruk per PVC (`k8s.volume.available`, `k8s.volume.capacity`). |
-| `cadvisor.enabled` | `true` | Skrap denne nodens kubelet `/metrics/cadvisor` for CFS-strupning + OOM-drepetellere. Tillatelseslistet til 3 metrikker. |
-| `kubeStateMetrics.enabled` | `false` | Hent pod-faser, container-venteårsaker (CrashLoopBackOff / ImagePullBackOff) og ResourceQuota-bruk fra kube-state-metrics. Se `kubeStateMetrics.mode` for medfølgende vs. ekstern. |
-| `auditLogs.enabled` | `false` | Innsamling av Kubernetes-auditlogger (selvadministrerte klynger). |
-| `csi.enabled` | `false` | Prometheus-metrikker for CSI-driver. |
-| `coreDns.enabled` | `false` | Prometheus-metrikker for CoreDNS. |
-| `controlPlane.enabled` | `false` | Skrap etcd / api-server / scheduler / controller-manager. Kun selvadministrerte klynger — administrerte tilbud (EKS/GKE/AKS) eksponerer vanligvis ikke disse endepunktene. |
+| Valg                                      | Standard                         | Beskrivelse                                                                                                                                                                        |
+| ----------------------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `preset`                                  | (tom — behandles som `standard`) | Se tabellen ovenfor.                                                                                                                                                               |
+| `oneuptime.url`                           | _(påkrevd)_                      | URL til OneUptime-instansen din.                                                                                                                                                   |
+| `oneuptime.apiKey`                        | _(påkrevd)_                      | Prosjekt-API-nøkkel (Settings → API Keys).                                                                                                                                         |
+| `clusterName`                             | _(påkrevd)_                      | Unikt navn for denne klyngen. Stemples som `k8s.cluster.name` på hver post.                                                                                                        |
+| `namespaceFilters.include`                | `[]`                             | Hvis satt, overvåkes kun disse namespacene.                                                                                                                                        |
+| `namespaceFilters.exclude`                | `["kube-system"]`                | Namespaces som skal hoppes over.                                                                                                                                                   |
+| `logs.enabled`                            | `true`                           | Slå logginnsamling på eller av.                                                                                                                                                    |
+| `logs.mode`                               | (utledet fra `preset`)           | `daemonset`, `api` eller `disabled`. Overstyrer forhåndsinnstillingen.                                                                                                             |
+| `logs.api.replicas`                       | `1`                              | Antall log-tailer Deployment-replikaer (kun i API-modus).                                                                                                                          |
+| `ebpf.enabled`                            | `true`                           | Auto-fang HTTP/gRPC-sporinger fra hver pod via OpenTelemetry eBPF Instrumentation. Se delen ovenfor.                                                                               |
+| `profiling.enabled`                       | `false`                          | Kontinuerlige CPU-flammegrafer via OpenTelemetry eBPF Profiler. Deaktivert som standard; meld deg på for mer telemetri. Se delen ovenfor.                                          |
+| `hostMetrics.enabled`                     | `true`                           | OS-metrikker per node.                                                                                                                                                             |
+| `kubeletstats.utilizationMetrics.enabled` | `true`                           | Container- og pod-CPU/minne-metning (% av request og limit). Ingen ekstra skrap — utledet fra kubeletstats-data.                                                                   |
+| `kubeletstats.volumeMetrics.enabled`      | `true`                           | Diskbruk per PVC (`k8s.volume.available`, `k8s.volume.capacity`).                                                                                                                  |
+| `cadvisor.enabled`                        | `true`                           | Skrap denne nodens kubelet `/metrics/cadvisor` for CFS-strupning + OOM-drepetellere. Tillatelseslistet til 3 metrikker.                                                            |
+| `kubeStateMetrics.enabled`                | `false`                          | Hent pod-faser, container-venteårsaker (CrashLoopBackOff / ImagePullBackOff) og ResourceQuota-bruk fra kube-state-metrics. Se `kubeStateMetrics.mode` for medfølgende vs. ekstern. |
+| `auditLogs.enabled`                       | `false`                          | Innsamling av Kubernetes-auditlogger (selvadministrerte klynger).                                                                                                                  |
+| `csi.enabled`                             | `false`                          | Prometheus-metrikker for CSI-driver.                                                                                                                                               |
+| `coreDns.enabled`                         | `false`                          | Prometheus-metrikker for CoreDNS.                                                                                                                                                  |
+| `controlPlane.enabled`                    | `false`                          | Skrap etcd / api-server / scheduler / controller-manager. Kun selvadministrerte klynger — administrerte tilbud (EKS/GKE/AKS) eksponerer vanligvis ikke disse endepunktene.         |
 
 Se Helm-kartets [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) for hele listen.
 

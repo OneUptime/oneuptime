@@ -9,18 +9,21 @@ Installer OneUptime som en innebygd skrivebordsapplikasjon på macOS for sømlø
 Safari gir utmerket PWA-integrasjon med innebygde macOS-funksjoner.
 
 1. **Åpne OneUptime i Safari**
+
    - Start Safari-nettleseren
    - Naviger til URL-en for OneUptime-instansen din
    - Logg inn på OneUptime-kontoen din
    - Vent til siden er fullstendig lastet
 
 2. **Installer PWA**
+
    - Klikk **Fil** i menylinjen
    - Velg **"Legg til i Dock"** (macOS Sonoma+)
    - Eller se etter **installikone** i adressefeltet
    - Alternativt: **Fil** → **"Legg til på startskjerm"** (eldre macOS)
 
 3. **Tilpass installasjonen**
+
    - **Appnavn**: Endre om ønskelig (standard: OneUptime)
    - **Dock**: Velg å legge til i Dock
    - **Launchpad**: Legg til i Launchpad for enkel tilgang
@@ -35,17 +38,20 @@ Safari gir utmerket PWA-integrasjon med innebygde macOS-funksjoner.
 Chrome tilbyr robust PWA-støtte med utmerket skrivebordsintegrasjon.
 
 1. **Åpne OneUptime i Chrome**
+
    - Start Google Chrome
    - Gå til OneUptime-instansen din
    - Sørg for at du er logget inn
    - Vent til siden er fullstendig lastet
 
 2. **Installer via meny**
+
    - Se etter **installikone** (⊞) i adressefeltet
    - Klikk **"Installer OneUptime"**
    - Eller bruk **Chrome-menyen** → **Flere verktøy** → **Opprett snarvei**
 
 3. **Installasjonsalternativer**
+
    - Huk av **"Åpne som vindu"** for innebygd appopplevelse
    - Tilpass appnavnet om nødvendig
    - Klikk **"Installer"** eller **"Opprett"**
@@ -60,6 +66,7 @@ Chrome tilbyr robust PWA-støtte med utmerket skrivebordsintegrasjon.
 Edge gir solid PWA-støtte med god macOS-integrasjon.
 
 1. **Åpne OneUptime i Edge**
+
    - Start Microsoft Edge
    - Naviger til OneUptime-URL-en
    - Fullfør innloggingsprosessen
@@ -73,13 +80,16 @@ Edge gir solid PWA-støtte med god macOS-integrasjon.
 ### Tilpasningsalternativer
 
 ### Dock og Launchpad
+
 1. **Dock-posisjon**: Dra OneUptime til foretrukket Dock-posisjon
 2. **Dock-størrelse**: Endre størrelse på ikonet i Dock-preferanser
 3. **Launchpad-organisering**: Opprett mappe for overvåkingsapper
 4. **Badge-varsler**: Vis hendelsestellingen på Dock-ikonet
 
 ### Menylinje og varsler
+
 1. **Varselsenter**
+
    - Systemvalg → Varsler → OneUptime
    - Konfigurer varselstiler og levering
    - Sett prioritetsnivåer for ulike hendelsestyper
@@ -94,6 +104,7 @@ Edge gir solid PWA-støtte med god macOS-integrasjon.
 ### Installasjonsproblemer
 
 **"Legg til i Dock" er ikke tilgjengelig i Safari:**
+
 ```
 Løsninger:
 1. Sørg for macOS Sonoma (14.0) eller nyere
@@ -104,6 +115,7 @@ Løsninger:
 ```
 
 **PWA installerer ikke eller krasjer:**
+
 ```
 Løsninger:
 1. Sjekk macOS-versjonskompatibilitet
@@ -115,6 +127,7 @@ Løsninger:
 ```
 
 **Appen vises ikke i Programmer:**
+
 ```
 Løsninger:
 1. Sjekk Launchpad for OneUptime-ikonet
@@ -127,6 +140,7 @@ Løsninger:
 ### Varslingsproblemer
 
 **macOS-varsler fungerer ikke:**
+
 ```
 Løsninger:
 1. Systemvalg → Varsler → OneUptime
@@ -140,12 +154,15 @@ Løsninger:
 ## Avinstallasjon
 
 ### Fullstendig fjerning
+
 1. **Programmer-mappemetode**
+
    - Åpne Programmer-mappen
    - Finn OneUptime
    - Dra til papirkurv eller høyreklikk → Flytt til papirkurv
 
 2. **Dock-metode**
+
    - Høyreklikk OneUptime i Dock
    - Velg "Alternativer" → "Fjern fra Dock"
    - Slett deretter fra Programmer-mappen
@@ -158,6 +175,7 @@ Løsninger:
 ## Oppdateringer og vedlikehold
 
 ### Automatiske oppdateringer
+
 - OneUptime PWA oppdateres automatisk når den er tilkoblet
 - Ingen App Store-oppdateringer påkrevd
 - Nye funksjoner er tilgjengelige umiddelbart
@@ -168,6 +186,7 @@ Løsninger:
 ### Installasjonsproblemer
 
 **"Legg til i Dock" er ikke tilgjengelig i Safari:**
+
 ```
 Løsninger:
 1. Sørg for macOS Sonoma (14.0) eller nyere
@@ -178,6 +197,7 @@ Løsninger:
 ```
 
 **PWA installerer ikke eller krasjer:**
+
 ```
 Løsninger:
 1. Sjekk macOS-versjonskompatibilitet
@@ -189,6 +209,7 @@ Løsninger:
 ```
 
 **Appen vises ikke i Programmer:**
+
 ```
 Løsninger:
 1. Sjekk Launchpad for OneUptime-ikonet
@@ -201,6 +222,7 @@ Løsninger:
 ### Ytelsesproblemer
 
 **Treg ytelse eller høy CPU-bruk:**
+
 ```
 Løsninger:
 1. Sjekk Aktivitetsovervåker for ressursbruk
@@ -212,6 +234,7 @@ Løsninger:
 ```
 
 **Minnelekkasjer eller krasj:**
+
 ```
 Løsninger:
 1. Overvåk minnebruk i Aktivitetsovervåker
@@ -225,6 +248,7 @@ Løsninger:
 ### Visnings- og vindusproblemer
 
 **Problemer med vindusstørrelse eller -posisjon:**
+
 ```
 Løsninger:
 1. Endre størrelse og posisjon manuelt
@@ -235,6 +259,7 @@ Løsninger:
 ```
 
 **Appen svarer ikke:**
+
 ```
 Løsninger:
 1. Tving-avslutt: ⌘+Alternativ+Esc → Velg OneUptime
@@ -247,6 +272,7 @@ Løsninger:
 ### Varslingsproblemer
 
 **macOS-varsler fungerer ikke:**
+
 ```
 Løsninger:
 1. Systemvalg → Varsler → OneUptime
@@ -260,12 +286,15 @@ Løsninger:
 ## Avinstallasjon
 
 ### Fullstendig fjerning
+
 1. **Programmer-mappemetode**
+
    - Åpne Programmer-mappen
    - Finn OneUptime
    - Dra til papirkurv eller høyreklikk → Flytt til papirkurv
 
 2. **Dock-metode**
+
    - Høyreklikk OneUptime i Dock
    - Velg "Alternativer" → "Fjern fra Dock"
    - Slett deretter fra Programmer-mappen
@@ -276,6 +305,7 @@ Løsninger:
    - **Safari**: Ingen dedikert administrasjonsside
 
 ### Ren avinstallasjon
+
 Fjern alle tilknyttede data:
 
 ```bash
@@ -293,26 +323,32 @@ rm -rf ~/Library/Application\ Support/Microsoft\ Edge/Default/Web\ Applications
 ## Oppdateringer og vedlikehold
 
 ### Automatiske oppdateringer
+
 - OneUptime PWA oppdateres automatisk når den er tilkoblet
 - Ingen App Store-oppdateringer påkrevd
 - Nye funksjoner er tilgjengelige umiddelbart
 - Kritiske oppdateringer brukes umiddelbart
 
 ### Manuell oppdateringsprosess
+
 Tving oppdatering av applikasjonen:
+
 1. **Safari-PWA-er**: Oppdater innenfor Safari-nettleseren
 2. **Chrome-PWA-er**: Høyreklikk på appen → Last inn på nytt eller ⌘+R
 3. **Fullstendig oppdatering**: Lukk appen, åpne nettleseren på nytt, besøk OneUptime
 
 ### Vedlikeholdsplan
+
 Regelmessig vedlikehold for optimal ytelse:
 
 **Ukentlig:**
+
 - Start OneUptime-appen på nytt
 - Tøm nettleserens hurtigbuffer hvis du opplever problemer
 - Sjekk for macOS-oppdateringer
 
 **Månedlig:**
+
 - Gjennomgå lagringsbruk og rydd om nødvendig
 - Oppdater nettlesere hvis de ikke oppdateres automatisk
 - Bekreft at varselinnstillingene fortsatt fungerer
@@ -320,7 +356,9 @@ Regelmessig vedlikehold for optimal ytelse:
 ## Integrasjon med macOS-funksjoner
 
 ### Snarveier-appintegrasjon
+
 Opprett egendefinerte snarveier for OneUptime:
+
 1. Åpne **Snarveier**-appen
 2. Opprett **Ny snarvei**
 3. Legg til **"Åpne app"**-handlingen
@@ -328,7 +366,9 @@ Opprett egendefinerte snarveier for OneUptime:
 5. Legg til Siri for stemmeaktivering
 
 ### Automator-integrasjon
+
 Automatiser OneUptime-oppgaver:
+
 1. Start **Automator**
 2. Opprett **Applikasjon** eller **Arbeidsflyt**
 3. Legg til **"Start applikasjon"**-handlingen
@@ -336,6 +376,7 @@ Automatiser OneUptime-oppgaver:
 5. Legg til ytterligere automatiseringstrinn
 
 ### Terminal-integrasjon
+
 Administrer OneUptime gjennom Terminal:
 
 ```bash
@@ -355,18 +396,21 @@ oneuptime_status() {
 ## Sikkerhet og personvern
 
 ### macOS-sikkerhetsfunksjoner
+
 1. **Gatekeeper**: Sørg for at PWA-installasjoner er fra pålitelige kilder
 2. **System Integrity Protection**: Beskytter systemfiler
 3. **FileVault**: Krypter disk for databeskyttelse
 4. **Nøkkelring**: Sikker lagring av legitimasjon
 
 ### Personvernhensyn
+
 1. **Stedstjenester**: Konfigurer om nødvendig for overvåking
 2. **Kamera/mikrofon**: Gi tillatelser etter behov
 3. **Skjermopptak**: Kan være nødvendig for visse overvåkingsfunksjoner
 4. **Nettverkstilgang**: Sørg for riktig brannmurkonfigurasjon
 
 ### Beste praksiser
+
 1. **Regelmessige oppdateringer**: Hold macOS og nettlesere oppdatert
 2. **Sterk autentisering**: Bruk Touch ID/Face ID når tilgjengelig
 3. **Nettverkssikkerhet**: Bruk VPN for ekstern overvåkingstilgang

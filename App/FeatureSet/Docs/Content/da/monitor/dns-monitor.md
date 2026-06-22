@@ -24,34 +24,34 @@ DNS-monitorer forespørger DNS-servere efter specifikke posttyper og evaluerer r
 
 ### Grundlæggende indstillinger
 
-| Felt | Beskrivelse | Påkrævet |
-|-------|-------------|----------|
-| Domænenavn | Det domæne, der skal forespørges (f.eks. `example.com`) | Ja |
-| Posttype | Den DNS-posttype, der skal forespørges | Ja |
-| DNS-server | Brugerdefineret DNS-server (f.eks. `8.8.8.8`). Lad stå tomt for systemstandard | Nej |
+| Felt       | Beskrivelse                                                                    | Påkrævet |
+| ---------- | ------------------------------------------------------------------------------ | -------- |
+| Domænenavn | Det domæne, der skal forespørges (f.eks. `example.com`)                        | Ja       |
+| Posttype   | Den DNS-posttype, der skal forespørges                                         | Ja       |
+| DNS-server | Brugerdefineret DNS-server (f.eks. `8.8.8.8`). Lad stå tomt for systemstandard | Nej      |
 
 ### Understøttede posttyper
 
-| Posttype | Beskrivelse |
-|-------------|-------------|
-| A | IPv4-adresseposter |
-| AAAA | IPv6-adresseposter |
-| CNAME | Kanonisk navn (alias)-poster |
-| MX | Mailudvekslingsposter |
-| NS | Navneserverposter |
-| TXT | Tekstposter (SPF, DKIM osv.) |
-| SOA | Start af autoritetsposter |
-| PTR | Pointerposter (omvendt DNS) |
-| SRV | Servicelokatorposter |
-| CAA | Certifikatmyndighedsautorisationsposter |
+| Posttype | Beskrivelse                             |
+| -------- | --------------------------------------- |
+| A        | IPv4-adresseposter                      |
+| AAAA     | IPv6-adresseposter                      |
+| CNAME    | Kanonisk navn (alias)-poster            |
+| MX       | Mailudvekslingsposter                   |
+| NS       | Navneserverposter                       |
+| TXT      | Tekstposter (SPF, DKIM osv.)            |
+| SOA      | Start af autoritetsposter               |
+| PTR      | Pointerposter (omvendt DNS)             |
+| SRV      | Servicelokatorposter                    |
+| CAA      | Certifikatmyndighedsautorisationsposter |
 
 ### Avancerede indstillinger
 
-| Felt | Beskrivelse | Standard |
-|-------|-------------|---------|
-| Port | DNS-portnummer | 53 |
-| Timeout (ms) | Tid at vente på et svar | 5000 |
-| Genforsøg | Antal genforsøg ved fejl | 3 |
+| Felt         | Beskrivelse              | Standard |
+| ------------ | ------------------------ | -------- |
+| Port         | DNS-portnummer           | 53       |
+| Timeout (ms) | Tid at vente på et svar  | 5000     |
+| Genforsøg    | Antal genforsøg ved fejl | 3        |
 
 ## Overvågningskriterier
 
@@ -59,13 +59,13 @@ Du kan konfigurere kriterier til at afgøre, hvornår din DNS betragtes som onli
 
 ### Tilgængelige kontoltyper
 
-| Kontroltype | Beskrivelse |
-|------------|-------------|
-| DNS er online | Om DNS-serveren svarer på forespørgsler |
-| DNS-svartid (ms) | Forespørgselssvartid i millisekunder |
+| Kontroltype         | Beskrivelse                                |
+| ------------------- | ------------------------------------------ |
+| DNS er online       | Om DNS-serveren svarer på forespørgsler    |
+| DNS-svartid (ms)    | Forespørgselssvartid i millisekunder       |
 | DNS-post eksisterer | Om DNS-poster eksisterer for forespørgslen |
-| DNS-postværdi | Værdien returneret af en DNS-post |
-| DNSSEC er gyldig | Om DNSSEC-validering passerer |
+| DNS-postværdi       | Værdien returneret af en DNS-post          |
+| DNSSEC er gyldig    | Om DNSSEC-validering passerer              |
 
 ### Filtertyper
 

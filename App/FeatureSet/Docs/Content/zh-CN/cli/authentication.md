@@ -12,15 +12,15 @@ oneuptime login <api-key> <instance-url>
 
 **参数：**
 
-| 参数 | 描述 |
-|------|------|
-| `<api-key>` | 您的 OneUptime API 密钥（例如 `sk-your-api-key`） |
+| 参数             | 描述                                                    |
+| ---------------- | ------------------------------------------------------- |
+| `<api-key>`      | 您的 OneUptime API 密钥（例如 `sk-your-api-key`）       |
 | `<instance-url>` | 您的 OneUptime 实例 URL（例如 `https://oneuptime.com`） |
 
 **选项：**
 
-| 选项 | 描述 |
-|------|------|
+| 选项                    | 描述                                |
+| ----------------------- | ----------------------------------- |
 | `--context-name <name>` | 此上下文的名称（默认：`"default"`） |
 
 **示例：**
@@ -122,6 +122,7 @@ oneuptime whoami
 ```
 
 此命令显示：
+
 - 实例 URL
 - 掩码后的 API 密钥
 - 当前上下文名称（仅在活动的已保存上下文时显示）

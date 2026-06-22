@@ -12,11 +12,11 @@ OneUptime CLI 所有命令的完整參考。
 oneuptime login <api-key> <instance-url> [--context-name <name>]
 ```
 
-| 參數 | 類型 | 是否必填 | 說明 |
-|-----------|------|----------|-------------|
-| `<api-key>` | argument | 是 | 用於驗證的 API 金鑰 |
-| `<instance-url>` | argument | 是 | OneUptime 執行個體 URL |
-| `--context-name` | option | 否 | 內容名稱（預設值：`"default"`） |
+| 參數             | 類型     | 是否必填 | 說明                            |
+| ---------------- | -------- | -------- | ------------------------------- |
+| `<api-key>`      | argument | 是       | 用於驗證的 API 金鑰             |
+| `<instance-url>` | argument | 是       | OneUptime 執行個體 URL          |
+| `--context-name` | option   | 否       | 內容名稱（預設值：`"default"`） |
 
 ---
 
@@ -38,9 +38,9 @@ oneuptime context list
 oneuptime context use <name>
 ```
 
-| 參數 | 類型 | 是否必填 | 說明 |
-|-----------|------|----------|-------------|
-| `<name>` | argument | 是 | 要啟用的內容名稱 |
+| 參數     | 類型     | 是否必填 | 說明             |
+| -------- | -------- | -------- | ---------------- |
+| `<name>` | argument | 是       | 要啟用的內容名稱 |
 
 ---
 
@@ -62,9 +62,9 @@ oneuptime context current
 oneuptime context delete <name>
 ```
 
-| 參數 | 類型 | 是否必填 | 說明 |
-|-----------|------|----------|-------------|
-| `<name>` | argument | 是 | 要刪除的內容名稱 |
+| 參數     | 類型     | 是否必填 | 說明             |
+| -------- | -------- | -------- | ---------------- |
+| `<name>` | argument | 是       | 要刪除的內容名稱 |
 
 ---
 
@@ -80,13 +80,13 @@ oneuptime context delete <name>
 oneuptime <resource> list [options]
 ```
 
-| 選項 | 類型 | 預設值 | 說明 |
-|--------|------|---------|-------------|
-| `--query <json>` | string | 無 | 以 JSON 格式表示的篩選條件 |
-| `--limit <n>` | number | `10` | 最大結果數 |
-| `--skip <n>` | number | `0` | 要略過的結果數 |
-| `--sort <json>` | string | 無 | 以 JSON 格式表示的排序順序 |
-| `-o, --output` | string | `table` | 輸出格式 |
+| 選項             | 類型   | 預設值  | 說明                       |
+| ---------------- | ------ | ------- | -------------------------- |
+| `--query <json>` | string | 無      | 以 JSON 格式表示的篩選條件 |
+| `--limit <n>`    | number | `10`    | 最大結果數                 |
+| `--skip <n>`     | number | `0`     | 要略過的結果數             |
+| `--sort <json>`  | string | 無      | 以 JSON 格式表示的排序順序 |
+| `-o, --output`   | string | `table` | 輸出格式                   |
 
 ---
 
@@ -98,10 +98,10 @@ oneuptime <resource> list [options]
 oneuptime <resource> get <id> [-o <format>]
 ```
 
-| 參數 | 類型 | 是否必填 | 說明 |
-|-----------|------|----------|-------------|
-| `<id>` | argument | 是 | 資源 ID（UUID） |
-| `-o, --output` | option | 否 | 輸出格式 |
+| 參數           | 類型     | 是否必填 | 說明            |
+| -------------- | -------- | -------- | --------------- |
+| `<id>`         | argument | 是       | 資源 ID（UUID） |
+| `-o, --output` | option   | 否       | 輸出格式        |
 
 ---
 
@@ -113,11 +113,11 @@ oneuptime <resource> get <id> [-o <format>]
 oneuptime <resource> create [--data <json> | --file <path>] [-o <format>]
 ```
 
-| 選項 | 類型 | 是否必填 | 說明 |
-|--------|------|----------|-------------|
+| 選項            | 類型   | 是否必填                  | 說明                       |
+| --------------- | ------ | ------------------------- | -------------------------- |
 | `--data <json>` | string | `--data` 或 `--file` 擇一 | 以 JSON 格式表示的資源資料 |
-| `--file <path>` | string | `--data` 或 `--file` 擇一 | JSON 檔案的路徑 |
-| `-o, --output` | string | 否 | 輸出格式 |
+| `--file <path>` | string | `--data` 或 `--file` 擇一 | JSON 檔案的路徑            |
+| `-o, --output`  | string | 否                        | 輸出格式                   |
 
 ---
 
@@ -129,11 +129,11 @@ oneuptime <resource> create [--data <json> | --file <path>] [-o <format>]
 oneuptime <resource> update <id> --data <json> [-o <format>]
 ```
 
-| 參數 | 類型 | 是否必填 | 說明 |
-|-----------|------|----------|-------------|
-| `<id>` | argument | 是 | 資源 ID |
-| `--data <json>` | option | 是 | 以 JSON 格式表示的待更新欄位 |
-| `-o, --output` | option | 否 | 輸出格式 |
+| 參數            | 類型     | 是否必填 | 說明                         |
+| --------------- | -------- | -------- | ---------------------------- |
+| `<id>`          | argument | 是       | 資源 ID                      |
+| `--data <json>` | option   | 是       | 以 JSON 格式表示的待更新欄位 |
+| `-o, --output`  | option   | 否       | 輸出格式                     |
 
 ---
 
@@ -145,10 +145,10 @@ oneuptime <resource> update <id> --data <json> [-o <format>]
 oneuptime <resource> delete <id> [--force]
 ```
 
-| 參數 | 類型 | 是否必填 | 說明 |
-|-----------|------|----------|-------------|
-| `<id>` | argument | 是 | 資源 ID |
-| `--force` | option | 否 | 略過確認提示 |
+| 參數      | 類型     | 是否必填 | 說明         |
+| --------- | -------- | -------- | ------------ |
+| `<id>`    | argument | 是       | 資源 ID      |
+| `--force` | option   | 否       | 略過確認提示 |
 
 ---
 
@@ -160,9 +160,9 @@ oneuptime <resource> delete <id> [--force]
 oneuptime <resource> count [--query <json>]
 ```
 
-| 選項 | 類型 | 預設值 | 說明 |
-|--------|------|---------|-------------|
-| `--query <json>` | string | 無 | 以 JSON 格式表示的篩選條件 |
+| 選項             | 類型   | 預設值 | 說明                       |
+| ---------------- | ------ | ------ | -------------------------- |
+| `--query <json>` | string | 無     | 以 JSON 格式表示的篩選條件 |
 
 ---
 
@@ -198,9 +198,9 @@ oneuptime whoami
 oneuptime resources [--type <type>]
 ```
 
-| 選項 | 類型 | 預設值 | 說明 |
-|--------|------|---------|-------------|
-| `--type <type>` | string | 無 | 依 `database` 或 `analytics` 篩選 |
+| 選項            | 類型   | 預設值 | 說明                              |
+| --------------- | ------ | ------ | --------------------------------- |
+| `--type <type>` | string | 無     | 依 `database` 或 `analytics` 篩選 |
 
 ---
 
@@ -208,27 +208,27 @@ oneuptime resources [--type <type>]
 
 下列旗標適用於所有命令：
 
-| 選項 | 說明 |
-|--------|-------------|
-| `--api-key <key>` | 覆寫 API 金鑰 |
-| `--url <url>` | 覆寫執行個體 URL |
-| `--context <name>` | 使用特定內容 |
+| 選項                    | 說明                              |
+| ----------------------- | --------------------------------- |
+| `--api-key <key>`       | 覆寫 API 金鑰                     |
+| `--url <url>`           | 覆寫執行個體 URL                  |
+| `--context <name>`      | 使用特定內容                      |
 | `-o, --output <format>` | 輸出格式：`json`、`table`、`wide` |
-| `--no-color` | 停用彩色輸出 |
-| `--help` | 顯示說明 |
-| `--version` | 顯示版本 |
+| `--no-color`            | 停用彩色輸出                      |
+| `--help`                | 顯示說明                          |
+| `--version`             | 顯示版本                          |
 
 ## API 路由
 
 供參考，CLI 會將命令對應至下列 API 端點：
 
-| 命令 | 方法 | 端點 |
-|---------|--------|----------|
-| `list` | POST | `/api/<resource>/get-list` |
-| `get` | POST | `/api/<resource>/<id>/get-item` |
-| `create` | POST | `/api/<resource>` |
-| `update` | PUT | `/api/<resource>/<id>/` |
-| `delete` | DELETE | `/api/<resource>/<id>/` |
-| `count` | POST | `/api/<resource>/count` |
+| 命令     | 方法   | 端點                            |
+| -------- | ------ | ------------------------------- |
+| `list`   | POST   | `/api/<resource>/get-list`      |
+| `get`    | POST   | `/api/<resource>/<id>/get-item` |
+| `create` | POST   | `/api/<resource>`               |
+| `update` | PUT    | `/api/<resource>/<id>/`         |
+| `delete` | DELETE | `/api/<resource>/<id>/`         |
+| `count`  | POST   | `/api/<resource>/count`         |
 
 所有請求都會包含用於驗證的 `APIKey` 標頭。

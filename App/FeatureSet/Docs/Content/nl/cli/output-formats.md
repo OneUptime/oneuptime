@@ -20,6 +20,7 @@ oneuptime incident list
 ```
 
 Gedrag van het tabelformaat:
+
 - Selecteert maximaal 6 kolommen, met prioriteit voor: `_id`, `name`, `title`, `createdAt`, `updatedAt`
 - Afkappen van waarden langer dan 60 tekens met `...`
 - Gebruikt kleurgecodeerde headers (uitschakelen met `--no-color`)
@@ -72,9 +73,9 @@ NO_COLOR=1 oneuptime incident list
 
 ## Speciale uitvoergevallen
 
-| Scenario | Uitvoer |
-|----------|--------|
-| Lege resultatenset | `"No results found."` |
-| Geen gegevens geretourneerd | `"No data returned."` |
-| Enkel object (bijv. `get`) | Sleutel-waarde-tabelformaat |
-| `count`-opdracht | Enkelvoudige numerieke waarde |
+| Scenario                    | Uitvoer                       |
+| --------------------------- | ----------------------------- |
+| Lege resultatenset          | `"No results found."`         |
+| Geen gegevens geretourneerd | `"No data returned."`         |
+| Enkel object (bijv. `get`)  | Sleutel-waarde-tabelformaat   |
+| `count`-opdracht            | Enkelvoudige numerieke waarde |

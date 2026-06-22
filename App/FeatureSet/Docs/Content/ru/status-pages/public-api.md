@@ -12,149 +12,146 @@
 curl -X POST https://oneuptime.com/status-page-api/overview/:statusPageId
 ```
 
-Ответ API: 
+Ответ API:
 
 ```json
 {
-
-    "overallStatus": 
-        {   // Объект статуса монитора
-            // Общий статус — наихудший из всех мониторов и групп на странице статуса. 
-            // Подробнее об объекте статуса монитора:
-            // https://oneuptime.com/reference/monitor-status
-            
-        },
-    "scheduledMaintenanceEventsPublicNotes": [
-        // Подробнее об объекте публичной заметки планового обслуживания:
-        // https://oneuptime.com/reference/scheduled-maintenance-public-note
-        {
-            // Объект публичной заметки планового обслуживания
-        }, 
-        {
-            // Объект публичной заметки планового обслуживания
-        }
-    ],
-    "statusPageHistoryChartBarColorRules": [
-        // Подробнее об объекте правила цвета столбца диаграммы истории страницы статуса:
-        // https://oneuptime.com/reference/status-page-history-chart-bar-color-rule
-        {
-            // Объект правила цвета столбца диаграммы истории
-        },
-        {
-            // Объект правила цвета столбца диаграммы истории
-        }
-    ],
-    "scheduledMaintenanceEvents": [
-        // Подробнее об объекте события планового обслуживания:
-        // https://oneuptime.com/reference/scheduled-maintenance
-        {
-            // Объект события планового обслуживания
-        },
-        {
-            // Объект события планового обслуживания
-        }
-    ],
-    "activeAnnouncements": [
-        // Подробнее об объекте активного объявления:
-        // https://oneuptime.com/reference/status-page-announcement
-        {
-            // Объект объявления страницы статуса
-        },
-        {
-            // Объект объявления страницы статуса
-        }
-    ],
-    "incidentPublicNotes": [
-        // Подробнее об объекте публичной заметки инцидента:
-        // https://oneuptime.com/reference/incident-public-note
-        {
-            // Объект публичной заметки инцидента
-        },
-        {
-            // Объект публичной заметки инцидента
-        }
-    ],
-    "activeIncidents": [
-        // Подробнее об объекте инцидента:
-        // https://oneuptime.com/reference/incident
-        {
-            // Объект инцидента
-        },
-        {
-            // Объект инцидента
-        }
-    ],
-    "monitorStatusTimelines": [
-        // Подробнее об объекте временной шкалы статуса монитора:
-        // https://oneuptime.com/reference/monitor-status-timeline
-        {
-            // Объект временной шкалы статуса монитора
-        },
-        {
-            // Объект временной шкалы статуса монитора
-        }
-    ],
-    "resourceGroups": [
-        // Подробнее об объекте группы ресурсов:
-        // https://oneuptime.com/reference/resource-group
-        {
-            // Объект группы ресурсов
-        },
-        {
-            // Объект группы ресурсов
-        }
-    ],
-    "monitorStatuses": [
-        // Подробнее об объекте статуса монитора:
-        // https://oneuptime.com/reference/monitor-status
-        {
-            // Объект статуса монитора
-        },
-        {
-            // Объект статуса монитора
-        }
-
-    ],
-    "statusPageResources": [
-        // Подробнее об объекте ресурса страницы статуса:
-        // https://oneuptime.com/reference/status-page-resource
-        {
-            // Объект ресурса страницы статуса
-        },
-        {
-            // Объект ресурса страницы статуса
-        }
-    ],
-    "incidentStateTimelines": [
-        // Подробнее об объекте временной шкалы состояния инцидента:
-        // https://oneuptime.com/reference/incident-state-timeline
-        {
-            // Объект временной шкалы состояния инцидента
-        },
-        {
-            // Объект временной шкалы состояния инцидента
-        }
-    ],
-    "statusPage": {
-       // Подробнее об объекте страницы статуса:
-         // https://oneuptime.com/reference/status-page
+  "overallStatus": {
+    // Объект статуса монитора
+    // Общий статус — наихудший из всех мониторов и групп на странице статуса.
+    // Подробнее об объекте статуса монитора:
+    // https://oneuptime.com/reference/monitor-status
+  },
+  "scheduledMaintenanceEventsPublicNotes": [
+    // Подробнее об объекте публичной заметки планового обслуживания:
+    // https://oneuptime.com/reference/scheduled-maintenance-public-note
+    {
+      // Объект публичной заметки планового обслуживания
     },
-    "scheduledMaintenanceStateTimelines": [
-        // Подробнее об объекте временной шкалы состояния планового обслуживания:
-        // https://oneuptime.com/reference/scheduled-maintenance-state-timeline
-        {
-            // Объект временной шкалы состояния планового обслуживания
-        },
-        {
-            // Объект временной шкалы состояния планового обслуживания
-        }
-    ],
-    "monitorGroupCurrentStatuses": {
-        // Текущий статус группы мониторов. 
-    },
-    "monitorsInGroup": {
-        // Мониторы в группе.
+    {
+      // Объект публичной заметки планового обслуживания
     }
+  ],
+  "statusPageHistoryChartBarColorRules": [
+    // Подробнее об объекте правила цвета столбца диаграммы истории страницы статуса:
+    // https://oneuptime.com/reference/status-page-history-chart-bar-color-rule
+    {
+      // Объект правила цвета столбца диаграммы истории
+    },
+    {
+      // Объект правила цвета столбца диаграммы истории
+    }
+  ],
+  "scheduledMaintenanceEvents": [
+    // Подробнее об объекте события планового обслуживания:
+    // https://oneuptime.com/reference/scheduled-maintenance
+    {
+      // Объект события планового обслуживания
+    },
+    {
+      // Объект события планового обслуживания
+    }
+  ],
+  "activeAnnouncements": [
+    // Подробнее об объекте активного объявления:
+    // https://oneuptime.com/reference/status-page-announcement
+    {
+      // Объект объявления страницы статуса
+    },
+    {
+      // Объект объявления страницы статуса
+    }
+  ],
+  "incidentPublicNotes": [
+    // Подробнее об объекте публичной заметки инцидента:
+    // https://oneuptime.com/reference/incident-public-note
+    {
+      // Объект публичной заметки инцидента
+    },
+    {
+      // Объект публичной заметки инцидента
+    }
+  ],
+  "activeIncidents": [
+    // Подробнее об объекте инцидента:
+    // https://oneuptime.com/reference/incident
+    {
+      // Объект инцидента
+    },
+    {
+      // Объект инцидента
+    }
+  ],
+  "monitorStatusTimelines": [
+    // Подробнее об объекте временной шкалы статуса монитора:
+    // https://oneuptime.com/reference/monitor-status-timeline
+    {
+      // Объект временной шкалы статуса монитора
+    },
+    {
+      // Объект временной шкалы статуса монитора
+    }
+  ],
+  "resourceGroups": [
+    // Подробнее об объекте группы ресурсов:
+    // https://oneuptime.com/reference/resource-group
+    {
+      // Объект группы ресурсов
+    },
+    {
+      // Объект группы ресурсов
+    }
+  ],
+  "monitorStatuses": [
+    // Подробнее об объекте статуса монитора:
+    // https://oneuptime.com/reference/monitor-status
+    {
+      // Объект статуса монитора
+    },
+    {
+      // Объект статуса монитора
+    }
+  ],
+  "statusPageResources": [
+    // Подробнее об объекте ресурса страницы статуса:
+    // https://oneuptime.com/reference/status-page-resource
+    {
+      // Объект ресурса страницы статуса
+    },
+    {
+      // Объект ресурса страницы статуса
+    }
+  ],
+  "incidentStateTimelines": [
+    // Подробнее об объекте временной шкалы состояния инцидента:
+    // https://oneuptime.com/reference/incident-state-timeline
+    {
+      // Объект временной шкалы состояния инцидента
+    },
+    {
+      // Объект временной шкалы состояния инцидента
+    }
+  ],
+  "statusPage": {
+    // Подробнее об объекте страницы статуса:
+    // https://oneuptime.com/reference/status-page
+  },
+  "scheduledMaintenanceStateTimelines": [
+    // Подробнее об объекте временной шкалы состояния планового обслуживания:
+    // https://oneuptime.com/reference/scheduled-maintenance-state-timeline
+    {
+      // Объект временной шкалы состояния планового обслуживания
+    },
+    {
+      // Объект временной шкалы состояния планового обслуживания
+    }
+  ],
+  "monitorGroupCurrentStatuses": {
+    // Текущий статус группы мониторов.
+  },
+  "monitorsInGroup": {
+    // Мониторы в группе.
+  }
 }
 ```
 
@@ -170,7 +167,7 @@ curl -X POST https://oneuptime.com/status-page-api/uptime/:statusPageId
 
 **Тело запроса (необязательно):**
 
-Можно передать `startDate` и `endDate` в теле запроса. 
+Можно передать `startDate` и `endDate` в теле запроса.
 
 ```
 {
@@ -185,74 +182,73 @@ curl -X POST https://oneuptime.com/status-page-api/uptime/:statusPageId
 
 ```json
 {
-    "statusPageResourceUptimes": [
+  "statusPageResourceUptimes": [
+    {
+      "statusPageResourceId": {
+        "_type": "ObjectID",
+        "value": "cfffa3c3-fdf3-4cd7-9585-d6d408a14663"
+      },
+      "uptimePercent": 99.98,
+      "statusPageResourceName": "Название ресурса страницы статуса",
+      "currentStatus": {
+        "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
+        "isPermissionIf": {},
+        "name": "Operational",
+        "color": {
+          "_type": "Color",
+          "value": "#2ab57d"
+        },
+        "isOperationalState": true,
+        "priority": 1
+      }
+    }
+  ],
+  "groupUptimes": [
+    {
+      "statusPageGroupId": {
+        "_type": "ObjectID",
+        "value": "df7632c4-c5c0-453c-88bf-9ee3d68d45f2"
+      },
+      "uptimePercent": 99.98,
+      "statusPageResourceUptimes": [
         {
-            "statusPageResourceId": {
-                "_type": "ObjectID",
-                "value": "cfffa3c3-fdf3-4cd7-9585-d6d408a14663"
+          "statusPageResourceId": {
+            "_type": "ObjectID",
+            "value": "8175534f-aa77-456c-ad5b-b8e7b85876aa"
+          },
+          "uptimePercent": 99.98,
+          "statusPageResourceName": "dfg",
+          "currentStatus": {
+            "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
+            "isPermissionIf": {},
+            "name": "Operational",
+            "color": {
+              "_type": "Color",
+              "value": "#2ab57d"
             },
-            "uptimePercent": 99.98,
-            "statusPageResourceName": "Название ресурса страницы статуса",
-            "currentStatus": {
-                "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
-                "isPermissionIf": {},
-                "name": "Operational",
-                "color": {
-                    "_type": "Color",
-                    "value": "#2ab57d"
-                },
-                "isOperationalState": true,
-                "priority": 1
-            }
+            "isOperationalState": true,
+            "priority": 1
+          }
         }
-    ],
-    "groupUptimes": [
-        {
-            "statusPageGroupId": {
-                "_type": "ObjectID",
-                "value": "df7632c4-c5c0-453c-88bf-9ee3d68d45f2"
-            },
-            "uptimePercent": 99.98,
-            "statusPageResourceUptimes": [
-                {
-                    "statusPageResourceId": {
-                        "_type": "ObjectID",
-                        "value": "8175534f-aa77-456c-ad5b-b8e7b85876aa"
-                    },
-                    "uptimePercent": 99.98,
-                    "statusPageResourceName": "dfg",
-                    "currentStatus": {
-                        "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
-                        "isPermissionIf": {},
-                        "name": "Operational",
-                        "color": {
-                            "_type": "Color",
-                            "value": "#2ab57d"
-                        },
-                        "isOperationalState": true,
-                        "priority": 1
-                    }
-                }
-            ],
-            "statusPageGroupName": "Название группы",
-            "currentStatus": {
-                "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
-                "isPermissionIf": {},
-                "name": "Operational",
-                "color": {
-                    "_type": "Color",
-                    "value": "#2ab57d"
-                },
-                "isOperationalState": true,
-                "priority": 1
-            }
-        }
-    ],
-    "startDate": "2021-09-01T00:00:00Z",
-    "endDate": "2021-09-30T23:59:59Z"
+      ],
+      "statusPageGroupName": "Название группы",
+      "currentStatus": {
+        "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
+        "isPermissionIf": {},
+        "name": "Operational",
+        "color": {
+          "_type": "Color",
+          "value": "#2ab57d"
+        },
+        "isOperationalState": true,
+        "priority": 1
+      }
+    }
+  ],
+  "startDate": "2021-09-01T00:00:00Z",
+  "endDate": "2021-09-30T23:59:59Z"
 }
 ```
-
 
 ### API инцидентов
 
@@ -262,23 +258,22 @@ curl -X POST https://oneuptime.com/status-page-api/uptime/:statusPageId
 curl -X POST https://oneuptime.com/status-page-api/incidents/:statusPageId
 ```
 
-Ответ API: 
+Ответ API:
 
 ```json
 {
-    "incidents": [
-        // Подробнее об объекте инцидента:
-        // https://oneuptime.com/reference/incident
-        {
-            // Объект инцидента
-        },
-        {
-            // Объект инцидента
-        }
-    ]
+  "incidents": [
+    // Подробнее об объекте инцидента:
+    // https://oneuptime.com/reference/incident
+    {
+      // Объект инцидента
+    },
+    {
+      // Объект инцидента
+    }
+  ]
 }
 ```
-
 
 ### API плановых работ
 
@@ -288,20 +283,20 @@ curl -X POST https://oneuptime.com/status-page-api/incidents/:statusPageId
 curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance/:statusPageId
 ```
 
-Ответ API: 
+Ответ API:
 
 ```json
 {
-    "scheduledMaintenanceEvents": [
-        // Подробнее об объекте события планового обслуживания:
-        // https://oneuptime.com/reference/scheduled-maintenance
-        {
-            // Объект события планового обслуживания
-        },
-        {
-            // Объект события планового обслуживания
-        }
-    ]
+  "scheduledMaintenanceEvents": [
+    // Подробнее об объекте события планового обслуживания:
+    // https://oneuptime.com/reference/scheduled-maintenance
+    {
+      // Объект события планового обслуживания
+    },
+    {
+      // Объект события планового обслуживания
+    }
+  ]
 }
 ```
 
@@ -313,19 +308,19 @@ curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance/:status
 curl -X POST https://oneuptime.com/status-page-api/announcements/:statusPageId
 ```
 
-Ответ API: 
+Ответ API:
 
 ```json
 {
-    "announcements": [
-        // Подробнее об объекте объявления:
-        // https://oneuptime.com/reference/status-page-announcement
-        {
-            // Объект объявления
-        },
-        {
-            // Объект объявления
-        }
-    ]
+  "announcements": [
+    // Подробнее об объекте объявления:
+    // https://oneuptime.com/reference/status-page-announcement
+    {
+      // Объект объявления
+    },
+    {
+      // Объект объявления
+    }
+  ]
 }
 ```

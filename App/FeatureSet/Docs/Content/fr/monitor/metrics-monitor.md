@@ -27,12 +27,12 @@ Les moniteurs de métriques interrogent et évaluent les métriques numériques 
 
 Définissez une ou plusieurs requêtes de métriques. Chaque requête inclut :
 
-| Champ | Description | Obligatoire |
-|-------|-------------|-------------|
-| Nom de la métrique | Le nom de la métrique à interroger | Oui |
-| Type d'agrégation | Comment agréger les valeurs brutes des métriques (sum, avg, min, max, count) | Oui |
-| Attributs | Filtres clé-valeur pour affiner les données de métriques | Non |
-| Agréger par | Dimensions par lesquelles regrouper la métrique | Non |
+| Champ              | Description                                                                  | Obligatoire |
+| ------------------ | ---------------------------------------------------------------------------- | ----------- |
+| Nom de la métrique | Le nom de la métrique à interroger                                           | Oui         |
+| Type d'agrégation  | Comment agréger les valeurs brutes des métriques (sum, avg, min, max, count) | Oui         |
+| Attributs          | Filtres clé-valeur pour affiner les données de métriques                     | Non         |
+| Agréger par        | Dimensions par lesquelles regrouper la métrique                              | Non         |
 
 Chaque requête se voit attribuer un alias (ex. : `a`, `b`, `c`) pour utilisation dans les formules.
 
@@ -59,22 +59,22 @@ Sélectionnez la fenêtre temporelle pour l'évaluation des métriques :
 
 Choisissez comment agréger les valeurs de métriques pour l'évaluation :
 
-| Stratégie | Description |
-|-----------|-------------|
-| Moyenne | Valeur moyenne sur la fenêtre temporelle |
-| Somme | Somme de toutes les valeurs |
-| Valeur maximale | Valeur la plus élevée dans la fenêtre temporelle |
-| Valeur minimale | Valeur la plus basse dans la fenêtre temporelle |
-| Toutes les valeurs | Toutes les valeurs doivent correspondre aux critères |
-| N'importe quelle valeur | Au moins une valeur doit correspondre |
+| Stratégie               | Description                                          |
+| ----------------------- | ---------------------------------------------------- |
+| Moyenne                 | Valeur moyenne sur la fenêtre temporelle             |
+| Somme                   | Somme de toutes les valeurs                          |
+| Valeur maximale         | Valeur la plus élevée dans la fenêtre temporelle     |
+| Valeur minimale         | Valeur la plus basse dans la fenêtre temporelle      |
+| Toutes les valeurs      | Toutes les valeurs doivent correspondre aux critères |
+| N'importe quelle valeur | Au moins une valeur doit correspondre                |
 
 ## Critères de surveillance
 
 ### Types de vérifications disponibles
 
-| Type de vérification | Description |
-|----------------------|-------------|
-| Valeur de métrique | La valeur agrégée de la requête de métrique ou formule configurée |
+| Type de vérification | Description                                                       |
+| -------------------- | ----------------------------------------------------------------- |
+| Valeur de métrique   | La valeur agrégée de la requête de métrique ou formule configurée |
 
 ### Types de filtres
 

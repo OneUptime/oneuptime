@@ -23,27 +23,27 @@ Se [Widgets](/docs/dashboards/widgets) for hele listen og hva hver enkelt viser.
 
 ## Sentrale begreper
 
-| Begrep | Betydning |
-| --- | --- |
-| **Dashbord** | Hele siden — et navn, et rutenett med widgets, tidsperiodekontroller og en liste over variabler. |
-| **Widget** | Én flis på siden — et diagram, et tall, en liste, et avsnitt. |
-| **Variabel** | En nedtrekksliste øverst som filtrerer hver widget samtidig (klynge, tjeneste, kunde, miljø). |
-| **Tidsperiode** | Tidsvinduet hvert diagram og tall bruker. Sett det én gang øverst på siden. |
-| **Oppdatering** | Hvor ofte widgets spør etter data på nytt. Av, hvert par sekunder, hvert par minutter. |
-| **Modus** | Enten **Rediger** (dra widgets rundt) eller **Vis** (kun lesing, slik besøkende ser det). |
+| Begrep          | Betydning                                                                                        |
+| --------------- | ------------------------------------------------------------------------------------------------ |
+| **Dashbord**    | Hele siden — et navn, et rutenett med widgets, tidsperiodekontroller og en liste over variabler. |
+| **Widget**      | Én flis på siden — et diagram, et tall, en liste, et avsnitt.                                    |
+| **Variabel**    | En nedtrekksliste øverst som filtrerer hver widget samtidig (klynge, tjeneste, kunde, miljø).    |
+| **Tidsperiode** | Tidsvinduet hvert diagram og tall bruker. Sett det én gang øverst på siden.                      |
+| **Oppdatering** | Hvor ofte widgets spør etter data på nytt. Av, hvert par sekunder, hvert par minutter.           |
+| **Modus**       | Enten **Rediger** (dra widgets rundt) eller **Vis** (kun lesing, slik besøkende ser det).        |
 
 ## Hvor du finner dashbord
 
 Åpne **Dashbord** i venstre navigasjon.
 
-| Side | Hva du gjør der |
-| --- | --- |
-| **Dashbord** | Listen over dashbordene dine. Opprett et nytt, søk eller filtrer etter etikett. |
-| **Dashbord → Vis** | Lerretet. Veksle mellom **Rediger** og **Vis** i headeren. |
-| **Dashbord → Oversikt** | Beskrivelse, eiere og etiketter. |
+| Side                         | Hva du gjør der                                                                  |
+| ---------------------------- | -------------------------------------------------------------------------------- |
+| **Dashbord**                 | Listen over dashbordene dine. Opprett et nytt, søk eller filtrer etter etikett.  |
+| **Dashbord → Vis**           | Lerretet. Veksle mellom **Rediger** og **Vis** i headeren.                       |
+| **Dashbord → Oversikt**      | Beskrivelse, eiere og etiketter.                                                 |
 | **Dashbord → Innstillinger** | Offentlig deling, passord, IP-tillatelse, egendefinert domene, merkevarebygging. |
-| **Dashbord → Eiere** | Brukere og team med eksplisitt tilgang. |
-| **Dashbord → Slett** | Fjern dashbordet. |
+| **Dashbord → Eiere**         | Brukere og team med eksplisitt tilgang.                                          |
+| **Dashbord → Slett**         | Fjern dashbordet.                                                                |
 
 ## Bygge et dashbord
 

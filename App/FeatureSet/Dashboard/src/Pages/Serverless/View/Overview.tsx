@@ -8,6 +8,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import ServerlessFunctionInstance from "Common/Models/DatabaseModels/ServerlessFunctionInstance";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -31,6 +32,7 @@ import ResourceOverview, {
   ResourceOverviewQuickLink,
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
+import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
@@ -313,40 +315,50 @@ const ServerlessFunctionOverview: FunctionComponent<
   ];
 
   return (
-    <ResourceOverview
-      icon={IconProp.Bolt}
-      title={(fn.name as string) || "Serverless Function"}
-      identifier={(fn.functionIdentifier as string) || ""}
-      identifierLabel="faas.name"
-      status={fn.otelCollectorStatus}
-      lastSeenAt={fn.lastSeenAt}
-      description={fn.description as string}
-      chips={chips}
-      tiles={tiles}
-      charts={charts}
-      controls={
-        <AutoRefreshControl
-          autoRefreshInterval={autoRefreshInterval}
-          onAutoRefreshIntervalChange={setAutoRefreshInterval}
-          onManualRefresh={(): void => {
-            fetchModel(false).catch(() => {});
-          }}
-          isRefreshing={isRefreshing}
-          lastRefreshedAt={lastRefreshedAt}
-          timeRangePicker={
-            <TelemetryTimeRangePicker
-              value={timeRange}
-              onChange={(value: RangeStartAndEndDateTime): void => {
-                setTimeRange(value);
-              }}
-            />
-          }
-        />
-      }
-      quickLinks={quickLinks}
-      detailRows={detailRows}
-      labels={fn.labels}
-    />
+    <Fragment>
+      <ResourceOverview
+        icon={IconProp.Bolt}
+        title={(fn.name as string) || "Serverless Function"}
+        identifier={(fn.functionIdentifier as string) || ""}
+        identifierLabel="faas.name"
+        status={fn.otelCollectorStatus}
+        lastSeenAt={fn.lastSeenAt}
+        description={fn.description as string}
+        chips={chips}
+        tiles={tiles}
+        charts={charts}
+        controls={
+          <AutoRefreshControl
+            autoRefreshInterval={autoRefreshInterval}
+            onAutoRefreshIntervalChange={setAutoRefreshInterval}
+            onManualRefresh={(): void => {
+              fetchModel(false).catch(() => {});
+            }}
+            isRefreshing={isRefreshing}
+            lastRefreshedAt={lastRefreshedAt}
+            timeRangePicker={
+              <TelemetryTimeRangePicker
+                value={timeRange}
+                onChange={(value: RangeStartAndEndDateTime): void => {
+                  setTimeRange(value);
+                }}
+              />
+            }
+          />
+        }
+        quickLinks={quickLinks}
+        detailRows={detailRows}
+        labels={fn.labels}
+      />
+      <ArchiveResourceCard<ServerlessFunction>
+        modelType={ServerlessFunction}
+        modelId={modelId}
+        singularName="function"
+        listRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.SERVERLESS_FUNCTIONS] as Route,
+        )}
+      />
+    </Fragment>
   );
 };
 

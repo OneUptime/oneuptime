@@ -7,7 +7,6 @@ O monitoramento sintético é uma maneira de monitorar proativamente seus aplica
 O exemplo a seguir mostra como usar um Monitor Sintético:
 
 ```javascript
-
 // Objects available in the context of the script are:
 
 // - axios: Axios module to make HTTP requests
@@ -17,15 +16,15 @@ O exemplo a seguir mostra como usar um Monitor Sintético:
 
 // You can use these objects to interact with the browser and make HTTP requests.
 
-await page.goto('https://playwright.dev/');
+await page.goto("https://playwright.dev/");
 
 // Playwright Documentation here: https://playwright.dev/docs/intro
 
 // Here are some of the variables that you can use in the context of the monitored object:
 
-console.log(browserType) // This will list the browser type in the current run context - Chromium, Firefox, Webkit
+console.log(browserType); // This will list the browser type in the current run context - Chromium, Firefox, Webkit
 
-console.log(screenSizeType) // This will list the screen size type in the current run context - Mobile, Tablet, Desktop
+console.log(screenSizeType); // This will list the screen size type in the current run context - Mobile, Tablet, Desktop
 
 // Playwright page object belongs to that specific browser context, so you can use it to interact with the browser.
 
@@ -33,7 +32,7 @@ console.log(screenSizeType) // This will list the screen size type in the curren
 // in the script context. Screenshots captured this way are preserved even if the
 // script later throws — useful for debugging failed runs.
 
-screenshots['screenshot-name'] = await page.screenshot(); // you can save multiple screenshots and have them with different names.
+screenshots["screenshot-name"] = await page.screenshot(); // you can save multiple screenshots and have them with different names.
 
 // when you want to return a value, use return statement with data as a prop.
 
@@ -42,9 +41,8 @@ screenshots['screenshot-name'] = await page.screenshot(); // you can save multip
 
 // You can access the browser context via page.context() if needed (for example, to create a new page or dealing with popups).
 
-
 return {
-    data: 'Hello World'
+  data: "Hello World",
 };
 ```
 
@@ -57,25 +55,23 @@ Usamos o Playwright para simular interações do usuário. Você pode usar o obj
 Um objeto `screenshots` pré-declarado está disponível no contexto do script. Atribua capturas de tela a ele em qualquer ponto do script — essas capturas de tela são capturadas **mesmo se o script lançar** (incluindo falhas de asserção, timeouts ou erros inesperados), para que você possa ver exatamente como a página estava quando a execução falhou. As capturas de tela capturadas aparecem no Painel do OneUptime para essa execução específica do monitor.
 
 ```javascript
-
 // Capture screenshots via the `screenshots` side-channel — they are preserved on both success and failure.
 
-await page.goto('https://app.example.com/login');
-screenshots['login-page'] = await page.screenshot();
+await page.goto("https://app.example.com/login");
+screenshots["login-page"] = await page.screenshot();
 
-await page.fill('#email', 'user@example.com');
-await page.fill('#password', 'wrong');
-await page.click('button[type=submit]');
+await page.fill("#email", "user@example.com");
+await page.fill("#password", "wrong");
+await page.click("button[type=submit]");
 
 // If the next assertion throws, the `login-page` screenshot above is still captured.
-await page.waitForSelector('.dashboard', { timeout: 5000 });
+await page.waitForSelector(".dashboard", { timeout: 5000 });
 
-screenshots['dashboard'] = await page.screenshot();
+screenshots["dashboard"] = await page.screenshot();
 
 return {
-    data: 'Login succeeded'
+  data: "Login succeeded",
 };
-
 ```
 
 #### Retornando capturas de tela (legado)
@@ -85,14 +81,13 @@ Para compatibilidade retroativa, você também pode retornar capturas de tela do
 ```javascript
 // Legacy pattern — screenshots only captured on successful return.
 const screenshots = {};
-screenshots['screenshot-name'] = await page.screenshot();
+screenshots["screenshot-name"] = await page.screenshot();
 
 return {
-    data: 'Hello World',
-    screenshots: screenshots
+  data: "Hello World",
+  screenshots: screenshots,
 };
 ```
-
 
 ### Usando Segredos de Monitor
 
@@ -121,7 +116,7 @@ let numberSecret = {{monitorSecrets.NumberSecret}};
 let booleanSecret = {{monitorSecrets.BooleanSecret}};
 
 // you can even console log to see if the secrets is being fetched correctly
-console.log(stringSecret); 
+console.log(stringSecret);
 ```
 
 ### Métricas Personalizadas
@@ -139,32 +134,34 @@ oneuptime.captureMetric(name, value, attributes);
 #### Exemplo
 
 ```javascript
-await page.goto('https://app.example.com');
+await page.goto("https://app.example.com");
 
 const startTime = Date.now();
-await page.waitForSelector('#dashboard-loaded');
+await page.waitForSelector("#dashboard-loaded");
 const loadTime = Date.now() - startTime;
 
 // Capture page load time as a custom metric
-oneuptime.captureMetric('dashboard.load.time', loadTime, {
-    page: 'dashboard'
+oneuptime.captureMetric("dashboard.load.time", loadTime, {
+  page: "dashboard",
 });
 
-screenshots['dashboard'] = await page.screenshot();
+screenshots["dashboard"] = await page.screenshot();
 
 return {
-    data: { loadTime }
+  data: { loadTime },
 };
 ```
 
 Uma vez capturadas, essas métricas aparecem no Explorador de Métricas com nomes como `custom.monitor.dashboard.load.time`. Você pode adicioná-las a gráficos do painel, configurar alertas e filtrar por monitor, probe, tipo de navegador, tamanho de tela ou quaisquer atributos personalizados fornecidos.
 
 **Limites:**
+
 - Máximo de 100 métricas por execução de script.
 - Os nomes de métricas são limitados a 200 caracteres.
 - Os valores devem ser numéricos.
 
 ### Módulos disponíveis no script
+
 - `page`: Você pode usar este módulo para interagir com o navegador. É um objeto Playwright Page que permite realizar ações como clicar em botões, preencher formulários e tirar capturas de tela. Você pode acessar o contexto do navegador via `page.context()` se necessário (por exemplo, para criar uma nova página ou lidar com popups).
 - `screenshots`: Um objeto pré-declarado ao qual você atribui capturas de tela (ex.: `screenshots['login-page'] = await page.screenshot()`). As capturas de tela atribuídas aqui são capturadas mesmo se o script lançar posteriormente.
 - `axios`: Você pode usar este módulo para fazer requisições HTTP. É um cliente HTTP baseado em promessas para o navegador e Node.js.

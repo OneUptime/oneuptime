@@ -24,8 +24,9 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 1. **Workflows → Create Workflow** खोलें, इसे `Incidents → Opsgenie` नाम दें, और **Builder** खोलें।
 2. **On Create** पर सेट एक **Incident** trigger जोड़ें। इसे `Incident` नाम दें।
 3. trigger से connected एक **API** ब्लॉक जोड़ें:
+
    - **Method**: `POST`
-   - **URL**: `https://api.opsgenie.com/v2/alerts`  *(EU के लिए `api.eu.opsgenie.com` इस्तेमाल करें)*
+   - **URL**: `https://api.opsgenie.com/v2/alerts` _(EU के लिए `api.eu.opsgenie.com` इस्तेमाल करें)_
    - **Headers**:
 
      ```text
@@ -46,6 +47,7 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
      ```
 
    **`alias`** इस Opsgenie alert को OneUptime incident से बाँधता है ताकि आप बाद में alias द्वारा उसे बंद कर सकें। ध्यान दें Opsgenie auth scheme literal word `GenieKey` है जिसके बाद space और आपकी key है।
+
 4. **सहेजें**, enable करें, और एक test incident बनाएँ। Workflow logs में `202 Accepted` response का मतलब है Opsgenie ने alert queue किया।
 
 ## चरण 3 — OneUptime resolve पर बंद करें (अनुशंसित)

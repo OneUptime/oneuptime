@@ -23,27 +23,27 @@ Die vollständige Liste mit dem, was jedes Widget zeigt, finden Sie unter [Widge
 
 ## Wichtige Begriffe
 
-| Begriff | Bedeutung |
-| --- | --- |
-| **Dashboard** | Die gesamte Seite – ein Name, ein Raster aus Widgets, Steuerung des Zeitbereichs und eine Liste von Variablen. |
-| **Widget** | Eine Kachel auf der Seite – ein Diagramm, eine Zahl, eine Liste, ein Textabschnitt. |
-| **Variable** | Ein Dropdown oben, das alle Widgets gleichzeitig filtert (Cluster, Service, Kunde, Umgebung). |
-| **Zeitbereich** | Das Zeitfenster, das jedes Diagramm und jede Zahl verwendet. Wird einmal oben auf der Seite eingestellt. |
-| **Aktualisierung** | Wie oft Widgets die Daten neu abfragen. Aus, alle paar Sekunden, alle paar Minuten. |
-| **Modus** | Entweder **Bearbeiten** (Widgets verschieben) oder **Ansicht** (nur lesen, wie Besucher sie sehen). |
+| Begriff            | Bedeutung                                                                                                      |
+| ------------------ | -------------------------------------------------------------------------------------------------------------- |
+| **Dashboard**      | Die gesamte Seite – ein Name, ein Raster aus Widgets, Steuerung des Zeitbereichs und eine Liste von Variablen. |
+| **Widget**         | Eine Kachel auf der Seite – ein Diagramm, eine Zahl, eine Liste, ein Textabschnitt.                            |
+| **Variable**       | Ein Dropdown oben, das alle Widgets gleichzeitig filtert (Cluster, Service, Kunde, Umgebung).                  |
+| **Zeitbereich**    | Das Zeitfenster, das jedes Diagramm und jede Zahl verwendet. Wird einmal oben auf der Seite eingestellt.       |
+| **Aktualisierung** | Wie oft Widgets die Daten neu abfragen. Aus, alle paar Sekunden, alle paar Minuten.                            |
+| **Modus**          | Entweder **Bearbeiten** (Widgets verschieben) oder **Ansicht** (nur lesen, wie Besucher sie sehen).            |
 
 ## Wo Sie Dashboards finden
 
 Öffnen Sie **Dashboards** in der linken Navigation.
 
-| Seite | Was Sie dort tun |
-| --- | --- |
-| **Dashboards** | Ihre Liste der Dashboards. Neues erstellen, suchen oder nach Label filtern. |
-| **Dashboard → Ansicht** | Die Arbeitsfläche. Im Kopfbereich wechseln Sie zwischen **Bearbeiten** und **Ansicht**. |
-| **Dashboard → Übersicht** | Beschreibung, Eigentümer und Labels. |
-| **Dashboard → Einstellungen** | Öffentliche Freigabe, Passwort, IP-Zugriffsliste, eigene Domain, Branding. |
-| **Dashboard → Eigentümer** | Benutzer und Teams mit explizitem Zugriff. |
-| **Dashboard → Löschen** | Das Dashboard entfernen. |
+| Seite                         | Was Sie dort tun                                                                        |
+| ----------------------------- | --------------------------------------------------------------------------------------- |
+| **Dashboards**                | Ihre Liste der Dashboards. Neues erstellen, suchen oder nach Label filtern.             |
+| **Dashboard → Ansicht**       | Die Arbeitsfläche. Im Kopfbereich wechseln Sie zwischen **Bearbeiten** und **Ansicht**. |
+| **Dashboard → Übersicht**     | Beschreibung, Eigentümer und Labels.                                                    |
+| **Dashboard → Einstellungen** | Öffentliche Freigabe, Passwort, IP-Zugriffsliste, eigene Domain, Branding.              |
+| **Dashboard → Eigentümer**    | Benutzer und Teams mit explizitem Zugriff.                                              |
+| **Dashboard → Löschen**       | Das Dashboard entfernen.                                                                |
 
 ## Ein Dashboard aufbauen
 

@@ -161,11 +161,11 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 
 ## 環境變數
 
-| 變數 | 預設值 | 說明 |
-|---|---|---|
-| `PROBE_INGRESS_PORT` | _未設定_（停用） | 傳入監聽器綁定的連接埠。任何 `> 0` 的值都會啟用入口。 |
-| `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | 每次向 OneUptime 轉發嘗試的逾時時間（毫秒）。最小值為 `1000`。 |
-| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | 探針放棄某次轉發前的重試次數。設為 `0` 以停用重試。 |
+| 變數                                | 預設值           | 說明                                                           |
+| ----------------------------------- | ---------------- | -------------------------------------------------------------- |
+| `PROBE_INGRESS_PORT`                | _未設定_（停用） | 傳入監聽器綁定的連接埠。任何 `> 0` 的值都會啟用入口。          |
+| `PROBE_INGRESS_FORWARD_TIMEOUT_MS`  | `10000`          | 每次向 OneUptime 轉發嘗試的逾時時間（毫秒）。最小值為 `1000`。 |
+| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3`              | 探針放棄某次轉發前的重試次數。設為 `0` 以停用重試。            |
 
 標準的探針變數（`PROBE_KEY`、`PROBE_ID`、`ONEUPTIME_URL`、代理變數）全部適用——完整清單請參閱[自訂探針（Custom Probes）](/docs/probe/custom-probe)。
 

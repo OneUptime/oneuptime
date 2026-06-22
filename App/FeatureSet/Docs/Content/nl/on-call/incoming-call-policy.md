@@ -178,11 +178,11 @@ flowchart TD
     end
 ```
 
-| Volgorde | Escaleren na | Doel |
-|-------|----------------|--------|
-| 1 | 30 seconden | Primair piketschema |
-| 2 | 30 seconden | Secundair piketschema |
-| 3 | 30 seconden | Technisch teamleider |
+| Volgorde | Escaleren na | Doel                  |
+| -------- | ------------ | --------------------- |
+| 1        | 30 seconden  | Primair piketschema   |
+| 2        | 30 seconden  | Secundair piketschema |
+| 3        | 30 seconden  | Technisch teamleider  |
 
 ## Stap 7: Gespreksberichten configureren (optioneel)
 
@@ -199,23 +199,23 @@ Pas de berichten aan die bellers horen:
 
 ### Beleidinstellingen
 
-| Instelling | Beschrijving | Standaard |
-|---------|-------------|---------|
-| Begroetingsbericht | TTS-bericht dat wordt afgespeeld wanneer gesprek wordt beantwoord | "Please wait while we connect you to the on-call engineer." |
-| Geen antwoordbericht | Bericht wanneer alle escalatieregels mislukken | "No one is available. Please try again later." |
-| Niemand beschikbaar-bericht | Bericht wanneer niemand piket heeft | "We're sorry, but no on-call engineer is currently available." |
-| Beleid herhalen als niemand antwoordt | Opnieuw starten vanaf eerste regel als alle mislukken | Uitgeschakeld |
-| Beleid herhalingstijden | Maximum aantal herhaalattempts | 1 |
+| Instelling                            | Beschrijving                                                      | Standaard                                                      |
+| ------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------- |
+| Begroetingsbericht                    | TTS-bericht dat wordt afgespeeld wanneer gesprek wordt beantwoord | "Please wait while we connect you to the on-call engineer."    |
+| Geen antwoordbericht                  | Bericht wanneer alle escalatieregels mislukken                    | "No one is available. Please try again later."                 |
+| Niemand beschikbaar-bericht           | Bericht wanneer niemand piket heeft                               | "We're sorry, but no on-call engineer is currently available." |
+| Beleid herhalen als niemand antwoordt | Opnieuw starten vanaf eerste regel als alle mislukken             | Uitgeschakeld                                                  |
+| Beleid herhalingstijden               | Maximum aantal herhaalattempts                                    | 1                                                              |
 
 ### Escalatieregelinstellingen
 
-| Instelling | Beschrijving |
-|---------|-------------|
-| Volgorde | Prioriteitsvolgorde (1 = hoogste prioriteit) |
+| Instelling              | Beschrijving                                                          |
+| ----------------------- | --------------------------------------------------------------------- |
+| Volgorde                | Prioriteitsvolgorde (1 = hoogste prioriteit)                          |
 | Escaleren na (seconden) | Wachttijd voordat de volgende regel wordt geprobeerd (standaard: 30s) |
-| Piketschema | Routeren naar wie op dat moment piket heeft |
-| Teams | Routeren naar alle leden van geselecteerde teams |
-| Gebruikers | Routeren naar specifieke gebruikers |
+| Piketschema             | Routeren naar wie op dat moment piket heeft                           |
+| Teams                   | Routeren naar alle leden van geselecteerde teams                      |
+| Gebruikers              | Routeren naar specifieke gebruikers                                   |
 
 ## Gesprekslogboeken bekijken
 
@@ -226,6 +226,7 @@ Om de geschiedenis van inkomende gesprekken te bekijken:
 3. Ga naar het tabblad **Gesprekslogboeken**
 
 De logboeken tonen:
+
 - Telefoonnummer van de beller
 - Gespreksstatus (Voltooid, Geen antwoord, Mislukt, enz.)
 - Wie het gesprek heeft beantwoord

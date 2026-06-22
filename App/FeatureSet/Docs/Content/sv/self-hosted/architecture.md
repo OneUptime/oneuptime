@@ -113,6 +113,7 @@ flowchart TB
 ```
 
 ## Vad detta visar
+
 - Slutanvändare når OneUptime via klustrets Ingress (NGINX), som dirigerar till UI och API.
 - Kärntjänster läser/skriver tillstånd till PostgreSQL, Redis och ClickHouse.
 - Sonder kan köras inuti ditt kluster (rekommenderas) och/eller på annan plats i ditt nätverk. De kan övervaka:

@@ -67,10 +67,10 @@ export ONEUPTIME_API_KEY="your-api-key-here"
 
 ### Configuration Options
 
-| Argument | Environment Variable | विवरण | आवश्यक |
-|----------|---------------------|-------|--------|
-| `oneuptime_url` | `ONEUPTIME_URL` | OneUptime URL | हाँ |
-| `api_key` | `ONEUPTIME_API_KEY` | OneUptime API Key | हाँ |
+| Argument        | Environment Variable | विवरण             | आवश्यक |
+| --------------- | -------------------- | ----------------- | ------ |
+| `oneuptime_url` | `ONEUPTIME_URL`      | OneUptime URL     | हाँ    |
+| `api_key`       | `ONEUPTIME_API_KEY`  | OneUptime API Key | हाँ    |
 
 ## Quick Start
 
@@ -161,30 +161,35 @@ terraform {
 
 **Critical**: Self-hosted customers को provider version को अपने OneUptime installation से match करने के लिए pin करना होगा।
 
-| OneUptime Version | Provider Version | Configuration |
-|-------------------|------------------|---------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| 7.2.x | 7.2.x | `version = "~> 7.2.0"` |
+| OneUptime Version | Provider Version | Configuration          |
+| ----------------- | ---------------- | ---------------------- |
+| 7.0.x             | 7.0.x            | `version = "~> 7.0.0"` |
+| 7.1.x             | 7.1.x            | `version = "~> 7.1.0"` |
+| 7.2.x             | 7.2.x            | `version = "~> 7.2.0"` |
 
 ## उपलब्ध Resources
 
 OneUptime Terraform provider निम्नलिखित resources का समर्थन करता है:
 
 ### Core Resources
+
 - `oneuptime_team` - teams प्रबंधित करें
 
 ### Monitoring
+
 - `oneuptime_monitor` - monitors बनाएं और प्रबंधित करें
 - `oneuptime_probe` - monitoring probes प्रबंधित करें
 
 ### On-Call Management
+
 - `oneuptime_on_call_duty_policy` - on-call schedules सेट अप करें
 
 ### Status Pages
+
 - `oneuptime_status_page` - status pages बनाएं
 
 ### Service Catalog
+
 - `oneuptime_service_catalog` - service catalog entries प्रबंधित करें
 - `oneuptime_service` - services define करें
 - `oneuptime_service_dependency` - service dependencies map करें
@@ -194,10 +199,12 @@ OneUptime Terraform provider निम्नलिखित resources का स
 ### 1. Version Management
 
 **Cloud Customers के लिए:**
+
 - compatible updates पाने के लिए semantic versioning `~>` उपयोग करें
 - major version upgrades से पहले changelog review करें
 
 **Self-Hosted Customers के लिए:**
+
 - हमेशा अपने installation से match करने वाले exact version पर pin करें
 - OneUptime upgrade करने पर provider version update करें
 - पहले non-production environment में test करें
@@ -219,15 +226,19 @@ terraform {
 ### सामान्य समस्याएं
 
 1. **Version Mismatch (Self-Hosted)**
+
    ```
    Error: API version incompatible
    ```
+
    **Solution**: सुनिश्चित करें कि provider version OneUptime installation से match करती है
 
 2. **Authentication Issues**
+
    ```
    Error: Invalid API key
    ```
+
    **Solution**: API key और permissions verify करें
 
 3. **Resource Not Found**

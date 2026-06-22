@@ -67,15 +67,15 @@ sudo oneuptime-infrastructure-agent configure --secret-key=VOSTRA_CHIAVE_SEGRETA
 
 L'agente infrastrutturale supporta i seguenti comandi:
 
-| Comando | Descrizione |
-|---------|-------------|
-| `configure` | Configurare l'agente con la chiave segreta e l'URL di OneUptime |
-| `start` | Avviare il servizio agente |
-| `stop` | Fermare il servizio agente |
-| `restart` | Riavviare il servizio agente |
-| `status` | Mostrare lo stato corrente del servizio |
-| `logs` | Visualizzare i log dell'agente (usare `-n` per il numero di righe, `-f` per seguire) |
-| `uninstall` | Disinstallare il servizio agente |
+| Comando     | Descrizione                                                                          |
+| ----------- | ------------------------------------------------------------------------------------ |
+| `configure` | Configurare l'agente con la chiave segreta e l'URL di OneUptime                      |
+| `start`     | Avviare il servizio agente                                                           |
+| `stop`      | Fermare il servizio agente                                                           |
+| `restart`   | Riavviare il servizio agente                                                         |
+| `status`    | Mostrare lo stato corrente del servizio                                              |
+| `logs`      | Visualizzare i log dell'agente (usare `-n` per il numero di righe, `-f` per seguire) |
+| `uninstall` | Disinstallare il servizio agente                                                     |
 
 ## Metriche Raccolte
 
@@ -115,15 +115,15 @@ Per ogni disco/volume montato:
 
 ### Tipi di Controllo Disponibili
 
-| Tipo di Controllo | Descrizione |
-|------------|-------------|
-| È Online | Se l'agente del server sta riportando (basato su heartbeat) |
-| Percentuale Utilizzo CPU | Percentuale di utilizzo della CPU corrente |
-| Percentuale Utilizzo Memoria | Percentuale di utilizzo della memoria corrente |
-| Percentuale Utilizzo Disco | Percentuale di utilizzo del disco corrente (per un percorso disco specifico) |
-| Nome Processo Server | Verificare se è in esecuzione un processo con un nome specifico |
-| Comando Processo Server | Verificare se è in esecuzione un processo con un comando specifico |
-| PID Processo Server | Verificare se è in esecuzione un processo con un PID specifico |
+| Tipo di Controllo            | Descrizione                                                                  |
+| ---------------------------- | ---------------------------------------------------------------------------- |
+| È Online                     | Se l'agente del server sta riportando (basato su heartbeat)                  |
+| Percentuale Utilizzo CPU     | Percentuale di utilizzo della CPU corrente                                   |
+| Percentuale Utilizzo Memoria | Percentuale di utilizzo della memoria corrente                               |
+| Percentuale Utilizzo Disco   | Percentuale di utilizzo del disco corrente (per un percorso disco specifico) |
+| Nome Processo Server         | Verificare se è in esecuzione un processo con un nome specifico              |
+| Comando Processo Server      | Verificare se è in esecuzione un processo con un comando specifico           |
+| PID Processo Server          | Verificare se è in esecuzione un processo con un PID specifico               |
 
 ### Tipi di Filtro
 
@@ -185,6 +185,7 @@ Per i controlli dei processi:
 ### Alto utilizzo di risorse da parte dell'agente
 
 L'agente è progettato per essere leggero. Se si nota un alto utilizzo delle risorse:
+
 - Riavviare l'agente: `sudo oneuptime-infrastructure-agent restart`
 - Controllare i log dell'agente per errori
 

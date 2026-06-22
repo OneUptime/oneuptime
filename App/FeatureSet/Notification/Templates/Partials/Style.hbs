@@ -1,331 +1,90 @@
- <style>
-    /**
-  * IMPORTANT:
-  * Please read before changing anything, CSS involved in our HTML emails is
-  * extremely specific and written a certain way for a reason. It might not make
-  * sense in a normal setting but Outlook loves it this way.
-  *
-  * !!! [override] prevents Yahoo Mail breaking media queries. It must be used
-  * !!! at the beginning of every line of CSS inside a media query.
-  * !!! Do not remove.
-  *
-  * !!! div[style*="margin: 16px 0"] allows us to target a weird margin
-  * !!! bug in Android's email client.
-  * !!! Do not remove.
-  *
-  * Also, the img files are hosted on S3. Please don't break these URLs!
-  * The images are also versioned by date, so please update the URLs accordingly
-  * if you create new versions
-  *
-***/
-
-
-    /**
-  * # Root
-  * - CSS resets and general styles go here.
-**/
-
-    html,
-    body,
-    a,
-    span,
-    div[style*="margin: 16px 0"] {
-      border: 0 !important;
-      margin: 0 !important;
-      outline: 0 !important;
-      padding: 0 !important;
-      text-decoration: none !important;
-    }
-
-    a,
-    span,
-    td,
-    th {
-      -webkit-font-smoothing: antialiased !important;
-      -moz-osx-font-smoothing: grayscale !important;
-    }
-
-    /**
-  * # Delink
-  * - Classes for overriding clients which creates links out of things like
-  *   emails, addresses, phone numbers, etc.
-**/
-
-    span.st-Delink a {
-      color: #1a1a2e !important;
-      text-decoration: none !important;
-    }
-
-    /** Modifier: preheader */
-    span.st-Delink.st-Delink--preheader a {
-      color: white !important;
-      text-decoration: none !important;
-    }
-
-    /** */
-
-    /** Modifier: title */
-    span.st-Delink.st-Delink--title a {
-      color: #1a1a2e !important;
-      text-decoration: none !important;
-    }
-
-    /** */
-
-    /** Modifier: footer */
-    span.st-Delink.st-Delink--footer a {
-      color: #6b7280 !important;
-      text-decoration: none !important;
-    }
-
-    /** */
-
-    .ii a[href] {
-      color: #1a1a2e;
-    }
-
-    /**
-  * # Links
-  * - Styled links with modern colors
-**/
-
-    a.st-Link {
-      color: #1a1a2e !important;
-      text-decoration: none !important;
-      transition: color 0.2s ease !important;
-    }
-
-    a.st-Link:hover {
-      color: #000000 !important;
-      text-decoration: underline !important;
-    }
-
-    /**
-  * # Status Badges
-  * - Colored badges for incident/alert states
-**/
-
-    .st-Badge {
-      display: inline-block !important;
-      padding: 4px 12px !important;
-      border-radius: 9999px !important;
-      font-size: 12px !important;
-      font-weight: 600 !important;
-      text-transform: uppercase !important;
-      letter-spacing: 0.5px !important;
-    }
-
-    .st-Badge--critical {
-      background-color: #fef2f2 !important;
-      color: #dc2626 !important;
-      border: 1px solid #fecaca !important;
-    }
-
-    .st-Badge--warning {
-      background-color: #fffbeb !important;
-      color: #d97706 !important;
-      border: 1px solid #fde68a !important;
-    }
-
-    .st-Badge--success {
-      background-color: #f0fdf4 !important;
-      color: #16a34a !important;
-      border: 1px solid #bbf7d0 !important;
-    }
-
-    .st-Badge--info {
-      background-color: #f3f4f6 !important;
-      color: #1a1a2e !important;
-      border: 1px solid #d1d5db !important;
-    }
-
-    .st-Badge--neutral {
-      background-color: #f3f4f6 !important;
-      color: #4b5563 !important;
-      border: 1px solid #d1d5db !important;
-    }
-
-    /**
-  * # Detail Cards
-  * - Modern card styling for detail boxes
-**/
-
-    .st-DetailCard {
-      background-color: #f1f5f9 !important;
-      border: 1px solid #e2e8f0 !important;
-      border-radius: 12px !important;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
-    }
-
-    .st-DetailCard-field {
-      padding: 12px 0 !important;
-      border-bottom: 1px solid #e2e8f0 !important;
-    }
-
-    .st-DetailCard-field:last-child {
-      border-bottom: none !important;
-    }
-
-    .st-DetailCard-label {
-      color: #64748b !important;
-      font-size: 12px !important;
-      font-weight: 600 !important;
-      text-transform: uppercase !important;
-      letter-spacing: 0.5px !important;
-      margin-bottom: 4px !important;
-    }
-
-    .st-DetailCard-value {
-      color: #1e293b !important;
-      font-size: 15px !important;
-      font-weight: 500 !important;
-    }
-
-    /**
-  * # Mobile
-  * - This affects emails views in clients less than 600px wide.
-**/
-
-    @media all and (max-width: 600px) {
-
-      /**
-    * # Wrapper
-  **/
-
-      body[override] table.st-Wrapper,
-      body[override] table.st-Width.st-Width--mobile {
-        min-width: 100% !important;
-        width: 100% !important;
-      }
-
-      /**
-    * # Spacer
-  **/
-
-      /** Modifier: gutter */
-      body[override] td.st-Spacer.st-Spacer--gutter {
-        width: 24px !important;
-      }
-
-      /** */
-
-      /** Modifier: kill */
-      body[override] td.st-Spacer.st-Spacer--kill {
-        width: 0 !important;
-      }
-
-      /** */
-
-      /** Modifier: emailEnd */
-      body[override] td.st-Spacer.st-Spacer--emailEnd {
-        height: 32px !important;
-      }
-
-      /** */
-
-      /**
-    * # Font
-  **/
-
-      /** Modifier: title */
-      body[override] td.st-Font.st-Font--title,
-      body[override] td.st-Font.st-Font--title span,
-      body[override] td.st-Font.st-Font--title a {
-        font-size: 26px !important;
-        line-height: 34px !important;
-      }
-
-      /** */
-
-      /** Modifier: header */
-      body[override] td.st-Font.st-Font--header,
-      body[override] td.st-Font.st-Font--header span,
-      body[override] td.st-Font.st-Font--header a {
-        font-size: 22px !important;
-        line-height: 30px !important;
-      }
-
-      /** */
-
-      /** Modifier: body */
-      body[override] td.st-Font.st-Font--body,
-      body[override] td.st-Font.st-Font--body span,
-      body[override] td.st-Font.st-Font--body a {
-        font-size: 16px !important;
-        line-height: 26px !important;
-      }
-
-      /** */
-
-      /** Modifier: caption */
-      body[override] td.st-Font.st-Font--caption,
-      body[override] td.st-Font.st-Font--caption span,
-      body[override] td.st-Font.st-Font--caption a {
-        font-size: 13px !important;
-        line-height: 19px !important;
-      }
-
-      /** */
-
-      /** Modifier: simplified */
-      body[override] table.st-Header.st-Header--simplified td.st-Header-logo {
-        width: auto !important;
-      }
-
-      body[override] table.st-Header.st-Header--simplified td.st-Header-spacing {
-        width: 0 !important;
-      }
-
-      /**
-    * # Divider
-  **/
-
-      body[override] table.st-Divider td.st-Spacer.st-Spacer--gutter,
-      body[override] tr.st-Divider td.st-Spacer.st-Spacer--gutter {
-        background-color: #1a1a2e;
-      }
-
-      /**
-    * # Blocks
-  **/
-
-      body[override] table.st-Blocks table.st-Blocks-inner {
-        border-radius: 0 !important;
-      }
-
-      body[override] table.st-Blocks table.st-Blocks-inner table.st-Blocks-item td.st-Blocks-item-cell {
-        display: block !important;
-      }
-
-      /**
-    * # Button
-  **/
-
-      body[override] table.st-Button {
-        margin: 0 auto !important;
-        width: 100% !important;
-      }
-
-      body[override] table.st-Button td.st-Button-area,
-      body[override] table.st-Button td.st-Button-area a.st-Button-link,
-      body[override] table.st-Button td.st-Button-area span.st-Button-internal {
-        height: 48px !important;
-        line-height: 48px !important;
-        font-size: 16px !important;
-        vertical-align: middle !important;
-      }
-
-      /**
-    * # Detail Cards - Mobile
-  **/
-
-      body[override] .st-DetailCard {
-        border-radius: 8px !important;
-      }
-
-      body[override] .st-Badge {
-        font-size: 11px !important;
-        padding: 3px 10px !important;
-      }
-    }
-  </style>
+<style>
+  /** * IMPORTANT: * Please read before changing anything, CSS involved in our
+  HTML emails is * extremely specific and written a certain way for a reason. It
+  might not make * sense in a normal setting but Outlook loves it this way. * *
+  !!! [override] prevents Yahoo Mail breaking media queries. It must be used *
+  !!! at the beginning of every line of CSS inside a media query. * !!! Do not
+  remove. * * !!! div[style*="margin: 16px 0"] allows us to target a weird
+  margin * !!! bug in Android's email client. * !!! Do not remove. * * Also, the
+  img files are hosted on S3. Please don't break these URLs! * The images are
+  also versioned by date, so please update the URLs accordingly * if you create
+  new versions * ***/ /** * # Root * - CSS resets and general styles go here.
+  **/ html, body, a, span, div[style*="margin: 16px 0"] { border: 0 !important;
+  margin: 0 !important; outline: 0 !important; padding: 0 !important;
+  text-decoration: none !important; } a, span, td, th { -webkit-font-smoothing:
+  antialiased !important; -moz-osx-font-smoothing: grayscale !important; } /** *
+  # Delink * - Classes for overriding clients which creates links out of things
+  like * emails, addresses, phone numbers, etc. **/ span.st-Delink a { color:
+  #1a1a2e !important; text-decoration: none !important; } /** Modifier:
+  preheader */ span.st-Delink.st-Delink--preheader a { color: white !important;
+  text-decoration: none !important; } /** */ /** Modifier: title */
+  span.st-Delink.st-Delink--title a { color: #1a1a2e !important;
+  text-decoration: none !important; } /** */ /** Modifier: footer */
+  span.st-Delink.st-Delink--footer a { color: #6b7280 !important;
+  text-decoration: none !important; } /** */ .ii a[href] { color: #1a1a2e; } /**
+  * # Links * - Styled links with modern colors **/ a.st-Link { color: #1a1a2e
+  !important; text-decoration: none !important; transition: color 0.2s ease
+  !important; } a.st-Link:hover { color: #000000 !important; text-decoration:
+  underline !important; } /** * # Status Badges * - Colored badges for
+  incident/alert states **/ .st-Badge { display: inline-block !important;
+  padding: 4px 12px !important; border-radius: 9999px !important; font-size:
+  12px !important; font-weight: 600 !important; text-transform: uppercase
+  !important; letter-spacing: 0.5px !important; } .st-Badge--critical {
+  background-color: #fef2f2 !important; color: #dc2626 !important; border: 1px
+  solid #fecaca !important; } .st-Badge--warning { background-color: #fffbeb
+  !important; color: #d97706 !important; border: 1px solid #fde68a !important; }
+  .st-Badge--success { background-color: #f0fdf4 !important; color: #16a34a
+  !important; border: 1px solid #bbf7d0 !important; } .st-Badge--info {
+  background-color: #f3f4f6 !important; color: #1a1a2e !important; border: 1px
+  solid #d1d5db !important; } .st-Badge--neutral { background-color: #f3f4f6
+  !important; color: #4b5563 !important; border: 1px solid #d1d5db !important; }
+  /** * # Detail Cards * - Modern card styling for detail boxes **/
+  .st-DetailCard { background-color: #f1f5f9 !important; border: 1px solid
+  #e2e8f0 !important; border-radius: 12px !important; box-shadow: 0 1px 3px
+  rgba(0, 0, 0, 0.05) !important; } .st-DetailCard-field { padding: 12px 0
+  !important; border-bottom: 1px solid #e2e8f0 !important; }
+  .st-DetailCard-field:last-child { border-bottom: none !important; }
+  .st-DetailCard-label { color: #64748b !important; font-size: 12px !important;
+  font-weight: 600 !important; text-transform: uppercase !important;
+  letter-spacing: 0.5px !important; margin-bottom: 4px !important; }
+  .st-DetailCard-value { color: #1e293b !important; font-size: 15px !important;
+  font-weight: 500 !important; } /** * # Mobile * - This affects emails views in
+  clients less than 600px wide. **/ @media all and (max-width: 600px) { /** * #
+  Wrapper **/ body[override] table.st-Wrapper, body[override]
+  table.st-Width.st-Width--mobile { min-width: 100% !important; width: 100%
+  !important; } /** * # Spacer **/ /** Modifier: gutter */ body[override]
+  td.st-Spacer.st-Spacer--gutter { width: 24px !important; } /** */ /**
+  Modifier: kill */ body[override] td.st-Spacer.st-Spacer--kill { width: 0
+  !important; } /** */ /** Modifier: emailEnd */ body[override]
+  td.st-Spacer.st-Spacer--emailEnd { height: 32px !important; } /** */ /** * #
+  Font **/ /** Modifier: title */ body[override] td.st-Font.st-Font--title,
+  body[override] td.st-Font.st-Font--title span, body[override]
+  td.st-Font.st-Font--title a { font-size: 26px !important; line-height: 34px
+  !important; } /** */ /** Modifier: header */ body[override]
+  td.st-Font.st-Font--header, body[override] td.st-Font.st-Font--header span,
+  body[override] td.st-Font.st-Font--header a { font-size: 22px !important;
+  line-height: 30px !important; } /** */ /** Modifier: body */ body[override]
+  td.st-Font.st-Font--body, body[override] td.st-Font.st-Font--body span,
+  body[override] td.st-Font.st-Font--body a { font-size: 16px !important;
+  line-height: 26px !important; } /** */ /** Modifier: caption */ body[override]
+  td.st-Font.st-Font--caption, body[override] td.st-Font.st-Font--caption span,
+  body[override] td.st-Font.st-Font--caption a { font-size: 13px !important;
+  line-height: 19px !important; } /** */ /** Modifier: simplified */
+  body[override] table.st-Header.st-Header--simplified td.st-Header-logo {
+  width: auto !important; } body[override] table.st-Header.st-Header--simplified
+  td.st-Header-spacing { width: 0 !important; } /** * # Divider **/
+  body[override] table.st-Divider td.st-Spacer.st-Spacer--gutter, body[override]
+  tr.st-Divider td.st-Spacer.st-Spacer--gutter { background-color: #1a1a2e; }
+  /** * # Blocks **/ body[override] table.st-Blocks table.st-Blocks-inner {
+  border-radius: 0 !important; } body[override] table.st-Blocks
+  table.st-Blocks-inner table.st-Blocks-item td.st-Blocks-item-cell { display:
+  block !important; } /** * # Button **/ body[override] table.st-Button {
+  margin: 0 auto !important; width: 100% !important; } body[override]
+  table.st-Button td.st-Button-area, body[override] table.st-Button
+  td.st-Button-area a.st-Button-link, body[override] table.st-Button
+  td.st-Button-area span.st-Button-internal { height: 48px !important;
+  line-height: 48px !important; font-size: 16px !important; vertical-align:
+  middle !important; } /** * # Detail Cards - Mobile **/ body[override]
+  .st-DetailCard { border-radius: 8px !important; } body[override] .st-Badge {
+  font-size: 11px !important; padding: 3px 10px !important; } }
+</style>

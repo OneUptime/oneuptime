@@ -29,11 +29,13 @@ La dashboard web di OneUptime è una Progressive Web App, quindi puoi installarl
 ### Risoluzione dei problemi desktop
 
 **L'opzione di installazione non appare:**
+
 - Assicurati di utilizzare un browser supportato.
 - Verifica che la tua istanza OneUptime sia servita tramite HTTPS.
 - Aggiorna la pagina o svuota la cache del browser.
 
 **Le notifiche push non funzionano:**
+
 - Concedi i permessi di notifica quando richiesto dal browser.
 - Controlla le impostazioni di notifica del sistema operativo per il browser.
 - Utenti self-hosted: verifica che le notifiche push siano configurate sulla tua istanza OneUptime.

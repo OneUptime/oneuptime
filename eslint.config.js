@@ -58,7 +58,7 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "off", // TODO: Remove this rule
       "@typescript-eslint/no-var-requires": "error",
       "@typescript-eslint/no-duplicate-enum-values": "off", // TODO: Remove this rule
-      "no-constant-binary-expression": "error", 
+      "no-constant-binary-expression": "error",
       "@typescript-eslint/ban-ts-comment": "error",
       "multiline-comment-style": "error",
       "@typescript-eslint/no-floating-promises": "off", // TODO: Remove this rule
@@ -191,29 +191,29 @@ export default tseslint.config(
           types: {
             String: {
               message: "Use 'string' instead of 'String'",
-              fixWith: "string"
+              fixWith: "string",
             },
             Boolean: {
               message: "Use 'boolean' instead of 'Boolean'",
-              fixWith: "boolean"
+              fixWith: "boolean",
             },
             Number: {
               message: "Use 'number' instead of 'Number'",
-              fixWith: "number"
+              fixWith: "number",
             },
             "{}": {
-              message: "Use 'Record<string, unknown>' instead of '{}'"
+              message: "Use 'Record<string, unknown>' instead of '{}'",
             },
             Object: {
-              message: "Use 'Record<string, unknown>' instead of 'Object'"
+              message: "Use 'Record<string, unknown>' instead of 'Object'",
             },
             object: {
-              message: "Use 'Record<string, unknown>' instead of 'object'"
+              message: "Use 'Record<string, unknown>' instead of 'object'",
             },
             Function: {
-              message: "Use a specific function type instead of 'Function'"
-            }
-          }
+              message: "Use a specific function type instead of 'Function'",
+            },
+          },
         },
       ],
     },
@@ -233,8 +233,8 @@ export default tseslint.config(
         module: true,
         __dirname: true,
         exports: true,
-        "NodeJS": true,
-        "PromiseSettledResult": true
+        NodeJS: true,
+        PromiseSettledResult: true,
       },
       parserOptions: {
         projectService: true,

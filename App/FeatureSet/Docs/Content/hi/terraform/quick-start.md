@@ -11,6 +11,7 @@
 ## चरण 1: API Key बनाएं
 
 ### OneUptime Cloud के लिए
+
 1. [OneUptime Cloud](https://oneuptime.com) पर जाएं और log in करें
 2. **Settings** → **API Keys** पर जाएं
 3. **Create API Key** पर क्लिक करें
@@ -19,6 +20,7 @@
 6. generated API key copy करें
 
 ### Self-Hosted OneUptime के लिए
+
 1. अपने OneUptime instance access करें
 2. **Settings** → **API Keys** पर जाएं
 3. **Create API Key** पर क्लिक करें
@@ -37,7 +39,7 @@ terraform {
       source  = "oneuptime/oneuptime"
       # Cloud customers के लिए
       version = "~> 7.0"
-      
+
       # Self-Hosted customers के लिए - अपने exact version पर pin करें
       # version = "= 7.0.123"  # अपने OneUptime version से बदलें
     }
@@ -48,10 +50,10 @@ terraform {
 provider "oneuptime" {
   # Cloud customers के लिए
   oneuptime_url = "https://oneuptime.com"
-  
+
   # Self-Hosted customers के लिए - अपना instance URL उपयोग करें
   # oneuptime_url = "https://oneuptime.yourcompany.com"
-  
+
   api_key = var.oneuptime_api_key
 }
 
@@ -119,25 +121,33 @@ terraform apply
 ## Troubleshooting Quick Start
 
 ### समस्या: Provider नहीं मिला
+
 ```
 Error: Failed to query available provider packages
 ```
+
 **Solution**: Provider download करने के लिए `terraform init` चलाएं
 
 ### समस्या: Authentication failed
+
 ```
 Error: Invalid API key
 ```
-**Solution**: 
+
+**Solution**:
+
 1. OneUptime dashboard में अपनी API key verify करें
 2. जांचें कि API key में पर्याप्त permissions हैं
 3. सुनिश्चित करें कि `oneuptime_url` आपके instance के लिए correct है
 
 ### समस्या: Version mismatch (Self-Hosted)
+
 ```
 Error: API version incompatible
 ```
-**Solution**: 
+
+**Solution**:
+
 1. dashboard में अपना OneUptime version जांचें
 2. provider version को exactly match करने के लिए update करें
 3. `terraform init -upgrade` चलाएं

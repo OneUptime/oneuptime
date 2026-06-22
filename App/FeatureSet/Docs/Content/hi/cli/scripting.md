@@ -15,12 +15,12 @@ export ONEUPTIME_URL=https://oneuptime.com
 
 ## Exit Codes
 
-| Code | अर्थ |
-|------|------|
-| `0` | सफल |
-| `1` | सामान्य त्रुटि |
-| `2` | Authentication त्रुटि (credentials अनुपस्थित या अमान्य) |
-| `3` | नहीं मिला (404) |
+| Code | अर्थ                                                    |
+| ---- | ------------------------------------------------------- |
+| `0`  | सफल                                                     |
+| `1`  | सामान्य त्रुटि                                          |
+| `2`  | Authentication त्रुटि (credentials अनुपस्थित या अमान्य) |
+| `3`  | नहीं मिला (404)                                         |
 
 त्रुटियों को handle करने के लिए scripts में exit codes उपयोग करें:
 
@@ -80,7 +80,7 @@ done
 name: Check Active Incidents
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: "*/5 * * * *"
 
 jobs:
   health-check:

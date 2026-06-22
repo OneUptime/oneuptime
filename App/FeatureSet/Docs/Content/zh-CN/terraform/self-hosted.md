@@ -11,6 +11,7 @@
 ## 资源结构
 
 所有 OneUptime Terraform 资源遵循简化结构：
+
 - `name`（必填）- 资源名称
 - `description`（可选）- 资源描述
 - `data`（可选）- JSON 格式的复杂配置
@@ -29,31 +30,39 @@
 ## 查找您的 OneUptime 版本
 
 ### 方法一：控制台
+
 1. 登录您的 OneUptime 控制台
 2. 前往 **设置** → **关于**
 3. 查找版本号（例如"7.0.123"）
 
 ### 方法二：API 端点
+
 ```bash
 curl https://your-oneuptime-instance.com/api/status
 ```
 
 ### 方法三：Docker 镜像
+
 如果您使用 Docker 运行 OneUptime：
+
 ```bash
 docker images | grep oneuptime
 # 查看标签，例如 oneuptime/dashboard:7.0.123
 ```
 
 ### 方法四：Helm Chart
+
 如果您使用 Helm：
+
 ```bash
 helm list -n oneuptime
 # 检查 Chart 版本
 ```
 
 ### 方法五：环境变量
+
 检查您的配置文件中的版本变量：
+
 ```bash
 grep -r "APP_VERSION\|IMAGE_TAG" /path/to/your/oneuptime/config
 ```
@@ -112,7 +121,7 @@ terraform {
     }
   }
   required_version = ">= 1.0"
-  
+
   # 可选：使用远程状态进行团队协作
   backend "s3" {
     bucket = "your-terraform-state-bucket"
@@ -161,7 +170,7 @@ resource "oneuptime_team" "infrastructure" {
 
 resource "oneuptime_team" "development" {
   name        = "Development Team"
-  description = "Application development team"  
+  description = "Application development team"
   project_id = oneuptime_project.main.id
 }
 
@@ -169,13 +178,13 @@ resource "oneuptime_team" "development" {
 resource "oneuptime_monitor" "database" {
   name       = "${var.environment}-database"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "port"
   hostname     = "db.internal.yourcompany.com"
   port         = 5432
   interval     = "2m"
   timeout      = "10s"
-  
+
   tags = {
     team        = "infrastructure"
     service     = "database"
@@ -187,14 +196,14 @@ resource "oneuptime_monitor" "database" {
 resource "oneuptime_monitor" "application" {
   name       = "${var.environment}-application"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "website"
   url          = "https://app.yourcompany.com/health"
   interval     = "1m"
   timeout      = "30s"
-  
+
   expected_status_codes = [200]
-  
+
   tags = {
     team        = "development"
     service     = "application"
@@ -208,11 +217,11 @@ resource "oneuptime_on_call_policy" "infrastructure_oncall" {
   name       = "Infrastructure On-Call"
   project_id = oneuptime_project.main.id
   team_id    = oneuptime_team.infrastructure.id
-  
+
   schedules {
     name     = "24x7 Infrastructure"
     timezone = "America/New_York"
-    
+
     layers {
       name          = "Primary"
       users         = ["infra1@yourcompany.com", "infra2@yourcompany.com"]
@@ -228,17 +237,17 @@ resource "oneuptime_on_call_policy" "infrastructure_oncall" {
 resource "oneuptime_alert_policy" "critical_infrastructure" {
   name       = "Critical Infrastructure Alerts"
   project_id = oneuptime_project.main.id
-  
+
   conditions {
     monitor_id = oneuptime_monitor.database.id
     threshold  = "down"
   }
-  
+
   actions {
     type = "email"
     recipients = ["infrastructure@yourcompany.com"]
   }
-  
+
   actions {
     type             = "oncall_escalation"
     oncall_policy_id = oneuptime_on_call_policy.infrastructure_oncall.id
@@ -249,14 +258,14 @@ resource "oneuptime_alert_policy" "critical_infrastructure" {
 resource "oneuptime_status_page" "internal" {
   name       = "Internal Services Status"
   project_id = oneuptime_project.main.id
-  
+
   domain = "status.internal.yourcompany.com"
-  
+
   components {
     name       = "Database"
     monitor_id = oneuptime_monitor.database.id
   }
-  
+
   components {
     name       = "Application"
     monitor_id = oneuptime_monitor.application.id
@@ -289,7 +298,7 @@ environment = "development"
 
 ```hcl
 # staging.tfvars
-oneuptime_url = "https://oneuptime-staging.yourcompany.com"  
+oneuptime_url = "https://oneuptime-staging.yourcompany.com"
 environment = "staging"
 ```
 
@@ -354,6 +363,7 @@ terraform apply
 ### 防火墙规则
 
 确保您的 Terraform 运行器可以访问：
+
 - OneUptime API 端点（通常是 443 端口/HTTPS）
 - 任何被监控的内部资源
 
@@ -383,6 +393,7 @@ export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
 ### 2. 最小权限 API 密钥
 
 创建具有所需最低权限的 API 密钥：
+
 - 监控器管理
 - 告警策略管理
 - 团队管理（如需要）
@@ -394,7 +405,7 @@ export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
 provider "oneuptime" {
   oneuptime_url = "https://oneuptime.yourcompany.com"
   api_key       = var.oneuptime_api_key
-  
+
   # 如果支持的话，添加其他安全选项
   verify_ssl = true
   timeout    = "30s"
@@ -409,10 +420,10 @@ provider "oneuptime" {
 resource "oneuptime_monitor" "terraform_runner" {
   name       = "Terraform Runner Health"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "heartbeat"
   interval     = "15m"
-  
+
   tags = {
     automation = "terraform"
     criticality = "medium"
@@ -429,6 +440,7 @@ Error: connection refused
 ```
 
 **解决方案**：
+
 1. 检查 OneUptime 实例是否正在运行
 2. 验证 API URL 是否正确
 3. 检查防火墙/网络连接
@@ -441,6 +453,7 @@ Error: API version incompatible
 ```
 
 **解决方案**：
+
 1. 检查 OneUptime 版本：`curl https://your-instance/api/status`
 2. 将提供商版本更新为匹配版本
 3. 运行 `terraform init -upgrade`
@@ -485,7 +498,7 @@ tar -czf terraform-config-$(date +%Y%m%d).tar.gz *.tf *.tfvars
 ```bash
 # 创建环境
 terraform workspace new dev
-terraform workspace new staging  
+terraform workspace new staging
 terraform workspace new prod
 
 # 在环境间切换

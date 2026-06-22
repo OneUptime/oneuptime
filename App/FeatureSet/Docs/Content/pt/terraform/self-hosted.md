@@ -11,6 +11,7 @@ Este guia é especificamente para clientes que executam instâncias auto-hospeda
 ## Estrutura de Recursos
 
 Todos os recursos Terraform do OneUptime seguem uma estrutura simplificada:
+
 - `name` (obrigatório) - Nome do recurso
 - `description` (opcional) - Descrição do recurso
 - `data` (opcional) - Configuração complexa como JSON
@@ -29,31 +30,39 @@ Todos os recursos Terraform do OneUptime seguem uma estrutura simplificada:
 ## Encontrando Sua Versão do OneUptime
 
 ### Método 1: Painel
+
 1. Faça login no seu painel do OneUptime
 2. Vá para **Settings** → **About**
 3. Procure o número da versão (ex.: "7.0.123")
 
 ### Método 2: Endpoint de API
+
 ```bash
 curl https://sua-instancia-oneuptime.com/api/status
 ```
 
 ### Método 3: Imagens Docker
+
 Se você estiver executando o OneUptime com Docker:
+
 ```bash
 docker images | grep oneuptime
 # Procure pela tag, ex.: oneuptime/dashboard:7.0.123
 ```
 
 ### Método 4: Helm Chart
+
 Se você estiver usando Helm:
+
 ```bash
 helm list -n oneuptime
 # Verifique a versão do chart
 ```
 
 ### Método 5: Variáveis de Ambiente
+
 Verifique seus arquivos de configuração para variáveis de versão:
+
 ```bash
 grep -r "APP_VERSION\|IMAGE_TAG" /path/to/your/oneuptime/config
 ```
@@ -112,7 +121,7 @@ terraform {
     }
   }
   required_version = ">= 1.0"
-  
+
   # Opcional: Use estado remoto para colaboração em equipe
   backend "s3" {
     bucket = "seu-bucket-de-estado-terraform"
@@ -167,7 +176,7 @@ resource "oneuptime_team" "development" {
 # Monitores de infraestrutura
 resource "oneuptime_monitor" "database" {
   name       = "${var.environment}-database"
-  
+
   monitor_type = "port"
   hostname     = "db.internal.suaempresa.com"
   port         = 5432
@@ -177,7 +186,7 @@ resource "oneuptime_monitor" "database" {
 
 resource "oneuptime_monitor" "application" {
   name       = "${var.environment}-application"
-  
+
   monitor_type = "website"
   url          = "https://app.suaempresa.com/health"
   interval     = "1m"
@@ -199,7 +208,7 @@ environment = "development"
 
 ```hcl
 # staging.tfvars
-oneuptime_url = "https://oneuptime-staging.suaempresa.com"  
+oneuptime_url = "https://oneuptime-staging.suaempresa.com"
 environment = "staging"
 ```
 
@@ -264,6 +273,7 @@ terraform apply
 ### Regras de Firewall
 
 Certifique-se de que seu executor do Terraform possa acessar:
+
 - Endpoint de API do OneUptime (geralmente porta 443/HTTPS)
 - Quaisquer recursos internos sendo monitorados
 
@@ -293,6 +303,7 @@ export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
 ### 2. Chaves de API com Menos Privilégios
 
 Crie chaves de API com as permissões mínimas necessárias:
+
 - Gerenciamento de monitores
 - Gerenciamento de política de alertas
 - Gerenciamento de equipes (se necessário)
@@ -304,7 +315,7 @@ Crie monitores para sua automação Terraform:
 ```hcl
 resource "oneuptime_monitor" "terraform_runner" {
   name       = "Saúde do Executor Terraform"
-  
+
   monitor_type = "heartbeat"
   interval     = "15m"
 }
@@ -319,6 +330,7 @@ Error: connection refused
 ```
 
 **Soluções**:
+
 1. Verifique se a instância do OneUptime está em execução
 2. Verifique se a URL da API está correta
 3. Verifique a conectividade de rede/firewall
@@ -331,6 +343,7 @@ Error: API version incompatible
 ```
 
 **Soluções**:
+
 1. Verifique a versão do OneUptime: `curl https://sua-instancia/api/status`
 2. Atualize a versão do provedor para corresponder
 3. Execute `terraform init -upgrade`
@@ -368,7 +381,7 @@ find backups/ -name "terraform-state-*.tfstate" -mtime +30 -delete
 ```bash
 # Criar ambientes
 terraform workspace new dev
-terraform workspace new staging  
+terraform workspace new staging
 terraform workspace new prod
 
 # Alternar entre ambientes

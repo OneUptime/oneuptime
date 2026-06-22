@@ -10,7 +10,7 @@ Cette page est le **guide d'installation**. Pour configurer les moniteurs et les
 
 - Docker Engine 20.10+
 - Accès à `/var/run/docker.sock` sur l'hôte
-- Un **jeton d'ingestion de télémétrie OneUptime** — créez-en un depuis *Project Settings → Telemetry Ingestion Keys* et copiez la valeur
+- Un **jeton d'ingestion de télémétrie OneUptime** — créez-en un depuis _Project Settings → Telemetry Ingestion Keys_ et copiez la valeur
 
 ## Démarrage rapide (une seule commande)
 
@@ -64,11 +64,11 @@ docker compose up -d
 
 ## Variables d'environnement
 
-| Variable | Requis | Description |
-|----------|----------|-------------|
-| `ONEUPTIME_URL` | Oui | L'URL de votre instance OneUptime (par exemple `https://oneuptime.com` ou votre hôte auto-hébergé) |
-| `ONEUPTIME_SERVICE_TOKEN` | Oui | Jeton d'ingestion de télémétrie depuis *Project Settings → Telemetry Ingestion Keys* |
-| `DOCKER_HOST_NAME` | Non | Nom convivial pour cet hôte. La valeur par défaut est `docker-host`. Définissez-le sur une valeur stable par hôte (par exemple `prod-docker-01`) |
+| Variable                  | Requis | Description                                                                                                                                      |
+| ------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ONEUPTIME_URL`           | Oui    | L'URL de votre instance OneUptime (par exemple `https://oneuptime.com` ou votre hôte auto-hébergé)                                               |
+| `ONEUPTIME_SERVICE_TOKEN` | Oui    | Jeton d'ingestion de télémétrie depuis _Project Settings → Telemetry Ingestion Keys_                                                             |
+| `DOCKER_HOST_NAME`        | Non    | Nom convivial pour cet hôte. La valeur par défaut est `docker-host`. Définissez-le sur une valeur stable par hôte (par exemple `prod-docker-01`) |
 
 ## Vérifier l'installation
 
@@ -117,14 +117,14 @@ docker compose down
 
 ## Ce qui est collecté
 
-| Catégorie | Données |
-|----------|------|
-| **Métriques CPU** | Utilisation totale, pourcentage d'utilisation, temps de limitation (par conteneur) |
-| **Métriques de mémoire** | Utilisation, limite, pourcentage, RSS, cache (par conteneur) |
-| **Métriques réseau** | Octets et paquets reçus / transmis (par conteneur) |
-| **Métriques d'E/S de bloc** | Octets et opérations de lecture / écriture (par conteneur) |
-| **Informations sur le conteneur** | Temps de fonctionnement, nombre de redémarrages, nombre de processus |
-| **Journaux des conteneurs** | Journaux stdout / stderr de tous les conteneurs |
+| Catégorie                         | Données                                                                            |
+| --------------------------------- | ---------------------------------------------------------------------------------- |
+| **Métriques CPU**                 | Utilisation totale, pourcentage d'utilisation, temps de limitation (par conteneur) |
+| **Métriques de mémoire**          | Utilisation, limite, pourcentage, RSS, cache (par conteneur)                       |
+| **Métriques réseau**              | Octets et paquets reçus / transmis (par conteneur)                                 |
+| **Métriques d'E/S de bloc**       | Octets et opérations de lecture / écriture (par conteneur)                         |
+| **Informations sur le conteneur** | Temps de fonctionnement, nombre de redémarrages, nombre de processus               |
+| **Journaux des conteneurs**       | Journaux stdout / stderr de tous les conteneurs                                    |
 
 ## OneUptime auto-hébergé
 

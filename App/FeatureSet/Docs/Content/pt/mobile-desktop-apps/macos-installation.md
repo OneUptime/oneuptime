@@ -9,18 +9,21 @@ Instale o OneUptime como um aplicativo de desktop nativo no macOS para monitoram
 O Safari fornece excelente integração de PWA com recursos nativos do macOS.
 
 1. **Abrir o OneUptime no Safari**
+
    - Inicie o navegador Safari
    - Navegue para a URL da sua instância do OneUptime
    - Faça login na sua conta do OneUptime
    - Aguarde a página carregar completamente
 
 2. **Instalar PWA**
+
    - Clique em **Arquivo** na barra de menus
    - Selecione **"Adicionar ao Dock"** (macOS Sonoma+)
    - Ou procure o **ícone de instalação** na barra de endereços
    - Alternativamente: **Arquivo** → **"Adicionar à Tela Inicial"** (macOS mais antigo)
 
 3. **Personalizar Instalação**
+
    - **Nome do Aplicativo**: Modifique se desejar (padrão: OneUptime)
    - **Dock**: Escolha adicionar ao Dock
    - **Launchpad**: Adicione ao Launchpad para fácil acesso
@@ -35,17 +38,20 @@ O Safari fornece excelente integração de PWA com recursos nativos do macOS.
 O Chrome oferece suporte robusto a PWA com excelente integração de área de trabalho.
 
 1. **Abrir o OneUptime no Chrome**
+
    - Inicie o Google Chrome
    - Vá para a sua instância do OneUptime
    - Certifique-se de estar conectado
    - Permita o carregamento completo da página
 
 2. **Instalar via Menu**
+
    - Procure o **ícone de instalação** (⊞) na barra de endereços
    - Clique em **"Instalar OneUptime"**
    - Ou use **menu do Chrome** → **Mais ferramentas** → **Criar atalho**
 
 3. **Opções de Instalação**
+
    - Marque **"Abrir como janela"** para experiência de aplicativo nativo
    - Personalize o nome do aplicativo se necessário
    - Clique em **"Instalar"** ou **"Criar"**
@@ -60,6 +66,7 @@ O Chrome oferece suporte robusto a PWA com excelente integração de área de tr
 O Edge fornece bom suporte a PWA com boa integração com macOS.
 
 1. **Abrir o OneUptime no Edge**
+
    - Inicie o Microsoft Edge
    - Navegue para a URL do OneUptime
    - Conclua o processo de login
@@ -73,13 +80,16 @@ O Edge fornece bom suporte a PWA com boa integração com macOS.
 ### Opções de Personalização
 
 ### Dock e Launchpad
+
 1. **Posição no Dock**: Arraste o OneUptime para a posição preferida no Dock
 2. **Tamanho no Dock**: Redimensione o ícone nas preferências do Dock
 3. **Organização do Launchpad**: Crie pasta de aplicativos de monitoramento
 4. **Notificações de Emblema**: Mostrar contagem de incidentes no ícone do Dock
 
 ### Barra de Menus e Notificações
+
 1. **Central de Notificações**
+
    - Preferências do Sistema → Notificações → OneUptime
    - Configure estilos de alerta e entrega
    - Defina níveis de prioridade para diferentes tipos de incidentes
@@ -94,6 +104,7 @@ O Edge fornece bom suporte a PWA com boa integração com macOS.
 ### Problemas de Instalação
 
 **"Adicionar ao Dock" não disponível no Safari:**
+
 ```
 Soluções:
 1. Certifique-se de ter macOS Sonoma (14.0) ou posterior
@@ -104,6 +115,7 @@ Soluções:
 ```
 
 **O PWA não instala ou trava:**
+
 ```
 Soluções:
 1. Verifique a compatibilidade da versão do macOS
@@ -115,6 +127,7 @@ Soluções:
 ```
 
 **Aplicativo não aparece em Aplicativos:**
+
 ```
 Soluções:
 1. Verifique o Launchpad para o ícone do OneUptime
@@ -127,6 +140,7 @@ Soluções:
 ### Problemas de Notificação
 
 **Notificações do macOS não estão funcionando:**
+
 ```
 Soluções:
 1. Preferências do Sistema → Notificações → OneUptime
@@ -140,12 +154,15 @@ Soluções:
 ## Desinstalação
 
 ### Remoção Completa
+
 1. **Método da Pasta Aplicativos**
+
    - Abra a pasta Aplicativos
    - Encontre o OneUptime
    - Arraste para a Lixeira ou clique com o botão direito → Mover para a Lixeira
 
 2. **Método do Dock**
+
    - Clique com o botão direito no OneUptime no Dock
    - Selecione "Opções" → "Remover do Dock"
    - Em seguida, exclua da pasta Aplicativos
@@ -156,6 +173,7 @@ Soluções:
    - **Safari**: Sem página de gerenciamento dedicada
 
 ### Desinstalação Limpa
+
 Remova todos os dados associados:
 
 ```bash
@@ -173,26 +191,32 @@ rm -rf ~/Library/Application\ Support/Microsoft\ Edge/Default/Web\ Applications
 ## Atualizações e Manutenção
 
 ### Atualizações Automáticas
+
 - O PWA do OneUptime é atualizado automaticamente quando online
 - Não são necessárias atualizações da App Store
 - Novos recursos disponíveis imediatamente
 - Atualizações críticas aplicadas instantaneamente
 
 ### Processo de Atualização Manual
+
 Force a atualização do aplicativo:
+
 1. **PWAs do Safari**: Atualize dentro do navegador Safari
 2. **PWAs do Chrome**: Clique com o botão direito no aplicativo → Recarregar ou ⌘+R
 3. **Atualização Completa**: Feche o aplicativo, reabra o navegador, visite o OneUptime
 
 ### Programação de Manutenção
+
 Manutenção regular para desempenho ideal:
 
 **Semanalmente:**
+
 - Reinicie o aplicativo OneUptime
 - Limpe o cache do navegador se estiver com problemas
 - Verifique se há atualizações do macOS
 
 **Mensalmente:**
+
 - Revise o uso do armazenamento e limpe se necessário
 - Atualize os navegadores se não estiverem atualizando automaticamente
 - Verifique se as configurações de notificação ainda funcionam
@@ -200,7 +224,9 @@ Manutenção regular para desempenho ideal:
 ## Integração com Recursos do macOS
 
 ### Integração com o Aplicativo Atalhos
+
 Crie atalhos personalizados para o OneUptime:
+
 1. Abra o aplicativo **Atalhos**
 2. Crie um **Novo Atalho**
 3. Adicione a ação **"Abrir Aplicativo"**
@@ -208,7 +234,9 @@ Crie atalhos personalizados para o OneUptime:
 5. Adicione à Siri para ativação por voz
 
 ### Integração com o Automator
+
 Automatize tarefas do OneUptime:
+
 1. Inicie o **Automator**
 2. Crie um **Aplicativo** ou **Fluxo de Trabalho**
 3. Adicione a ação **"Iniciar Aplicativo"**
@@ -216,6 +244,7 @@ Automatize tarefas do OneUptime:
 5. Adicione etapas de automação adicionais
 
 ### Integração com o Terminal
+
 Gerencie o OneUptime pelo Terminal:
 
 ```bash
@@ -235,18 +264,21 @@ oneuptime_status() {
 ## Segurança e Privacidade
 
 ### Recursos de Segurança do macOS
+
 1. **Gatekeeper**: Certifique-se de que as instalações de PWA são de fontes confiáveis
 2. **System Integrity Protection**: Protege os arquivos do sistema
 3. **FileVault**: Criptografe o disco para proteção de dados
 4. **Keychain**: Armazenamento seguro de credenciais
 
 ### Considerações de Privacidade
+
 1. **Serviços de Localização**: Configure se necessário para monitoramento
 2. **Câmera/Microfone**: Conceda permissões conforme necessário
 3. **Gravação de Tela**: Pode ser necessário para certos recursos de monitoramento
 4. **Acesso à Rede**: Certifique-se de que a configuração do firewall seja adequada
 
 ### Melhores Práticas
+
 1. **Atualizações Regulares**: Mantenha o macOS e os navegadores atualizados
 2. **Autenticação Forte**: Use Touch ID/Face ID quando disponível
 3. **Segurança de Rede**: Use VPN para acesso remoto de monitoramento

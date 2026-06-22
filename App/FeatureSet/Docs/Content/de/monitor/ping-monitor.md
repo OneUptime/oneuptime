@@ -31,11 +31,11 @@ Sie können Kriterien konfigurieren, um zu bestimmen, wann Ihr Host als online, 
 
 ### Verfügbare Prüftypen
 
-| Prüftyp | Beschreibung |
-|------------|-------------|
-| Ist online | Ob der Host auf Ping-Anfragen antwortet |
+| Prüftyp             | Beschreibung                                    |
+| ------------------- | ----------------------------------------------- |
+| Ist online          | Ob der Host auf Ping-Anfragen antwortet         |
 | Antwortzeit (in ms) | Rundreisezeit der Ping-Anfrage in Millisekunden |
-| Anfrage-Timeout | Ob die Ping-Anfrage ein Timeout hatte |
+| Anfrage-Timeout     | Ob die Ping-Anfrage ein Timeout hatte           |
 
 ### Filtertypen
 

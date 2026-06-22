@@ -40,34 +40,34 @@ monitor-{secret-key}@{inbound-domain}
 
 您可以根據以下電子郵件欄位來建立條件：
 
-| 欄位 | 說明 |
-|-------|-------------|
-| **Email Subject** | 接收郵件的主旨列 |
-| **Email From** | 寄件者的電子郵件地址 |
-| **Email Body** | 郵件內文的純文字內容 |
-| **Email To** | 收件者的電子郵件地址 |
+| 欄位               | 說明                       |
+| ------------------ | -------------------------- |
+| **Email Subject**  | 接收郵件的主旨列           |
+| **Email From**     | 寄件者的電子郵件地址       |
+| **Email Body**     | 郵件內文的純文字內容       |
+| **Email To**       | 收件者的電子郵件地址       |
 | **Email Received** | 以郵件接收時間為基礎的條件 |
 
 ## 可用的篩選類型
 
 ### 字串篩選（Subject、From、Body、To）
 
-| 篩選 | 說明 | 範例 |
-|--------|-------------|---------|
-| **Contains** | 欄位包含指定的文字 | Subject 包含 "CRITICAL" |
-| **Not Contains** | 欄位不包含指定的文字 | Subject 不包含 "TEST" |
-| **Equals** | 欄位完全符合指定的文字 | From 等於 "alerts@service.com" |
-| **Not Equals** | 欄位不符合指定的文字 | Subject 不等於 "OK" |
-| **Starts With** | 欄位以指定的文字開頭 | Subject 以 "[ALERT]" 開頭 |
-| **Ends With** | 欄位以指定的文字結尾 | Subject 以 "- Production" 結尾 |
-| **Is Empty** | 欄位為空白或無內容 | Body 為空 |
-| **Is Not Empty** | 欄位有內容 | Subject 不為空 |
+| 篩選             | 說明                   | 範例                           |
+| ---------------- | ---------------------- | ------------------------------ |
+| **Contains**     | 欄位包含指定的文字     | Subject 包含 "CRITICAL"        |
+| **Not Contains** | 欄位不包含指定的文字   | Subject 不包含 "TEST"          |
+| **Equals**       | 欄位完全符合指定的文字 | From 等於 "alerts@service.com" |
+| **Not Equals**   | 欄位不符合指定的文字   | Subject 不等於 "OK"            |
+| **Starts With**  | 欄位以指定的文字開頭   | Subject 以 "[ALERT]" 開頭      |
+| **Ends With**    | 欄位以指定的文字結尾   | Subject 以 "- Production" 結尾 |
+| **Is Empty**     | 欄位為空白或無內容     | Body 為空                      |
+| **Is Not Empty** | 欄位有內容             | Subject 不為空                 |
 
 ### 以時間為基礎的篩選（Email Received）
 
-| 篩選 | 說明 | 範例 |
-|--------|-------------|---------|
-| **Received In Minutes** | 在 X 分鐘內收到郵件 | 在 30 分鐘內收到郵件 |
+| 篩選                        | 說明                      | 範例                   |
+| --------------------------- | ------------------------- | ---------------------- |
+| **Received In Minutes**     | 在 X 分鐘內收到郵件       | 在 30 分鐘內收到郵件   |
 | **Not Received In Minutes** | 在 X 分鐘內未收到任何郵件 | 在 60 分鐘內未收到郵件 |
 
 ## 設定範例
@@ -75,11 +75,13 @@ monitor-{secret-key}@{inbound-domain}
 ### 範例 1：在重大郵件時建立警示
 
 **Alert Creation Criteria：**
+
 - Email Subject **Contains** "CRITICAL"
 - 或 Email Subject **Contains** "ALERT"
 - 或 Email Subject **Contains** "ERROR"
 
 **Alert Resolution Criteria：**
+
 - Email Subject **Contains** "RESOLVED"
 - 或 Email Subject **Contains** "OK"
 - 或 Email Subject **Contains** "RECOVERED"
@@ -87,21 +89,25 @@ monitor-{secret-key}@{inbound-domain}
 ### 範例 2：監測特定寄件者
 
 **Alert Creation Criteria：**
+
 - Email From **Equals** "monitoring@legacy-system.com"
 - 且 Email Subject **Contains** "Failed"
 
 **Alert Resolution Criteria：**
+
 - Email From **Equals** "monitoring@legacy-system.com"
 - 且 Email Subject **Contains** "Success"
 
 ### 範例 3：心跳監測器（無郵件 = 警示）
 
 **Alert Creation Criteria：**
+
 - Email Received **Not Received In Minutes**，值為 `60`
 
 如果 60 分鐘內未收到任何郵件，這會建立一個警示——對於監測應該傳送完成郵件的排程工作或批次處理程序非常實用。
 
 **Alert Resolution Criteria：**
+
 - Email Received **Received In Minutes**，值為 `5`
 
 這會在收到郵件時解決該警示。
@@ -111,6 +117,7 @@ monitor-{secret-key}@{inbound-domain}
 ### 舊有系統整合
 
 許多較舊的系統僅支援以電子郵件為基礎的警示。使用接收電子郵件監測器來：
+
 - 將電子郵件警示轉換為 OneUptime 事件
 - 在收到復原郵件時自動解決事件
 - 集中管理來自多個舊有系統的警示
@@ -118,6 +125,7 @@ monitor-{secret-key}@{inbound-domain}
 ### 第三方服務監測
 
 整合會傳送電子郵件通知的服務：
+
 - 雲端供應商警示（AWS、GCP、Azure）
 - 安全掃描工具
 - 備份完成通知
@@ -126,6 +134,7 @@ monitor-{secret-key}@{inbound-domain}
 ### 排程工作監測
 
 監測批次工作與排程任務：
+
 - 若未準時收到完成郵件則建立警示
 - 透過錯誤通知郵件追蹤工作失敗
 - 監測資料管線完成情形
@@ -133,6 +142,7 @@ monitor-{secret-key}@{inbound-domain}
 ### 多廠商警示彙整
 
 整合來自多個監測工具的警示：
+
 - 透過電子郵件接收來自 Nagios、Zabbix 或其他工具的警示
 - 在 OneUptime 中統一事件管理
 - 為所有警示維護單一真實來源
@@ -141,17 +151,18 @@ monitor-{secret-key}@{inbound-domain}
 
 設定事件範本時，您可以使用以下來自接收郵件的變數：
 
-| 變數 | 說明 |
-|----------|-------------|
-| `{{emailSubject}}` | 接收郵件的主旨 |
-| `{{emailFrom}}` | 寄件者的電子郵件地址 |
-| `{{emailTo}}` | 收件者的電子郵件地址 |
-| `{{emailBody}}` | 郵件的純文字內文 |
-| `{{emailReceivedAt}}` | 郵件接收的時間 |
+| 變數                  | 說明                 |
+| --------------------- | -------------------- |
+| `{{emailSubject}}`    | 接收郵件的主旨       |
+| `{{emailFrom}}`       | 寄件者的電子郵件地址 |
+| `{{emailTo}}`         | 收件者的電子郵件地址 |
+| `{{emailBody}}`       | 郵件的純文字內文     |
+| `{{emailReceivedAt}}` | 郵件接收的時間       |
 
 ## 監測器摘要檢視
 
 監測器摘要會顯示：
+
 - **Last Email Received At：** 最近一封郵件的接收時間
 - **From：** 最後一封郵件的寄件者
 - **Subject：** 最後一封郵件的主旨列

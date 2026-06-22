@@ -44,29 +44,24 @@ Depois de criar um token, clique em "View" para visualizá-lo.
 
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
 ## Configuração
 
 Você pode usar a seguinte configuração para enviar os dados de telemetria para o Coletor HTTP OpenTelemetry do OneUptime. Você pode adicionar esta configuração ao arquivo de configuração do fluentbit. O arquivo de configuração geralmente está localizado em `/etc/fluent-bit/fluent-bit.yaml`. Veja como a seção outputs do arquivo de configuração ficaria:
 
-
 ```yaml
-
-
 outputs:
   - name: stdout
-    match: '*'
+    match: "*"
   - name: opentelemetry
-    match: '*'
-    host: 'oneuptime.com'
+    match: "*"
+    host: "oneuptime.com"
     port: 443
-    metrics_uri: '/otlp/v1/metrics'
-    logs_uri: '/otlp/v1/logs'
-    traces_uri: '/otlp/v1/traces'
+    metrics_uri: "/otlp/v1/metrics"
+    logs_uri: "/otlp/v1/logs"
+    traces_uri: "/otlp/v1/traces"
     tls: On
     header:
       - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
-
 ```
 
 Certifique-se de ter opentelemetry_envelope na sua seção de input. Veja um exemplo de como a seção de input ficaria:
@@ -74,18 +69,18 @@ Certifique-se de ter opentelemetry_envelope na sua seção de input. Veja um exe
 ```yaml
 pipeline:
   inputs:
-      # Suas entradas
+    # Suas entradas
 
-      processors:
-        logs:
-          - name: opentelemetry_envelope
+    processors:
+      logs:
+        - name: opentelemetry_envelope
 
-          - name: content_modifier
-            context: otel_resource_attributes
-            action: upsert
-            key: service.name
-            # Por favor, substitua YOUR_SERVICE_NAME pelo nome do seu serviço
-            value: YOUR_SERVICE_NAME
+        - name: content_modifier
+          context: otel_resource_attributes
+          action: upsert
+          key: service.name
+          # Por favor, substitua YOUR_SERVICE_NAME pelo nome do seu serviço
+          value: YOUR_SERVICE_NAME
 ```
 
 Aqui está o exemplo do arquivo de configuração completo:
@@ -113,19 +108,18 @@ pipeline:
 
   outputs:
     - name: stdout
-      match: '*'
+      match: "*"
     - name: opentelemetry
-      match: '*'
-      host: 'oneuptime.com'
+      match: "*"
+      host: "oneuptime.com"
       port: 443
-      metrics_uri: '/otlp/v1/metrics'
-      logs_uri: '/otlp/v1/logs'
-      traces_uri: '/otlp/v1/traces'
+      metrics_uri: "/otlp/v1/metrics"
+      logs_uri: "/otlp/v1/logs"
+      traces_uri: "/otlp/v1/traces"
       tls: On
       header:
         - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
 ```
-
 
 **Se você estiver auto-hospedando o OneUptime**: Se você estiver auto-hospedando o OneUptime, pode substituir o `host` pelo host da sua instância do OneUptime. Se você estiver hospedando em um servidor http e não https, pode substituir a `port` pela porta da sua instância do OneUptime (provavelmente porta 80).
 
@@ -134,14 +128,14 @@ Neste caso, a configuração ficaria assim:
 ```yaml
 outputs:
   - name: stdout
-    match: '*'
+    match: "*"
   - name: opentelemetry
-    match: '*'
-    host: 'sua-instancia-oneuptime.com'
+    match: "*"
+    host: "sua-instancia-oneuptime.com"
     port: 80
-    metrics_uri: '/otlp/v1/metrics'
-    logs_uri: '/otlp/v1/logs'
-    traces_uri: '/otlp/v1/traces'
+    metrics_uri: "/otlp/v1/metrics"
+    logs_uri: "/otlp/v1/logs"
+    traces_uri: "/otlp/v1/traces"
     header:
       - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
 ```

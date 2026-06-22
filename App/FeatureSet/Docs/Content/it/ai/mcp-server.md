@@ -202,13 +202,13 @@ La configurazione sopra utilizza variabili di input con `"password": true` per r
 
 ## Endpoint Disponibili
 
-| Endpoint | Metodo | Descrizione |
-|----------|--------|-------------|
-| `/mcp` | GET | Stream di eventi inviati dal server per le notifiche server-to-client |
-| `/mcp` | POST | Richieste JSON-RPC per chiamate agli strumenti e altre operazioni |
-| `/mcp` | DELETE | Pulizia e terminazione della sessione |
-| `/mcp/health` | GET | Endpoint di controllo dello stato di salute |
-| `/mcp/tools` | GET | API REST per elencare gli strumenti disponibili |
+| Endpoint      | Metodo | Descrizione                                                           |
+| ------------- | ------ | --------------------------------------------------------------------- |
+| `/mcp`        | GET    | Stream di eventi inviati dal server per le notifiche server-to-client |
+| `/mcp`        | POST   | Richieste JSON-RPC per chiamate agli strumenti e altre operazioni     |
+| `/mcp`        | DELETE | Pulizia e terminazione della sessione                                 |
+| `/mcp/health` | GET    | Endpoint di controllo dello stato di salute                           |
+| `/mcp/tools`  | GET    | API REST per elencare gli strumenti disponibili                       |
 
 ## Autenticazione
 
@@ -319,12 +319,15 @@ Queste query funzionano senza autenticazione, usando solo gli strumenti pubblici
 ## Autorizzazioni della Chiave API
 
 ### Accesso in Sola Lettura
+
 Per visualizzare solo i dati, aggiungi autorizzazioni di lettura per la tua chiave API.
 
 ### Accesso Completo
+
 Per accesso completo per creare, aggiornare ed eliminare risorse, assicurati che la tua chiave API abbia i permessi di Project Admin.
 
 ### Best Practice
+
 - Usa Autorizzazioni Specifiche: Concedi solo le autorizzazioni minime necessarie
 - Ruota le Chiavi API: Ruota regolarmente le tue chiavi API
 - Monitora l'Utilizzo: Tieni traccia dell'utilizzo delle chiavi API in OneUptime
@@ -333,24 +336,30 @@ Per accesso completo per creare, aggiornare ed eliminare risorse, assicurati che
 ## Risoluzione dei Problemi
 
 ### Errori di Autorizzazione
+
 Assicurati che la tua chiave API abbia le autorizzazioni necessarie:
+
 - Accesso in lettura per elencare le risorse
 - Accesso in scrittura per creare/aggiornare le risorse
 - Accesso in eliminazione se vuoi rimuovere le risorse
 
 ### Problemi di Connessione
+
 1. Verifica che l'URL di OneUptime sia corretto
 2. Controlla che la tua chiave API sia valida
 3. Assicurati che la tua istanza OneUptime sia accessibile
 4. Testa l'endpoint di health check
 
 ### Chiave API Non Valida
+
 - Verifica la chiave API nelle impostazioni di OneUptime
 - Controlla la presenza di spazi o caratteri aggiuntivi
 - Assicurati che la chiave non sia scaduta
 
 ### Errori di Sessione
+
 Se ricevi errori relativi alla sessione:
+
 - Il server MCP utilizza l'header `mcp-session-id` per tracciare le sessioni
 - Assicurati che il tuo client gestisca correttamente l'ID di sessione restituito dal server
 - Le sessioni vengono automaticamente pulite quando le connessioni si chiudono

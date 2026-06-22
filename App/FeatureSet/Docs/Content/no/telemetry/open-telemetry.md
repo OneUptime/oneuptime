@@ -14,7 +14,6 @@ Når du har opprettet et token, klikker du på "View" for å se tokenet.
 
 ![Vis tjeneste](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
 ### Trinn 2
 
 #### Konfigurer telemetritjenesten i applikasjonen din.
@@ -35,17 +34,15 @@ Vi bruker OpenTelemetry til å samle inn applikasjonslogger. OneUptime støtter 
 - [.NET / C#](https://opentelemetry.io/docs/instrumentation/net/)
 - [Swift](https://opentelemetry.io/docs/instrumentation/swift/)
 
-
 **Integrer med OneUptime**
 
 Når du har konfigurert telemetritjenesten i applikasjonen din, kan du integrere med OneUptime ved å sette følgende miljøvariabler.
 
-| Miljøvariabel | Verdi |
-| --- | --- |
-| OTEL_EXPORTER_OTLP_HEADERS | x-oneuptime-token=YOUR_ONEUPTIME_SERVICE_TOKEN |
-| OTEL_EXPORTER_OTLP_ENDPOINT | https://oneuptime.com/otlp |
-| OTEL_SERVICE_NAME | NAME_OF_YOUR_SERVICE |
-
+| Miljøvariabel               | Verdi                                          |
+| --------------------------- | ---------------------------------------------- |
+| OTEL_EXPORTER_OTLP_HEADERS  | x-oneuptime-token=YOUR_ONEUPTIME_SERVICE_TOKEN |
+| OTEL_EXPORTER_OTLP_ENDPOINT | https://oneuptime.com/otlp                     |
+| OTEL_SERVICE_NAME           | NAME_OF_YOUR_SERVICE                           |
 
 **Eksempel**
 
@@ -55,13 +52,11 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=https://oneuptime.com/otlp
 export OTEL_SERVICE_NAME=my-service
 ```
 
-
 **Selvhostet OneUptime**
 
 Hvis du selvhoster OneUptime, kan dette endres til ditt selvhostede OpenTelemetry Collector-endepunkt (f.eks. `http(s)://YOUR-ONEUPTIME-HOST/otlp`)
 
 Når du kjører applikasjonen, bør du se loggene på OneUptime telemetritjenestesiden. Ta kontakt med support@oneuptime.com hvis du trenger hjelp.
-
 
 #### Bruke OpenTelemetry Collector
 
@@ -80,7 +75,6 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 exporters:
-
   # Eksporter over HTTP
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"

@@ -22,11 +22,11 @@ Se preferir usar suas próprias chaves de API ou um provedor específico, ainda 
 
 O OneUptime atualmente suporta os seguintes provedores de LLM:
 
-| Provedor | Descrição | Chave de API Necessária | URL Base Necessária |
-|----------|-------------|------------------|-------------------|
-| **OpenAI** | GPT-4, GPT-4o, GPT-3.5 Turbo e outros modelos OpenAI | Sim | Não (usa o padrão) |
-| **Anthropic** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku e outros modelos Claude | Sim | Não (usa o padrão) |
-| **Ollama** | Modelos de código aberto auto-hospedados como Llama 2, Mistral, CodeLlama, etc. | Não | Sim |
+| Provedor      | Descrição                                                                       | Chave de API Necessária | URL Base Necessária |
+| ------------- | ------------------------------------------------------------------------------- | ----------------------- | ------------------- |
+| **OpenAI**    | GPT-4, GPT-4o, GPT-3.5 Turbo e outros modelos OpenAI                            | Sim                     | Não (usa o padrão)  |
+| **Anthropic** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku e outros modelos Claude          | Sim                     | Não (usa o padrão)  |
+| **Ollama**    | Modelos de código aberto auto-hospedados como Llama 2, Mistral, CodeLlama, etc. | Não                     | Sim                 |
 
 ## Configurando um Provedor de LLM
 
@@ -61,6 +61,7 @@ Preencha os seguintes campos:
    - `gpt-3.5-turbo` - Rápido e econômico
 
 **Exemplo de Configuração:**
+
 ```
 Nome: OpenAI de Produção
 Tipo de LLM: OpenAI
@@ -80,6 +81,7 @@ Nome do Modelo: gpt-4o
    - `claude-3-5-sonnet-20241022` - Modelo Sonnet mais recente
 
 **Exemplo de Configuração:**
+
 ```
 Nome: Anthropic de Produção
 Tipo de LLM: Anthropic
@@ -99,6 +101,7 @@ O Ollama permite que você execute LLMs de código aberto localmente ou na sua p
 6. Insira o nome do modelo que você baixou
 
 **Exemplo de Configuração:**
+
 ```
 Nome: Ollama Local
 Tipo de LLM: Ollama
@@ -107,6 +110,7 @@ Nome do Modelo: llama2
 ```
 
 **Modelos Populares do Ollama:**
+
 - `llama2` - Modelo Llama 2 da Meta
 - `llama3` - Modelo Llama 3 da Meta
 - `mistral` - Modelo da Mistral AI

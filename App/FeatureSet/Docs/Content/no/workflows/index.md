@@ -24,13 +24,13 @@ Du bygger alt dette visuelt på et lerret. Ingen koding kreves for de fleste arb
 
 ## Sentrale begreper
 
-| Begrep | Betydning |
-| --- | --- |
-| **Arbeidsflyt** | Hele automatiseringen — et navn, et lerret og en bryter for å slå den på eller av. |
-| **Trigger** | Den første blokken. Den bestemmer når arbeidsflyten kjører. Hver arbeidsflyt har nøyaktig én trigger. |
-| **Komponent** | En handlingsblokk — sender en melding, gjør en forespørsel, sjekker en betingelse. |
-| **Kjøring** | Én eksekvering av arbeidsflyten. Lagres med tidsstempler og utdata fra hver blokk. |
-| **Global variabel** | En verdi (som en API-nøkkel) du lagrer én gang og gjenbruker i en hvilken som helst arbeidsflyt. |
+| Begrep              | Betydning                                                                                             |
+| ------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Arbeidsflyt**     | Hele automatiseringen — et navn, et lerret og en bryter for å slå den på eller av.                    |
+| **Trigger**         | Den første blokken. Den bestemmer når arbeidsflyten kjører. Hver arbeidsflyt har nøyaktig én trigger. |
+| **Komponent**       | En handlingsblokk — sender en melding, gjør en forespørsel, sjekker en betingelse.                    |
+| **Kjøring**         | Én eksekvering av arbeidsflyten. Lagres med tidsstempler og utdata fra hver blokk.                    |
+| **Global variabel** | En verdi (som en API-nøkkel) du lagrer én gang og gjenbruker i en hvilken som helst arbeidsflyt.      |
 
 ## Hvor du finner arbeidsflyter i OneUptime
 

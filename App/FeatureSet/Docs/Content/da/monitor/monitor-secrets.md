@@ -1,6 +1,6 @@
 # Monitor Secrets
 
-Du kan bruge hemmeligheder til at gemme følsomme oplysninger, som du vil bruge i dine overvågningsskjek. Hemmeligheder er krypteret og opbevares sikkert. 
+Du kan bruge hemmeligheder til at gemme følsomme oplysninger, som du vil bruge i dine overvågningsskjek. Hemmeligheder er krypteret og opbevares sikkert.
 
 ### Tilføjelse af en hemmelighed
 
@@ -10,7 +10,7 @@ For at tilføje en hemmelighed skal du gå til OneUptime Dashboard -> Projektind
 
 Du kan vælge, hvilke monitorer der har adgang til hemmeligheden. I dette tilfælde har vi tilføjet `ApiKey`-hemmelighed og valgt monitorer til at have adgang til den.
 
-**Bemærk venligst**: Hemmeligheder er krypteret og opbevares sikkert. Hvis du mister hemmeligheden, skal du oprette en ny hemmelighed. Du kan ikke se eller opdatere hemmeligheden, efter den er gemt. 
+**Bemærk venligst**: Hemmeligheder er krypteret og opbevares sikkert. Hvis du mister hemmeligheden, skal du oprette en ny hemmelighed. Du kan ikke se eller opdatere hemmeligheden, efter den er gemt.
 
 ### Brug af en hemmelighed
 
@@ -21,13 +21,11 @@ Du kan bruge hemmeligheder i følgende monitortyper:
 - Synthetic Monitor, Custom Code Monitor (i koden)
 - SNMP Monitor (i community-streng, SNMPv3-autentificeringsnøgle og priv-nøgle)
 
-
 ![Brug hemmelighed](/docs/static/images/UsingMonitorSecret.png)
 
 For at bruge en hemmelighed skal du tilføje `{{monitorSecrets.SECRET_NAME}}` i det felt, hvor du vil bruge hemmeligheden. For eksempel har vi i dette tilfælde tilføjet `{{monitorSecrets.ApiKey}}` i feltet Anmodningsheader.
 
 Hemmeligheder injiceres på proben, inden Synthetic eller Custom Code-monitorscripts eksekveres, så referencer som `{{monitorSecrets.ApiKey}}` løses til den dekrypterede værdi inde i det kørende script.
-
 
 ### Monitor Secret-tilladelser
 

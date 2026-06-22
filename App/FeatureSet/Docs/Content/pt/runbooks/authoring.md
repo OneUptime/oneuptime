@@ -6,13 +6,13 @@ Crie um runbook em **Runbooks → Criar Runbook**, abra-o e vá na aba **Passos*
 
 Todo passo tem:
 
-| Campo | Propósito |
-| --- | --- |
-| **Título** | Rótulo curto mostrado na UI de checklist. Obrigatório. |
-| **Descrição** | Contexto opcional para quem responde. Texto seguro para Markdown. |
-| **Continuar em caso de falha** | Se ligado, um passo que falha não interrompe a execução — o próximo roda mesmo assim. |
-| **Requer aprovação** | Se ligado, o runbook pausa após este passo e espera um usuário aprovar antes de rodar o próximo. |
-| **Config específica do tipo** | Script, URL, agente, etc. — veja abaixo. |
+| Campo                          | Propósito                                                                                        |
+| ------------------------------ | ------------------------------------------------------------------------------------------------ |
+| **Título**                     | Rótulo curto mostrado na UI de checklist. Obrigatório.                                           |
+| **Descrição**                  | Contexto opcional para quem responde. Texto seguro para Markdown.                                |
+| **Continuar em caso de falha** | Se ligado, um passo que falha não interrompe a execução — o próximo roda mesmo assim.            |
+| **Requer aprovação**           | Se ligado, o runbook pausa após este passo e espera um usuário aprovar antes de rodar o próximo. |
+| **Config específica do tipo**  | Script, URL, agente, etc. — veja abaixo.                                                         |
 
 Passos rodam **em ordem**. Reordene com as setas para cima/baixo no editor de Passos.
 

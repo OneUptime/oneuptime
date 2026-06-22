@@ -4,7 +4,7 @@
 
 Эта интеграция является **исходящей**: OneUptime вызывает [GitHub REST API](https://docs.github.com/en/rest/issues/issues). Используется OneUptime **[Workflow](/docs/workflows/index)** с триггером **Incident → On Create** и компонентом **API**.
 
-> **Ищете более глубокую интеграцию с GitHub?** У OneUptime также есть нативная интеграция **GitHub App** для подключения репозиториев кода (используется ИИ-агентом и функциями работы с кодом). Она настраивается через переменные окружения, а не через рабочие процессы — см. [Интеграция с GitHub (self-hosted)](/docs/self-hosted/github-integration). Эта страница посвящена исключительно *созданию задач на основе инцидентов*.
+> **Ищете более глубокую интеграцию с GitHub?** У OneUptime также есть нативная интеграция **GitHub App** для подключения репозиториев кода (используется ИИ-агентом и функциями работы с кодом). Она настраивается через переменные окружения, а не через рабочие процессы — см. [Интеграция с GitHub (self-hosted)](/docs/self-hosted/github-integration). Эта страница посвящена исключительно _созданию задач на основе инцидентов_.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -14,10 +14,12 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 - Репозиторий GitHub, в котором нужно создавать задачи.
 - Токен, позволяющий создавать задачи:
+
   - **Fine-grained PAT** с доступом к этому репозиторию и разрешением **Issues: Read and write**, или
   - **classic PAT** с областью `repo`.
 
   Создайте токен на [github.com/settings/tokens](https://github.com/settings/tokens).
+
 - Проект OneUptime, в котором вы можете создавать рабочие процессы.
 
 ## Шаг 1 — Сохраните токен
@@ -30,6 +32,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 1. Откройте **Workflows → Create Workflow**, назовите его `Incidents → GitHub Issues` и откройте **Builder**.
 2. Добавьте триггер **Incident**, установив **On Create**. Переименуйте его в `Incident`.
 3. Добавьте блок **API**, соединённый с триггером:
+
    - **Method**: `POST`
    - **URL**: `https://api.github.com/repos/your-org/your-repo/issues`
    - **Headers**:

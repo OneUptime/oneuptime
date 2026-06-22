@@ -22,11 +22,11 @@ If you prefer to use your own API keys or a specific provider, you can still con
 
 OneUptime currently supports the following LLM providers:
 
-| Provider | Description | API Key Required | Base URL Required |
-|----------|-------------|------------------|-------------------|
-| **OpenAI** | GPT-4, GPT-4o, GPT-3.5 Turbo, and other OpenAI models | Yes | No (uses default) |
-| **Anthropic** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku, and other Claude models | Yes | No (uses default) |
-| **Ollama** | Self-hosted open-source models like Llama 2, Mistral, CodeLlama, etc. | No | Yes |
+| Provider      | Description                                                             | API Key Required | Base URL Required |
+| ------------- | ----------------------------------------------------------------------- | ---------------- | ----------------- |
+| **OpenAI**    | GPT-4, GPT-4o, GPT-3.5 Turbo, and other OpenAI models                   | Yes              | No (uses default) |
+| **Anthropic** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku, and other Claude models | Yes              | No (uses default) |
+| **Ollama**    | Self-hosted open-source models like Llama 2, Mistral, CodeLlama, etc.   | No               | Yes               |
 
 ## Setting Up an LLM Provider
 
@@ -61,6 +61,7 @@ Fill in the following fields:
    - `gpt-3.5-turbo` - Fast and economical
 
 **Example Configuration:**
+
 ```
 Name: Production OpenAI
 LLM Type: OpenAI
@@ -80,6 +81,7 @@ Model Name: gpt-4o
    - `claude-3-5-sonnet-20241022` - Latest Sonnet model
 
 **Example Configuration:**
+
 ```
 Name: Production Anthropic
 LLM Type: Anthropic
@@ -99,6 +101,7 @@ Ollama allows you to run open-source LLMs locally or on your own infrastructure.
 6. Enter the model name you pulled
 
 **Example Configuration:**
+
 ```
 Name: Local Ollama
 LLM Type: Ollama
@@ -107,6 +110,7 @@ Model Name: llama2
 ```
 
 **Popular Ollama Models:**
+
 - `llama2` - Meta's Llama 2 model
 - `llama3` - Meta's Llama 3 model
 - `mistral` - Mistral AI's model

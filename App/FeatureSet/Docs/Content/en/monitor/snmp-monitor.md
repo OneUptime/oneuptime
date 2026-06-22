@@ -23,11 +23,11 @@ SNMP monitors query network devices for specific management information using OI
 
 ### Basic Settings
 
-| Field | Description | Required |
-|-------|-------------|----------|
-| SNMP Version | Protocol version: v1, v2c, or v3 | Yes |
-| Hostname/IP | The hostname or IP address of the SNMP device | Yes |
-| Port | SNMP port (default: 161) | Yes |
+| Field        | Description                                   | Required |
+| ------------ | --------------------------------------------- | -------- |
+| SNMP Version | Protocol version: v1, v2c, or v3              | Yes      |
+| Hostname/IP  | The hostname or IP address of the SNMP device | Yes      |
+| Port         | SNMP port (default: 161)                      | Yes      |
 
 ### Authentication
 
@@ -35,32 +35,32 @@ SNMP monitors query network devices for specific management information using OI
 
 For SNMP v1 and v2c, you only need to provide a community string:
 
-| Field | Description | Required |
-|-------|-------------|----------|
-| Community String | The SNMP community string (e.g., "public") | Yes |
+| Field            | Description                                | Required |
+| ---------------- | ------------------------------------------ | -------- |
+| Community String | The SNMP community string (e.g., "public") | Yes      |
 
 #### SNMP v3
 
 SNMPv3 provides enhanced security with authentication and encryption:
 
-| Field | Description | Required |
-|-------|-------------|----------|
-| Security Level | noAuthNoPriv, authNoPriv, or authPriv | Yes |
-| Username | SNMPv3 username | Yes |
-| Auth Protocol | MD5, SHA, SHA256, or SHA512 | If authNoPriv or authPriv |
-| Auth Key | Authentication password | If authNoPriv or authPriv |
-| Priv Protocol | DES, AES, or AES256 | If authPriv |
-| Priv Key | Privacy/encryption password | If authPriv |
+| Field          | Description                           | Required                  |
+| -------------- | ------------------------------------- | ------------------------- |
+| Security Level | noAuthNoPriv, authNoPriv, or authPriv | Yes                       |
+| Username       | SNMPv3 username                       | Yes                       |
+| Auth Protocol  | MD5, SHA, SHA256, or SHA512           | If authNoPriv or authPriv |
+| Auth Key       | Authentication password               | If authNoPriv or authPriv |
+| Priv Protocol  | DES, AES, or AES256                   | If authPriv               |
+| Priv Key       | Privacy/encryption password           | If authPriv               |
 
 ### OIDs to Monitor
 
 Add the OIDs you want to query from the device. For each OID, you can specify:
 
-| Field | Description | Required |
-|-------|-------------|----------|
-| OID | The numeric OID (e.g., 1.3.6.1.2.1.1.1.0) | Yes |
-| Name | A friendly name for the OID (e.g., sysDescr) | No |
-| Description | A description of what this OID represents | No |
+| Field       | Description                                  | Required |
+| ----------- | -------------------------------------------- | -------- |
+| OID         | The numeric OID (e.g., 1.3.6.1.2.1.1.1.0)    | Yes      |
+| Name        | A friendly name for the OID (e.g., sysDescr) | No       |
+| Description | A description of what this OID represents    | No       |
 
 ### Common OID Templates
 
@@ -68,38 +68,38 @@ OneUptime provides templates for commonly monitored OIDs:
 
 #### System MIB
 
-| OID | Name | Description |
-|-----|------|-------------|
-| 1.3.6.1.2.1.1.1.0 | sysDescr | System Description |
-| 1.3.6.1.2.1.1.3.0 | sysUpTime | System Uptime (in ticks) |
-| 1.3.6.1.2.1.1.5.0 | sysName | System Name |
-| 1.3.6.1.2.1.1.6.0 | sysLocation | System Location |
-| 1.3.6.1.2.1.1.4.0 | sysContact | System Contact |
+| OID               | Name        | Description              |
+| ----------------- | ----------- | ------------------------ |
+| 1.3.6.1.2.1.1.1.0 | sysDescr    | System Description       |
+| 1.3.6.1.2.1.1.3.0 | sysUpTime   | System Uptime (in ticks) |
+| 1.3.6.1.2.1.1.5.0 | sysName     | System Name              |
+| 1.3.6.1.2.1.1.6.0 | sysLocation | System Location          |
+| 1.3.6.1.2.1.1.4.0 | sysContact  | System Contact           |
 
 #### Interface MIB
 
-| OID | Name | Description |
-|-----|------|-------------|
-| 1.3.6.1.2.1.2.1.0 | ifNumber | Number of Network Interfaces |
-| 1.3.6.1.2.1.2.2.1.8.X | ifOperStatus | Interface Operational Status (X = interface index) |
-| 1.3.6.1.2.1.2.2.1.10.X | ifInOctets | Input Bytes (X = interface index) |
-| 1.3.6.1.2.1.2.2.1.16.X | ifOutOctets | Output Bytes (X = interface index) |
+| OID                    | Name         | Description                                        |
+| ---------------------- | ------------ | -------------------------------------------------- |
+| 1.3.6.1.2.1.2.1.0      | ifNumber     | Number of Network Interfaces                       |
+| 1.3.6.1.2.1.2.2.1.8.X  | ifOperStatus | Interface Operational Status (X = interface index) |
+| 1.3.6.1.2.1.2.2.1.10.X | ifInOctets   | Input Bytes (X = interface index)                  |
+| 1.3.6.1.2.1.2.2.1.16.X | ifOutOctets  | Output Bytes (X = interface index)                 |
 
 #### Host Resources MIB
 
-| OID | Name | Description |
-|-----|------|-------------|
-| 1.3.6.1.2.1.25.1.1.0 | hrSystemUptime | Host System Uptime |
-| 1.3.6.1.2.1.25.1.5.0 | hrSystemNumUsers | Number of Users |
-| 1.3.6.1.2.1.25.1.6.0 | hrSystemProcesses | Number of Running Processes |
-| 1.3.6.1.2.1.25.3.3.1.2.X | hrProcessorLoad | CPU Load (X = processor index) |
+| OID                      | Name              | Description                    |
+| ------------------------ | ----------------- | ------------------------------ |
+| 1.3.6.1.2.1.25.1.1.0     | hrSystemUptime    | Host System Uptime             |
+| 1.3.6.1.2.1.25.1.5.0     | hrSystemNumUsers  | Number of Users                |
+| 1.3.6.1.2.1.25.1.6.0     | hrSystemProcesses | Number of Running Processes    |
+| 1.3.6.1.2.1.25.3.3.1.2.X | hrProcessorLoad   | CPU Load (X = processor index) |
 
 ### Advanced Settings
 
-| Field | Description | Default |
-|-------|-------------|---------|
-| Timeout | How long to wait for a response (ms) | 5000 |
-| Retries | Number of retry attempts on failure | 3 |
+| Field   | Description                          | Default |
+| ------- | ------------------------------------ | ------- |
+| Timeout | How long to wait for a response (ms) | 5000    |
+| Retries | Number of retry attempts on failure  | 3       |
 
 ## Monitoring Criteria
 
@@ -107,31 +107,35 @@ You can set up criteria to check SNMP responses and trigger alerts or incidents.
 
 ### Available Check Types
 
-| Check Type | Description |
-|------------|-------------|
-| SNMP Device Is Online | Check if the device responds to SNMP queries |
-| SNMP Response Time | Check the query response time in milliseconds |
-| SNMP OID Value | Check the value returned by a specific OID |
-| SNMP OID Exists | Check if an OID returns a value (not null) |
+| Check Type            | Description                                   |
+| --------------------- | --------------------------------------------- |
+| SNMP Device Is Online | Check if the device responds to SNMP queries  |
+| SNMP Response Time    | Check the query response time in milliseconds |
+| SNMP OID Value        | Check the value returned by a specific OID    |
+| SNMP OID Exists       | Check if an OID returns a value (not null)    |
 
 ### Example Criteria
 
 #### Check if device is online
+
 - **Check On**: SNMP Device Is Online
 - **Filter Type**: True
 
 #### Alert if response time exceeds threshold
+
 - **Check On**: SNMP Response Time (in ms)
 - **Filter Type**: Greater Than
 - **Value**: 1000
 
 #### Check interface status
+
 - **Check On**: SNMP OID Value
 - **OID**: 1.3.6.1.2.1.2.2.1.8.1
 - **Filter Type**: Equal To
 - **Value**: 1 (1 = up, 2 = down)
 
 #### Check CPU load threshold
+
 - **Check On**: SNMP OID Value
 - **OID**: 1.3.6.1.2.1.25.3.3.1.2.1
 - **Filter Type**: Greater Than
@@ -159,30 +163,33 @@ Use the `{{monitorSecrets.SECRET_NAME}}` syntax in any sensitive field:
 
 When creating incident or alert templates, you can use the following variables:
 
-| Variable | Description |
-|----------|-------------|
-| `{{isOnline}}` | Whether the device is online (true/false) |
-| `{{responseTimeInMs}}` | Query response time in milliseconds |
-| `{{failureCause}}` | Error message if the query failed |
-| `{{oidResponses}}` | Array of OID response objects |
-| `{{OID_NAME}}` | Value of a specific OID by name (e.g., `{{sysUpTime}}`) |
+| Variable               | Description                                             |
+| ---------------------- | ------------------------------------------------------- |
+| `{{isOnline}}`         | Whether the device is online (true/false)               |
+| `{{responseTimeInMs}}` | Query response time in milliseconds                     |
+| `{{failureCause}}`     | Error message if the query failed                       |
+| `{{oidResponses}}`     | Array of OID response objects                           |
+| `{{OID_NAME}}`         | Value of a specific OID by name (e.g., `{{sysUpTime}}`) |
 
 ## Troubleshooting
 
 ### Common Issues
 
 #### Device not responding
+
 - Verify the device IP/hostname is correct
 - Check that SNMP is enabled on the device
 - Verify firewall rules allow UDP port 161
 - Confirm the community string is correct
 
 #### Authentication failures (v3)
+
 - Verify username, auth protocol, and auth key
 - Ensure the security level matches the device configuration
 - Check that priv protocol and key are correct for authPriv level
 
 #### OID not found
+
 - Verify the OID is supported by your device
 - Check if the OID requires a specific MIB to be loaded
 - Try querying the OID directly using snmpget/snmpwalk tools

@@ -98,10 +98,10 @@ provider "oneuptime" {
 
 ### Konfigurationsmuligheder
 
-| Argument | Miljøvariabel | Beskrivelse | Påkrævet |
-|----------|---------------------|-------------|----------|
-| `oneuptime_url` | `ONEUPTIME_URL` | OneUptime-URL | Ja |
-| `api_key` | `ONEUPTIME_API_KEY` | OneUptime API-nøgle | Ja |
+| Argument        | Miljøvariabel       | Beskrivelse         | Påkrævet |
+| --------------- | ------------------- | ------------------- | -------- |
+| `oneuptime_url` | `ONEUPTIME_URL`     | OneUptime-URL       | Ja       |
+| `api_key`       | `ONEUPTIME_API_KEY` | OneUptime API-nøgle | Ja       |
 
 ## Hurtig start
 
@@ -195,11 +195,11 @@ terraform {
 
 **Kritisk**: Selvhostede kunder skal fastlåse providerversionen til at matche deres OneUptime-installation nøjagtigt:
 
-| OneUptime-version | Providerversion | Konfiguration |
-|-------------------|------------------|---------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| 7.2.x | 7.2.x | `version = "~> 7.2.0"` |
+| OneUptime-version | Providerversion | Konfiguration          |
+| ----------------- | --------------- | ---------------------- |
+| 7.0.x             | 7.0.x           | `version = "~> 7.0.0"` |
+| 7.1.x             | 7.1.x           | `version = "~> 7.1.0"` |
+| 7.2.x             | 7.2.x           | `version = "~> 7.2.0"` |
 
 Eksempel til OneUptime 7.0.123:
 
@@ -219,26 +219,33 @@ terraform {
 OneUptime Terraform-provideren understøtter følgende ressourcer:
 
 ### Kerneressourcer
+
 - `oneuptime_team` – Administrer teams
 
 ### Overvågning
+
 - `oneuptime_monitor` – Opret og administrer monitorer
 - `oneuptime_probe` – Administrer overvågningsprober
 
 ### Vagtadministration
+
 - `oneuptime_on_call_duty_policy` – Opsæt vagtplaner
 
 ### Statussider
+
 - `oneuptime_status_page` – Opret statussider
 
 ### Tjenestekatalog
+
 - `oneuptime_service_catalog` – Administrer tjenestekatalogposter
 
 ### Tjenestekatalog
+
 - `oneuptime_service` – Definer tjenester
 - `oneuptime_service_dependency` – Kortlæg tjenesteafhængigheder
 
 ### Datakilder
+
 Bemærk: Datakilder er ikke i øjeblikket tilgængelige i provideren, da ingen datakilder er defineret i providerskemaet.
 
 ## Eksempler
@@ -301,12 +308,12 @@ resource "oneuptime_monitor" "api" {
 resource "oneuptime_monitor" "database" {
   name       = "Database Connection"
   project_id = oneuptime_project.production.id
-  
+
   monitor_type = "port"
   hostname     = "db.mycompany.com"
   port         = 5432
   interval     = "2m"
-  
+
   tags = {
     service     = "database"
     environment = "production"
@@ -319,11 +326,11 @@ resource "oneuptime_on_call_policy" "platform_oncall" {
   name       = "Platform On-Call"
   project_id = oneuptime_project.production.id
   team_id    = oneuptime_team.platform.id
-  
+
   schedules {
     name      = "Business Hours"
     timezone  = "America/New_York"
-    
+
     layers {
       name = "Primary"
       users = ["user1@mycompany.com", "user2@mycompany.com"]
@@ -339,22 +346,22 @@ resource "oneuptime_on_call_policy" "platform_oncall" {
 resource "oneuptime_alert_policy" "critical_alerts" {
   name       = "Critical System Alerts"
   project_id = oneuptime_project.production.id
-  
+
   conditions {
     monitor_id = oneuptime_monitor.api.id
     threshold  = "down"
   }
-  
+
   conditions {
     monitor_id = oneuptime_monitor.database.id
     threshold  = "down"
   }
-  
+
   actions {
     type = "webhook"
     url  = "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
   }
-  
+
   actions {
     type           = "oncall_escalation"
     oncall_policy_id = oneuptime_on_call_policy.platform_oncall.id
@@ -365,14 +372,14 @@ resource "oneuptime_alert_policy" "critical_alerts" {
 resource "oneuptime_status_page" "public" {
   name       = "MyCompany Status"
   project_id = oneuptime_project.production.id
-  
+
   domain = "status.mycompany.com"
-  
+
   components {
     name       = "API"
     monitor_id = oneuptime_monitor.api.id
   }
-  
+
   components {
     name       = "Database"
     monitor_id = oneuptime_monitor.database.id
@@ -407,10 +414,12 @@ provider "oneuptime" {
 ### 1. Versionsstyring
 
 **Til skykunder:**
+
 - Brug semantisk versionering med `~>` for at få kompatible opdateringer
 - Gennemgå changelog inden større versionopgraderinger
 
 **Til selvhostede kunder:**
+
 - Fastlås altid til nøjagtig version, der matcher din installation
 - Opdater providerversionen, når du opgraderer OneUptime
 - Test i ikke-produktionsmiljø først
@@ -545,15 +554,19 @@ terraform apply
 ### Almindelige problemer
 
 1. **Versionsmismatch (selvhostet)**
+
    ```
    Error: API version incompatible
    ```
+
    **Løsning**: Sørg for, at providerversionen matcher OneUptime-installationen
 
 2. **Autentificeringsproblemer**
+
    ```
    Error: Invalid API key
    ```
+
    **Løsning**: Bekræft API-nøgle og tilladelser
 
 3. **Ressource ikke fundet**

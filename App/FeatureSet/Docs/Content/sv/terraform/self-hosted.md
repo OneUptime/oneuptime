@@ -11,6 +11,7 @@ Den här guiden är specifikt för kunder som kör egeninstallerade OneUptime-in
 ## Resursstruktur
 
 Alla OneUptime Terraform-resurser följer en förenklad struktur:
+
 - `name` (obligatorisk) – Resursnamn
 - `description` (valfritt) – Resursbeskrivning
 - `data` (valfritt) – Komplex konfiguration som JSON
@@ -29,24 +30,30 @@ Alla OneUptime Terraform-resurser följer en förenklad struktur:
 ## Hitta din OneUptime-version
 
 ### Metod 1: Instrumentpanel
+
 1. Logga in på din OneUptime-instrumentpanel
 2. Gå till **Inställningar** → **Om**
 3. Leta efter versionsnumret (t.ex. "7.0.123")
 
 ### Metod 2: API-slutpunkt
+
 ```bash
 curl https://your-oneuptime-instance.com/api/status
 ```
 
 ### Metod 3: Docker-bilder
+
 Om du kör OneUptime med Docker:
+
 ```bash
 docker images | grep oneuptime
 # Look for the tag, e.g., oneuptime/dashboard:7.0.123
 ```
 
 ### Metod 4: Helm Chart
+
 Om du använder Helm:
+
 ```bash
 helm list -n oneuptime
 # Check the chart version
@@ -136,6 +143,7 @@ export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
 ### 2. API-nycklar med minsta privilegium
 
 Skapa API-nycklar med minimala obligatoriska behörigheter:
+
 - Monitorhantering
 - Varningspolicyhantering
 - Teamhantering (om nödvändigt)
@@ -147,7 +155,7 @@ Skapa API-nycklar med minimala obligatoriska behörigheter:
 ```bash
 # Create environments
 terraform workspace new dev
-terraform workspace new staging  
+terraform workspace new staging
 terraform workspace new prod
 
 # Switch between environments

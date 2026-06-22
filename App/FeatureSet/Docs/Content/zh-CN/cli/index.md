@@ -34,27 +34,27 @@ oneuptime resources
 
 ## 文档
 
-| 指南 | 描述 |
-|------|------|
-| [认证](./authentication.md) | 登录、上下文和凭据管理 |
+| 指南                                 | 描述                                 |
+| ------------------------------------ | ------------------------------------ |
+| [认证](./authentication.md)          | 登录、上下文和凭据管理               |
 | [资源操作](./resource-operations.md) | 对监控器、事件、告警等进行 CRUD 操作 |
-| [输出格式](./output-formats.md) | JSON、表格和宽表输出模式 |
-| [脚本与 CI/CD](./scripting.md) | 自动化、环境变量和流水线用法 |
-| [命令参考](./command-reference.md) | 所有命令和选项的完整参考 |
+| [输出格式](./output-formats.md)      | JSON、表格和宽表输出模式             |
+| [脚本与 CI/CD](./scripting.md)       | 自动化、环境变量和流水线用法         |
+| [命令参考](./command-reference.md)   | 所有命令和选项的完整参考             |
 
 ## 全局选项
 
 这些标志可与任何命令一起使用：
 
-| 标志 | 描述 |
-|------|------|
-| `--api-key <key>` | 覆盖此命令的 API 密钥 |
-| `--url <url>` | 覆盖此命令的实例 URL |
-| `--context <name>` | 使用特定的命名上下文 |
+| 标志                    | 描述                              |
+| ----------------------- | --------------------------------- |
+| `--api-key <key>`       | 覆盖此命令的 API 密钥             |
+| `--url <url>`           | 覆盖此命令的实例 URL              |
+| `--context <name>`      | 使用特定的命名上下文              |
 | `-o, --output <format>` | 输出格式：`json`、`table`、`wide` |
-| `--no-color` | 禁用彩色输出 |
-| `--help` | 显示命令帮助 |
-| `--version` | 显示 CLI 版本 |
+| `--no-color`            | 禁用彩色输出                      |
+| `--help`                | 显示命令帮助                      |
+| `--version`             | 显示 CLI 版本                     |
 
 ## 获取帮助
 

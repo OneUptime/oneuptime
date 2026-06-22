@@ -9,13 +9,13 @@ Du kan kjore **OpenTelemetry Collector** som en tjeneste direkte pa Linux-, macO
 - **systemd journal** (Linux) via [`journaldreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/journaldreceiver)
 - **Apple Unified Log** (macOS) via [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor) som omslutter en tailet `log stream`-utdata
 - **Windows Event Logs** via [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver)
-- **Windows-tjenestestatus** (driver host-fanen **Services**) via [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) — *ikke i den oppstroms forhandsbygde collectoren; bruk den forhandsbygde **OneUptime Host Collector** eller et egendefinert bygg (se "Windows Services (metrikker)" nedenfor)*
+- **Windows-tjenestestatus** (driver host-fanen **Services**) via [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) — _ikke i den oppstroms forhandsbygde collectoren; bruk den forhandsbygde **OneUptime Host Collector** eller et egendefinert bygg (se "Windows Services (metrikker)" nedenfor)_
 
-> **Hva med OneUptime Infrastructure Agent?** Den agenten er en separat, lettvekts Go-daemon som fokuserer pa grunnleggende metrikker og *Server / VM Monitor*-funksjonen (status, prosesser, varsling). OpenTelemetry Collector som er beskrevet her er uavhengig og er riktig verktoy nar du vil ha logger (filloggene, journald, Windows Event Logs) eller rikere host-metrikker ingestert som standard OTLP. Begge kan kjore pa samme host uten a forstyrre hverandre.
+> **Hva med OneUptime Infrastructure Agent?** Den agenten er en separat, lettvekts Go-daemon som fokuserer pa grunnleggende metrikker og _Server / VM Monitor_-funksjonen (status, prosesser, varsling). OpenTelemetry Collector som er beskrevet her er uavhengig og er riktig verktoy nar du vil ha logger (filloggene, journald, Windows Event Logs) eller rikere host-metrikker ingestert som standard OTLP. Begge kan kjore pa samme host uten a forstyrre hverandre.
 
 ## Forutsetninger
 
-- En **OneUptime Telemetry Ingestion Token** — opprett en fra *Project Settings → Telemetry Ingestion Keys* og kopier `x-oneuptime-token`-verdien.
+- En **OneUptime Telemetry Ingestion Token** — opprett en fra _Project Settings → Telemetry Ingestion Keys_ og kopier `x-oneuptime-token`-verdien.
 - **OpenTelemetry Collector Contrib**-distribusjonen (`otelcol-contrib`). Standard `otelcol`-bygget inkluderer **ikke** receivere som `windowseventlogreceiver`, `journaldreceiver` eller `hostmetrics`-tillegg — pass pa a bruke `contrib`-distribusjonen. Ett unntak verdt a vite om pa forhand: alpha-receiveren `windowsservicereceiver` (som driver Windows-fanen **Services**) er **ikke** buntet i den oppstroms forhandsbygde `contrib`-binaerfilen — bruk den forhandsbygde **OneUptime Host Collector** (som inkluderer den) eller bygg din egen; se "Windows Services (metrikker)" nedenfor.
 - Root / Administrator pa hosten for a installere collectoren som en tjeneste og (der det er aktuelt) lese privilegerte loggkilder.
 
@@ -68,7 +68,7 @@ Du oppretter `/etc/otelcol-contrib/config.yaml` i Trinn 2 og en `launchd`-plist 
 
 ### Windows
 
-Pa Windows installerer du **OneUptime Host Collector** — OneUptimes forhandsbygde collector som bunter med `windows_service`-receiveren (som driver host-fanen **Services** og *ikke* finnes i det oppstroms `otelcol-contrib`-bygget). Fra en **forhoyet** PowerShell-ledetekst:
+Pa Windows installerer du **OneUptime Host Collector** — OneUptimes forhandsbygde collector som bunter med `windows_service`-receiveren (som driver host-fanen **Services** og _ikke_ finnes i det oppstroms `otelcol-contrib`-bygget). Fra en **forhoyet** PowerShell-ledetekst:
 
 ```powershell
 $dest = "C:\Program Files\OneUptimeHostCollector"
@@ -87,10 +87,10 @@ Du oppretter `C:\Program Files\OneUptimeHostCollector\config.yaml` i Trinn 2 og 
 
 Konfigurasjonsfilen ligger pa:
 
-| OS | Sti |
-|---|---|
-| Linux | `/etc/otelcol-contrib/config.yaml` |
-| macOS | `/etc/otelcol-contrib/config.yaml` |
+| OS      | Sti                                                   |
+| ------- | ----------------------------------------------------- |
+| Linux   | `/etc/otelcol-contrib/config.yaml`                    |
+| macOS   | `/etc/otelcol-contrib/config.yaml`                    |
 | Windows | `C:\Program Files\OneUptimeHostCollector\config.yaml` |
 
 Hver konfigurasjon folger samme form — velg receiverne du vil ha, legg til en `batch`- og `resource`-prosessor, og eksporter til OneUptime over OTLP HTTP. Eksemplene nedenfor viser en komplett konfigurasjon som kan kopieres og limes inn per OS, og gar deretter gjennom hver receiver-blokk slik at du kan blande og matche.
@@ -223,7 +223,7 @@ receivers:
       - type: json_parser
         timestamp:
           parse_from: attributes.timestamp
-          layout: '%Y-%m-%d %H:%M:%S.%f%j'
+          layout: "%Y-%m-%d %H:%M:%S.%f%j"
 ```
 
 (Hvis du ikke trenger den samlede loggen, hopp over dette — Mac-flater kjorer ofte fint med bare host-metrikker + noen fa filloggene.)
@@ -250,18 +250,18 @@ receivers:
 For a innsnevre den hoyvolumiske `Security`-kanalen til spesifikke hendelses-ID-er:
 
 ```yaml
-  windowseventlog/security:
-    channel: Security
-    start_at: end
-    query: "*[System[(EventID=4625 or EventID=4740)]]"
+windowseventlog/security:
+  channel: Security
+  start_at: end
+  query: "*[System[(EventID=4625 or EventID=4740)]]"
 ```
 
-For a lese en egendefinert eller applikasjonsspesifikk kanal (alt du kan se under *Event Viewer → Applications and Services Logs*), bruk dens noyaktige visningsnavn:
+For a lese en egendefinert eller applikasjonsspesifikk kanal (alt du kan se under _Event Viewer → Applications and Services Logs_), bruk dens noyaktige visningsnavn:
 
 ```yaml
-  windowseventlog/iis:
-    channel: Microsoft-IIS-Logging/Logs
-    start_at: end
+windowseventlog/iis:
+  channel: Microsoft-IIS-Logging/Logs
+  start_at: end
 ```
 
 ### Windows Services (metrikker)
@@ -597,10 +597,10 @@ OpenTelemetry Collector respekterer standardmiljovariablene `HTTPS_PROXY` / `HTT
 - **Ingen telemetri vises i OneUptime**
   - Legg til `service.telemetry.logs.level: debug` i konfigurasjonen og start collectoren pa nytt for detaljert utdata.
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f` (Linux) eller `tail -f /var/log/otelcol-contrib.err.log` (macOS).
-  - **Windows:** se under *Event Viewer → Windows Logs → Application* etter kilden `otelcol-contrib`.
+  - **Windows:** se under _Event Viewer → Windows Logs → Application_ etter kilden `otelcol-contrib`.
   - Bekreft at hosten kan na `https://oneuptime.com/otlp` (eller ditt selvhostede endepunkt): `curl -v https://oneuptime.com/otlp` fra samme maskin.
-- **HTTP 401 fra eksportoren** — ingestion-tokenet er ugyldig eller tilbakekalt. Generer et nytt fra *Project Settings → Telemetry Ingestion Keys*.
-- **`Security`-kanalen i Windows Event Log returnerer access denied** — tjenesten kjorer ikke med tilstrekkelige privilegier. Gjenopprett den under `LocalSystem` (standarden med `sc.exe create`) eller gi tjenestekontoen brukerrettigheten *Manage auditing and security log*.
+- **HTTP 401 fra eksportoren** — ingestion-tokenet er ugyldig eller tilbakekalt. Generer et nytt fra _Project Settings → Telemetry Ingestion Keys_.
+- **`Security`-kanalen i Windows Event Log returnerer access denied** — tjenesten kjorer ikke med tilstrekkelige privilegier. Gjenopprett den under `LocalSystem` (standarden med `sc.exe create`) eller gi tjenestekontoen brukerrettigheten _Manage auditing and security log_.
 - **`journald`-receiveren klarer ikke a starte** — pass pa at `journalctl` er pa collectorens `PATH` og at `/var/log/journal` finnes (kjor `sudo systemd-tmpfiles --create --prefix /var/log/journal` hvis ikke).
 - **Hoyt volum / kostnad** — innsnevre receiverne (spesifikke Windows-kanaler, spesifikke systemd-enheter, spesifikke loggfiler), legg til et `query:`-filter pa Windows Event Log-receiveren, eller legg til en `filter`-prosessor for a slippe hendelser med lav alvorlighetsgrad for eksport.
 

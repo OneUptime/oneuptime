@@ -31,11 +31,11 @@ IP monitors सत्यापित करते हैं कि एक specif
 
 ### उपलब्ध Check Types
 
-| Check Type | विवरण |
-|------------|-------|
-| Is Online | IP address reachable है या नहीं |
-| Response Time (in ms) | milliseconds में Response time |
-| Is Request Timeout | request timeout हुआ या नहीं |
+| Check Type            | विवरण                           |
+| --------------------- | ------------------------------- |
+| Is Online             | IP address reachable है या नहीं |
+| Response Time (in ms) | milliseconds में Response time  |
+| Is Request Timeout    | request timeout हुआ या नहीं     |
 
 ### Filter Types
 

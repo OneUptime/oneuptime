@@ -8,20 +8,20 @@
 
 ## 前置条件
 
-- 一个 **OneUptime 遥测采集令牌（Telemetry Ingestion Token）** —— 从 *Project Settings → Telemetry Ingestion Keys* 创建一个，并复制其中的 `x-oneuptime-token` 值。
+- 一个 **OneUptime 遥测采集令牌（Telemetry Ingestion Token）** —— 从 _Project Settings → Telemetry Ingestion Keys_ 创建一个，并复制其中的 `x-oneuptime-token` 值。
 - 适合你的函数所用语言的 OpenTelemetry SDK（或自动监测埋点层）。
 
 ## OneUptime 如何识别一个函数
 
 OneUptime 以 `faas.name` 资源属性作为每个函数的键：
 
-| 属性 | 是否必需 | 用途 |
-|---|---|---|
-| `faas.name` | **是** | 函数标识（例如 `checkout-handler`） |
-| `faas.version` | 否 | 显示在概览中 |
-| `faas.instance` | 否 | 在 **实例（Instances）** 选项卡下按实例进行跟踪 |
-| `cloud.platform` | 否 | `aws_lambda`、`gcp_cloud_functions`、`azure_functions`、…… |
-| `cloud.provider` / `cloud.region` / `cloud.account.id` | 否 | 显示在概览中 |
+| 属性                                                   | 是否必需 | 用途                                                       |
+| ------------------------------------------------------ | -------- | ---------------------------------------------------------- |
+| `faas.name`                                            | **是**   | 函数标识（例如 `checkout-handler`）                        |
+| `faas.version`                                         | 否       | 显示在概览中                                               |
+| `faas.instance`                                        | 否       | 在 **实例（Instances）** 选项卡下按实例进行跟踪            |
+| `cloud.platform`                                       | 否       | `aws_lambda`、`gcp_cloud_functions`、`azure_functions`、…… |
+| `cloud.provider` / `cloud.region` / `cloud.account.id` | 否       | 显示在概览中                                               |
 
 > 同时设置了 `service.name` 的函数仍然也会出现在 **服务（Services）** 之下。**无服务器函数（Serverless Functions）** 视图是以 FaaS 为中心、按 `faas.name` 划定范围的视角。
 
@@ -57,4 +57,4 @@ OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN
 - **实例（Instances）** —— 已观测到的 `faas.instance` 值的实时计数。
 - 限定到此函数范围的完整 **日志（Logs）**、**追踪（Traces）** 和 **指标（Metrics）** 选项卡。
 
-你还可以通过 *Serverless → Settings → Label Rules / Owner Rules* 自动应用标签和负责人。
+你还可以通过 _Serverless → Settings → Label Rules / Owner Rules_ 自动应用标签和负责人。

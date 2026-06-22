@@ -22,16 +22,16 @@ oneuptime resources --type analytics
 
 Vanlige ressurser inkluderer:
 
-| Ressurs | Kommando |
-|---------|---------|
-| Incident | `oneuptime incident` |
-| Alert | `oneuptime alert` |
-| Monitor | `oneuptime monitor` |
-| Monitor Status | `oneuptime monitor-status` |
-| Incident State | `oneuptime incident-state` |
-| Status Page | `oneuptime status-page` |
-| On-Call Policy | `oneuptime on-call-policy` |
-| Team | `oneuptime team` |
+| Ressurs                     | Kommando                                |
+| --------------------------- | --------------------------------------- |
+| Incident                    | `oneuptime incident`                    |
+| Alert                       | `oneuptime alert`                       |
+| Monitor                     | `oneuptime monitor`                     |
+| Monitor Status              | `oneuptime monitor-status`              |
+| Incident State              | `oneuptime incident-state`              |
+| Status Page                 | `oneuptime status-page`                 |
+| On-Call Policy              | `oneuptime on-call-policy`              |
+| Team                        | `oneuptime team`                        |
 | Scheduled Maintenance Event | `oneuptime scheduled-maintenance-event` |
 
 ## List ressurser
@@ -44,13 +44,13 @@ oneuptime <resource> list [options]
 
 **Alternativer:**
 
-| Alternativ | Beskrivelse | Standard |
-|------------|-------------|----------|
-| `--query <json>` | Filterkriterier som JSON | Ingen |
-| `--limit <n>` | Maksimalt antall resultater | `10` |
-| `--skip <n>` | Antall resultater som skal hoppes over | `0` |
-| `--sort <json>` | Sorteringsrekkefølge som JSON | Ingen |
-| `-o, --output <format>` | Utdataformat | `table` |
+| Alternativ              | Beskrivelse                            | Standard |
+| ----------------------- | -------------------------------------- | -------- |
+| `--query <json>`        | Filterkriterier som JSON               | Ingen    |
+| `--limit <n>`           | Maksimalt antall resultater            | `10`     |
+| `--skip <n>`            | Antall resultater som skal hoppes over | `0`      |
+| `--sort <json>`         | Sorteringsrekkefølge som JSON          | Ingen    |
+| `-o, --output <format>` | Utdataformat                           | `table`  |
 
 **Eksempler:**
 
@@ -81,9 +81,9 @@ oneuptime <resource> get <id>
 
 **Argumenter:**
 
-| Argument | Beskrivelse |
-|----------|-------------|
-| `<id>` | Ressurs-ID-en (UUID) |
+| Argument | Beskrivelse          |
+| -------- | -------------------- |
+| `<id>`   | Ressurs-ID-en (UUID) |
 
 **Eksempler:**
 
@@ -105,11 +105,11 @@ oneuptime <resource> create [options]
 
 **Alternativer:**
 
-| Alternativ | Beskrivelse |
-|------------|-------------|
-| `--data <json>` | Ressursdata som et JSON-objekt |
-| `--file <path>` | Sti til en JSON-fil med ressursdata |
-| `-o, --output <format>` | Utdataformat |
+| Alternativ              | Beskrivelse                         |
+| ----------------------- | ----------------------------------- |
+| `--data <json>`         | Ressursdata som et JSON-objekt      |
+| `--file <path>`         | Sti til en JSON-fil med ressursdata |
+| `-o, --output <format>` | Utdataformat                        |
 
 Du må oppgi enten `--data` eller `--file`.
 
@@ -136,16 +136,16 @@ oneuptime <resource> update <id> [options]
 
 **Argumenter:**
 
-| Argument | Beskrivelse |
-|----------|-------------|
-| `<id>` | Ressurs-ID-en |
+| Argument | Beskrivelse   |
+| -------- | ------------- |
+| `<id>`   | Ressurs-ID-en |
 
 **Alternativer:**
 
-| Alternativ | Beskrivelse |
-|------------|-------------|
-| `--data <json>` | Felt som skal oppdateres som JSON (påkrevd) |
-| `-o, --output <format>` | Utdataformat |
+| Alternativ              | Beskrivelse                                 |
+| ----------------------- | ------------------------------------------- |
+| `--data <json>`         | Felt som skal oppdateres som JSON (påkrevd) |
+| `-o, --output <format>` | Utdataformat                                |
 
 **Eksempler:**
 
@@ -167,15 +167,15 @@ oneuptime <resource> delete <id> [--force]
 
 **Argumenter:**
 
-| Argument | Beskrivelse |
-|----------|-------------|
-| `<id>` | Ressurs-ID-en |
+| Argument | Beskrivelse   |
+| -------- | ------------- |
+| `<id>`   | Ressurs-ID-en |
 
 **Alternativer:**
 
-| Alternativ | Beskrivelse |
-|------------|-------------|
-| `--force` | Hopp over bekreftelsesprompten |
+| Alternativ | Beskrivelse                    |
+| ---------- | ------------------------------ |
+| `--force`  | Hopp over bekreftelsesprompten |
 
 **Eksempler:**
 
@@ -197,8 +197,8 @@ oneuptime <resource> count [options]
 
 **Alternativer:**
 
-| Alternativ | Beskrivelse |
-|------------|-------------|
+| Alternativ       | Beskrivelse              |
+| ---------------- | ------------------------ |
 | `--query <json>` | Filterkriterier som JSON |
 
 **Eksempler:**
@@ -219,12 +219,12 @@ oneuptime monitor count
 Analyseressurser støtter et begrenset sett med operasjoner sammenlignet med databaseressurser:
 
 | Operasjon | Støttet |
-|-----------|---------|
-| `list` | Ja |
-| `create` | Ja |
-| `count` | Ja |
-| `get` | Nei |
-| `update` | Nei |
-| `delete` | Nei |
+| --------- | ------- |
+| `list`    | Ja      |
+| `create`  | Ja      |
+| `count`   | Ja      |
+| `get`     | Nei     |
+| `update`  | Nei     |
+| `delete`  | Nei     |
 
 Bruk `oneuptime resources --type analytics` for å se hvilke analyseressurser som er tilgjengelige på instansen din.

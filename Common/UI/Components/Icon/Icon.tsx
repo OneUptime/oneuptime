@@ -2894,6 +2894,62 @@ const Icon: FunctionComponent<ComponentProps> = ({
         />
       </>,
     );
+  } else if (icon === IconProp.DockerSwarm) {
+    /*
+     * Docker Swarm glyph — a manager node connected to three worker nodes
+     * (cluster topology). Intentionally a hand-drawn generic mark, matching
+     * the marketing icon partial and distinct from the Docker whale.
+     */
+    return getSvgWrapper(
+      <>
+        {/* Manager node */}
+        <rect
+          x="9.5"
+          y="2.5"
+          width="5"
+          height="5"
+          rx="0.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Worker nodes */}
+        <rect
+          x="3"
+          y="14"
+          width="5"
+          height="5"
+          rx="0.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <rect
+          x="9.5"
+          y="14"
+          width="5"
+          height="5"
+          rx="0.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <rect
+          x="16"
+          y="14"
+          width="5"
+          height="5"
+          rx="0.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Connectors from manager down to workers */}
+        <line x1="12" y1="7.5" x2="12" y2="14" strokeLinecap="round" />
+        <line x1="11" y1="9.5" x2="5.5" y2="14" strokeLinecap="round" />
+        <line x1="13" y1="9.5" x2="18.5" y2="14" strokeLinecap="round" />
+        <circle cx="12" cy="5" r="0.6" fill="currentColor" />
+        <circle cx="5.5" cy="16.5" r="0.6" fill="currentColor" />
+        <circle cx="12" cy="16.5" r="0.6" fill="currentColor" />
+        <circle cx="18.5" cy="16.5" r="0.6" fill="currentColor" />
+      </>,
+    );
   } else if (icon === IconProp.Podman) {
     // Podman official logo mark (Simple Icons, CC0) — single filled path.
     return getSvgWrapper(

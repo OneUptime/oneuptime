@@ -7,4 +7,3 @@ echo $(kubectl get secret --namespace "default" oneuptime-redis -o jsonpath="{.d
 ```
 
 Please ignore % in the end of the password output.
-

@@ -23,27 +23,27 @@ Se [Widgets](/docs/dashboards/widgets) for den fulde liste og hvad hver enkelt v
 
 ## Nøglebegreber
 
-| Begreb | Betydning |
-| --- | --- |
-| **Dashboard** | Hele siden — et navn, et net af widgets, tidsinterval-kontroller og en liste af variabler. |
-| **Widget** | Én flise på siden — et diagram, et tal, en liste, et afsnit. |
-| **Variable** | En dropdown i toppen, der filtrerer hver widget på én gang (cluster, service, customer, environment). |
-| **Tidsinterval** | Det vindue af tid, hvert diagram og tal bruger. Sæt det én gang i toppen af siden. |
-| **Refresh** | Hvor ofte widgets re-forespørger data. Slukket, hvert par sekunder, hvert par minutter. |
-| **Mode** | Enten **Edit** (træk widgets rundt) eller **View** (read-only, sådan som besøgende ser det). |
+| Begreb           | Betydning                                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------------- |
+| **Dashboard**    | Hele siden — et navn, et net af widgets, tidsinterval-kontroller og en liste af variabler.            |
+| **Widget**       | Én flise på siden — et diagram, et tal, en liste, et afsnit.                                          |
+| **Variable**     | En dropdown i toppen, der filtrerer hver widget på én gang (cluster, service, customer, environment). |
+| **Tidsinterval** | Det vindue af tid, hvert diagram og tal bruger. Sæt det én gang i toppen af siden.                    |
+| **Refresh**      | Hvor ofte widgets re-forespørger data. Slukket, hvert par sekunder, hvert par minutter.               |
+| **Mode**         | Enten **Edit** (træk widgets rundt) eller **View** (read-only, sådan som besøgende ser det).          |
 
 ## Hvor du finder dashboards
 
 Åbn **Dashboards** i venstre navigation.
 
-| Side | Hvad du gør der |
-| --- | --- |
-| **Dashboards** | Din liste over dashboards. Opret et nyt, søg eller filtrér efter label. |
-| **Dashboard → View** | Lærredet. Skift mellem **Edit** og **View** i headeren. |
-| **Dashboard → Overview** | Beskrivelse, ejere og labels. |
+| Side                     | Hvad du gør der                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------- |
+| **Dashboards**           | Din liste over dashboards. Opret et nyt, søg eller filtrér efter label.               |
+| **Dashboard → View**     | Lærredet. Skift mellem **Edit** og **View** i headeren.                               |
+| **Dashboard → Overview** | Beskrivelse, ejere og labels.                                                         |
 | **Dashboard → Settings** | Offentlig deling, adgangskode, IP-tilladelsesliste, brugerdefineret domæne, branding. |
-| **Dashboard → Owners** | Brugere og teams med eksplicit adgang. |
-| **Dashboard → Delete** | Fjern dashboardet. |
+| **Dashboard → Owners**   | Brugere og teams med eksplicit adgang.                                                |
+| **Dashboard → Delete**   | Fjern dashboardet.                                                                    |
 
 ## Byg et dashboard
 

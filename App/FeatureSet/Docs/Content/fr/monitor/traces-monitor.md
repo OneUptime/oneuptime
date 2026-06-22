@@ -28,12 +28,12 @@ Sélectionnez un ou plusieurs services depuis lesquels surveiller les traces. Le
 
 ### Filtres de spans
 
-| Filtre | Description | Obligatoire |
-|--------|-------------|-------------|
-| Statuts de span | Filtrer par code de statut de span (OK, ERROR, UNSET) | Non |
-| Nom de span | Recherche textuelle pour des noms de spans spécifiques (ex. : noms d'opération ou de point d'accès) | Non |
-| Attributs | Paires clé-valeur pour filtrer sur des attributs de spans personnalisés | Non |
-| Fenêtre temporelle | Jusqu'où chercher les spans (en secondes, par défaut : 60) | Non |
+| Filtre             | Description                                                                                         | Obligatoire |
+| ------------------ | --------------------------------------------------------------------------------------------------- | ----------- |
+| Statuts de span    | Filtrer par code de statut de span (OK, ERROR, UNSET)                                               | Non         |
+| Nom de span        | Recherche textuelle pour des noms de spans spécifiques (ex. : noms d'opération ou de point d'accès) | Non         |
+| Attributs          | Paires clé-valeur pour filtrer sur des attributs de spans personnalisés                             | Non         |
+| Fenêtre temporelle | Jusqu'où chercher les spans (en secondes, par défaut : 60)                                          | Non         |
 
 ### Codes de statut de span
 
@@ -45,9 +45,9 @@ Sélectionnez un ou plusieurs services depuis lesquels surveiller les traces. Le
 
 ### Types de vérifications disponibles
 
-| Type de vérification | Description |
-|----------------------|-------------|
-| Nombre de spans | Le nombre de spans correspondant à vos filtres dans la fenêtre temporelle |
+| Type de vérification | Description                                                               |
+| -------------------- | ------------------------------------------------------------------------- |
+| Nombre de spans      | Le nombre de spans correspondant à vos filtres dans la fenêtre temporelle |
 
 ### Types de filtres
 

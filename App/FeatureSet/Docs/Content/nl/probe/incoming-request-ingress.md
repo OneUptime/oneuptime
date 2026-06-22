@@ -161,17 +161,17 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 
 ## Omgevingsvariabelen
 
-| Variabele | Standaard | Beschrijving |
-|---|---|---|
-| `PROBE_INGRESS_PORT` | _niet ingesteld_ (uitgeschakeld) | Poort waarop de inkomende listener bindt. Elke waarde `> 0` schakelt ingress in. |
-| `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | Time-out (ms) voor elke doorstuurpoging naar OneUptime. Minimum `1000`. |
-| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | Aantal nieuwe pogingen voordat de probe opgeeft met een doorsturing. Stel in op `0` om nieuwe pogingen uit te schakelen. |
+| Variabele                           | Standaard                        | Beschrijving                                                                                                             |
+| ----------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `PROBE_INGRESS_PORT`                | _niet ingesteld_ (uitgeschakeld) | Poort waarop de inkomende listener bindt. Elke waarde `> 0` schakelt ingress in.                                         |
+| `PROBE_INGRESS_FORWARD_TIMEOUT_MS`  | `10000`                          | Time-out (ms) voor elke doorstuurpoging naar OneUptime. Minimum `1000`.                                                  |
+| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3`                              | Aantal nieuwe pogingen voordat de probe opgeeft met een doorsturing. Stel in op `0` om nieuwe pogingen uit te schakelen. |
 
 De standaard probe-variabelen (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL`, proxy-variabelen) zijn allemaal van toepassing — zie [Aangepaste probes](/docs/probe/custom-probe) voor de volledige lijst.
 
 ## Beveiligingsoverwegingen
 
-- **Het eindpunt is ontworpen zonder authenticatie** — de geheime sleutel in het URL-pad *is* de authenticatie, net als op het openbare `oneuptime.com`-eindpunt. Behandel de geheime sleutel als een inloggegevens.
+- **Het eindpunt is ontworpen zonder authenticatie** — de geheime sleutel in het URL-pad _is_ de authenticatie, net als op het openbare `oneuptime.com`-eindpunt. Behandel de geheime sleutel als een inloggegevens.
 - **Bind alleen aan een privé-interface.** De ingress-listener mag niet bereikbaar zijn vanaf het publieke internet. Gebruik een netwerkbeleid, firewallregel of `ClusterIP`-service om de toegang te beperken.
 - **Gebruik HTTPS-beëindiging als u versleuteling in transit vereist.** De listener van de probe spreekt gewoon HTTP. Plaats hem achter een interne load balancer/ingress controller als u TLS op de inkomende hop nodig heeft. Het doorstuurgedeelte van probe → OneUptime gebruikt altijd HTTPS (aangenomen dat `ONEUPTIME_URL` `https://` is).
 - **Resourcelimieten.** De listener accepteert verzoeklichamen tot 50 MB. Als u een strengere limiet nodig heeft, plaatst u een reverse proxy ervoor.

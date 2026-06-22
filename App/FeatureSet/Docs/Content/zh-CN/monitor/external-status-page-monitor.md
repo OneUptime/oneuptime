@@ -16,12 +16,12 @@
 
 OneUptime 支持通过以下方式监控状态页面：
 
-| 提供商类型 | 描述 |
-|---------|------|
-| **自动**（默认） | 自动检测状态页面格式 |
+| 提供商类型               | 描述                                               |
+| ------------------------ | -------------------------------------------------- |
+| **自动**（默认）         | 自动检测状态页面格式                               |
 | **Atlassian Statuspage** | 由 Atlassian Statuspage 驱动的状态页面（JSON API） |
-| **RSS** | 提供 RSS 订阅源的状态页面 |
-| **Atom** | 提供 Atom 订阅源的状态页面 |
+| **RSS**                  | 提供 RSS 订阅源的状态页面                          |
+| **Atom**                 | 提供 Atom 订阅源的状态页面                         |
 
 ### 自动检测
 
@@ -81,28 +81,28 @@ OneUptime 支持通过以下方式监控状态页面：
 
 以下是您可以监控的常用服务状态页面 URL 的精选列表：
 
-| 服务 | 状态页面 URL |
-|------|------------|
-| AWS | `https://health.aws.amazon.com/health/status` |
-| Google Cloud Platform | `https://status.cloud.google.com` |
-| Microsoft Azure | `https://status.azure.com` |
-| GitHub | `https://www.githubstatus.com` |
-| Cloudflare | `https://www.cloudflarestatus.com` |
-| Datadog | `https://status.datadoghq.com` |
-| PagerDuty | `https://status.pagerduty.com` |
-| Twilio | `https://status.twilio.com` |
-| Stripe | `https://status.stripe.com` |
-| Slack | `https://status.slack.com` |
-| Atlassian（Jira、Confluence） | `https://status.atlassian.com` |
-| Vercel | `https://www.vercel-status.com` |
-| Netlify | `https://www.netlifystatus.com` |
-| DigitalOcean | `https://status.digitalocean.com` |
-| Heroku | `https://status.heroku.com` |
-| MongoDB Atlas | `https://status.cloud.mongodb.com` |
-| Fastly | `https://status.fastly.com` |
-| New Relic | `https://status.newrelic.com` |
-| Sentry | `https://status.sentry.io` |
-| CircleCI | `https://status.circleci.com` |
+| 服务                          | 状态页面 URL                                  |
+| ----------------------------- | --------------------------------------------- |
+| AWS                           | `https://health.aws.amazon.com/health/status` |
+| Google Cloud Platform         | `https://status.cloud.google.com`             |
+| Microsoft Azure               | `https://status.azure.com`                    |
+| GitHub                        | `https://www.githubstatus.com`                |
+| Cloudflare                    | `https://www.cloudflarestatus.com`            |
+| Datadog                       | `https://status.datadoghq.com`                |
+| PagerDuty                     | `https://status.pagerduty.com`                |
+| Twilio                        | `https://status.twilio.com`                   |
+| Stripe                        | `https://status.stripe.com`                   |
+| Slack                         | `https://status.slack.com`                    |
+| Atlassian（Jira、Confluence） | `https://status.atlassian.com`                |
+| Vercel                        | `https://www.vercel-status.com`               |
+| Netlify                       | `https://www.netlifystatus.com`               |
+| DigitalOcean                  | `https://status.digitalocean.com`             |
+| Heroku                        | `https://status.heroku.com`                   |
+| MongoDB Atlas                 | `https://status.cloud.mongodb.com`            |
+| Fastly                        | `https://status.fastly.com`                   |
+| New Relic                     | `https://status.newrelic.com`                 |
+| Sentry                        | `https://status.sentry.io`                    |
+| CircleCI                      | `https://status.circleci.com`                 |
 
 > **注意：** 这些服务中有许多使用 Atlassian Statuspage，因此 **自动** 提供商类型会自动检测它们。
 
@@ -110,14 +110,14 @@ OneUptime 支持通过以下方式监控状态页面：
 
 从外部状态页面监控器创建事件或告警时，您可以使用以下模板变量：
 
-| 变量 | 描述 |
-|------|------|
-| `{{isOnline}}` | 状态页面是否在线（true/false） |
-| `{{responseTimeInMs}}` | 响应时间（毫秒） |
-| `{{failureCause}}` | 失败原因（如有） |
-| `{{overallStatus}}` | 整体状态指示器值 |
-| `{{activeIncidentCount}}` | 活跃事件数量 |
-| `{{componentStatuses}}` | 组件状态的 JSON 数组 |
+| 变量                      | 描述                           |
+| ------------------------- | ------------------------------ |
+| `{{isOnline}}`            | 状态页面是否在线（true/false） |
+| `{{responseTimeInMs}}`    | 响应时间（毫秒）               |
+| `{{failureCause}}`        | 失败原因（如有）               |
+| `{{overallStatus}}`       | 整体状态指示器值               |
+| `{{activeIncidentCount}}` | 活跃事件数量                   |
+| `{{componentStatuses}}`   | 组件状态的 JSON 数组           |
 
 ## 最佳实践
 

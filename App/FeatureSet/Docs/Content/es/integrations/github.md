@@ -4,7 +4,7 @@ Abre automáticamente un issue de [GitHub](https://github.com) cuando se crea un
 
 Esta integración es **saliente**: OneUptime llama a la [API REST de GitHub](https://docs.github.com/en/rest/issues/issues). Usa un **[Workflow](/docs/workflows/index)** de OneUptime con un disparador **Incident → On Create** y un **componente API**.
 
-> **¿Buscas la conexión más profunda con GitHub?** OneUptime también tiene una integración nativa de **GitHub App** para conectar repositorios de código (usada por el agente de IA y las funciones de código). Eso se configura con variables de entorno, no con workflows — consulta [Integración con GitHub (autohospedado)](/docs/self-hosted/github-integration). Esta página trata específicamente de *registrar issues a partir de incidentes*.
+> **¿Buscas la conexión más profunda con GitHub?** OneUptime también tiene una integración nativa de **GitHub App** para conectar repositorios de código (usada por el agente de IA y las funciones de código). Eso se configura con variables de entorno, no con workflows — consulta [Integración con GitHub (autohospedado)](/docs/self-hosted/github-integration). Esta página trata específicamente de _registrar issues a partir de incidentes_.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -14,10 +14,12 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 - Un repositorio de GitHub donde quieras registrar issues.
 - Un token que pueda crear issues:
+
   - Un **PAT de grano fino** con alcance a ese repositorio con **Issues: Read and write**, o
   - un **PAT clásico** con el alcance `repo`.
 
   Crea uno en [github.com/settings/tokens](https://github.com/settings/tokens).
+
 - Un proyecto de OneUptime donde puedas crear workflows.
 
 ## Paso 1 — Guardar el token
@@ -30,6 +32,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 1. Abre **Workflows → Create Workflow**, nómbralo `Incidents → GitHub Issues` y abre el **Builder**.
 2. Añade un disparador **Incident** configurado en **On Create**. Renómbralo `Incident`.
 3. Añade un bloque **API** conectado al disparador:
+
    - **Method**: `POST`
    - **URL**: `https://api.github.com/repos/tu-org/tu-repo/issues`
    - **Headers**:

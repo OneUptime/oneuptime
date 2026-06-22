@@ -36,6 +36,7 @@ Vous pouvez maintenant utiliser `Basic {{variable.JIRA_AUTH}}` comme en-tête d'
 1. Ouvrez **Workflows → Create Workflow**, nommez-le `Incidents → Jira`, et ouvrez le **Builder**.
 2. Faites glisser un déclencheur **Incident** sur le canevas et choisissez l'événement **On Create**. Renommez-le `Incident`.
 3. Faites glisser un bloc **API** et connectez le déclencheur à celui-ci. Configurez :
+
    - **Method** : `POST`
    - **URL** : `https://your-domain.atlassian.net/rest/api/3/issue`
    - **Headers** :
@@ -70,6 +71,7 @@ Vous pouvez maintenant utiliser `Basic {{variable.JIRA_AUTH}}` comme en-tête d'
      ```
 
    Remplacez `OPS` par votre clé de projet et `Bug` par un type de ticket existant dans ce projet.
+
 4. **Enregistrez.** Laissez le workflow désactivé jusqu'à ce que vous l'ayez testé.
 
 ## Étape 3 — Tester
@@ -96,8 +98,9 @@ Pour résoudre l'incident OneUptime lorsque quelqu'un ferme le ticket Jira, ajou
 
 1. Créez un second workflow qui commence par un déclencheur **Webhook** et copiez son URL.
 2. Dans Jira, allez dans **Project settings → Automation → Create rule** :
-   - **Trigger** : *Issue transitioned* vers **Done** (ou *Issue resolved*).
-   - **Action** : *Send web request* → méthode `POST`, URL = l'URL webhook de votre workflow, le corps inclut la clé du ticket et l'id de l'incident OneUptime, par ex. :
+
+   - **Trigger** : _Issue transitioned_ vers **Done** (ou _Issue resolved_).
+   - **Action** : _Send web request_ → méthode `POST`, URL = l'URL webhook de votre workflow, le corps inclut la clé du ticket et l'id de l'incident OneUptime, par ex. :
 
      ```json
      { "issueKey": "{{issue.key}}", "status": "resolved" }
@@ -121,16 +124,20 @@ Pour découvrir les noms de champs exacts attendus par un projet, appelez le poi
 ## Dépannage
 
 **`401 Unauthorized`.**
+
 - Réencodez `email:api_token` et mettez à jour la variable `JIRA_AUTH`. Un retour à la ligne final est la cause habituelle — utilisez `printf` (pas `echo`) lors de l'encodage.
 - Confirmez que le compte propriétaire du jeton d'API peut créer des tickets dans le projet.
 
 **`400 Bad Request` mentionnant un champ.**
+
 - Le type de ticket ou un champ requis est incorrect. Vérifiez le nom du **type de ticket** du projet et s'il a des champs personnalisés requis. Utilisez `createmeta` (ci-dessus) pour voir ce qui est obligatoire.
 
 **`404 Not Found`.**
+
 - Vérifiez l'URL de base et que vous accédez à `/rest/api/3/issue` (Cloud) ou `/rest/api/2/issue` (Server/Data Center).
 
 **La description s'affiche sur une seule ligne / semble bizarre.**
+
 - v3 exige le format de document Atlassian indiqué ci-dessus. Si vous préférez envoyer du texte brut, utilisez le point de terminaison `/rest/api/2/issue` avec `"description": "{{Incident.description}}"` comme chaîne simple.
 
 ## Pour aller plus loin

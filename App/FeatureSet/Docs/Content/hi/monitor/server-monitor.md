@@ -67,15 +67,15 @@ sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --one
 
 Infrastructure agent निम्नलिखित commands का समर्थन करता है:
 
-| Command | विवरण |
-|---------|-------|
-| `configure` | agent को आपकी secret key और OneUptime URL के साथ configure करें |
-| `start` | agent service start करें |
-| `stop` | agent service stop करें |
-| `restart` | agent service restart करें |
-| `status` | वर्तमान service status दिखाएं |
-| `logs` | agent logs देखें (line count के लिए `-n` उपयोग करें, follow के लिए `-f`) |
-| `uninstall` | agent service uninstall करें |
+| Command     | विवरण                                                                    |
+| ----------- | ------------------------------------------------------------------------ |
+| `configure` | agent को आपकी secret key और OneUptime URL के साथ configure करें          |
+| `start`     | agent service start करें                                                 |
+| `stop`      | agent service stop करें                                                  |
+| `restart`   | agent service restart करें                                               |
+| `status`    | वर्तमान service status दिखाएं                                            |
+| `logs`      | agent logs देखें (line count के लिए `-n` उपयोग करें, follow के लिए `-f`) |
+| `uninstall` | agent service uninstall करें                                             |
 
 ## Collected Metrics
 
@@ -115,15 +115,15 @@ Agent आपके server से निम्नलिखित metrics एक�
 
 ### उपलब्ध Check Types
 
-| Check Type | विवरण |
-|------------|-------|
-| Is Online | server agent report कर रहा है (heartbeat के आधार पर) |
-| CPU Usage Percent | वर्तमान CPU utilization percentage |
-| Memory Usage Percent | वर्तमान memory utilization percentage |
-| Disk Usage Percent | वर्तमान disk utilization percentage (एक specific disk path के लिए) |
-| Server Process Name | एक specific नाम वाला process चल रहा है या नहीं |
-| Server Process Command | एक specific command वाला process चल रहा है या नहीं |
-| Server Process PID | एक specific PID वाला process चल रहा है या नहीं |
+| Check Type             | विवरण                                                              |
+| ---------------------- | ------------------------------------------------------------------ |
+| Is Online              | server agent report कर रहा है (heartbeat के आधार पर)               |
+| CPU Usage Percent      | वर्तमान CPU utilization percentage                                 |
+| Memory Usage Percent   | वर्तमान memory utilization percentage                              |
+| Disk Usage Percent     | वर्तमान disk utilization percentage (एक specific disk path के लिए) |
+| Server Process Name    | एक specific नाम वाला process चल रहा है या नहीं                     |
+| Server Process Command | एक specific command वाला process चल रहा है या नहीं                 |
+| Server Process PID     | एक specific PID वाला process चल रहा है या नहीं                     |
 
 ### Filter Types
 
@@ -185,6 +185,7 @@ Process checks के लिए:
 ### Agent द्वारा High resource usage
 
 Agent lightweight होने के लिए designed है। यदि आप high resource usage देखते हैं:
+
 - agent restart करें: `sudo oneuptime-infrastructure-agent restart`
 - errors के लिए agent logs जांचें
 

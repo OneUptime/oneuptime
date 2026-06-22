@@ -28,12 +28,12 @@ Välj en eller flera tjänster att övervaka loggar från. Tjänster måste skic
 
 ### Loggfilter
 
-| Filter | Beskrivning | Obligatorisk |
-|--------|-------------|--------------|
-| Allvarlighetsgrader | Filtrera efter loggallvarlighetsgrad (ERROR, WARN, INFO, DEBUG etc.) | Nej |
-| Innehåll | Textsökning i loggmeddelandets innehåll | Nej |
-| Attribut | Nyckel-värdepar för filtrering på anpassade loggattribut | Nej |
-| Tidsfönster | Hur långt bakåt man söker efter loggar (i sekunder, standard: 60) | Nej |
+| Filter              | Beskrivning                                                          | Obligatorisk |
+| ------------------- | -------------------------------------------------------------------- | ------------ |
+| Allvarlighetsgrader | Filtrera efter loggallvarlighetsgrad (ERROR, WARN, INFO, DEBUG etc.) | Nej          |
+| Innehåll            | Textsökning i loggmeddelandets innehåll                              | Nej          |
+| Attribut            | Nyckel-värdepar för filtrering på anpassade loggattribut             | Nej          |
+| Tidsfönster         | Hur långt bakåt man söker efter loggar (i sekunder, standard: 60)    | Nej          |
 
 ### Allvarlighetsgrader
 
@@ -51,9 +51,9 @@ Filtrera loggar efter en eller flera allvarlighetsgrader:
 
 ### Tillgängliga kontrolltyper
 
-| Kontrolltyp | Beskrivning |
-|------------|-------------|
-| Loggantal | Antalet loggar som matchar dina filter i tidsfönstret |
+| Kontrolltyp | Beskrivning                                           |
+| ----------- | ----------------------------------------------------- |
+| Loggantal   | Antalet loggar som matchar dina filter i tidsfönstret |
 
 ### Filtertyper
 

@@ -24,8 +24,9 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 1. Åpne **Workflows → Create Workflow**, gi den navnet `Incidents → Opsgenie`, og åpne **Builder**.
 2. Legg til en **Incident**-trigger satt til **On Create**. Gi den nytt navn `Incident`.
 3. Legg til en **API**-blokk koblet til triggeren:
+
    - **Method**: `POST`
-   - **URL**: `https://api.opsgenie.com/v2/alerts`  *(bruk `api.eu.opsgenie.com` for EU)*
+   - **URL**: `https://api.opsgenie.com/v2/alerts` _(bruk `api.eu.opsgenie.com` for EU)_
    - **Headers**:
 
      ```text
@@ -46,6 +47,7 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
      ```
 
    **`alias`** knytter dette Opsgenie-varselet til OneUptime-hendelsen slik at du kan lukke det senere via alias. Merk at Opsgenie-autentiseringsmetoden er det bokstavelige ordet `GenieKey` etterfulgt av et mellomrom og nøkkelen din.
+
 4. **Lagre**, aktiver, og opprett en testhendelse. Et `202 Accepted`-svar i arbeidsflytloggene betyr at Opsgenie satte varselet i kø.
 
 ## Steg 3 — Lukk ved OneUptime-løsning (anbefalt)

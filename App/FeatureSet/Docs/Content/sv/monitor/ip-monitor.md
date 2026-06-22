@@ -31,10 +31,10 @@ Du kan konfigurera kriterier för att avgöra när din IP-adress anses vara onli
 
 ### Tillgängliga kontrolltyper
 
-| Kontrolltyp | Beskrivning |
-|------------|-------------|
-| Är online | Om IP-adressen är nåbar |
-| Svarstid (i ms) | Svarstid i millisekunder |
+| Kontrolltyp            | Beskrivning               |
+| ---------------------- | ------------------------- |
+| Är online              | Om IP-adressen är nåbar   |
+| Svarstid (i ms)        | Svarstid i millisekunder  |
 | Är förfrågningstimeout | Om förfrågan fick timeout |
 
 ### Filtertyper

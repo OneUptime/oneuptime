@@ -202,13 +202,13 @@ Konfigurationen ovan använder indatavariabler med `"password": true` för att p
 
 ## Tillgängliga slutpunkter
 
-| Slutpunkt | Metod | Beskrivning |
-|-----------|-------|-------------|
-| `/mcp` | GET | Server-sent events-ström för server-till-klient-aviseringar |
-| `/mcp` | POST | JSON-RPC-förfrågningar för verktygsan rop och andra operationer |
-| `/mcp` | DELETE | Sessionsrensning och avslutning |
-| `/mcp/health` | GET | Hälsokontrollslutpunkt |
-| `/mcp/tools` | GET | REST API för att lista tillgängliga verktyg |
+| Slutpunkt     | Metod  | Beskrivning                                                     |
+| ------------- | ------ | --------------------------------------------------------------- |
+| `/mcp`        | GET    | Server-sent events-ström för server-till-klient-aviseringar     |
+| `/mcp`        | POST   | JSON-RPC-förfrågningar för verktygsan rop och andra operationer |
+| `/mcp`        | DELETE | Sessionsrensning och avslutning                                 |
+| `/mcp/health` | GET    | Hälsokontrollslutpunkt                                          |
+| `/mcp/tools`  | GET    | REST API för att lista tillgängliga verktyg                     |
 
 ## Autentisering
 
@@ -319,12 +319,15 @@ Dessa frågor fungerar utan autentisering och använder bara de offentliga statu
 ## API-nyckelbehörigheter
 
 ### Skrivskyddad åtkomst
+
 För att bara visa data, lägg till läsbehörigheter för din API-nyckel.
 
 ### Full åtkomst
+
 För full åtkomst för att skapa, uppdatera och ta bort resurser, se till att din API-nyckel har projektadministratörsbehörigheter.
 
 ### Bästa praxis
+
 - Använd specifika behörigheter: Bevilja endast de minimibehörigheter som behövs
 - Rotera API-nycklar: Rotera dina API-nycklar regelbundet
 - Övervaka användning: Håll koll på API-nyckelns användning i OneUptime
@@ -333,24 +336,30 @@ För full åtkomst för att skapa, uppdatera och ta bort resurser, se till att d
 ## Felsökning
 
 ### Behörighetsfel
+
 Se till att din API-nyckel har de nödvändiga behörigheterna:
+
 - Läsåtkomst för att lista resurser
 - Skrivåtkomst för att skapa/uppdatera resurser
 - Borttagningsåtkomst om du vill ta bort resurser
 
 ### Anslutningsproblem
+
 1. Verifiera att din OneUptime URL är korrekt
 2. Kontrollera att din API-nyckel är giltig
 3. Se till att din OneUptime-instans är tillgänglig
 4. Testa hälsoslutpunkten
 
 ### Ogiltig API-nyckel
+
 - Verifiera API-nyckeln i dina OneUptime-inställningar
 - Kontrollera efter extra mellanslag eller tecken
 - Se till att nyckeln inte har löpt ut
 
 ### Sessionsfel
+
 Om du får sessionsrelaterade fel:
+
 - MCP-servern använder `mcp-session-id`-huvudet för att spåra sessioner
 - Se till att din klient hanterar sessions-ID:t som returneras av servern korrekt
 - Sessioner rensas automatiskt när anslutningar stängs

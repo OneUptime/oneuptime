@@ -14,7 +14,6 @@
 
 ![查看服务](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
 ### 第二步
 
 #### 在您的应用程序中配置遥测服务
@@ -35,17 +34,15 @@
 - [.NET / C#](https://opentelemetry.io/docs/instrumentation/net/)
 - [Swift](https://opentelemetry.io/docs/instrumentation/swift/)
 
-
 **与 OneUptime 集成**
 
 在应用程序中配置遥测服务后，您可以通过设置以下环境变量与 OneUptime 集成。
 
-| 环境变量 | 值 |
-|---------|-----|
-| OTEL_EXPORTER_OTLP_HEADERS | x-oneuptime-token=YOUR_ONEUPTIME_SERVICE_TOKEN |
-| OTEL_EXPORTER_OTLP_ENDPOINT | https://oneuptime.com/otlp |
-| OTEL_SERVICE_NAME | NAME_OF_YOUR_SERVICE |
-
+| 环境变量                    | 值                                             |
+| --------------------------- | ---------------------------------------------- |
+| OTEL_EXPORTER_OTLP_HEADERS  | x-oneuptime-token=YOUR_ONEUPTIME_SERVICE_TOKEN |
+| OTEL_EXPORTER_OTLP_ENDPOINT | https://oneuptime.com/otlp                     |
+| OTEL_SERVICE_NAME           | NAME_OF_YOUR_SERVICE                           |
 
 **示例**
 
@@ -55,13 +52,11 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=https://oneuptime.com/otlp
 export OTEL_SERVICE_NAME=my-service
 ```
 
-
 **自托管 OneUptime**
 
 如果您是自托管 OneUptime，可以将其更改为您的自托管 OpenTelemetry 收集器端点（例如：`http(s)://YOUR-ONEUPTIME-HOST/otlp`）
 
 运行应用程序后，您应该能在 OneUptime 遥测服务页面中看到日志。如果需要任何帮助，请联系 support@oneuptime.com。
-
 
 #### 使用 OpenTelemetry Collector
 
@@ -80,7 +75,6 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 exporters:
-
   # 通过 HTTP 导出
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"

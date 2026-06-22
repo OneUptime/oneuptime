@@ -54,6 +54,7 @@ OneUptime Terraform-provideren genereres automatisk fra OneUptime API-specifikat
 - Ændrede valideringsregler
 
 Brug af en providerversion, der ikke matcher din OneUptime-installation, kan resultere i:
+
 - API-kompatibilitetsfejl
 - Mislykkede ressourceoprettelser/-opdateringer
 - Uventet adfærd
@@ -62,16 +63,19 @@ Brug af en providerversion, der ikke matcher din OneUptime-installation, kan res
 ## Find din OneUptime-version
 
 ### Metode 1: Dashboard
+
 1. Log ind på dit OneUptime-dashboard
 2. Gå til **Indstillinger** → **Om**
 3. Notér versionsnummeret (f.eks. "7.0.123")
 
 ### Metode 2: API
+
 ```bash
 curl https://your-oneuptime-instance.com/api/version | jq '.version'
 ```
 
 ### Metode 3: Docker
+
 ```bash
 docker images | grep oneuptime
 # Se efter tagget, f.eks. oneuptime/dashboard:7.0.123
@@ -86,11 +90,11 @@ docker images | grep oneuptime
 
 ## Versionskompatibilitetsmatrix
 
-| OneUptime-version | Providerversion | Terraform-konfiguration |
-|-------------------|------------------|------------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| Seneste Sky | Seneste Provider | `version = "~> 7.0"` |
+| OneUptime-version | Providerversion  | Terraform-konfiguration |
+| ----------------- | ---------------- | ----------------------- |
+| 7.0.x             | 7.0.x            | `version = "~> 7.0.0"`  |
+| 7.1.x             | 7.1.x            | `version = "~> 7.1.0"`  |
+| Seneste Sky       | Seneste Provider | `version = "~> 7.0"`    |
 
 ## Hurtig start-eksempel
 
@@ -120,11 +124,11 @@ resource "oneuptime_project" "example" {
 resource "oneuptime_monitor" "website" {
   name       = "Website Monitor"
   project_id = oneuptime_project.example.id
-  
+
   monitor_type = "website"
   url          = "https://example.com"
   interval     = "5m"
-  
+
   tags = {
     managed_by = "terraform"
   }

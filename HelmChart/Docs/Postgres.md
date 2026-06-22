@@ -8,27 +8,23 @@ kubectl port-forward --address 0.0.0.0 service/oneuptime-postgresql 5432:5432
 
 then you should be able to access from the localhost and port 5432
 
-You also need to read postgres password which is stored in kubenretes secrets. You can decode the password by using this command: 
-
+You also need to read postgres password which is stored in kubenretes secrets. You can decode the password by using this command:
 
 ```
 # Username for Postgres user is `postgres`
 echo $(kubectl get secret --namespace "default" oneuptime-postgresql -o jsonpath="{.data.postgres-password}" | base64 -d)
 ```
 
-Important: Please ignore % in the end of the password output. 
-
+Important: Please ignore % in the end of the password output.
 
 ```
 # Username for Postgres user is `oneuptime`
 echo $(kubectl get secret --namespace "default" oneuptime-postgresql -o jsonpath="{.data.password}" | base64 -d)
 ```
 
-Important: Please ignore % in the end of the password output. 
-
+Important: Please ignore % in the end of the password output.
 
 This will make the database accessible from the localhost:5432.
-
 
 ### Postgres Backup
 
@@ -53,8 +49,7 @@ CREATE ROLE readonlyuser WITH LOGIN PASSWORD '<password>'
 GRANT pg_read_all_data TO readonlyuser;
 ```
 
-
-### Increasing max_connections for postgres. 
+### Increasing max_connections for postgres.
 
 To see the current number of max_connections. You need to run the following command in psql.
 
@@ -64,13 +59,11 @@ SHOW max_connections;
 
 To increase the max_connections, you need to run this sql command in psql.
 
-
 ```
 ALTER SYSTEM SET max_connections = 1000;
 ```
 
-Then you need to restart the postgres pod. 
-
+Then you need to restart the postgres pod.
 
 ### Check used and free space in Postgres
 
@@ -99,24 +92,24 @@ self-contained, top-level `postgresOperator` object (**not** nested under
 # values.yaml
 postgresOperator:
   cnpg:
-    enabled: true        # turns on the operator + an operator-managed Cluster
-    instances: 3         # 1 primary + 2 hot standbys (use 1 for single node)
-    imageName: "ghcr.io/cloudnative-pg/postgresql:17.4"   # pin a minor version
+    enabled: true # turns on the operator + an operator-managed Cluster
+    instances: 3 # 1 primary + 2 hot standbys (use 1 for single node)
+    imageName: "ghcr.io/cloudnative-pg/postgresql:17.4" # pin a minor version
     database: oneuptimedb
 ```
 
 When `postgresOperator.cnpg.enabled` is `true`:
 
-* The built-in `StatefulSet`, its `Service`s and `ConfigMap`s are **not**
+- The built-in `StatefulSet`, its `Service`s and `ConfigMap`s are **not**
   rendered (regardless of `postgresql.enabled`; the operator path takes
   precedence).
-* A CloudNativePG `Cluster` named `<release>-postgresql-cnpg` is created.
-* The app connects as the `postgres` superuser to the read-write service
+- A CloudNativePG `Cluster` named `<release>-postgresql-cnpg` is created.
+- The app connects as the `postgres` superuser to the read-write service
   `<release>-postgresql-cnpg-rw` on port `5432`, using the password in the
   `<release>-postgresql-cnpg-superuser` secret (auto-generated, or set
   `postgresOperator.cnpg.postgresPassword`). The password is preserved across
   upgrades.
-* The object is self-contained — `database`, `persistence`, `resources`,
+- The object is self-contained — `database`, `persistence`, `resources`,
   `nodeSelector`, `tolerations` and CloudNativePG `parameters` all live under
   `postgresOperator.cnpg.*`. It does not read any `postgresql.*` values.
 
@@ -137,7 +130,7 @@ echo $(kubectl get secret --namespace "default" oneuptime-postgresql-cnpg-superu
 #### First install with the operator enabled (CRDs must exist first)
 
 The CloudNativePG CRDs ship as **templates** in the bundled subchart, not in a
-`crds/` directory. Helm renders and validates *every* manifest against the API
+`crds/` directory. Helm renders and validates _every_ manifest against the API
 server **before** applying anything, so on a cluster that does not yet have the
 CRDs the very first `helm install`/`helm upgrade` with
 `postgresOperator.cnpg.enabled: true` aborts with:
@@ -186,16 +179,16 @@ CRDs exist, all subsequent upgrades work in a single pass.
 When `postgresOperator.cnpg.enabled` is set, replication and failover are managed
 by the operator:
 
-* **Replication** — `postgresOperator.cnpg.instances` is the total number of
+- **Replication** — `postgresOperator.cnpg.instances` is the total number of
   PostgreSQL pods. `instances: 3` = 1 primary + 2 streaming hot-standby replicas.
   Scaling is online: change `instances` and `helm upgrade`.
-* **Automatic failover** — if the primary becomes unhealthy the operator promotes
+- **Automatic failover** — if the primary becomes unhealthy the operator promotes
   a replica and re-points the `-rw` service. No application change is needed.
-* **Synchronous replication** — set `postgresOperator.cnpg.synchronousReplicas: N`
+- **Synchronous replication** — set `postgresOperator.cnpg.synchronousReplicas: N`
   for quorum-based synchronous commits (zero data loss). Keep
   `instances >= synchronousReplicas + 2` so a single standby outage does not block
   writes.
-* **Read scaling** — send read-only/reporting traffic to the
+- **Read scaling** — send read-only/reporting traffic to the
   `<release>-postgresql-cnpg-ro` service (replicas only). The OneUptime app uses
   the `-rw` (primary) service.
 
@@ -223,10 +216,10 @@ postgresOperator:
     enabled: true
     backup:
       enabled: true
-      schedule: "0 0 3 * * *"      # 6-field cron WITH seconds — 03:00 daily
+      schedule: "0 0 3 * * *" # 6-field cron WITH seconds — 03:00 daily
       immediate: true
-      volumeSnapshotClassName: ""  # your CSI VolumeSnapshotClass (empty = default)
-      online: true                 # hot snapshot, no downtime
+      volumeSnapshotClassName: "" # your CSI VolumeSnapshotClass (empty = default)
+      online: true # hot snapshot, no downtime
 ```
 
 This sets `spec.backup.volumeSnapshot` on the cluster and creates a
@@ -276,7 +269,7 @@ Postgres (RDS, Cloud SQL, Aurora, Neon, Azure) you usually cannot raise
 `max_connections` without paying for a bigger instance — so a pooler is the
 cleaner fix.
 
-The chart ships an **opt-in PgBouncer** that is *orthogonal* to the Postgres
+The chart ships an **opt-in PgBouncer** that is _orthogonal_ to the Postgres
 backend: enable it and it fronts whichever backend is active — the built-in
 `postgresql` StatefulSet, the `postgresOperator` CNPG cluster, **or**
 `externalPostgres`. The `app`/`worker`/`nginx` pods then connect to the pooler
@@ -285,9 +278,9 @@ instead of directly to the database.
 ```yaml
 pgbouncer:
   enabled: true
-  poolMode: transaction   # default; multiplexes idle clients → fewer backend connections
-  defaultPoolSize: 400    # max in-flight transactions to the backend (< max_connections)
-  maxDbConnections: 450   # hard ceiling on total backend connections
+  poolMode: transaction # default; multiplexes idle clients → fewer backend connections
+  defaultPoolSize: 400 # max in-flight transactions to the backend (< max_connections)
+  maxDbConnections: 450 # hard ceiling on total backend connections
 ```
 
 For a **managed Postgres**, point the chart's `externalPostgres.host`/`.port` at
@@ -305,7 +298,7 @@ backend (`server_tls_sslmode` defaults to `require`, verifying against
 backend connection, so the pooler reduces the connection count on its own — just
 keep `defaultPoolSize` at/below your backend headroom; you do **not** need to
 shrink the per-pod pools. In **session** mode, each client connection pins a
-backend connection for its whole session, so to actually *reduce* backend
+backend connection for its whole session, so to actually _reduce_ backend
 connections you must also lower the per-pod pool. Set it globally with
 `deployment.databaseMaxOpenConnections`, or per service with
 `app.databaseMaxOpenConnections` / `worker.databaseMaxOpenConnections` /
@@ -315,9 +308,9 @@ lower, since it fans out widest under KEDA.
 
 ```yaml
 deployment:
-  databaseMaxOpenConnections: 20   # global default for app/worker/nginx pods
+  databaseMaxOpenConnections: 20 # global default for app/worker/nginx pods
 worker:
-  databaseMaxOpenConnections: 10   # worker fans out widest — keep its pool small
+  databaseMaxOpenConnections: 10 # worker fans out widest — keep its pool small
 ```
 
 **Troubleshooting — "unsupported startup parameter".** If the app logs
@@ -327,7 +320,7 @@ parameter`, the driver is sending a libpq startup parameter PgBouncer isn't
 told to accept. node-postgres sends `statement_timeout` and
 `idle_in_transaction_session_timeout`; both must be in
 `pgbouncer.ignoreStartupParameters` (they are by default). PgBouncer accepts and
-*ignores* them (does not forward them to the backend), so set
+_ignores_ them (does not forward them to the backend), so set
 `statement_timeout` on the backend if you need server-side enforcement — the
 app's client-side `query_timeout` still aborts slow queries.
 
@@ -349,7 +342,7 @@ Session mode caps and reuses connections but does **not** multiplex idle ones �
 each open client connection still pins a backend connection. **Transaction mode**
 returns a backend connection to the pool after every transaction, so thousands of
 mostly-idle client connections share a small set of backend connections. That's
-the mode to use when you actually want to *reduce* the connection count Postgres
+the mode to use when you actually want to _reduce_ the connection count Postgres
 holds.
 
 Transaction mode is safe here **once migrations no longer run on the pooled
@@ -373,11 +366,12 @@ The chart **rejects `poolMode: transaction` unless `migrate.enabled: true`** to
 prevent the unsafe combination.
 
 Notes on the migration Job:
+
 - **Deploys do not block by default** (`migrate.hook: false`): the migration Job
   runs as a regular async Job for both install and upgrade, so `helm` returns
   immediately and pods roll while migrations run in the background. The trade-off
   is that **pods can start before migrations finish**, so keep your migrations
-  *backward-compatible* (the new code tolerates the old schema — the
+  _backward-compatible_ (the new code tolerates the old schema — the
   expand/contract pattern). Set `migrate.hook: true` to make deploys block on a
   Helm hook instead (`post-install` on install, `pre-upgrade` on upgrade); the
   deploy then waits and new code never hits an un-migrated schema.
@@ -386,11 +380,12 @@ Notes on the migration Job:
   likely `CrashLoopBackOff` — until the async Job finishes creating the schema,
   then self-heal. The Job's own init container waits for the database first, so a
   slow first-time cluster bootstrap may need a longer `helm upgrade --install
-  --timeout`. If you want a clean first install, run it once with
+--timeout`. If you want a clean first install, run it once with
   `--set migrate.hook=true` (blocks until the schema exists), then drop back to
   the async default for routine upgrades.
 
 More on the migration Job:
+
 - `helm upgrade --wait` waits for Jobs too, so don't pass `--wait` if you want
   the async upgrade to stay non-blocking.
 - Finished async Jobs auto-clean after `migrate.ttlSecondsAfterFinished` (default
@@ -404,4 +399,3 @@ More on the migration Job:
   path, also used by docker-compose.
 - Through the pooler the server-side `statement_timeout` GUC is dropped (as in
   session mode); the app's client-side `query_timeout` still applies.
-

@@ -55,6 +55,7 @@ OneUptime 支持任意 LLM 提供商。您可以使用：
 对于需要在自己基础设施内运行 AI 智能体的组织（例如出于安全、合规或网络访问要求），OneUptime 支持自托管 AI 智能体。
 
 自托管 AI 智能体：
+
 - 在您的私有网络内运行
 - 可访问内部资源和系统
 - 让您完全控制智能体的环境
@@ -134,15 +135,15 @@ spec:
         app: oneuptime-ai-agent
     spec:
       containers:
-      - name: oneuptime-ai-agent
-        image: oneuptime/ai-agent:release
-        env:
-          - name: AI_AGENT_KEY
-            value: "<ai-agent-key>"
-          - name: AI_AGENT_ID
-            value: "<ai-agent-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-ai-agent
+          image: oneuptime/ai-agent:release
+          env:
+            - name: AI_AGENT_KEY
+              value: "<ai-agent-key>"
+            - name: AI_AGENT_ID
+              value: "<ai-agent-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 应用配置：
@@ -157,12 +158,11 @@ AI 智能体支持以下环境变量：
 
 #### 必填变量
 
-| 变量 | 描述 |
-|------|------|
-| `AI_AGENT_KEY` | 来自您 OneUptime 控制台的 AI 智能体密钥 |
-| `AI_AGENT_ID` | 来自您 OneUptime 控制台的 AI 智能体 ID |
+| 变量            | 描述                                                   |
+| --------------- | ------------------------------------------------------ |
+| `AI_AGENT_KEY`  | 来自您 OneUptime 控制台的 AI 智能体密钥                |
+| `AI_AGENT_ID`   | 来自您 OneUptime 控制台的 AI 智能体 ID                 |
 | `ONEUPTIME_URL` | 您的 OneUptime 实例 URL（默认：https://oneuptime.com） |
-
 
 ## 验证您的 AI 智能体
 

@@ -24,13 +24,13 @@ Costruisci tutto questo visivamente su un canvas. Per la maggior parte dei workf
 
 ## Termini chiave
 
-| Termine | Cosa significa |
-| --- | --- |
-| **Workflow** | L'intera automazione — un nome, un canvas e un interruttore per attivarla o disattivarla. |
-| **Trigger** | Il primo blocco. Decide quando il workflow viene eseguito. Ogni workflow ha esattamente un trigger. |
-| **Componente** | Un blocco azione — invia un messaggio, effettua una richiesta, verifica una condizione. |
-| **Esecuzione** | Una singola esecuzione del workflow. Viene salvata con i timestamp e l'output di ogni blocco. |
-| **Variabile globale** | Un valore (come una chiave API) che salvi una volta e riutilizzi in qualsiasi workflow. |
+| Termine               | Cosa significa                                                                                      |
+| --------------------- | --------------------------------------------------------------------------------------------------- |
+| **Workflow**          | L'intera automazione — un nome, un canvas e un interruttore per attivarla o disattivarla.           |
+| **Trigger**           | Il primo blocco. Decide quando il workflow viene eseguito. Ogni workflow ha esattamente un trigger. |
+| **Componente**        | Un blocco azione — invia un messaggio, effettua una richiesta, verifica una condizione.             |
+| **Esecuzione**        | Una singola esecuzione del workflow. Viene salvata con i timestamp e l'output di ogni blocco.       |
+| **Variabile globale** | Un valore (come una chiave API) che salvi una volta e riutilizzi in qualsiasi workflow.             |
 
 ## Dove trovare i workflow in OneUptime
 

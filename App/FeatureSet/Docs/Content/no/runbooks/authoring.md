@@ -6,13 +6,13 @@ Opprett et runbook under **Runbooks → Opprett runbook**, åpne det og gå til 
 
 Hvert trinn har:
 
-| Felt | Hensikt |
-| --- | --- |
-| **Tittel** | Kort betegnelse i sjekkliste-UI-en. Påkrevd. |
-| **Beskrivelse** | Valgfri kontekst til responderen. Markdown-tekst. |
-| **Fortsett ved feil** | Hvis på, stopper et feilet trinn ikke kjøringen — neste trinn kjører likevel. |
-| **Krev godkjenning** | Hvis på, pauser runbook'et etter dette trinnet og venter på at en bruker godkjenner før neste trinn kjøres. |
-| **Typespesifikk konfigurasjon** | Skript, URL, agent osv. — se nedenfor. |
+| Felt                            | Hensikt                                                                                                     |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Tittel**                      | Kort betegnelse i sjekkliste-UI-en. Påkrevd.                                                                |
+| **Beskrivelse**                 | Valgfri kontekst til responderen. Markdown-tekst.                                                           |
+| **Fortsett ved feil**           | Hvis på, stopper et feilet trinn ikke kjøringen — neste trinn kjører likevel.                               |
+| **Krev godkjenning**            | Hvis på, pauser runbook'et etter dette trinnet og venter på at en bruker godkjenner før neste trinn kjøres. |
+| **Typespesifikk konfigurasjon** | Skript, URL, agent osv. — se nedenfor.                                                                      |
 
 Trinn kjører **i rekkefølge**. Omorganiser med pilene opp/ned i trinn-editoren.
 

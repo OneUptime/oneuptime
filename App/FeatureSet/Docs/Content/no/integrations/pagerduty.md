@@ -12,7 +12,7 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  �
 
 ## Forutsetninger
 
-- En PagerDuty-tjeneste med en **Events API v2**-integrasjon. I PagerDuty: **Service → Integrations → Add integration → Events API v2**. Kopier **Integration Key** (også kalt *routing key*).
+- En PagerDuty-tjeneste med en **Events API v2**-integrasjon. I PagerDuty: **Service → Integrations → Add integration → Events API v2**. Kopier **Integration Key** (også kalt _routing key_).
 - Et OneUptime-prosjekt der du kan opprette arbeidsflyter.
 
 ## Steg 1 — Lagre routing key-en
@@ -25,6 +25,7 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  �
 1. Åpne **Workflows → Create Workflow**, gi den navnet `Incidents → PagerDuty`, og åpne **Builder**.
 2. Legg til en **Incident**-trigger satt til **On Create**. Gi den nytt navn `Incident`.
 3. Legg til en **API**-blokk koblet til triggeren:
+
    - **Method**: `POST`
    - **URL**: `https://events.pagerduty.com/v2/enqueue`
    - **Headers**: `Content-Type: application/json`
@@ -47,6 +48,7 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  �
      ```
 
    **`dedup_key`** knytter denne PagerDuty-hendelsen til OneUptime-hendelsen slik at du kan løse den senere. Å bruke OneUptime-hendelse-ID-en holder den unik og forutsigbar.
+
 4. **Lagre**, aktiver, og opprett en testhendelse. Et `202`-svar i arbeidsflytloggene betyr at PagerDuty aksepterte hendelsen.
 
 ## Steg 3 — Løs ved OneUptime-løsning (anbefalt)

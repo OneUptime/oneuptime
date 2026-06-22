@@ -8,17 +8,17 @@
 
 ## 前置条件
 
-- 一个 **OneUptime Telemetry Ingestion Token**——从 *Project Settings → Telemetry Ingestion Keys* 创建。
+- 一个 **OneUptime Telemetry Ingestion Token**——从 _Project Settings → Telemetry Ingestion Keys_ 创建。
 - OpenTelemetry 浏览器或移动端 SDK。
 
 ## OneUptime 如何识别 RUM 应用
 
-| 属性 | 是否必需 | 用途 |
-|---|---|---|
-| `service.name` | **是** | 应用标识（例如 `storefront-web`） |
-| `browser.*` | Web 端需要 | 将遥测数据标记为浏览器 RUM |
-| `device.*` | 移动端需要 | 将遥测数据标记为移动端 RUM |
-| `telemetry.sdk.language` | 否 | 例如 `webjs`、`swift`，显示在概览中 |
+| 属性                     | 是否必需   | 用途                                |
+| ------------------------ | ---------- | ----------------------------------- |
+| `service.name`           | **是**     | 应用标识（例如 `storefront-web`）   |
+| `browser.*`              | Web 端需要 | 将遥测数据标记为浏览器 RUM          |
+| `device.*`               | 移动端需要 | 将遥测数据标记为移动端 RUM          |
+| `telemetry.sdk.language` | 否         | 例如 `webjs`、`swift`，显示在概览中 |
 
 ## 浏览器（OpenTelemetry Web）
 

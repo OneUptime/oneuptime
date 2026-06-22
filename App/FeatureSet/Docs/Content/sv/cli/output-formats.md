@@ -20,6 +20,7 @@ oneuptime incident list
 ```
 
 Tabellformatets beteende:
+
 - Väljer upp till 6 kolumner, prioriterar: `_id`, `name`, `title`, `createdAt`, `updatedAt`
 - Trunkerar värden längre än 60 tecken med `...`
 - Använder färgkodade rubriker (inaktivera med `--no-color`)
@@ -72,9 +73,9 @@ NO_COLOR=1 oneuptime incident list
 
 ## Särskilda utdatafall
 
-| Scenario | Utdata |
-|----------|--------|
-| Tomt resultatset | `"No results found."` |
-| Ingen data returnerad | `"No data returned."` |
+| Scenario                     | Utdata                    |
+| ---------------------------- | ------------------------- |
+| Tomt resultatset             | `"No results found."`     |
+| Ingen data returnerad        | `"No data returned."`     |
 | Enskilt objekt (t.ex. `get`) | Nyckel-värde-tabellformat |
-| `count`-kommando | Enkelt numeriskt värde |
+| `count`-kommando             | Enkelt numeriskt värde    |

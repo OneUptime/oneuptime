@@ -8,7 +8,7 @@ The agent is config-only: a stock `otel/opentelemetry-collector-contrib` contain
 
 - Docker Engine 20.10+ with the Docker Compose v2 plugin, on any machine that can reach your Ceph mgr daemons (port 9283)
 - The Ceph mgr `prometheus` module enabled (see below)
-- A **OneUptime Telemetry Ingestion Key** — create one from *Project Settings → Telemetry Ingestion Keys*
+- A **OneUptime Telemetry Ingestion Key** — create one from _Project Settings → Telemetry Ingestion Keys_
 
 ### Enabling the mgr prometheus module
 
@@ -55,12 +55,12 @@ The cluster will appear automatically in the **Ceph** section of OneUptime.
 
 ## Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key (*Project Settings → Telemetry Ingestion Keys*) |
-| `CEPH_CLUSTER_NAME` | Yes | Cluster identifier shown in OneUptime. Stamped on every metric as the `ceph.cluster.name` resource attribute. Keep it stable — changing it registers a new cluster (default: `ceph`) |
-| `CEPH_MGR_ENDPOINTS` | Yes | Comma-separated `host:port` list of **all** mgr daemons, wrapped in square brackets, e.g. `[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]`. The install script adds the brackets for you |
+| Variable                            | Required | Description                                                                                                                                                                                 |
+| ----------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`                     | Yes      | Your OneUptime instance URL                                                                                                                                                                 |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes      | Telemetry ingestion key (_Project Settings → Telemetry Ingestion Keys_)                                                                                                                     |
+| `CEPH_CLUSTER_NAME`                 | Yes      | Cluster identifier shown in OneUptime. Stamped on every metric as the `ceph.cluster.name` resource attribute. Keep it stable — changing it registers a new cluster (default: `ceph`)        |
+| `CEPH_MGR_ENDPOINTS`                | Yes      | Comma-separated `host:port` list of **all** mgr daemons, wrapped in square brackets, e.g. `[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]`. The install script adds the brackets for you |
 
 ## Scrape Behavior
 

@@ -12,7 +12,7 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  �
 
 ## Forudsætninger
 
-- En PagerDuty-tjeneste med en **Events API v2**-integration. I PagerDuty: **Service → Integrations → Add integration → Events API v2**. Kopiér **Integration Key** (også kaldet *routing key*).
+- En PagerDuty-tjeneste med en **Events API v2**-integration. I PagerDuty: **Service → Integrations → Add integration → Events API v2**. Kopiér **Integration Key** (også kaldet _routing key_).
 - Et OneUptime-projekt, hvor du kan oprette workflows.
 
 ## Trin 1 — Gem routing-nøglen
@@ -25,6 +25,7 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  �
 1. Åbn **Workflows → Create Workflow**, navngiv det `Incidents → PagerDuty`, og åbn **Builder**.
 2. Tilføj en **Incident**-trigger sat til **On Create**. Omdøb den til `Incident`.
 3. Tilføj en **API**-blok forbundet til triggeren:
+
    - **Method**: `POST`
    - **URL**: `https://events.pagerduty.com/v2/enqueue`
    - **Headers**: `Content-Type: application/json`
@@ -47,6 +48,7 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  �
      ```
 
    **`dedup_key`** knytter denne PagerDuty-hændelse til OneUptime-hændelsen, så du kan løse den senere. Brug af OneUptime-hændelsens id holder den unik og forudsigelig.
+
 4. **Gem**, aktivér, og opret en testhændelse. Et `202`-svar i workflowets logfiler betyder, at PagerDuty accepterede eventet.
 
 ## Trin 3 — Løs ved OneUptime-løsning (anbefalet)

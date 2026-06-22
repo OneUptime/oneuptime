@@ -3,6 +3,7 @@
 如果您希望在自己的服务器上托管 OneUptime，可以使用 Docker Compose 在 Debian、Ubuntu 或 RHEL 上部署单服务器实例。此选项让您对实例拥有更多控制权和自定义能力，但也需要更多技术技能和资源来进行部署和维护。
 
 #### 选择您的系统要求
+
 根据您的使用量和预算，您可以为服务器选择不同的系统要求。为获得最佳性能，我们建议 OneUptime 使用以下配置：
 
 - **推荐系统要求**
@@ -17,7 +18,6 @@
     - 4 核 CPU
     - 20 GB 磁盘
     - 已安装 Docker 和 Docker Compose
-
 
 #### 单服务器部署的前提条件
 
@@ -52,7 +52,6 @@ npm start
 # 如果绑定端口时遇到权限问题，请使用 sudo
 sudo bash -c "(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)"
 ```
-
 
 ### 访问 OneUptime
 
@@ -95,7 +94,6 @@ npm run update
 ### 注意事项
 
 - 在我们的 Docker 设置中，我们使用本地日志驱动程序。OneUptime，尤其是探针和数据摄取容器，会生成大量日志。为防止存储空间占满，限制 Docker 中的日志存储至关重要。有关详细说明，请参阅 Docker 官方文档[此处](https://docs.docker.com/config/containers/logging/local/)。
-
 
 ### 卸载 OneUptime
 

@@ -178,11 +178,11 @@ flowchart TD
     end
 ```
 
-| Order | Escalate After | Target |
-|-------|----------------|--------|
-| 1 | 30 seconds | Primary On-Call Schedule |
-| 2 | 30 seconds | Secondary On-Call Schedule |
-| 3 | 30 seconds | Engineering Team Lead |
+| Order | Escalate After | Target                     |
+| ----- | -------------- | -------------------------- |
+| 1     | 30 seconds     | Primary On-Call Schedule   |
+| 2     | 30 seconds     | Secondary On-Call Schedule |
+| 3     | 30 seconds     | Engineering Team Lead      |
 
 ## Step 7: Configure Voice Messages (Optional)
 
@@ -199,23 +199,23 @@ Customize the messages callers hear:
 
 ### Policy Settings
 
-| Setting | Description | Default |
-|---------|-------------|---------|
-| Greeting Message | TTS message played when call is answered | "Please wait while we connect you to the on-call engineer." |
-| No Answer Message | Message when all escalation rules fail | "No one is available. Please try again later." |
-| No One Available Message | Message when no one is on-call | "We're sorry, but no on-call engineer is currently available." |
-| Repeat Policy If No One Answers | Restart from first rule if all fail | Disabled |
-| Repeat Policy Times | Maximum repeat attempts | 1 |
+| Setting                         | Description                              | Default                                                        |
+| ------------------------------- | ---------------------------------------- | -------------------------------------------------------------- |
+| Greeting Message                | TTS message played when call is answered | "Please wait while we connect you to the on-call engineer."    |
+| No Answer Message               | Message when all escalation rules fail   | "No one is available. Please try again later."                 |
+| No One Available Message        | Message when no one is on-call           | "We're sorry, but no on-call engineer is currently available." |
+| Repeat Policy If No One Answers | Restart from first rule if all fail      | Disabled                                                       |
+| Repeat Policy Times             | Maximum repeat attempts                  | 1                                                              |
 
 ### Escalation Rule Settings
 
-| Setting | Description |
-|---------|-------------|
-| Order | Priority order (1 = highest priority) |
+| Setting                | Description                                      |
+| ---------------------- | ------------------------------------------------ |
+| Order                  | Priority order (1 = highest priority)            |
 | Escalate After Seconds | Wait time before trying next rule (default: 30s) |
-| On-Call Schedule | Route to whoever is currently on-call |
-| Teams | Route to all members of selected teams |
-| Users | Route to specific users |
+| On-Call Schedule       | Route to whoever is currently on-call            |
+| Teams                  | Route to all members of selected teams           |
+| Users                  | Route to specific users                          |
 
 ## Viewing Call Logs
 
@@ -226,6 +226,7 @@ To view incoming call history:
 3. Go to the **Call Logs** tab
 
 The logs show:
+
 - Caller phone number
 - Call status (Completed, No Answer, Failed, etc.)
 - Who answered the call

@@ -10,14 +10,14 @@ Med profileringsdata i OneUptime kan du identifiera funktioner som konsumerar CP
 
 OneUptime stöder följande profiltyper:
 
-| Profiltyp | Beskrivning | Enhet |
-| --- | --- | --- |
-| cpu | CPU-tid spenderad på att exekvera kod | nanosekunder |
-| wall | Väggklocktid (inkluderar väntan/sömn) | nanosekunder |
-| alloc_objects | Antal heap-allokeringar | antal |
-| alloc_space | Bytes av heap-minne allokerat | bytes |
-| goroutine | Antal aktiva goroutines (Go) | antal |
-| contention | Tid spenderad på att vänta på lås/mutex | nanosekunder |
+| Profiltyp     | Beskrivning                             | Enhet        |
+| ------------- | --------------------------------------- | ------------ |
+| cpu           | CPU-tid spenderad på att exekvera kod   | nanosekunder |
+| wall          | Väggklocktid (inkluderar väntan/sömn)   | nanosekunder |
+| alloc_objects | Antal heap-allokeringar                 | antal        |
+| alloc_space   | Bytes av heap-minne allokerat           | bytes        |
+| goroutine     | Antal aktiva goroutines (Go)            | antal        |
+| contention    | Tid spenderad på att vänta på lås/mutex | nanosekunder |
 
 ## Kom igång
 
@@ -37,10 +37,10 @@ När du har skapat en token klickar du på "Visa" för att visa token.
 
 OneUptime accepterar profileringsdata via både gRPC och HTTP med OTLP-profilprotokollet.
 
-| Protokoll | Slutpunkt |
-| --- | --- |
-| gRPC | `your-oneuptime-host:4317` (OTLP standard gRPC-port) |
-| HTTP | `https://your-oneuptime-host/otlp/v1/profiles` |
+| Protokoll | Slutpunkt                                            |
+| --------- | ---------------------------------------------------- |
+| gRPC      | `your-oneuptime-host:4317` (OTLP standard gRPC-port) |
+| HTTP      | `https://your-oneuptime-host/otlp/v1/profiles`       |
 
 **Miljövariabler**
 

@@ -19,7 +19,6 @@ Dependiendo de tu uso y presupuesto, puedes elegir entre diferentes requisitos d
     - 20 GB de disco
     - Docker y Docker Compose instalados
 
-
 #### Prerrequisitos para la implementación en un solo servidor
 
 Tutorial de instalación: [https://youtu.be/j1SWmMW2oL4](https://youtu.be/j1SWmMW2oL4)
@@ -29,7 +28,7 @@ Antes de comenzar el proceso de implementación, asegúrate de tener:
 - Un servidor que ejecute Debian, Ubuntu o un derivado de RHEL
 - Docker y Docker Compose instalados en tu servidor
 
-Para instalar OneUptime: 
+Para instalar OneUptime:
 
 ```
 # Clona este repositorio con solo la rama release y accede a él.
@@ -44,16 +43,15 @@ cp config.example.env config.env
 npm start
 ```
 
-Si no quieres usar npm o no lo tienes instalado, ejecuta esto en su lugar: 
+Si no quieres usar npm o no lo tienes instalado, ejecuta esto en su lugar:
 
 ```
 # Lee las variables de entorno del archivo config.env y ejecuta docker compose up.
 (export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
 
-# Usa sudo si tienes problemas de permisos al enlazar puertos. 
+# Usa sudo si tienes problemas de permisos al enlazar puertos.
 sudo bash -c "(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)"
 ```
-
 
 ### Acceso a OneUptime
 
@@ -74,18 +72,18 @@ Si necesitas usar certificados SSL/TLS, sigue estos pasos:
 
 ## Lista de verificación de preparación para producción
 
-Idealmente, no implementes OneUptime en producción con docker-compose. Recomendamos encarecidamente usar Kubernetes. Hay un gráfico Helm disponible para OneUptime [aquí](https://artifacthub.io/packages/helm/oneuptime/oneuptime). 
+Idealmente, no implementes OneUptime en producción con docker-compose. Recomendamos encarecidamente usar Kubernetes. Hay un gráfico Helm disponible para OneUptime [aquí](https://artifacthub.io/packages/helm/oneuptime/oneuptime).
 
 Si aún quieres implementar OneUptime en producción con docker-compose, considera lo siguiente:
 
-- **SSL/TLS**: Configura certificados SSL/TLS. OneUptime no admite la configuración de certificados SSL/TLS. Debes configurarlos por tu cuenta. Consulta más arriba. 
-- **Secretos**: Asegúrate de tener secretos aleatorios en tu archivo `config.env`. Hay algunos secretos predeterminados en ese archivo. Por favor, reemplázalos con cadenas largas y aleatorias. 
-- **Copias de seguridad**: Realiza copias de seguridad periódicas de tus bases de datos (Clickhouse, Postgres). Redis se usa como caché y no tiene estado, por lo que puede omitirse de forma segura. 
-- **Actualizaciones**: Actualiza OneUptime regularmente. Lanzamos actualizaciones todos los días. Te recomendamos actualizar el software al menos una vez por semana si lo ejecutas en producción. 
+- **SSL/TLS**: Configura certificados SSL/TLS. OneUptime no admite la configuración de certificados SSL/TLS. Debes configurarlos por tu cuenta. Consulta más arriba.
+- **Secretos**: Asegúrate de tener secretos aleatorios en tu archivo `config.env`. Hay algunos secretos predeterminados en ese archivo. Por favor, reemplázalos con cadenas largas y aleatorias.
+- **Copias de seguridad**: Realiza copias de seguridad periódicas de tus bases de datos (Clickhouse, Postgres). Redis se usa como caché y no tiene estado, por lo que puede omitirse de forma segura.
+- **Actualizaciones**: Actualiza OneUptime regularmente. Lanzamos actualizaciones todos los días. Te recomendamos actualizar el software al menos una vez por semana si lo ejecutas en producción.
 
 ### Actualización de OneUptime
 
-Para actualizar: 
+Para actualizar:
 
 ```
 git checkout release # Asegúrate de estar en la rama release.
@@ -96,7 +94,6 @@ npm run update
 ### Aspectos a considerar
 
 - En nuestra configuración de Docker, utilizamos un controlador de registro local. OneUptime, especialmente dentro de los contenedores de sonda e ingesta, genera una cantidad sustancial de registros. Para evitar que tu almacenamiento se llene, es fundamental limitar el almacenamiento de registros en Docker. Para obtener instrucciones detalladas sobre cómo hacerlo, consulta la documentación oficial de Docker [aquí](https://docs.docker.com/config/containers/logging/local/).
-
 
 ### Desinstalación de OneUptime
 

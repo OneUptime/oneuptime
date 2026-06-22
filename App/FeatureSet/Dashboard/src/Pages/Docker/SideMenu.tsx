@@ -23,6 +23,15 @@ const DockerSideMenu: FunctionComponent = (): ReactElement => {
         },
         {
           link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DOCKER_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
+        {
+          link: {
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.DOCKER_DOCUMENTATION] as Route,

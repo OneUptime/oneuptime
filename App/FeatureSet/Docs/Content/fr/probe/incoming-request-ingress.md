@@ -161,17 +161,17 @@ curl -X POST http://probe.internal:3875/heartbeat/VOTRE_CLÉ_SECRÈTE \
 
 ## Variables d'environnement
 
-| Variable | Par défaut | Description |
-|---|---|---|
-| `PROBE_INGRESS_PORT` | _non défini_ (désactivé) | Port sur lequel l'écouteur entrant se lie. Toute valeur `> 0` active l'entrée. |
-| `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | Délai d'attente (ms) pour chaque tentative de transmission vers OneUptime. Minimum `1000`. |
-| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | Nombre de tentatives avant que la sonde abandonne une transmission. Définir à `0` pour désactiver les tentatives. |
+| Variable                            | Par défaut               | Description                                                                                                       |
+| ----------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `PROBE_INGRESS_PORT`                | _non défini_ (désactivé) | Port sur lequel l'écouteur entrant se lie. Toute valeur `> 0` active l'entrée.                                    |
+| `PROBE_INGRESS_FORWARD_TIMEOUT_MS`  | `10000`                  | Délai d'attente (ms) pour chaque tentative de transmission vers OneUptime. Minimum `1000`.                        |
+| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3`                      | Nombre de tentatives avant que la sonde abandonne une transmission. Définir à `0` pour désactiver les tentatives. |
 
 Les variables standard de la sonde (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL`, variables de proxy) s'appliquent toutes — voir [Sondes personnalisées](/docs/probe/custom-probe) pour la liste complète.
 
 ## Considérations de sécurité
 
-- **Le point d'accès est intentionnellement non authentifié** — la clé secrète dans le chemin d'URL *est* l'authentification, comme c'est le cas sur le point d'accès public `oneuptime.com`. Traitez la clé secrète comme un identifiant.
+- **Le point d'accès est intentionnellement non authentifié** — la clé secrète dans le chemin d'URL _est_ l'authentification, comme c'est le cas sur le point d'accès public `oneuptime.com`. Traitez la clé secrète comme un identifiant.
 - **Liez à une interface privée uniquement.** L'écouteur d'entrée ne doit pas être accessible depuis Internet public. Utilisez une politique réseau, une règle de pare-feu ou un service `ClusterIP` pour restreindre l'accès.
 - **Utilisez la terminaison HTTPS si vous nécessitez le chiffrement en transit.** L'écouteur de la sonde parle du HTTP brut. Placez-le derrière un équilibreur de charge interne / contrôleur d'entrée si vous avez besoin de TLS sur le saut entrant. La jambe de transmission sonde → OneUptime utilise toujours HTTPS (en supposant que `ONEUPTIME_URL` est `https://`).
 - **Limites de ressources.** L'écouteur accepte des corps de requête jusqu'à 50 Mo. Si vous avez besoin d'un plafond plus strict, placez un proxy inverse devant.

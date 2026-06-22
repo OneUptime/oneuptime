@@ -113,6 +113,7 @@ flowchart TB
 ```
 
 ## 图示说明
+
 - 终端用户通过集群的入口（NGINX）访问 OneUptime，该入口将请求路由到 UI 和 API。
 - 核心服务从 PostgreSQL、Redis 和 ClickHouse 读写状态。
 - 探针可以在集群内（推荐）和/或网络其他地方运行。它们可以监控：

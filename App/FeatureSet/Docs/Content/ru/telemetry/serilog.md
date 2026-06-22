@@ -24,11 +24,11 @@
 
 ## Что вам нужно от OneUptime
 
-| Настройка | Значение |
-| --- | --- |
-| Эндпоинт OTLP | `https://oneuptime.com/otlp` |
-| Заголовок аутентификации | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
-| Имя сервиса | Имя, под которым должен отображаться ваш сервис, например `my-service` |
+| Настройка                | Значение                                                               |
+| ------------------------ | ---------------------------------------------------------------------- |
+| Эндпоинт OTLP            | `https://oneuptime.com/otlp`                                           |
+| Заголовок аутентификации | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN`                    |
+| Имя сервиса              | Имя, под которым должен отображаться ваш сервис, например `my-service` |
 
 > **Используете самостоятельно размещённый OneUptime?** Замените `https://oneuptime.com/otlp` на `https://YOUR-ONEUPTIME-HOST/otlp` (или `http://...`, если вы не используете TLS). Всё остальное остаётся прежним.
 
@@ -109,7 +109,7 @@ finally
 ```json
 {
   "Serilog": {
-    "Using": [ "Serilog.Sinks.OpenTelemetry" ],
+    "Using": ["Serilog.Sinks.OpenTelemetry"],
     "MinimumLevel": "Information",
     "WriteTo": [
       {

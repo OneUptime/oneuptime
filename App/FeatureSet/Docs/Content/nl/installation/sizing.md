@@ -10,11 +10,11 @@ Als je in plaats daarvan de single-server Docker Compose-installatie draait, is 
 
 OneUptime vereist drie datastores in productie. Ze schalen op volledig verschillende inputs, dus dimensioneer ze onafhankelijk.
 
-| Datastore | Wat het opslaat | Wat de omvang bepaalt |
-| --- | --- | --- |
-| **ClickHouse** | Alle telemetrie — logs, metrics, traces, exceptions, profiles | Telemetrie-**ingestratio × retentie**. Dit is ~95% van je opslag en de dominante kostenpost. |
-| **PostgreSQL** | Configuratie en status — monitors, incidents, alerts, gebruikers, teams, projecten, workflows, statuspagina's, dashboards | **Aantal entiteiten en geschiedenis**, niet het telemetrievolume. Groeit langzaam. |
-| **Redis** | Cache, werkwachtrijen en sessies | **Wachtrijdiepte en actieve sessies**. Geheugengebonden en bescheiden. Geen bron van waarheid. |
+| Datastore      | Wat het opslaat                                                                                                           | Wat de omvang bepaalt                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| **ClickHouse** | Alle telemetrie — logs, metrics, traces, exceptions, profiles                                                             | Telemetrie-**ingestratio × retentie**. Dit is ~95% van je opslag en de dominante kostenpost.   |
+| **PostgreSQL** | Configuratie en status — monitors, incidents, alerts, gebruikers, teams, projecten, workflows, statuspagina's, dashboards | **Aantal entiteiten en geschiedenis**, niet het telemetrievolume. Groeit langzaam.             |
+| **Redis**      | Cache, werkwachtrijen en sessies                                                                                          | **Wachtrijdiepte en actieve sessies**. Geheugengebonden en bescheiden. Geen bron van waarheid. |
 
 Objectopslag (S3/MinIO) is **niet** vereist om OneUptime te laten draaien. Het wordt alleen optioneel gebruikt voor database-**backups** (via de CloudNativePG Barman-plugin voor PostgreSQL, of `clickhouse-backup` voor ClickHouse). OneUptime tiert telemetrie niet naar objectopslag — zie de sectie "Retentie en hoe het de opslag beïnvloedt" hieronder.
 
@@ -39,16 +39,16 @@ Compressie hangt af van het signaal:
 Een fleet van **10 clusters**, elk met ~10 nodes / ~100 pods op INFO-niveau, produceert ruwweg **50–150 GB ruwe logs per cluster over 30 dagen** (≈ 1.7–5 GB/dag per cluster). Over het hele fleet, met metrics en traces erbij en na compressie, reken op ruwweg **5–15 GB/dag aan gecomprimeerde telemetrie**.
 
 | Retentie | Enkele replica | 2 replicas + 30% headroom |
-| --- | --- | --- |
-| 30 dagen | ~150–450 GB | **~0.4–1.2 TB** |
-| 90 dagen | ~0.45–1.35 TB | **~1.2–3.5 TB** |
+| -------- | -------------- | ------------------------- |
+| 30 dagen | ~150–450 GB    | **~0.4–1.2 TB**           |
+| 90 dagen | ~0.45–1.35 TB  | **~1.2–3.5 TB**           |
 
 Opslag schaalt **lineair met de retentie** — een venster van 90 dagen kost ~3× een venster van 30 dagen.
 
 ### RAM en schijftype
 
 - **Gebruik NVMe/SSD.** Telemetrie is schrijf-intensief met piekerige aggregatie-reads; ClickHouse op een spinning disk zal moeite hebben.
-- **Geef ClickHouse ruim RAM.** Aggregatie-queries zijn geheugen-intensief. Als vuistregel: dimensioneer RAM op een betekenisvolle fractie (25–50%) van je *hot* (recent bevraagde) gecomprimeerde dataset, met een praktische ondergrens van 16 GB voor elk echt productie-fleet.
+- **Geef ClickHouse ruim RAM.** Aggregatie-queries zijn geheugen-intensief. Als vuistregel: dimensioneer RAM op een betekenisvolle fractie (25–50%) van je _hot_ (recent bevraagde) gecomprimeerde dataset, met een praktische ondergrens van 16 GB voor elk echt productie-fleet.
 - **Beheers metric-cardinaliteit.** Het is de allergrootste hefboom op zowel ClickHouse-RAM als -schijf. Handhaaf laag-cardinale labelconventies op de verzamellaag en houd het aantal actieve series in de gaten.
 
 ## PostgreSQL — configuratie en status
@@ -73,12 +73,12 @@ Kies het niveau dat het dichtst bij jouw omgeving ligt als startpunt, houd vervo
 - **Medium / Production fleet** — ~10 clusters, ~100 nodes, 10–30 GB/dag ruwe telemetrie, 30–90-daagse retentie.
 - **Large / Multi-fleet** — 50+ clusters, 500+ nodes, 100+ GB/dag ruwe telemetrie, 90-daagse retentie.
 
-| | Small / PoC | Medium / Production fleet | Large / Multi-fleet |
-| --- | --- | --- | --- |
-| **ClickHouse** | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe, **sharded** |
-| **PostgreSQL** | 2 vCPU / 4 GB / 50 GB SSD | 4 vCPU / 8 GB / 100 GB SSD | 8 vCPU / 16–32 GB / 250 GB SSD (+ PgBouncer) |
-| **Redis** | 1 vCPU / 2 GB | 2 vCPU / 4 GB | 4 vCPU / 8–16 GB |
-| **Retentie aangenomen** | 30 dagen | 30–90 dagen | 90 dagen |
+|                         | Small / PoC                  | Medium / Production fleet    | Large / Multi-fleet                              |
+| ----------------------- | ---------------------------- | ---------------------------- | ------------------------------------------------ |
+| **ClickHouse**          | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe, **sharded** |
+| **PostgreSQL**          | 2 vCPU / 4 GB / 50 GB SSD    | 4 vCPU / 8 GB / 100 GB SSD   | 8 vCPU / 16–32 GB / 250 GB SSD (+ PgBouncer)     |
+| **Redis**               | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                 |
+| **Retentie aangenomen** | 30 dagen                     | 30–90 dagen                  | 90 dagen                                         |
 
 Deze dimensioneren de OneUptime-**backend**. De OneUptime-collectors die op elke gemonitorde cluster draaien, worden apart gedimensioneerd — zie de sizing-niveaus van de [Kubernetes Agent](/docs/telemetry/kubernetes-agent).
 

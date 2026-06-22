@@ -39,10 +39,10 @@ I monitor manuali non hanno intervalli di monitoraggio, probe o valutazione auto
 
 ## Quando Usare i Monitor Manuali
 
-| Caso d'Uso | Descrizione |
-|----------|-------------|
-| Servizi di terze parti | Tracciare lo stato di servizi esterni da cui si dipende ma che non si possono monitorare direttamente |
-| Infrastruttura fisica | Rappresentare hardware o sistemi fisici senza monitoraggio di rete |
-| Processi aziendali | Tracciare processi non tecnici che influenzano lo stato del servizio |
-| Stato gestito via API | Permettere a strumenti esterni di aggiornare lo stato del monitor tramite l'API di OneUptime |
-| Segnaposto pagina di stato | Mostrare componenti nella pagina di stato gestiti al di fuori di OneUptime |
+| Caso d'Uso                 | Descrizione                                                                                           |
+| -------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Servizi di terze parti     | Tracciare lo stato di servizi esterni da cui si dipende ma che non si possono monitorare direttamente |
+| Infrastruttura fisica      | Rappresentare hardware o sistemi fisici senza monitoraggio di rete                                    |
+| Processi aziendali         | Tracciare processi non tecnici che influenzano lo stato del servizio                                  |
+| Stato gestito via API      | Permettere a strumenti esterni di aggiornare lo stato del monitor tramite l'API di OneUptime          |
+| Segnaposto pagina di stato | Mostrare componenti nella pagina di stato gestiti al di fuori di OneUptime                            |

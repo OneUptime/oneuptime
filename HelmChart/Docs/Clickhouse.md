@@ -13,11 +13,9 @@ then you should be able to access from the localhost and port 8123
 echo $(kubectl get secret --namespace "default" oneuptime-clickhouse -o jsonpath="{.data.admin-password}" | base64 -d)
 ```
 
-Important: Please ignore % in the end of the password output. 
-
+Important: Please ignore % in the end of the password output.
 
 ### Basic Ops Queries
- 
 
 #### Check Size of Tables in Clickhouse
 
@@ -38,7 +36,6 @@ GROUP BY
 ORDER BY size DESC;
 ```
 
-
 #### Check the size fo used and free space in Clickhouse
 
 ```sql
@@ -51,7 +48,6 @@ SELECT
 FROM system.disks d
 ORDER BY used_percent DESC;
 ```
-
 
 ### Get List of queries running in Clickhouse
 
@@ -68,8 +64,7 @@ ORDER BY elapsed DESC;
 KILL QUERY WHERE query_id = 'your_query_id';
 ```
 
-
-#### Get size of avg row in bytes by table. 
+#### Get size of avg row in bytes by table.
 
 ```
 SELECT
@@ -103,25 +98,25 @@ self-contained, top-level `clickhouseOperator` object (**not** nested under
 # values.yaml
 clickhouseOperator:
   altinity:
-    enabled: true        # turns on the operator + an operator-managed CHI + Keeper
+    enabled: true # turns on the operator + an operator-managed CHI + Keeper
     image:
-      tag: "25.3"        # pin a ClickHouse version for production
+      tag: "25.3" # pin a ClickHouse version for production
     cluster:
       shardsCount: 1
-      replicasCount: 2   # 2 = HA (needs the bundled Keeper, on by default)
+      replicasCount: 2 # 2 = HA (needs the bundled Keeper, on by default)
 ```
 
 When `clickhouseOperator.altinity.enabled` is `true`:
 
-* The built-in `StatefulSet`, its `Service`s and `ConfigMap` are **not** rendered
+- The built-in `StatefulSet`, its `Service`s and `ConfigMap` are **not** rendered
   (regardless of `clickhouse.enabled`; the operator path takes precedence).
-* A `ClickHouseInstallation` (CHI) named `<release>-clickhouse-altinity` is created.
-* The app connects as the `oneuptime` user to the root CHI service
+- A `ClickHouseInstallation` (CHI) named `<release>-clickhouse-altinity` is created.
+- The app connects as the `oneuptime` user to the root CHI service
   `<release>-clickhouse-altinity` on port `8123`, using the password in the
   `<release>-clickhouse-altinity` secret (auto-generated, or set
   `clickhouseOperator.altinity.auth.password`). The password is preserved across
   upgrades.
-* A bundled ClickHouse Keeper ensemble (`<release>-clickhouse-keeper`, 3 nodes by
+- A bundled ClickHouse Keeper ensemble (`<release>-clickhouse-keeper`, 3 nodes by
   default) is created to coordinate replication.
 
 Read the ClickHouse user password:
@@ -140,14 +135,14 @@ echo $(kubectl get secret --namespace "default" oneuptime-clickhouse-altinity -o
 
 #### Replication, sharding, and scaling
 
-* **Replication (HA)** — `clickhouseOperator.altinity.cluster.replicasCount` is the
+- **Replication (HA)** — `clickhouseOperator.altinity.cluster.replicasCount` is the
   number of copies of each shard. `replicasCount: 2` keeps two replicas (HA);
   the operator points them at the Keeper ensemble for `ReplicatedMergeTree`
   coordination and automatic recovery. Scaling is online: change the count and
   `helm upgrade`.
-* **Sharding** — `clickhouseOperator.altinity.cluster.shardsCount` distributes data
+- **Sharding** — `clickhouseOperator.altinity.cluster.shardsCount` distributes data
   across shards for horizontal scale.
-* **Keeper** — the bundled `keeper` (3-node quorum by default) is required for
+- **Keeper** — the bundled `keeper` (3-node quorum by default) is required for
   `replicasCount > 1`. Set `keeper.replicas: 1` for dev/non-HA, or `5` for a larger
   quorum. To use an existing ZooKeeper/Keeper instead, set
   `clickhouseOperator.altinity.zookeeper.nodes` (this disables the bundled Keeper).

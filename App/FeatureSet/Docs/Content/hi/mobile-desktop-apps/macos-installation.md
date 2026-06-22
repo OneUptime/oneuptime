@@ -9,18 +9,21 @@ seamless monitoring और incident management के लिए OneUptime को
 Safari native macOS features के साथ उत्कृष्ट PWA integration प्रदान करता है।
 
 1. **OneUptime को Safari में खोलें**
+
    - Safari browser launch करें
    - अपने OneUptime instance URL पर जाएं
    - अपने OneUptime account में sign in करें
    - page पूरी तरह load होने का इंतज़ार करें
 
 2. **PWA Install करें**
+
    - menu bar में **File** पर क्लिक करें
    - **"Add to Dock"** चुनें (macOS Sonoma+)
    - या address bar में **install icon** देखें
    - वैकल्पिक रूप से: **File** → **"Add to Home Screen"** (पुराना macOS)
 
 3. **Installation Customize करें**
+
    - **App Name**: यदि चाहें तो modify करें (default: OneUptime)
    - **Dock**: Dock में add करने का विकल्प
    - **Launchpad**: आसान पहुंच के लिए Launchpad में add करें
@@ -35,17 +38,20 @@ Safari native macOS features के साथ उत्कृष्ट PWA integ
 Chrome उत्कृष्ट desktop integration के साथ robust PWA support प्रदान करता है।
 
 1. **OneUptime को Chrome में खोलें**
+
    - Google Chrome launch करें
    - अपने OneUptime instance पर जाएं
    - सुनिश्चित करें कि signed in हैं
    - page पूरी तरह load होने दें
 
 2. **Menu के माध्यम से Install करें**
+
    - address bar में **install icon** (⊞) देखें
    - **"Install OneUptime"** पर क्लिक करें
    - या **Chrome menu** → **More tools** → **Create shortcut** उपयोग करें
 
 3. **Installation Options**
+
    - native app experience के लिए **"Open as window"** चेक करें
    - यदि आवश्यक हो तो app का नाम customize करें
    - **"Install"** या **"Create"** पर क्लिक करें
@@ -60,6 +66,7 @@ Chrome उत्कृष्ट desktop integration के साथ robust PWA 
 Edge solid macOS integration के साथ PWA support प्रदान करता है।
 
 1. **OneUptime को Edge में खोलें**
+
    - Microsoft Edge launch करें
    - OneUptime URL पर जाएं
    - sign-in process पूरी करें
@@ -73,13 +80,16 @@ Edge solid macOS integration के साथ PWA support प्रदान क
 ### Customization Options
 
 ### Dock और Launchpad
+
 1. **Dock Position**: OneUptime को पसंदीदा Dock position पर drag करें
 2. **Dock Size**: Dock preferences में icon resize करें
 3. **Launchpad Organization**: monitoring app folder बनाएं
 4. **Badge Notifications**: Dock icon पर incident count दिखाएं
 
 ### Menu Bar और Notifications
+
 1. **Notification Center**
+
    - System Preferences → Notifications → OneUptime
    - alert styles और delivery configure करें
    - different incident types के लिए priority levels सेट करें
@@ -94,6 +104,7 @@ Edge solid macOS integration के साथ PWA support प्रदान क
 ### Installation संबंधी समस्याएं
 
 **Safari में "Add to Dock" उपलब्ध नहीं:**
+
 ```
 Solutions:
 1. macOS Sonoma (14.0) या बाद का सुनिश्चित करें
@@ -104,6 +115,7 @@ Solutions:
 ```
 
 **PWA install नहीं होता या crash होता है:**
+
 ```
 Solutions:
 1. macOS version compatibility जांचें
@@ -115,6 +127,7 @@ Solutions:
 ```
 
 **App Applications में नहीं दिख रहा:**
+
 ```
 Solutions:
 1. OneUptime icon के लिए Launchpad जांचें
@@ -127,6 +140,7 @@ Solutions:
 ### Notification संबंधी समस्याएं
 
 **macOS notifications काम नहीं कर रहीं:**
+
 ```
 Solutions:
 1. System Preferences → Notifications → OneUptime
@@ -140,12 +154,15 @@ Solutions:
 ## Uninstallation
 
 ### पूर्ण Removal
+
 1. **Applications Folder Method**
+
    - Applications folder खोलें
    - OneUptime खोजें
    - Trash पर drag करें या right-click → Move to Trash
 
 2. **Dock Method**
+
    - Dock में OneUptime पर Right-click करें
    - "Options" → "Remove from Dock" चुनें
    - फिर Applications folder से delete करें
@@ -156,6 +173,7 @@ Solutions:
    - **Safari**: कोई dedicated management page नहीं
 
 ### Clean Uninstallation
+
 सभी associated data हटाएं:
 
 ```bash
@@ -173,13 +191,16 @@ rm -rf ~/Library/Application\ Support/Microsoft\ Edge/Default/Web\ Applications
 ## Updates और Maintenance
 
 ### Automatic Updates
+
 - OneUptime PWA online होने पर स्वचालित रूप से update होता है
 - कोई App Store updates आवश्यक नहीं
 - नई features तुरंत उपलब्ध
 - Critical updates तुरंत लागू
 
 ### Manual Update Process
+
 application को force update करें:
+
 1. **Safari PWAs**: Safari browser के भीतर refresh करें
 2. **Chrome PWAs**: app पर right-click करें → Reload या ⌘+R
 3. **Complete Refresh**: app बंद करें, browser फिर खोलें, OneUptime पर जाएं
@@ -187,6 +208,7 @@ application को force update करें:
 ## macOS Features के साथ Integration
 
 ### Terminal Integration
+
 Terminal के माध्यम से OneUptime प्रबंधित करें:
 
 ```bash
@@ -206,12 +228,14 @@ oneuptime_status() {
 ## Security और Privacy
 
 ### macOS Security Features
+
 1. **Gatekeeper**: सुनिश्चित करें कि PWA installations trusted sources से हैं
 2. **System Integrity Protection**: system files की रक्षा करता है
 3. **FileVault**: data protection के लिए disk encrypt करें
 4. **Keychain**: secure credential storage
 
 ### Security Best Practices
+
 1. **Regular Updates**: macOS और browsers updated रखें
 2. **Strong Authentication**: उपलब्ध होने पर Touch ID/Face ID उपयोग करें
 3. **Network Security**: remote monitoring access के लिए VPN उपयोग करें

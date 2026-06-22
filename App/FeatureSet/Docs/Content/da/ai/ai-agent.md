@@ -55,6 +55,7 @@ Globale AI Agenter er automatisk tilgængelige for alle projekter, medmindre de 
 For organisationer, der har behov for at køre AI-agenter inden for deres egen infrastruktur (f.eks. af sikkerhedsmæssige, compliancemæssige eller netværksrelaterede årsager), understøtter OneUptime selvhostede AI-agenter.
 
 Selvhostede AI-agenter:
+
 - Kører inden for dit private netværk
 - Kan få adgang til interne ressourcer og systemer
 - Giver dig fuld kontrol over agentens miljø
@@ -134,15 +135,15 @@ spec:
         app: oneuptime-ai-agent
     spec:
       containers:
-      - name: oneuptime-ai-agent
-        image: oneuptime/ai-agent:release
-        env:
-          - name: AI_AGENT_KEY
-            value: "<ai-agent-key>"
-          - name: AI_AGENT_ID
-            value: "<ai-agent-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-ai-agent
+          image: oneuptime/ai-agent:release
+          env:
+            - name: AI_AGENT_KEY
+              value: "<ai-agent-key>"
+            - name: AI_AGENT_ID
+              value: "<ai-agent-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 Anvend konfigurationen:
@@ -157,12 +158,11 @@ AI-agenten understøtter følgende miljøvariabler:
 
 #### Påkrævede variabler
 
-| Variabel | Beskrivelse |
-|----------|-------------|
-| `AI_AGENT_KEY` | AI-agentens nøgle fra dit OneUptime-dashboard |
-| `AI_AGENT_ID` | AI-agentens ID fra dit OneUptime-dashboard |
+| Variabel        | Beskrivelse                                                        |
+| --------------- | ------------------------------------------------------------------ |
+| `AI_AGENT_KEY`  | AI-agentens nøgle fra dit OneUptime-dashboard                      |
+| `AI_AGENT_ID`   | AI-agentens ID fra dit OneUptime-dashboard                         |
 | `ONEUPTIME_URL` | URL'en til din OneUptime-instans (standard: https://oneuptime.com) |
-
 
 ## Bekræftelse af din AI Agent
 

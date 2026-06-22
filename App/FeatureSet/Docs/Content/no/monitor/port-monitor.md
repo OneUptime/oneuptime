@@ -29,16 +29,16 @@ Skriv inn vertsnavnet eller IP-adressen til målverten (f.eks. `example.com` ell
 
 Skriv inn portnummeret som skal overvåkes (1–65535). Vanlige eksempler:
 
-| Port | Tjeneste |
-|------|---------|
-| 22 | SSH |
-| 25 | SMTP |
-| 80 | HTTP |
-| 443 | HTTPS |
-| 3306 | MySQL |
-| 5432 | PostgreSQL |
-| 6379 | Redis |
-| 27017 | MongoDB |
+| Port  | Tjeneste   |
+| ----- | ---------- |
+| 22    | SSH        |
+| 25    | SMTP       |
+| 80    | HTTP       |
+| 443   | HTTPS      |
+| 3306  | MySQL      |
+| 5432  | PostgreSQL |
+| 6379  | Redis      |
+| 27017 | MongoDB    |
 
 ## Overvåkingskriterier
 
@@ -46,11 +46,11 @@ Du kan konfigurere kriterier for å bestemme når porten anses som tilgjengelig,
 
 ### Tilgjengelige kontrolltyper
 
-| Kontrolltype | Beskrivelse |
-|-------------|-------------|
-| Is Online | Om porten er åpen og aksepterer tilkoblinger |
+| Kontrolltype          | Beskrivelse                                      |
+| --------------------- | ------------------------------------------------ |
+| Is Online             | Om porten er åpen og aksepterer tilkoblinger     |
 | Response Time (in ms) | Tid for å opprette en tilkobling i millisekunder |
-| Is Request Timeout | Om tilkoblingsforsøket fikk tidsavbrudd |
+| Is Request Timeout    | Om tilkoblingsforsøket fikk tidsavbrudd          |
 
 ### Filtertyper
 

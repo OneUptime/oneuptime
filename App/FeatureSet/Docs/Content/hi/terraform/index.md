@@ -5,20 +5,25 @@ OneUptime Terraform Provider आपको Terraform के माध्यम �
 ## Documentation Sections
 
 ### [Getting Started](./quick-start.md)
+
 OneUptime Terraform Provider के साथ मिनटों में शुरू करने के लिए Quick setup guide।
 
 ### [Complete Provider Guide](./README.md)
+
 Installation, configuration, resources और best practices को cover करने वाली व्यापक documentation।
 
 ### [Self-Hosted Configuration](./self-hosted.md)
+
 **Self-hosted customers के लिए Critical**: Version pinning, compatibility और deployment strategies।
 
 ### [Examples](./examples.md)
+
 सामान्य OneUptime Terraform configurations के लिए real-world examples और patterns।
 
 ## Quick Links
 
 ### OneUptime Cloud Customers के लिए
+
 ```hcl
 terraform {
   required_providers {
@@ -36,6 +41,7 @@ provider "oneuptime" {
 ```
 
 ### Self-Hosted Customers के लिए
+
 ```hcl
 terraform {
   required_providers {

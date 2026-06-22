@@ -60,6 +60,7 @@ curl \
    sudo apt-get install rsyslog-omhttp
    ```
 2. 대상을 `/etc/rsyslog.d/oneuptime.conf`에 추가합니다:
+
    ```
    module(load="omhttp")
 
@@ -81,6 +82,7 @@ curl \
      template="OneUptimeJson"
    )
    ```
+
 3. rsyslog를 재시작합니다:
    ```bash
    sudo systemctl restart rsyslog

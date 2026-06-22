@@ -23,27 +23,27 @@ Se [Widgetar](/docs/dashboards/widgets) för hela listan och vad var och en visa
 
 ## Nyckelbegrepp
 
-| Term | Betydelse |
-| --- | --- |
+| Term                | Betydelse                                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------------------------- |
 | **Instrumentpanel** | Hela sidan — ett namn, ett rutnät av widgetar, kontroller för tidsintervall och en lista med variabler. |
-| **Widget** | En ruta på sidan — ett diagram, en siffra, en lista, ett stycke. |
-| **Variabel** | En rullgardinsmeny högst upp som filtrerar varje widget på en gång (kluster, tjänst, kund, miljö). |
-| **Tidsintervall** | Tidsfönstret som varje diagram och siffra använder. Ställs in en gång högst upp på sidan. |
-| **Uppdatering** | Hur ofta widgetar frågar om data. Av, var några sekund, var några minut. |
-| **Läge** | Antingen **Edit** (dra runt widgetar) eller **View** (skrivskyddat, så som besökare ser det). |
+| **Widget**          | En ruta på sidan — ett diagram, en siffra, en lista, ett stycke.                                        |
+| **Variabel**        | En rullgardinsmeny högst upp som filtrerar varje widget på en gång (kluster, tjänst, kund, miljö).      |
+| **Tidsintervall**   | Tidsfönstret som varje diagram och siffra använder. Ställs in en gång högst upp på sidan.               |
+| **Uppdatering**     | Hur ofta widgetar frågar om data. Av, var några sekund, var några minut.                                |
+| **Läge**            | Antingen **Edit** (dra runt widgetar) eller **View** (skrivskyddat, så som besökare ser det).           |
 
 ## Var hittar du instrumentpaneler
 
 Öppna **Dashboards** i den vänstra navigeringen.
 
-| Sida | Vad du gör där |
-| --- | --- |
-| **Dashboards** | Din lista över instrumentpaneler. Skapa en ny, sök, eller filtrera på etikett. |
-| **Dashboard → View** | Arbetsytan. Växla mellan **Edit** och **View** i sidhuvudet. |
-| **Dashboard → Overview** | Beskrivning, ägare och etiketter. |
-| **Dashboard → Settings** | Offentlig delning, lösenord, IP-tillåtslista, anpassad domän, varumärke. |
-| **Dashboard → Owners** | Användare och team med explicit åtkomst. |
-| **Dashboard → Delete** | Ta bort instrumentpanelen. |
+| Sida                     | Vad du gör där                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| **Dashboards**           | Din lista över instrumentpaneler. Skapa en ny, sök, eller filtrera på etikett. |
+| **Dashboard → View**     | Arbetsytan. Växla mellan **Edit** och **View** i sidhuvudet.                   |
+| **Dashboard → Overview** | Beskrivning, ägare och etiketter.                                              |
+| **Dashboard → Settings** | Offentlig delning, lösenord, IP-tillåtslista, anpassad domän, varumärke.       |
+| **Dashboard → Owners**   | Användare och team med explicit åtkomst.                                       |
+| **Dashboard → Delete**   | Ta bort instrumentpanelen.                                                     |
 
 ## Bygga en instrumentpanel
 

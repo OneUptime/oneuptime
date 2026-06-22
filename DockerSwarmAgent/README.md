@@ -10,7 +10,7 @@ The agent is two cooperating containers:
 ## Prerequisites
 
 - Docker Engine 20.10+ with the Compose v2 plugin, **on a swarm manager node**. The inventory poller calls manager-only API endpoints, so it must run where the Docker socket belongs to a manager.
-- A **OneUptime Telemetry Ingestion Key** — create one from *Project Settings → Telemetry Ingestion Keys*.
+- A **OneUptime Telemetry Ingestion Key** — create one from _Project Settings → Telemetry Ingestion Keys_.
 
 ### Where to run the agent
 
@@ -46,21 +46,21 @@ The cluster auto-registers in OneUptime on first telemetry (keyed by `DOCKER_SWA
 
 ## What gets collected
 
-| Signal | Source | Powers |
-| --- | --- | --- |
+| Signal                                                                       | Source                               | Powers                                     |
+| ---------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------ |
 | Node / Service / Task / Stack / Network / Secret / Config / Volume inventory | inventory poller → Swarm manager API | the cluster's resource list + detail pages |
-| Cluster counts (nodes ready, tasks running, services, stacks, …) | derived from the same snapshot | the overview cards + sidebar badges |
-| Container CPU / memory / pids / uptime | `docker_stats` receiver | the Metrics tab |
-| Container stdout/stderr logs | `filelog` receiver | the Logs tab |
+| Cluster counts (nodes ready, tasks running, services, stacks, …)             | derived from the same snapshot       | the overview cards + sidebar badges        |
+| Container CPU / memory / pids / uptime                                       | `docker_stats` receiver              | the Metrics tab                            |
+| Container stdout/stderr logs                                                 | `filelog` receiver                   | the Logs tab                               |
 
 ## Environment variables
 
-| Variable | Required | Default | Notes |
-| --- | --- | --- | --- |
-| `ONEUPTIME_URL` | yes | `https://oneuptime.com` | Your OneUptime instance |
-| `ONEUPTIME_SERVICE_TOKEN` | yes | — | Telemetry ingestion key |
-| `DOCKER_SWARM_CLUSTER_NAME` | yes | `docker-swarm` | The cluster join key (matches the cluster's Name in OneUptime) |
-| `DOCKER_INVENTORY_INTERVAL_SECONDS` | no | `300` | How often the poller refreshes the inventory snapshot |
+| Variable                            | Required | Default                 | Notes                                                          |
+| ----------------------------------- | -------- | ----------------------- | -------------------------------------------------------------- |
+| `ONEUPTIME_URL`                     | yes      | `https://oneuptime.com` | Your OneUptime instance                                        |
+| `ONEUPTIME_SERVICE_TOKEN`           | yes      | —                       | Telemetry ingestion key                                        |
+| `DOCKER_SWARM_CLUSTER_NAME`         | yes      | `docker-swarm`          | The cluster join key (matches the cluster's Name in OneUptime) |
+| `DOCKER_INVENTORY_INTERVAL_SECONDS` | no       | `300`                   | How often the poller refreshes the inventory snapshot          |
 
 ## How it differs from the Docker Host agent
 

@@ -6,13 +6,13 @@ Créez un runbook depuis **Runbooks → Créer un runbook**, puis ouvrez-le et a
 
 Chaque étape comporte :
 
-| Champ | Rôle |
-| --- | --- |
-| **Titre** | Libellé court affiché dans la liste. Obligatoire. |
-| **Description** | Contexte facultatif pour le répondeur. Texte Markdown. |
-| **Continuer en cas d'échec** | Si activé, une étape qui échoue n'arrête pas l'exécution — la suivante démarre quand même. |
-| **Exiger une approbation** | Si activé, le runbook se met en pause après cette étape et attend qu'un utilisateur approuve avant d'exécuter l'étape suivante. |
-| **Configuration spécifique au type** | Script, URL, agent, etc. — voir ci-dessous. |
+| Champ                                | Rôle                                                                                                                            |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Titre**                            | Libellé court affiché dans la liste. Obligatoire.                                                                               |
+| **Description**                      | Contexte facultatif pour le répondeur. Texte Markdown.                                                                          |
+| **Continuer en cas d'échec**         | Si activé, une étape qui échoue n'arrête pas l'exécution — la suivante démarre quand même.                                      |
+| **Exiger une approbation**           | Si activé, le runbook se met en pause après cette étape et attend qu'un utilisateur approuve avant d'exécuter l'étape suivante. |
+| **Configuration spécifique au type** | Script, URL, agent, etc. — voir ci-dessous.                                                                                     |
 
 Les étapes s'exécutent **dans l'ordre**. Réorganisez-les avec les flèches haut/bas dans l'éditeur.
 

@@ -21,9 +21,9 @@ Fluentd admite cientos de fuentes de datos y puedes ingestar registros de cualqu
 - Java
 - PHP
 - Go
-- Rust 
+- Rust
 
-y muchas más. 
+y muchas más.
 
 Puedes encontrar la lista completa de fuentes compatibles [aquí](https://www.fluentd.org/datasources)
 
@@ -36,7 +36,7 @@ Puedes encontrar la lista completa de fuentes compatibles [aquí](https://www.fl
 
 Después de registrarte en OneUptime y crear un proyecto. Haz clic en "Más" en la barra de navegación y haz clic en "Configuración del proyecto".
 
-En la página de Clave de ingesta de telemetría, haz clic en "Crear clave de ingesta" para crear un token. 
+En la página de Clave de ingesta de telemetría, haz clic en "Crear clave de ingesta" para crear un token.
 
 ![Crear servicio](/docs/static/images/TelemetryIngestionKeys.png)
 
@@ -44,35 +44,33 @@ Una vez que hayas creado un token, haz clic en "Ver" para verlo.
 
 ![Ver servicio](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
 ## Configuración
 
-Puedes usar la siguiente configuración para enviar los datos de telemetría a la Fuente HTTP de OneUptime. Puedes agregar esta configuración al archivo de configuración de fluentd. El archivo de configuración generalmente se encuentra en `/etc/fluentd/fluent.conf` o `/etc/td-agent/td-agent.conf`. 
+Puedes usar la siguiente configuración para enviar los datos de telemetría a la Fuente HTTP de OneUptime. Puedes agregar esta configuración al archivo de configuración de fluentd. El archivo de configuración generalmente se encuentra en `/etc/fluentd/fluent.conf` o `/etc/td-agent/td-agent.conf`.
 
 Necesitas reemplazar `YOUR_SERVICE_TOKEN` con el token que creaste en el paso anterior. También necesitas reemplazar `YOUR_SERVICE_NAME` con el nombre de tu servicio. El nombre del servicio puede ser cualquier nombre que desees. Si el servicio no existe en OneUptime, se creará automáticamente.
 
 ```yaml
-# Coincide con todos los patrones 
+# Coincide con todos los patrones
 <match **>
-  @type http
+@type http
 
-  endpoint https://oneuptime.com/fluentd/logs
-  open_timeout 2
+endpoint https://oneuptime.com/fluentd/logs
+open_timeout 2
 
-  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
+headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
-  content_type application/json
-  json_array true
+content_type application/json
+json_array true
 
-  <format>
-    @type json
-  </format>
-  <buffer>
-    flush_interval 10s
-  </buffer>
+<format>
+@type json
+</format>
+<buffer>
+flush_interval 10s
+</buffer>
 </match>
 ```
-
 
 Un ejemplo de archivo de configuración completo se muestra a continuación:
 
@@ -84,28 +82,28 @@ Un ejemplo de archivo de configuración completo se muestra a continuación:
 ## Entrada TCP integrada
 ## @see https://docs.fluentd.org/input/forward
 <source>
-  @type forward
-  port 24224
-  bind 0.0.0.0
+@type forward
+port 24224
+bind 0.0.0.0
 </source>
 
 <match **>
-  @type http
+@type http
 
-  endpoint https://oneuptime.com/fluentd/logs
-  open_timeout 2
+endpoint https://oneuptime.com/fluentd/logs
+open_timeout 2
 
-  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
+headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
-  content_type application/json
-  json_array true
+content_type application/json
+json_array true
 
-  <format>
-    @type json
-  </format>
-  <buffer>
-    flush_interval 10s
-  </buffer>
+<format>
+@type json
+</format>
+<buffer>
+flush_interval 10s
+</buffer>
 </match>
 ```
 

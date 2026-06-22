@@ -24,11 +24,11 @@ Telemetry Ingestion Key पृष्ठ पर, एक टोकन बनान
 
 ## OneUptime से आपको क्या चाहिए
 
-| सेटिंग | मान |
-| --- | --- |
-| OTLP एंडपॉइंट | `https://oneuptime.com/otlp` |
-| Auth हेडर | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
-| सेवा का नाम | वह नाम जिसके अंतर्गत आपकी सेवा दिखाई देनी चाहिए, उदा. `my-service` |
+| सेटिंग        | मान                                                                |
+| ------------- | ------------------------------------------------------------------ |
+| OTLP एंडपॉइंट | `https://oneuptime.com/otlp`                                       |
+| Auth हेडर     | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN`                |
+| सेवा का नाम   | वह नाम जिसके अंतर्गत आपकी सेवा दिखाई देनी चाहिए, उदा. `my-service` |
 
 > **OneUptime को स्वयं-होस्ट कर रहे हैं?** `https://oneuptime.com/otlp` को `https://YOUR-ONEUPTIME-HOST/otlp` से बदलें (या `http://...` यदि आप TLS समाप्त नहीं कर रहे हैं)। बाकी सब कुछ वैसा ही रहता है।
 
@@ -109,7 +109,7 @@ finally
 ```json
 {
   "Serilog": {
-    "Using": [ "Serilog.Sinks.OpenTelemetry" ],
+    "Using": ["Serilog.Sinks.OpenTelemetry"],
     "MinimumLevel": "Information",
     "WriteTo": [
       {

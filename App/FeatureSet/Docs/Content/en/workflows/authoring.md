@@ -10,12 +10,12 @@ Every workflow starts with one **trigger** at the beginning. Everything else is 
 
 ## What's on a block
 
-| Field | What it does |
-| --- | --- |
-| **Title** | The name shown on the canvas. Rename it to make complex workflows easier to read. |
-| **Settings** | What the block needs to do its job — a URL, a Slack channel, a message body, etc. Required fields are marked with an asterisk. |
-| **Input** | The dot on the left where lines come in from earlier blocks. |
-| **Outputs** | The dots on the right where lines go out to the next blocks. Many blocks have separate **success** and **error** outputs so you can handle both cases. |
+| Field        | What it does                                                                                                                                           |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Title**    | The name shown on the canvas. Rename it to make complex workflows easier to read.                                                                      |
+| **Settings** | What the block needs to do its job — a URL, a Slack channel, a message body, etc. Required fields are marked with an asterisk.                         |
+| **Input**    | The dot on the left where lines come in from earlier blocks.                                                                                           |
+| **Outputs**  | The dots on the right where lines go out to the next blocks. Many blocks have separate **success** and **error** outputs so you can handle both cases. |
 
 ## Connecting blocks
 

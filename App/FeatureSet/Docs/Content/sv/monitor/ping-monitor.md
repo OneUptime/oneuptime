@@ -31,11 +31,11 @@ Du kan konfigurera kriterier för att avgöra när din värd anses vara online, 
 
 ### Tillgängliga kontrolltyper
 
-| Kontrolltyp | Beskrivning |
-|------------|-------------|
-| Är online | Om värden svarar på ping-förfrågningar |
-| Svarstid (i ms) | Tur-och-returtiden för ping-förfrågan i millisekunder |
-| Är förfrågningstimeout | Om ping-förfrågan fick timeout |
+| Kontrolltyp            | Beskrivning                                           |
+| ---------------------- | ----------------------------------------------------- |
+| Är online              | Om värden svarar på ping-förfrågningar                |
+| Svarstid (i ms)        | Tur-och-returtiden för ping-förfrågan i millisekunder |
+| Är förfrågningstimeout | Om ping-förfrågan fick timeout                        |
 
 ### Filtertyper
 

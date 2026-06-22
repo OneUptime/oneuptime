@@ -24,34 +24,34 @@ DNS-Monitore fragen DNS-Server für bestimmte Eintragstypen ab und werten die Er
 
 ### Grundeinstellungen
 
-| Feld | Beschreibung | Erforderlich |
-|-------|-------------|----------|
-| Domainname | Die abzufragende Domain (z. B. `example.com`) | Ja |
-| Eintragstyp | Der abzufragende DNS-Eintragstyp | Ja |
-| DNS-Server | Zu verwendender benutzerdefinierter DNS-Server (z. B. `8.8.8.8`). Leer lassen für Systemstandard | Nein |
+| Feld        | Beschreibung                                                                                     | Erforderlich |
+| ----------- | ------------------------------------------------------------------------------------------------ | ------------ |
+| Domainname  | Die abzufragende Domain (z. B. `example.com`)                                                    | Ja           |
+| Eintragstyp | Der abzufragende DNS-Eintragstyp                                                                 | Ja           |
+| DNS-Server  | Zu verwendender benutzerdefinierter DNS-Server (z. B. `8.8.8.8`). Leer lassen für Systemstandard | Nein         |
 
 ### Unterstützte Eintragstypen
 
-| Eintragstyp | Beschreibung |
-|-------------|-------------|
-| A | IPv4-Adresseinträge |
-| AAAA | IPv6-Adresseinträge |
-| CNAME | Canonical-Name-(Alias-)Einträge |
-| MX | Mail-Exchange-Einträge |
-| NS | Nameserver-Einträge |
-| TXT | Texteinträge (SPF, DKIM usw.) |
-| SOA | Start-of-Authority-Einträge |
-| PTR | Pointer-Einträge (Reverse-DNS) |
-| SRV | Service-Locator-Einträge |
-| CAA | Certificate-Authority-Authorization-Einträge |
+| Eintragstyp | Beschreibung                                 |
+| ----------- | -------------------------------------------- |
+| A           | IPv4-Adresseinträge                          |
+| AAAA        | IPv6-Adresseinträge                          |
+| CNAME       | Canonical-Name-(Alias-)Einträge              |
+| MX          | Mail-Exchange-Einträge                       |
+| NS          | Nameserver-Einträge                          |
+| TXT         | Texteinträge (SPF, DKIM usw.)                |
+| SOA         | Start-of-Authority-Einträge                  |
+| PTR         | Pointer-Einträge (Reverse-DNS)               |
+| SRV         | Service-Locator-Einträge                     |
+| CAA         | Certificate-Authority-Authorization-Einträge |
 
 ### Erweiterte Einstellungen
 
-| Feld | Beschreibung | Standard |
-|-------|-------------|---------|
-| Port | DNS-Portnummer | 53 |
-| Timeout (ms) | Wartezeit auf eine Antwort | 5000 |
-| Wiederholungsversuche | Anzahl der Wiederholungsversuche bei Fehlschlag | 3 |
+| Feld                  | Beschreibung                                    | Standard |
+| --------------------- | ----------------------------------------------- | -------- |
+| Port                  | DNS-Portnummer                                  | 53       |
+| Timeout (ms)          | Wartezeit auf eine Antwort                      | 5000     |
+| Wiederholungsversuche | Anzahl der Wiederholungsversuche bei Fehlschlag | 3        |
 
 ## Überwachungskriterien
 
@@ -59,13 +59,13 @@ Sie können Kriterien konfigurieren, um zu bestimmen, wann Ihr DNS als online, e
 
 ### Verfügbare Prüftypen
 
-| Prüftyp | Beschreibung |
-|------------|-------------|
-| DNS ist online | Ob der DNS-Server auf Abfragen antwortet |
-| DNS-Antwortzeit (in ms) | Abfrage-Antwortzeit in Millisekunden |
-| DNS-Eintrag existiert | Ob DNS-Einträge für die Abfrage existieren |
-| DNS-Eintragswert | Der von einem DNS-Eintrag zurückgegebene Wert |
-| DNSSEC ist gültig | Ob die DNSSEC-Validierung erfolgreich ist |
+| Prüftyp                 | Beschreibung                                  |
+| ----------------------- | --------------------------------------------- |
+| DNS ist online          | Ob der DNS-Server auf Abfragen antwortet      |
+| DNS-Antwortzeit (in ms) | Abfrage-Antwortzeit in Millisekunden          |
+| DNS-Eintrag existiert   | Ob DNS-Einträge für die Abfrage existieren    |
+| DNS-Eintragswert        | Der von einem DNS-Eintrag zurückgegebene Wert |
+| DNSSEC ist gültig       | Ob die DNSSEC-Validierung erfolgreich ist     |
 
 ### Filtertypen
 

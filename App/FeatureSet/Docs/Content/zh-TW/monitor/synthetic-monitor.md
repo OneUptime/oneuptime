@@ -7,7 +7,6 @@
 以下範例展示如何使用合成監控：
 
 ```javascript
-
 // Objects available in the context of the script are:
 
 // - axios: Axios module to make HTTP requests
@@ -17,15 +16,15 @@
 
 // You can use these objects to interact with the browser and make HTTP requests.
 
-await page.goto('https://playwright.dev/');
+await page.goto("https://playwright.dev/");
 
 // Playwright Documentation here: https://playwright.dev/docs/intro
 
 // Here are some of the variables that you can use in the context of the monitored object:
 
-console.log(browserType) // This will list the browser type in the current run context - Chromium, Firefox, Webkit
+console.log(browserType); // This will list the browser type in the current run context - Chromium, Firefox, Webkit
 
-console.log(screenSizeType) // This will list the screen size type in the current run context - Mobile, Tablet, Desktop
+console.log(screenSizeType); // This will list the screen size type in the current run context - Mobile, Tablet, Desktop
 
 // Playwright page object belongs to that specific browser context, so you can use it to interact with the browser.
 
@@ -33,7 +32,7 @@ console.log(screenSizeType) // This will list the screen size type in the curren
 // in the script context. Screenshots captured this way are preserved even if the
 // script later throws — useful for debugging failed runs.
 
-screenshots['screenshot-name'] = await page.screenshot(); // you can save multiple screenshots and have them with different names.
+screenshots["screenshot-name"] = await page.screenshot(); // you can save multiple screenshots and have them with different names.
 
 // when you want to return a value, use return statement with data as a prop.
 
@@ -42,9 +41,8 @@ screenshots['screenshot-name'] = await page.screenshot(); // you can save multip
 
 // You can access the browser context via page.context() if needed (for example, to create a new page or dealing with popups).
 
-
 return {
-    data: 'Hello World'
+  data: "Hello World",
 };
 ```
 
@@ -57,25 +55,23 @@ return {
 腳本內容中提供了一個預先宣告的 `screenshots` 物件。您可以在腳本中的任何時間點將螢幕截圖指派給它——這些螢幕截圖**即使腳本拋出例外也會被擷取**（包括斷言失敗、逾時或非預期的錯誤），因此您可以準確看到執行失敗時頁面的樣貌。擷取到的螢幕截圖會顯示在該特定監控執行的 OneUptime Dashboard 中。
 
 ```javascript
-
 // Capture screenshots via the `screenshots` side-channel — they are preserved on both success and failure.
 
-await page.goto('https://app.example.com/login');
-screenshots['login-page'] = await page.screenshot();
+await page.goto("https://app.example.com/login");
+screenshots["login-page"] = await page.screenshot();
 
-await page.fill('#email', 'user@example.com');
-await page.fill('#password', 'wrong');
-await page.click('button[type=submit]');
+await page.fill("#email", "user@example.com");
+await page.fill("#password", "wrong");
+await page.click("button[type=submit]");
 
 // If the next assertion throws, the `login-page` screenshot above is still captured.
-await page.waitForSelector('.dashboard', { timeout: 5000 });
+await page.waitForSelector(".dashboard", { timeout: 5000 });
 
-screenshots['dashboard'] = await page.screenshot();
+screenshots["dashboard"] = await page.screenshot();
 
 return {
-    data: 'Login succeeded'
+  data: "Login succeeded",
 };
-
 ```
 
 #### 回傳螢幕截圖（舊版）
@@ -85,14 +81,13 @@ return {
 ```javascript
 // Legacy pattern — screenshots only captured on successful return.
 const screenshots = {};
-screenshots['screenshot-name'] = await page.screenshot();
+screenshots["screenshot-name"] = await page.screenshot();
 
 return {
-    data: 'Hello World',
-    screenshots: screenshots
+  data: "Hello World",
+  screenshots: screenshots,
 };
 ```
-
 
 ### 使用監控密鑰（Monitor Secrets）
 
@@ -121,7 +116,7 @@ let numberSecret = {{monitorSecrets.NumberSecret}};
 let booleanSecret = {{monitorSecrets.BooleanSecret}};
 
 // you can even console log to see if the secrets is being fetched correctly
-console.log(stringSecret); 
+console.log(stringSecret);
 ```
 
 ### 自訂指標（Custom Metrics）
@@ -139,32 +134,34 @@ oneuptime.captureMetric(name, value, attributes);
 #### 範例
 
 ```javascript
-await page.goto('https://app.example.com');
+await page.goto("https://app.example.com");
 
 const startTime = Date.now();
-await page.waitForSelector('#dashboard-loaded');
+await page.waitForSelector("#dashboard-loaded");
 const loadTime = Date.now() - startTime;
 
 // Capture page load time as a custom metric
-oneuptime.captureMetric('dashboard.load.time', loadTime, {
-    page: 'dashboard'
+oneuptime.captureMetric("dashboard.load.time", loadTime, {
+  page: "dashboard",
 });
 
-screenshots['dashboard'] = await page.screenshot();
+screenshots["dashboard"] = await page.screenshot();
 
 return {
-    data: { loadTime }
+  data: { loadTime },
 };
 ```
 
 一旦擷取後，這些指標會以 `custom.monitor.dashboard.load.time` 之類的名稱出現在 Metric Explorer 中。您可以將它們加入儀表板圖表、設定警示，並依監控、探針（probe）、瀏覽器類型、螢幕大小，或您所提供的任何自訂屬性進行篩選。
 
 **限制：**
+
 - 每次腳本執行最多 100 個指標。
 - 指標名稱長度上限為 200 個字元。
 - 值必須為數字。
 
 ### 腳本中可用的模組
+
 - `page`：您可以使用此模組與瀏覽器互動。它是一個 Playwright Page 物件，可讓您執行點擊按鈕、填寫表單與擷取畫面等動作。如有需要，您可以透過 `page.context()` 存取瀏覽器內容（例如建立新頁面或處理彈出視窗）。
 - `screenshots`：一個預先宣告的物件，您可以將螢幕截圖指派給它（例如 `screenshots['login-page'] = await page.screenshot()`）。在此處指派的螢幕截圖即使腳本之後拋出例外也會被擷取。
 - `axios`：您可以使用此模組來發出 HTTP 請求。它是一個基於 Promise 的 HTTP 用戶端，可用於瀏覽器與 Node.js。

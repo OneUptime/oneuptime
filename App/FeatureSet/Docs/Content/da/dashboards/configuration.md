@@ -29,12 +29,12 @@ Almindelige mønstre:
 
 Dashboards fungerer sammen med dit projekts rollebaserede adgangskontrol. De relevante tilladelser:
 
-| Tilladelse | Hvad den tillader |
-| --- | --- |
-| **Create Dashboard** | Opret nye dashboards. |
-| **Read Dashboard** | Se dashboards (i privat tilstand). |
-| **Edit Dashboard** | Ændr widgets, variabler og indstillinger. |
-| **Delete Dashboard** | Slet et dashboard. |
+| Tilladelse           | Hvad den tillader                         |
+| -------------------- | ----------------------------------------- |
+| **Create Dashboard** | Opret nye dashboards.                     |
+| **Read Dashboard**   | Se dashboards (i privat tilstand).        |
+| **Edit Dashboard**   | Ændr widgets, variabler og indstillinger. |
+| **Delete Dashboard** | Slet et dashboard.                        |
 
 Der er matchende tilladelser til dashboard-ejere og brugerdefinerede domæner, så du kan give "administrér ejere" uden at give "redigér dashboardet."
 

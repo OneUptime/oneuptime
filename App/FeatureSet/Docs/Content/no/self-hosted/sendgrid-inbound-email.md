@@ -33,9 +33,9 @@ Dette underdomenet vil brukes eksklusivt for OneUptime-monitor-e-poster.
 
 Legg til en MX-post i DNS-konfigurasjonen din for å rute e-poster for innkommende underdomene til SendGrid.
 
-| Type | Vert/Navn | Prioritet | Verdi |
-|------|-----------|-----------|-------|
-| MX | inbound | 10 | mx.sendgrid.net |
+| Type | Vert/Navn | Prioritet | Verdi           |
+| ---- | --------- | --------- | --------------- |
+| MX   | inbound   | 10        | mx.sendgrid.net |
 
 **Eksempel:** Hvis domenet ditt er `example.com` og du bruker `inbound.example.com`:
 
@@ -61,13 +61,13 @@ For bedre leveringsevne og for å unngå at e-poster merkes som spam:
 3. Klikk **Add Host & URL**
 4. Konfigurer følgende:
 
-| Felt | Verdi |
-|------|-------|
-| **Receiving Domain** | Innkommende underdomenet ditt (f.eks. `inbound.yourdomain.com`) |
-| **Destination URL** | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
-| **Check incoming emails for spam** | Valgfritt – aktiver hvis ønskelig |
-| **Send raw, full MIME message** | La stå avkrysset (ikke nødvendig) |
-| **POST the raw, full MIME message** | La stå avkrysset (ikke nødvendig) |
+| Felt                                | Verdi                                                                   |
+| ----------------------------------- | ----------------------------------------------------------------------- |
+| **Receiving Domain**                | Innkommende underdomenet ditt (f.eks. `inbound.yourdomain.com`)         |
+| **Destination URL**                 | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
+| **Check incoming emails for spam**  | Valgfritt – aktiver hvis ønskelig                                       |
+| **Send raw, full MIME message**     | La stå avkrysset (ikke nødvendig)                                       |
+| **POST the raw, full MIME message** | La stå avkrysset (ikke nødvendig)                                       |
 
 5. Klikk **Add**
 
@@ -123,35 +123,37 @@ Etter opprettelse vil du se den unike e-postadressen for denne monitoren (f.eks.
 
 ## Referanse for miljøvariabler
 
-| Variabel | Beskrivelse | Påkrevd | Standard |
-|----------|-------------|---------|---------|
-| `INBOUND_EMAIL_PROVIDER` | Innkommende e-postleverandøren som skal brukes | Ja | - |
-| `INBOUND_EMAIL_DOMAIN` | Underdomenet konfigurert for innkommende e-poster | Ja | - |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | Hemmelighet for validering av webhook-forespørsler. Når satt, legg til denne hemmeligheten i webhook-URL-en: `/incoming-email/sendgrid/YOUR_SECRET` | Nei | - |
+| Variabel                       | Beskrivelse                                                                                                                                         | Påkrevd | Standard |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------- |
+| `INBOUND_EMAIL_PROVIDER`       | Innkommende e-postleverandøren som skal brukes                                                                                                      | Ja      | -        |
+| `INBOUND_EMAIL_DOMAIN`         | Underdomenet konfigurert for innkommende e-poster                                                                                                   | Ja      | -        |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | Hemmelighet for validering av webhook-forespørsler. Når satt, legg til denne hemmeligheten i webhook-URL-en: `/incoming-email/sendgrid/YOUR_SECRET` | Nei     | -        |
 
 ## Støttede e-postkriterier
 
 Når du konfigurerer innkommende e-postmonitoren, kan du opprette kriterier basert på:
 
-| Felt | Beskrivelse | Tilgjengelige filtre |
-|------|-------------|---------------------|
-| **Email Subject** | Emnelinjen i e-posten | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
-| **Email From** | Avsenderens e-postadresse | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
-| **Email Body** | Den rene tekstkroppen i e-posten | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
-| **Email To** | Mottakerens e-postadresse | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
-| **Email Received** | Tid siden siste e-post ble mottatt | Received In Minutes, Not Received In Minutes |
+| Felt               | Beskrivelse                        | Tilgjengelige filtre                                                                       |
+| ------------------ | ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| **Email Subject**  | Emnelinjen i e-posten              | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
+| **Email From**     | Avsenderens e-postadresse          | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
+| **Email Body**     | Den rene tekstkroppen i e-posten   | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
+| **Email To**       | Mottakerens e-postadresse          | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
+| **Email Received** | Tid siden siste e-post ble mottatt | Received In Minutes, Not Received In Minutes                                               |
 
 ## Eksempler på brukstilfeller
 
 ### Varsler fra eldre systemer
 
 Mange eldre systemer kan bare sende e-postvarsler. Opprett en innkommende e-postmonitor for å:
+
 - Opprette OneUptime-varsler når det eldre systemet sender `[CRITICAL]`-e-poster
 - Løse varsler når `[RESOLVED]`-e-poster mottas
 
 ### Tredjeparts tjeneste-integrasjon
 
 Integrer med tjenester som sender e-postvarsler:
+
 - Overvåkingsverktøy som ikke har API-integrasjoner
 - Varsler fra skyleverandører
 - Sikkerhetsscanneverktøy
@@ -159,6 +161,7 @@ Integrer med tjenester som sender e-postvarsler:
 ### Hjerteslag via e-post
 
 Bruk "Email Received"-kriterier for å sikre at du mottar periodiske e-poster:
+
 - Opprett varsel hvis ingen e-post mottas på 60 minutter
 - Nyttig for overvåking av batchjobber eller planlagte oppgaver som sender fullføringse-poster
 
@@ -167,12 +170,15 @@ Bruk "Email Received"-kriterier for å sikre at du mottar periodiske e-poster:
 ### E-poster mottas ikke
 
 1. **Sjekk DNS-propagering:**
+
    ```bash
    dig MX inbound.yourdomain.com
    ```
+
    Skal returnere `mx.sendgrid.net`
 
 2. **Verifiser SendGrid Inbound Parse-innstillinger:**
+
    - Logg inn på SendGrid-dashbordet
    - Gå til Settings > Inbound Parse
    - Verifiser at domene og webhook-URL er korrekte
@@ -184,10 +190,12 @@ Bruk "Email Received"-kriterier for å sikre at du mottar periodiske e-poster:
 ### Webhooks feiler
 
 1. **Sørg for at OneUptime er offentlig tilgjengelig:**
+
    - Webhook-URL-en må være tilgjengelig fra internett
    - Test med: `curl -X POST https://your-oneuptime-domain.com/incoming-email/sendgrid`
 
 2. **Sjekk brannmurregler:**
+
    - Tillat innkommende HTTPS-trafikk fra SendGrids IP-områder
 
 3. **Verifiser SSL-sertifikat:**
@@ -197,10 +205,12 @@ Bruk "Email Received"-kriterier for å sikre at du mottar periodiske e-poster:
 ### Monitor oppretter ikke varsler
 
 1. **Verifiser kriterie-konfigurasjon:**
+
    - Sjekk at varselopprettelseskriteriene samsvarer med e-postinnholdet
    - Test med nøyaktige strenger først før du bruker mønstermatching
 
 2. **Sjekk monitorstatus:**
+
    - Sørg for at monitoren ikke er deaktivert
    - Verifiser at monitortypen er "Incoming Email"
 
@@ -228,9 +238,9 @@ For å sjekke om SendGrid sender webhooks vellykket:
 
 OneUptime er designet for å støtte flere innkommende e-postleverandører. For øyeblikket støttes:
 
-| Leverandør | Status |
-|------------|--------|
-| SendGrid | Støttet |
+| Leverandør          | Status   |
+| ------------------- | -------- |
+| SendGrid            | Støttet  |
 | Haraka (selvhostet) | Planlagt |
 
 Hvis du trenger støtte for en annen leverandør, vennligst kontakt oss eller send inn en funksjonsforespørsel.

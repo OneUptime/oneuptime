@@ -13,7 +13,6 @@ db.createUser(
 })
 ```
 
-
 ## Create OneUptime User
 
 ```
@@ -27,7 +26,7 @@ db.createUser(
 {
     user: "<username>",
     pwd: "<password>",
-    roles: [ 
+    roles: [
        "dbOwner"
     ]
 })

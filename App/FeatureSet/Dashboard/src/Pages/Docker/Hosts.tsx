@@ -148,7 +148,11 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isCreateable={true}
         showRefreshButton={true}
         bulkActions={{
-          buttons: [...labelBulkActions, ...ownerBulkActions],
+          buttons: [
+            ...labelBulkActions,
+            ...ownerBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         name="Docker Hosts"
         isViewable={true}

@@ -67,15 +67,15 @@ sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --one
 
 The infrastructure agent supports the following commands:
 
-| Command | Description |
-|---------|-------------|
+| Command     | Description                                                |
+| ----------- | ---------------------------------------------------------- |
 | `configure` | Configure the agent with your secret key and OneUptime URL |
-| `start` | Start the agent service |
-| `stop` | Stop the agent service |
-| `restart` | Restart the agent service |
-| `status` | Show the current service status |
-| `logs` | View agent logs (use `-n` for line count, `-f` to follow) |
-| `uninstall` | Uninstall the agent service |
+| `start`     | Start the agent service                                    |
+| `stop`      | Stop the agent service                                     |
+| `restart`   | Restart the agent service                                  |
+| `status`    | Show the current service status                            |
+| `logs`      | View agent logs (use `-n` for line count, `-f` to follow)  |
+| `uninstall` | Uninstall the agent service                                |
 
 ## Collected Metrics
 
@@ -115,15 +115,15 @@ You can configure criteria to determine when your server is considered online, d
 
 ### Available Check Types
 
-| Check Type | Description |
-|------------|-------------|
-| Is Online | Whether the server agent is reporting (based on heartbeat) |
-| CPU Usage Percent | Current CPU utilization percentage |
-| Memory Usage Percent | Current memory utilization percentage |
-| Disk Usage Percent | Current disk utilization percentage (for a specific disk path) |
-| Server Process Name | Check if a process with a specific name is running |
-| Server Process Command | Check if a process with a specific command is running |
-| Server Process PID | Check if a process with a specific PID is running |
+| Check Type             | Description                                                    |
+| ---------------------- | -------------------------------------------------------------- |
+| Is Online              | Whether the server agent is reporting (based on heartbeat)     |
+| CPU Usage Percent      | Current CPU utilization percentage                             |
+| Memory Usage Percent   | Current memory utilization percentage                          |
+| Disk Usage Percent     | Current disk utilization percentage (for a specific disk path) |
+| Server Process Name    | Check if a process with a specific name is running             |
+| Server Process Command | Check if a process with a specific command is running          |
+| Server Process PID     | Check if a process with a specific PID is running              |
 
 ### Filter Types
 
@@ -185,6 +185,7 @@ For process checks:
 ### High resource usage by agent
 
 The agent is designed to be lightweight. If you notice high resource usage:
+
 - Restart the agent: `sudo oneuptime-infrastructure-agent restart`
 - Check agent logs for errors
 

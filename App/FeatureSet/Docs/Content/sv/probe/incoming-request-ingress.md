@@ -161,17 +161,17 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 
 ## Miljövariabler
 
-| Variabel | Standard | Beskrivning |
-|---|---|---|
-| `PROBE_INGRESS_PORT` | _inte angiven_ (inaktiverad) | Porten som inkommande lyssnare binder. Valfritt värde `> 0` aktiverar ingress. |
-| `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | Timeout (ms) för varje vidarebefordringsförsök till OneUptime. Minimum `1000`. |
-| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | Antal försök innan sonden ger upp en vidarebefordran. Ange `0` för att inaktivera försök. |
+| Variabel                            | Standard                     | Beskrivning                                                                               |
+| ----------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------- |
+| `PROBE_INGRESS_PORT`                | _inte angiven_ (inaktiverad) | Porten som inkommande lyssnare binder. Valfritt värde `> 0` aktiverar ingress.            |
+| `PROBE_INGRESS_FORWARD_TIMEOUT_MS`  | `10000`                      | Timeout (ms) för varje vidarebefordringsförsök till OneUptime. Minimum `1000`.            |
+| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3`                          | Antal försök innan sonden ger upp en vidarebefordran. Ange `0` för att inaktivera försök. |
 
 Standardsondvariablerna (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL`, proxyvariabler) gäller alla – se [Anpassade sonder](/docs/probe/custom-probe) för den fullständiga listan.
 
 ## Säkerhetsöverväganden
 
-- **Slutpunkten är oautentiserad av design** – den hemliga nyckeln i URL-sökvägen *är* autentiseringen, precis som på den offentliga `oneuptime.com`-slutpunkten. Behandla den hemliga nyckeln som en autentiseringsuppgift.
+- **Slutpunkten är oautentiserad av design** – den hemliga nyckeln i URL-sökvägen _är_ autentiseringen, precis som på den offentliga `oneuptime.com`-slutpunkten. Behandla den hemliga nyckeln som en autentiseringsuppgift.
 - **Bind bara till ett privat gränssnitt.** Ingress-lyssnaren bör inte vara nåbar från det offentliga internet. Använd en nätverkspolicy, brandväggsregel eller `ClusterIP`-tjänst för att begränsa åtkomsten.
 - **Använd HTTPS-terminering om du kräver kryptering under transport.** Sondens lyssnare talar plain HTTP. Placera den bakom en intern lastbalanserare/ingress-kontroller om du behöver TLS på det inkommande hoppet. Vidarebefordringsetappen från sond → OneUptime använder alltid HTTPS (förutsatt att `ONEUPTIME_URL` är `https://`).
 - **Resursbegränsningar.** Lyssnaren accepterar förfrågningsinnehåll upp till 50 MB. Om du behöver ett strängare tak, placera en omvänd proxy framför.

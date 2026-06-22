@@ -10,14 +10,14 @@ Avec les données de profilage dans OneUptime, vous pouvez identifier les foncti
 
 OneUptime prend en charge les types de profils suivants :
 
-| Type de profil | Description | Unité |
-| --- | --- | --- |
-| cpu | Temps CPU consacré à l'exécution du code | nanosecondes |
-| wall | Temps d'horloge murale (inclut l'attente/la mise en veille) | nanosecondes |
-| alloc_objects | Nombre d'allocations de tas | nombre |
-| alloc_space | Octets de mémoire de tas alloués | octets |
-| goroutine | Nombre de goroutines actives (Go) | nombre |
-| contention | Temps passé à attendre sur des verrous/mutex | nanosecondes |
+| Type de profil | Description                                                 | Unité        |
+| -------------- | ----------------------------------------------------------- | ------------ |
+| cpu            | Temps CPU consacré à l'exécution du code                    | nanosecondes |
+| wall           | Temps d'horloge murale (inclut l'attente/la mise en veille) | nanosecondes |
+| alloc_objects  | Nombre d'allocations de tas                                 | nombre       |
+| alloc_space    | Octets de mémoire de tas alloués                            | octets       |
+| goroutine      | Nombre de goroutines actives (Go)                           | nombre       |
+| contention     | Temps passé à attendre sur des verrous/mutex                | nanosecondes |
 
 ## Démarrage
 
@@ -37,10 +37,10 @@ Une fois que vous avez créé un jeton, cliquez sur « Afficher » pour le visua
 
 OneUptime accepte les données de profilage via gRPC et HTTP en utilisant le protocole de profils OTLP.
 
-| Protocole | Point d'accès |
-| --- | --- |
-| gRPC | `votre-hôte-oneuptime:4317` (port gRPC standard OTLP) |
-| HTTP | `https://votre-hôte-oneuptime/otlp/v1/profiles` |
+| Protocole | Point d'accès                                         |
+| --------- | ----------------------------------------------------- |
+| gRPC      | `votre-hôte-oneuptime:4317` (port gRPC standard OTLP) |
+| HTTP      | `https://votre-hôte-oneuptime/otlp/v1/profiles`       |
 
 **Variables d'environnement**
 

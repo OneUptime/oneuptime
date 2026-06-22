@@ -40,34 +40,34 @@ Du kan kopiera den här adressen från monitorns detaljsida och konfigurera dina
 
 Du kan skapa kriterier baserat på följande e-postfält:
 
-| Fält | Beskrivning |
-|------|-------------|
-| **E-postämne** | Ämnesraden i det inkommande e-postmeddelandet |
-| **E-post från** | Avsändarens e-postadress |
-| **E-postinnehåll** | Det textinnehåll i e-postmeddelandets kropp |
-| **E-post till** | Mottagarens e-postadress |
+| Fält                | Beskrivning                                               |
+| ------------------- | --------------------------------------------------------- |
+| **E-postämne**      | Ämnesraden i det inkommande e-postmeddelandet             |
+| **E-post från**     | Avsändarens e-postadress                                  |
+| **E-postinnehåll**  | Det textinnehåll i e-postmeddelandets kropp               |
+| **E-post till**     | Mottagarens e-postadress                                  |
 | **E-post mottagen** | Tidsbaserade kriterier för när e-postmeddelanden tas emot |
 
 ## Tillgängliga filtertyper
 
 ### Strängfilter (ämne, från, innehåll, till)
 
-| Filter | Beskrivning | Exempel |
-|--------|-------------|---------|
-| **Innehåller** | Fältet innehåller den angivna texten | Ämne innehåller "CRITICAL" |
-| **Innehåller inte** | Fältet innehåller inte den angivna texten | Ämne innehåller inte "TEST" |
-| **Lika med** | Fältet matchar exakt den angivna texten | Från är lika med "alerts@service.com" |
-| **Inte lika med** | Fältet matchar inte den angivna texten | Ämne inte lika med "OK" |
-| **Börjar med** | Fältet börjar med den angivna texten | Ämne börjar med "[ALERT]" |
-| **Slutar med** | Fältet slutar med den angivna texten | Ämne slutar med "- Production" |
-| **Är tomt** | Fältet är tomt eller blankt | Innehåll är tomt |
-| **Är inte tomt** | Fältet har innehåll | Ämne är inte tomt |
+| Filter              | Beskrivning                               | Exempel                               |
+| ------------------- | ----------------------------------------- | ------------------------------------- |
+| **Innehåller**      | Fältet innehåller den angivna texten      | Ämne innehåller "CRITICAL"            |
+| **Innehåller inte** | Fältet innehåller inte den angivna texten | Ämne innehåller inte "TEST"           |
+| **Lika med**        | Fältet matchar exakt den angivna texten   | Från är lika med "alerts@service.com" |
+| **Inte lika med**   | Fältet matchar inte den angivna texten    | Ämne inte lika med "OK"               |
+| **Börjar med**      | Fältet börjar med den angivna texten      | Ämne börjar med "[ALERT]"             |
+| **Slutar med**      | Fältet slutar med den angivna texten      | Ämne slutar med "- Production"        |
+| **Är tomt**         | Fältet är tomt eller blankt               | Innehåll är tomt                      |
+| **Är inte tomt**    | Fältet har innehåll                       | Ämne är inte tomt                     |
 
 ### Tidsbaserade filter (E-post mottagen)
 
-| Filter | Beskrivning | Exempel |
-|--------|-------------|---------|
-| **Mottagen inom minuter** | E-post togs emot inom X minuter | E-post mottagen inom 30 minuter |
+| Filter                         | Beskrivning                                   | Exempel                              |
+| ------------------------------ | --------------------------------------------- | ------------------------------------ |
+| **Mottagen inom minuter**      | E-post togs emot inom X minuter               | E-post mottagen inom 30 minuter      |
 | **Inte mottagen inom minuter** | Inget e-postmeddelande mottogs inom X minuter | E-post inte mottagen inom 60 minuter |
 
 ## Exempelkonfigurationer
@@ -75,11 +75,13 @@ Du kan skapa kriterier baserat på följande e-postfält:
 ### Exempel 1: Skapa varning på kritiska e-postmeddelanden
 
 **Kriterier för varningsskapande:**
+
 - E-postämne **Innehåller** "CRITICAL"
 - ELLER E-postämne **Innehåller** "ALERT"
 - ELLER E-postämne **Innehåller** "ERROR"
 
 **Kriterier för varningslösning:**
+
 - E-postämne **Innehåller** "RESOLVED"
 - ELLER E-postämne **Innehåller** "OK"
 - ELLER E-postämne **Innehåller** "RECOVERED"
@@ -87,21 +89,25 @@ Du kan skapa kriterier baserat på följande e-postfält:
 ### Exempel 2: Övervaka specifik avsändare
 
 **Kriterier för varningsskapande:**
+
 - E-post från **Lika med** "monitoring@legacy-system.com"
 - OCH E-postämne **Innehåller** "Failed"
 
 **Kriterier för varningslösning:**
+
 - E-post från **Lika med** "monitoring@legacy-system.com"
 - OCH E-postämne **Innehåller** "Success"
 
 ### Exempel 3: Hjärtslags-monitor (inget e-postmeddelande = varning)
 
 **Kriterier för varningsskapande:**
+
 - E-post mottagen **Inte mottagen inom minuter** med värde `60`
 
 Detta skapar en varning om inget e-postmeddelande tas emot på 60 minuter – användbart för att övervaka schemalagda jobb eller batchprocesser som bör skicka slutförandemeddelanden.
 
 **Kriterier för varningslösning:**
+
 - E-post mottagen **Mottagen inom minuter** med värde `5`
 
 Detta löser varningen när ett e-postmeddelande tas emot.
@@ -111,6 +117,7 @@ Detta löser varningen när ett e-postmeddelande tas emot.
 ### Integration med äldre system
 
 Många äldre system stöder bara e-postbaserade varningar. Använd monitor för inkommande e-post för att:
+
 - Konvertera e-postmeddelanden till OneUptime-incidenter
 - Automatiskt lösa incidenter när återhämtningsmeddelanden anländer
 - Centralisera varningar från flera äldre system
@@ -118,6 +125,7 @@ Många äldre system stöder bara e-postbaserade varningar. Använd monitor för
 ### Tredjepartstjänstövervakning
 
 Integrera med tjänster som skickar e-postmeddelanden:
+
 - Molnleverantörsvarningar (AWS, GCP, Azure)
 - Säkerhetsskanningsverktyg
 - Aviseringar om säkerhetskopieringsslutförande
@@ -126,6 +134,7 @@ Integrera med tjänster som skickar e-postmeddelanden:
 ### Övervakning av schemalagda jobb
 
 Övervaka batchjobb och schemalagda uppgifter:
+
 - Skapa varningar om slutförandemeddelanden inte tas emot i tid
 - Spåra jobbfel via felmeddelanden
 - Övervaka slutföranden av datapipelines
@@ -133,6 +142,7 @@ Integrera med tjänster som skickar e-postmeddelanden:
 ### Aggregering av varningar från flera leverantörer
 
 Konsolidera varningar från flera övervakningsverktyg:
+
 - Ta emot varningar från Nagios, Zabbix eller andra verktyg via e-post
 - Förena incidenthantering i OneUptime
 - Bibehåll en enda källa för alla varningar
@@ -141,17 +151,18 @@ Konsolidera varningar från flera övervakningsverktyg:
 
 När du konfigurerar incidentmallar kan du använda dessa variabler från inkommande e-postmeddelanden:
 
-| Variabel | Beskrivning |
-|----------|-------------|
-| `{{emailSubject}}` | Ämnet för det mottagna e-postmeddelandet |
-| `{{emailFrom}}` | Avsändarens e-postadress |
-| `{{emailTo}}` | Mottagarens e-postadress |
-| `{{emailBody}}` | Textinnehållet i e-postmeddelandet |
-| `{{emailReceivedAt}}` | När e-postmeddelandet togs emot |
+| Variabel              | Beskrivning                              |
+| --------------------- | ---------------------------------------- |
+| `{{emailSubject}}`    | Ämnet för det mottagna e-postmeddelandet |
+| `{{emailFrom}}`       | Avsändarens e-postadress                 |
+| `{{emailTo}}`         | Mottagarens e-postadress                 |
+| `{{emailBody}}`       | Textinnehållet i e-postmeddelandet       |
+| `{{emailReceivedAt}}` | När e-postmeddelandet togs emot          |
 
 ## Monitoröversiktsvy
 
 Monitoröversikten visar:
+
 - **Senaste e-post mottagen:** När det senaste e-postmeddelandet togs emot
 - **Från:** Avsändaren av det senaste e-postmeddelandet
 - **Ämne:** Ämnesraden för det senaste e-postmeddelandet

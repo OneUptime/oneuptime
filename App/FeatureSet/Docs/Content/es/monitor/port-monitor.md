@@ -29,16 +29,16 @@ Ingresa el nombre de host o la dirección IP del host objetivo (por ejemplo, `ex
 
 Ingresa el número de puerto a monitorear (1–65535). Ejemplos comunes:
 
-| Puerto | Servicio |
-|------|---------|
-| 22 | SSH |
-| 25 | SMTP |
-| 80 | HTTP |
-| 443 | HTTPS |
-| 3306 | MySQL |
-| 5432 | PostgreSQL |
-| 6379 | Redis |
-| 27017 | MongoDB |
+| Puerto | Servicio   |
+| ------ | ---------- |
+| 22     | SSH        |
+| 25     | SMTP       |
+| 80     | HTTP       |
+| 443    | HTTPS      |
+| 3306   | MySQL      |
+| 5432   | PostgreSQL |
+| 6379   | Redis      |
+| 27017  | MongoDB    |
 
 ## Criterios de monitoreo
 
@@ -46,10 +46,10 @@ Puedes configurar criterios para determinar cuándo tu puerto se considera en l�
 
 ### Tipos de verificación disponibles
 
-| Tipo de verificación | Descripción |
-|------------|-------------|
-| Está en línea | Si el puerto está abierto y acepta conexiones |
-| Tiempo de respuesta (en ms) | Tiempo para establecer una conexión en milisegundos |
+| Tipo de verificación                    | Descripción                                          |
+| --------------------------------------- | ---------------------------------------------------- |
+| Está en línea                           | Si el puerto está abierto y acepta conexiones        |
+| Tiempo de respuesta (en ms)             | Tiempo para establecer una conexión en milisegundos  |
 | La solicitud superó el tiempo de espera | Si el intento de conexión superó el tiempo de espera |
 
 ### Tipos de filtro

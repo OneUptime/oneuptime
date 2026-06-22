@@ -33,10 +33,10 @@ Bij het bewaken van API's achter CDN's of caching-proxy's ontvangt de monitor mo
 
 #### Ondersteunde plaatshouders
 
-| Plaatshouder | Beschrijving | Voorbeeldwaarde |
-|-------------|-------------|---------------|
-| `{{timestamp}}` | Vervangen door de huidige Unix-tijdstempel (seconden) | `1719500000` |
-| `{{random}}` | Vervangen door een willekeurige unieke tekenreeks | `a3f8b2c1d4e5f6a7b8c9d0e1f2a3b4c5` |
+| Plaatshouder    | Beschrijving                                          | Voorbeeldwaarde                    |
+| --------------- | ----------------------------------------------------- | ---------------------------------- |
+| `{{timestamp}}` | Vervangen door de huidige Unix-tijdstempel (seconden) | `1719500000`                       |
+| `{{random}}`    | Vervangen door een willekeurige unieke tekenreeks     | `a3f8b2c1d4e5f6a7b8c9d0e1f2a3b4c5` |
 
 #### Voorbeeld
 
@@ -97,7 +97,7 @@ If your endpoint requires mutual TLS authentication, enable **Use client certifi
 
 - **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
 - **Client Private Key (PEM)** — the matching PEM-encoded private key.
-- **Client Private Key Passphrase** *(optional)* — required only if the private key is encrypted.
+- **Client Private Key Passphrase** _(optional)_ — required only if the private key is encrypted.
 
 This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
 

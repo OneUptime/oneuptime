@@ -56,8 +56,8 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 ```javascript
 // Node.js voorbeeld
-const https = require('https');
-https.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY');
+const https = require("https");
+https.get("https://oneuptime.com/heartbeat/YOUR_SECRET_KEY");
 ```
 
 ```python
@@ -74,12 +74,12 @@ U kunt criteria configureren om te bepalen wanneer uw dienst als online, gedegra
 
 ### Beschikbare controletypen
 
-| Controletype | Beschrijving |
-|------------|-------------|
-| Inkomend verzoek | Of een heartbeat werd ontvangen binnen een tijdvenster |
-| Verzoeklichaam | Inhoud van het verzoeklichaam meegestuurd met de heartbeat |
-| Verzoekheader | Naam van een specifieke verzoekheader |
-| Verzoekheaderwaarde | Waarde van een specifieke verzoekheader |
+| Controletype        | Beschrijving                                               |
+| ------------------- | ---------------------------------------------------------- |
+| Inkomend verzoek    | Of een heartbeat werd ontvangen binnen een tijdvenster     |
+| Verzoeklichaam      | Inhoud van het verzoeklichaam meegestuurd met de heartbeat |
+| Verzoekheader       | Naam van een specifieke verzoekheader                      |
+| Verzoekheaderwaarde | Waarde van een specifieke verzoekheader                    |
 
 ### Filtertypen
 

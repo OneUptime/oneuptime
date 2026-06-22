@@ -28,19 +28,19 @@ Selecione um ou mais serviços para monitorar perfis. Os serviços devem estar e
 
 ### Filtros de Perfil
 
-| Filtro | Descrição | Obrigatório |
-|--------|-------------|----------|
-| Profile Types | Filtrar por nomes de tipos de perfil (ex.: CPU, memória, goroutines) | Não |
-| Attributes | Pares chave-valor para filtrar em atributos de perfil personalizados | Não |
-| Time Window | Quão longe retrospectar para pesquisar perfis (em segundos, padrão: 60) | Não |
+| Filtro        | Descrição                                                               | Obrigatório |
+| ------------- | ----------------------------------------------------------------------- | ----------- |
+| Profile Types | Filtrar por nomes de tipos de perfil (ex.: CPU, memória, goroutines)    | Não         |
+| Attributes    | Pares chave-valor para filtrar em atributos de perfil personalizados    | Não         |
+| Time Window   | Quão longe retrospectar para pesquisar perfis (em segundos, padrão: 60) | Não         |
 
 ## Critérios de Monitoramento
 
 ### Tipos de Verificação Disponíveis
 
-| Tipo de Verificação | Descrição |
-|------------|-------------|
-| Profile Count | O número de perfis que correspondem aos seus filtros na janela de tempo |
+| Tipo de Verificação | Descrição                                                               |
+| ------------------- | ----------------------------------------------------------------------- |
+| Profile Count       | O número de perfis que correspondem aos seus filtros na janela de tempo |
 
 ### Tipos de Filtro
 

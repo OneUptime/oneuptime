@@ -39,10 +39,10 @@ Du kan skapa incidenter och varningar mot manuella monitorer precis som med vilk
 
 ## När du ska använda manuella monitorer
 
-| Användningsfall | Beskrivning |
-|----------------|-------------|
-| Tredjepartstjänster | Spåra statusen för externa tjänster du är beroende av men inte kan övervaka direkt |
-| Fysisk infrastruktur | Representera hårdvara eller fysiska system utan nätverksövervakning |
-| Affärsprocesser | Spåra icke-tekniska processer som påverkar tjänststatus |
-| API-driven status | Låt externa verktyg uppdatera monitorstatus via OneUptime API:et |
-| Statussideplatshållare | Visa komponenter på din statussida som hanteras utanför OneUptime |
+| Användningsfall        | Beskrivning                                                                        |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| Tredjepartstjänster    | Spåra statusen för externa tjänster du är beroende av men inte kan övervaka direkt |
+| Fysisk infrastruktur   | Representera hårdvara eller fysiska system utan nätverksövervakning                |
+| Affärsprocesser        | Spåra icke-tekniska processer som påverkar tjänststatus                            |
+| API-driven status      | Låt externa verktyg uppdatera monitorstatus via OneUptime API:et                   |
+| Statussideplatshållare | Visa komponenter på din statussida som hanteras utanför OneUptime                  |

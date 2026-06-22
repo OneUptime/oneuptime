@@ -247,8 +247,6 @@ for that one statement.)
 > and confirm telemetry is flowing into the new tables before relying on
 > the copy in production.
 
-
-
 ## Upgrading from OneUptime 9 → 10
 
 No changes that require manual action. Just follow the standard upgrade process.
@@ -262,7 +260,6 @@ The Helm chart no longer provisions a Kubernetes Ingress resource. OneUptime shi
 - Verify any DNS records for status pages or primary hosts still point to the Service or load balancer that fronts the OneUptime ingress gateway.
 - After the upgrade, confirm TLS certificates continue to renew via the embedded gateway and that status page domains resolve correctly.
 
-
 ## Upgrading from OneUptime 7 → 8
 
 If you're running on Kubernetes, there are important breaking changes:
@@ -271,6 +268,4 @@ If you're running on Kubernetes, there are important breaking changes:
 - These changes are not backward compatible. You must follow the new structure in the Helm chart `values.yaml`.
 - Backup your data (Postgres, ClickHouse, and any persistent volumes) before upgrading.
 
-
 > Tip: Test the upgrade in a staging environment first. Confirm your workloads are healthy and data is intact before upgrading production.
-

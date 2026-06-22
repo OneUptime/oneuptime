@@ -39,10 +39,10 @@ Puedes crear incidentes y alertas para monitores manuales igual que con cualquie
 
 ## Cuándo usar monitores manuales
 
-| Caso de uso | Descripción |
-|----------|-------------|
-| Servicios de terceros | Rastrea el estado de servicios externos de los que dependes pero que no puedes monitorear directamente |
-| Infraestructura física | Representa hardware o sistemas físicos sin monitoreo de red |
-| Procesos empresariales | Rastrea procesos no técnicos que afectan el estado del servicio |
-| Estado gestionado por API | Permite que herramientas externas actualicen el estado del monitor a través de la API de OneUptime |
-| Marcadores de posición de páginas de estado | Muestra componentes en tu página de estado que se gestionan fuera de OneUptime |
+| Caso de uso                                 | Descripción                                                                                            |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Servicios de terceros                       | Rastrea el estado de servicios externos de los que dependes pero que no puedes monitorear directamente |
+| Infraestructura física                      | Representa hardware o sistemas físicos sin monitoreo de red                                            |
+| Procesos empresariales                      | Rastrea procesos no técnicos que afectan el estado del servicio                                        |
+| Estado gestionado por API                   | Permite que herramientas externas actualicen el estado del monitor a través de la API de OneUptime     |
+| Marcadores de posición de páginas de estado | Muestra componentes en tu página de estado que se gestionan fuera de OneUptime                         |

@@ -161,11 +161,11 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 
 ## 환경 변수
 
-| 변수 | 기본값 | 설명 |
-|---|---|---|
-| `PROBE_INGRESS_PORT` | _설정되지 않음_ (비활성화) | 인바운드 리스너가 바인딩하는 포트. `0`보다 큰 값이면 인그레스를 활성화합니다. |
-| `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | OneUptime으로의 각 전달 시도에 대한 타임아웃 (ms). 최소 `1000`. |
-| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | 프로브가 전달을 포기하기 전의 재시도 횟수. `0`으로 설정하면 재시도 비활성화. |
+| 변수                                | 기본값                     | 설명                                                                          |
+| ----------------------------------- | -------------------------- | ----------------------------------------------------------------------------- |
+| `PROBE_INGRESS_PORT`                | _설정되지 않음_ (비활성화) | 인바운드 리스너가 바인딩하는 포트. `0`보다 큰 값이면 인그레스를 활성화합니다. |
+| `PROBE_INGRESS_FORWARD_TIMEOUT_MS`  | `10000`                    | OneUptime으로의 각 전달 시도에 대한 타임아웃 (ms). 최소 `1000`.               |
+| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3`                        | 프로브가 전달을 포기하기 전의 재시도 횟수. `0`으로 설정하면 재시도 비활성화.  |
 
 표준 프로브 변수 (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL`, 프록시 변수)가 모두 적용됩니다 — 전체 목록은 [커스텀 프로브](/docs/probe/custom-probe)를 참조하십시오.
 

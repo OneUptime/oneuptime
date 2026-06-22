@@ -23,27 +23,27 @@ Veja [Widgets](/docs/dashboards/widgets) para a lista completa e o que cada um m
 
 ## Termos-chave
 
-| Termo | Significado |
-| --- | --- |
-| **Painel** | A página inteira — um nome, uma grade de widgets, controles de intervalo de tempo e uma lista de variáveis. |
-| **Widget** | Um bloco na página — um gráfico, um número, uma lista, um parágrafo. |
-| **Variável** | Um dropdown no topo que filtra todos os widgets de uma vez (cluster, serviço, cliente, ambiente). |
-| **Intervalo de tempo** | A janela de tempo usada por todos os gráficos e números. Defina uma vez no topo da página. |
-| **Atualização** | Com que frequência os widgets reconsultam os dados. Desligado, a cada poucos segundos, a cada poucos minutos. |
-| **Modo** | Pode ser **Edição** (arrastar widgets pela página) ou **Visualização** (somente leitura, como os visitantes veem). |
+| Termo                  | Significado                                                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Painel**             | A página inteira — um nome, uma grade de widgets, controles de intervalo de tempo e uma lista de variáveis.        |
+| **Widget**             | Um bloco na página — um gráfico, um número, uma lista, um parágrafo.                                               |
+| **Variável**           | Um dropdown no topo que filtra todos os widgets de uma vez (cluster, serviço, cliente, ambiente).                  |
+| **Intervalo de tempo** | A janela de tempo usada por todos os gráficos e números. Defina uma vez no topo da página.                         |
+| **Atualização**        | Com que frequência os widgets reconsultam os dados. Desligado, a cada poucos segundos, a cada poucos minutos.      |
+| **Modo**               | Pode ser **Edição** (arrastar widgets pela página) ou **Visualização** (somente leitura, como os visitantes veem). |
 
 ## Onde encontrar os painéis
 
 Abra **Dashboards** na navegação à esquerda.
 
-| Página | O que você faz nela |
-| --- | --- |
-| **Dashboards** | Sua lista de painéis. Crie um novo, busque ou filtre por etiqueta. |
-| **Painel → Visualizar** | O canvas. Alterne entre **Edição** e **Visualização** no cabeçalho. |
-| **Painel → Visão Geral** | Descrição, donos e etiquetas. |
+| Página                     | O que você faz nela                                                                     |
+| -------------------------- | --------------------------------------------------------------------------------------- |
+| **Dashboards**             | Sua lista de painéis. Crie um novo, busque ou filtre por etiqueta.                      |
+| **Painel → Visualizar**    | O canvas. Alterne entre **Edição** e **Visualização** no cabeçalho.                     |
+| **Painel → Visão Geral**   | Descrição, donos e etiquetas.                                                           |
 | **Painel → Configurações** | Compartilhamento público, senha, lista de IPs permitidos, domínio personalizado, marca. |
-| **Painel → Donos** | Usuários e equipes com acesso explícito. |
-| **Painel → Excluir** | Remove o painel. |
+| **Painel → Donos**         | Usuários e equipes com acesso explícito.                                                |
+| **Painel → Excluir**       | Remove o painel.                                                                        |
 
 ## Construindo um painel
 

@@ -14,10 +14,12 @@ SSO integration provides the following benefits:
 ## Setting Up SSO
 
 1. **Navigate to Project Settings**
+
    - Go to your OneUptime project
    - Navigate to **Project Settings** > **Authentication** > **SSO**
 
 2. **Create SSO Configuration**
+
    - Click **Create SSO**
    - Enter a **Name** for the SSO configuration (e.g., "Keycloak SAML" or "Okta SAML")
    - Enter the **Sign On URL** from your identity provider
@@ -152,12 +154,12 @@ Microsoft Entra ID is Microsoft's cloud-based identity and access management ser
 1. In the SAML configuration page, click **Edit** on **Attributes & Claims**
 2. Ensure the following claims are configured:
 
-| Claim Name | Value |
-|-----------|-------|
-| `Unique User Identifier (Name ID)` | `user.userprincipalname` or `user.mail` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | `user.mail` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname` | `user.givenname` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname` | `user.surname` |
+| Claim Name                                                           | Value                                   |
+| -------------------------------------------------------------------- | --------------------------------------- |
+| `Unique User Identifier (Name ID)`                                   | `user.userprincipalname` or `user.mail` |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | `user.mail`                             |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`    | `user.givenname`                        |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname`      | `user.surname`                          |
 
 3. Set the **Name identifier format** to `Email address`
 4. Click **Save**
@@ -239,11 +241,11 @@ Okta is a widely-used identity platform that provides robust SAML SSO capabiliti
 2. Click **Edit** in the **SAML Settings** section and click **Next** to get to the SAML settings
 3. In the **Attribute Statements** section, add:
 
-| Name | Value |
-|------|-------|
-| `email` | `user.email` |
+| Name        | Value            |
+| ----------- | ---------------- |
+| `email`     | `user.email`     |
 | `firstName` | `user.firstName` |
-| `lastName` | `user.lastName` |
+| `lastName`  | `user.lastName`  |
 
 4. Click **Next** and then **Finish**
 

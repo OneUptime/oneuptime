@@ -17,6 +17,7 @@ import CloudResourceDocumentation from "../Pages/Cloud/View/Documentation";
 import CloudResourceDelete from "../Pages/Cloud/View/Delete";
 import CloudLabelRules from "../Pages/Cloud/Settings/LabelRules";
 import CloudOwnerRules from "../Pages/Cloud/Settings/OwnerRules";
+import CloudArchived from "../Pages/Cloud/Archived";
 
 const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -48,6 +49,15 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             <CloudOwnerRules
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_SETTINGS_OWNER_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_ARCHIVED] || ""}
+          element={
+            <CloudArchived
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_ARCHIVED] as Route}
             />
           }
         />

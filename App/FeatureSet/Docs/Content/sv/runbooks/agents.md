@@ -1,6 +1,6 @@
 # Runbook-agenter
 
-En **Runbook-agent** är en liten självhostad process som kör Bash- *och* JavaScript-stegen i dina runbooks **inuti din egen infrastruktur**. OneUptime-Worker'n kör aldrig dina skript själv — den köar dem, och den Runbook-agent som stegförfattaren valde hämtar dem, kör dem och skickar tillbaka resultatet.
+En **Runbook-agent** är en liten självhostad process som kör Bash- _och_ JavaScript-stegen i dina runbooks **inuti din egen infrastruktur**. OneUptime-Worker'n kör aldrig dina skript själv — den köar dem, och den Runbook-agent som stegförfattaren valde hämtar dem, kör dem och skickar tillbaka resultatet.
 
 JavaScript körs fortfarande i en `isolated-vm`-sandlåda; skillnaden är att den sandlådan lever på din agent-värd istället för på vår.
 
@@ -11,7 +11,7 @@ Den här sidan förklarar hur du installerar en agent, riktar Bash- och JavaScri
 Tidigare OneUptime-versioner körde Bash- och JavaScript-steg på Worker'n. JavaScript var i sandlåda (`isolated-vm`), Bash var inte. Båda gav problem för allt utöver en single-tenant självhostad installation:
 
 - **Förtroendegräns.** Den som kunde författa ett runbook kunde köra kod på Worker'n, med åtkomst till alla environment variables och hela filsystemet som Worker'n hade. JavaScript-sandlådan blockerade det uppenbara, men kunde inte hindra en målmedveten användare från att sondera vad som var nåbart från vårt nätverk.
-- **Räckvidd.** De flesta användbara steg vill operera på *kundens* infrastruktur ("starta om den här tjänsten", "kubectl på vårt cluster", "slå upp en post i vår interna DB") — inte på OneUptimes.
+- **Räckvidd.** De flesta användbara steg vill operera på _kundens_ infrastruktur ("starta om den här tjänsten", "kubectl på vårt cluster", "slå upp en post i vår interna DB") — inte på OneUptimes.
 
 Runbook-agenter vänder på det här. Bash- och JavaScript-steg körs inte hos oss. De körs på en värd du kontrollerar, och du bestämmer vad den värden får göra.
 
@@ -32,10 +32,10 @@ Agenten behöver bara **utgående HTTPS** till din OneUptime-instans. Den accept
 
 Gå till **Runbooks → Settings → Agents** och skapa en ny agent. Fyll i:
 
-| Fält | Anteckningar |
-| --- | --- |
-| **Namn** | Ett talande namn — vanligtvis `var-den-körs-och-vad-den-kan`, t.ex. `prod-eu-west-1`. Det här är vad som visas i dropdownen när du författar ett steg. |
-| **Beskrivning** | Valfritt. En mening om vad denna värd kan nå. Ditt framtida jag tackar dig. |
+| Fält            | Anteckningar                                                                                                                                           |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Namn**        | Ett talande namn — vanligtvis `var-den-körs-och-vad-den-kan`, t.ex. `prod-eu-west-1`. Det här är vad som visas i dropdownen när du författar ett steg. |
+| **Beskrivning** | Valfritt. En mening om vad denna värd kan nå. Ditt framtida jag tackar dig.                                                                            |
 
 ### 2. Kopiera installationskommandot
 
@@ -81,10 +81,10 @@ Behöver du mer än en agent? Skapa dem, och rikta sedan enskilda steg mot den s
 
 Två timeouts gäller varje Bash- eller JavaScript-steg:
 
-| Timeout | Standard | Vad det styr |
-| --- | --- | --- |
-| **Claim-timeout** | 2 minuter | Hur länge Worker'n väntar på att den valda agenten claim:ar jobbet. Om agenten inte plockar upp det i tid misslyckas steget med `TimedOut` och runbooket går vidare (eller stannar, beroende på **Fortsätt vid fel**). |
-| **Körnings-timeout** | 30 sekunder | Hur länge agenten låter skriptet köra innan den avslutar det. Konfigurerbart per steg. (Bash får `SIGKILL`; JavaScript-isolatet rivs ner.) |
+| Timeout              | Standard    | Vad det styr                                                                                                                                                                                                           |
+| -------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Claim-timeout**    | 2 minuter   | Hur länge Worker'n väntar på att den valda agenten claim:ar jobbet. Om agenten inte plockar upp det i tid misslyckas steget med `TimedOut` och runbooket går vidare (eller stannar, beroende på **Fortsätt vid fel**). |
+| **Körnings-timeout** | 30 sekunder | Hur länge agenten låter skriptet köra innan den avslutar det. Konfigurerbart per steg. (Bash får `SIGKILL`; JavaScript-isolatet rivs ner.)                                                                             |
 
 Worker'ns totala väntefönster är `claim-timeout + körnings-timeout + några sekunder`. Välj tal som matchar steget.
 
@@ -114,15 +114,15 @@ Varje agent kör ett jobb i taget som standard. För att tillåta fler, sätt `R
 
 Agenten läser dessa vid uppstart:
 
-| Variabel | Krävs | Standard | Anteckningar |
-| --- | --- | --- | --- |
-| `ONEUPTIME_URL` | ja | — | Bas-URL för din OneUptime-instans, t.ex. `https://oneuptime.yourdomain.com`. |
-| `RUNBOOK_AGENT_ID` | ja | — | UUID:t som visas i agentens installationsmodal. |
-| `RUNBOOK_AGENT_KEY` | ja | — | Hemligheten som visas i agentens installationsmodal. |
-| `RUNBOOK_AGENT_POLL_INTERVAL_MS` | nej | `5000` | Hur ofta agenten frågar efter nya jobb. |
-| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS` | nej | `60000` | Hur ofta agenten rapporterar livstecken. |
-| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | nej | `10000` | Hur ofta agenten förnyar leasen på ett pågående jobb. |
-| `RUNBOOK_AGENT_CONCURRENCY` | nej | `1` | Maximalt antal samtidiga jobb på denna agent. |
+| Variabel                                  | Krävs | Standard | Anteckningar                                                                 |
+| ----------------------------------------- | ----- | -------- | ---------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`                           | ja    | —        | Bas-URL för din OneUptime-instans, t.ex. `https://oneuptime.yourdomain.com`. |
+| `RUNBOOK_AGENT_ID`                        | ja    | —        | UUID:t som visas i agentens installationsmodal.                              |
+| `RUNBOOK_AGENT_KEY`                       | ja    | —        | Hemligheten som visas i agentens installationsmodal.                         |
+| `RUNBOOK_AGENT_POLL_INTERVAL_MS`          | nej   | `5000`   | Hur ofta agenten frågar efter nya jobb.                                      |
+| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS`     | nej   | `60000`  | Hur ofta agenten rapporterar livstecken.                                     |
+| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | nej   | `10000`  | Hur ofta agenten förnyar leasen på ett pågående jobb.                        |
+| `RUNBOOK_AGENT_CONCURRENCY`               | nej   | `1`      | Maximalt antal samtidiga jobb på denna agent.                                |
 
 ## Rotera en agent-nyckel
 
@@ -135,17 +135,17 @@ Hanteringen av agenter ligger under den befintliga Runbooks-behörighetsgruppen:
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — hantera agent-poster.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roller) — tilldela ett team för att ge full kontroll, daglig användning eller skrivskyddad åtkomst. `RunbookAdmin` paketerar alla granulära behörigheter ovan.
 
-Behörigheter att *trigga* ett runbook (och därmed få Bash- och JavaScript-steg att dispatch:as) är fortfarande `CreateRunbookExecution` / `EditRunbookExecution`.
+Behörigheter att _trigga_ ett runbook (och därmed få Bash- och JavaScript-steg att dispatch:as) är fortfarande `CreateRunbookExecution` / `EditRunbookExecution`.
 
 ## Agent-API
 
 För de nyfikna — agenten använder dessa endpoints, monterade under `/runbook-agent-ingest`. De autentiseras med agentens ID + nyckel i JSON-bodyn (eller `x-agent-id` / `x-agent-key`-headers).
 
-| Endpoint | Syfte |
-| --- | --- |
-| `POST /heartbeat` | Livstecken; uppdaterar `lastAlive`, `connectionStatus`, `hostInfo`, `agentVersion`. |
-| `POST /claim-next-job` | Claim:a atomiskt det äldsta `Pending`-jobbet riktat mot denna agents ID. Returnerar `{ job: null }` när det inte finns något att göra. |
-| `POST /job/:jobId/heartbeat` | Förnya jobbets lease. Returnerar 404 när leasen löpt ut eller jobbet är terminalt. |
-| `POST /job/:jobId/result` | Skicka in det slutgiltiga utfallet. Ignoreras om leasen redan gått vidare. |
+| Endpoint                     | Syfte                                                                                                                                  |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /heartbeat`            | Livstecken; uppdaterar `lastAlive`, `connectionStatus`, `hostInfo`, `agentVersion`.                                                    |
+| `POST /claim-next-job`       | Claim:a atomiskt det äldsta `Pending`-jobbet riktat mot denna agents ID. Returnerar `{ job: null }` när det inte finns något att göra. |
+| `POST /job/:jobId/heartbeat` | Förnya jobbets lease. Returnerar 404 när leasen löpt ut eller jobbet är terminalt.                                                     |
+| `POST /job/:jobId/result`    | Skicka in det slutgiltiga utfallet. Ignoreras om leasen redan gått vidare.                                                             |
 
 Du ska inte behöva anropa dessa för hand — den medföljande agenten gör det. De är dokumenterade här så att du kan bygga din egen agent om du har en begränsning som vår inte passar in i.

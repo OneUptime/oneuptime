@@ -32,16 +32,16 @@ SSL Certificate monitors आपके HTTPS endpoints से connect होत�
 
 ### उपलब्ध Check Types
 
-| Check Type | विवरण |
-|------------|-------|
-| Is Online | server reachable है या नहीं |
-| Is Valid Certificate | certificate valid है (expired नहीं, self-signed नहीं) |
-| Is Self-Signed Certificate | certificate self-signed है या नहीं |
-| Is Expired Certificate | certificate expired हो गया है |
-| Is Not A Valid Certificate | certificate invalid है |
-| Expires In Hours | certificate expire होने तक घंटों की संख्या |
-| Expires In Days | certificate expire होने तक दिनों की संख्या |
-| Is Request Timeout | connection timeout हुआ या नहीं |
+| Check Type                 | विवरण                                                 |
+| -------------------------- | ----------------------------------------------------- |
+| Is Online                  | server reachable है या नहीं                           |
+| Is Valid Certificate       | certificate valid है (expired नहीं, self-signed नहीं) |
+| Is Self-Signed Certificate | certificate self-signed है या नहीं                    |
+| Is Expired Certificate     | certificate expired हो गया है                         |
+| Is Not A Valid Certificate | certificate invalid है                                |
+| Expires In Hours           | certificate expire होने तक घंटों की संख्या            |
+| Expires In Days            | certificate expire होने तक दिनों की संख्या            |
+| Is Request Timeout         | connection timeout हुआ या नहीं                        |
 
 ### Filter Types
 

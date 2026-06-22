@@ -6,23 +6,26 @@ Global SSO is een functie van **OneUptime Enterprise Edition** en is alleen besc
 
 ## Global SSO versus Project-SSO
 
-| | Project-SSO | Global SSO |
-|---|---|---|
-| Geconfigureerd door | Projecteigenaar/-beheerder (Projectinstellingen) | Instantie-master admin (Admin Dashboard) |
-| Bereik | Eén enkel project | De hele instantie — verbindbaar met elk project |
-| Resultaat van inloggen | Toegang tot dat ene project | Toegang tot elk project dat de gebruiker kan bereiken |
+|                        | Project-SSO                                      | Global SSO                                            |
+| ---------------------- | ------------------------------------------------ | ----------------------------------------------------- |
+| Geconfigureerd door    | Projecteigenaar/-beheerder (Projectinstellingen) | Instantie-master admin (Admin Dashboard)              |
+| Bereik                 | Eén enkel project                                | De hele instantie — verbindbaar met elk project       |
+| Resultaat van inloggen | Toegang tot dat ene project                      | Toegang tot elk project dat de gebruiker kan bereiken |
 
 ## Global SSO instellen
 
 1. **Open het Admin Dashboard**
+
    - Log in als master admin en open **Admin** > **Settings** > **Global SSO** (voor SAML) of **Global OIDC** (voor OpenID Connect).
 
 2. **Een provider aanmaken**
+
    - Klik op **Create Global SSO**.
    - Voor SAML: voer een **Name** in, de **Sign On URL** en **Issuer** van uw identiteitsprovider, en plak het **Public Certificate**. Kies de **Signature**- en **Digest**-methoden (laat de standaardwaarden — `RSA-SHA256` / `SHA256` — staan als u twijfelt).
    - Voor OIDC: voer de **Discovery URL**, **Issuer**, **Client ID**, **Client Secret**, **Scopes** (moet `openid` bevatten) en de claimnamen voor **email** / **name** in.
 
 3. **Kopieer de OneUptime-URL's naar uw identiteitsprovider**
+
    - Open de provider (klik op de betreffende rij in de lijst) om de kaart **Identity Provider URLs** weer te geven.
    - Voor SAML kopieert u de **ACS URL (Reply URL)** en **Issuer (Entity ID)** naar uw IdP (Okta, Azure AD, OneLogin, JumpCloud en meer).
    - Voor OIDC kopieert u de **Redirect URI** naar de lijst met toegestane omleidings-URI's van uw IdP.
@@ -44,7 +47,7 @@ Als u elke automatische accountaanmaak wilt voorkomen, zelfs wanneer er projecte
 
 Het configureren van een globale provider dwingt niemand om deze te gebruiken; inloggen met een wachtwoord blijft werken. Om SSO te verplichten, gebruikt u de besturingselementen **Require SSO for Login**:
 
-- **Per project:** een project kan SSO vereisen, en optioneel een *specifieke* provider vereisen (project of globaal).
+- **Per project:** een project kan SSO vereisen, en optioneel een _specifieke_ provider vereisen (project of globaal).
 - **Instantie-breed:** **Admin** > **Settings** > **Authentication** bevat een schakelaar **Require SSO for Login** die SSO afdwingt voor elke gebruiker in de hele instantie. Master admins blijven uitgezonderd, zodat zij niet buitengesloten kunnen worden.
 
 ## Gerelateerd

@@ -56,8 +56,8 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 ```javascript
 // Node.js example
-const https = require('https');
-https.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY');
+const https = require("https");
+https.get("https://oneuptime.com/heartbeat/YOUR_SECRET_KEY");
 ```
 
 ```python
@@ -74,12 +74,12 @@ You can configure criteria to determine when your service is considered online, 
 
 ### Available Check Types
 
-| Check Type | Description |
-|------------|-------------|
-| Incoming Request | Whether a heartbeat was received within a time window |
-| Request Body | Content of the request body sent with the heartbeat |
-| Request Header | Name of a specific request header |
-| Request Header Value | Value of a specific request header |
+| Check Type           | Description                                           |
+| -------------------- | ----------------------------------------------------- |
+| Incoming Request     | Whether a heartbeat was received within a time window |
+| Request Body         | Content of the request body sent with the heartbeat   |
+| Request Header       | Name of a specific request header                     |
+| Request Header Value | Value of a specific request header                    |
 
 ### Filter Types
 

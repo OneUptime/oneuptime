@@ -27,12 +27,12 @@ Mätvärdesmonitorer frågar och utvärderar numeriska mätvärden från dina te
 
 Definiera en eller flera mätvärdesförfrågningar. Varje förfrågan inkluderar:
 
-| Fält | Beskrivning | Obligatorisk |
-|------|-------------|--------------|
-| Mätvärdets namn | Namnet på mätvärdet att fråga | Ja |
-| Aggregeringstyp | Hur man aggregerar råa mätvärdesvärden (summa, medel, min, max, antal) | Ja |
-| Attribut | Nyckel-värdefilter för att begränsa mätvärdesdata | Nej |
-| Aggregera efter | Dimensioner att gruppera mätvärdet efter | Nej |
+| Fält            | Beskrivning                                                            | Obligatorisk |
+| --------------- | ---------------------------------------------------------------------- | ------------ |
+| Mätvärdets namn | Namnet på mätvärdet att fråga                                          | Ja           |
+| Aggregeringstyp | Hur man aggregerar råa mätvärdesvärden (summa, medel, min, max, antal) | Ja           |
+| Attribut        | Nyckel-värdefilter för att begränsa mätvärdesdata                      | Nej          |
+| Aggregera efter | Dimensioner att gruppera mätvärdet efter                               | Nej          |
 
 Varje förfrågan tilldelas ett alias (t.ex. `a`, `b`, `c`) för användning i formler.
 
@@ -59,22 +59,22 @@ Välj tidsfönstret för mätvärdesutvärdering:
 
 Välj hur mätvärdesvärden ska aggregeras för utvärdering:
 
-| Strategi | Beskrivning |
-|----------|-------------|
-| Medelvärde | Medelvärde under tidsfönstret |
-| Summa | Summan av alla värden |
-| Maxvärde | Högsta värdet i tidsfönstret |
-| Minvärde | Lägsta värdet i tidsfönstret |
-| Alla värden | Alla värden måste matcha kriterierna |
-| Valfritt värde | Minst ett värde måste matcha |
+| Strategi       | Beskrivning                          |
+| -------------- | ------------------------------------ |
+| Medelvärde     | Medelvärde under tidsfönstret        |
+| Summa          | Summan av alla värden                |
+| Maxvärde       | Högsta värdet i tidsfönstret         |
+| Minvärde       | Lägsta värdet i tidsfönstret         |
+| Alla värden    | Alla värden måste matcha kriterierna |
+| Valfritt värde | Minst ett värde måste matcha         |
 
 ## Övervakningskriterier
 
 ### Tillgängliga kontrolltyper
 
-| Kontrolltyp | Beskrivning |
-|------------|-------------|
-| Mätvärde | Det aggregerade värdet av den konfigurerade mätvärdesförfrågan eller formeln |
+| Kontrolltyp | Beskrivning                                                                  |
+| ----------- | ---------------------------------------------------------------------------- |
+| Mätvärde    | Det aggregerade värdet av den konfigurerade mätvärdesförfrågan eller formeln |
 
 ### Filtertyper
 

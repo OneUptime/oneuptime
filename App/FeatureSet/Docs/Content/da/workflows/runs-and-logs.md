@@ -4,21 +4,21 @@ Hver gang et workflow kører, gemmer OneUptime en optegnelse over, hvad der sket
 
 ## Hvor du finder dem
 
-| Side | Hvad du ser |
-| --- | --- |
+| Side                        | Hvad du ser                                                                        |
+| --------------------------- | ---------------------------------------------------------------------------------- |
 | **Workflows → Runs & Logs** | Hver kørsel fra hvert workflow i projektet. Filtrér efter workflow, status og tid. |
-| **Workflow → Logs-fane** | Kun kørslerne af dette ene workflow. |
-| **En enkelt kørsel** | Én afvikling med outputtet fra hver blok. |
+| **Workflow → Logs-fane**    | Kun kørslerne af dette ene workflow.                                               |
+| **En enkelt kørsel**        | Én afvikling med outputtet fra hver blok.                                          |
 
 ## Kørselsstatusser
 
-| Status | Hvad det betyder |
-| --- | --- |
-| **Scheduled** | Triggeren udløstes, og kørslen er ved at starte. Tager normalt kun en brøkdel af et sekund. |
-| **Running** | Workflowet er i gang. Langvarige blokke holder en kørsel i denne tilstand. |
-| **Success** | Hver blok, der kørte, afsluttede uden fejl. (At tage en **error**-gren med vilje tæller stadig som success — selve workflowet fejlede ikke.) |
-| **Error** | En blok fejlede, og der var ingen **error**-sti forbundet til at håndtere den. Kørslen stoppede der. |
-| **Timeout** | Kørslen kørte længere end tilladt. Se [Konfiguration & sikkerhed](/docs/workflows/configuration). |
+| Status        | Hvad det betyder                                                                                                                             |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Scheduled** | Triggeren udløstes, og kørslen er ved at starte. Tager normalt kun en brøkdel af et sekund.                                                  |
+| **Running**   | Workflowet er i gang. Langvarige blokke holder en kørsel i denne tilstand.                                                                   |
+| **Success**   | Hver blok, der kørte, afsluttede uden fejl. (At tage en **error**-gren med vilje tæller stadig som success — selve workflowet fejlede ikke.) |
+| **Error**     | En blok fejlede, og der var ingen **error**-sti forbundet til at håndtere den. Kørslen stoppede der.                                         |
+| **Timeout**   | Kørslen kørte længere end tilladt. Se [Konfiguration & sikkerhed](/docs/workflows/configuration).                                            |
 
 ## Læs en kørsel
 

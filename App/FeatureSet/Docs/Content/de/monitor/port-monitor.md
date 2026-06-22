@@ -29,16 +29,16 @@ Geben Sie den Hostnamen oder die IP-Adresse des Ziel-Hosts ein (z. B. `example.c
 
 Geben Sie die zu überwachende Portnummer ein (1–65535). Häufige Beispiele:
 
-| Port | Dienst |
-|------|---------|
-| 22 | SSH |
-| 25 | SMTP |
-| 80 | HTTP |
-| 443 | HTTPS |
-| 3306 | MySQL |
-| 5432 | PostgreSQL |
-| 6379 | Redis |
-| 27017 | MongoDB |
+| Port  | Dienst     |
+| ----- | ---------- |
+| 22    | SSH        |
+| 25    | SMTP       |
+| 80    | HTTP       |
+| 443   | HTTPS      |
+| 3306  | MySQL      |
+| 5432  | PostgreSQL |
+| 6379  | Redis      |
+| 27017 | MongoDB    |
 
 ## Überwachungskriterien
 
@@ -46,11 +46,11 @@ Sie können Kriterien konfigurieren, um zu bestimmen, wann Ihr Port als online, 
 
 ### Verfügbare Prüftypen
 
-| Prüftyp | Beschreibung |
-|------------|-------------|
-| Ist online | Ob der Port offen ist und Verbindungen akzeptiert |
+| Prüftyp             | Beschreibung                                          |
+| ------------------- | ----------------------------------------------------- |
+| Ist online          | Ob der Port offen ist und Verbindungen akzeptiert     |
 | Antwortzeit (in ms) | Zeit zum Herstellen einer Verbindung in Millisekunden |
-| Anfrage-Timeout | Ob der Verbindungsversuch ein Timeout hatte |
+| Anfrage-Timeout     | Ob der Verbindungsversuch ein Timeout hatte           |
 
 ### Filtertypen
 

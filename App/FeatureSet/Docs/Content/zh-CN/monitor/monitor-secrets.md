@@ -21,13 +21,11 @@
 - 合成监控器、自定义代码监控器（在代码中）
 - SNMP 监控器（在 community string、SNMPv3 认证密钥和加密密钥中）
 
-
 ![使用密钥](/docs/static/images/UsingMonitorSecret.png)
 
 要使用密钥，请在您想使用密钥的字段中添加 `{{monitorSecrets.SECRET_NAME}}`。例如，在本例中，我们在请求头字段中添加了 `{{monitorSecrets.ApiKey}}`。
 
 密钥在探针上注入，在合成监控器或自定义代码监控器脚本执行之前，`{{monitorSecrets.ApiKey}}` 等引用将在运行中的脚本内解析为解密后的值。
-
 
 ### 监控器密钥权限
 

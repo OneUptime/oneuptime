@@ -10,7 +10,7 @@ Denne siden er **installasjonsveiledningen**. For å konfigurere Docker-monitore
 
 - Docker Engine 20.10+
 - Tilgang til `/var/run/docker.sock` på verten
-- Et **OneUptime Telemetry Ingestion Token** — opprett ett fra *Project Settings → Telemetry Ingestion Keys* og kopier verdien
+- Et **OneUptime Telemetry Ingestion Token** — opprett ett fra _Project Settings → Telemetry Ingestion Keys_ og kopier verdien
 
 ## Hurtigstart (én kommando)
 
@@ -64,11 +64,11 @@ docker compose up -d
 
 ## Miljovariabler
 
-| Variabel | Pakrevd | Beskrivelse |
-|----------|----------|-------------|
-| `ONEUPTIME_URL` | Ja | URL-en til din OneUptime-instans (for eksempel `https://oneuptime.com` eller din selvhostede vert) |
-| `ONEUPTIME_SERVICE_TOKEN` | Ja | Telemetry ingestion token fra *Project Settings → Telemetry Ingestion Keys* |
-| `DOCKER_HOST_NAME` | Nei | Vennlig navn for denne verten. Standardverdi er `docker-host`. Sett den til noe stabilt per vert (f.eks. `prod-docker-01`) |
+| Variabel                  | Pakrevd | Beskrivelse                                                                                                                |
+| ------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`           | Ja      | URL-en til din OneUptime-instans (for eksempel `https://oneuptime.com` eller din selvhostede vert)                         |
+| `ONEUPTIME_SERVICE_TOKEN` | Ja      | Telemetry ingestion token fra _Project Settings → Telemetry Ingestion Keys_                                                |
+| `DOCKER_HOST_NAME`        | Nei     | Vennlig navn for denne verten. Standardverdi er `docker-host`. Sett den til noe stabilt per vert (f.eks. `prod-docker-01`) |
 
 ## Verifiser installasjonen
 
@@ -117,14 +117,14 @@ docker compose down
 
 ## Hva som samles inn
 
-| Kategori | Data |
-|----------|------|
-| **CPU-metrikker** | Total bruk, bruksprosent, struping (throttling)-tid (per container) |
-| **Minnemetrikker** | Bruk, grense, prosent, RSS, cache (per container) |
-| **Nettverksmetrikker** | Byte og pakker mottatt / sendt (per container) |
-| **Blokk-I/O-metrikker** | Lese-/skrive-byte og -operasjoner (per container) |
-| **Containerinfo** | Oppetid, antall omstarter, antall prosesser |
-| **Containerlogger** | stdout-/stderr-logger fra alle containere |
+| Kategori                | Data                                                                |
+| ----------------------- | ------------------------------------------------------------------- |
+| **CPU-metrikker**       | Total bruk, bruksprosent, struping (throttling)-tid (per container) |
+| **Minnemetrikker**      | Bruk, grense, prosent, RSS, cache (per container)                   |
+| **Nettverksmetrikker**  | Byte og pakker mottatt / sendt (per container)                      |
+| **Blokk-I/O-metrikker** | Lese-/skrive-byte og -operasjoner (per container)                   |
+| **Containerinfo**       | Oppetid, antall omstarter, antall prosesser                         |
+| **Containerlogger**     | stdout-/stderr-logger fra alle containere                           |
 
 ## Selvhostet OneUptime
 

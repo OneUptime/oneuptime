@@ -82,9 +82,12 @@
 आप एक iframe के साथ अपनी साइट पर एक सार्वजनिक डैशबोर्ड एम्बेड कर सकते हैं:
 
 ```html
-<iframe src="https://dashboard.acme.com/view"
-        width="100%" height="800"
-        frameborder="0"></iframe>
+<iframe
+  src="https://dashboard.acme.com/view"
+  width="100%"
+  height="800"
+  frameborder="0"
+></iframe>
 ```
 
 यदि डैशबोर्ड में एक मास्टर पासवर्ड है, तो विज़िटर iframe के अंदर पासवर्ड प्रॉम्प्ट देखेंगे।

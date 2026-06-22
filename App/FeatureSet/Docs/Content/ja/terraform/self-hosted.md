@@ -11,6 +11,7 @@
 ## リソース構造
 
 すべてのOneUptime Terraformリソースはシンプルな構造に従います：
+
 - `name`（必須）— リソース名
 - `description`（オプション）— リソースの説明
 - `data`（オプション）— JSONとして表現された複雑な設定
@@ -29,31 +30,39 @@
 ## OneUptimeのバージョン確認方法
 
 ### 方法1：ダッシュボード
+
 1. OneUptime ダッシュボードにログイン
 2. **設定** → **About** に移動
 3. バージョン番号を確認（例：「7.0.123」）
 
 ### 方法2：APIエンドポイント
+
 ```bash
 curl https://your-oneuptime-instance.com/api/status
 ```
 
 ### 方法3：Dockerイメージ
+
 DockerでOneUptimeを実行している場合：
+
 ```bash
 docker images | grep oneuptime
 # タグを確認、例：oneuptime/dashboard:7.0.123
 ```
 
 ### 方法4：Helmチャート
+
 Helmを使用している場合：
+
 ```bash
 helm list -n oneuptime
 # チャートのバージョンを確認
 ```
 
 ### 方法5：環境変数
+
 設定ファイルでバージョン変数を確認：
+
 ```bash
 grep -r "APP_VERSION\|IMAGE_TAG" /path/to/your/oneuptime/config
 ```
@@ -112,7 +121,7 @@ terraform {
     }
   }
   required_version = ">= 1.0"
-  
+
   # オプション：チームコラボレーション用のリモートステートを使用
   backend "s3" {
     bucket = "your-terraform-state-bucket"
@@ -161,7 +170,7 @@ resource "oneuptime_team" "infrastructure" {
 
 resource "oneuptime_team" "development" {
   name        = "開発チーム"
-  description = "アプリケーション開発チーム"  
+  description = "アプリケーション開発チーム"
   project_id = oneuptime_project.main.id
 }
 
@@ -169,13 +178,13 @@ resource "oneuptime_team" "development" {
 resource "oneuptime_monitor" "database" {
   name       = "${var.environment}-database"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "port"
   hostname     = "db.internal.yourcompany.com"
   port         = 5432
   interval     = "2m"
   timeout      = "10s"
-  
+
   tags = {
     team        = "infrastructure"
     service     = "database"
@@ -187,14 +196,14 @@ resource "oneuptime_monitor" "database" {
 resource "oneuptime_monitor" "application" {
   name       = "${var.environment}-application"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "website"
   url          = "https://app.yourcompany.com/health"
   interval     = "1m"
   timeout      = "30s"
-  
+
   expected_status_codes = [200]
-  
+
   tags = {
     team        = "development"
     service     = "application"
@@ -208,11 +217,11 @@ resource "oneuptime_on_call_policy" "infrastructure_oncall" {
   name       = "インフラストラクチャオンコール"
   project_id = oneuptime_project.main.id
   team_id    = oneuptime_team.infrastructure.id
-  
+
   schedules {
     name     = "24x7インフラストラクチャ"
     timezone = "America/New_York"
-    
+
     layers {
       name          = "プライマリ"
       users         = ["infra1@yourcompany.com", "infra2@yourcompany.com"]
@@ -228,17 +237,17 @@ resource "oneuptime_on_call_policy" "infrastructure_oncall" {
 resource "oneuptime_alert_policy" "critical_infrastructure" {
   name       = "重要インフラストラクチャアラート"
   project_id = oneuptime_project.main.id
-  
+
   conditions {
     monitor_id = oneuptime_monitor.database.id
     threshold  = "down"
   }
-  
+
   actions {
     type = "email"
     recipients = ["infrastructure@yourcompany.com"]
   }
-  
+
   actions {
     type             = "oncall_escalation"
     oncall_policy_id = oneuptime_on_call_policy.infrastructure_oncall.id
@@ -249,14 +258,14 @@ resource "oneuptime_alert_policy" "critical_infrastructure" {
 resource "oneuptime_status_page" "internal" {
   name       = "内部サービスステータス"
   project_id = oneuptime_project.main.id
-  
+
   domain = "status.internal.yourcompany.com"
-  
+
   components {
     name       = "データベース"
     monitor_id = oneuptime_monitor.database.id
   }
-  
+
   components {
     name       = "アプリケーション"
     monitor_id = oneuptime_monitor.application.id
@@ -289,7 +298,7 @@ environment = "development"
 
 ```hcl
 # staging.tfvars
-oneuptime_url = "https://oneuptime-staging.yourcompany.com"  
+oneuptime_url = "https://oneuptime-staging.yourcompany.com"
 environment = "staging"
 ```
 
@@ -354,6 +363,7 @@ terraform apply
 ### ファイアウォールルール
 
 Terraformランナーが以下にアクセスできることを確認：
+
 - OneUptime APIエンドポイント（通常はポート443/HTTPS）
 - 監視対象の内部リソース
 
@@ -383,6 +393,7 @@ export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
 ### 2. 最小権限のAPIキー
 
 必要最小限の権限を持つAPIキーを作成：
+
 - モニター管理
 - アラートポリシー管理
 - チーム管理（必要な場合）
@@ -394,7 +405,7 @@ export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
 provider "oneuptime" {
   oneuptime_url = "https://oneuptime.yourcompany.com"
   api_key       = var.oneuptime_api_key
-  
+
   # サポートされている場合の追加セキュリティオプション
   verify_ssl = true
   timeout    = "30s"
@@ -409,10 +420,10 @@ Terraform自動化のモニターを作成：
 resource "oneuptime_monitor" "terraform_runner" {
   name       = "Terraformランナーの正常性"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "heartbeat"
   interval     = "15m"
-  
+
   tags = {
     automation = "terraform"
     criticality = "medium"
@@ -429,6 +440,7 @@ Error: connection refused
 ```
 
 **解決策**：
+
 1. OneUptimeインスタンスが実行中か確認する
 2. APIURL が正しいか確認する
 3. ファイアウォール/ネットワーク接続を確認する
@@ -441,6 +453,7 @@ Error: API version incompatible
 ```
 
 **解決策**：
+
 1. OneUptimeのバージョンを確認：`curl https://your-instance/api/status`
 2. プロバイダーバージョンを一致するよう更新する
 3. `terraform init -upgrade` を実行する
@@ -485,7 +498,7 @@ tar -czf terraform-config-$(date +%Y%m%d).tar.gz *.tf *.tfvars
 ```bash
 # 環境を作成
 terraform workspace new dev
-terraform workspace new staging  
+terraform workspace new staging
 terraform workspace new prod
 
 # 環境を切り替え

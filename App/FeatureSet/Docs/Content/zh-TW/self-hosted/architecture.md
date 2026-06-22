@@ -113,6 +113,7 @@ flowchart TB
 ```
 
 ## 此圖表展示的內容
+
 - 終端使用者透過您叢集的 Ingress（NGINX）存取 OneUptime，由其路由至 UI 與 API。
 - 核心服務會讀取/寫入狀態至 PostgreSQL、Redis 與 ClickHouse。
 - Probe 可以在您的叢集內執行（建議）以及／或在您網路的其他位置執行。它們可以監控：

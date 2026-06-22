@@ -39,10 +39,10 @@ Sie können Incidents und Benachrichtigungen für manuelle Monitore genauso erst
 
 ## Wann manuelle Monitore verwendet werden
 
-| Anwendungsfall | Beschreibung |
-|----------|-------------|
-| Drittanbieter-Dienste | Status externer Dienste verfolgen, von denen Sie abhängen, die Sie aber nicht direkt überwachen können |
-| Physische Infrastruktur | Hardware oder physische Systeme ohne Netzwerküberwachung darstellen |
-| Geschäftsprozesse | Nicht-technische Prozesse verfolgen, die den Dienststatus beeinflussen |
-| API-gesteuerter Status | Externen Tools erlauben, den Monitorstatus über die OneUptime API zu aktualisieren |
-| Status-Seiten-Platzhalter | Komponenten auf Ihrer Status-Seite anzeigen, die außerhalb von OneUptime verwaltet werden |
+| Anwendungsfall            | Beschreibung                                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Drittanbieter-Dienste     | Status externer Dienste verfolgen, von denen Sie abhängen, die Sie aber nicht direkt überwachen können |
+| Physische Infrastruktur   | Hardware oder physische Systeme ohne Netzwerküberwachung darstellen                                    |
+| Geschäftsprozesse         | Nicht-technische Prozesse verfolgen, die den Dienststatus beeinflussen                                 |
+| API-gesteuerter Status    | Externen Tools erlauben, den Monitorstatus über die OneUptime API zu aktualisieren                     |
+| Status-Seiten-Platzhalter | Komponenten auf Ihrer Status-Seite anzeigen, die außerhalb von OneUptime verwaltet werden              |

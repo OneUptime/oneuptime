@@ -11,7 +11,7 @@ Den här sidan är **installationsguiden**. För att konfigurera Kubernetes-moni
 - Ett körande Kubernetes-kluster (v1.23+)
 - `kubectl` konfigurerat för åtkomst till ditt kluster
 - `helm` v3 installerat
-- En **OneUptime API-nyckel** — skapa en från *Project Settings → API Keys*
+- En **OneUptime API-nyckel** — skapa en från _Project Settings → API Keys_
 
 ## Steg 1 — Lägg till OneUptime Helm-arkivet
 
@@ -24,11 +24,11 @@ helm repo update
 
 Diagrammet exponerar ett enda alternativ på toppnivå — `preset` — som väljer kompatibla standardvärden för din Kubernetes-distribution. Det styr saker du annars skulle behöva justera för hand: om loggar ska levereras via en hostPath-DaemonSet eller via Kubernetes-API:et, och vilken säkerhetskontext som ska tillämpas.
 
-| `preset` | Använd för | Logginsamling |
-|---|---|---|
-| `standard` *(standard)* | Självhanterade kluster, **EKS på EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | DaemonSet som läser `/var/log/pods` via hostPath (lägst overhead) |
-| `gke-autopilot` | **GKE Autopilot** | Deployment med loggläsare via Kubernetes-API (ingen hostPath, ingen värdåtkomst) |
-| `eks-fargate` | **EKS Fargate** | Deployment med loggläsare via Kubernetes-API (ingen hostPath, ingen värdåtkomst) |
+| `preset`                | Använd för                                                                             | Logginsamling                                                                    |
+| ----------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `standard` _(standard)_ | Självhanterade kluster, **EKS på EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | DaemonSet som läser `/var/log/pods` via hostPath (lägst overhead)                |
+| `gke-autopilot`         | **GKE Autopilot**                                                                      | Deployment med loggläsare via Kubernetes-API (ingen hostPath, ingen värdåtkomst) |
+| `eks-fargate`           | **EKS Fargate**                                                                        | Deployment med loggläsare via Kubernetes-API (ingen hostPath, ingen värdåtkomst) |
 
 Om du är osäker, börja med `standard`. Om installationen misslyckas med ett Pod Security-fel som nämner `hostPath`, kör om med `preset=gke-autopilot` (eller `eks-fargate` på Fargate) så fungerar det.
 
@@ -208,19 +208,19 @@ kubectl delete namespace oneuptime-agent
 
 ## Vad som samlas in
 
-| Kategori | Data |
-|----------|------|
-| **Nodmått** | CPU-utnyttjande, minnesanvändning, filsystemsanvändning, nätverks-I/O |
-| **Pod-mått** | CPU-användning, minnesanvändning, nätverks-I/O, omstarter |
-| **Containermått** | CPU-användning, minnesanvändning per container |
-| **Klustermått** | Nodtillstånd, allokerbara resurser, pod-antal |
-| **Kubernetes-händelser** | Varningar, fel, schemaläggningshändelser |
-| **Pod-loggar** | stdout/stderr-loggar från alla containrar (via hostPath-DaemonSet på standardkluster, eller via Kubernetes-API på Autopilot / Fargate) |
-| **Applikationsspårningar** *(via eBPF, på som standard)* | HTTP-, gRPC-, SQL/Redis-spans från varje pod — ingen SDK eller kodändringar |
-| **HTTP RED-mått** *(via eBPF)* | `http.server.request.duration`, storlekar på begäran- och svarskroppar, per tjänst |
-| **Tjänstegraf** *(via eBPF)* | Anropare → anropad begärandefrekvens, latens och felkanter — driver tjänstekartsvyn |
-| **Nätverksflödesmått** *(via eBPF)* | TCP/UDP byte- och paketräknare pod-till-pod med k8s-metadata |
-| **TCP-statistik** *(via eBPF)* | Nodnivå-RTT, misslyckade anslutningar och retransmit-räknare |
+| Kategori                                                 | Data                                                                                                                                   |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nodmått**                                              | CPU-utnyttjande, minnesanvändning, filsystemsanvändning, nätverks-I/O                                                                  |
+| **Pod-mått**                                             | CPU-användning, minnesanvändning, nätverks-I/O, omstarter                                                                              |
+| **Containermått**                                        | CPU-användning, minnesanvändning per container                                                                                         |
+| **Klustermått**                                          | Nodtillstånd, allokerbara resurser, pod-antal                                                                                          |
+| **Kubernetes-händelser**                                 | Varningar, fel, schemaläggningshändelser                                                                                               |
+| **Pod-loggar**                                           | stdout/stderr-loggar från alla containrar (via hostPath-DaemonSet på standardkluster, eller via Kubernetes-API på Autopilot / Fargate) |
+| **Applikationsspårningar** _(via eBPF, på som standard)_ | HTTP-, gRPC-, SQL/Redis-spans från varje pod — ingen SDK eller kodändringar                                                            |
+| **HTTP RED-mått** _(via eBPF)_                           | `http.server.request.duration`, storlekar på begäran- och svarskroppar, per tjänst                                                     |
+| **Tjänstegraf** _(via eBPF)_                             | Anropare → anropad begärandefrekvens, latens och felkanter — driver tjänstekartsvyn                                                    |
+| **Nätverksflödesmått** _(via eBPF)_                      | TCP/UDP byte- och paketräknare pod-till-pod med k8s-metadata                                                                           |
+| **TCP-statistik** _(via eBPF)_                           | Nodnivå-RTT, misslyckade anslutningar och retransmit-räknare                                                                           |
 
 ## Applikationsspårningar och HTTP-mått via eBPF (på som standard)
 
@@ -250,15 +250,15 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 Alla på som standard. Stäng av någon med `--set ebpf.features.<name>=false`:
 
-| `ebpf.features.*` | Standard | Vad det lägger till |
-|---|---|---|
-| `httpMetrics` | på | HTTP/gRPC RED-mått (begärandefrekvens, latens, fel) per tjänst |
-| `spanMetrics` | på | Begäran-/svarsstorlek och varaktighet per span |
-| `serviceGraph` | på | Kantmått anropare → anropad; driver tjänstekartan |
-| `hostMetrics` | på | CPU och minne per instrumenterad process |
-| `networkMetrics` | på | TCP/UDP-flödesräknare pod-till-pod |
-| `networkInterZoneMetrics` | av | Inter-zonvariant av nätverksmått (dubblerar kardinalitet) |
-| `tcpStats` | på | Nodnivå TCP RTT, misslyckade anslutningar, retransmit-räknare |
+| `ebpf.features.*`         | Standard | Vad det lägger till                                            |
+| ------------------------- | -------- | -------------------------------------------------------------- |
+| `httpMetrics`             | på       | HTTP/gRPC RED-mått (begärandefrekvens, latens, fel) per tjänst |
+| `spanMetrics`             | på       | Begäran-/svarsstorlek och varaktighet per span                 |
+| `serviceGraph`            | på       | Kantmått anropare → anropad; driver tjänstekartan              |
+| `hostMetrics`             | på       | CPU och minne per instrumenterad process                       |
+| `networkMetrics`          | på       | TCP/UDP-flödesräknare pod-till-pod                             |
+| `networkInterZoneMetrics` | av       | Inter-zonvariant av nätverksmått (dubblerar kardinalitet)      |
+| `tcpStats`                | på       | Nodnivå TCP RTT, misslyckade anslutningar, retransmit-räknare  |
 
 Spårningskontextpropagering mellan tjänster är också på som standard — OBI injicerar W3C `traceparent` i utgående HTTP/TCP så att en begäran som korsar pod A → pod B visas som en enda spårning, inga SDK-ändringar någonstans. Stäng av med `--set ebpf.contextPropagation=false`.
 
@@ -298,7 +298,7 @@ Den vanligaste anledningen — särskilt efter en ominstallation — är en **fe
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   Om det returnerar `401` är nyckeln i din release felaktig eller återkallad. Kopiera en aktiv nyckel från *Project Settings → Telemetry Ingestion Keys* och distribuera om:
+   Om det returnerar `401` är nyckeln i din release felaktig eller återkallad. Kopiera en aktiv nyckel från _Project Settings → Telemetry Ingestion Keys_ och distribuera om:
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

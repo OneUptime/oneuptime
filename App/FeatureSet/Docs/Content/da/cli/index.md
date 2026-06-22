@@ -34,27 +34,27 @@ oneuptime resources
 
 ## Dokumentation
 
-| Guide | Beskrivelse |
-|-------|-------------|
-| [Autentificering](./authentication.md) | Login, kontekster og administration af legitimationsoplysninger |
-| [Ressourceoperationer](./resource-operations.md) | CRUD-operationer på monitorer, incidents, alerts og mere |
-| [Outputformater](./output-formats.md) | JSON-, tabel- og wide-outputtilstande |
-| [Scripting og CI/CD](./scripting.md) | Automatisering, miljøvariabler og pipeline-brug |
-| [Kommandoreference](./command-reference.md) | Komplet reference til alle kommandoer og indstillinger |
+| Guide                                            | Beskrivelse                                                     |
+| ------------------------------------------------ | --------------------------------------------------------------- |
+| [Autentificering](./authentication.md)           | Login, kontekster og administration af legitimationsoplysninger |
+| [Ressourceoperationer](./resource-operations.md) | CRUD-operationer på monitorer, incidents, alerts og mere        |
+| [Outputformater](./output-formats.md)            | JSON-, tabel- og wide-outputtilstande                           |
+| [Scripting og CI/CD](./scripting.md)             | Automatisering, miljøvariabler og pipeline-brug                 |
+| [Kommandoreference](./command-reference.md)      | Komplet reference til alle kommandoer og indstillinger          |
 
 ## Globale indstillinger
 
 Disse flag kan bruges med enhver kommando:
 
-| Flag | Beskrivelse |
-|------|-------------|
-| `--api-key <key>` | Tilsidesæt API-nøgle for denne kommando |
-| `--url <url>` | Tilsidesæt instans-URL for denne kommando |
-| `--context <name>` | Brug en specifik navngivet kontekst |
-| `-o, --output <format>` | Outputformat: `json`, `table`, `wide` |
-| `--no-color` | Deaktiver farvet output |
-| `--help` | Vis kommandohjælp |
-| `--version` | Vis CLI-version |
+| Flag                    | Beskrivelse                               |
+| ----------------------- | ----------------------------------------- |
+| `--api-key <key>`       | Tilsidesæt API-nøgle for denne kommando   |
+| `--url <url>`           | Tilsidesæt instans-URL for denne kommando |
+| `--context <name>`      | Brug en specifik navngivet kontekst       |
+| `-o, --output <format>` | Outputformat: `json`, `table`, `wide`     |
+| `--no-color`            | Deaktiver farvet output                   |
+| `--help`                | Vis kommandohjælp                         |
+| `--version`             | Vis CLI-version                           |
 
 ## Få hjælp
 

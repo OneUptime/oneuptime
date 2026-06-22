@@ -15,12 +15,12 @@ Disse har forrang over gemte kontekster, men tilsidesættes af CLI-flag.
 
 ## Exit-koder
 
-| Kode | Betydning |
-|------|---------|
-| `0` | Succes |
-| `1` | Generel fejl |
-| `2` | Autentificeringsfejl (manglende eller ugyldige legitimationsoplysninger) |
-| `3` | Ikke fundet (404) |
+| Kode | Betydning                                                                |
+| ---- | ------------------------------------------------------------------------ |
+| `0`  | Succes                                                                   |
+| `1`  | Generel fejl                                                             |
+| `2`  | Autentificeringsfejl (manglende eller ugyldige legitimationsoplysninger) |
+| `3`  | Ikke fundet (404)                                                        |
 
 Brug exit-koder i scripts til at håndtere fejl:
 
@@ -80,7 +80,7 @@ done
 name: Check Active Incidents
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: "*/5 * * * *"
 
 jobs:
   health-check:

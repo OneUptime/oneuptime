@@ -29,16 +29,16 @@ Ange värdnamnet eller IP-adressen för målvärden (t.ex. `example.com` eller `
 
 Ange portnumret att övervaka (1–65535). Vanliga exempel:
 
-| Port | Tjänst |
-|------|--------|
-| 22 | SSH |
-| 25 | SMTP |
-| 80 | HTTP |
-| 443 | HTTPS |
-| 3306 | MySQL |
-| 5432 | PostgreSQL |
-| 6379 | Redis |
-| 27017 | MongoDB |
+| Port  | Tjänst     |
+| ----- | ---------- |
+| 22    | SSH        |
+| 25    | SMTP       |
+| 80    | HTTP       |
+| 443   | HTTPS      |
+| 3306  | MySQL      |
+| 5432  | PostgreSQL |
+| 6379  | Redis      |
+| 27017 | MongoDB    |
 
 ## Övervakningskriterier
 
@@ -46,11 +46,11 @@ Du kan konfigurera kriterier för att avgöra när din port anses vara online, d
 
 ### Tillgängliga kontrolltyper
 
-| Kontrolltyp | Beskrivning |
-|------------|-------------|
-| Är online | Om porten är öppen och accepterar anslutningar |
-| Svarstid (i ms) | Tid att etablera en anslutning i millisekunder |
-| Är förfrågningstimeout | Om anslutningsförsöket fick timeout |
+| Kontrolltyp            | Beskrivning                                    |
+| ---------------------- | ---------------------------------------------- |
+| Är online              | Om porten är öppen och accepterar anslutningar |
+| Svarstid (i ms)        | Tid att etablera en anslutning i millisekunder |
+| Är förfrågningstimeout | Om anslutningsförsöket fick timeout            |
 
 ### Filtertyper
 

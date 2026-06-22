@@ -29,11 +29,13 @@ Le tableau de bord web de OneUptime est une Application Web Progressive, ce qui 
 ### Dépannage sur le bureau
 
 **L'option d'installation n'apparaît pas :**
+
 - Assurez-vous d'utiliser un navigateur pris en charge.
 - Vérifiez que votre instance OneUptime est servie via HTTPS.
 - Actualisez la page ou videz le cache de votre navigateur.
 
 **Les notifications push ne fonctionnent pas :**
+
 - Accordez les autorisations de notification lorsque le navigateur vous y invite.
 - Vérifiez les paramètres de notification de votre système d'exploitation pour le navigateur.
 - Utilisateurs auto-hébergés : confirmez que les notifications push sont configurées sur votre instance OneUptime.

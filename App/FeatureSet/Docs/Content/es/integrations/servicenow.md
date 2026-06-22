@@ -31,6 +31,7 @@ La Table API de ServiceNow acepta **autenticación básica**.
 1. Abre **Workflows → Create Workflow**, nómbralo `Incidents → ServiceNow` y abre el **Builder**.
 2. Añade un disparador **Incident** configurado en **On Create**. Renómbralo `Incident`.
 3. Añade un bloque **API** conectado al disparador:
+
    - **Method**: `POST`
    - **URL**: `https://tu-instancia.service-now.com/api/now/table/incident`
    - **Headers**:
@@ -54,6 +55,7 @@ La Table API de ServiceNow acepta **autenticación básica**.
      ```
 
    `correlation_id` mantiene un vínculo con el incidente de OneUptime — útil si más adelante añades un paso de resolución. Los valores de `urgency`/`impact` de ServiceNow usan `1` (alto), `2` (medio), `3` (bajo).
+
 4. **Guarda**, habilita y crea un incidente de prueba. Una respuesta `201 Created` en los registros del workflow devuelve el `sys_id` y el `number` del nuevo registro (por ejemplo `INC0012345`).
 
 ## Paso 3 — Resolver al resolver en OneUptime (opcional)

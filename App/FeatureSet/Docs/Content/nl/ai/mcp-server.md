@@ -202,13 +202,13 @@ De bovenstaande configuratie gebruikt invoervariabelen met `"password": true` om
 
 ## Beschikbare eindpunten
 
-| Eindpunt | Methode | Beschrijving |
-|----------|--------|-------------|
-| `/mcp` | GET | Server-sent events-stream voor server-naar-client-meldingen |
-| `/mcp` | POST | JSON-RPC-verzoeken voor tool-aanroepen en andere bewerkingen |
-| `/mcp` | DELETE | Sessie opruimen en beëindigen |
-| `/mcp/health` | GET | Gezondheidscontrolepunt |
-| `/mcp/tools` | GET | REST API om beschikbare tools te vermelden |
+| Eindpunt      | Methode | Beschrijving                                                 |
+| ------------- | ------- | ------------------------------------------------------------ |
+| `/mcp`        | GET     | Server-sent events-stream voor server-naar-client-meldingen  |
+| `/mcp`        | POST    | JSON-RPC-verzoeken voor tool-aanroepen en andere bewerkingen |
+| `/mcp`        | DELETE  | Sessie opruimen en beëindigen                                |
+| `/mcp/health` | GET     | Gezondheidscontrolepunt                                      |
+| `/mcp/tools`  | GET     | REST API om beschikbare tools te vermelden                   |
 
 ## Authenticatie
 
@@ -319,12 +319,15 @@ Deze query's werken zonder authenticatie, met alleen de publieke statuspagina-to
 ## API-sleutelmachtigingen
 
 ### Alleen-lezen toegang
+
 Voeg voor het uitsluitend bekijken van gegevens leesmachtigingen toe aan uw API-sleutel.
 
 ### Volledige toegang
+
 Voor volledige toegang om resources aan te maken, bij te werken en te verwijderen, zorgt u dat uw API-sleutel Project Admin-machtigingen heeft.
 
 ### Best practices
+
 - Gebruik specifieke machtigingen: Verleen alleen de minimale vereiste machtigingen
 - Roteer API-sleutels: Roteer uw API-sleutels regelmatig
 - Houd gebruik bij: Volg het gebruik van API-sleutels in OneUptime
@@ -333,24 +336,30 @@ Voor volledige toegang om resources aan te maken, bij te werken en te verwijdere
 ## Probleemoplossing
 
 ### Machtigingsfouten
+
 Zorg dat uw API-sleutel de benodigde machtigingen heeft:
+
 - Leestoegang voor het weergeven van resources
 - Schrijftoegang voor het aanmaken/bijwerken van resources
 - Verwijdertoegang als u resources wilt verwijderen
 
 ### Verbindingsproblemen
+
 1. Controleer of uw OneUptime-URL correct is
 2. Controleer of uw API-sleutel geldig is
 3. Zorg dat uw OneUptime-instantie bereikbaar is
 4. Test het gezondheidscontrolepunt
 
 ### Ongeldige API-sleutel
+
 - Controleer de API-sleutel in uw OneUptime-instellingen
 - Controleer op extra spaties of tekens
 - Zorg dat de sleutel niet is verlopen
 
 ### Sessiefouten
+
 Als u sessiegerelateerde fouten ontvangt:
+
 - De MCP-server gebruikt de `mcp-session-id`-header om sessies bij te houden
 - Zorg dat uw client het sessie-ID dat de server retourneert correct verwerkt
 - Sessies worden automatisch opgeruimd wanneer verbindingen worden gesloten

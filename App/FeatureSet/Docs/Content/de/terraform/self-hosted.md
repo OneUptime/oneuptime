@@ -20,22 +20,26 @@ Dieser Leitfaden richtet sich speziell an Kunden, die selbst gehostete OneUptime
 ## Ihre OneUptime-Version finden
 
 ### Methode 1: Dashboard
+
 1. Melden Sie sich bei Ihrem OneUptime-Dashboard an
 2. Gehen Sie zu **Einstellungen** → **Über**
 3. Notieren Sie die Versionsnummer (z. B. "7.0.123")
 
 ### Methode 2: API-Endpunkt
+
 ```bash
 curl https://your-oneuptime-instance.com/api/status
 ```
 
 ### Methode 3: Docker-Images
+
 ```bash
 docker images | grep oneuptime
 # Nach dem Tag suchen, z. B. oneuptime/dashboard:7.0.123
 ```
 
 ### Methode 4: Helm-Chart
+
 ```bash
 helm list -n oneuptime
 # Chart-Version prüfen
@@ -125,6 +129,7 @@ export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
 ### 2. Minimale Berechtigungen
 
 Erstellen Sie API-Schlüssel mit minimal erforderlichen Berechtigungen:
+
 - Monitor-Verwaltung
 - Benachrichtigungsrichtlinien-Verwaltung
 - Team-Verwaltung (falls erforderlich)
@@ -136,7 +141,7 @@ Erstellen Sie API-Schlüssel mit minimal erforderlichen Berechtigungen:
 ```bash
 # Umgebungen erstellen
 terraform workspace new dev
-terraform workspace new staging  
+terraform workspace new staging
 terraform workspace new prod
 
 # Zwischen Umgebungen wechseln

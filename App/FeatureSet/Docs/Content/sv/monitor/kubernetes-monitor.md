@@ -32,25 +32,25 @@ Välj det Kubernetes-kluster som ska övervakas. Kluster måste vara integrerade
 
 Välj nivån på vilken resurser ska övervakas:
 
-| Omfång | Beskrivning |
-|-------|-------------|
-| Cluster | Övervaka hela klustret |
-| Namespace | Övervaka resurser inom ett specifikt namespace |
-| Workload | Övervaka en specifik deployment, statefulset, daemonset, job eller cronjob |
-| Node | Övervaka en specifik klusternod |
-| Pod | Övervaka en specifik pod |
+| Omfång    | Beskrivning                                                                |
+| --------- | -------------------------------------------------------------------------- |
+| Cluster   | Övervaka hela klustret                                                     |
+| Namespace | Övervaka resurser inom ett specifikt namespace                             |
+| Workload  | Övervaka en specifik deployment, statefulset, daemonset, job eller cronjob |
+| Node      | Övervaka en specifik klusternod                                            |
+| Pod       | Övervaka en specifik pod                                                   |
 
 ### Resursfilter
 
 Snäva in omfånget med valfria filter:
 
-| Filter | Beskrivning | Tillämpliga omfång |
-|--------|-------------|-------------------|
-| Namespace | Kubernetes-namespace | Namespace, Workload, Pod |
-| Workload Type | deployment, statefulset, daemonset, job, cronjob | Workload |
-| Workload Name | Arbetsbelastningens namn | Workload |
-| Node Name | Nodens namn | Node |
-| Pod Name | Poddens namn | Pod |
+| Filter        | Beskrivning                                      | Tillämpliga omfång       |
+| ------------- | ------------------------------------------------ | ------------------------ |
+| Namespace     | Kubernetes-namespace                             | Namespace, Workload, Pod |
+| Workload Type | deployment, statefulset, daemonset, job, cronjob | Workload                 |
+| Workload Name | Arbetsbelastningens namn                         | Workload                 |
+| Node Name     | Nodens namn                                      | Node                     |
+| Pod Name      | Poddens namn                                     | Pod                      |
 
 ### Metric-frågor
 
@@ -77,60 +77,60 @@ Välj tidsfönster för metric-utvärdering:
 
 ### Pod-mätvärden
 
-| Mätvärde | Beskrivning |
-|--------|-------------|
-| Pod CPU Usage | CPU-förbrukning av poddar |
-| Pod Memory Usage | Minnesförbrukning av poddar |
-| Pod Filesystem Usage | Diskanvändning av poddar |
-| Pod Network Receive/Transmit | Nätverkstrafik |
-| Pod Phase | Aktuell pod-fas (Running, Pending, Failed osv.) |
+| Mätvärde                     | Beskrivning                                     |
+| ---------------------------- | ----------------------------------------------- |
+| Pod CPU Usage                | CPU-förbrukning av poddar                       |
+| Pod Memory Usage             | Minnesförbrukning av poddar                     |
+| Pod Filesystem Usage         | Diskanvändning av poddar                        |
+| Pod Network Receive/Transmit | Nätverkstrafik                                  |
+| Pod Phase                    | Aktuell pod-fas (Running, Pending, Failed osv.) |
 
 ### Nodmätvärden
 
-| Mätvärde | Beskrivning |
-|--------|-------------|
-| Node CPU Usage | CPU-utnyttjande per nod |
-| Node Memory Usage | Minnesutnyttjande per nod |
-| Node Filesystem Usage | Diskanvändning per nod |
-| Node Disk I/O | Läs/skriv-operationer |
-| Node Ready Condition | Om noden är redo |
+| Mätvärde              | Beskrivning               |
+| --------------------- | ------------------------- |
+| Node CPU Usage        | CPU-utnyttjande per nod   |
+| Node Memory Usage     | Minnesutnyttjande per nod |
+| Node Filesystem Usage | Diskanvändning per nod    |
+| Node Disk I/O         | Läs/skriv-operationer     |
+| Node Ready Condition  | Om noden är redo          |
 
 ### Containermätvärden
 
-| Mätvärde | Beskrivning |
-|--------|-------------|
-| Container Restarts | Antal containeromstarter |
-| Container CPU/Memory Limits | Resursgränser |
-| Container CPU/Memory Requests | Resursförfrågningar |
-| Container Ready Status | Om containrar är redo |
+| Mätvärde                      | Beskrivning              |
+| ----------------------------- | ------------------------ |
+| Container Restarts            | Antal containeromstarter |
+| Container CPU/Memory Limits   | Resursgränser            |
+| Container CPU/Memory Requests | Resursförfrågningar      |
+| Container Ready Status        | Om containrar är redo    |
 
 ### Arbetsbelastningsmätvärden
 
-| Mätvärde | Beskrivning |
-|--------|-------------|
-| Deployment Available/Unavailable Replicas | Antal repliker |
-| DaemonSet Misscheduled Nodes | Schemaläggningsproblem |
-| StatefulSet Ready Replicas | Antal redo-repliker |
-| Job Active/Failed/Succeeded Pods | Job-status |
+| Mätvärde                                  | Beskrivning            |
+| ----------------------------------------- | ---------------------- |
+| Deployment Available/Unavailable Replicas | Antal repliker         |
+| DaemonSet Misscheduled Nodes              | Schemaläggningsproblem |
+| StatefulSet Ready Replicas                | Antal redo-repliker    |
+| Job Active/Failed/Succeeded Pods          | Job-status             |
 
 ## Övervakningskriterier
 
 ### Tillgängliga kontrolltyper
 
-| Kontrolltyp | Beskrivning |
-|------------|-------------|
+| Kontrolltyp  | Beskrivning                                             |
+| ------------ | ------------------------------------------------------- |
 | Metric Value | Värdet på den konfigurerade metric-frågan eller formeln |
 
 ### Aggregeringstyper
 
-| Aggregering | Beskrivning |
-|-------------|-------------|
-| Average | Medelvärde över tidsfönstret |
-| Sum | Summan av alla värden |
-| Maximum Value | Högsta värde i tidsfönstret |
-| Minimum Value | Lägsta värde i tidsfönstret |
-| All Values | Alla värden måste matcha kriterierna |
-| Any Value | Minst ett värde måste matcha |
+| Aggregering   | Beskrivning                          |
+| ------------- | ------------------------------------ |
+| Average       | Medelvärde över tidsfönstret         |
+| Sum           | Summan av alla värden                |
+| Maximum Value | Högsta värde i tidsfönstret          |
+| Minimum Value | Lägsta värde i tidsfönstret          |
+| All Values    | Alla värden måste matcha kriterierna |
+| Any Value     | Minst ett värde måste matcha         |
 
 ### Filtertyper
 
@@ -140,20 +140,20 @@ Välj tidsfönster för metric-utvärdering:
 
 OneUptime tillhandahåller mallar för vanliga Kubernetes-övervakningsscenarier:
 
-| Mall | Beskrivning | Tröskel |
-|----------|-------------|-----------|
-| CrashLoopBackOff Detection | Antal containeromstarter | > 5 omstarter |
-| Pod Stuck in Pending | Poddar i Pending-fas | > 0 poddar |
-| Node Not Ready | Nodens redo-villkor | = 0 (inte redo) |
-| High Node CPU | CPU-utnyttjande för nod | > 90% |
-| High Node Memory | Minnesutnyttjande för nod | > 85% |
-| Deployment Replica Mismatch | Otillgängliga repliker | > 0 repliker |
-| Job Failures | Misslyckade poddar i ett job | > 0 fel |
-| etcd No Leader | etcd-klusterledare saknas | = 0 (ingen ledare) |
-| API Server Throttling | Borttappade API-förfrågningar | > 0 förfrågningar |
-| Scheduler Backlog | Väntande poddar i scheduler | > 0 poddar |
-| High Node Disk Usage | Filsystemsanvändning för nod | > 90% |
-| DaemonSet Unavailable | Felschemalagda noder | > 0 noder |
+| Mall                        | Beskrivning                   | Tröskel            |
+| --------------------------- | ----------------------------- | ------------------ |
+| CrashLoopBackOff Detection  | Antal containeromstarter      | > 5 omstarter      |
+| Pod Stuck in Pending        | Poddar i Pending-fas          | > 0 poddar         |
+| Node Not Ready              | Nodens redo-villkor           | = 0 (inte redo)    |
+| High Node CPU               | CPU-utnyttjande för nod       | > 90%              |
+| High Node Memory            | Minnesutnyttjande för nod     | > 85%              |
+| Deployment Replica Mismatch | Otillgängliga repliker        | > 0 repliker       |
+| Job Failures                | Misslyckade poddar i ett job  | > 0 fel            |
+| etcd No Leader              | etcd-klusterledare saknas     | = 0 (ingen ledare) |
+| API Server Throttling       | Borttappade API-förfrågningar | > 0 förfrågningar  |
+| Scheduler Backlog           | Väntande poddar i scheduler   | > 0 poddar         |
+| High Node Disk Usage        | Filsystemsanvändning för nod  | > 90%              |
+| DaemonSet Unavailable       | Felschemalagda noder          | > 0 noder          |
 
 ## Installationskrav
 

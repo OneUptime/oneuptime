@@ -28,20 +28,20 @@ Selecciona uno o más servicios desde los que monitorear excepciones. Los servic
 
 ### Filtros de excepciones
 
-| Filtro | Descripción | Requerido |
-|--------|-------------|----------|
-| Tipos de excepción | Filtra por nombres de tipos de excepción (por ejemplo, `NullPointerException`, `TypeError`) | No |
-| Mensaje | Búsqueda de texto dentro de los mensajes de excepción | No |
-| Incluir resueltas | Incluye excepciones que han sido marcadas como resueltas (predeterminado: falso) | No |
-| Incluir archivadas | Incluye excepciones que han sido archivadas (predeterminado: falso) | No |
-| Ventana de tiempo | Hasta qué punto atrás buscar excepciones (en segundos, predeterminado: 60) | No |
+| Filtro             | Descripción                                                                                 | Requerido |
+| ------------------ | ------------------------------------------------------------------------------------------- | --------- |
+| Tipos de excepción | Filtra por nombres de tipos de excepción (por ejemplo, `NullPointerException`, `TypeError`) | No        |
+| Mensaje            | Búsqueda de texto dentro de los mensajes de excepción                                       | No        |
+| Incluir resueltas  | Incluye excepciones que han sido marcadas como resueltas (predeterminado: falso)            | No        |
+| Incluir archivadas | Incluye excepciones que han sido archivadas (predeterminado: falso)                         | No        |
+| Ventana de tiempo  | Hasta qué punto atrás buscar excepciones (en segundos, predeterminado: 60)                  | No        |
 
 ## Criterios de monitoreo
 
 ### Tipos de verificación disponibles
 
-| Tipo de verificación | Descripción |
-|------------|-------------|
+| Tipo de verificación    | Descripción                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------ |
 | Recuento de excepciones | El número de excepciones que coinciden con tus filtros en la ventana de tiempo |
 
 ### Tipos de filtro

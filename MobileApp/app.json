@@ -23,9 +23,7 @@
         "backgroundColor": "#0D1117"
       },
       "infoPlist": {
-        "UIBackgroundModes": [
-          "remote-notification"
-        ],
+        "UIBackgroundModes": ["remote-notification"],
         "NSFaceIDUsageDescription": "Authenticate to access OneUptime On-Call",
         "ITSAppUsesNonExemptEncryption": false
       }

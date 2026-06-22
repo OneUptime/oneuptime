@@ -3,36 +3,46 @@
  * This creates consistent build configurations across all services
  */
 
-const esbuild = require('esbuild');
-const path = require('path');
-const fs = require('fs');
-const dotenv = require('dotenv');
+const esbuild = require("esbuild");
+const path = require("path");
+const fs = require("fs");
+const dotenv = require("dotenv");
 
 function createRefractorCompatibilityPlugin() {
   const candidateRoots = [
-    path.resolve(__dirname, '../node_modules/refractor'),
-    path.resolve(__dirname, '../../node_modules/refractor'),
+    path.resolve(__dirname, "../node_modules/refractor"),
+    path.resolve(__dirname, "../../node_modules/refractor"),
   ];
 
-  const refractorRoot = candidateRoots.find((packagePath) => fs.existsSync(packagePath));
+  const refractorRoot = candidateRoots.find((packagePath) =>
+    fs.existsSync(packagePath),
+  );
 
   if (!refractorRoot) {
-    throw new Error('Unable to locate refractor package for esbuild compatibility plugin.');
+    throw new Error(
+      "Unable to locate refractor package for esbuild compatibility plugin.",
+    );
   }
 
   return {
-    name: 'refractor-compatibility',
+    name: "refractor-compatibility",
     setup(build) {
       build.onResolve({ filter: /^refractor\/lib\// }, (args) => {
-        const relativePath = args.path.replace(/^refractor\/lib\//, '');
-        const candidatePath = path.join(refractorRoot, 'lib', `${relativePath}.js`);
+        const relativePath = args.path.replace(/^refractor\/lib\//, "");
+        const candidatePath = path.join(
+          refractorRoot,
+          "lib",
+          `${relativePath}.js`,
+        );
         return { path: candidatePath };
       });
 
       build.onResolve({ filter: /^refractor\/lang\// }, (args) => {
-        const relativePath = args.path.replace(/^refractor\/lang\//, '');
-        const filename = relativePath.endsWith('.js') ? relativePath : `${relativePath}.js`;
-        const candidatePath = path.join(refractorRoot, 'lang', filename);
+        const relativePath = args.path.replace(/^refractor\/lang\//, "");
+        const filename = relativePath.endsWith(".js")
+          ? relativePath
+          : `${relativePath}.js`;
+        const candidatePath = path.join(refractorRoot, "lang", filename);
         return { path: candidatePath };
       });
     },
@@ -42,47 +52,52 @@ function createRefractorCompatibilityPlugin() {
 // Plugin to force mermaid to use its pre-bundled CJS build (no dynamic imports)
 function createMermaidPlugin() {
   const candidateRoots = [
-    path.resolve(__dirname, '../node_modules/mermaid'),
-    path.resolve(__dirname, '../../node_modules/mermaid'),
+    path.resolve(__dirname, "../node_modules/mermaid"),
+    path.resolve(__dirname, "../../node_modules/mermaid"),
   ];
   const mermaidRoot = candidateRoots.find((p) => fs.existsSync(p));
 
   return {
-    name: 'mermaid-prebundled',
+    name: "mermaid-prebundled",
     setup(build) {
       if (!mermaidRoot) return;
-      const bundlePath = path.join(mermaidRoot, 'dist', 'mermaid.min.js');
+      const bundlePath = path.join(mermaidRoot, "dist", "mermaid.min.js");
 
       // Intercept bare "mermaid" imports and serve the pre-bundled CJS file
       // with an ESM export appended. The CJS file declares a local var
       // __esbuild_esm_mermaid_nm and assigns .mermaid on it, so we inline
       // the file contents and export from the same scope.
       build.onResolve({ filter: /^mermaid$/ }, () => {
-        return { path: 'mermaid-wrapper', namespace: 'mermaid-ns' };
+        return { path: "mermaid-wrapper", namespace: "mermaid-ns" };
       });
 
-      build.onLoad({ filter: /^mermaid-wrapper$/, namespace: 'mermaid-ns' }, () => {
-        let cjsSource = fs.readFileSync(bundlePath, 'utf8');
-        // The CJS bundle ends with a line that tries globalThis.__esbuild_esm_mermaid_nm
-        // which fails because the var is local-scoped when bundled. Strip it and
-        // expose the local var on globalThis ourselves before that line.
-        cjsSource = cjsSource.replace(
-          /globalThis\["mermaid"\]\s*=\s*globalThis\.__esbuild_esm_mermaid_nm\["mermaid"\]\.default;?\s*$/,
-          ''
-        );
-        const contents = cjsSource + `
+      build.onLoad(
+        { filter: /^mermaid-wrapper$/, namespace: "mermaid-ns" },
+        () => {
+          let cjsSource = fs.readFileSync(bundlePath, "utf8");
+          // The CJS bundle ends with a line that tries globalThis.__esbuild_esm_mermaid_nm
+          // which fails because the var is local-scoped when bundled. Strip it and
+          // expose the local var on globalThis ourselves before that line.
+          cjsSource = cjsSource.replace(
+            /globalThis\["mermaid"\]\s*=\s*globalThis\.__esbuild_esm_mermaid_nm\["mermaid"\]\.default;?\s*$/,
+            "",
+          );
+          const contents =
+            cjsSource +
+            `
 ;globalThis.__esbuild_esm_mermaid_nm = typeof __esbuild_esm_mermaid_nm !== "undefined" ? __esbuild_esm_mermaid_nm : {};
 var _mermaid_export = __esbuild_esm_mermaid_nm.mermaid;
 if (_mermaid_export && _mermaid_export.default) { _mermaid_export = _mermaid_export.default; }
 export default _mermaid_export;
 export { _mermaid_export as mermaid };
 `;
-        return {
-          contents,
-          loader: 'js',
-          resolveDir: path.dirname(bundlePath),
-        };
-      });
+          return {
+            contents,
+            loader: "js",
+            resolveDir: path.dirname(bundlePath),
+          };
+        },
+      );
     },
   };
 }
@@ -90,16 +105,16 @@ export { _mermaid_export as mermaid };
 // CSS Plugin to handle CSS/SCSS files
 function createCSSPlugin() {
   return {
-    name: 'css',
+    name: "css",
     setup(build) {
       build.onLoad({ filter: /\.s?css$/ }, async (args) => {
-        const sass = require('sass');
-        const fs = require('fs');
-        
-        let contents = fs.readFileSync(args.path, 'utf8');
-        
+        const sass = require("sass");
+        const fs = require("fs");
+
+        let contents = fs.readFileSync(args.path, "utf8");
+
         // Compile SCSS to CSS if it's a SCSS file
-        if (args.path.endsWith('.scss') || args.path.endsWith('.sass')) {
+        if (args.path.endsWith(".scss") || args.path.endsWith(".sass")) {
           try {
             const result = sass.compile(args.path);
             contents = result.css;
@@ -108,7 +123,7 @@ function createCSSPlugin() {
             throw error;
           }
         }
-        
+
         // Return CSS as a string that will be injected into the page
         return {
           contents: `
@@ -116,7 +131,7 @@ function createCSSPlugin() {
             style.textContent = ${JSON.stringify(contents)};
             document.head.appendChild(style);
           `,
-          loader: 'js',
+          loader: "js",
         };
       });
     },
@@ -126,39 +141,43 @@ function createCSSPlugin() {
 // File loader plugin for assets
 function createFileLoaderPlugin() {
   return {
-    name: 'file-loader',
+    name: "file-loader",
     setup(build) {
-      build.onLoad({ filter: /\.(png|jpe?g|gif|svg|woff|woff2|eot|ttf|otf)$/ }, async (args) => {
-        const fs = require('fs');
-        const path = require('path');
-        
-        const contents = fs.readFileSync(args.path);
-        const filename = path.basename(args.path);
-        const ext = path.extname(filename);
-        
-        // For development, we'll use data URLs for simplicity
-        // In production, you might want to copy files to the output directory
-        const mimeTypes = {
-          '.png': 'image/png',
-          '.jpg': 'image/jpeg',
-          '.jpeg': 'image/jpeg',
-          '.gif': 'image/gif',
-          '.svg': 'image/svg+xml',
-          '.woff': 'font/woff',
-          '.woff2': 'font/woff2',
-          '.eot': 'application/vnd.ms-fontobject',
-          '.ttf': 'font/ttf',
-          '.otf': 'font/otf',
-        };
-        
-        const mimeType = mimeTypes[ext.toLowerCase()] || 'application/octet-stream';
-        const dataUrl = `data:${mimeType};base64,${contents.toString('base64')}`;
-        
-        return {
-          contents: `export default ${JSON.stringify(dataUrl)};`,
-          loader: 'js',
-        };
-      });
+      build.onLoad(
+        { filter: /\.(png|jpe?g|gif|svg|woff|woff2|eot|ttf|otf)$/ },
+        async (args) => {
+          const fs = require("fs");
+          const path = require("path");
+
+          const contents = fs.readFileSync(args.path);
+          const filename = path.basename(args.path);
+          const ext = path.extname(filename);
+
+          // For development, we'll use data URLs for simplicity
+          // In production, you might want to copy files to the output directory
+          const mimeTypes = {
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".gif": "image/gif",
+            ".svg": "image/svg+xml",
+            ".woff": "font/woff",
+            ".woff2": "font/woff2",
+            ".eot": "application/vnd.ms-fontobject",
+            ".ttf": "font/ttf",
+            ".otf": "font/otf",
+          };
+
+          const mimeType =
+            mimeTypes[ext.toLowerCase()] || "application/octet-stream";
+          const dataUrl = `data:${mimeType};base64,${contents.toString("base64")}`;
+
+          return {
+            contents: `export default ${JSON.stringify(dataUrl)};`,
+            loader: "js",
+          };
+        },
+      );
     },
   };
 }
@@ -169,7 +188,7 @@ function readEnvFile(pathToFile) {
     console.warn(`Environment file not found: ${pathToFile}`);
     return {};
   }
-  
+
   const parsed = dotenv.config({ path: pathToFile }).parsed || {};
   const env = {};
 
@@ -184,8 +203,8 @@ function resolvePackageRoot(packageName) {
   const resolutionPaths = [
     process.cwd(),
     __dirname,
-    path.resolve(__dirname, '..'),
-    path.resolve(__dirname, '../..'),
+    path.resolve(__dirname, ".."),
+    path.resolve(__dirname, "../.."),
   ];
 
   for (const resolutionPath of resolutionPaths) {
@@ -220,57 +239,64 @@ function createConfig(options) {
   const {
     serviceName,
     publicPath,
-    entryPoint = './src/Index.tsx',
-    outdir = './public/dist',
+    entryPoint = "./src/Index.tsx",
+    outdir = "./public/dist",
     additionalDefines = {},
     additionalExternal = [],
-    additionalAlias = {}
+    additionalAlias = {},
   } = options;
 
-  const isDev = process.env.NODE_ENV !== 'production';
-  const isAnalyze = process.env.analyze === 'true';
-  const reactRoot = resolvePackageRoot('react');
-  const reactI18nextRoot = resolvePackageRoot('react-i18next');
-  const i18nextRoot = resolvePackageRoot('i18next');
+  const isDev = process.env.NODE_ENV !== "production";
+  const isAnalyze = process.env.analyze === "true";
+  const reactRoot = resolvePackageRoot("react");
+  const reactI18nextRoot = resolvePackageRoot("react-i18next");
+  const i18nextRoot = resolvePackageRoot("i18next");
 
   return {
     entryPoints: [entryPoint],
     bundle: true,
     outdir,
-    format: 'esm',
-    platform: 'browser',
-    target: 'es2017',
-    sourcemap: isDev ? 'inline' : false,
+    format: "esm",
+    platform: "browser",
+    target: "es2017",
+    sourcemap: isDev ? "inline" : false,
     minify: false,
     treeShaking: true,
     splitting: true,
     publicPath,
     define: {
-      'process.env.NODE_ENV': JSON.stringify(isDev ? 'development' : 'production'),
+      "process.env.NODE_ENV": JSON.stringify(
+        isDev ? "development" : "production",
+      ),
       ...additionalDefines,
     },
-    external: ['react-native-sqlite-storage', ...additionalExternal],
+    external: ["react-native-sqlite-storage", ...additionalExternal],
     alias: {
-      'react': reactRoot,
-      'react/jsx-runtime': path.join(reactRoot, 'jsx-runtime.js'),
-      'react/jsx-dev-runtime': path.join(reactRoot, 'jsx-dev-runtime.js'),
+      react: reactRoot,
+      "react/jsx-runtime": path.join(reactRoot, "jsx-runtime.js"),
+      "react/jsx-dev-runtime": path.join(reactRoot, "jsx-dev-runtime.js"),
       // Force a single instance of i18next/react-i18next so that translations
       // initialized in the service entry are visible to Common UI components.
       // Without this, Common's own node_modules copy gets a separate, never-
       // initialized i18n singleton and useTranslation() returns the raw key.
-      'react-i18next': reactI18nextRoot,
-      'i18next': i18nextRoot,
+      "react-i18next": reactI18nextRoot,
+      i18next: i18nextRoot,
       ...additionalAlias,
     },
-    plugins: [createMermaidPlugin(), createRefractorCompatibilityPlugin(), createCSSPlugin(), createFileLoaderPlugin()],
+    plugins: [
+      createMermaidPlugin(),
+      createRefractorCompatibilityPlugin(),
+      createCSSPlugin(),
+      createFileLoaderPlugin(),
+    ],
     loader: {
-      '.tsx': 'tsx',
-      '.ts': 'ts',
-      '.jsx': 'jsx',
-      '.js': 'js',
-      '.json': 'json',
+      ".tsx": "tsx",
+      ".ts": "ts",
+      ".jsx": "jsx",
+      ".js": "js",
+      ".json": "json",
     },
-    resolveExtensions: ['.tsx', '.ts', '.jsx', '.js', '.json', '.css', '.scss'],
+    resolveExtensions: [".tsx", ".ts", ".jsx", ".js", ".json", ".css", ".scss"],
     metafile: isAnalyze,
   };
 }
@@ -281,7 +307,7 @@ function createConfig(options) {
  * @param {string} serviceName - Name of the service for logging
  */
 async function build(config, serviceName) {
-  const isAnalyze = process.env.analyze === 'true';
+  const isAnalyze = process.env.analyze === "true";
 
   // Clean the output directory before building to remove stale content-hashed chunks.
   if (config.outdir && fs.existsSync(config.outdir)) {
@@ -292,18 +318,18 @@ async function build(config, serviceName) {
 
   try {
     const result = await esbuild.build(config);
-    
+
     if (isAnalyze && result.metafile) {
       const analyzeText = await esbuild.analyzeMetafile(result.metafile);
       console.log(`\n📊 Bundle analysis for ${serviceName}:`);
       console.log(analyzeText);
-      
+
       // Write metafile for external analysis tools
-      const metafilePath = path.join(config.outdir, 'metafile.json');
+      const metafilePath = path.join(config.outdir, "metafile.json");
       fs.writeFileSync(metafilePath, JSON.stringify(result.metafile, null, 2));
       console.log(`📝 Metafile written to: ${metafilePath}`);
     }
-    
+
     console.log(`✅ ${serviceName} build completed successfully`);
   } catch (error) {
     console.error(`❌ ${serviceName} build failed:`, error);

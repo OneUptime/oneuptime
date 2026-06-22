@@ -22,16 +22,16 @@ oneuptime resources --type analytics
 
 일반적인 리소스:
 
-| 리소스 | 명령 |
-|----------|---------|
-| 인시던트 | `oneuptime incident` |
-| 알림 | `oneuptime alert` |
-| 모니터 | `oneuptime monitor` |
-| 모니터 상태 | `oneuptime monitor-status` |
-| 인시던트 상태 | `oneuptime incident-state` |
-| 상태 페이지 | `oneuptime status-page` |
-| 온콜 정책 | `oneuptime on-call-policy` |
-| 팀 | `oneuptime team` |
+| 리소스               | 명령                                    |
+| -------------------- | --------------------------------------- |
+| 인시던트             | `oneuptime incident`                    |
+| 알림                 | `oneuptime alert`                       |
+| 모니터               | `oneuptime monitor`                     |
+| 모니터 상태          | `oneuptime monitor-status`              |
+| 인시던트 상태        | `oneuptime incident-state`              |
+| 상태 페이지          | `oneuptime status-page`                 |
+| 온콜 정책            | `oneuptime on-call-policy`              |
+| 팀                   | `oneuptime team`                        |
 | 예정 유지보수 이벤트 | `oneuptime scheduled-maintenance-event` |
 
 ## 리소스 목록
@@ -44,13 +44,13 @@ oneuptime <resource> list [options]
 
 **옵션:**
 
-| 옵션 | 설명 | 기본값 |
-|--------|-------------|---------|
-| `--query <json>` | JSON 형태의 필터 기준 | 없음 |
-| `--limit <n>` | 최대 결과 수 | `10` |
-| `--skip <n>` | 건너뛸 결과 수 | `0` |
-| `--sort <json>` | JSON 형태의 정렬 순서 | 없음 |
-| `-o, --output <format>` | 출력 형식 | `table` |
+| 옵션                    | 설명                  | 기본값  |
+| ----------------------- | --------------------- | ------- |
+| `--query <json>`        | JSON 형태의 필터 기준 | 없음    |
+| `--limit <n>`           | 최대 결과 수          | `10`    |
+| `--skip <n>`            | 건너뛸 결과 수        | `0`     |
+| `--sort <json>`         | JSON 형태의 정렬 순서 | 없음    |
+| `-o, --output <format>` | 출력 형식             | `table` |
 
 **예시:**
 
@@ -81,8 +81,8 @@ oneuptime <resource> get <id>
 
 **인수:**
 
-| 인수 | 설명 |
-|----------|-------------|
+| 인수   | 설명             |
+| ------ | ---------------- |
 | `<id>` | 리소스 ID (UUID) |
 
 **예시:**
@@ -105,11 +105,11 @@ oneuptime <resource> create [options]
 
 **옵션:**
 
-| 옵션 | 설명 |
-|--------|-------------|
-| `--data <json>` | JSON 객체 형태의 리소스 데이터 |
-| `--file <path>` | 리소스 데이터가 포함된 JSON 파일 경로 |
-| `-o, --output <format>` | 출력 형식 |
+| 옵션                    | 설명                                  |
+| ----------------------- | ------------------------------------- |
+| `--data <json>`         | JSON 객체 형태의 리소스 데이터        |
+| `--file <path>`         | 리소스 데이터가 포함된 JSON 파일 경로 |
+| `-o, --output <format>` | 출력 형식                             |
 
 `--data` 또는 `--file` 중 하나를 반드시 제공해야 합니다.
 
@@ -136,16 +136,16 @@ oneuptime <resource> update <id> [options]
 
 **인수:**
 
-| 인수 | 설명 |
-|----------|-------------|
+| 인수   | 설명      |
+| ------ | --------- |
 | `<id>` | 리소스 ID |
 
 **옵션:**
 
-| 옵션 | 설명 |
-|--------|-------------|
-| `--data <json>` | JSON 형태의 업데이트할 필드 (필수) |
-| `-o, --output <format>` | 출력 형식 |
+| 옵션                    | 설명                               |
+| ----------------------- | ---------------------------------- |
+| `--data <json>`         | JSON 형태의 업데이트할 필드 (필수) |
+| `-o, --output <format>` | 출력 형식                          |
 
 **예시:**
 
@@ -167,14 +167,14 @@ oneuptime <resource> delete <id> [--force]
 
 **인수:**
 
-| 인수 | 설명 |
-|----------|-------------|
+| 인수   | 설명      |
+| ------ | --------- |
 | `<id>` | 리소스 ID |
 
 **옵션:**
 
-| 옵션 | 설명 |
-|--------|-------------|
+| 옵션      | 설명                   |
+| --------- | ---------------------- |
 | `--force` | 확인 프롬프트 건너뛰기 |
 
 **예시:**
@@ -197,8 +197,8 @@ oneuptime <resource> count [options]
 
 **옵션:**
 
-| 옵션 | 설명 |
-|--------|-------------|
+| 옵션             | 설명                  |
+| ---------------- | --------------------- |
 | `--query <json>` | JSON 형태의 필터 기준 |
 
 **예시:**
@@ -218,13 +218,13 @@ oneuptime monitor count
 
 분석 리소스는 데이터베이스 리소스에 비해 제한된 작업 세트를 지원합니다:
 
-| 작업 | 지원 여부 |
-|-----------|-----------|
-| `list` | 예 |
-| `create` | 예 |
-| `count` | 예 |
-| `get` | 아니요 |
-| `update` | 아니요 |
-| `delete` | 아니요 |
+| 작업     | 지원 여부 |
+| -------- | --------- |
+| `list`   | 예        |
+| `create` | 예        |
+| `count`  | 예        |
+| `get`    | 아니요    |
+| `update` | 아니요    |
+| `delete` | 아니요    |
 
 `oneuptime resources --type analytics`를 사용하여 인스턴스에서 사용 가능한 분석 리소스를 확인합니다.

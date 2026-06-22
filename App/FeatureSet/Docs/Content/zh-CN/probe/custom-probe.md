@@ -123,15 +123,15 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 ##### 带代理配置
@@ -153,29 +153,29 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
-          # 代理配置（可选）
-          - name: HTTP_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: HTTPS_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: NO_PROXY
-            value: "localhost,.internal.example.com"
-          # 带认证的代理，使用：
-          # - name: HTTP_PROXY_URL
-          #   value: "http://username:password@proxy.example.com:8080"
-          # - name: HTTPS_PROXY_URL
-          #   value: "http://username:password@proxy.example.com:8080"
-          # - name: NO_PROXY
-          #   value: "localhost,.internal.example.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
+            # 代理配置（可选）
+            - name: HTTP_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: HTTPS_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: NO_PROXY
+              value: "localhost,.internal.example.com"
+            # 带认证的代理，使用：
+            # - name: HTTP_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: HTTPS_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: NO_PROXY
+            #   value: "localhost,.internal.example.com"
 ```
 
 然后运行以下命令：
@@ -191,11 +191,13 @@ kubectl apply -f oneuptime-probe.yaml
 探针支持以下环境变量：
 
 #### 必填变量
+
 - `PROBE_KEY` - 来自您 OneUptime 控制台的探针密钥
 - `PROBE_ID` - 来自您 OneUptime 控制台的探针 ID
 - `ONEUPTIME_URL` - 您的 OneUptime 实例 URL（默认：https://oneuptime.com）
 
 #### 可选变量
+
 - `HTTP_PROXY_URL` - HTTP 请求的 HTTP 代理服务器 URL
 - `HTTPS_PROXY_URL` - HTTPS 请求的 HTTP 代理服务器 URL
 - `NO_PROXY` - 应绕过代理的主机或域名（逗号分隔）
@@ -212,15 +214,18 @@ kubectl apply -f oneuptime-probe.yaml
 探针支持 HTTP 和 HTTPS 代理服务器。配置后，探针将通过指定的代理服务器路由所有监控流量。您还可以提供逗号分隔的 `NO_PROXY` 列表，以跳过内部主机或网络的代理。
 
 **代理 URL 格式：**
+
 ```
 http://[username:password@]proxy.server.com:port
 ```
 
 **示例：**
+
 - 基本代理：`http://proxy.example.com:8080`
 - 带认证：`http://username:password@proxy.example.com:8080`
 
 **支持的功能：**
+
 - HTTP 和 HTTPS 代理支持
 - 代理认证（用户名/密码）
 - HTTP 和 HTTPS 代理之间的自动回退

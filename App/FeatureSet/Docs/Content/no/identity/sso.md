@@ -14,10 +14,12 @@ SSO-integrasjon gir følgende fordeler:
 ## Konfigurere SSO
 
 1. **Naviger til prosjektinnstillinger**
+
    - Gå til OneUptime-prosjektet ditt
    - Naviger til **Prosjektinnstillinger** > **Autentisering** > **SSO**
 
 2. **Opprett SSO-konfigurasjon**
+
    - Klikk **Opprett SSO**
    - Skriv inn et **Navn** for SSO-konfigurasjonen (f.eks. "Keycloak SAML" eller "Okta SAML")
    - Skriv inn **Innloggings-URL** fra identitetsleverandøren din
@@ -152,12 +154,12 @@ Microsoft Entra ID er Microsofts skybaserte identitets- og tilgangsstyringstjene
 1. På SAML-konfigurasjonssiden, klikk **Rediger** på **Attributter og krav**
 2. Sørg for at følgende krav er konfigurert:
 
-| Kravnavn | Verdi |
-|----------|-------|
-| `Unique User Identifier (Name ID)` | `user.userprincipalname` eller `user.mail` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | `user.mail` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname` | `user.givenname` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname` | `user.surname` |
+| Kravnavn                                                             | Verdi                                      |
+| -------------------------------------------------------------------- | ------------------------------------------ |
+| `Unique User Identifier (Name ID)`                                   | `user.userprincipalname` eller `user.mail` |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | `user.mail`                                |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`    | `user.givenname`                           |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname`      | `user.surname`                             |
 
 3. Sett **Format for navneidentifikator** til `E-postadresse`
 4. Klikk **Lagre**
@@ -239,11 +241,11 @@ Okta er en mye brukt identitetsplattform som gir robuste SAML SSO-funksjoner. F�
 2. Klikk **Rediger** i seksjonen **SAML-innstillinger** og klikk **Neste** for å komme til SAML-innstillingene
 3. I seksjonen **Attributtsetninger**, legg til:
 
-| Navn | Verdi |
-|------|-------|
-| `email` | `user.email` |
+| Navn        | Verdi            |
+| ----------- | ---------------- |
+| `email`     | `user.email`     |
 | `firstName` | `user.firstName` |
-| `lastName` | `user.lastName` |
+| `lastName`  | `user.lastName`  |
 
 4. Klikk **Neste** og deretter **Fullfør**
 

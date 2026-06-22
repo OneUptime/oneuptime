@@ -32,16 +32,16 @@ Inserire l'URL HTTPS completo dell'endpoint il cui certificato SSL si vuole moni
 
 ### Tipi di Controllo Disponibili
 
-| Tipo di Controllo | Descrizione |
-|------------|-------------|
-| È Online | Se il server è raggiungibile |
-| Certificato Valido | Se il certificato è valido (non scaduto, non autofirmato) |
-| Certificato Autofirmato | Se il certificato è autofirmato |
-| Certificato Scaduto | Se il certificato è scaduto |
-| Certificato Non Valido | Se il certificato non è valido |
-| Scade In Ore | Numero di ore alla scadenza del certificato |
-| Scade In Giorni | Numero di giorni alla scadenza del certificato |
-| Richiesta Timeout | Se la connessione è andata in timeout |
+| Tipo di Controllo       | Descrizione                                               |
+| ----------------------- | --------------------------------------------------------- |
+| È Online                | Se il server è raggiungibile                              |
+| Certificato Valido      | Se il certificato è valido (non scaduto, non autofirmato) |
+| Certificato Autofirmato | Se il certificato è autofirmato                           |
+| Certificato Scaduto     | Se il certificato è scaduto                               |
+| Certificato Non Valido  | Se il certificato non è valido                            |
+| Scade In Ore            | Numero di ore alla scadenza del certificato               |
+| Scade In Giorni         | Numero di giorni alla scadenza del certificato            |
+| Richiesta Timeout       | Se la connessione è andata in timeout                     |
 
 ### Tipi di Filtro
 

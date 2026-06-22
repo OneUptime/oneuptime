@@ -24,19 +24,19 @@ DNSSEC monitors validate the entire chain of trust from the root zone down to yo
 
 ### Basic Settings
 
-| Field | Description | Required |
-|-------|-------------|----------|
-| Zone (Domain Name) | The zone to validate via DNSSEC (e.g. `example.com`) | Yes |
-| Resolvers | Comma-separated list of validating resolvers to query (e.g. `1.1.1.1, 8.8.8.8, 9.9.9.9`) | Yes |
-| Check Nameserver Consistency | Query each authoritative nameserver directly and verify they return the same SOA serial | No |
+| Field                        | Description                                                                              | Required |
+| ---------------------------- | ---------------------------------------------------------------------------------------- | -------- |
+| Zone (Domain Name)           | The zone to validate via DNSSEC (e.g. `example.com`)                                     | Yes      |
+| Resolvers                    | Comma-separated list of validating resolvers to query (e.g. `1.1.1.1, 8.8.8.8, 9.9.9.9`) | Yes      |
+| Check Nameserver Consistency | Query each authoritative nameserver directly and verify they return the same SOA serial  | No       |
 
 ### Advanced Settings
 
-| Field | Description | Default |
-|-------|-------------|---------|
-| Signature Expiry Warning (days) | Default threshold for the RRSIG expiry filter | 7 |
-| Timeout (ms) | How long to wait for each DNS query | 10000 |
-| Retries | Number of retry attempts on failure | 3 |
+| Field                           | Description                                   | Default |
+| ------------------------------- | --------------------------------------------- | ------- |
+| Signature Expiry Warning (days) | Default threshold for the RRSIG expiry filter | 7       |
+| Timeout (ms)                    | How long to wait for each DNS query           | 10000   |
+| Retries                         | Number of retry attempts on failure           | 3       |
 
 ## Monitoring Criteria
 
@@ -44,15 +44,15 @@ You can configure criteria to determine when your zone is considered online, deg
 
 ### Available Check Types
 
-| Check Type | Description |
-|------------|-------------|
-| DNSSEC Chain Is Valid | The entire validation chain (root → TLD → zone) resolves correctly |
-| DNSSEC DNSKEY Record Exists | The zone publishes at least one DNSKEY record |
-| DNSSEC DS Record Exists At Parent | The parent zone publishes a DS record matching the zone's KSK |
-| DNSSEC Signature Expires In Days | Days until the soonest RRSIG signature expires |
-| DNSSEC Resolver Consensus (AD Flag) | Every queried resolver returns the AD (Authenticated Data) flag |
-| DNSSEC Nameservers Are Consistent | All authoritative nameservers return the same SOA serial |
-| DNSSEC Is Valid | Aggregate pass/fail across all validation checks |
+| Check Type                          | Description                                                        |
+| ----------------------------------- | ------------------------------------------------------------------ |
+| DNSSEC Chain Is Valid               | The entire validation chain (root → TLD → zone) resolves correctly |
+| DNSSEC DNSKEY Record Exists         | The zone publishes at least one DNSKEY record                      |
+| DNSSEC DS Record Exists At Parent   | The parent zone publishes a DS record matching the zone's KSK      |
+| DNSSEC Signature Expires In Days    | Days until the soonest RRSIG signature expires                     |
+| DNSSEC Resolver Consensus (AD Flag) | Every queried resolver returns the AD (Authenticated Data) flag    |
+| DNSSEC Nameservers Are Consistent   | All authoritative nameservers return the same SOA serial           |
+| DNSSEC Is Valid                     | Aggregate pass/fail across all validation checks                   |
 
 ### Filter Types
 

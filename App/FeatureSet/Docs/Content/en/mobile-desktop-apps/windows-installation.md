@@ -2,7 +2,6 @@
 
 Install OneUptime as a desktop application on Windows for comprehensive monitoring and incident management.
 
-
 ## Installation Methods
 
 ### Method 1: Microsoft Edge (Recommended)
@@ -10,17 +9,20 @@ Install OneUptime as a desktop application on Windows for comprehensive monitori
 Edge provides the best Windows PWA integration with native features.
 
 1. **Open OneUptime in Edge**
+
    - Launch Microsoft Edge browser
    - Navigate to your OneUptime instance URL
    - Sign in to your OneUptime account
    - Wait for complete page loading
 
 2. **Install App**
+
    - Look for the **install icon** (⊞) in the address bar
    - Click the **"Install OneUptime"** button
    - Or click the **three-dot menu** → **Apps** → **Install this site as an app**
 
 3. **Customize Installation**
+
    - **App Name**: Modify if desired (default: OneUptime)
    - **Start Menu**: Choose whether to add to Start Menu
    - **Taskbar**: Option to pin to taskbar
@@ -36,17 +38,20 @@ Edge provides the best Windows PWA integration with native features.
 Chrome offers excellent PWA support with rich desktop integration.
 
 1. **Open OneUptime in Chrome**
+
    - Launch Google Chrome
    - Go to your OneUptime instance
    - Ensure you're signed in
    - Allow complete page load
 
 2. **Install via Address Bar**
+
    - Look for **install icon** (⊞) in address bar
    - Click **"Install OneUptime"**
    - Or use menu: **three dots** → **More tools** → **Create shortcut**
 
 3. **Installation Options**
+
    - Check **"Open as window"** for app-like experience
    - Customize app name if desired
    - Click **"Install"** or **"Create"**
@@ -61,6 +66,7 @@ Chrome offers excellent PWA support with rich desktop integration.
 Firefox supports PWA installation with basic desktop integration.
 
 1. **Open OneUptime in Firefox**
+
    - Launch Firefox browser
    - Navigate to OneUptime URL
    - Complete sign-in process
@@ -70,15 +76,17 @@ Firefox supports PWA installation with basic desktop integration.
    - Or click **menu** → **Install**
    - If available, click **"Add to Home Screen"** equivalent
 
-
 ### Startup Configuration
+
 1. **Auto-Start**: Configure OneUptime to start with Windows
    - Right-click taskbar → Task Manager → Startup
    - Enable OneUptime if desired
 2. **Default Size**: Set preferred window size and position
 
 ### Notification Settings
+
 1. **Windows Notifications**
+
    - Settings → System → Notifications & actions
    - Find OneUptime and configure alert preferences
    - Enable banner notifications for incidents
@@ -90,12 +98,12 @@ Firefox supports PWA installation with basic desktop integration.
 
 ## Advanced Installation Options
 
-
 ## Troubleshooting
 
 ### Installation Issues
 
 **Install button not appearing:**
+
 ```
 Solutions:
 1. Ensure you're using Edge or Chrome (recommended browsers)
@@ -107,6 +115,7 @@ Solutions:
 ```
 
 **Installation fails or crashes:**
+
 ```
 Solutions:
 1. Run browser as administrator
@@ -118,6 +127,7 @@ Solutions:
 ```
 
 **App doesn't appear in Start Menu:**
+
 ```
 Solutions:
 1. Search for "OneUptime" in Windows search
@@ -130,6 +140,7 @@ Solutions:
 ### Notification Problems
 
 **Windows notifications not working:**
+
 ```
 Solutions:
 1. Windows Settings → System → Notifications & actions
@@ -142,12 +153,15 @@ Solutions:
 ## Uninstallation
 
 ### Complete Removal
+
 1. **Windows Settings Method**
+
    - Settings → Apps → Apps & features
    - Search for "OneUptime"
    - Click and select "Uninstall"
 
 2. **Browser Method**
+
    - Open Edge/Chrome
    - Go to edge://apps/ or chrome://apps/
    - Find OneUptime
@@ -158,10 +172,10 @@ Solutions:
    - Select "Uninstall"
    - Confirm removal
 
-
 ## Updates and Maintenance
 
 ### Automatic Updates
+
 - OneUptime PWA updates automatically when online
 - No manual intervention required
 - Updates apply immediately upon restart

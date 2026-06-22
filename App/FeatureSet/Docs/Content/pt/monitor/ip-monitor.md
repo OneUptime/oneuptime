@@ -31,11 +31,11 @@ Você pode configurar critérios para determinar quando seu endereço IP é cons
 
 ### Tipos de Verificação Disponíveis
 
-| Tipo de Verificação | Descrição |
-|------------|-------------|
-| Is Online | Se o endereço IP está acessível |
+| Tipo de Verificação   | Descrição                          |
+| --------------------- | ---------------------------------- |
+| Is Online             | Se o endereço IP está acessível    |
 | Response Time (in ms) | Tempo de resposta em milissegundos |
-| Is Request Timeout | Se a requisição expirou |
+| Is Request Timeout    | Se a requisição expirou            |
 
 ### Tipos de Filtro
 

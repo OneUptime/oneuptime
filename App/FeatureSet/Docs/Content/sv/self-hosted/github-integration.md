@@ -12,6 +12,7 @@ För att integrera GitHub med din egeninstallerade OneUptime-instans behöver du
 ### Steg 1: Skapa en GitHub App
 
 1. Gå till GitHub och navigera till dina organisations- eller personliga inställningar:
+
    - **För organisationer:** Gå till `https://github.com/organizations/YOUR_ORG/settings/apps`
    - **För personligt konto:** Gå till `https://github.com/settings/apps`
 
@@ -32,26 +33,26 @@ I avsnittet "Permissions & events", konfigurera följande behörigheter:
 
 **Repositoriebehörigheter:**
 
-| Behörighet | Åtkomstnivå | Syfte |
-|------------|-------------|-------|
-| Contents | Läs och skriv | Läs repositoriefiler, push-grenar (krävs för AI-agent) |
-| Pull requests | Läs och skriv | Skapa och hantera pull requests |
-| Issues | Läs och skriv | Läs och kommentera ärenden |
-| Commit statuses | Läs | Kontrollera bygge/CI-status |
-| Actions | Läs | Läs GitHub Actions-arbetsflödeskörningar och loggar |
-| Metadata | Läs | Grundläggande repositoriemetadata (obligatorisk) |
+| Behörighet      | Åtkomstnivå   | Syfte                                                  |
+| --------------- | ------------- | ------------------------------------------------------ |
+| Contents        | Läs och skriv | Läs repositoriefiler, push-grenar (krävs för AI-agent) |
+| Pull requests   | Läs och skriv | Skapa och hantera pull requests                        |
+| Issues          | Läs och skriv | Läs och kommentera ärenden                             |
+| Commit statuses | Läs           | Kontrollera bygge/CI-status                            |
+| Actions         | Läs           | Läs GitHub Actions-arbetsflödeskörningar och loggar    |
+| Metadata        | Läs           | Grundläggande repositoriemetadata (obligatorisk)       |
 
 **Organisationsbehörigheter (om du använder med organisationer):**
 
-| Behörighet | Åtkomstnivå | Syfte |
-|------------|-------------|-------|
-| Members | Läs | Lista organisationsmedlemmar |
+| Behörighet | Åtkomstnivå | Syfte                        |
+| ---------- | ----------- | ---------------------------- |
+| Members    | Läs         | Lista organisationsmedlemmar |
 
 **Kontobehörigheter:**
 
-| Behörighet | Åtkomstnivå | Syfte |
-|------------|-------------|-------|
-| Email addresses | Läs | Läs användares e-post för aviseringar |
+| Behörighet      | Åtkomstnivå | Syfte                                 |
+| --------------- | ----------- | ------------------------------------- |
+| Email addresses | Läs         | Läs användares e-post för aviseringar |
 
 ### Steg 3: Prenumerera på webhook-händelser
 
@@ -64,6 +65,7 @@ Händelser för OneUptime för att ta emot realtidsuppdateringar, prenumerera p�
 ### Steg 4: Ange installationsåtkomst
 
 Under "Where can this GitHub App be installed?", välj:
+
 - **Only on this account** – För privat/intern användning
 - **Any account** – Om du vill att andra ska kunna installera din app
 
@@ -113,7 +115,7 @@ Om du använder Kubernetes med Helm, lägg till dessa i din `values.yaml`-fil:
 ```yaml
 gitHubApp:
   id: "YOUR_APP_ID"
-  name: "YOUR_APP_NAME"  # Det exakta namnet på din GitHub App
+  name: "YOUR_APP_NAME" # Det exakta namnet på din GitHub App
   clientId: "YOUR_CLIENT_ID"
   clientSecret: "YOUR_CLIENT_SECRET"
   privateKey: "<BASE64_ENCODED_PRIVATE_KEY_CONTENT>"
@@ -143,14 +145,14 @@ gitHubApp:
 
 ## Referens för miljövariabler
 
-| Variabel | Beskrivning | Obligatorisk |
-|----------|-------------|--------------|
-| `GITHUB_APP_ID` | App ID från dina GitHub App-inställningar | Ja |
-| `GITHUB_APP_NAME` | Det exakta namnet på din GitHub App (används för installations-URL:er) | Ja |
-| `GITHUB_APP_CLIENT_ID` | Klient-ID:t från dina GitHub App-inställningar | Ja |
-| `GITHUB_APP_CLIENT_SECRET` | Klienthemligheten du genererade | Ja |
-| `GITHUB_APP_PRIVATE_KEY` | Innehållet i den privata nyckeln (.pem-filen) | Ja |
-| `GITHUB_APP_WEBHOOK_SECRET` | Webhook-hemligheten för att verifiera webhook-nyttolaster | Nej (men rekommenderas) |
+| Variabel                    | Beskrivning                                                            | Obligatorisk            |
+| --------------------------- | ---------------------------------------------------------------------- | ----------------------- |
+| `GITHUB_APP_ID`             | App ID från dina GitHub App-inställningar                              | Ja                      |
+| `GITHUB_APP_NAME`           | Det exakta namnet på din GitHub App (används för installations-URL:er) | Ja                      |
+| `GITHUB_APP_CLIENT_ID`      | Klient-ID:t från dina GitHub App-inställningar                         | Ja                      |
+| `GITHUB_APP_CLIENT_SECRET`  | Klienthemligheten du genererade                                        | Ja                      |
+| `GITHUB_APP_PRIVATE_KEY`    | Innehållet i den privata nyckeln (.pem-filen)                          | Ja                      |
+| `GITHUB_APP_WEBHOOK_SECRET` | Webhook-hemligheten för att verifiera webhook-nyttolaster              | Nej (men rekommenderas) |
 
 ## Felsökning
 
@@ -161,10 +163,12 @@ gitHubApp:
 - Alternativet "Redirect on update" bör också vara markerat
 
 **"GitHub App is not configured"-fel:**
+
 - Se till att miljövariabeln `GITHUB_APP_CLIENT_ID` är angiven
 - Starta om din OneUptime-server efter att ha angett miljövariabler
 
 **"Invalid webhook signature"-fel:**
+
 - Verifiera att din `GITHUB_APP_WEBHOOK_SECRET` matchar hemligheten som konfigurerats i GitHub
 - Se till att webhook-URL:en är korrekt och tillgänglig från internet
 

@@ -178,11 +178,11 @@ flowchart TD
     end
 ```
 
-| Rekkefølge | Eskaler etter | Mål |
-|------------|---------------|-----|
-| 1 | 30 sekunder | Primær vaktplan |
-| 2 | 30 sekunder | Sekundær vaktplan |
-| 3 | 30 sekunder | Teknisk teamleder |
+| Rekkefølge | Eskaler etter | Mål               |
+| ---------- | ------------- | ----------------- |
+| 1          | 30 sekunder   | Primær vaktplan   |
+| 2          | 30 sekunder   | Sekundær vaktplan |
+| 3          | 30 sekunder   | Teknisk teamleder |
 
 ## Trinn 7: Konfigurer talemeldinger (valgfritt)
 
@@ -199,23 +199,23 @@ Tilpass meldingene innringere hører:
 
 ### Policyinnstillinger
 
-| Innstilling | Beskrivelse | Standard |
-|-------------|-------------|---------|
-| Greeting Message | TTS-melding spilt av når samtalen besvares | "Please wait while we connect you to the on-call engineer." |
-| No Answer Message | Melding når alle eskaleringsregler feiler | "No one is available. Please try again later." |
-| No One Available Message | Melding når ingen er på vakt | "We're sorry, but no on-call engineer is currently available." |
-| Repeat Policy If No One Answers | Start på nytt fra første regel hvis alle feiler | Deaktivert |
-| Repeat Policy Times | Maksimalt antall gjentaksforsøk | 1 |
+| Innstilling                     | Beskrivelse                                     | Standard                                                       |
+| ------------------------------- | ----------------------------------------------- | -------------------------------------------------------------- |
+| Greeting Message                | TTS-melding spilt av når samtalen besvares      | "Please wait while we connect you to the on-call engineer."    |
+| No Answer Message               | Melding når alle eskaleringsregler feiler       | "No one is available. Please try again later."                 |
+| No One Available Message        | Melding når ingen er på vakt                    | "We're sorry, but no on-call engineer is currently available." |
+| Repeat Policy If No One Answers | Start på nytt fra første regel hvis alle feiler | Deaktivert                                                     |
+| Repeat Policy Times             | Maksimalt antall gjentaksforsøk                 | 1                                                              |
 
 ### Innstillinger for eskaleringsregel
 
-| Innstilling | Beskrivelse |
-|-------------|-------------|
-| Order | Prioritetsrekkefølge (1 = høyest prioritet) |
+| Innstilling            | Beskrivelse                                      |
+| ---------------------- | ------------------------------------------------ |
+| Order                  | Prioritetsrekkefølge (1 = høyest prioritet)      |
 | Escalate After Seconds | Ventetid før neste regel prøves (standard: 30 s) |
-| On-Call Schedule | Rute til den som for øyeblikket er vakthavende |
-| Teams | Rute til alle medlemmer av valgte team |
-| Users | Rute til spesifikke brukere |
+| On-Call Schedule       | Rute til den som for øyeblikket er vakthavende   |
+| Teams                  | Rute til alle medlemmer av valgte team           |
+| Users                  | Rute til spesifikke brukere                      |
 
 ## Vise samtalelogger
 
@@ -226,6 +226,7 @@ For å se historikk over innkommende samtaler:
 3. Gå til fanen **Call Logs**
 
 Loggene viser:
+
 - Innringerens telefonnummer
 - Samtalestatus (Completed, No Answer, Failed, osv.)
 - Hvem som svarte samtalen

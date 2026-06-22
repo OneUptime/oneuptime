@@ -2,23 +2,23 @@
 
 ## Overview
 
-OneUptime groups managed cloud compute into **Cloud Environments** — AWS ECS / Fargate, Google Cloud Run, Azure Container Apps / Container Instances, AWS Elastic Beanstalk, AWS App Runner and Azure App Service. One environment is created per unique combination of `cloud.platform` + `cloud.account.id` + `cloud.region`, so something like *"AWS ECS · us-east-1 · 123456789012"* is a single entity that aggregates every workload running on it.
+OneUptime groups managed cloud compute into **Cloud Environments** — AWS ECS / Fargate, Google Cloud Run, Azure Container Apps / Container Instances, AWS Elastic Beanstalk, AWS App Runner and Azure App Service. One environment is created per unique combination of `cloud.platform` + `cloud.account.id` + `cloud.region`, so something like _"AWS ECS · us-east-1 · 123456789012"_ is a single entity that aggregates every workload running on it.
 
 Raw virtual machines (EC2, Compute Engine, Azure VM) remain **Hosts**, and Kubernetes stays under **Kubernetes**. This view is specifically for managed / PaaS compute.
 
 ## Prerequisites
 
-- A **OneUptime Telemetry Ingestion Token** — create one from *Project Settings → Telemetry Ingestion Keys*.
+- A **OneUptime Telemetry Ingestion Token** — create one from _Project Settings → Telemetry Ingestion Keys_.
 - An OpenTelemetry Collector or SDK running in/alongside your workloads.
 
 ## How OneUptime identifies an environment
 
-| Attribute | Required | Purpose |
-|---|---|---|
-| `cloud.platform` | **yes** | Must be a managed-compute platform (e.g. `aws_ecs`, `gcp_cloud_run`, `azure_container_apps`) |
-| `cloud.account.id` | no | Part of the environment key |
-| `cloud.region` | no | Part of the environment key |
-| `service.instance.id` | no | Tracked per task/instance under **Instances** (with live CPU / memory) |
+| Attribute             | Required | Purpose                                                                                      |
+| --------------------- | -------- | -------------------------------------------------------------------------------------------- |
+| `cloud.platform`      | **yes**  | Must be a managed-compute platform (e.g. `aws_ecs`, `gcp_cloud_run`, `azure_container_apps`) |
+| `cloud.account.id`    | no       | Part of the environment key                                                                  |
+| `cloud.region`        | no       | Part of the environment key                                                                  |
+| `service.instance.id` | no       | Tracked per task/instance under **Instances** (with live CPU / memory)                       |
 
 These are normally filled in automatically by the OpenTelemetry **resource detectors**.
 
@@ -29,7 +29,7 @@ In the OpenTelemetry Collector, add the `resourcedetection` processor:
 ```yaml
 processors:
   resourcedetection:
-    detectors: [env, ecs]   # use [gcp] on Cloud Run, [azure] on Azure
+    detectors: [env, ecs] # use [gcp] on Cloud Run, [azure] on Azure
     timeout: 5s
 ```
 

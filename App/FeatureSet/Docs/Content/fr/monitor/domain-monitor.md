@@ -24,16 +24,16 @@ Les moniteurs de domaine interrogent les données WHOIS de vos domaines pour sui
 
 ### Paramètres de base
 
-| Champ | Description | Obligatoire |
-|-------|-------------|-------------|
-| Nom de domaine | Le domaine à surveiller (ex. : `example.com`) | Oui |
+| Champ          | Description                                   | Obligatoire |
+| -------------- | --------------------------------------------- | ----------- |
+| Nom de domaine | Le domaine à surveiller (ex. : `example.com`) | Oui         |
 
 ### Paramètres avancés
 
-| Champ | Description | Par défaut |
-|-------|-------------|------------|
-| Délai d'attente (ms) | Durée d'attente d'une réponse WHOIS | 10000 |
-| Tentatives | Nombre de tentatives en cas d'échec | 3 |
+| Champ                | Description                         | Par défaut |
+| -------------------- | ----------------------------------- | ---------- |
+| Délai d'attente (ms) | Durée d'attente d'une réponse WHOIS | 10000      |
+| Tentatives           | Nombre de tentatives en cas d'échec | 3          |
 
 ## Critères de surveillance
 
@@ -41,13 +41,13 @@ Vous pouvez configurer des critères pour déterminer quand votre domaine est co
 
 ### Types de vérifications disponibles
 
-| Type de vérification | Description |
-|----------------------|-------------|
+| Type de vérification           | Description                                                       |
+| ------------------------------ | ----------------------------------------------------------------- |
 | Expiration du domaine en jours | Nombre de jours avant l'expiration de l'enregistrement du domaine |
-| Registraire du domaine | Nom du registraire du domaine |
-| Serveur de noms du domaine | Noms d'hôte des serveurs de noms pour le domaine |
-| Code de statut du domaine | Codes de statut WHOIS du domaine |
-| Domaine expiré | Si le domaine a expiré |
+| Registraire du domaine         | Nom du registraire du domaine                                     |
+| Serveur de noms du domaine     | Noms d'hôte des serveurs de noms pour le domaine                  |
+| Code de statut du domaine      | Codes de statut WHOIS du domaine                                  |
+| Domaine expiré                 | Si le domaine a expiré                                            |
 
 ### Types de filtres
 

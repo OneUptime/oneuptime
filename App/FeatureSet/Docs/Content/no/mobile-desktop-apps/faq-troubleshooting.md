@@ -91,37 +91,44 @@ PWA-en oppdateres automatisk hver gang du åpner den mens du er tilkoblet. For �
 ### Problemer med mobilappen
 
 **Appen logger ikke inn / «Nettverksfeil»:**
+
 - Bekreft at **server-URL** er korrekt og kan nås fra telefonen din.
 - Sjekk at telefonen er koblet til internett.
 - For selvhostede instanser bak en VPN, sørg for at VPN-en er aktiv.
 
 **Push-varsler er forsinket eller mangler (Android):**
+
 - Deaktiver batterioptimalisering: **Innstillinger → Apper → OneUptime On-Call → Batteri → Ubegrenset**.
 - Deaktiver Datasparing for appen.
 - På Samsung-enheter, slå av **Enhetspleie → Batteri → Grenser for bakgrunnsbruk** for OneUptime On-Call.
 
 **Push-varsler er forsinket eller mangler (iOS):**
+
 - Unngå å tvinge appen til å avslutte — iOS kan stanse bakgrunnslevering.
 - Deaktiver Lavstrømmodus mens du er på vakt.
 - Legg OneUptime On-Call til på tillatelseslisten for en aktiv Fokus-modus.
 
 **Face ID / Touch ID / fingeravtrykk fungerer ikke:**
+
 - Forsikre deg om at biometri er registrert i OS-innstillingene dine.
 - Aktiver biometrisk opplåsing på nytt fra **Innstillinger**-skjermen inne i OneUptime On-Call-appen.
 
 ### Problemer med skrivebordsappen (PWA)
 
 **Installeringsknappen mangler:**
+
 - Bruk en støttet nettleser (Chromium-basert eller Safari på macOS Sonoma+).
 - Forsikre deg om at OneUptime-instansen leveres over HTTPS.
 - Vent til siden er ferdig lastet, og sjekk deretter adressefeltet for installeringsikonet.
 
 **Skrivebordsvarsler vises ikke:**
+
 - Tillat varsler når nettleseren ber om det.
 - Sjekk OS-varselinnstillingene (Windows Focus Assist, macOS Varsler, varslingsdemon på Linux).
 - For selvhostede instanser, sørg for at konfigurasjonen for [Push-varsler](/docs/self-hosted/push-notifications) er fullført.
 
 **Appen viser ikke nyeste data:**
+
 - Last inn på nytt med **Ctrl+R** / **Cmd+R**.
 - Lukk og åpne vinduet på nytt.
 - Sjekk nettverkstilkoblingen din.

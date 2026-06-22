@@ -47,6 +47,7 @@ const ServiceArchivedPage: FunctionComponent<
         selectMoreFields={{
           serviceColor: true,
         }}
+        filters={[]}
         columns={[
           {
             field: {

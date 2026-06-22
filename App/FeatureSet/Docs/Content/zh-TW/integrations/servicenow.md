@@ -31,6 +31,7 @@ ServiceNow 的 Table API 接受**基本驗證（Basic auth）**。
 1. 開啟 **Workflows → Create Workflow**，將其命名為 `Incidents → ServiceNow`，然後開啟 **Builder**。
 2. 加入一個設定為 **On Create** 的 **Incident** 觸發器。將其重新命名為 `Incident`。
 3. 加入一個連接至觸發器的 **API** 區塊：
+
    - **Method**：`POST`
    - **URL**：`https://your-instance.service-now.com/api/now/table/incident`
    - **Headers**：
@@ -54,6 +55,7 @@ ServiceNow 的 Table API 接受**基本驗證（Basic auth）**。
      ```
 
    `correlation_id` 會保留回連至 OneUptime 事件的連結——如果你之後要加入解決步驟會很方便。ServiceNow 的 `urgency`/`impact` 使用 `1`（高）、`2`（中）、`3`（低）。
+
 4. **Save**、啟用，並建立一則測試事件。workflow 記錄中的 `201 Created` 回應會傳回新記錄的 `sys_id` 與 `number`（例如 `INC0012345`）。
 
 ## 步驟 3 — 在 OneUptime 解決時一併解決（選用）

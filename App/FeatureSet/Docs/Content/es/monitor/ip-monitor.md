@@ -31,10 +31,10 @@ Puedes configurar criterios para determinar cuándo tu dirección IP se consider
 
 ### Tipos de verificación disponibles
 
-| Tipo de verificación | Descripción |
-|------------|-------------|
-| Está en línea | Si la dirección IP es accesible |
-| Tiempo de respuesta (en ms) | Tiempo de respuesta en milisegundos |
+| Tipo de verificación                    | Descripción                                |
+| --------------------------------------- | ------------------------------------------ |
+| Está en línea                           | Si la dirección IP es accesible            |
+| Tiempo de respuesta (en ms)             | Tiempo de respuesta en milisegundos        |
 | La solicitud superó el tiempo de espera | Si la solicitud superó el tiempo de espera |
 
 ### Tipos de filtro

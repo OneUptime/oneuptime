@@ -28,18 +28,18 @@ Wählen Sie einen oder mehrere Dienste aus, von denen Profile überwacht werden 
 
 ### Profilfilter
 
-| Filter | Beschreibung | Erforderlich |
-|--------|-------------|----------|
-| Profiltypen | Nach Profiltyp-Namen filtern (z. B. CPU, Arbeitsspeicher, Goroutinen) | Nein |
-| Attribute | Schlüssel-Wert-Paare zum Filtern nach benutzerdefinierten Profilattributen | Nein |
-| Zeitfenster | Wie weit zurück nach Profilen gesucht wird (in Sekunden, Standard: 60) | Nein |
+| Filter      | Beschreibung                                                               | Erforderlich |
+| ----------- | -------------------------------------------------------------------------- | ------------ |
+| Profiltypen | Nach Profiltyp-Namen filtern (z. B. CPU, Arbeitsspeicher, Goroutinen)      | Nein         |
+| Attribute   | Schlüssel-Wert-Paare zum Filtern nach benutzerdefinierten Profilattributen | Nein         |
+| Zeitfenster | Wie weit zurück nach Profilen gesucht wird (in Sekunden, Standard: 60)     | Nein         |
 
 ## Überwachungskriterien
 
 ### Verfügbare Prüftypen
 
-| Prüftyp | Beschreibung |
-|------------|-------------|
+| Prüftyp      | Beschreibung                                                         |
+| ------------ | -------------------------------------------------------------------- |
 | Profilanzahl | Die Anzahl der Profile, die Ihren Filtern im Zeitfenster entsprechen |
 
 ### Filtertypen

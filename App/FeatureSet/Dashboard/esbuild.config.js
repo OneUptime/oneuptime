@@ -1,12 +1,12 @@
-const { createConfig, build, watch } = require('Common/UI/esbuild-config');
+const { createConfig, build, watch } = require("Common/UI/esbuild-config");
 
 const config = createConfig({
-  serviceName: 'Dashboard',
-  publicPath: '/dashboard/dist/',
+  serviceName: "Dashboard",
+  publicPath: "/dashboard/dist/",
 });
 
-if (process.argv.includes('--watch')) {
-  watch(config, 'Dashboard');
+if (process.argv.includes("--watch")) {
+  watch(config, "Dashboard");
 } else {
-  build(config, 'Dashboard');
+  build(config, "Dashboard");
 }

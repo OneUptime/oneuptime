@@ -12,15 +12,15 @@ oneuptime login <api-key> <instance-url>
 
 **Argomenti:**
 
-| Argomento | Descrizione |
-|----------|-------------|
-| `<api-key>` | La tua chiave API OneUptime (es. `sk-your-api-key`) |
+| Argomento        | Descrizione                                                     |
+| ---------------- | --------------------------------------------------------------- |
+| `<api-key>`      | La tua chiave API OneUptime (es. `sk-your-api-key`)             |
 | `<instance-url>` | L'URL della tua istanza OneUptime (es. `https://oneuptime.com`) |
 
 **Opzioni:**
 
-| Opzione | Descrizione |
-|--------|-------------|
+| Opzione                 | Descrizione                                         |
+| ----------------------- | --------------------------------------------------- |
 | `--context-name <name>` | Nome per questo contesto (predefinito: `"default"`) |
 
 **Esempi:**
@@ -122,6 +122,7 @@ oneuptime whoami
 ```
 
 Questo visualizza:
+
 - URL dell'istanza
 - Chiave API mascherata
 - Nome del contesto corrente (mostrato solo se è attivo un contesto salvato)

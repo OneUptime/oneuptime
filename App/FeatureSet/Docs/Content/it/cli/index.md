@@ -34,27 +34,27 @@ oneuptime resources
 
 ## Documentazione
 
-| Guida | Descrizione |
-|-------|-------------|
-| [Autenticazione](./authentication.md) | Login, contesti e gestione delle credenziali |
-| [Operazioni sulle Risorse](./resource-operations.md) | Operazioni CRUD su monitor, incidenti, avvisi e altro |
-| [Formati di Output](./output-formats.md) | Modalità di output JSON, tabella e wide |
-| [Scripting e CI/CD](./scripting.md) | Automazione, variabili d'ambiente e utilizzo nelle pipeline |
-| [Riferimento Comandi](./command-reference.md) | Riferimento completo per tutti i comandi e le opzioni |
+| Guida                                                | Descrizione                                                 |
+| ---------------------------------------------------- | ----------------------------------------------------------- |
+| [Autenticazione](./authentication.md)                | Login, contesti e gestione delle credenziali                |
+| [Operazioni sulle Risorse](./resource-operations.md) | Operazioni CRUD su monitor, incidenti, avvisi e altro       |
+| [Formati di Output](./output-formats.md)             | Modalità di output JSON, tabella e wide                     |
+| [Scripting e CI/CD](./scripting.md)                  | Automazione, variabili d'ambiente e utilizzo nelle pipeline |
+| [Riferimento Comandi](./command-reference.md)        | Riferimento completo per tutti i comandi e le opzioni       |
 
 ## Opzioni Globali
 
 Questi flag possono essere usati con qualsiasi comando:
 
-| Flag | Descrizione |
-|------|-------------|
-| `--api-key <key>` | Sostituisce la chiave API per questo comando |
-| `--url <url>` | Sostituisce l'URL dell'istanza per questo comando |
-| `--context <name>` | Usa un contesto denominato specifico |
-| `-o, --output <format>` | Formato di output: `json`, `table`, `wide` |
-| `--no-color` | Disabilita l'output colorato |
-| `--help` | Mostra la guida del comando |
-| `--version` | Mostra la versione della CLI |
+| Flag                    | Descrizione                                       |
+| ----------------------- | ------------------------------------------------- |
+| `--api-key <key>`       | Sostituisce la chiave API per questo comando      |
+| `--url <url>`           | Sostituisce l'URL dell'istanza per questo comando |
+| `--context <name>`      | Usa un contesto denominato specifico              |
+| `-o, --output <format>` | Formato di output: `json`, `table`, `wide`        |
+| `--no-color`            | Disabilita l'output colorato                      |
+| `--help`                | Mostra la guida del comando                       |
+| `--version`             | Mostra la versione della CLI                      |
 
 ## Ottenere Aiuto
 

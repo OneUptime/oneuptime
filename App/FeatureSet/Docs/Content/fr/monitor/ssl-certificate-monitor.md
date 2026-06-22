@@ -32,16 +32,16 @@ Vous pouvez configurer des critères pour déterminer quand le statut de votre c
 
 ### Types de vérifications disponibles
 
-| Type de vérification | Description |
-|----------------------|-------------|
-| En ligne | Si le serveur est accessible |
-| Certificat valide | Si le certificat est valide (non expiré, non auto-signé) |
-| Certificat auto-signé | Si le certificat est auto-signé |
-| Certificat expiré | Si le certificat a expiré |
-| Certificat non valide | Si le certificat est invalide |
-| Expire en heures | Nombre d'heures avant l'expiration du certificat |
-| Expire en jours | Nombre de jours avant l'expiration du certificat |
-| Délai d'attente de la requête | Si la connexion a expiré |
+| Type de vérification          | Description                                              |
+| ----------------------------- | -------------------------------------------------------- |
+| En ligne                      | Si le serveur est accessible                             |
+| Certificat valide             | Si le certificat est valide (non expiré, non auto-signé) |
+| Certificat auto-signé         | Si le certificat est auto-signé                          |
+| Certificat expiré             | Si le certificat a expiré                                |
+| Certificat non valide         | Si le certificat est invalide                            |
+| Expire en heures              | Nombre d'heures avant l'expiration du certificat         |
+| Expire en jours               | Nombre de jours avant l'expiration du certificat         |
+| Délai d'attente de la requête | Si la connexion a expiré                                 |
 
 ### Types de filtres
 

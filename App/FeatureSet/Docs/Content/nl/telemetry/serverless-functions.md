@@ -8,20 +8,20 @@ Dit werkt voor AWS Lambda, Google Cloud Functions, Azure Functions, Cloudflare W
 
 ## Vereisten
 
-- Een **OneUptime Telemetry Ingestion Token** — maak er een aan via *Project Settings → Telemetry Ingestion Keys* en kopieer de waarde van `x-oneuptime-token`.
+- Een **OneUptime Telemetry Ingestion Token** — maak er een aan via _Project Settings → Telemetry Ingestion Keys_ en kopieer de waarde van `x-oneuptime-token`.
 - De OpenTelemetry SDK (of een auto-instrumentatielaag) voor de taal van je functie.
 
 ## Hoe OneUptime een functie identificeert
 
 OneUptime indexeert elke functie op basis van de resource-attribuut `faas.name`:
 
-| Attribuut | Vereist | Doel |
-|---|---|---|
-| `faas.name` | **ja** | Functie-identiteit (bijv. `checkout-handler`) |
-| `faas.version` | nee | Wordt weergegeven in het overzicht |
-| `faas.instance` | nee | Per instance bijgehouden onder het tabblad **Instances** |
-| `cloud.platform` | nee | `aws_lambda`, `gcp_cloud_functions`, `azure_functions`, ... |
-| `cloud.provider` / `cloud.region` / `cloud.account.id` | nee | Wordt weergegeven in het overzicht |
+| Attribuut                                              | Vereist | Doel                                                        |
+| ------------------------------------------------------ | ------- | ----------------------------------------------------------- |
+| `faas.name`                                            | **ja**  | Functie-identiteit (bijv. `checkout-handler`)               |
+| `faas.version`                                         | nee     | Wordt weergegeven in het overzicht                          |
+| `faas.instance`                                        | nee     | Per instance bijgehouden onder het tabblad **Instances**    |
+| `cloud.platform`                                       | nee     | `aws_lambda`, `gcp_cloud_functions`, `azure_functions`, ... |
+| `cloud.provider` / `cloud.region` / `cloud.account.id` | nee     | Wordt weergegeven in het overzicht                          |
 
 > Een functie die ook `service.name` instelt, verschijnt nog steeds ook onder **Services**. De weergave **Serverless Functions** is de FaaS-gerichte lens, afgebakend door `faas.name`.
 
@@ -57,4 +57,4 @@ Zodra de functie een span, log of metric uitzendt, verschijnt deze onder **Serve
 - **Instances** — een live telling van de waargenomen `faas.instance`-waarden.
 - Volledige tabbladen **Logs**, **Traces** en **Metrics** afgebakend tot deze functie.
 
-Je kunt ook automatisch labels en eigenaren toepassen via *Serverless → Settings → Label Rules / Owner Rules*.
+Je kunt ook automatisch labels en eigenaren toepassen via _Serverless → Settings → Label Rules / Owner Rules_.

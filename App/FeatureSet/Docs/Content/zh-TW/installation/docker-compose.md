@@ -3,6 +3,7 @@
 如果您偏好在自己的伺服器上託管 OneUptime，您可以使用 Docker Compose 在 Debian、Ubuntu 或 RHEL 上部署單一伺服器的 OneUptime 執行個體。此選項讓您對執行個體擁有更多的控制權與自訂能力，但同時也需要更多的技術能力與資源來進行部署及維護。
 
 #### 選擇您的系統需求
+
 根據您的使用情況與預算，您可以為伺服器選擇不同的系統需求。為了獲得最佳效能，我們建議搭配以下配置使用 OneUptime：
 
 - **建議的系統需求**
@@ -17,7 +18,6 @@
     - 4 核心
     - 20 GB 磁碟空間
     - 已安裝 Docker 與 Docker Compose
-
 
 #### 單一伺服器部署的先決條件
 
@@ -49,10 +49,9 @@ npm start
 # Read env vars from config.env file and run docker compose up.
 (export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
 
-# Use sudo if you're having permission issues with binding ports. 
+# Use sudo if you're having permission issues with binding ports.
 sudo bash -c "(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)"
 ```
-
 
 ### 存取 OneUptime
 
@@ -95,7 +94,6 @@ npm run update
 ### 需要考量的事項
 
 - 在我們的 Docker 設定中，我們採用了本機日誌驅動程式（local logging driver）。OneUptime（特別是在 probe 與 ingest 容器內）會產生大量的日誌。為了避免您的儲存空間被填滿，務必要在 Docker 中限制日誌的儲存容量。如需如何進行此操作的詳細指示，請參閱 Docker 官方文件[此處](https://docs.docker.com/config/containers/logging/local/)。
-
 
 ### 解除安裝 OneUptime
 

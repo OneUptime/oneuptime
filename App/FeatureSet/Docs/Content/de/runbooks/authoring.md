@@ -6,13 +6,13 @@ Erstellen Sie ein Runbook unter **Runbooks → Runbook erstellen**, öffnen Sie 
 
 Jeder Schritt hat:
 
-| Feld | Zweck |
-| --- | --- |
-| **Titel** | Kurze Bezeichnung, die in der Checklisten-UI angezeigt wird. Erforderlich. |
-| **Beschreibung** | Optionaler Kontext für die reagierende Person. Markdown-sicherer Text. |
-| **Bei Fehler fortfahren** | Wenn an, stoppt ein fehlgeschlagener Schritt den Lauf nicht — der nächste Schritt wird trotzdem ausgeführt. |
-| **Freigabe erforderlich** | Wenn an, pausiert das Runbook nach diesem Schritt und wartet, bis ein Benutzer freigibt, bevor der nächste Schritt läuft. |
-| **Typspezifische Konfiguration** | Skript, URL, Agent usw. — siehe unten. |
+| Feld                             | Zweck                                                                                                                     |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **Titel**                        | Kurze Bezeichnung, die in der Checklisten-UI angezeigt wird. Erforderlich.                                                |
+| **Beschreibung**                 | Optionaler Kontext für die reagierende Person. Markdown-sicherer Text.                                                    |
+| **Bei Fehler fortfahren**        | Wenn an, stoppt ein fehlgeschlagener Schritt den Lauf nicht — der nächste Schritt wird trotzdem ausgeführt.               |
+| **Freigabe erforderlich**        | Wenn an, pausiert das Runbook nach diesem Schritt und wartet, bis ein Benutzer freigibt, bevor der nächste Schritt läuft. |
+| **Typspezifische Konfiguration** | Skript, URL, Agent usw. — siehe unten.                                                                                    |
 
 Schritte laufen **der Reihe nach**. Sortieren Sie sie mit den Pfeilen Auf/Ab im Steps-Editor um.
 

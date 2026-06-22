@@ -32,16 +32,16 @@ You can configure criteria to determine when your certificate status is consider
 
 ### Available Check Types
 
-| Check Type | Description |
-|------------|-------------|
-| Is Online | Whether the server is reachable |
-| Is Valid Certificate | Whether the certificate is valid (not expired, not self-signed) |
-| Is Self-Signed Certificate | Whether the certificate is self-signed |
-| Is Expired Certificate | Whether the certificate has expired |
-| Is Not A Valid Certificate | Whether the certificate is invalid |
-| Expires In Hours | Number of hours until the certificate expires |
-| Expires In Days | Number of days until the certificate expires |
-| Is Request Timeout | Whether the connection timed out |
+| Check Type                 | Description                                                     |
+| -------------------------- | --------------------------------------------------------------- |
+| Is Online                  | Whether the server is reachable                                 |
+| Is Valid Certificate       | Whether the certificate is valid (not expired, not self-signed) |
+| Is Self-Signed Certificate | Whether the certificate is self-signed                          |
+| Is Expired Certificate     | Whether the certificate has expired                             |
+| Is Not A Valid Certificate | Whether the certificate is invalid                              |
+| Expires In Hours           | Number of hours until the certificate expires                   |
+| Expires In Days            | Number of days until the certificate expires                    |
+| Is Request Timeout         | Whether the connection timed out                                |
 
 ### Filter Types
 

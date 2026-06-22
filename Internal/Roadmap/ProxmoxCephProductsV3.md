@@ -31,7 +31,7 @@ A claim we can demo, not a vibe. V3 is done when every line below is true:
    → mint the PVE token with a copy-paste `pveum` two-liner instead of 4 UI
    clicks (V3, WI-18) → the list page polls and flips to the table on first
    data without a hard refresh (V3, WI-18). The Kubernetes gold path is ~4
-   steps and *doesn't* have the live flip (`Pages/Kubernetes/Clusters.tsx`
+   steps and _doesn't_ have the live flip (`Pages/Kubernetes/Clusters.tsx`
    L91–109 is a one-shot count) — we exceed the internal bar, not just match it.
 2. **Feature parity-or-better, verifiably:** every row in the gap table (§2)
    is either ✅ or has a numbered work item or an explicit v4 deferral. Concrete
@@ -48,64 +48,64 @@ A claim we can demo, not a vibe. V3 is done when every line below is true:
    routing have unit tests (WI-20/21); the product has the repo's first
    non-skipped-pattern E2E specs for onboarding (WI-22).
 5. **Discoverable:** `/product/proxmox` and `/product/ceph` landing pages, nav
-   + footer + features-table presence, README feature section, localized navbar
-   strings, launch blog post per repo convention (WI-19, WI-30–33).
+   - footer + features-table presence, README feature section, localized navbar
+     strings, launch blog post per repo convention (WI-19, WI-30–33).
 
 ---
 
 ## 2. Competitive gap table
 
 Legend: ✅ v1/v2 = covered by committed v1 or in-flight v2 · **V3** = work item
-below · *v4* = honestly deferred (requires API agent / other exporter).
+below · _v4_ = honestly deferred (requires API agent / other exporter).
 
 ### Proxmox — vs Datadog (DD), PRTG, Pulse, Checkmk (CMK), Zabbix (ZBX)
 
-| Feature | DD | PRTG | Pulse | CMK | ZBX | OneUptime |
-|---|---|---|---|---|---|---|
-| Auto-discover cluster from first data | manual | meta-scan | LAN scan | manual | manual | ✅ v1 (OTLP upsert) |
-| Single agent covers whole cluster | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ v1 (exporter `cluster=1&node=1`) |
-| Node/guest/storage up + CPU/mem/disk/net perf | ✅ (~34 metrics) | ✅ | ✅ | ✅ | ✅ | ✅ v1/v2 (pve_* catalog) |
-| Inventory list pages, status pills, CPU/mem bars | hosts list | sensor tree | ✅ wall | ✅ | ✅ | ✅ v2 WI-6/7 |
-| At-a-glance honeycomb/wall widget | ✗ | ✗ | ✅ (hallmark) | ✗ | ✗ | ✅ v2 WI-14 |
-| Out-of-box overview dashboard | ✅ | per-sensor | ✅ | ✅ | ✅ | ✅ v2 WI-8 hero + WI-14 template |
-| Shipped alert/monitor templates | 4 | channel limits | defaults | rule packs | triggers | ✅ v2: 9 → **V3: 11** (WI-24/25) |
-| Quorum / cluster-health alert | ha.quorate metric | ✅ quorum channel | ✅ | ✅ pvecm | ✅ | ✅ v2 (pve-quorum-risk; node-visibility-derived, documented) |
-| HA resource state monitoring | ✅ 2.0.0 | ✗ | ✅ | ✗ | ✗ | ✅ v2 (pve_ha_state template + chips) |
-| **Backup coverage ("which guests have no backup job")** | ✗ | ✗ | ✅ (killer feature) | partial | ✗ | **V3 WI-24** (`pve_not_backed_up_total/_info` — verified) |
-| Per-guest backup age / success / size / bandwidth | ✗ | ✗ | ✅ (PBS+vzdump) | ✅ (task-log parse) | ✗ | *v4 — requires PVE/PBS API; pve-exporter has no last-backup metric (verified)* |
-| Snapshot age / snapshot trees | ✗ | ✗ | ✅ | ✅ | ✗ | *v4 — API-only, no exporter metric* |
-| **Storage replication health** | ✗ (confirmed gap) | ✗ | ✗ | ✗ | ✗ | **V3 WI-25** (`pve_replication_*` — verified, default-on) |
-| PVE task events (migrate, vzdump, apt…) | ✅ 15 types (no vzdump) | ✗ | ✗ | via logs | ✗ | *v4 — task log is API-only (v2 rejected-list)* |
-| PVE service logs (pveproxy, pvedaemon, HA…) | journald recipe | ✗ | ✗ | ✗ | ✗ | **V3 WI-27** (journald receiver recipe + empty-tab banner) |
-| Resource include/exclude filtering | ✅ regex | ✗ | ✅ | rules | macros | ✅ v2 WI-10 (scope/id equality filters) |
-| Guest ↔ in-guest host agent merge | ✅ external tags | ✗ | agents | piggyback | ✗ | ✅ v2 WI-17 (Host FK cross-link + CTA) |
-| PBS server monitoring | ✗ | ✗ | ✅ | ✗ | ✗ | *v4 — PBS API/pbs_exporter track* |
-| Ceph awareness from the PVE product | ✗ (no Ceph metrics) | ✅ status channel | ✗ | ✗ | ✗ | **V3 WI-28** (link to a full Ceph product — beats a single channel) |
-| Setup-friction killers (token snippet, validate endpoint, troubleshooter) | ✗ (top complaint) | ✗ | ✅ | ✗ | ✗ | ✅ v2 (troubleshoot.sh + `/otlp/v1/validate`) + **V3 WI-18** (`pveum` two-liner, live flip) |
-| Per-host pricing pain | ~$15–23/host/mo | per-sensor | free | licensed | free | flat project pricing — marketing angle (WI-31) |
+| Feature                                                                   | DD                      | PRTG              | Pulse               | CMK                 | ZBX      | OneUptime                                                                                   |
+| ------------------------------------------------------------------------- | ----------------------- | ----------------- | ------------------- | ------------------- | -------- | ------------------------------------------------------------------------------------------- |
+| Auto-discover cluster from first data                                     | manual                  | meta-scan         | LAN scan            | manual              | manual   | ✅ v1 (OTLP upsert)                                                                         |
+| Single agent covers whole cluster                                         | ✅                      | ✅                | ✅                  | ✅                  | ✅       | ✅ v1 (exporter `cluster=1&node=1`)                                                         |
+| Node/guest/storage up + CPU/mem/disk/net perf                             | ✅ (~34 metrics)        | ✅                | ✅                  | ✅                  | ✅       | ✅ v1/v2 (pve\_\* catalog)                                                                  |
+| Inventory list pages, status pills, CPU/mem bars                          | hosts list              | sensor tree       | ✅ wall             | ✅                  | ✅       | ✅ v2 WI-6/7                                                                                |
+| At-a-glance honeycomb/wall widget                                         | ✗                       | ✗                 | ✅ (hallmark)       | ✗                   | ✗        | ✅ v2 WI-14                                                                                 |
+| Out-of-box overview dashboard                                             | ✅                      | per-sensor        | ✅                  | ✅                  | ✅       | ✅ v2 WI-8 hero + WI-14 template                                                            |
+| Shipped alert/monitor templates                                           | 4                       | channel limits    | defaults            | rule packs          | triggers | ✅ v2: 9 → **V3: 11** (WI-24/25)                                                            |
+| Quorum / cluster-health alert                                             | ha.quorate metric       | ✅ quorum channel | ✅                  | ✅ pvecm            | ✅       | ✅ v2 (pve-quorum-risk; node-visibility-derived, documented)                                |
+| HA resource state monitoring                                              | ✅ 2.0.0                | ✗                 | ✅                  | ✗                   | ✗        | ✅ v2 (pve_ha_state template + chips)                                                       |
+| **Backup coverage ("which guests have no backup job")**                   | ✗                       | ✗                 | ✅ (killer feature) | partial             | ✗        | **V3 WI-24** (`pve_not_backed_up_total/_info` — verified)                                   |
+| Per-guest backup age / success / size / bandwidth                         | ✗                       | ✗                 | ✅ (PBS+vzdump)     | ✅ (task-log parse) | ✗        | _v4 — requires PVE/PBS API; pve-exporter has no last-backup metric (verified)_              |
+| Snapshot age / snapshot trees                                             | ✗                       | ✗                 | ✅                  | ✅                  | ✗        | _v4 — API-only, no exporter metric_                                                         |
+| **Storage replication health**                                            | ✗ (confirmed gap)       | ✗                 | ✗                   | ✗                   | ✗        | **V3 WI-25** (`pve_replication_*` — verified, default-on)                                   |
+| PVE task events (migrate, vzdump, apt…)                                   | ✅ 15 types (no vzdump) | ✗                 | ✗                   | via logs            | ✗        | _v4 — task log is API-only (v2 rejected-list)_                                              |
+| PVE service logs (pveproxy, pvedaemon, HA…)                               | journald recipe         | ✗                 | ✗                   | ✗                   | ✗        | **V3 WI-27** (journald receiver recipe + empty-tab banner)                                  |
+| Resource include/exclude filtering                                        | ✅ regex                | ✗                 | ✅                  | rules               | macros   | ✅ v2 WI-10 (scope/id equality filters)                                                     |
+| Guest ↔ in-guest host agent merge                                        | ✅ external tags        | ✗                 | agents              | piggyback           | ✗        | ✅ v2 WI-17 (Host FK cross-link + CTA)                                                      |
+| PBS server monitoring                                                     | ✗                       | ✗                 | ✅                  | ✗                   | ✗        | _v4 — PBS API/pbs_exporter track_                                                           |
+| Ceph awareness from the PVE product                                       | ✗ (no Ceph metrics)     | ✅ status channel | ✗                   | ✗                   | ✗        | **V3 WI-28** (link to a full Ceph product — beats a single channel)                         |
+| Setup-friction killers (token snippet, validate endpoint, troubleshooter) | ✗ (top complaint)       | ✗                 | ✅                  | ✗                   | ✗        | ✅ v2 (troubleshoot.sh + `/otlp/v1/validate`) + **V3 WI-18** (`pveum` two-liner, live flip) |
+| Per-host pricing pain                                                     | ~$15–23/host/mo         | per-sensor        | free                | licensed            | free     | flat project pricing — marketing angle (WI-31)                                              |
 
 ### Ceph — vs upstream Dashboard (Reef/Squid) + ceph-mixin
 
-| Feature | Upstream | ceph-mixin | OneUptime |
-|---|---|---|---|
-| Health pill + "why" breakdown | ✅ | 2 rules | ✅ v2 WI-8 (`ceph_health_status` + `ceph_health_detail` drill-down) |
-| Capacity gauge with nearfull/full thresholds | ✅ double-doughnut | ✅ | ✅ v2 (tile; fixed 85/95 defaults documented) |
-| Capacity forecasting | ✗ (operator gripe) | ✅ predict_linear alerts | ✅ v2 UI fit + **V3 WI-29** (per-pool/storage) · *alerting on forecast = v4* |
-| OSD up/in matrix + honeycomb | ✅ | ✅ | ✅ v2 WI-8/14 |
-| PG state breakdown | ✅ | ✅ | ✅ v2 (`ceph_pg_active/clean/degraded/undersized/total`) |
-| Pool list: used%, IOPS, throughput | ✅ | ✅ | ✅ v2 WI-7 |
-| Mon quorum + clock skew | ✅ | ✅ | ✅ v2 quorum · **V3 WI-26** clock skew (health_detail) |
-| Daemon crash detection | ✅ | ✅ (RECENT_CRASH) | **V3 WI-26** (`ceph_health_detail{name="RECENT_CRASH"}` — verified: no `ceph_crash_*` metric exists) |
-| Slow ops (cluster + per-daemon) | ✅ | ✅ both | ✅ v2 cluster · **V3 WI-26** per-daemon (`ceph_daemon_health_metrics{type="SLOW_OPS"}`) |
-| OSD network/heartbeat issues | ✅ | ✅ (health checks) | **V3 WI-26** (`OSD_SLOW_PING_TIME_FRONT/BACK` via health_detail — verified: no ping-time gauge exists) |
-| Scrub staleness alerts | ✅ | ✅ | **V3 verify-then-add** (§3.9 — metric name unverified) |
-| OSD nearfull/full/backfillfull, mon disk space | ✅ | ✅ | **V3 WI-26** (health_detail names) |
-| PG imbalance, hardware/SMART, NVMe-oF, RBD-mirror, cephadm rules | ✗/✅ | ✅ (~40 rules) | *v4 / rejected — need cross-series math, SMART data, or ceph-exporter (mixin counts inflated by these)* |
-| Recovery throughput as first-class series | ✅ | ✅ | **V3 verify-then-add** (§3.9) |
-| RGW / CephFS deep views | ✅ (S3 analytics, Squid) | ✅ 5 dashboards | *v4 — per-daemon perf counters moved to ceph-exporter since Reef (verified)* |
-| Multi-cluster fleet view | only in Tentacle | ✅ 1 dashboard | ✅ v1 — the Clusters list page with health pills/capacity bars IS a fleet view (marketing angle, WI-31) |
-| Cluster log viewer | ✅ | n/a | ✅ v2 WI-16 (filelog → ClusterLog page) |
-| Works without bolting on Grafana/Alertmanager | ✗ (iframes, top gripe) | requires stack | ✅ by construction — lead marketing angle (WI-31) |
+| Feature                                                          | Upstream                 | ceph-mixin               | OneUptime                                                                                               |
+| ---------------------------------------------------------------- | ------------------------ | ------------------------ | ------------------------------------------------------------------------------------------------------- |
+| Health pill + "why" breakdown                                    | ✅                       | 2 rules                  | ✅ v2 WI-8 (`ceph_health_status` + `ceph_health_detail` drill-down)                                     |
+| Capacity gauge with nearfull/full thresholds                     | ✅ double-doughnut       | ✅                       | ✅ v2 (tile; fixed 85/95 defaults documented)                                                           |
+| Capacity forecasting                                             | ✗ (operator gripe)       | ✅ predict_linear alerts | ✅ v2 UI fit + **V3 WI-29** (per-pool/storage) · _alerting on forecast = v4_                            |
+| OSD up/in matrix + honeycomb                                     | ✅                       | ✅                       | ✅ v2 WI-8/14                                                                                           |
+| PG state breakdown                                               | ✅                       | ✅                       | ✅ v2 (`ceph_pg_active/clean/degraded/undersized/total`)                                                |
+| Pool list: used%, IOPS, throughput                               | ✅                       | ✅                       | ✅ v2 WI-7                                                                                              |
+| Mon quorum + clock skew                                          | ✅                       | ✅                       | ✅ v2 quorum · **V3 WI-26** clock skew (health_detail)                                                  |
+| Daemon crash detection                                           | ✅                       | ✅ (RECENT_CRASH)        | **V3 WI-26** (`ceph_health_detail{name="RECENT_CRASH"}` — verified: no `ceph_crash_*` metric exists)    |
+| Slow ops (cluster + per-daemon)                                  | ✅                       | ✅ both                  | ✅ v2 cluster · **V3 WI-26** per-daemon (`ceph_daemon_health_metrics{type="SLOW_OPS"}`)                 |
+| OSD network/heartbeat issues                                     | ✅                       | ✅ (health checks)       | **V3 WI-26** (`OSD_SLOW_PING_TIME_FRONT/BACK` via health_detail — verified: no ping-time gauge exists)  |
+| Scrub staleness alerts                                           | ✅                       | ✅                       | **V3 verify-then-add** (§3.9 — metric name unverified)                                                  |
+| OSD nearfull/full/backfillfull, mon disk space                   | ✅                       | ✅                       | **V3 WI-26** (health_detail names)                                                                      |
+| PG imbalance, hardware/SMART, NVMe-oF, RBD-mirror, cephadm rules | ✗/✅                     | ✅ (~40 rules)           | _v4 / rejected — need cross-series math, SMART data, or ceph-exporter (mixin counts inflated by these)_ |
+| Recovery throughput as first-class series                        | ✅                       | ✅                       | **V3 verify-then-add** (§3.9)                                                                           |
+| RGW / CephFS deep views                                          | ✅ (S3 analytics, Squid) | ✅ 5 dashboards          | _v4 — per-daemon perf counters moved to ceph-exporter since Reef (verified)_                            |
+| Multi-cluster fleet view                                         | only in Tentacle         | ✅ 1 dashboard           | ✅ v1 — the Clusters list page with health pills/capacity bars IS a fleet view (marketing angle, WI-31) |
+| Cluster log viewer                                               | ✅                       | n/a                      | ✅ v2 WI-16 (filelog → ClusterLog page)                                                                 |
+| Works without bolting on Grafana/Alertmanager                    | ✗ (iframes, top gripe)   | requires stack           | ✅ by construction — lead marketing angle (WI-31)                                                       |
 
 ---
 
@@ -137,7 +137,7 @@ Two finishers remain from the product-quality audit:
    (`Pages/Kubernetes/Clusters.tsx` L91–109), so the user pastes the command
    and must hard-refresh to see Connected. While `count === 0`, re-count every
    10 s (clear on unmount, stop on first nonzero) and flip empty-state → table.
-   This *exceeds* the K8s bar; optionally back-port to K8s/Docker/Host as a
+   This _exceeds_ the K8s bar; optionally back-port to K8s/Docker/Host as a
    separate follow-up (do not bundle — keep v3 diff product-scoped).
 
 **Files:** `App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown.ts`,
@@ -237,7 +237,7 @@ more. Flag if any model was intentionally excluded.
 #### WI-24: Backup coverage — the Pulse answer, at exporter fidelity (M)
 
 The single most-loved Pulse feature is "which guests have no recent backup?".
-pve-exporter cannot answer *recency* (verified: there are **no** `pve_backup_*`
+pve-exporter cannot answer _recency_ (verified: there are **no** `pve_backup_*`
 metrics), but its default-enabled cluster-level `backup-info` collector exposes
 exactly two metrics, already flowing through our agent today (we scrape with
 `cluster=1`):
@@ -246,6 +246,7 @@ exactly two metrics, already flowing through our agent today (we scrape with
 - `pve_not_backed_up_info` — present per uncovered guest, labeled only `['id']`
 
 Work:
+
 1. **Snapshot scan:** add both names to `PVE_SNAPSHOT_METRIC_NAMES`; new
    `ProxmoxCluster.guestsWithoutBackupCount` column (migration via
    `npm run generate-postgres-migration` + register in `SchemaMigrations/Index.ts`)
@@ -267,7 +268,7 @@ Work:
 4. **Honest boundary, stated in docs and UI tooltip:** "covered by a job" ≠
    "backed up recently and successfully". Freshness/success/size/verification
    require the PVE vzdump task log or PBS API (Checkmk parses task logs
-   *because* "Proxmox does not provide backup status directly"; Pulse calls
+   _because_ "Proxmox does not provide backup status directly"; Pulse calls
    both APIs). That is the **v4 API-agent track** — do not fake it with
    invented metrics. The tile copy says "backup job coverage", never "backups
    healthy".
@@ -292,9 +293,10 @@ verified from exporter source, labeled `id`; `pve_replication_info` adds
 `pve_replication_failed_syncs`, `pve_replication_info`.
 
 Work:
+
 1. **Alert template #11:** `pve-replication-failing` — Replication/Critical,
    `pve_replication_failed_syncs`, groupBy `id`, Max / Past5Min, fires > 0 /
-   recovers = 0. (A *staleness* alert — `now − last_sync` — is **not
+   recovers = 0. (A _staleness_ alert — `now − last_sync` — is **not
    expressible** in the criteria engine: there is no wall-clock function over
    metric values. Do not fake it; staleness is UI-only below. Revisit if the
    engine ever grows derived/now()-based expressions — v4.)
@@ -315,7 +317,7 @@ Work:
 ceph-mixin has ~85 rules, but a large share need data the mgr/prometheus
 module does not export (verified gaps: no `ceph_crash_*` metric, no
 heartbeat-ping gauges, no SMART, per-daemon perf counters moved to the
-separate ceph-exporter since Reef). What the mgr module *does* verifiably
+separate ceph-exporter since Reef). What the mgr module _does_ verifiably
 export is `ceph_health_detail{name,severity}` (one series per **active**
 health check) and `ceph_daemon_health_metrics{type,ceph_daemon}`. Both are
 equality-filterable on datapoint labels — the exact shape v2's
@@ -324,16 +326,16 @@ equality-filterable on datapoint labels — the exact shape v2's
 Add 8 templates to `CephAlertTemplates.ts` (all fire Max > 0 / recover = 0,
 Past5Min unless noted; severity per mixin):
 
-| id | Severity | Filter |
-|---|---|---|
-| ceph-pg-damaged | Critical | `ceph_health_detail` where `name=PG_DAMAGED` OR `name=OSD_SCRUB_ERRORS` (two filters, FilterCondition.Any) |
-| ceph-daemon-crash | Critical | `name=RECENT_CRASH` (the only crash signal that exists — document) |
-| ceph-osd-slow-heartbeats | Warning | `name=OSD_SLOW_PING_TIME_FRONT` OR `name=OSD_SLOW_PING_TIME_BACK` |
-| ceph-mon-clock-skew | Warning | `name=MON_CLOCK_SKEW` |
-| ceph-osd-nearfull | Warning | `name=OSD_NEARFULL` |
-| ceph-osd-full | Critical (Past1Minute) | `name=OSD_FULL` |
-| ceph-mon-disk-space | Warning + Critical criteria | `name=MON_DISK_LOW` (warn) / `name=MON_DISK_CRIT` (crit) in one template |
-| ceph-daemon-slow-ops | Warning | `ceph_daemon_health_metrics` where `type=SLOW_OPS`, groupBy `ceph_daemon` (per-daemon complement to v2's cluster-level `ceph-slow-ops`) |
+| id                       | Severity                    | Filter                                                                                                                                  |
+| ------------------------ | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| ceph-pg-damaged          | Critical                    | `ceph_health_detail` where `name=PG_DAMAGED` OR `name=OSD_SCRUB_ERRORS` (two filters, FilterCondition.Any)                              |
+| ceph-daemon-crash        | Critical                    | `name=RECENT_CRASH` (the only crash signal that exists — document)                                                                      |
+| ceph-osd-slow-heartbeats | Warning                     | `name=OSD_SLOW_PING_TIME_FRONT` OR `name=OSD_SLOW_PING_TIME_BACK`                                                                       |
+| ceph-mon-clock-skew      | Warning                     | `name=MON_CLOCK_SKEW`                                                                                                                   |
+| ceph-osd-nearfull        | Warning                     | `name=OSD_NEARFULL`                                                                                                                     |
+| ceph-osd-full            | Critical (Past1Minute)      | `name=OSD_FULL`                                                                                                                         |
+| ceph-mon-disk-space      | Warning + Critical criteria | `name=MON_DISK_LOW` (warn) / `name=MON_DISK_CRIT` (crit) in one template                                                                |
+| ceph-daemon-slow-ops     | Warning                     | `ceph_daemon_health_metrics` where `type=SLOW_OPS`, groupBy `ceph_daemon` (per-daemon complement to v2's cluster-level `ceph-slow-ops`) |
 
 Semantics note to encode in descriptions: health-detail series exist **only
 while the check is active** (Quincy+); absence = healthy, so Max>0/=0 with
@@ -520,7 +522,7 @@ scoping starts from evidence.
 
 Everything below requires polling the PVE / PBS / Ceph APIs or new exporters —
 out of scope for the config-only OTel agents by design (v2 rejected-list
-precedent). They are the *next* moat, not this release:
+precedent). They are the _next_ moat, not this release:
 
 - **Per-guest backup freshness/success/size/verification** (vzdump task-log
   parsing à la Checkmk; PBS datastore/verify state à la Pulse). The decisive
@@ -556,7 +558,7 @@ Order of operations:
    migrations, `npm run fix`, `npm run compile`).
 2. **Phase A = P0 (WI-18…WI-23)** — small, independent, launch-gating. Ship
    with or immediately after the v2 release; WI-33's blog post waits for these
-   (the TTFV demo *is* the launch story).
+   (the TTFV demo _is_ the launch story).
 3. **Phase B = P1 (WI-24…WI-29)** + the §3.9 verification spike (run the spike
    first; it gates WI-26's optional scrub rows and WI-24's join). WI-24/25/26
    are independent of each other; WI-28 touches the same Overview files as

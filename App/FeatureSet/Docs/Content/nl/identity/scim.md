@@ -18,10 +18,12 @@ Project-SCIM stelt identiteitsproviders in staat teamleden binnen OneUptime-proj
 ### Project-SCIM instellen
 
 1. **Navigeer naar Projectinstellingen**
+
    - Ga naar uw OneUptime-project
    - Navigeer naar **Projectinstellingen** > **Team** > **SCIM**
 
 2. **SCIM-instellingen configureren**
+
    - Schakel **Gebruikers automatisch inrichten** in om gebruikers automatisch toe te voegen wanneer ze zijn toegewezen in uw IdP
    - Schakel **Gebruikers automatisch verwijderen** in om gebruikers automatisch te verwijderen wanneer ze zijn verwijderd in uw IdP
    - Selecteer de **Standaardteams** waartoe nieuwe gebruikers worden toegevoegd
@@ -65,10 +67,12 @@ Statuspagina-SCIM stelt identiteitsproviders in staat abonnees van privé-status
 ### Statuspagina-SCIM instellen
 
 1. **Navigeer naar Statuspagina-instellingen**
+
    - Ga naar uw OneUptime-statuspagina
    - Navigeer naar **Statuspagina-instellingen** > **Privégebruikers** > **SCIM**
 
 2. **SCIM-instellingen configureren**
+
    - Schakel **Gebruikers automatisch inrichten** in om abonnees automatisch toe te voegen wanneer ze zijn toegewezen in uw IdP
    - Schakel **Gebruikers automatisch verwijderen** in om abonnees automatisch te verwijderen wanneer ze zijn verwijderd in uw IdP
    - Kopieer de **SCIM Basis-URL** en het **Bearer-token** voor uw IdP-configuratie
@@ -151,14 +155,14 @@ Microsoft Entra ID biedt enterprise-grade identiteitsbeheer met robuuste SCIM-in
 2. Klik op **Azure Active Directory-gebruikers inrichten**
 3. Configureer de volgende attribuutkoppelingen:
 
-| Azure AD-attribuut | OneUptime SCIM-attribuut | Vereist |
-|-------------------|-------------------------|----------|
-| `userPrincipalName` | `userName` | Ja |
-| `mail` | `emails[type eq "work"].value` | Aanbevolen |
-| `displayName` | `displayName` | Aanbevolen |
-| `givenName` | `name.givenName` | Optioneel |
-| `surname` | `name.familyName` | Optioneel |
-| `Switch([IsSoftDeleted], , "False", "True", "True", "False")` | `active` | Aanbevolen |
+| Azure AD-attribuut                                            | OneUptime SCIM-attribuut       | Vereist    |
+| ------------------------------------------------------------- | ------------------------------ | ---------- |
+| `userPrincipalName`                                           | `userName`                     | Ja         |
+| `mail`                                                        | `emails[type eq "work"].value` | Aanbevolen |
+| `displayName`                                                 | `displayName`                  | Aanbevolen |
+| `givenName`                                                   | `name.givenName`               | Optioneel  |
+| `surname`                                                     | `name.familyName`              | Optioneel  |
+| `Switch([IsSoftDeleted], , "False", "True", "True", "False")` | `active`                       | Aanbevolen |
 
 4. Verwijder eventuele onnodige koppelingen om de inrichting te vereenvoudigen
 5. Klik op **Opslaan**
@@ -173,9 +177,9 @@ Als u **Groepen pushen** heeft ingeschakeld in OneUptime:
 4. Configureer de volgende attribuutkoppelingen:
 
 | Azure AD-attribuut | OneUptime SCIM-attribuut |
-|-------------------|-------------------------|
-| `displayName` | `displayName` |
-| `members` | `members` |
+| ------------------ | ------------------------ |
+| `displayName`      | `displayName`            |
+| `members`          | `members`                |
 
 5. Klik op **Opslaan**
 
@@ -229,11 +233,13 @@ Okta biedt flexibel identiteitsbeheer met uitstekende SCIM-ondersteuning. Volg d
 #### Stap 2: Okta-applicatie aanmaken of configureren
 
 **Als u een bestaande SSO-applicatie heeft:**
+
 1. Meld u aan bij uw Okta-beheerconsole
 2. Navigeer naar **Applicaties** > **Applicaties**
 3. Zoek uw bestaande OneUptime-applicatie en selecteer deze
 
 **Als u een nieuwe applicatie aanmaakt:**
+
 1. Meld u aan bij uw Okta-beheerconsole
 2. Navigeer naar **Applicaties** > **Applicaties**
 3. Klik op **App-integratie aanmaken**
@@ -284,13 +290,13 @@ Okta biedt flexibel identiteitsbeheer met uitstekende SCIM-ondersteuning. Volg d
 1. Blader omlaag naar **Attribuutkoppelingen**
 2. Controleer of configureer de volgende koppelingen:
 
-| Okta-attribuut | OneUptime SCIM-attribuut | Richting |
-|---------------|-------------------------|-----------|
-| `userName` | `userName` | Okta naar app |
-| `user.email` | `emails[primary eq true].value` | Okta naar app |
-| `user.firstName` | `name.givenName` | Okta naar app |
-| `user.lastName` | `name.familyName` | Okta naar app |
-| `user.displayName` | `displayName` | Okta naar app |
+| Okta-attribuut     | OneUptime SCIM-attribuut        | Richting      |
+| ------------------ | ------------------------------- | ------------- |
+| `userName`         | `userName`                      | Okta naar app |
+| `user.email`       | `emails[primary eq true].value` | Okta naar app |
+| `user.firstName`   | `name.givenName`                | Okta naar app |
+| `user.lastName`    | `name.familyName`               | Okta naar app |
+| `user.displayName` | `displayName`                   | Okta naar app |
 
 3. Verwijder eventuele onnodige koppelingen
 4. Klik op **Opslaan** als u wijzigingen heeft aangebracht
@@ -341,15 +347,15 @@ De SCIM-implementatie van OneUptime volgt de SCIM v2.0-specificatie en zou moete
 
 #### Ondersteunde SCIM-eindpunten
 
-| Eindpunt | Methoden | Beschrijving |
-|----------|---------|-------------|
-| `/ServiceProviderConfig` | GET | SCIM-servermogelijkheden |
-| `/Schemas` | GET | Beschikbare resourceschema's |
-| `/ResourceTypes` | GET | Beschikbare resourcetypen |
-| `/Users` | GET, POST | Gebruikers weergeven en aanmaken |
-| `/Users/{id}` | GET, PUT, PATCH, DELETE | Individuele gebruikers beheren |
-| `/Groups` | GET, POST | Groepen/teams weergeven en aanmaken (alleen Project-SCIM) |
-| `/Groups/{id}` | GET, PUT, PATCH, DELETE | Individuele groepen beheren (alleen Project-SCIM) |
+| Eindpunt                 | Methoden                | Beschrijving                                              |
+| ------------------------ | ----------------------- | --------------------------------------------------------- |
+| `/ServiceProviderConfig` | GET                     | SCIM-servermogelijkheden                                  |
+| `/Schemas`               | GET                     | Beschikbare resourceschema's                              |
+| `/ResourceTypes`         | GET                     | Beschikbare resourcetypen                                 |
+| `/Users`                 | GET, POST               | Gebruikers weergeven en aanmaken                          |
+| `/Users/{id}`            | GET, PUT, PATCH, DELETE | Individuele gebruikers beheren                            |
+| `/Groups`                | GET, POST               | Groepen/teams weergeven en aanmaken (alleen Project-SCIM) |
+| `/Groups/{id}`           | GET, PUT, PATCH, DELETE | Individuele groepen beheren (alleen Project-SCIM)         |
 
 #### SCIM-gebruikersschema
 
@@ -411,5 +417,6 @@ Wanneer SCIM probeert een gebruiker aan te maken die al bestaat (overeenkomend o
 ### Hoe vaak vindt inrichtingssynchronisatie plaats?
 
 Dit is afhankelijk van uw identiteitsprovider:
+
 - **Microsoft Entra ID**: Eerste synchronisatie kan tot 40 minuten duren; volgende synchronisaties elke 40 minuten
 - **Okta**: Bijna realtime voor de meeste bewerkingen, met periodieke volledige synchronisaties

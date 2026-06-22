@@ -31,11 +31,11 @@ Ping monitors किसी host पर ICMP ping requests भेजकर basic 
 
 ### उपलब्ध Check Types
 
-| Check Type | विवरण |
-|------------|-------|
-| Is Online | host ping requests का response देता है या नहीं |
+| Check Type            | विवरण                                            |
+| --------------------- | ------------------------------------------------ |
+| Is Online             | host ping requests का response देता है या नहीं   |
 | Response Time (in ms) | milliseconds में ping request का round-trip time |
-| Is Request Timeout | ping request timeout हुआ या नहीं |
+| Is Request Timeout    | ping request timeout हुआ या नहीं                 |
 
 ### Filter Types
 

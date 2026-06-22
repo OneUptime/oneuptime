@@ -1023,7 +1023,7 @@ const products: Dictionary<Product> = {
     productDescription:
       "Pingdom is a veteran in the monitoring space with reliable uptime monitoring and 100+ probe locations worldwide. It focuses on synthetic monitoring and real user monitoring but requires additional tools for incident response and status communication.",
     oneUptimeDescription:
-      "OneUptime provides unlimited monitoring from global locations, plus integrated status pages, on-call scheduling, and incident management. Monitor everything your infrastructure needs without worrying about check limits.",
+      "OneUptime provides monitoring from global locations at a flat $1/month per active monitor (no per-check tiers and no caps), plus unlimited free manual monitors, integrated status pages, on-call scheduling, and incident management. Monitor everything your infrastructure needs without worrying about check limits.",
     oneuptimePrice: "",
     tagline: "Complete observability platform vs monitoring-only tool",
     competitorFocus:
@@ -1035,9 +1035,9 @@ const products: Dictionary<Product> = {
     description:
       "Pingdom (now owned by SolarWinds) is one of the oldest and most reliable monitoring tools, offering uptime monitoring from 100+ probe locations. It excels at detecting outages but operates in isolation - you need additional tools for on-call scheduling, incident management, and customer-facing status pages.",
     descriptionLine2:
-      "Get unlimited monitoring plus status pages, on-call scheduling, and incident management working together in one platform.",
+      "Get monitoring at a flat $1/month per active monitor plus status pages, on-call scheduling, and incident management working together in one platform.",
     migrationBenefits: [
-      "Monitor unlimited endpoints without per-check limitations",
+      "Monitor any number of endpoints at $1/month each with no per-check tiers",
       "Global probe network for comprehensive coverage",
       "Add on-call scheduling you didn't have before",
       "Get status pages that auto-update from monitoring",
@@ -1102,7 +1102,7 @@ const products: Dictionary<Product> = {
         scenario: "Startup monitoring 20 endpoints with on-call needs",
         competitorSolution: "Pingdom Synthetic + PagerDuty + StatusPage",
         competitorCost: "$50 + $210 + $99 = $359/month",
-        oneuptimeSolution: "OneUptime with unlimited monitors",
+        oneuptimeSolution: "OneUptime at $1/active monitor",
         oneuptimeCost: "$0/month (Free tier)",
       },
       {
@@ -1125,7 +1125,7 @@ const products: Dictionary<Product> = {
       {
         question: "How does OneUptime compare to Pingdom?",
         answer:
-          "Pingdom is a focused uptime monitoring tool with 100+ probe locations and per-check pricing. It does basic monitoring well but lacks incident management, on-call scheduling, and robust status pages. OneUptime provides unlimited monitors (no per-monitor fees), plus status pages with unlimited subscribers, on-call scheduling with escalation policies, and full incident management. You replace Pingdom plus 2-3 other tools with one platform.",
+          "Pingdom is a focused uptime monitoring tool with 100+ probe locations and per-check pricing. It does basic monitoring well but lacks incident management, on-call scheduling, and robust status pages. OneUptime provides active monitors at a flat $1/month — no per-check tiers and no caps — plus unlimited free manual monitors, status pages with unlimited subscribers, on-call scheduling with escalation policies, and full incident management. You replace Pingdom plus 2-3 other tools with one platform.",
       },
       {
         question: "What types of monitoring does OneUptime support vs Pingdom?",
@@ -1155,14 +1155,14 @@ const products: Dictionary<Product> = {
       {
         question: "Why is per-monitor pricing problematic?",
         answer:
-          "Per-monitor pricing creates perverse incentives to monitor less. With Pingdom, adding a new service or endpoint means calculating if it's worth the extra cost. With OneUptime's unlimited monitoring, you can monitor everything - every endpoint, every region, every environment - without worrying about the bill. This leads to better coverage and faster issue detection.",
+          "Per-check pricing creates perverse incentives to monitor less. With Pingdom, adding a new service or endpoint means calculating if it's worth the extra cost. With OneUptime's flat $1/month per active monitor - no per-check tiers and no caps - you can monitor everything across every endpoint, region, and environment with simple, predictable costs. This leads to better coverage and faster issue detection.",
       },
     ],
     keyDifferences: [
       {
-        title: "Unlimited Monitoring",
+        title: "$1 Per Active Monitor",
         description:
-          "Monitor every endpoint, service, and region without artificial limits",
+          "Monitor every endpoint, service, and region at a flat $1/month each - no per-check tiers and no caps",
         icon: "unlimited",
       },
       {
@@ -1581,7 +1581,7 @@ const products: Dictionary<Product> = {
         competitorSolution:
           "Datadog Infrastructure + APM + StatusPage + PagerDuty",
         competitorCost: "$150 + $310 + $99 + $210 = $769/month",
-        oneuptimeSolution: "OneUptime with unlimited monitoring",
+        oneuptimeSolution: "OneUptime at $1/active monitor",
         oneuptimeCost: "$0/month (Free tier) or $99/month (Growth)",
       },
       {
@@ -1630,7 +1630,7 @@ const products: Dictionary<Product> = {
       {
         question: "Does OneUptime support logs like Datadog?",
         answer:
-          "OneUptime includes log monitoring for error detection and alerting. For full-text log search and analysis at scale, you might pair OneUptime with a dedicated log solution. The difference is you're not paying per-GB for log ingestion - our approach keeps costs predictable while providing the alerting and monitoring capabilities most teams need.",
+          "OneUptime includes log monitoring for error detection and alerting. For full-text log search and analysis at scale, you might pair OneUptime with a dedicated log solution. The difference is OneUptime's log ingestion is a low $0.10/GB - far cheaper than most log platforms - keeping costs predictable while providing the alerting and monitoring capabilities most teams need.",
       },
       {
         question: "Can I self-host OneUptime to control costs?",
@@ -2018,12 +2018,12 @@ const products: Dictionary<Product> = {
       {
         question: "What about New Relic's free tier?",
         answer:
-          "New Relic's free tier is generous: 100GB data and one full platform user. However, once you need more than one power user or exceed 100GB, costs jump significantly. OneUptime's free tier includes unlimited basic users and doesn't charge per-GB, making it more scalable for growing teams.",
+          "New Relic's free tier is generous: 100GB data and one full platform user. However, once you need more than one power user or exceed 100GB, costs jump significantly. OneUptime's free tier includes unlimited basic users, and telemetry is a low $0.10/GB ingested, making it more scalable for growing teams.",
       },
       {
         question: "How does data pricing compare?",
         answer:
-          "New Relic charges $0.30-0.50/GB after 100GB free. A team generating 500GB/month pays $120-200 in overages alone. OneUptime doesn't charge per-GB for monitoring data. Our pricing is based on features and usage tiers, not data volume, making costs predictable as your infrastructure grows.",
+          "New Relic charges $0.30-0.50/GB after 100GB free. A team generating 500GB/month pays $120-200 in overages alone. OneUptime's telemetry is just $0.10/GB ingested - far below New Relic's overage rates - so the same 500GB/month costs a fraction as much, keeping costs predictable as your infrastructure grows.",
       },
       {
         question: "Does OneUptime have APM like New Relic?",
@@ -2039,8 +2039,9 @@ const products: Dictionary<Product> = {
         icon: "savings",
       },
       {
-        title: "No Data Charges",
-        description: "No per-GB fees - New Relic charges $0.30-0.50/GB overage",
+        title: "Lower Data Costs",
+        description:
+          "Telemetry at $0.10/GB - New Relic charges $0.30-0.50/GB overage",
         icon: "unlimited",
       },
       {
@@ -2213,13 +2214,13 @@ const products: Dictionary<Product> = {
     competitorFocus:
       "Unified monitoring platform with uptime monitoring, status pages, and on-call features in one place",
     oneuptimeFocus:
-      "Open-source observability with unlimited monitoring, status pages, on-call, and incident management",
+      "Open-source observability with monitoring at $1/active monitor, status pages, on-call, and incident management",
     annualSavings: "",
     lastUpdated: "January 2025",
     productDescription:
       "Better Stack (formerly Better Uptime) offers monitoring, status pages, and on-call features in one modern platform. It provides a similar unified approach with a focus on developer experience and modern design.",
     oneUptimeDescription:
-      "OneUptime provides unlimited monitoring, status pages with unlimited subscribers, and full on-call scheduling. Open source and self-hostable for complete control.",
+      "OneUptime provides monitoring at a flat $1/month per active monitor, status pages with unlimited subscribers, and full on-call scheduling. Open source and self-hostable for complete control.",
     description:
       "Better Stack (formerly Better Uptime) offers monitoring, status pages, and on-call in one platform - a similar unified approach to OneUptime. Both platforms aim to consolidate observability tools, with OneUptime offering open-source transparency and self-hosting options.",
     descriptionLine2:
@@ -2285,7 +2286,7 @@ const products: Dictionary<Product> = {
         scenario: "Startup with 50 monitors and on-call needs",
         competitorSolution: "Better Stack (Free + 40 monitors + Responder)",
         competitorCost: "$0 + $21 + $29 = $50/month",
-        oneuptimeSolution: "OneUptime with unlimited monitors",
+        oneuptimeSolution: "OneUptime at $1/active monitor",
         oneuptimeCost: "$0/month (Free tier)",
       },
       {
@@ -2301,12 +2302,12 @@ const products: Dictionary<Product> = {
       {
         question: "How does OneUptime compare to Better Stack (Better Uptime)?",
         answer:
-          "Better Stack (formerly Better Uptime) and OneUptime share a similar vision of unified observability. Both provide monitoring, status pages, and incident management in one platform. The key differences are pricing and openness: Better Stack charges per 50 monitors ($21/month) and per responder ($29/month), while OneUptime offers unlimited monitors and users with flat pricing. OneUptime is also fully open source (Apache 2.0) with self-hosting options, giving you complete control over your data and infrastructure.",
+          "Better Stack (formerly Better Uptime) and OneUptime share a similar vision of unified observability. Both provide monitoring, status pages, and incident management in one platform. The key differences are pricing and openness: Better Stack charges per 50 monitors ($21/month) and per responder ($29/month), while OneUptime offers simple usage-based pricing - $1/month per active monitor, on-call included, and no per-responder fees. OneUptime is also fully open source (Apache 2.0) with self-hosting options, giving you complete control over your data and infrastructure.",
       },
       {
         question: "What is Better Uptime and why did it become Better Stack?",
         answer:
-          "Better Uptime was a popular monitoring and status page tool that rebranded to Better Stack in 2023 to reflect their expanded product suite including logs, metrics, and observability features. The core uptime monitoring product remains similar, but the pricing model changed to include separate charges for monitors, responders, and telemetry data. OneUptime offers a simpler all-inclusive pricing model.",
+          "Better Uptime was a popular monitoring and status page tool that rebranded to Better Stack in 2023 to reflect their expanded product suite including logs, metrics, and observability features. The core uptime monitoring product remains similar, but the pricing model changed to include separate charges for monitors, responders, and telemetry data. OneUptime offers a simpler usage-based pricing model.",
       },
       {
         question: "What about Better Stack's incident management vs OneUptime?",
@@ -2322,7 +2323,7 @@ const products: Dictionary<Product> = {
       {
         question: "Is Better Stack or OneUptime better for startups?",
         answer:
-          "Both have free tiers, but they differ significantly. Better Stack's free tier includes 10 monitors with basic features. OneUptime's free tier includes more monitors, plus on-call scheduling and incident management features that Better Stack charges extra for. As you scale, OneUptime's unlimited monitoring becomes much more cost-effective. For startups that need the complete incident lifecycle without surprise costs, OneUptime is typically the better choice.",
+          "Both have free tiers, but they differ significantly. Better Stack's free tier includes 10 monitors with basic features. OneUptime's free tier includes more monitors, plus on-call scheduling and incident management features that Better Stack charges extra for. As you scale, OneUptime's flat $1/month per active monitor becomes much more cost-effective. For startups that need the complete incident lifecycle without surprise costs, OneUptime is typically the better choice.",
       },
       {
         question: "Can I self-host OneUptime like Better Stack?",
@@ -2333,20 +2334,20 @@ const products: Dictionary<Product> = {
         question:
           "How does pricing compare between Better Stack and OneUptime?",
         answer:
-          "Better Stack uses a component-based pricing model: $21/month per 50 monitors, $29/month per responder for on-call features, plus additional charges for telemetry data. A team with 100 monitors and 3 on-call responders would pay approximately $129/month minimum. OneUptime offers unlimited monitors and users with simpler flat pricing, making costs predictable as you scale.",
+          "Better Stack uses a component-based pricing model: $21/month per 50 monitors, $29/month per responder for on-call features, plus additional charges for telemetry data. A team with 100 monitors and 3 on-call responders would pay approximately $129/month minimum. OneUptime offers simple usage-based pricing - $1/month per active monitor with on-call included and no per-responder fees - making costs predictable as you scale.",
       },
       {
         question:
           "What features does OneUptime have that Better Stack doesn't?",
         answer:
-          "OneUptime offers several unique capabilities: 1-second minimum check intervals (vs 30 seconds), open source codebase you can audit and extend, self-hosting on your infrastructure, unlimited monitors without per-check fees, and all on-call features included without responder licenses. OneUptime also provides a more complete incident management workflow with built-in postmortem templates and action item tracking.",
+          "OneUptime offers several unique capabilities: 1-second minimum check intervals (vs 30 seconds), open source codebase you can audit and extend, self-hosting on your infrastructure, active monitors at a flat $1/month with no per-check tiers, and all on-call features included without responder licenses. OneUptime also provides a more complete incident management workflow with built-in postmortem templates and action item tracking.",
       },
     ],
     keyDifferences: [
       {
-        title: "Unlimited Monitors",
+        title: "$1 Per Active Monitor",
         description:
-          "No per-monitor fees - Better Stack charges $21/50 monitors",
+          "Flat $1/month per active monitor - Better Stack charges $21/50 monitors",
         icon: "unlimited",
       },
       {
@@ -2516,7 +2517,7 @@ const products: Dictionary<Product> = {
     productDescription:
       "Uptime Robot is one of the most popular simple monitoring tools with an excellent free tier. It excels at straightforward uptime monitoring with a clean interface but focuses solely on monitoring without on-call or incident management features.",
     oneUptimeDescription:
-      "OneUptime provides unlimited monitoring plus complete incident lifecycle management - status pages, on-call scheduling, and incident management all working together.",
+      "OneUptime provides monitoring at a flat $1/month per active monitor plus complete incident lifecycle management - status pages, on-call scheduling, and incident management all working together.",
     description:
       "Uptime Robot is one of the most popular simple monitoring tools with an excellent free tier. It's great for straightforward uptime monitoring but lacks on-call scheduling, advanced incident management, and has basic status pages. As needs grow beyond simple monitoring, teams often need additional tools.",
     descriptionLine2:
@@ -2526,7 +2527,7 @@ const products: Dictionary<Product> = {
       "Complete incident management workflow",
       "Status pages with unlimited subscribers",
       "Faster check intervals available (1 second)",
-      "Unlimited monitors without caps",
+      "Active monitors at a flat $1/month each with no caps",
       "All integrations included: Slack, Teams, webhooks, and more",
     ],
     competitorPricingTiers: [
@@ -2610,7 +2611,7 @@ const products: Dictionary<Product> = {
         scenario: "Growing company needing complete observability",
         competitorSolution: "Uptime Robot Enterprise + PagerDuty + StatusPage",
         competitorCost: "$54 + $400 + $99 = $553/month",
-        oneuptimeSolution: "OneUptime with unlimited monitors",
+        oneuptimeSolution: "OneUptime at $1/active monitor",
         oneuptimeCost: "$0-99/month",
       },
     ],
@@ -2650,9 +2651,9 @@ const products: Dictionary<Product> = {
         icon: "incident",
       },
       {
-        title: "Unlimited Monitors",
+        title: "$1 Per Active Monitor",
         description:
-          "No monitor caps - Uptime Robot limits 50-200 based on plan",
+          "Flat $1/month per active monitor with no caps - Uptime Robot limits 50-200 based on plan",
         icon: "unlimited",
       },
       {

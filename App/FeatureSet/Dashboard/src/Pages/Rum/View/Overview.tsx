@@ -33,6 +33,7 @@ import ResourceOverview, {
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
+import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import WebVitalsCard from "../../../Components/TelemetryResource/WebVitalsCard";
@@ -370,6 +371,15 @@ const RumApplicationOverview: FunctionComponent<
       />
 
       <WebVitalsCard vitals={webVitals} loading={webVitalsLoading} />
+
+      <ArchiveResourceCard<RumApplication>
+        modelType={RumApplication}
+        modelId={modelId}
+        singularName="application"
+        listRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.RUM_APPLICATIONS] as Route,
+        )}
+      />
     </Fragment>
   );
 };

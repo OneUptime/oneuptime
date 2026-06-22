@@ -14,10 +14,12 @@ Die SSO-Integration bietet folgende Vorteile:
 ## SSO einrichten
 
 1. **Zu Projekteinstellungen navigieren**
+
    - Gehen Sie zu Ihrem OneUptime-Projekt
    - Navigieren Sie zu **Projekteinstellungen** > **Authentifizierung** > **SSO**
 
 2. **SSO-Konfiguration erstellen**
+
    - Klicken Sie auf **SSO erstellen**
    - Geben Sie einen **Namen** für die SSO-Konfiguration ein (z. B. "Keycloak SAML" oder "Okta SAML")
    - Geben Sie die **Sign-On-URL** von Ihrem Identity Provider ein

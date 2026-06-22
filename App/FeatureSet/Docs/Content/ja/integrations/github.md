@@ -14,10 +14,12 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 - Issue を登録したい GitHub リポジトリ。
 - Issue を作成できるトークン:
+
   - そのリポジトリに **Issues: Read and write** 権限を持つ**細かいスコープの PAT**、または
   - `repo` スコープを持つ**クラシック PAT**。
 
   [github.com/settings/tokens](https://github.com/settings/tokens) で作成します。
+
 - ワークフローを作成できる OneUptime プロジェクト。
 
 ## ステップ 1 — トークンを保存する
@@ -30,6 +32,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 1. **Workflows → Create Workflow** を開き、`Incidents → GitHub Issues` という名前にして **Builder** を開きます。
 2. **Incident** トリガーを **On Create** に設定して追加します。`Incident` にリネームします。
 3. トリガーに接続した **API** ブロックを追加します:
+
    - **Method**: `POST`
    - **URL**: `https://api.github.com/repos/your-org/your-repo/issues`
    - **Headers**:

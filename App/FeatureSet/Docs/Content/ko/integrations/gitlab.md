@@ -24,8 +24,9 @@ OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/
 1. **Workflows → Create Workflow** 를 열고, 이름을 `Incidents → GitLab Issues` 로 지정하고 **Builder** 를 엽니다.
 2. **Incident** 트리거를 **On Create** 로 설정해 추가합니다. 이름을 `Incident` 로 변경합니다.
 3. 트리거에 연결된 **API** 블록을 추가합니다:
+
    - **Method**: `POST`
-   - **URL**: `https://gitlab.com/api/v4/projects/12345678/issues`  *(`12345678` 을 Project ID로 교체합니다. 자체 관리형의 경우 자체 호스트 사용)*
+   - **URL**: `https://gitlab.com/api/v4/projects/12345678/issues` _(`12345678` 을 Project ID로 교체합니다. 자체 관리형의 경우 자체 호스트 사용)_
    - **Headers**:
 
      ```text

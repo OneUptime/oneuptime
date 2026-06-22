@@ -11,6 +11,7 @@ Ce guide est spécifiquement destiné aux clients qui exécutent des instances O
 ## Structure des ressources
 
 Toutes les ressources Terraform OneUptime suivent une structure simplifiée :
+
 - `name` (obligatoire) — Nom de la ressource
 - `description` (optionnel) — Description de la ressource
 - `data` (optionnel) — Configuration complexe en JSON
@@ -29,31 +30,39 @@ Toutes les ressources Terraform OneUptime suivent une structure simplifiée :
 ## Trouver votre version OneUptime
 
 ### Méthode 1 : Tableau de bord
+
 1. Connectez-vous à votre tableau de bord OneUptime
 2. Allez dans **Paramètres** → **À propos**
 3. Recherchez le numéro de version (ex. : « 7.0.123 »)
 
 ### Méthode 2 : Point d'accès API
+
 ```bash
 curl https://votre-instance-oneuptime.com/api/status
 ```
 
 ### Méthode 3 : Images Docker
+
 Si vous exécutez OneUptime avec Docker :
+
 ```bash
 docker images | grep oneuptime
 # Recherchez le tag, ex. : oneuptime/dashboard:7.0.123
 ```
 
 ### Méthode 4 : Chart Helm
+
 Si vous utilisez Helm :
+
 ```bash
 helm list -n oneuptime
 # Vérifiez la version du chart
 ```
 
 ### Méthode 5 : Variables d'environnement
+
 Vérifiez vos fichiers de configuration pour les variables de version :
+
 ```bash
 grep -r "APP_VERSION\|IMAGE_TAG" /chemin/vers/votre/config/oneuptime
 ```
@@ -112,7 +121,7 @@ terraform {
     }
   }
   required_version = ">= 1.0"
-  
+
   # Optionnel : Utiliser l'état distant pour la collaboration d'équipe
   backend "s3" {
     bucket = "votre-bucket-état-terraform"
@@ -169,13 +178,13 @@ resource "oneuptime_team" "development" {
 resource "oneuptime_monitor" "database" {
   name       = "${var.environment}-database"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "port"
   hostname     = "db.interne.votreentreprise.com"
   port         = 5432
   interval     = "2m"
   timeout      = "10s"
-  
+
   tags = {
     team        = "infrastructure"
     service     = "database"
@@ -187,14 +196,14 @@ resource "oneuptime_monitor" "database" {
 resource "oneuptime_monitor" "application" {
   name       = "${var.environment}-application"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "website"
   url          = "https://app.votreentreprise.com/health"
   interval     = "1m"
   timeout      = "30s"
-  
+
   expected_status_codes = [200]
-  
+
   tags = {
     team        = "development"
     service     = "application"
@@ -208,11 +217,11 @@ resource "oneuptime_on_call_policy" "infrastructure_oncall" {
   name       = "Astreinte Infrastructure"
   project_id = oneuptime_project.main.id
   team_id    = oneuptime_team.infrastructure.id
-  
+
   schedules {
     name     = "24x7 Infrastructure"
     timezone = "America/New_York"
-    
+
     layers {
       name          = "Principal"
       users         = ["infra1@votreentreprise.com", "infra2@votreentreprise.com"]
@@ -228,17 +237,17 @@ resource "oneuptime_on_call_policy" "infrastructure_oncall" {
 resource "oneuptime_alert_policy" "critical_infrastructure" {
   name       = "Alertes Infrastructure Critique"
   project_id = oneuptime_project.main.id
-  
+
   conditions {
     monitor_id = oneuptime_monitor.database.id
     threshold  = "down"
   }
-  
+
   actions {
     type = "email"
     recipients = ["infrastructure@votreentreprise.com"]
   }
-  
+
   actions {
     type             = "oncall_escalation"
     oncall_policy_id = oneuptime_on_call_policy.infrastructure_oncall.id
@@ -249,14 +258,14 @@ resource "oneuptime_alert_policy" "critical_infrastructure" {
 resource "oneuptime_status_page" "internal" {
   name       = "Statut des services internes"
   project_id = oneuptime_project.main.id
-  
+
   domain = "statut.interne.votreentreprise.com"
-  
+
   components {
     name       = "Base de données"
     monitor_id = oneuptime_monitor.database.id
   }
-  
+
   components {
     name       = "Application"
     monitor_id = oneuptime_monitor.application.id
@@ -289,7 +298,7 @@ environment = "development"
 
 ```hcl
 # staging.tfvars
-oneuptime_url = "https://oneuptime-staging.votreentreprise.com"  
+oneuptime_url = "https://oneuptime-staging.votreentreprise.com"
 environment = "staging"
 ```
 
@@ -354,6 +363,7 @@ terraform apply
 ### Règles de pare-feu
 
 Assurez-vous que votre exécuteur Terraform peut accéder à :
+
 - Point d'accès API OneUptime (généralement port 443/HTTPS)
 - Toutes les ressources internes surveillées
 
@@ -383,6 +393,7 @@ export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
 ### 2. Clés API avec moindres privilèges
 
 Créez des clés API avec des permissions minimales requises :
+
 - Gestion des moniteurs
 - Gestion des politiques d'alerte
 - Gestion des équipes (si nécessaire)
@@ -394,7 +405,7 @@ Créez des clés API avec des permissions minimales requises :
 provider "oneuptime" {
   oneuptime_url = "https://oneuptime.votreentreprise.com"
   api_key       = var.oneuptime_api_key
-  
+
   # Options de sécurité supplémentaires si prises en charge
   verify_ssl = true
   timeout    = "30s"
@@ -409,10 +420,10 @@ Créez des moniteurs pour votre automatisation Terraform :
 resource "oneuptime_monitor" "terraform_runner" {
   name       = "Santé de l'exécuteur Terraform"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "heartbeat"
   interval     = "15m"
-  
+
   tags = {
     automation = "terraform"
     criticality = "medium"
@@ -429,6 +440,7 @@ Error: connection refused
 ```
 
 **Solutions** :
+
 1. Vérifiez que l'instance OneUptime est en cours d'exécution
 2. Vérifiez que l'URL de l'API est correcte
 3. Vérifiez la connectivité pare-feu/réseau
@@ -441,6 +453,7 @@ Error: API version incompatible
 ```
 
 **Solutions** :
+
 1. Vérifiez la version OneUptime : `curl https://votre-instance/api/status`
 2. Mettez à jour la version du fournisseur pour correspondre
 3. Exécutez `terraform init -upgrade`
@@ -485,7 +498,7 @@ tar -czf terraform-config-$(date +%Y%m%d).tar.gz *.tf *.tfvars
 ```bash
 # Créer des environnements
 terraform workspace new dev
-terraform workspace new staging  
+terraform workspace new staging
 terraform workspace new prod
 
 # Basculer entre les environnements

@@ -24,34 +24,34 @@ DNS-monitorer spør DNS-servere om spesifikke posttyper og evaluerer resultatene
 
 ### Grunnleggende innstillinger
 
-| Felt | Beskrivelse | Påkrevd |
-|------|-------------|---------|
-| Domenenavn | Domenet som skal spørres (f.eks. `example.com`) | Ja |
-| Posttype | DNS-posttypen som skal spørres | Ja |
-| DNS-server | Egendefinert DNS-server (f.eks. `8.8.8.8`). La stå tom for systemstandard | Nei |
+| Felt       | Beskrivelse                                                               | Påkrevd |
+| ---------- | ------------------------------------------------------------------------- | ------- |
+| Domenenavn | Domenet som skal spørres (f.eks. `example.com`)                           | Ja      |
+| Posttype   | DNS-posttypen som skal spørres                                            | Ja      |
+| DNS-server | Egendefinert DNS-server (f.eks. `8.8.8.8`). La stå tom for systemstandard | Nei     |
 
 ### Støttede posttyper
 
-| Posttype | Beskrivelse |
-|----------|-------------|
-| A | IPv4-adresseposter |
-| AAAA | IPv6-adresseposter |
-| CNAME | Kanonisk navn (alias)-poster |
-| MX | E-postutvekslingsposter |
-| NS | Navneserverposter |
-| TXT | Tekstposter (SPF, DKIM, osv.) |
-| SOA | Start of Authority-poster |
-| PTR | Pekerpost (omvendt DNS) |
-| SRV | Tjenestelokalisatorposter |
-| CAA | Certificate Authority Authorization-poster |
+| Posttype | Beskrivelse                                |
+| -------- | ------------------------------------------ |
+| A        | IPv4-adresseposter                         |
+| AAAA     | IPv6-adresseposter                         |
+| CNAME    | Kanonisk navn (alias)-poster               |
+| MX       | E-postutvekslingsposter                    |
+| NS       | Navneserverposter                          |
+| TXT      | Tekstposter (SPF, DKIM, osv.)              |
+| SOA      | Start of Authority-poster                  |
+| PTR      | Pekerpost (omvendt DNS)                    |
+| SRV      | Tjenestelokalisatorposter                  |
+| CAA      | Certificate Authority Authorization-poster |
 
 ### Avanserte innstillinger
 
-| Felt | Beskrivelse | Standard |
-|------|-------------|---------|
-| Port | DNS-portnummer | 53 |
-| Tidsavbrudd (ms) | Hvor lenge det ventes på et svar | 5000 |
-| Nye forsøk | Antall nye forsøk ved feil | 3 |
+| Felt             | Beskrivelse                      | Standard |
+| ---------------- | -------------------------------- | -------- |
+| Port             | DNS-portnummer                   | 53       |
+| Tidsavbrudd (ms) | Hvor lenge det ventes på et svar | 5000     |
+| Nye forsøk       | Antall nye forsøk ved feil       | 3        |
 
 ## Overvåkingskriterier
 
@@ -59,13 +59,13 @@ Du kan konfigurere kriterier for å bestemme når DNS-en anses som tilgjengelig,
 
 ### Tilgjengelige kontrolltyper
 
-| Kontrolltype | Beskrivelse |
-|-------------|-------------|
-| DNS Is Online | Om DNS-serveren svarer på spørringer |
-| DNS Response Time (in ms) | Svartid for spørringen i millisekunder |
-| DNS Record Exists | Om det finnes DNS-poster for spørringen |
-| DNS Record Value | Verdien returnert av en DNS-post |
-| DNSSEC Is Valid | Om DNSSEC-validering er gyldig |
+| Kontrolltype              | Beskrivelse                             |
+| ------------------------- | --------------------------------------- |
+| DNS Is Online             | Om DNS-serveren svarer på spørringer    |
+| DNS Response Time (in ms) | Svartid for spørringen i millisekunder  |
+| DNS Record Exists         | Om det finnes DNS-poster for spørringen |
+| DNS Record Value          | Verdien returnert av en DNS-post        |
+| DNSSEC Is Valid           | Om DNSSEC-validering er gyldig          |
 
 ### Filtertyper
 

@@ -98,10 +98,10 @@ provider "oneuptime" {
 
 ### Options de configuration
 
-| Argument | Variable d'environnement | Description | Obligatoire |
-|----------|--------------------------|-------------|-------------|
-| `oneuptime_url` | `ONEUPTIME_URL` | URL OneUptime | Oui |
-| `api_key` | `ONEUPTIME_API_KEY` | Clé API OneUptime | Oui |
+| Argument        | Variable d'environnement | Description       | Obligatoire |
+| --------------- | ------------------------ | ----------------- | ----------- |
+| `oneuptime_url` | `ONEUPTIME_URL`          | URL OneUptime     | Oui         |
+| `api_key`       | `ONEUPTIME_API_KEY`      | Clé API OneUptime | Oui         |
 
 ## Démarrage rapide
 
@@ -192,11 +192,11 @@ terraform {
 
 **Critique** : Les clients auto-hébergés doivent épingler la version du fournisseur pour correspondre à leur installation OneUptime :
 
-| Version OneUptime | Version du fournisseur | Configuration |
-|-------------------|------------------------|---------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| 7.2.x | 7.2.x | `version = "~> 7.2.0"` |
+| Version OneUptime | Version du fournisseur | Configuration          |
+| ----------------- | ---------------------- | ---------------------- |
+| 7.0.x             | 7.0.x                  | `version = "~> 7.0.0"` |
+| 7.1.x             | 7.1.x                  | `version = "~> 7.1.0"` |
+| 7.2.x             | 7.2.x                  | `version = "~> 7.2.0"` |
 
 Exemple pour OneUptime 7.0.123 :
 
@@ -216,26 +216,33 @@ terraform {
 Le fournisseur Terraform OneUptime prend en charge les ressources suivantes :
 
 ### Ressources principales
+
 - `oneuptime_team` — Gérer les équipes
 
 ### Surveillance
+
 - `oneuptime_monitor` — Créer et gérer les moniteurs
 - `oneuptime_probe` — Gérer les sondes de surveillance
 
 ### Gestion de l'astreinte
+
 - `oneuptime_on_call_duty_policy` — Configurer les plannings d'astreinte
 
 ### Pages de statut
+
 - `oneuptime_status_page` — Créer des pages de statut
 
 ### Catalogue de services
+
 - `oneuptime_service_catalog` — Gérer les entrées du catalogue de services
 
 ### Catalogue de services
+
 - `oneuptime_service` — Définir des services
 - `oneuptime_service_dependency` — Cartographier les dépendances de services
 
 ### Sources de données
+
 Remarque : Les sources de données ne sont actuellement pas disponibles dans le fournisseur car aucune source de données n'est définie dans le schéma du fournisseur.
 
 ## Exemples
@@ -297,12 +304,12 @@ resource "oneuptime_monitor" "api" {
 resource "oneuptime_monitor" "database" {
   name       = "Connexion à la base de données"
   project_id = oneuptime_project.production.id
-  
+
   monitor_type = "port"
   hostname     = "db.maentreprise.com"
   port         = 5432
   interval     = "2m"
-  
+
   tags = {
     service     = "database"
     environment = "production"
@@ -314,14 +321,14 @@ resource "oneuptime_monitor" "database" {
 resource "oneuptime_status_page" "public" {
   name       = "Statut de MaEntreprise"
   project_id = oneuptime_project.production.id
-  
+
   domain = "statut.maentreprise.com"
-  
+
   components {
     name       = "API"
     monitor_id = oneuptime_monitor.api.id
   }
-  
+
   components {
     name       = "Base de données"
     monitor_id = oneuptime_monitor.database.id
@@ -334,10 +341,12 @@ resource "oneuptime_status_page" "public" {
 ### 1. Gestion des versions
 
 **Pour les clients cloud :**
+
 - Utilisez la gestion sémantique des versions avec `~>` pour obtenir des mises à jour compatibles
 - Examinez le journal des modifications avant les mises à niveau majeures
 
 **Pour les clients auto-hébergés :**
+
 - Épinglez toujours à la version exacte correspondant à votre installation
 - Mettez à jour la version du fournisseur lorsque vous mettez à niveau OneUptime
 - Testez d'abord dans un environnement hors production
@@ -472,15 +481,19 @@ terraform apply
 ### Problèmes courants
 
 1. **Incompatibilité de version (auto-hébergé)**
+
    ```
    Error: API version incompatible
    ```
+
    **Solution** : Assurez-vous que la version du fournisseur correspond à l'installation OneUptime
 
 2. **Problèmes d'authentification**
+
    ```
    Error: Invalid API key
    ```
+
    **Solution** : Vérifiez la clé API et les permissions
 
 3. **Ressource introuvable**

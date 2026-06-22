@@ -11,6 +11,7 @@ import React, {
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -31,6 +32,10 @@ const CloudResources: FunctionComponent<
 > = (): ReactElement => {
   const [count, setCount] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
+
+  const { archiveBulkActions } = useBulkArchiveActions<CloudResource>({
+    modelType: CloudResource,
+  });
 
   useEffect(() => {
     ModelAPI.count({
@@ -69,10 +74,16 @@ const CloudResources: FunctionComponent<
         modelType={CloudResource}
         id="cloud-resources-table"
         userPreferencesKey="cloud-resources-table"
+        query={{
+          isArchived: false,
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}
         isViewable={true}
+        bulkActions={{
+          buttons: [...archiveBulkActions],
+        }}
         showRefreshButton={true}
         showViewIdButton={true}
         name="Cloud Resources"

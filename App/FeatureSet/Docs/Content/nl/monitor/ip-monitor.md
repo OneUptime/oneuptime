@@ -31,10 +31,10 @@ U kunt criteria configureren om te bepalen wanneer uw IP-adres als online, gedeg
 
 ### Beschikbare controletypen
 
-| Controletype | Beschrijving |
-|------------|-------------|
-| Is online | Of het IP-adres bereikbaar is |
-| Responstijd (in ms) | Responstijd in milliseconden |
+| Controletype        | Beschrijving                      |
+| ------------------- | --------------------------------- |
+| Is online           | Of het IP-adres bereikbaar is     |
+| Responstijd (in ms) | Responstijd in milliseconden      |
 | Is verzoek time-out | Of het verzoek een time-out heeft |
 
 ### Filtertypen

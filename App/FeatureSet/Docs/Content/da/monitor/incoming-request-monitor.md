@@ -56,8 +56,8 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 ```javascript
 // Node.js-eksempel
-const https = require('https');
-https.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY');
+const https = require("https");
+https.get("https://oneuptime.com/heartbeat/YOUR_SECRET_KEY");
 ```
 
 ```python
@@ -74,12 +74,12 @@ Du kan konfigurere kriterier til at afgøre, hvornår din tjeneste betragtes som
 
 ### Tilgængelige kontroltyper
 
-| Kontroltype | Beskrivelse |
-|------------|-------------|
-| Indgående anmodning | Om et hjerteslag er modtaget inden for et tidsvindue |
-| Anmodningsindhold | Indholdet af anmodningsindholdet sendt med hjerteslaget |
-| Anmodningsheader | Navnet på en specifik anmodningsheader |
-| Anmodningsheaderværdi | Værdien af en specifik anmodningsheader |
+| Kontroltype           | Beskrivelse                                             |
+| --------------------- | ------------------------------------------------------- |
+| Indgående anmodning   | Om et hjerteslag er modtaget inden for et tidsvindue    |
+| Anmodningsindhold     | Indholdet af anmodningsindholdet sendt med hjerteslaget |
+| Anmodningsheader      | Navnet på en specifik anmodningsheader                  |
+| Anmodningsheaderværdi | Værdien af en specifik anmodningsheader                 |
 
 ### Filtertyper
 

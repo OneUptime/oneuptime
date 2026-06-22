@@ -28,12 +28,12 @@ Select one or more services to monitor traces from. Services must be sending tra
 
 ### Span Filters
 
-| Filter | Description | Required |
-|--------|-------------|----------|
-| Span Statuses | Filter by span status code (OK, ERROR, UNSET) | No |
-| Span Name | Text search for specific span names (e.g., operation or endpoint names) | No |
-| Attributes | Key-value pairs to filter on custom span attributes | No |
-| Time Window | How far back to search for spans (in seconds, default: 60) | No |
+| Filter        | Description                                                             | Required |
+| ------------- | ----------------------------------------------------------------------- | -------- |
+| Span Statuses | Filter by span status code (OK, ERROR, UNSET)                           | No       |
+| Span Name     | Text search for specific span names (e.g., operation or endpoint names) | No       |
+| Attributes    | Key-value pairs to filter on custom span attributes                     | No       |
+| Time Window   | How far back to search for spans (in seconds, default: 60)              | No       |
 
 ### Span Status Codes
 
@@ -45,8 +45,8 @@ Select one or more services to monitor traces from. Services must be sending tra
 
 ### Available Check Types
 
-| Check Type | Description |
-|------------|-------------|
+| Check Type | Description                                                  |
+| ---------- | ------------------------------------------------------------ |
 | Span Count | The number of spans matching your filters in the time window |
 
 ### Filter Types

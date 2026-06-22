@@ -31,11 +31,11 @@ Vous pouvez configurer des critères pour déterminer quand votre hôte est cons
 
 ### Types de vérifications disponibles
 
-| Type de vérification | Description |
-|----------------------|-------------|
-| En ligne | Si l'hôte répond aux requêtes ping |
-| Temps de réponse (en ms) | Temps d'aller-retour de la requête ping en millisecondes |
-| Délai d'attente de la requête | Si la requête ping a expiré |
+| Type de vérification          | Description                                              |
+| ----------------------------- | -------------------------------------------------------- |
+| En ligne                      | Si l'hôte répond aux requêtes ping                       |
+| Temps de réponse (en ms)      | Temps d'aller-retour de la requête ping en millisecondes |
+| Délai d'attente de la requête | Si la requête ping a expiré                              |
 
 ### Types de filtres
 

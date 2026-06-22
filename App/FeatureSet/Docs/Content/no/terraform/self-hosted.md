@@ -11,6 +11,7 @@ Denne guiden er spesifikt for kunder som kjører selvhostede OneUptime-instanser
 ## Ressursstruktur
 
 Alle OneUptime Terraform-ressurser følger en forenklet struktur:
+
 - `name` (påkrevd) – Ressursnavn
 - `description` (valgfritt) – Ressursbeskrivelse
 - `data` (valgfritt) – Kompleks konfigurasjon som JSON
@@ -29,31 +30,39 @@ Alle OneUptime Terraform-ressurser følger en forenklet struktur:
 ## Finne din OneUptime-versjon
 
 ### Metode 1: Dashbord
+
 1. Logg inn på OneUptime-dashbordet ditt
 2. Gå til **Settings** → **About**
 3. Se etter versjonsnummeret (f.eks. "7.0.123")
 
 ### Metode 2: API-endepunkt
+
 ```bash
 curl https://your-oneuptime-instance.com/api/status
 ```
 
 ### Metode 3: Docker-bilder
+
 Hvis du kjører OneUptime med Docker:
+
 ```bash
 docker images | grep oneuptime
 # Se etter taggen, f.eks. oneuptime/dashboard:7.0.123
 ```
 
 ### Metode 4: Helm-kart
+
 Hvis du bruker Helm:
+
 ```bash
 helm list -n oneuptime
 # Sjekk kartet-versjonen
 ```
 
 ### Metode 5: Miljøvariabler
+
 Sjekk konfigurasjonsfiler for versjonsvariabler:
+
 ```bash
 grep -r "APP_VERSION\|IMAGE_TAG" /path/to/your/oneuptime/config
 ```
@@ -112,7 +121,7 @@ terraform {
     }
   }
   required_version = ">= 1.0"
-  
+
   # Valgfritt: Bruk ekstern tilstand for teamsamarbeid
   backend "s3" {
     bucket = "your-terraform-state-bucket"
@@ -169,13 +178,13 @@ resource "oneuptime_team" "development" {
 resource "oneuptime_monitor" "database" {
   name       = "${var.environment}-database"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "port"
   hostname     = "db.internal.yourcompany.com"
   port         = 5432
   interval     = "2m"
   timeout      = "10s"
-  
+
   tags = {
     team        = "infrastructure"
     service     = "database"
@@ -187,14 +196,14 @@ resource "oneuptime_monitor" "database" {
 resource "oneuptime_monitor" "application" {
   name       = "${var.environment}-application"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "website"
   url          = "https://app.yourcompany.com/health"
   interval     = "1m"
   timeout      = "30s"
-  
+
   expected_status_codes = [200]
-  
+
   tags = {
     team        = "development"
     service     = "application"
@@ -208,11 +217,11 @@ resource "oneuptime_on_call_policy" "infrastructure_oncall" {
   name       = "Infrastruktur vakt"
   project_id = oneuptime_project.main.id
   team_id    = oneuptime_team.infrastructure.id
-  
+
   schedules {
     name     = "24x7 Infrastruktur"
     timezone = "Europe/Oslo"
-    
+
     layers {
       name          = "Primær"
       users         = ["infra1@yourcompany.com", "infra2@yourcompany.com"]
@@ -228,17 +237,17 @@ resource "oneuptime_on_call_policy" "infrastructure_oncall" {
 resource "oneuptime_alert_policy" "critical_infrastructure" {
   name       = "Kritiske infrastrukturvarsler"
   project_id = oneuptime_project.main.id
-  
+
   conditions {
     monitor_id = oneuptime_monitor.database.id
     threshold  = "down"
   }
-  
+
   actions {
     type = "email"
     recipients = ["infrastructure@yourcompany.com"]
   }
-  
+
   actions {
     type             = "oncall_escalation"
     oncall_policy_id = oneuptime_on_call_policy.infrastructure_oncall.id
@@ -249,14 +258,14 @@ resource "oneuptime_alert_policy" "critical_infrastructure" {
 resource "oneuptime_status_page" "internal" {
   name       = "Interne tjenesterstatus"
   project_id = oneuptime_project.main.id
-  
+
   domain = "status.internal.yourcompany.com"
-  
+
   components {
     name       = "Database"
     monitor_id = oneuptime_monitor.database.id
   }
-  
+
   components {
     name       = "Applikasjon"
     monitor_id = oneuptime_monitor.application.id
@@ -289,7 +298,7 @@ environment = "development"
 
 ```hcl
 # staging.tfvars
-oneuptime_url = "https://oneuptime-staging.yourcompany.com"  
+oneuptime_url = "https://oneuptime-staging.yourcompany.com"
 environment = "staging"
 ```
 
@@ -354,6 +363,7 @@ terraform apply
 ### Brannmurregler
 
 Sørg for at Terraform-kjøreren kan få tilgang til:
+
 - OneUptime API-endepunkt (vanligvis port 443/HTTPS)
 - Eventuelle interne ressurser som overvåkes
 
@@ -383,6 +393,7 @@ export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
 ### 2. API-nøkler med minste privilegium
 
 Opprett API-nøkler med minimale nødvendige tillatelser:
+
 - Monitoradministrasjon
 - Varselspolicyadministrasjon
 - Teamadministrasjon (om nødvendig)
@@ -394,7 +405,7 @@ Opprett API-nøkler med minimale nødvendige tillatelser:
 provider "oneuptime" {
   oneuptime_url = "https://oneuptime.yourcompany.com"
   api_key       = var.oneuptime_api_key
-  
+
   # Ytterligere sikkerhetsalternativer hvis støttet
   verify_ssl = true
   timeout    = "30s"
@@ -409,10 +420,10 @@ Opprett monitorer for Terraform-automatiseringen:
 resource "oneuptime_monitor" "terraform_runner" {
   name       = "Terraform Runner-helse"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "heartbeat"
   interval     = "15m"
-  
+
   tags = {
     automation = "terraform"
     criticality = "medium"
@@ -429,6 +440,7 @@ Error: connection refused
 ```
 
 **Løsninger**:
+
 1. Sjekk at OneUptime-instansen kjører
 2. Verifiser at API-URL-en er korrekt
 3. Sjekk brannmur/nettverkstilkobling
@@ -441,6 +453,7 @@ Error: API version incompatible
 ```
 
 **Løsninger**:
+
 1. Sjekk OneUptime-versjon: `curl https://your-instance/api/status`
 2. Oppdater leverandørversjon til å samsvare
 3. Kjør `terraform init -upgrade`
@@ -485,7 +498,7 @@ tar -czf terraform-config-$(date +%Y%m%d).tar.gz *.tf *.tfvars
 ```bash
 # Opprett miljøer
 terraform workspace new dev
-terraform workspace new staging  
+terraform workspace new staging
 terraform workspace new prod
 
 # Bytt mellom miljøer

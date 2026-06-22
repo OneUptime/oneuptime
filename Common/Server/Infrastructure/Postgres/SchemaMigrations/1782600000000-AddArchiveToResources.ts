@@ -1,122 +1,331 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class AddArchiveToResources1782600000000 implements MigrationInterface {
-    name = 'AddArchiveToResources1782600000000'
+  public name = "AddArchiveToResources1782600000000";
 
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "KubernetesCluster" ADD "isArchived" boolean NOT NULL DEFAULT false`);
-        await queryRunner.query(`ALTER TABLE "KubernetesCluster" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`);
-        await queryRunner.query(`ALTER TABLE "KubernetesCluster" ADD "archivedByUserId" uuid`);
-        await queryRunner.query(`ALTER TABLE "DockerHost" ADD "isArchived" boolean NOT NULL DEFAULT false`);
-        await queryRunner.query(`ALTER TABLE "DockerHost" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`);
-        await queryRunner.query(`ALTER TABLE "DockerHost" ADD "archivedByUserId" uuid`);
-        await queryRunner.query(`ALTER TABLE "PodmanHost" ADD "isArchived" boolean NOT NULL DEFAULT false`);
-        await queryRunner.query(`ALTER TABLE "PodmanHost" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`);
-        await queryRunner.query(`ALTER TABLE "PodmanHost" ADD "archivedByUserId" uuid`);
-        await queryRunner.query(`ALTER TABLE "CephCluster" ADD "isArchived" boolean NOT NULL DEFAULT false`);
-        await queryRunner.query(`ALTER TABLE "CephCluster" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`);
-        await queryRunner.query(`ALTER TABLE "CephCluster" ADD "archivedByUserId" uuid`);
-        await queryRunner.query(`ALTER TABLE "ProxmoxCluster" ADD "isArchived" boolean NOT NULL DEFAULT false`);
-        await queryRunner.query(`ALTER TABLE "ProxmoxCluster" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`);
-        await queryRunner.query(`ALTER TABLE "ProxmoxCluster" ADD "archivedByUserId" uuid`);
-        await queryRunner.query(`ALTER TABLE "DockerSwarmCluster" ADD "isArchived" boolean NOT NULL DEFAULT false`);
-        await queryRunner.query(`ALTER TABLE "DockerSwarmCluster" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`);
-        await queryRunner.query(`ALTER TABLE "DockerSwarmCluster" ADD "archivedByUserId" uuid`);
-        await queryRunner.query(`ALTER TABLE "Host" ADD "isArchived" boolean NOT NULL DEFAULT false`);
-        await queryRunner.query(`ALTER TABLE "Host" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`);
-        await queryRunner.query(`ALTER TABLE "Host" ADD "archivedByUserId" uuid`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" ADD "isArchived" boolean NOT NULL DEFAULT false`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" ADD "archivedByUserId" uuid`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" ADD "isArchived" boolean NOT NULL DEFAULT false`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" ADD "archivedByUserId" uuid`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" ADD "isArchived" boolean NOT NULL DEFAULT false`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" ADD "archivedByUserId" uuid`);
-        await queryRunner.query(`ALTER TABLE "Service" ADD "isArchived" boolean NOT NULL DEFAULT false`);
-        await queryRunner.query(`ALTER TABLE "Service" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`);
-        await queryRunner.query(`ALTER TABLE "Service" ADD "archivedByUserId" uuid`);
-        await queryRunner.query(`CREATE INDEX "IDX_2e68523616c139af2a6f427b50" ON "KubernetesCluster" ("projectId", "isArchived") `);
-        await queryRunner.query(`CREATE INDEX "IDX_480536268f3e7c7740aebf9837" ON "DockerHost" ("projectId", "isArchived") `);
-        await queryRunner.query(`CREATE INDEX "IDX_035d6d86c31bd346fddfd27dca" ON "PodmanHost" ("projectId", "isArchived") `);
-        await queryRunner.query(`CREATE INDEX "IDX_c0bca37302822c94b92d03a79e" ON "CephCluster" ("projectId", "isArchived") `);
-        await queryRunner.query(`CREATE INDEX "IDX_e0d11d80b631c899c5420284a4" ON "ProxmoxCluster" ("projectId", "isArchived") `);
-        await queryRunner.query(`CREATE INDEX "IDX_02a9ef1a2046de01247de73489" ON "DockerSwarmCluster" ("projectId", "isArchived") `);
-        await queryRunner.query(`CREATE INDEX "IDX_03a64f2cea32c536d997d20df5" ON "Host" ("projectId", "isArchived") `);
-        await queryRunner.query(`CREATE INDEX "IDX_61db725961bfe77256f928d569" ON "ServerlessFunction" ("projectId", "isArchived") `);
-        await queryRunner.query(`CREATE INDEX "IDX_c3ae2234d4831e8a8960a130f5" ON "CloudResource" ("projectId", "isArchived") `);
-        await queryRunner.query(`CREATE INDEX "IDX_88a7961a4488a9a5347bebcab1" ON "RumApplication" ("projectId", "isArchived") `);
-        await queryRunner.query(`CREATE INDEX "IDX_3e4e3fa4f8382a1c387cb73690" ON "Service" ("projectId", "isArchived") `);
-        await queryRunner.query(`ALTER TABLE "KubernetesCluster" ADD CONSTRAINT "FK_db7407d6c9ad5db6925987bf06a" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DockerHost" ADD CONSTRAINT "FK_c798bcf4ecc488fffbff2532554" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "PodmanHost" ADD CONSTRAINT "FK_e8419fd09ba908d63ae0b24384c" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CephCluster" ADD CONSTRAINT "FK_820e4a8bb82d829b2dd4780436e" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ProxmoxCluster" ADD CONSTRAINT "FK_21ec00575b9a1066ca080cd1613" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DockerSwarmCluster" ADD CONSTRAINT "FK_287be1bac3e53f2c0057bf8dc5b" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "Host" ADD CONSTRAINT "FK_9955d46d73b0a64abaaa23f2a20" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" ADD CONSTRAINT "FK_320c19144bd79a91c0c163771a5" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" ADD CONSTRAINT "FK_a70f673d44b95123116d4d363f6" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" ADD CONSTRAINT "FK_85b1c18f1bf26abcb9e64ea0f60" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "Service" ADD CONSTRAINT "FK_a765077833343efb3b10cdb7b89" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-    }
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `ALTER TABLE "KubernetesCluster" ADD "isArchived" boolean NOT NULL DEFAULT false`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "KubernetesCluster" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "KubernetesCluster" ADD "archivedByUserId" uuid`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DockerHost" ADD "isArchived" boolean NOT NULL DEFAULT false`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DockerHost" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DockerHost" ADD "archivedByUserId" uuid`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "PodmanHost" ADD "isArchived" boolean NOT NULL DEFAULT false`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "PodmanHost" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "PodmanHost" ADD "archivedByUserId" uuid`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CephCluster" ADD "isArchived" boolean NOT NULL DEFAULT false`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CephCluster" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CephCluster" ADD "archivedByUserId" uuid`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ProxmoxCluster" ADD "isArchived" boolean NOT NULL DEFAULT false`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ProxmoxCluster" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ProxmoxCluster" ADD "archivedByUserId" uuid`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DockerSwarmCluster" ADD "isArchived" boolean NOT NULL DEFAULT false`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DockerSwarmCluster" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DockerSwarmCluster" ADD "archivedByUserId" uuid`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "Host" ADD "isArchived" boolean NOT NULL DEFAULT false`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "Host" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(`ALTER TABLE "Host" ADD "archivedByUserId" uuid`);
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" ADD "isArchived" boolean NOT NULL DEFAULT false`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" ADD "archivedByUserId" uuid`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" ADD "isArchived" boolean NOT NULL DEFAULT false`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" ADD "archivedByUserId" uuid`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" ADD "isArchived" boolean NOT NULL DEFAULT false`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" ADD "archivedByUserId" uuid`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "Service" ADD "isArchived" boolean NOT NULL DEFAULT false`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "Service" ADD "archivedAt" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "Service" ADD "archivedByUserId" uuid`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_2e68523616c139af2a6f427b50" ON "KubernetesCluster" ("projectId", "isArchived") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_480536268f3e7c7740aebf9837" ON "DockerHost" ("projectId", "isArchived") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_035d6d86c31bd346fddfd27dca" ON "PodmanHost" ("projectId", "isArchived") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_c0bca37302822c94b92d03a79e" ON "CephCluster" ("projectId", "isArchived") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_e0d11d80b631c899c5420284a4" ON "ProxmoxCluster" ("projectId", "isArchived") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_02a9ef1a2046de01247de73489" ON "DockerSwarmCluster" ("projectId", "isArchived") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_03a64f2cea32c536d997d20df5" ON "Host" ("projectId", "isArchived") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_61db725961bfe77256f928d569" ON "ServerlessFunction" ("projectId", "isArchived") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_c3ae2234d4831e8a8960a130f5" ON "CloudResource" ("projectId", "isArchived") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_88a7961a4488a9a5347bebcab1" ON "RumApplication" ("projectId", "isArchived") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_3e4e3fa4f8382a1c387cb73690" ON "Service" ("projectId", "isArchived") `,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "KubernetesCluster" ADD CONSTRAINT "FK_db7407d6c9ad5db6925987bf06a" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DockerHost" ADD CONSTRAINT "FK_c798bcf4ecc488fffbff2532554" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "PodmanHost" ADD CONSTRAINT "FK_e8419fd09ba908d63ae0b24384c" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CephCluster" ADD CONSTRAINT "FK_820e4a8bb82d829b2dd4780436e" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ProxmoxCluster" ADD CONSTRAINT "FK_21ec00575b9a1066ca080cd1613" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DockerSwarmCluster" ADD CONSTRAINT "FK_287be1bac3e53f2c0057bf8dc5b" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "Host" ADD CONSTRAINT "FK_9955d46d73b0a64abaaa23f2a20" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" ADD CONSTRAINT "FK_320c19144bd79a91c0c163771a5" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" ADD CONSTRAINT "FK_a70f673d44b95123116d4d363f6" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" ADD CONSTRAINT "FK_85b1c18f1bf26abcb9e64ea0f60" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "Service" ADD CONSTRAINT "FK_a765077833343efb3b10cdb7b89" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "Service" DROP CONSTRAINT "FK_a765077833343efb3b10cdb7b89"`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" DROP CONSTRAINT "FK_85b1c18f1bf26abcb9e64ea0f60"`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" DROP CONSTRAINT "FK_a70f673d44b95123116d4d363f6"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" DROP CONSTRAINT "FK_320c19144bd79a91c0c163771a5"`);
-        await queryRunner.query(`ALTER TABLE "Host" DROP CONSTRAINT "FK_9955d46d73b0a64abaaa23f2a20"`);
-        await queryRunner.query(`ALTER TABLE "DockerSwarmCluster" DROP CONSTRAINT "FK_287be1bac3e53f2c0057bf8dc5b"`);
-        await queryRunner.query(`ALTER TABLE "ProxmoxCluster" DROP CONSTRAINT "FK_21ec00575b9a1066ca080cd1613"`);
-        await queryRunner.query(`ALTER TABLE "CephCluster" DROP CONSTRAINT "FK_820e4a8bb82d829b2dd4780436e"`);
-        await queryRunner.query(`ALTER TABLE "PodmanHost" DROP CONSTRAINT "FK_e8419fd09ba908d63ae0b24384c"`);
-        await queryRunner.query(`ALTER TABLE "DockerHost" DROP CONSTRAINT "FK_c798bcf4ecc488fffbff2532554"`);
-        await queryRunner.query(`ALTER TABLE "KubernetesCluster" DROP CONSTRAINT "FK_db7407d6c9ad5db6925987bf06a"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_3e4e3fa4f8382a1c387cb73690"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_88a7961a4488a9a5347bebcab1"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_c3ae2234d4831e8a8960a130f5"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_61db725961bfe77256f928d569"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_03a64f2cea32c536d997d20df5"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_02a9ef1a2046de01247de73489"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_e0d11d80b631c899c5420284a4"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_c0bca37302822c94b92d03a79e"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_035d6d86c31bd346fddfd27dca"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_480536268f3e7c7740aebf9837"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_2e68523616c139af2a6f427b50"`);
-        await queryRunner.query(`ALTER TABLE "Service" DROP COLUMN "archivedByUserId"`);
-        await queryRunner.query(`ALTER TABLE "Service" DROP COLUMN "archivedAt"`);
-        await queryRunner.query(`ALTER TABLE "Service" DROP COLUMN "isArchived"`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" DROP COLUMN "archivedByUserId"`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" DROP COLUMN "archivedAt"`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" DROP COLUMN "isArchived"`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" DROP COLUMN "archivedByUserId"`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" DROP COLUMN "archivedAt"`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" DROP COLUMN "isArchived"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" DROP COLUMN "archivedByUserId"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" DROP COLUMN "archivedAt"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" DROP COLUMN "isArchived"`);
-        await queryRunner.query(`ALTER TABLE "Host" DROP COLUMN "archivedByUserId"`);
-        await queryRunner.query(`ALTER TABLE "Host" DROP COLUMN "archivedAt"`);
-        await queryRunner.query(`ALTER TABLE "Host" DROP COLUMN "isArchived"`);
-        await queryRunner.query(`ALTER TABLE "DockerSwarmCluster" DROP COLUMN "archivedByUserId"`);
-        await queryRunner.query(`ALTER TABLE "DockerSwarmCluster" DROP COLUMN "archivedAt"`);
-        await queryRunner.query(`ALTER TABLE "DockerSwarmCluster" DROP COLUMN "isArchived"`);
-        await queryRunner.query(`ALTER TABLE "ProxmoxCluster" DROP COLUMN "archivedByUserId"`);
-        await queryRunner.query(`ALTER TABLE "ProxmoxCluster" DROP COLUMN "archivedAt"`);
-        await queryRunner.query(`ALTER TABLE "ProxmoxCluster" DROP COLUMN "isArchived"`);
-        await queryRunner.query(`ALTER TABLE "CephCluster" DROP COLUMN "archivedByUserId"`);
-        await queryRunner.query(`ALTER TABLE "CephCluster" DROP COLUMN "archivedAt"`);
-        await queryRunner.query(`ALTER TABLE "CephCluster" DROP COLUMN "isArchived"`);
-        await queryRunner.query(`ALTER TABLE "PodmanHost" DROP COLUMN "archivedByUserId"`);
-        await queryRunner.query(`ALTER TABLE "PodmanHost" DROP COLUMN "archivedAt"`);
-        await queryRunner.query(`ALTER TABLE "PodmanHost" DROP COLUMN "isArchived"`);
-        await queryRunner.query(`ALTER TABLE "DockerHost" DROP COLUMN "archivedByUserId"`);
-        await queryRunner.query(`ALTER TABLE "DockerHost" DROP COLUMN "archivedAt"`);
-        await queryRunner.query(`ALTER TABLE "DockerHost" DROP COLUMN "isArchived"`);
-        await queryRunner.query(`ALTER TABLE "KubernetesCluster" DROP COLUMN "archivedByUserId"`);
-        await queryRunner.query(`ALTER TABLE "KubernetesCluster" DROP COLUMN "archivedAt"`);
-        await queryRunner.query(`ALTER TABLE "KubernetesCluster" DROP COLUMN "isArchived"`);
-    }
-
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `ALTER TABLE "Service" DROP CONSTRAINT "FK_a765077833343efb3b10cdb7b89"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" DROP CONSTRAINT "FK_85b1c18f1bf26abcb9e64ea0f60"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" DROP CONSTRAINT "FK_a70f673d44b95123116d4d363f6"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" DROP CONSTRAINT "FK_320c19144bd79a91c0c163771a5"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "Host" DROP CONSTRAINT "FK_9955d46d73b0a64abaaa23f2a20"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DockerSwarmCluster" DROP CONSTRAINT "FK_287be1bac3e53f2c0057bf8dc5b"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ProxmoxCluster" DROP CONSTRAINT "FK_21ec00575b9a1066ca080cd1613"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CephCluster" DROP CONSTRAINT "FK_820e4a8bb82d829b2dd4780436e"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "PodmanHost" DROP CONSTRAINT "FK_e8419fd09ba908d63ae0b24384c"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DockerHost" DROP CONSTRAINT "FK_c798bcf4ecc488fffbff2532554"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "KubernetesCluster" DROP CONSTRAINT "FK_db7407d6c9ad5db6925987bf06a"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_3e4e3fa4f8382a1c387cb73690"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_88a7961a4488a9a5347bebcab1"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_c3ae2234d4831e8a8960a130f5"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_61db725961bfe77256f928d569"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_03a64f2cea32c536d997d20df5"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_02a9ef1a2046de01247de73489"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_e0d11d80b631c899c5420284a4"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_c0bca37302822c94b92d03a79e"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_035d6d86c31bd346fddfd27dca"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_480536268f3e7c7740aebf9837"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_2e68523616c139af2a6f427b50"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "Service" DROP COLUMN "archivedByUserId"`,
+    );
+    await queryRunner.query(`ALTER TABLE "Service" DROP COLUMN "archivedAt"`);
+    await queryRunner.query(`ALTER TABLE "Service" DROP COLUMN "isArchived"`);
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" DROP COLUMN "archivedByUserId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" DROP COLUMN "archivedAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" DROP COLUMN "isArchived"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" DROP COLUMN "archivedByUserId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" DROP COLUMN "archivedAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" DROP COLUMN "isArchived"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" DROP COLUMN "archivedByUserId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" DROP COLUMN "archivedAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" DROP COLUMN "isArchived"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "Host" DROP COLUMN "archivedByUserId"`,
+    );
+    await queryRunner.query(`ALTER TABLE "Host" DROP COLUMN "archivedAt"`);
+    await queryRunner.query(`ALTER TABLE "Host" DROP COLUMN "isArchived"`);
+    await queryRunner.query(
+      `ALTER TABLE "DockerSwarmCluster" DROP COLUMN "archivedByUserId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DockerSwarmCluster" DROP COLUMN "archivedAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DockerSwarmCluster" DROP COLUMN "isArchived"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ProxmoxCluster" DROP COLUMN "archivedByUserId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ProxmoxCluster" DROP COLUMN "archivedAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ProxmoxCluster" DROP COLUMN "isArchived"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CephCluster" DROP COLUMN "archivedByUserId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CephCluster" DROP COLUMN "archivedAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CephCluster" DROP COLUMN "isArchived"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "PodmanHost" DROP COLUMN "archivedByUserId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "PodmanHost" DROP COLUMN "archivedAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "PodmanHost" DROP COLUMN "isArchived"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DockerHost" DROP COLUMN "archivedByUserId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DockerHost" DROP COLUMN "archivedAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DockerHost" DROP COLUMN "isArchived"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "KubernetesCluster" DROP COLUMN "archivedByUserId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "KubernetesCluster" DROP COLUMN "archivedAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "KubernetesCluster" DROP COLUMN "isArchived"`,
+    );
+  }
 }

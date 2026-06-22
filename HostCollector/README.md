@@ -26,11 +26,11 @@ Collector Builder (`ocb`):
 Download the asset for your OS/arch from the
 [OneUptime releases page](https://github.com/OneUptime/oneuptime/releases):
 
-| OS | Asset |
-|---|---|
+| OS      | Asset                                                                                                                             |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | Windows | `oneuptime-host-collector_windows_amd64.zip` / `_arm64.zip`, or the `oneuptime-host-collector-amd64.msi` / `-arm64.msi` installer |
-| Linux | `oneuptime-host-collector_linux_amd64.tar.gz` / `_arm64.tar.gz` |
-| macOS | `oneuptime-host-collector_darwin_amd64.tar.gz` / `_arm64.tar.gz` |
+| Linux   | `oneuptime-host-collector_linux_amd64.tar.gz` / `_arm64.tar.gz`                                                                   |
+| macOS   | `oneuptime-host-collector_darwin_amd64.tar.gz` / `_arm64.tar.gz`                                                                  |
 
 Each archive contains the `oneuptime-host-collector` binary and an
 OS-appropriate `config.yaml`. Set your `x-oneuptime-token` (and the endpoint if

@@ -67,15 +67,15 @@ sudo oneuptime-infrastructure-agent configure --secret-key=VOTRE_CLÉ_SECRÈTE -
 
 L'agent d'infrastructure prend en charge les commandes suivantes :
 
-| Commande | Description |
-|----------|-------------|
-| `configure` | Configurer l'agent avec votre clé secrète et l'URL OneUptime |
-| `start` | Démarrer le service de l'agent |
-| `stop` | Arrêter le service de l'agent |
-| `restart` | Redémarrer le service de l'agent |
-| `status` | Afficher le statut actuel du service |
-| `logs` | Afficher les journaux de l'agent (utilisez `-n` pour le nombre de lignes, `-f` pour suivre en temps réel) |
-| `uninstall` | Désinstaller le service de l'agent |
+| Commande    | Description                                                                                               |
+| ----------- | --------------------------------------------------------------------------------------------------------- |
+| `configure` | Configurer l'agent avec votre clé secrète et l'URL OneUptime                                              |
+| `start`     | Démarrer le service de l'agent                                                                            |
+| `stop`      | Arrêter le service de l'agent                                                                             |
+| `restart`   | Redémarrer le service de l'agent                                                                          |
+| `status`    | Afficher le statut actuel du service                                                                      |
+| `logs`      | Afficher les journaux de l'agent (utilisez `-n` pour le nombre de lignes, `-f` pour suivre en temps réel) |
+| `uninstall` | Désinstaller le service de l'agent                                                                        |
 
 ## Métriques collectées
 
@@ -115,15 +115,15 @@ Vous pouvez configurer des critères pour déterminer quand votre serveur est co
 
 ### Types de vérifications disponibles
 
-| Type de vérification | Description |
-|----------------------|-------------|
-| En ligne | Si l'agent du serveur rapporte (basé sur le signal de vie) |
-| Pourcentage d'utilisation CPU | Pourcentage d'utilisation CPU actuel |
-| Pourcentage d'utilisation mémoire | Pourcentage d'utilisation mémoire actuel |
+| Type de vérification                | Description                                                                      |
+| ----------------------------------- | -------------------------------------------------------------------------------- |
+| En ligne                            | Si l'agent du serveur rapporte (basé sur le signal de vie)                       |
+| Pourcentage d'utilisation CPU       | Pourcentage d'utilisation CPU actuel                                             |
+| Pourcentage d'utilisation mémoire   | Pourcentage d'utilisation mémoire actuel                                         |
 | Pourcentage d'utilisation du disque | Pourcentage d'utilisation du disque actuel (pour un chemin de disque spécifique) |
-| Nom du processus serveur | Vérifier si un processus avec un nom spécifique est en cours d'exécution |
-| Commande du processus serveur | Vérifier si un processus avec une commande spécifique est en cours d'exécution |
-| PID du processus serveur | Vérifier si un processus avec un PID spécifique est en cours d'exécution |
+| Nom du processus serveur            | Vérifier si un processus avec un nom spécifique est en cours d'exécution         |
+| Commande du processus serveur       | Vérifier si un processus avec une commande spécifique est en cours d'exécution   |
+| PID du processus serveur            | Vérifier si un processus avec un PID spécifique est en cours d'exécution         |
 
 ### Types de filtres
 
@@ -185,6 +185,7 @@ Pour les vérifications de processus :
 ### Utilisation élevée des ressources par l'agent
 
 L'agent est conçu pour être léger. Si vous constatez une utilisation élevée des ressources :
+
 - Redémarrez l'agent : `sudo oneuptime-infrastructure-agent restart`
 - Consultez les journaux de l'agent pour les erreurs
 

@@ -29,12 +29,12 @@ De **Dashboards**-lijst laat je filteren op label, wat de snelste manier is om e
 
 Dashboards werken met de role-based access control van je project. De relevante machtigingen:
 
-| Machtiging | Wat het toestaat |
-| --- | --- |
-| **Create Dashboard** | Nieuwe dashboards aanmaken. |
-| **Read Dashboard** | Dashboards bekijken (in privé-modus). |
-| **Edit Dashboard** | Widgets, variabelen en instellingen wijzigen. |
-| **Delete Dashboard** | Een dashboard verwijderen. |
+| Machtiging           | Wat het toestaat                              |
+| -------------------- | --------------------------------------------- |
+| **Create Dashboard** | Nieuwe dashboards aanmaken.                   |
+| **Read Dashboard**   | Dashboards bekijken (in privé-modus).         |
+| **Edit Dashboard**   | Widgets, variabelen en instellingen wijzigen. |
+| **Delete Dashboard** | Een dashboard verwijderen.                    |
 
 Er zijn bijbehorende machtigingen voor dashboard-eigenaren en custom domains, zodat je "eigenaren beheren" kunt toekennen zonder "het dashboard bewerken" toe te kennen.
 

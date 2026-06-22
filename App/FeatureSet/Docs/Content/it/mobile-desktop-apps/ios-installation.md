@@ -56,24 +56,29 @@ Il tuo account OneUptime e i turni di reperibilità sono memorizzati lato server
 ## Risoluzione dei problemi
 
 **L'App Store indica che l'app è "Non disponibile nella tua regione":**
+
 - L'app è pubblicata sull'App Store globale. Se non appare nella tua regione, contatta il [supporto](mailto:support@oneuptime.com).
 
 **"Errore di rete" durante l'accesso:**
+
 - Verifica che l'**URL del server** sia corretto e raggiungibile dal tuo dispositivo.
 - Se sei su una rete aziendale o VPN, assicurati che l'istanza OneUptime sia accessibile.
 - Verifica che il server sia servito tramite HTTPS con un certificato valido.
 
 **Non si ricevono notifiche push:**
+
 - Apri **Impostazioni → Notifiche → OneUptime On-Call** e verifica che le notifiche siano consentite.
 - Disattiva **Non disturbare** o aggiungi OneUptime On-Call all'elenco delle eccezioni della modalità Full Immersion attiva.
 - Esci e accedi nuovamente per aggiornare il token push registrato con il server.
 - Utenti self-hosted: verifica che le notifiche push siano configurate sulla tua istanza OneUptime (consulta la guida self-hosted [Push Notifications](/docs/self-hosted/push-notifications)).
 
 **Face ID / Touch ID non funzionano:**
+
 - Assicurati che la biometria sia registrata in **Impostazioni → Face ID e codice** o **Impostazioni → Touch ID e codice**.
 - Riattiva lo sblocco biometrico dalla schermata **Impostazioni** all'interno dell'app OneUptime On-Call.
 
 **L'app si blocca all'avvio:**
+
 - Aggiorna all'ultima versione dall'App Store.
 - Riavvia il dispositivo.
 - Se il problema persiste, elimina e reinstalla l'app, quindi accedi nuovamente.

@@ -10,12 +10,12 @@ Chaque workflow commence par un **déclencheur** au début. Tout le reste est un
 
 ## Ce que contient un bloc
 
-| Champ | Rôle |
-| --- | --- |
-| **Title** | Le nom affiché sur le canevas. Renommez-le pour faciliter la lecture des workflows complexes. |
-| **Settings** | Ce dont le bloc a besoin pour faire son travail — une URL, un canal Slack, un corps de message, etc. Les champs obligatoires sont marqués d'un astérisque. |
-| **Input** | Le point sur la gauche par lequel arrivent les lignes provenant des blocs précédents. |
-| **Outputs** | Les points sur la droite par lesquels partent les lignes vers les blocs suivants. De nombreux blocs ont des sorties distinctes **success** et **error** pour gérer les deux cas. |
+| Champ        | Rôle                                                                                                                                                                             |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Title**    | Le nom affiché sur le canevas. Renommez-le pour faciliter la lecture des workflows complexes.                                                                                    |
+| **Settings** | Ce dont le bloc a besoin pour faire son travail — une URL, un canal Slack, un corps de message, etc. Les champs obligatoires sont marqués d'un astérisque.                       |
+| **Input**    | Le point sur la gauche par lequel arrivent les lignes provenant des blocs précédents.                                                                                            |
+| **Outputs**  | Les points sur la droite par lesquels partent les lignes vers les blocs suivants. De nombreux blocs ont des sorties distinctes **success** et **error** pour gérer les deux cas. |
 
 ## Relier les blocs
 

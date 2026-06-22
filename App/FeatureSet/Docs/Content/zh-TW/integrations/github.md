@@ -14,10 +14,12 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 - 一個你想要開立 issue 的 GitHub 儲存庫。
 - 一個可以建立 issue 的權杖（token）：
+
   - 範圍限定於該儲存庫並具備 **Issues: Read and write** 的 **Fine-grained PAT**，或
   - 具備 `repo` scope 的 **classic PAT**。
 
   於 [github.com/settings/tokens](https://github.com/settings/tokens) 建立一個。
+
 - 一個你可以建立 workflows 的 OneUptime 專案。
 
 ## 步驟 1 — 儲存權杖
@@ -30,6 +32,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 1. 開啟 **Workflows → Create Workflow**，將它命名為 `Incidents → GitHub Issues`，並開啟 **Builder**。
 2. 新增一個設定為 **On Create** 的 **Incident** 觸發器。將它重新命名為 `Incident`。
 3. 新增一個連接到觸發器的 **API** 區塊：
+
    - **Method**：`POST`
    - **URL**：`https://api.github.com/repos/your-org/your-repo/issues`
    - **Headers**：

@@ -5,20 +5,25 @@ OneUptime Terraform 提供商支持以基础设施即代码（IaC）的方式管
 ## 文档目录
 
 ### [快速开始](./quick-start.md)
+
 快速设置指南，帮助您在几分钟内开始使用 OneUptime Terraform 提供商。
 
 ### [完整提供商指南](./README.md)
+
 涵盖安装、配置、资源和最佳实践的综合文档。
 
 ### [自托管配置](./self-hosted.md)
+
 **自托管客户的关键信息**：版本固定、兼容性和部署策略。
 
 ### [示例](./examples.md)
+
 常见 OneUptime Terraform 配置的实际示例和模式。
 
 ## 快速链接
 
 ### 适用于 OneUptime 云端客户
+
 ```hcl
 terraform {
   required_providers {
@@ -36,6 +41,7 @@ provider "oneuptime" {
 ```
 
 ### 适用于自托管客户
+
 ```hcl
 terraform {
   required_providers {

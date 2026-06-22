@@ -54,6 +54,7 @@ Il provider Terraform OneUptime viene generato automaticamente dalla specifica A
 - Regole di validazione modificate
 
 L'uso di una versione del provider che non corrisponde all'installazione OneUptime può causare:
+
 - Errori di compatibilità API
 - Fallimenti nella creazione/aggiornamento delle risorse
 - Comportamento imprevisto
@@ -62,16 +63,19 @@ L'uso di una versione del provider che non corrisponde all'installazione OneUpti
 ## Trovare la Propria Versione OneUptime
 
 ### Metodo 1: Dashboard
+
 1. Effettuare il login nel proprio dashboard OneUptime
 2. Accedere a **Impostazioni** → **Informazioni**
 3. Annotare il numero di versione (ad es. "7.0.123")
 
 ### Metodo 2: API
+
 ```bash
 curl https://vostra-istanza-oneuptime.com/api/version | jq '.version'
 ```
 
 ### Metodo 3: Docker
+
 ```bash
 docker images | grep oneuptime
 # Cercare il tag, ad es. oneuptime/dashboard:7.0.123
@@ -86,11 +90,11 @@ docker images | grep oneuptime
 
 ## Matrice di Compatibilità Versioni
 
-| Versione OneUptime | Versione Provider | Configurazione Terraform |
-|-------------------|------------------|------------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| Cloud Più Recente | Provider Più Recente | `version = "~> 7.0"` |
+| Versione OneUptime | Versione Provider    | Configurazione Terraform |
+| ------------------ | -------------------- | ------------------------ |
+| 7.0.x              | 7.0.x                | `version = "~> 7.0.0"`   |
+| 7.1.x              | 7.1.x                | `version = "~> 7.1.0"`   |
+| Cloud Più Recente  | Provider Più Recente | `version = "~> 7.0"`     |
 
 ## Esempio Avvio Rapido
 
@@ -120,11 +124,11 @@ resource "oneuptime_project" "example" {
 resource "oneuptime_monitor" "website" {
   name       = "Monitor Sito Web"
   project_id = oneuptime_project.example.id
-  
+
   monitor_type = "website"
   url          = "https://example.com"
   interval     = "5m"
-  
+
   tags = {
     managed_by = "terraform"
   }

@@ -36,6 +36,7 @@ Ahora puedes usar `Basic {{variable.JIRA_AUTH}}` como cabecera de autenticación
 1. Abre **Workflows → Create Workflow**, nómbralo `Incidents → Jira` y abre el **Builder**.
 2. Arrastra un disparador **Incident** al lienzo y elige el evento **On Create**. Renómbralo `Incident`.
 3. Arrastra un bloque **API** y conecta el disparador a él. Configura:
+
    - **Method**: `POST`
    - **URL**: `https://tu-dominio.atlassian.net/rest/api/3/issue`
    - **Headers**:
@@ -70,6 +71,7 @@ Ahora puedes usar `Basic {{variable.JIRA_AUTH}}` como cabecera de autenticación
      ```
 
    Reemplaza `OPS` con la clave de tu proyecto y `Bug` con un tipo de issue que exista en ese proyecto.
+
 4. **Guarda.** Deja el workflow deshabilitado hasta que lo hayas probado.
 
 ## Paso 3 — Probarlo
@@ -96,8 +98,9 @@ Para resolver el incidente de OneUptime cuando alguien cierra el issue de Jira, 
 
 1. Crea un segundo workflow que comience con un disparador **Webhook** y copia su URL.
 2. En Jira, ve a **Project settings → Automation → Create rule**:
-   - **Trigger**: *Issue transitioned* a **Done** (o *Issue resolved*).
-   - **Action**: *Send web request* → método `POST`, URL = la URL del webhook de tu workflow, el cuerpo incluye la clave del issue y el ID del incidente de OneUptime, p. ej.:
+
+   - **Trigger**: _Issue transitioned_ a **Done** (o _Issue resolved_).
+   - **Action**: _Send web request_ → método `POST`, URL = la URL del webhook de tu workflow, el cuerpo incluye la clave del issue y el ID del incidente de OneUptime, p. ej.:
 
      ```json
      { "issueKey": "{{issue.key}}", "status": "resolved" }
@@ -121,16 +124,20 @@ Para descubrir los nombres exactos de los campos que espera un proyecto, llama a
 ## Solución de problemas
 
 **`401 Unauthorized`.**
+
 - Vuelve a codificar `email:api_token` y actualiza la variable `JIRA_AUTH`. Un salto de línea al final es la causa habitual — usa `printf` (no `echo`) al codificar.
 - Confirma que la cuenta propietaria del token de API puede crear issues en el proyecto.
 
 **`400 Bad Request` mencionando un campo.**
+
 - El tipo de issue o un campo requerido es incorrecto. Comprueba el nombre del **tipo de issue** del proyecto y si tiene campos personalizados obligatorios. Usa `createmeta` (arriba) para ver qué es obligatorio.
 
 **`404 Not Found`.**
+
 - Comprueba la URL base y que estés usando `/rest/api/3/issue` (Cloud) o `/rest/api/2/issue` (Server/Data Center).
 
 **La descripción aparece en una sola línea o se ve rara.**
+
 - La v3 requiere el Formato de Documento de Atlassian que se muestra arriba. Si prefieres enviar texto plano, usa el endpoint `/rest/api/2/issue` con `"description": "{{Incident.description}}"` como cadena simple.
 
 ## Dónde seguir leyendo

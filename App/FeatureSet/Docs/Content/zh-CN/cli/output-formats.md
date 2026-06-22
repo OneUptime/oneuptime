@@ -20,6 +20,7 @@ oneuptime incident list
 ```
 
 表格格式行为：
+
 - 最多选择 6 列，优先显示：`_id`、`name`、`title`、`createdAt`、`updatedAt`
 - 超过 60 个字符的值将被截断并显示 `...`
 - 使用带颜色的列标题（使用 `--no-color` 禁用）
@@ -72,9 +73,9 @@ NO_COLOR=1 oneuptime incident list
 
 ## 特殊输出情况
 
-| 场景 | 输出 |
-|------|------|
-| 空结果集 | `"No results found."` |
-| 未返回数据 | `"No data returned."` |
-| 单个对象（例如 `get`） | 键值表格格式 |
-| `count` 命令 | 纯数字值 |
+| 场景                   | 输出                  |
+| ---------------------- | --------------------- |
+| 空结果集               | `"No results found."` |
+| 未返回数据             | `"No data returned."` |
+| 单个对象（例如 `get`） | 键值表格格式          |
+| `count` 命令           | 纯数字值              |

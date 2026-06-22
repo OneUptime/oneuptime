@@ -36,6 +36,7 @@ Jira Cloud 使用 **Basic auth**，以您的電子郵件與 API token 進行 bas
 1. 開啟 **Workflows → Create Workflow**，將它命名為 `Incidents → Jira`，並開啟 **Builder**。
 2. 將一個 **Incident** 觸發器拖曳到畫布上，並選擇 **On Create** 事件。將它重新命名為 `Incident`。
 3. 拖曳一個 **API** 區塊並將觸發器連接到它。進行如下設定：
+
    - **Method**：`POST`
    - **URL**：`https://your-domain.atlassian.net/rest/api/3/issue`
    - **Headers**：
@@ -70,6 +71,7 @@ Jira Cloud 使用 **Basic auth**，以您的電子郵件與 API token 進行 bas
      ```
 
    將 `OPS` 替換為您的專案金鑰，並將 `Bug` 替換為該專案中存在的 issue 類型。
+
 4. **儲存。** 在您測試完成之前，請讓 workflow 維持停用狀態。
 
 ## 步驟 3 — 測試
@@ -96,8 +98,9 @@ Jira Cloud 使用 **Basic auth**，以您的電子郵件與 API token 進行 bas
 
 1. 建立第二個 workflow，以 **Webhook** 觸發器開始，並複製其 URL。
 2. 在 Jira 中，前往 **Project settings → Automation → Create rule**：
-   - **Trigger**：*Issue transitioned* 至 **Done**（或 *Issue resolved*）。
-   - **Action**：*Send web request* → method `POST`、URL = 您的 workflow webhook URL、主體包含 issue key 與 OneUptime 事件 id，例如：
+
+   - **Trigger**：_Issue transitioned_ 至 **Done**（或 _Issue resolved_）。
+   - **Action**：_Send web request_ → method `POST`、URL = 您的 workflow webhook URL、主體包含 issue key 與 OneUptime 事件 id，例如：
 
      ```json
      { "issueKey": "{{issue.key}}", "status": "resolved" }
@@ -121,16 +124,20 @@ Jira Cloud 使用 **Basic auth**，以您的電子郵件與 API token 進行 bas
 ## 疑難排解
 
 **`401 Unauthorized`。**
+
 - 重新編碼 `email:api_token` 並更新 `JIRA_AUTH` 變數。結尾的換行字元通常是元兇 — 編碼時請使用 `printf`（而非 `echo`）。
 - 確認擁有該 API token 的帳號能夠在該專案中建立 issue。
 
 **`400 Bad Request` 並提及某個欄位。**
+
 - issue 類型或某個必填欄位有誤。請檢查該專案的 **issue type** 名稱，以及它是否有必填的自訂欄位。使用 `createmeta`（如上）查看哪些是必填的。
 
 **`404 Not Found`。**
+
 - 再次確認基底 URL，以及您是否打到 `/rest/api/3/issue`（Cloud）或 `/rest/api/2/issue`（Server/Data Center）。
 
 **描述顯示為單一行／看起來怪怪的。**
+
 - v3 需要上方所示的 Atlassian Document Format。如果您寧可傳送純文字，請使用 `/rest/api/2/issue` 端點，並以 `"description": "{{Incident.description}}"` 作為純字串。
 
 ## 接下來閱讀的內容

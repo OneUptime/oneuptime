@@ -27,12 +27,12 @@ Los monitores de métricas consultan y evalúan métricas numéricas de tus serv
 
 Define una o más consultas de métricas. Cada consulta incluye:
 
-| Campo | Descripción | Requerido |
-|-------|-------------|----------|
-| Nombre de la métrica | El nombre de la métrica a consultar | Sí |
-| Tipo de agregación | Cómo agregar los valores de la métrica sin procesar (suma, promedio, mínimo, máximo, recuento) | Sí |
-| Atributos | Filtros clave-valor para limitar los datos de la métrica | No |
-| Agregar por | Dimensiones por las que agrupar la métrica | No |
+| Campo                | Descripción                                                                                    | Requerido |
+| -------------------- | ---------------------------------------------------------------------------------------------- | --------- |
+| Nombre de la métrica | El nombre de la métrica a consultar                                                            | Sí        |
+| Tipo de agregación   | Cómo agregar los valores de la métrica sin procesar (suma, promedio, mínimo, máximo, recuento) | Sí        |
+| Atributos            | Filtros clave-valor para limitar los datos de la métrica                                       | No        |
+| Agregar por          | Dimensiones por las que agrupar la métrica                                                     | No        |
 
 Cada consulta recibe un alias (por ejemplo, `a`, `b`, `c`) para usar en fórmulas.
 
@@ -59,22 +59,22 @@ Selecciona la ventana de tiempo para la evaluación de métricas:
 
 Elige cómo agregar los valores de las métricas para la evaluación:
 
-| Estrategia | Descripción |
-|----------|-------------|
-| Promedio | Valor promedio durante la ventana de tiempo |
-| Suma | Suma de todos los valores |
-| Valor máximo | Valor más alto en la ventana de tiempo |
-| Valor mínimo | Valor más bajo en la ventana de tiempo |
+| Estrategia        | Descripción                                         |
+| ----------------- | --------------------------------------------------- |
+| Promedio          | Valor promedio durante la ventana de tiempo         |
+| Suma              | Suma de todos los valores                           |
+| Valor máximo      | Valor más alto en la ventana de tiempo              |
+| Valor mínimo      | Valor más bajo en la ventana de tiempo              |
 | Todos los valores | Todos los valores deben coincidir con los criterios |
-| Cualquier valor | Al menos un valor debe coincidir |
+| Cualquier valor   | Al menos un valor debe coincidir                    |
 
 ## Criterios de monitoreo
 
 ### Tipos de verificación disponibles
 
-| Tipo de verificación | Descripción |
-|------------|-------------|
-| Valor de métrica | El valor agregado de la consulta de métrica o fórmula configurada |
+| Tipo de verificación | Descripción                                                       |
+| -------------------- | ----------------------------------------------------------------- |
+| Valor de métrica     | El valor agregado de la consulta de métrica o fórmula configurada |
 
 ### Tipos de filtro
 

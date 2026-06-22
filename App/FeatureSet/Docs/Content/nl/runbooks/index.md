@@ -24,13 +24,13 @@ Incidentafhandeling is vaak het verschil tussen een storing van één minuut en 
 
 Een paar termen komen telkens terug in de rest van de runbook-docs. Krijg deze eerst helder:
 
-| Term | Betekenis |
-| --- | --- |
-| **Runbook** | De template. Een benoemde, herbruikbare procedure met een geordende staplijst en een `isEnabled`-vlag. |
-| **Stap** | Eén item in een runbook. Heeft een type (Handmatig / JavaScript / HTTP / Bash), een titel, een beschrijving en typespecifieke configuratie. |
-| **Runbook-regel** | Een patroon dat één of meer runbooks automatisch koppelt aan incidenten, alerts of geplande onderhoudsmomenten wanneer hun titel of beschrijving matcht met een regex. |
-| **Uitvoering** | Eén run van een runbook. Wordt aangemaakt wanneer een regel afgaat, iemand op "Runbook uitvoeren" klikt op een event, of iemand op "Nu uitvoeren" klikt op het runbook zelf. Bevat een snapshot van de stappen en de status / output per stap. |
-| **Snapshot** | De bevroren kopie van de stappen van het runbook die op elke uitvoering leeft. Hiermee kun je de template later bewerken zonder de geschiedenis te herschrijven. |
+| Term              | Betekenis                                                                                                                                                                                                                                      |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Runbook**       | De template. Een benoemde, herbruikbare procedure met een geordende staplijst en een `isEnabled`-vlag.                                                                                                                                         |
+| **Stap**          | Eén item in een runbook. Heeft een type (Handmatig / JavaScript / HTTP / Bash), een titel, een beschrijving en typespecifieke configuratie.                                                                                                    |
+| **Runbook-regel** | Een patroon dat één of meer runbooks automatisch koppelt aan incidenten, alerts of geplande onderhoudsmomenten wanneer hun titel of beschrijving matcht met een regex.                                                                         |
+| **Uitvoering**    | Eén run van een runbook. Wordt aangemaakt wanneer een regel afgaat, iemand op "Runbook uitvoeren" klikt op een event, of iemand op "Nu uitvoeren" klikt op het runbook zelf. Bevat een snapshot van de stappen en de status / output per stap. |
+| **Snapshot**      | De bevroren kopie van de stappen van het runbook die op elke uitvoering leeft. Hiermee kun je de template later bewerken zonder de geschiedenis te herschrijven.                                                                               |
 
 ## De levenscyclus van een runbook
 
@@ -44,25 +44,25 @@ Een paar termen komen telkens terug in de rest van de runbook-docs. Krijg deze e
 
 Een snelle beslissingsgids. De langere uitleg staat in [Een runbook schrijven](/docs/runbooks/authoring).
 
-| Staptype | Grijp hiernaar wanneer… | Voorbeeld |
-| --- | --- | --- |
-| **Handmatig** | Een mens moet iets verifiëren, een afweging maken of een actie uitvoeren die OneUptime niet kan observeren. | "Bevestig secundaire-regioverkeer op het load-balancer-dashboard." |
-| **JavaScript** | Je hebt een kleine, afgesloten berekening nodig — een configuratieservice bevragen, een payload transformeren, logica draaien vóór de volgende stap. Draait in sandbox op een [Runbook-agent](/docs/runbooks/agents) in je eigen infrastructuur. | Huidige replica-lag berekenen en beslissen of doorgegaan wordt. |
-| **HTTP-verzoek** | Je roept een bestaande API aan — je eigen admin-endpoint, een cloudprovider, PagerDuty, Slack. | `POST` naar je failover-orchestrator. |
-| **Bash** | Je moet shell-commando's draaien op je eigen infrastructuur — een service herstarten, `kubectl` aanroepen, een deploy-script aanroepen. Vereist een [Runbook-agent](/docs/runbooks/agents) die in je omgeving is geïnstalleerd. | Een service herstarten, `kubectl rollout restart` draaien, een recovery-script aanroepen. |
+| Staptype         | Grijp hiernaar wanneer…                                                                                                                                                                                                                          | Voorbeeld                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| **Handmatig**    | Een mens moet iets verifiëren, een afweging maken of een actie uitvoeren die OneUptime niet kan observeren.                                                                                                                                      | "Bevestig secundaire-regioverkeer op het load-balancer-dashboard."                        |
+| **JavaScript**   | Je hebt een kleine, afgesloten berekening nodig — een configuratieservice bevragen, een payload transformeren, logica draaien vóór de volgende stap. Draait in sandbox op een [Runbook-agent](/docs/runbooks/agents) in je eigen infrastructuur. | Huidige replica-lag berekenen en beslissen of doorgegaan wordt.                           |
+| **HTTP-verzoek** | Je roept een bestaande API aan — je eigen admin-endpoint, een cloudprovider, PagerDuty, Slack.                                                                                                                                                   | `POST` naar je failover-orchestrator.                                                     |
+| **Bash**         | Je moet shell-commando's draaien op je eigen infrastructuur — een service herstarten, `kubectl` aanroepen, een deploy-script aanroepen. Vereist een [Runbook-agent](/docs/runbooks/agents) die in je omgeving is geïnstalleerd.                  | Een service herstarten, `kubectl rollout restart` draaien, een recovery-script aanroepen. |
 
 Je kunt alle vier mixen in één runbook — de kracht van runbooks is dat je menselijke verificatie afwisselt met automatisering.
 
 ## Waar runbooks leven in het dashboard
 
-| Pagina | Wat je daar doet |
-| --- | --- |
-| **Analytics & Automation → Runbooks** | Runbook-templates doorbladeren, aanmaken en bewerken. |
-| **Het Steps-tabblad van een runbook** | De staplijst schrijven en herordenen. |
-| **Het Executions-tabblad van een runbook** | Elke run van dit runbook zien met statusfilters. |
-| **De "Nu uitvoeren"-knop van een runbook** | Een ad-hoc uitvoering starten die niet aan een event hangt. |
-| **Incidents / Alerts / Scheduled Maintenance → Settings → Runbook Rules** | De auto-trigger-regels per entiteitstype aanmaken. |
-| **Een incident / alert / onderhoudsmoment → Runbooks-tabblad** | De uitvoeringen zien die aan dit event hangen, en klikken op **Runbook uitvoeren** voor een handmatige run. |
+| Pagina                                                                    | Wat je daar doet                                                                                            |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Analytics & Automation → Runbooks**                                     | Runbook-templates doorbladeren, aanmaken en bewerken.                                                       |
+| **Het Steps-tabblad van een runbook**                                     | De staplijst schrijven en herordenen.                                                                       |
+| **Het Executions-tabblad van een runbook**                                | Elke run van dit runbook zien met statusfilters.                                                            |
+| **De "Nu uitvoeren"-knop van een runbook**                                | Een ad-hoc uitvoering starten die niet aan een event hangt.                                                 |
+| **Incidents / Alerts / Scheduled Maintenance → Settings → Runbook Rules** | De auto-trigger-regels per entiteitstype aanmaken.                                                          |
+| **Een incident / alert / onderhoudsmoment → Runbooks-tabblad**            | De uitvoeringen zien die aan dit event hangen, en klikken op **Runbook uitvoeren** voor een handmatige run. |
 
 ## Veelvoorkomende use cases
 
@@ -80,13 +80,13 @@ Stel dat je wilt dat elk incident met "db-primary" in de titel automatisch een v
 
 **1. Maak het runbook aan.** Onder **Runbooks → Runbook aanmaken**, noem het "DB primary failover" en voeg deze stappen toe:
 
-| # | Type | Titel |
-| --- | --- | --- |
-| 1 | JavaScript | Pre-failover replica-lag vastleggen |
-| 2 | Handmatig | Bevestig replicagezondheid in DBA-dashboard |
-| 3 | HTTP | `POST` naar failover-orchestrator |
-| 4 | Handmatig | Verifieer dat writes nu naar de nieuwe primary gaan |
-| 5 | HTTP | All-clear posten naar `#db-incidents` Slack |
+| #   | Type       | Titel                                               |
+| --- | ---------- | --------------------------------------------------- |
+| 1   | JavaScript | Pre-failover replica-lag vastleggen                 |
+| 2   | Handmatig  | Bevestig replicagezondheid in DBA-dashboard         |
+| 3   | HTTP       | `POST` naar failover-orchestrator                   |
+| 4   | Handmatig  | Verifieer dat writes nu naar de nieuwe primary gaan |
+| 5   | HTTP       | All-clear posten naar `#db-incidents` Slack         |
 
 **2. Voeg een regel toe.** Onder **Incidents → Settings → Runbook Rules** maak je aan:
 

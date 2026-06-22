@@ -178,11 +178,11 @@ flowchart TD
     end
 ```
 
-| Ordine | Escalation Dopo | Target |
-|-------|----------------|--------|
-| 1 | 30 secondi | Pianificazione Di Guardia Primario |
-| 2 | 30 secondi | Pianificazione Di Guardia Secondario |
-| 3 | 30 secondi | Lead Team Ingegneria |
+| Ordine | Escalation Dopo | Target                               |
+| ------ | --------------- | ------------------------------------ |
+| 1      | 30 secondi      | Pianificazione Di Guardia Primario   |
+| 2      | 30 secondi      | Pianificazione Di Guardia Secondario |
+| 3      | 30 secondi      | Lead Team Ingegneria                 |
 
 ## Fase 7: Configurare i Messaggi Vocali (Opzionale)
 
@@ -199,23 +199,23 @@ Personalizzare i messaggi che i chiamanti sentono:
 
 ### Impostazioni Policy
 
-| Impostazione | Descrizione | Predefinito |
-|---------|-------------|---------|
-| Messaggio di Benvenuto | Messaggio TTS riprodotto quando la chiamata viene risposta | "Attenda mentre la connettiamo all'ingegnere di guardia." |
-| Messaggio Nessuna Risposta | Messaggio quando tutte le regole di escalation falliscono | "Nessuno è disponibile. Si prega di riprovare più tardi." |
-| Messaggio Nessuno Disponibile | Messaggio quando nessuno è di guardia | "Siamo spiacenti, ma nessun ingegnere di guardia è attualmente disponibile." |
-| Ripeti Policy Se Nessuno Risponde | Ricominciare dalla prima regola se tutte falliscono | Disabilitato |
-| Volte Ripetizione Policy | Numero massimo di tentativi di ripetizione | 1 |
+| Impostazione                      | Descrizione                                                | Predefinito                                                                  |
+| --------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Messaggio di Benvenuto            | Messaggio TTS riprodotto quando la chiamata viene risposta | "Attenda mentre la connettiamo all'ingegnere di guardia."                    |
+| Messaggio Nessuna Risposta        | Messaggio quando tutte le regole di escalation falliscono  | "Nessuno è disponibile. Si prega di riprovare più tardi."                    |
+| Messaggio Nessuno Disponibile     | Messaggio quando nessuno è di guardia                      | "Siamo spiacenti, ma nessun ingegnere di guardia è attualmente disponibile." |
+| Ripeti Policy Se Nessuno Risponde | Ricominciare dalla prima regola se tutte falliscono        | Disabilitato                                                                 |
+| Volte Ripetizione Policy          | Numero massimo di tentativi di ripetizione                 | 1                                                                            |
 
 ### Impostazioni Regola Escalation
 
-| Impostazione | Descrizione |
-|---------|-------------|
-| Ordine | Ordine di priorità (1 = priorità più alta) |
-| Escalation Dopo Secondi | Tempo di attesa prima di provare la regola successiva (predefinito: 30s) |
-| Pianificazione Di Guardia | Instrada a chi è attualmente di guardia |
-| Team | Instrada a tutti i membri dei team selezionati |
-| Utenti | Instrada a utenti specifici |
+| Impostazione              | Descrizione                                                              |
+| ------------------------- | ------------------------------------------------------------------------ |
+| Ordine                    | Ordine di priorità (1 = priorità più alta)                               |
+| Escalation Dopo Secondi   | Tempo di attesa prima di provare la regola successiva (predefinito: 30s) |
+| Pianificazione Di Guardia | Instrada a chi è attualmente di guardia                                  |
+| Team                      | Instrada a tutti i membri dei team selezionati                           |
+| Utenti                    | Instrada a utenti specifici                                              |
 
 ## Visualizzazione dei Log delle Chiamate
 
@@ -226,6 +226,7 @@ Per visualizzare la cronologia delle chiamate in entrata:
 3. Accedere alla scheda **Log Chiamate**
 
 I log mostrano:
+
 - Numero di telefono del chiamante
 - Stato della chiamata (Completata, Nessuna Risposta, Fallita, ecc.)
 - Chi ha risposto alla chiamata

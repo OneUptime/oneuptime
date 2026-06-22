@@ -10,14 +10,14 @@ Con los datos de perfilado en OneUptime, puedes identificar las funciones más c
 
 OneUptime admite los siguientes tipos de perfil:
 
-| Tipo de perfil | Descripción | Unidad |
-| --- | --- | --- |
-| cpu | Tiempo de CPU dedicado a ejecutar código | nanosegundos |
-| wall | Tiempo de pared (incluye espera/suspensión) | nanosegundos |
-| alloc_objects | Número de asignaciones de heap | recuento |
-| alloc_space | Bytes de memoria de heap asignados | bytes |
-| goroutine | Número de goroutines activas (Go) | recuento |
-| contention | Tiempo esperando en bloqueos/mutexes | nanosegundos |
+| Tipo de perfil | Descripción                                 | Unidad       |
+| -------------- | ------------------------------------------- | ------------ |
+| cpu            | Tiempo de CPU dedicado a ejecutar código    | nanosegundos |
+| wall           | Tiempo de pared (incluye espera/suspensión) | nanosegundos |
+| alloc_objects  | Número de asignaciones de heap              | recuento     |
+| alloc_space    | Bytes de memoria de heap asignados          | bytes        |
+| goroutine      | Número de goroutines activas (Go)           | recuento     |
+| contention     | Tiempo esperando en bloqueos/mutexes        | nanosegundos |
 
 ## Primeros pasos
 
@@ -37,10 +37,10 @@ Una vez que hayas creado un token, haz clic en "Ver" para verlo.
 
 OneUptime acepta datos de perfilado a través de gRPC y HTTP usando el protocolo de perfiles OTLP.
 
-| Protocolo | Punto de conexión |
-| --- | --- |
-| gRPC | `your-oneuptime-host:4317` (puerto gRPC estándar OTLP) |
-| HTTP | `https://your-oneuptime-host/otlp/v1/profiles` |
+| Protocolo | Punto de conexión                                      |
+| --------- | ------------------------------------------------------ |
+| gRPC      | `your-oneuptime-host:4317` (puerto gRPC estándar OTLP) |
+| HTTP      | `https://your-oneuptime-host/otlp/v1/profiles`         |
 
 **Variables de entorno**
 

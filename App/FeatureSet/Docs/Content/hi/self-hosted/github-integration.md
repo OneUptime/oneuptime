@@ -12,6 +12,7 @@
 ### चरण 1: GitHub App बनाएं
 
 1. GitHub पर जाएं और अपने organization या personal settings पर जाएं:
+
    - **Organizations के लिए:** `https://github.com/organizations/YOUR_ORG/settings/apps` पर जाएं
    - **Personal Account के लिए:** `https://github.com/settings/apps` पर जाएं
 
@@ -32,26 +33,26 @@
 
 **Repository Permissions:**
 
-| Permission | Access Level | Purpose |
-|------------|--------------|---------|
-| Contents | Read & Write | repository files पढ़ें, branches push करें (AI Agent के लिए आवश्यक) |
-| Pull requests | Read & Write | pull requests बनाएं और प्रबंधित करें |
-| Issues | Read & Write | issues पढ़ें और comment करें |
-| Commit statuses | Read | build/CI status जांचें |
-| Actions | Read | GitHub Actions workflow runs और logs पढ़ें |
-| Metadata | Read | Basic repository metadata (आवश्यक) |
+| Permission      | Access Level | Purpose                                                             |
+| --------------- | ------------ | ------------------------------------------------------------------- |
+| Contents        | Read & Write | repository files पढ़ें, branches push करें (AI Agent के लिए आवश्यक) |
+| Pull requests   | Read & Write | pull requests बनाएं और प्रबंधित करें                                |
+| Issues          | Read & Write | issues पढ़ें और comment करें                                        |
+| Commit statuses | Read         | build/CI status जांचें                                              |
+| Actions         | Read         | GitHub Actions workflow runs और logs पढ़ें                          |
+| Metadata        | Read         | Basic repository metadata (आवश्यक)                                  |
 
 **Organization Permissions (organizations के साथ उपयोग करने पर):**
 
-| Permission | Access Level | Purpose |
-|------------|--------------|---------|
-| Members | Read | organization members सूचीबद्ध करें |
+| Permission | Access Level | Purpose                            |
+| ---------- | ------------ | ---------------------------------- |
+| Members    | Read         | organization members सूचीबद्ध करें |
 
 **Account Permissions:**
 
-| Permission | Access Level | Purpose |
-|------------|--------------|---------|
-| Email addresses | Read | notifications के लिए user email पढ़ें |
+| Permission      | Access Level | Purpose                               |
+| --------------- | ------------ | ------------------------------------- |
+| Email addresses | Read         | notifications के लिए user email पढ़ें |
 
 ### चरण 3: Webhook Events Subscribe करें
 
@@ -64,6 +65,7 @@ OneUptime को real-time updates receive करने के लिए, इन
 ### चरण 4: Installation Access सेट करें
 
 "Where can this GitHub App be installed?" के अंतर्गत चुनें:
+
 - **Only on this account** - Private/internal use के लिए
 - **Any account** - यदि आप दूसरों को आपका app install करने देना चाहते हैं
 
@@ -113,7 +115,7 @@ GITHUB_APP_WEBHOOK_SECRET=YOUR_WEBHOOK_SECRET
 ```yaml
 gitHubApp:
   id: "YOUR_APP_ID"
-  name: "YOUR_APP_NAME"  # आपके GitHub App का exact नाम
+  name: "YOUR_APP_NAME" # आपके GitHub App का exact नाम
   clientId: "YOUR_CLIENT_ID"
   clientSecret: "YOUR_CLIENT_SECRET"
   privateKey: "<BASE64_ENCODED_PRIVATE_KEY_CONTENT>"
@@ -143,27 +145,30 @@ gitHubApp:
 
 ## Environment Variables Reference
 
-| Variable | विवरण | आवश्यक |
-|----------|-------|--------|
-| `GITHUB_APP_ID` | आपके GitHub App settings से App ID | हाँ |
-| `GITHUB_APP_NAME` | आपके GitHub App का exact नाम (installation URLs के लिए उपयोग किया जाता है) | हाँ |
-| `GITHUB_APP_CLIENT_ID` | आपके GitHub App settings से Client ID | हाँ |
-| `GITHUB_APP_CLIENT_SECRET` | आपने जो client secret generate किया | हाँ |
-| `GITHUB_APP_PRIVATE_KEY` | private key (.pem फ़ाइल) का content | हाँ |
-| `GITHUB_APP_WEBHOOK_SECRET` | webhook payloads verify करने के लिए webhook secret | नहीं (लेकिन अनुशंसित) |
+| Variable                    | विवरण                                                                      | आवश्यक                |
+| --------------------------- | -------------------------------------------------------------------------- | --------------------- |
+| `GITHUB_APP_ID`             | आपके GitHub App settings से App ID                                         | हाँ                   |
+| `GITHUB_APP_NAME`           | आपके GitHub App का exact नाम (installation URLs के लिए उपयोग किया जाता है) | हाँ                   |
+| `GITHUB_APP_CLIENT_ID`      | आपके GitHub App settings से Client ID                                      | हाँ                   |
+| `GITHUB_APP_CLIENT_SECRET`  | आपने जो client secret generate किया                                        | हाँ                   |
+| `GITHUB_APP_PRIVATE_KEY`    | private key (.pem फ़ाइल) का content                                        | हाँ                   |
+| `GITHUB_APP_WEBHOOK_SECRET` | webhook payloads verify करने के लिए webhook secret                         | नहीं (लेकिन अनुशंसित) |
 
 ## समस्या निवारण
 
 ### GitHub App install करने के बाद OneUptime पर redirect नहीं हुआ:
+
 - सुनिश्चित करें कि आपके GitHub App settings में **Setup URL** configure है: `https://your-oneuptime-domain.com/api/github/auth/callback`
 - अपने GitHub App settings > "Post installation" section पर जाएं और सत्यापित करें कि Setup URL सेट है
 - "Redirect on update" option भी checked होनी चाहिए
 
 **"GitHub App is not configured" error:**
+
 - सुनिश्चित करें कि `GITHUB_APP_CLIENT_ID` environment variable सेट है
 - environment variables सेट करने के बाद अपना OneUptime server restart करें
 
 **"Invalid webhook signature" error:**
+
 - सत्यापित करें कि आपका `GITHUB_APP_WEBHOOK_SECRET` GitHub में configure किए गए secret से match करता है
 - सुनिश्चित करें कि webhook URL correct और internet से accessible है
 

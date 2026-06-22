@@ -1,6 +1,6 @@
 # Custom Code Monitor
 
-Custom Code Monitor allows you to write custom scripts to monitor your applications. You can use this feature to monitor your applications in a way that is not possible with the existing monitors. For example, you can have multi-step API requests. 
+Custom Code Monitor allows you to write custom scripts to monitor your applications. You can use this feature to monitor your applications in a way that is not possible with the existing monitors. For example, you can have multi-step API requests.
 
 #### Example
 
@@ -9,15 +9,14 @@ The following example shows how to use a Custom Code Monitor:
 ```javascript
 // You can use axios module.
 
-await axios.get('https://api.example.com/');
+await axios.get("https://api.example.com/");
 
 // Axios Documentation here: https://axios-http.com/docs/intro
 
 return {
-    data: 'Hello World' // return any data you like here. 
+  data: "Hello World", // return any data you like here.
 };
 ```
-
 
 ### Using Monitor Secrets
 
@@ -29,7 +28,7 @@ To add a secret, please go to OneUptime Dashboard -> Project Settings -> Monitor
 
 You can select which monitors have access to the secret. In this case we added `ApiKey` secret and selected monitors to have access to it.
 
-**Please note**: Secrets are encrypted and stored securely. If you lose the secret, you will need to create a new secret. You cannot view or update the secret after its saved. 
+**Please note**: Secrets are encrypted and stored securely. If you lose the secret, you will need to create a new secret. You cannot view or update the secret after its saved.
 
 #### Using a secret
 
@@ -46,9 +45,8 @@ let numberSecret = {{monitorSecrets.NumberSecret}};
 let booleanSecret = {{monitorSecrets.BooleanSecret}};
 
 // you can even console log to see if the secrets is being fetched correctly
-console.log(stringSecret); 
+console.log(stringSecret);
 ```
-
 
 ### Custom Metrics
 
@@ -65,30 +63,32 @@ oneuptime.captureMetric(name, value, attributes);
 #### Example
 
 ```javascript
-const response = await axios.get('https://api.example.com/health');
+const response = await axios.get("https://api.example.com/health");
 
 // Capture a simple metric
-oneuptime.captureMetric('api.response.time', response.data.latency);
+oneuptime.captureMetric("api.response.time", response.data.latency);
 
 // Capture a metric with attributes
-oneuptime.captureMetric('api.queue.depth', response.data.queueDepth, {
-    region: 'us-east-1',
-    environment: 'production'
+oneuptime.captureMetric("api.queue.depth", response.data.queueDepth, {
+  region: "us-east-1",
+  environment: "production",
 });
 
 return {
-    data: response.data
+  data: response.data,
 };
 ```
 
 Once captured, these metrics appear in the Metric Explorer under names like `custom.monitor.api.response.time`. You can add them to dashboard charts, set up alerts, and filter by monitor, probe, or any custom attributes you provided.
 
 **Limits:**
+
 - Maximum 100 metrics per script execution.
 - Metric names are limited to 200 characters.
 - Values must be numeric.
 
 ### Modules available in the script
+
 - `axios`: You can use this module to make HTTP requests. It is a promise-based HTTP client for the browser and Node.js.
 - `crypto`: You can use this module to perform cryptographic operations. It is a built-in Node.js module that provides cryptographic functionality that includes a set of wrappers for OpenSSL's hash, HMAC, cipher, decipher, sign, and verify functions.
 - `console.log`: You can use this module to log data to the console. This is useful for debugging purposes.
@@ -99,6 +99,6 @@ Once captured, these metrics appear in the Metric Explorer under names like `cus
 ### Things to consider
 
 - You can use `console.log` to log the data in the console. This will be available in the logs section of the monitor (Probes > View Logs).
-- You can return the data from the script using the `return` statement. 
+- You can return the data from the script using the `return` statement.
 - This is a JavaScript script, so you can use all the JavaScript features in the script.
 - Timeout for the script is 2 minutes. If the script takes more than 2 mins, it will be terminated.

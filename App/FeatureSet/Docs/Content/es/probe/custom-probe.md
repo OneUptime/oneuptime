@@ -123,15 +123,15 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 ##### Con configuración de proxy
@@ -153,29 +153,29 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
-          # Configuración de proxy (opcional)
-          - name: HTTP_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: HTTPS_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: NO_PROXY
-            value: "localhost,.internal.example.com"
-          # Para proxy con autenticación, usa:
-          # - name: HTTP_PROXY_URL
-          #   value: "http://username:password@proxy.example.com:8080"
-          # - name: HTTPS_PROXY_URL
-          #   value: "http://username:password@proxy.example.com:8080"
-          # - name: NO_PROXY
-          #   value: "localhost,.internal.example.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
+            # Configuración de proxy (opcional)
+            - name: HTTP_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: HTTPS_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: NO_PROXY
+              value: "localhost,.internal.example.com"
+            # Para proxy con autenticación, usa:
+            # - name: HTTP_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: HTTPS_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: NO_PROXY
+            #   value: "localhost,.internal.example.com"
 ```
 
 Luego ejecuta el siguiente comando:
@@ -191,11 +191,13 @@ Si te auto-alojas en OneUptime, puedes cambiar `ONEUPTIME_URL` a tu instancia pe
 La sonda admite las siguientes variables de entorno:
 
 #### Variables requeridas
+
 - `PROBE_KEY`: La clave de la sonda de tu panel de OneUptime
 - `PROBE_ID`: El ID de la sonda de tu panel de OneUptime
 - `ONEUPTIME_URL`: La URL de tu instancia de OneUptime (predeterminado: https://oneuptime.com)
 
 #### Variables opcionales
+
 - `HTTP_PROXY_URL`: URL del servidor proxy HTTP para solicitudes HTTP
 - `HTTPS_PROXY_URL`: URL del servidor proxy HTTP para solicitudes HTTPS
 - `NO_PROXY`: Hosts o dominios separados por comas que deben omitir el proxy
@@ -212,15 +214,18 @@ La sonda admite las siguientes variables de entorno:
 La sonda admite servidores proxy HTTP y HTTPS. Cuando se configura, la sonda enrutará todo el tráfico de monitoreo a través de los servidores proxy especificados. También puedes proporcionar una lista `NO_PROXY` separada por comas para omitir el proxy para hosts o redes internos.
 
 **Formato de URL del proxy:**
+
 ```
 http://[username:password@]proxy.server.com:port
 ```
 
 **Ejemplos:**
+
 - Proxy básico: `http://proxy.example.com:8080`
 - Con autenticación: `http://username:password@proxy.example.com:8080`
 
 **Características admitidas:**
+
 - Soporte de proxy HTTP y HTTPS
 - Autenticación de proxy (nombre de usuario/contraseña)
 - Retroceso automático entre proxies HTTP y HTTPS

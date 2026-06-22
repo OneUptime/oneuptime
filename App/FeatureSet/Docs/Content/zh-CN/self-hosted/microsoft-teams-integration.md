@@ -27,20 +27,23 @@
 2. 点击"添加权限"并选择"Microsoft Graph"
 
 **添加委派权限**（代表已登录用户操作时）：
-   - **User.Read** - 在 OAuth 流程中获取已认证用户的个人资料信息（显示名称、电子邮件）所必需
-   - **Team.ReadBasic.All** - 选择要连接的团队时列出用户所属团队所必需
-   - **Channel.ReadBasic.All** - 读取频道信息并列出团队内的频道以进行通知传送所必需
-   - **ChannelMessage.Send** - 向 Teams 频道发送告警和事件通知所必需
+
+- **User.Read** - 在 OAuth 流程中获取已认证用户的个人资料信息（显示名称、电子邮件）所必需
+- **Team.ReadBasic.All** - 选择要连接的团队时列出用户所属团队所必需
+- **Channel.ReadBasic.All** - 读取频道信息并列出团队内的频道以进行通知传送所必需
+- **ChannelMessage.Send** - 向 Teams 频道发送告警和事件通知所必需
 
 **添加应用程序权限**（以应用本身操作，无需已登录用户时）：
-   - **Team.ReadBasic.All** - 授予管理员同意后列出组织中所有团队所必需
-   - **Channel.ReadBasic.All** - 验证频道存在并检索频道详情所必需
-   - **ChannelMessage.Send** - 以程序化方式向频道发送消息所必需
+
+- **Team.ReadBasic.All** - 授予管理员同意后列出组织中所有团队所必需
+- **Channel.ReadBasic.All** - 验证频道存在并检索频道详情所必需
+- **ChannelMessage.Send** - 以程序化方式向频道发送消息所必需
 
 **注意：** Bot Framework 使用 Teams 应用清单中定义的资源特定同意（RSC）权限处理消息传送。这些权限包括：
-   - **ChannelMessage.Send.Group** - 允许机器人向团队频道发送消息
-   - **ChannelMessage.Read.Group** - 允许机器人读取频道消息以处理交互式命令
-   - **Channel.Create.Group** - 允许机器人在需要时创建频道
+
+- **ChannelMessage.Send.Group** - 允许机器人向团队频道发送消息
+- **ChannelMessage.Read.Group** - 允许机器人读取频道消息以处理交互式命令
+- **Channel.Create.Group** - 允许机器人在需要时创建频道
 
 3. 点击"为您的组织授予管理员同意"
 
@@ -57,6 +60,7 @@
 
 1. 在 Azure 门户中，导航至"Azure Bot"并点击"创建"
 2. 填写机器人创建表单：
+
    - **机器人句柄：** oneuptime-bot
    - **订阅：** 您的 Azure 订阅
    - **资源组：** 创建新的或使用现有的

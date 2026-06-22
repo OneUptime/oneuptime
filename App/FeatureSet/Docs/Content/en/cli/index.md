@@ -34,27 +34,27 @@ oneuptime resources
 
 ## Documentation
 
-| Guide | Description |
-|-------|-------------|
-| [Authentication](./authentication.md) | Login, contexts, and credential management |
+| Guide                                           | Description                                              |
+| ----------------------------------------------- | -------------------------------------------------------- |
+| [Authentication](./authentication.md)           | Login, contexts, and credential management               |
 | [Resource Operations](./resource-operations.md) | CRUD operations on monitors, incidents, alerts, and more |
-| [Output Formats](./output-formats.md) | JSON, table, and wide output modes |
-| [Scripting and CI/CD](./scripting.md) | Automation, environment variables, and pipeline usage |
-| [Command Reference](./command-reference.md) | Complete reference for all commands and options |
+| [Output Formats](./output-formats.md)           | JSON, table, and wide output modes                       |
+| [Scripting and CI/CD](./scripting.md)           | Automation, environment variables, and pipeline usage    |
+| [Command Reference](./command-reference.md)     | Complete reference for all commands and options          |
 
 ## Global Options
 
 These flags can be used with any command:
 
-| Flag | Description |
-|------|-------------|
-| `--api-key <key>` | Override API key for this command |
-| `--url <url>` | Override instance URL for this command |
-| `--context <name>` | Use a specific named context |
+| Flag                    | Description                            |
+| ----------------------- | -------------------------------------- |
+| `--api-key <key>`       | Override API key for this command      |
+| `--url <url>`           | Override instance URL for this command |
+| `--context <name>`      | Use a specific named context           |
 | `-o, --output <format>` | Output format: `json`, `table`, `wide` |
-| `--no-color` | Disable colored output |
-| `--help` | Show command help |
-| `--version` | Show CLI version |
+| `--no-color`            | Disable colored output                 |
+| `--help`                | Show command help                      |
+| `--version`             | Show CLI version                       |
 
 ## Getting Help
 

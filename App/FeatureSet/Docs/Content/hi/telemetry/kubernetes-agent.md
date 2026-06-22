@@ -11,7 +11,7 @@ OneUptime Kubernetes Agent एक पूर्व-पैकेज्ड Helm cha
 - एक चालू Kubernetes क्लस्टर (v1.23+)
 - आपके क्लस्टर तक पहुँचने के लिए कॉन्फ़िगर किया गया `kubectl`
 - `helm` v3 इंस्टॉल किया हुआ
-- एक **OneUptime API key** — इसे *Project Settings → API Keys* से बनाएँ
+- एक **OneUptime API key** — इसे _Project Settings → API Keys_ से बनाएँ
 
 ## Step 1 — OneUptime Helm Repository जोड़ें
 
@@ -24,11 +24,11 @@ helm repo update
 
 यह chart एक एकल शीर्ष-स्तरीय विकल्प प्रदर्शित करता है — `preset` — जो आपके Kubernetes वितरण के लिए संगत डिफ़ॉल्ट चुनता है। यह उन चीज़ों को नियंत्रित करता है जिन्हें अन्यथा आपको हाथ से ट्यून करना पड़ता: logs को hostPath DaemonSet के माध्यम से भेजना है या Kubernetes API के माध्यम से, और कौन सा security context लागू करना है।
 
-| `preset` | किसके लिए उपयोग करें | Log संग्रह |
-|---|---|---|
-| `standard` *(डिफ़ॉल्ट)* | स्व-प्रबंधित क्लस्टर, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | hostPath के माध्यम से `/var/log/pods` पढ़ने वाला DaemonSet (सबसे कम ओवरहेड) |
-| `gke-autopilot` | **GKE Autopilot** | Kubernetes API log tailer Deployment (कोई hostPath नहीं, कोई host पहुँच नहीं) |
-| `eks-fargate` | **EKS Fargate** | Kubernetes API log tailer Deployment (कोई hostPath नहीं, कोई host पहुँच नहीं) |
+| `preset`                | किसके लिए उपयोग करें                                                                 | Log संग्रह                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| `standard` _(डिफ़ॉल्ट)_ | स्व-प्रबंधित क्लस्टर, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | hostPath के माध्यम से `/var/log/pods` पढ़ने वाला DaemonSet (सबसे कम ओवरहेड)   |
+| `gke-autopilot`         | **GKE Autopilot**                                                                    | Kubernetes API log tailer Deployment (कोई hostPath नहीं, कोई host पहुँच नहीं) |
+| `eks-fargate`           | **EKS Fargate**                                                                      | Kubernetes API log tailer Deployment (कोई hostPath नहीं, कोई host पहुँच नहीं) |
 
 यदि आप सुनिश्चित नहीं हैं, तो `standard` से शुरू करें। यदि इंस्टॉल `hostPath` का उल्लेख करने वाली Pod Security त्रुटि के साथ विफल हो जाता है, तो `preset=gke-autopilot` (या Fargate पर `eks-fargate`) के साथ पुनः चलाएँ और यह काम करेगा।
 
@@ -208,19 +208,19 @@ kubectl delete namespace oneuptime-agent
 
 ## क्या एकत्र किया जाता है
 
-| श्रेणी | डेटा |
-|----------|------|
-| **Node Metrics** | CPU उपयोग, मेमोरी उपयोग, filesystem उपयोग, नेटवर्क I/O |
-| **Pod Metrics** | CPU उपयोग, मेमोरी उपयोग, नेटवर्क I/O, restarts |
-| **Container Metrics** | प्रति container CPU उपयोग, मेमोरी उपयोग |
-| **Cluster Metrics** | Node स्थितियाँ, आवंटन योग्य संसाधन, pod गणना |
-| **Kubernetes Events** | चेतावनियाँ, त्रुटियाँ, scheduling events |
-| **Pod Logs** | सभी containers से stdout/stderr logs (standard क्लस्टरों पर hostPath DaemonSet के माध्यम से, या Autopilot / Fargate पर Kubernetes API के माध्यम से) |
-| **Application Traces** *(eBPF के माध्यम से, डिफ़ॉल्ट रूप से चालू)* | प्रत्येक pod से HTTP, gRPC, SQL/Redis spans — कोई SDK या कोड परिवर्तन नहीं |
-| **HTTP RED Metrics** *(eBPF के माध्यम से)* | `http.server.request.duration`, request और response body आकार, प्रति service |
-| **Service Graph** *(eBPF के माध्यम से)* | Caller → callee request दर, latency, और error edges — service map दृश्य को संचालित करता है |
-| **Network Flow Metrics** *(eBPF के माध्यम से)* | k8s मेटाडेटा के साथ pod-to-pod TCP/UDP byte और packet काउंटर |
-| **TCP Stats** *(eBPF के माध्यम से)* | Node-स्तरीय RTT, failed-connection, और retransmit काउंटर |
+| श्रेणी                                                             | डेटा                                                                                                                                                |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Node Metrics**                                                   | CPU उपयोग, मेमोरी उपयोग, filesystem उपयोग, नेटवर्क I/O                                                                                              |
+| **Pod Metrics**                                                    | CPU उपयोग, मेमोरी उपयोग, नेटवर्क I/O, restarts                                                                                                      |
+| **Container Metrics**                                              | प्रति container CPU उपयोग, मेमोरी उपयोग                                                                                                             |
+| **Cluster Metrics**                                                | Node स्थितियाँ, आवंटन योग्य संसाधन, pod गणना                                                                                                        |
+| **Kubernetes Events**                                              | चेतावनियाँ, त्रुटियाँ, scheduling events                                                                                                            |
+| **Pod Logs**                                                       | सभी containers से stdout/stderr logs (standard क्लस्टरों पर hostPath DaemonSet के माध्यम से, या Autopilot / Fargate पर Kubernetes API के माध्यम से) |
+| **Application Traces** _(eBPF के माध्यम से, डिफ़ॉल्ट रूप से चालू)_ | प्रत्येक pod से HTTP, gRPC, SQL/Redis spans — कोई SDK या कोड परिवर्तन नहीं                                                                          |
+| **HTTP RED Metrics** _(eBPF के माध्यम से)_                         | `http.server.request.duration`, request और response body आकार, प्रति service                                                                        |
+| **Service Graph** _(eBPF के माध्यम से)_                            | Caller → callee request दर, latency, और error edges — service map दृश्य को संचालित करता है                                                          |
+| **Network Flow Metrics** _(eBPF के माध्यम से)_                     | k8s मेटाडेटा के साथ pod-to-pod TCP/UDP byte और packet काउंटर                                                                                        |
+| **TCP Stats** _(eBPF के माध्यम से)_                                | Node-स्तरीय RTT, failed-connection, और retransmit काउंटर                                                                                            |
 
 ## eBPF के माध्यम से Application Traces & HTTP Metrics (डिफ़ॉल्ट रूप से चालू)
 
@@ -250,15 +250,15 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 सभी डिफ़ॉल्ट रूप से चालू। किसी को भी `--set ebpf.features.<name>=false` के साथ बंद करें:
 
-| `ebpf.features.*` | डिफ़ॉल्ट | यह क्या जोड़ता है |
-|---|---|---|
-| `httpMetrics` | चालू | प्रति service HTTP/gRPC RED मेट्रिक्स (request दर, latency, errors) |
-| `spanMetrics` | चालू | प्रति-span request/response आकार और अवधि |
-| `serviceGraph` | चालू | Caller → callee edge मेट्रिक्स; service map को संचालित करता है |
-| `hostMetrics` | चालू | प्रति instrumented process CPU और मेमोरी |
-| `networkMetrics` | चालू | Pod-to-pod TCP/UDP फ्लो काउंटर |
-| `networkInterZoneMetrics` | बंद | नेटवर्क मेट्रिक्स का Inter-zone संस्करण (cardinality दोगुनी करता है) |
-| `tcpStats` | चालू | Node-स्तरीय TCP RTT, failed-connection, retransmit काउंटर |
+| `ebpf.features.*`         | डिफ़ॉल्ट | यह क्या जोड़ता है                                                    |
+| ------------------------- | -------- | -------------------------------------------------------------------- |
+| `httpMetrics`             | चालू     | प्रति service HTTP/gRPC RED मेट्रिक्स (request दर, latency, errors)  |
+| `spanMetrics`             | चालू     | प्रति-span request/response आकार और अवधि                             |
+| `serviceGraph`            | चालू     | Caller → callee edge मेट्रिक्स; service map को संचालित करता है       |
+| `hostMetrics`             | चालू     | प्रति instrumented process CPU और मेमोरी                             |
+| `networkMetrics`          | चालू     | Pod-to-pod TCP/UDP फ्लो काउंटर                                       |
+| `networkInterZoneMetrics` | बंद      | नेटवर्क मेट्रिक्स का Inter-zone संस्करण (cardinality दोगुनी करता है) |
+| `tcpStats`                | चालू     | Node-स्तरीय TCP RTT, failed-connection, retransmit काउंटर            |
 
 Cross-service trace context प्रसार भी डिफ़ॉल्ट रूप से चालू है — OBI आउटबाउंड HTTP/TCP में W3C `traceparent` इंजेक्ट करता है ताकि pod A → pod B को पार करने वाला एक request एकल trace के रूप में दिखाई दे, कहीं भी कोई SDK परिवर्तन नहीं। `--set ebpf.contextPropagation=false` के साथ बंद करें।
 
@@ -298,7 +298,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   यदि यह `401` लौटाता है, तो आपके रिलीज़ में key गलत है या निरस्त कर दी गई थी। *Project Settings → Telemetry Ingestion Keys* से एक live key कॉपी करें और पुनः-डिप्लॉय करें:
+   यदि यह `401` लौटाता है, तो आपके रिलीज़ में key गलत है या निरस्त कर दी गई थी। _Project Settings → Telemetry Ingestion Keys_ से एक live key कॉपी करें और पुनः-डिप्लॉय करें:
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

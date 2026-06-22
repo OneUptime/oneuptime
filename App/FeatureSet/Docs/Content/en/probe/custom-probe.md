@@ -123,15 +123,15 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 ##### With Proxy Configuration
@@ -153,29 +153,29 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
-          # Proxy configuration (optional)
-          - name: HTTP_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: HTTPS_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: NO_PROXY
-            value: "localhost,.internal.example.com"
-          # For proxy with authentication, use:
-          # - name: HTTP_PROXY_URL
-          #   value: "http://username:password@proxy.example.com:8080"
-          # - name: HTTPS_PROXY_URL
-          #   value: "http://username:password@proxy.example.com:8080"
-          # - name: NO_PROXY
-          #   value: "localhost,.internal.example.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
+            # Proxy configuration (optional)
+            - name: HTTP_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: HTTPS_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: NO_PROXY
+              value: "localhost,.internal.example.com"
+            # For proxy with authentication, use:
+            # - name: HTTP_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: HTTPS_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: NO_PROXY
+            #   value: "localhost,.internal.example.com"
 ```
 
 Then run the following command:
@@ -191,11 +191,13 @@ If you are self hosting OneUptime, you can change `ONEUPTIME_URL` to your custom
 The probe supports the following environment variables:
 
 #### Required Variables
+
 - `PROBE_KEY` - The probe key from your OneUptime dashboard
 - `PROBE_ID` - The probe ID from your OneUptime dashboard
 - `ONEUPTIME_URL` - The URL of your OneUptime instance (default: https://oneuptime.com)
 
 #### Optional Variables
+
 - `HTTP_PROXY_URL` - HTTP proxy server URL for HTTP requests
 - `HTTPS_PROXY_URL` - HTTP proxy server URL for HTTPS requests
 - `NO_PROXY` - Comma-separated hosts or domains that should bypass the proxy
@@ -212,15 +214,18 @@ The probe supports the following environment variables:
 The probe supports both HTTP and HTTPS proxy servers. When configured, the probe will route all monitoring traffic through the specified proxy servers. You can also provide a comma-separated `NO_PROXY` list to bypass the proxy for internal hosts or networks.
 
 **Proxy URL Format:**
+
 ```
 http://[username:password@]proxy.server.com:port
 ```
 
 **Examples:**
+
 - Basic proxy: `http://proxy.example.com:8080`
 - With authentication: `http://username:password@proxy.example.com:8080`
 
 **Supported Features:**
+
 - HTTP and HTTPS proxy support
 - Proxy authentication (username/password)
 - Automatic fallback between HTTP and HTTPS proxies

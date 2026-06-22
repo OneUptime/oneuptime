@@ -54,9 +54,11 @@ As notificações push são entregues através do Firebase Cloud Messaging (FCM)
 ## Atualizações
 
 **Google Play:**
+
 - As atualizações são instaladas automaticamente. Para acioná-las manualmente, abra **Play Store → Perfil → Gerenciar apps e dispositivo → Atualizações disponíveis → OneUptime On-Call → Atualizar**.
 
 **Sideload do APK:**
+
 - Baixe novamente o APK mais recente a partir do link do GitHub Releases acima e instale sobre o aplicativo existente — seus dados, URL do servidor e login são preservados.
 
 ## Desinstalação
@@ -70,11 +72,13 @@ Sua conta do OneUptime e as escalas de plantão são armazenadas no servidor e n
 ## Solução de Problemas
 
 **"Erro de Rede" ao fazer login:**
+
 - Verifique se o **URL do Servidor** está correto e acessível a partir do seu dispositivo.
 - Se você está em uma rede corporativa ou VPN, certifique-se de que a instância do OneUptime está acessível.
 - Confirme que o servidor é servido via HTTPS com um certificado válido.
 
 **Não está recebendo notificações push:**
+
 - Confirme que as notificações estão habilitadas em **Configurações → Apps → OneUptime On-Call → Notificações**.
 - Desative a otimização de bateria para o OneUptime On-Call (veja Notificações Push acima).
 - Certifique-se de que o Do Not Disturb está desativado, ou que o OneUptime On-Call está na lista de exceções.
@@ -82,14 +86,17 @@ Sua conta do OneUptime e as escalas de plantão são armazenadas no servidor e n
 - Usuários auto-hospedados: confirme que as notificações push estão configuradas na sua instância do OneUptime (consulte o guia de [Notificações Push](/docs/self-hosted/push-notifications) para auto-hospedagem).
 
 **Desbloqueio biométrico não funciona:**
+
 - Cadastre uma impressão digital em **Configurações → Segurança → Impressão digital**.
 - Reabilite o desbloqueio biométrico pela tela de **Configurações** dentro do aplicativo OneUptime On-Call.
 
 **Instalação do APK bloqueada:**
+
 - Você deve conceder ao navegador permissão para instalar aplicativos desconhecidos (veja a Opção 2 acima).
 - Algumas operadoras ou perfis corporativos de dispositivos bloqueiam o sideload por completo; nesse caso, use a versão da Google Play.
 
 **O aplicativo trava ao iniciar:**
+
 - Atualize para a versão mais recente pelo Google Play ou pelo APK mais recente.
 - Reinicie seu dispositivo.
 - Se o problema persistir, desinstale e reinstale, depois faça login novamente.

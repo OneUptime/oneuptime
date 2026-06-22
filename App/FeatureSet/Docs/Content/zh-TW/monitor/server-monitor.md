@@ -67,15 +67,15 @@ sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --one
 
 基礎設施代理程式支援以下指令：
 
-| 指令 | 說明 |
-|---------|-------------|
-| `configure` | 使用您的 secret key 與 OneUptime URL 設定代理程式 |
-| `start` | 啟動代理程式服務 |
-| `stop` | 停止代理程式服務 |
-| `restart` | 重新啟動代理程式服務 |
-| `status` | 顯示目前的服務狀態 |
-| `logs` | 檢視代理程式日誌（使用 `-n` 指定行數，`-f` 持續追蹤） |
-| `uninstall` | 解除安裝代理程式服務 |
+| 指令        | 說明                                                  |
+| ----------- | ----------------------------------------------------- |
+| `configure` | 使用您的 secret key 與 OneUptime URL 設定代理程式     |
+| `start`     | 啟動代理程式服務                                      |
+| `stop`      | 停止代理程式服務                                      |
+| `restart`   | 重新啟動代理程式服務                                  |
+| `status`    | 顯示目前的服務狀態                                    |
+| `logs`      | 檢視代理程式日誌（使用 `-n` 指定行數，`-f` 持續追蹤） |
+| `uninstall` | 解除安裝代理程式服務                                  |
 
 ## 收集的指標
 
@@ -115,15 +115,15 @@ sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --one
 
 ### 可用的檢查類型
 
-| 檢查類型 | 說明 |
-|------------|-------------|
-| Is Online | 伺服器代理程式是否正在回報（依據心跳訊號） |
-| CPU Usage Percent | 目前的 CPU 使用率百分比 |
-| Memory Usage Percent | 目前的記憶體使用率百分比 |
-| Disk Usage Percent | 目前的磁碟使用率百分比（針對特定磁碟路徑） |
-| Server Process Name | 檢查具有特定名稱的處理程序是否正在執行 |
-| Server Process Command | 檢查具有特定指令的處理程序是否正在執行 |
-| Server Process PID | 檢查具有特定 PID 的處理程序是否正在執行 |
+| 檢查類型               | 說明                                       |
+| ---------------------- | ------------------------------------------ |
+| Is Online              | 伺服器代理程式是否正在回報（依據心跳訊號） |
+| CPU Usage Percent      | 目前的 CPU 使用率百分比                    |
+| Memory Usage Percent   | 目前的記憶體使用率百分比                   |
+| Disk Usage Percent     | 目前的磁碟使用率百分比（針對特定磁碟路徑） |
+| Server Process Name    | 檢查具有特定名稱的處理程序是否正在執行     |
+| Server Process Command | 檢查具有特定指令的處理程序是否正在執行     |
+| Server Process PID     | 檢查具有特定 PID 的處理程序是否正在執行    |
 
 ### 篩選類型
 
@@ -185,6 +185,7 @@ sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --one
 ### 代理程式占用大量資源
 
 此代理程式被設計為輕量級。如果您注意到資源使用量偏高：
+
 - 重新啟動代理程式：`sudo oneuptime-infrastructure-agent restart`
 - 檢查代理程式日誌中是否有錯誤
 

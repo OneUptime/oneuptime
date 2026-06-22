@@ -10,11 +10,11 @@ Hvis du i stedet kører enkelt-server Docker Compose-installationen, er dimensio
 
 OneUptime kræver tre datalagre i produktion. De skalerer på helt forskellige input, så dimensionér dem uafhængigt af hinanden.
 
-| Datalager | Hvad det lagrer | Hvad der driver dets størrelse |
-| --- | --- | --- |
-| **ClickHouse** | Al telemetri — logs, metrics, traces, exceptions, profiler | Telemetri-**ingestionsrate × opbevaring**. Dette er ~95 % af din lagring og den dominerende omkostning. |
-| **PostgreSQL** | Konfiguration og tilstand — monitorer, hændelser, alarmer, brugere, teams, projekter, workflows, statussider, dashboards | **Antal entiteter og historik**, ikke telemetri-volumen. Vokser langsomt. |
-| **Redis** | Cache, arbejdskøer og sessioner | **Kødybde og aktive sessioner**. Hukommelsesbundet og beskeden. Ikke en kilde til sandhed. |
+| Datalager      | Hvad det lagrer                                                                                                          | Hvad der driver dets størrelse                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| **ClickHouse** | Al telemetri — logs, metrics, traces, exceptions, profiler                                                               | Telemetri-**ingestionsrate × opbevaring**. Dette er ~95 % af din lagring og den dominerende omkostning. |
+| **PostgreSQL** | Konfiguration og tilstand — monitorer, hændelser, alarmer, brugere, teams, projekter, workflows, statussider, dashboards | **Antal entiteter og historik**, ikke telemetri-volumen. Vokser langsomt.                               |
+| **Redis**      | Cache, arbejdskøer og sessioner                                                                                          | **Kødybde og aktive sessioner**. Hukommelsesbundet og beskeden. Ikke en kilde til sandhed.              |
 
 Objektlagring (S3/MinIO) er **ikke** påkrævet for, at OneUptime kan køre. Det bruges kun valgfrit til database**sikkerhedskopier** (via CloudNativePG Barman-plugin'et til PostgreSQL eller `clickhouse-backup` til ClickHouse). OneUptime flytter ikke telemetri i lag til objektlagring — se afsnittet "Opbevaring og hvordan den påvirker lagring" nedenfor.
 
@@ -39,16 +39,16 @@ Komprimering afhænger af signalet:
 En flåde på **10 klynger**, hver med ~10 noder / ~100 pods ved INFO-niveau-verbositet, producerer cirka **50–150 GB rå logs pr. klynge over 30 dage** (≈ 1,7–5 GB/dag pr. klynge). På tværs af flåden, med metrics og traces tilføjet og efter komprimering, kan du budgettere med cirka **5–15 GB/dag komprimeret telemetri**.
 
 | Opbevaring | Enkelt replika | 2 replikaer + 30 % headroom |
-| --- | --- | --- |
-| 30 dage | ~150–450 GB | **~0.4–1.2 TB** |
-| 90 dage | ~0.45–1.35 TB | **~1.2–3.5 TB** |
+| ---------- | -------------- | --------------------------- |
+| 30 dage    | ~150–450 GB    | **~0.4–1.2 TB**             |
+| 90 dage    | ~0.45–1.35 TB  | **~1.2–3.5 TB**             |
 
 Lagring skalerer **lineært med opbevaring** — et 90-dages vindue koster ~3× et 30-dages vindue.
 
 ### RAM og disktype
 
 - **Brug NVMe/SSD.** Telemetri er skrivetung med stødvise aggregeringslæsninger; ClickHouse på roterende disk vil have det svært.
-- **Giv ClickHouse rigelig RAM.** Aggregeringsforespørgsler er hukommelsesintensive. Som tommelfingerregel skal du dimensionere RAM til en betydelig brøkdel (25–50 %) af dit *varme* (nyligt forespurgte) komprimerede datasæt, med et praktisk minimum på 16 GB for enhver reel produktionsflåde.
+- **Giv ClickHouse rigelig RAM.** Aggregeringsforespørgsler er hukommelsesintensive. Som tommelfingerregel skal du dimensionere RAM til en betydelig brøkdel (25–50 %) af dit _varme_ (nyligt forespurgte) komprimerede datasæt, med et praktisk minimum på 16 GB for enhver reel produktionsflåde.
 - **Hold styr på metrik-kardinalitet.** Det er den enkeltstørste løftestang på både ClickHouse RAM og disk. Håndhæv lav-kardinale label-konventioner i indsamlingslaget og hold øje med antallet af aktive serier.
 
 ## PostgreSQL — konfiguration og tilstand
@@ -73,12 +73,12 @@ Vælg det niveau, der er tættest på dit miljø, som udgangspunkt, og hold dere
 - **Medium / Production fleet** — ~10 klynger, ~100 noder, 10–30 GB/dag rå telemetri, 30–90-dages opbevaring.
 - **Large / Multi-fleet** — 50+ klynger, 500+ noder, 100+ GB/dag rå telemetri, 90-dages opbevaring.
 
-| | Small / PoC | Medium / Production fleet | Large / Multi-fleet |
-| --- | --- | --- | --- |
-| **ClickHouse** | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe, **sharded** |
-| **PostgreSQL** | 2 vCPU / 4 GB / 50 GB SSD | 4 vCPU / 8 GB / 100 GB SSD | 8 vCPU / 16–32 GB / 250 GB SSD (+ PgBouncer) |
-| **Redis** | 1 vCPU / 2 GB | 2 vCPU / 4 GB | 4 vCPU / 8–16 GB |
-| **Retention assumed** | 30 dage | 30–90 dage | 90 dage |
+|                       | Small / PoC                  | Medium / Production fleet    | Large / Multi-fleet                              |
+| --------------------- | ---------------------------- | ---------------------------- | ------------------------------------------------ |
+| **ClickHouse**        | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe, **sharded** |
+| **PostgreSQL**        | 2 vCPU / 4 GB / 50 GB SSD    | 4 vCPU / 8 GB / 100 GB SSD   | 8 vCPU / 16–32 GB / 250 GB SSD (+ PgBouncer)     |
+| **Redis**             | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                 |
+| **Retention assumed** | 30 dage                      | 30–90 dage                   | 90 dage                                          |
 
 Disse dimensionerer OneUptime-**backend'en**. OneUptime-collectorerne, der kører på hver overvåget klynge, dimensioneres separat — se dimensioneringsniveauerne for [Kubernetes Agent](/docs/telemetry/kubernetes-agent).
 

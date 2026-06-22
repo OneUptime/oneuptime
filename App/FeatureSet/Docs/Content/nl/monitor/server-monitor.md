@@ -67,15 +67,15 @@ sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --one
 
 De infrastructuuragent ondersteunt de volgende opdrachten:
 
-| Opdracht | Beschrijving |
-|---------|-------------|
-| `configure` | De agent configureren met uw geheime sleutel en OneUptime-URL |
-| `start` | De agentdienst starten |
-| `stop` | De agentdienst stoppen |
-| `restart` | De agentdienst herstarten |
-| `status` | De huidige dienststatus weergeven |
-| `logs` | Agentlogboeken bekijken (gebruik `-n` voor aantal regels, `-f` om te volgen) |
-| `uninstall` | De agentdienst verwijderen |
+| Opdracht    | Beschrijving                                                                 |
+| ----------- | ---------------------------------------------------------------------------- |
+| `configure` | De agent configureren met uw geheime sleutel en OneUptime-URL                |
+| `start`     | De agentdienst starten                                                       |
+| `stop`      | De agentdienst stoppen                                                       |
+| `restart`   | De agentdienst herstarten                                                    |
+| `status`    | De huidige dienststatus weergeven                                            |
+| `logs`      | Agentlogboeken bekijken (gebruik `-n` voor aantal regels, `-f` om te volgen) |
+| `uninstall` | De agentdienst verwijderen                                                   |
 
 ## Verzamelde metrics
 
@@ -115,15 +115,15 @@ U kunt criteria configureren om te bepalen wanneer uw server als online, gedegra
 
 ### Beschikbare controletypen
 
-| Controletype | Beschrijving |
-|------------|-------------|
-| Is online | Of de serveragent rapporteert (op basis van heartbeat) |
-| CPU-gebruikspercentage | Huidig CPU-gebruikspercentage |
-| Geheugengebruikspercentage | Huidig geheugengebruikspercentage |
-| Schijfgebruikspercentage | Huidig schijfgebruikspercentage (voor een specifiek schijfpad) |
-| Serverprocesnaam | Controleer of een proces met een specifieke naam actief is |
-| Serverprocesopdracht | Controleer of een proces met een specifieke opdracht actief is |
-| Serverprocesproces-ID | Controleer of een proces met een specifieke PID actief is |
+| Controletype               | Beschrijving                                                   |
+| -------------------------- | -------------------------------------------------------------- |
+| Is online                  | Of de serveragent rapporteert (op basis van heartbeat)         |
+| CPU-gebruikspercentage     | Huidig CPU-gebruikspercentage                                  |
+| Geheugengebruikspercentage | Huidig geheugengebruikspercentage                              |
+| Schijfgebruikspercentage   | Huidig schijfgebruikspercentage (voor een specifiek schijfpad) |
+| Serverprocesnaam           | Controleer of een proces met een specifieke naam actief is     |
+| Serverprocesopdracht       | Controleer of een proces met een specifieke opdracht actief is |
+| Serverprocesproces-ID      | Controleer of een proces met een specifieke PID actief is      |
 
 ### Filtertypen
 
@@ -185,6 +185,7 @@ Voor procescontroles:
 ### Hoog resourcegebruik door agent
 
 De agent is ontworpen om lichtgewicht te zijn. Als u hoog resourcegebruik opmerkt:
+
 - Herstart de agent: `sudo oneuptime-infrastructure-agent restart`
 - Controleer agentlogboeken op fouten
 

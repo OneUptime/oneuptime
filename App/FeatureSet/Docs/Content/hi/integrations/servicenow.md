@@ -31,6 +31,7 @@ ServiceNow का Table API **Basic auth** accept करता है।
 1. **Workflows → Create Workflow** खोलें, इसे `Incidents → ServiceNow` नाम दें, और **Builder** खोलें।
 2. **On Create** पर सेट एक **Incident** trigger जोड़ें। इसे `Incident` नाम दें।
 3. trigger से connected एक **API** ब्लॉक जोड़ें:
+
    - **Method**: `POST`
    - **URL**: `https://your-instance.service-now.com/api/now/table/incident`
    - **Headers**:
@@ -54,6 +55,7 @@ ServiceNow का Table API **Basic auth** accept करता है।
      ```
 
    `correlation_id` OneUptime incident से एक link रखता है — यदि आप बाद में resolve step जोड़ते हैं तो उपयोगी। ServiceNow `urgency`/`impact` `1` (high), `2` (medium), `3` (low) इस्तेमाल करते हैं।
+
 4. **सहेजें**, enable करें, और एक test incident बनाएँ। Workflow logs में `201 Created` response नए record का `sys_id` और `number` (उदाहरण `INC0012345`) return करती है।
 
 ## चरण 3 — OneUptime resolve पर resolve करें (वैकल्पिक)

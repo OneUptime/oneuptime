@@ -202,13 +202,13 @@ The configuration above uses input variables with `"password": true` to securely
 
 ## Available Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/mcp` | GET | Server-sent events stream for server-to-client notifications |
-| `/mcp` | POST | JSON-RPC requests for tool calls and other operations |
-| `/mcp` | DELETE | Session cleanup and termination |
-| `/mcp/health` | GET | Health check endpoint |
-| `/mcp/tools` | GET | REST API to list available tools |
+| Endpoint      | Method | Description                                                  |
+| ------------- | ------ | ------------------------------------------------------------ |
+| `/mcp`        | GET    | Server-sent events stream for server-to-client notifications |
+| `/mcp`        | POST   | JSON-RPC requests for tool calls and other operations        |
+| `/mcp`        | DELETE | Session cleanup and termination                              |
+| `/mcp/health` | GET    | Health check endpoint                                        |
+| `/mcp/tools`  | GET    | REST API to list available tools                             |
 
 ## Authentication
 
@@ -319,12 +319,15 @@ These queries work without authentication, using only the public status page too
 ## API Key Permissions
 
 ### Read-Only Access
+
 For viewing data only, add read permissions for your API key.
 
 ### Full Access
+
 For full access to create, update, and delete resources, ensure your API key has Project Admin permissions.
 
 ### Best Practices
+
 - Use Specific Permissions: Only grant the minimum permissions needed
 - Rotate API Keys: Regularly rotate your API keys
 - Monitor Usage: Keep track of API key usage in OneUptime
@@ -333,24 +336,30 @@ For full access to create, update, and delete resources, ensure your API key has
 ## Troubleshooting
 
 ### Permission Errors
+
 Ensure your API key has the necessary permissions:
+
 - Read access for listing resources
 - Write access for creating/updating resources
 - Delete access if you want to remove resources
 
 ### Connection Issues
+
 1. Verify your OneUptime URL is correct
 2. Check that your API key is valid
 3. Ensure your OneUptime instance is accessible
 4. Test the health endpoint
 
 ### Invalid API Key
+
 - Verify the API key in your OneUptime settings
 - Check for extra spaces or characters
 - Ensure the key hasn't expired
 
 ### Session Errors
+
 If you receive session-related errors:
+
 - The MCP server is stateless — it does not issue or track session IDs, so every request works against any server replica
 - Clients that send an `mcp-session-id` header from a previous server version can simply omit it; it is ignored
 - Update older MCP client configurations that expect a session ID to be returned by the server

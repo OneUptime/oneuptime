@@ -28,12 +28,12 @@ Vælg én eller flere tjenester, der skal overvåges traces fra. Tjenester skal 
 
 ### Span-filtre
 
-| Filter | Beskrivelse | Påkrævet |
-|--------|-------------|----------|
-| Span-statusser | Filtrer efter span-statuskode (OK, ERROR, UNSET) | Nej |
-| Span-navn | Tekstsøgning efter specifikke span-navne (f.eks. operations- eller endpointnavne) | Nej |
-| Attributter | Nøgle-værdi-par til at filtrere på brugerdefinerede span-attributter | Nej |
-| Tidsvindue | Hvor langt tilbage der søges efter spans (i sekunder, standard: 60) | Nej |
+| Filter         | Beskrivelse                                                                       | Påkrævet |
+| -------------- | --------------------------------------------------------------------------------- | -------- |
+| Span-statusser | Filtrer efter span-statuskode (OK, ERROR, UNSET)                                  | Nej      |
+| Span-navn      | Tekstsøgning efter specifikke span-navne (f.eks. operations- eller endpointnavne) | Nej      |
+| Attributter    | Nøgle-værdi-par til at filtrere på brugerdefinerede span-attributter              | Nej      |
+| Tidsvindue     | Hvor langt tilbage der søges efter spans (i sekunder, standard: 60)               | Nej      |
 
 ### Span-statuskoder
 
@@ -45,9 +45,9 @@ Vælg én eller flere tjenester, der skal overvåges traces fra. Tjenester skal 
 
 ### Tilgængelige kontroltyper
 
-| Kontroltype | Beskrivelse |
-|------------|-------------|
-| Span-antal | Antallet af spans, der matcher dine filtre i tidsvinduet |
+| Kontroltype | Beskrivelse                                              |
+| ----------- | -------------------------------------------------------- |
+| Span-antal  | Antallet af spans, der matcher dine filtre i tidsvinduet |
 
 ### Filtertyper
 

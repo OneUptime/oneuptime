@@ -155,11 +155,11 @@ Escalation rules यह निर्धारित करते हैं क�
    - **Users**: specific users चुनें
 5. आवश्यकतानुसार additional escalation rules जोड़ें
 
-| Order | Escalate After | Target |
-|-------|----------------|--------|
-| 1 | 30 seconds | Primary On-Call Schedule |
-| 2 | 30 seconds | Secondary On-Call Schedule |
-| 3 | 30 seconds | Engineering Team Lead |
+| Order | Escalate After | Target                     |
+| ----- | -------------- | -------------------------- |
+| 1     | 30 seconds     | Primary On-Call Schedule   |
+| 2     | 30 seconds     | Secondary On-Call Schedule |
+| 3     | 30 seconds     | Engineering Team Lead      |
 
 ## चरण 7: Voice Messages Configure करें (वैकल्पिक)
 
@@ -176,23 +176,23 @@ callers जो messages सुनते हैं उन्हें customize �
 
 ### Policy Settings
 
-| Setting | विवरण | Default |
-|---------|-------|---------|
-| Greeting Message | call answer होने पर play होने वाला TTS message | "Please wait while we connect you to the on-call engineer." |
-| No Answer Message | सभी escalation rules fail होने पर message | "No one is available. Please try again later." |
-| No One Available Message | कोई on-call नहीं होने पर message | "We're sorry, but no on-call engineer is currently available." |
-| Repeat Policy If No One Answers | सभी fail होने पर first rule से restart करें | Disabled |
-| Repeat Policy Times | maximum repeat attempts | 1 |
+| Setting                         | विवरण                                          | Default                                                        |
+| ------------------------------- | ---------------------------------------------- | -------------------------------------------------------------- |
+| Greeting Message                | call answer होने पर play होने वाला TTS message | "Please wait while we connect you to the on-call engineer."    |
+| No Answer Message               | सभी escalation rules fail होने पर message      | "No one is available. Please try again later."                 |
+| No One Available Message        | कोई on-call नहीं होने पर message               | "We're sorry, but no on-call engineer is currently available." |
+| Repeat Policy If No One Answers | सभी fail होने पर first rule से restart करें    | Disabled                                                       |
+| Repeat Policy Times             | maximum repeat attempts                        | 1                                                              |
 
 ### Escalation Rule Settings
 
-| Setting | विवरण |
-|---------|-------|
-| Order | Priority order (1 = highest priority) |
+| Setting                | विवरण                                               |
+| ---------------------- | --------------------------------------------------- |
+| Order                  | Priority order (1 = highest priority)               |
 | Escalate After Seconds | अगला rule try करने से पहले wait time (default: 30s) |
-| On-Call Schedule | currently on-call को route करें |
-| Teams | selected teams के सभी members को route करें |
-| Users | specific users को route करें |
+| On-Call Schedule       | currently on-call को route करें                     |
+| Teams                  | selected teams के सभी members को route करें         |
+| Users                  | specific users को route करें                        |
 
 ## Call Logs देखना
 
@@ -203,6 +203,7 @@ Incoming call history देखने के लिए:
 3. **Call Logs** tab पर जाएं
 
 Logs दिखाते हैं:
+
 - Caller phone number
 - Call status (Completed, No Answer, Failed, आदि)
 - Call किसने answer किया

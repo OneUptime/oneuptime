@@ -87,7 +87,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       .append(setStatement)
       .append(
         SQL`
-            WHERE TRUE `
+            WHERE TRUE `,
       )
       .append(whereStatement);
     /* eslint-enable prettier/prettier */

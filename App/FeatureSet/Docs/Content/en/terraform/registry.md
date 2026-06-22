@@ -54,6 +54,7 @@ The OneUptime Terraform provider is automatically generated from the OneUptime A
 - Changed validation rules
 
 Using a provider version that doesn't match your OneUptime installation can result in:
+
 - API compatibility errors
 - Failed resource creation/updates
 - Unexpected behavior
@@ -62,16 +63,19 @@ Using a provider version that doesn't match your OneUptime installation can resu
 ## Finding Your OneUptime Version
 
 ### Method 1: Dashboard
+
 1. Log into your OneUptime dashboard
 2. Go to **Settings** → **About**
 3. Note the version number (e.g., "7.0.123")
 
 ### Method 2: API
+
 ```bash
 curl https://your-oneuptime-instance.com/api/version | jq '.version'
 ```
 
 ### Method 3: Docker
+
 ```bash
 docker images | grep oneuptime
 # Look for the tag, e.g., oneuptime/dashboard:7.0.123
@@ -86,11 +90,11 @@ docker images | grep oneuptime
 
 ## Version Compatibility Matrix
 
-| OneUptime Version | Provider Version | Terraform Config |
-|-------------------|------------------|------------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| Latest Cloud | Latest Provider | `version = "~> 7.0"` |
+| OneUptime Version | Provider Version | Terraform Config       |
+| ----------------- | ---------------- | ---------------------- |
+| 7.0.x             | 7.0.x            | `version = "~> 7.0.0"` |
+| 7.1.x             | 7.1.x            | `version = "~> 7.1.0"` |
+| Latest Cloud      | Latest Provider  | `version = "~> 7.0"`   |
 
 ## Quick Start Example
 
@@ -120,11 +124,11 @@ resource "oneuptime_project" "example" {
 resource "oneuptime_monitor" "website" {
   name       = "Website Monitor"
   project_id = oneuptime_project.example.id
-  
+
   monitor_type = "website"
   url          = "https://example.com"
   interval     = "5m"
-  
+
   tags = {
     managed_by = "terraform"
   }

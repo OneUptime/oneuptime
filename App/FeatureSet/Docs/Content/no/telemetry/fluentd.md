@@ -44,7 +44,6 @@ Når du har opprettet et token, klikker du på "View" for å se tokenet.
 
 ![Vis tjeneste](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
 ## Konfigurasjon
 
 Du kan bruke følgende konfigurasjon for å sende telemetridata til OneUptime HTTP Source. Du kan legge til denne konfigurasjonen i Fluentd-konfigurasjonsfilen. Konfigurasjonsfilen befinner seg vanligvis på `/etc/fluentd/fluent.conf` eller `/etc/td-agent/td-agent.conf`.
@@ -52,27 +51,26 @@ Du kan bruke følgende konfigurasjon for å sende telemetridata til OneUptime HT
 Du må erstatte `YOUR_SERVICE_TOKEN` med tokenet du opprettet i forrige trinn. Du må også erstatte `YOUR_SERVICE_NAME` med navnet på tjenesten din. Tjenestens navn kan være et hvilket som helst navn du liker. Hvis tjenesten ikke eksisterer i OneUptime, vil den opprettes automatisk.
 
 ```yaml
-# Match alle mønstre 
+# Match alle mønstre
 <match **>
-  @type http
+@type http
 
-  endpoint https://oneuptime.com/fluentd/logs
-  open_timeout 2
+endpoint https://oneuptime.com/fluentd/logs
+open_timeout 2
 
-  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
+headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
-  content_type application/json
-  json_array true
+content_type application/json
+json_array true
 
-  <format>
-    @type json
-  </format>
-  <buffer>
-    flush_interval 10s
-  </buffer>
+<format>
+@type json
+</format>
+<buffer>
+flush_interval 10s
+</buffer>
 </match>
 ```
-
 
 Et eksempel på en fullstendig konfigurasjonsfil er vist nedenfor:
 
@@ -84,28 +82,28 @@ Et eksempel på en fullstendig konfigurasjonsfil er vist nedenfor:
 ## innebygd TCP-inndata
 ## @see https://docs.fluentd.org/input/forward
 <source>
-  @type forward
-  port 24224
-  bind 0.0.0.0
+@type forward
+port 24224
+bind 0.0.0.0
 </source>
 
 <match **>
-  @type http
+@type http
 
-  endpoint https://oneuptime.com/fluentd/logs
-  open_timeout 2
+endpoint https://oneuptime.com/fluentd/logs
+open_timeout 2
 
-  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
+headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
-  content_type application/json
-  json_array true
+content_type application/json
+json_array true
 
-  <format>
-    @type json
-  </format>
-  <buffer>
-    flush_interval 10s
-  </buffer>
+<format>
+@type json
+</format>
+<buffer>
+flush_interval 10s
+</buffer>
 </match>
 ```
 

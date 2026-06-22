@@ -27,20 +27,23 @@ Om Microsoft Teams te integreren met uw zelf-gehoste OneUptime-instantie, moet u
 2. Klik op "Een machtiging toevoegen" en selecteer "Microsoft Graph"
 
 **Gedelegeerde machtigingen toevoegen** (wanneer namens een aangemelde gebruiker wordt gehandeld):
-   - **User.Read** — Vereist om het profiel van de geverifieerde gebruiker op te halen (weergavenaam, e-mail) tijdens de OAuth-stroom
-   - **Team.ReadBasic.All** — Vereist om teams te vermelden waarvan de gebruiker lid is bij het selecteren van welk team verbonden moet worden
-   - **Channel.ReadBasic.All** — Vereist om kanaalinformatie te lezen en kanalen binnen teams te vermelden voor meldingsbezorging
-   - **ChannelMessage.Send** — Vereist om meldings- en incidentmeldingen naar Teams-kanalen te sturen
+
+- **User.Read** — Vereist om het profiel van de geverifieerde gebruiker op te halen (weergavenaam, e-mail) tijdens de OAuth-stroom
+- **Team.ReadBasic.All** — Vereist om teams te vermelden waarvan de gebruiker lid is bij het selecteren van welk team verbonden moet worden
+- **Channel.ReadBasic.All** — Vereist om kanaalinformatie te lezen en kanalen binnen teams te vermelden voor meldingsbezorging
+- **ChannelMessage.Send** — Vereist om meldings- en incidentmeldingen naar Teams-kanalen te sturen
 
 **Applicatiemachtigingen toevoegen** (wanneer als de app zelf wordt gehandeld, zonder aangemelde gebruiker):
-   - **Team.ReadBasic.All** — Vereist om alle teams in de organisatie te vermelden nadat beheerdersmachtiging is verleend
-   - **Channel.ReadBasic.All** — Vereist om het bestaan van kanalen te verifiëren en kanaaldetails op te halen
-   - **ChannelMessage.Send** — Vereist om berichten programmatisch naar kanalen te sturen
+
+- **Team.ReadBasic.All** — Vereist om alle teams in de organisatie te vermelden nadat beheerdersmachtiging is verleend
+- **Channel.ReadBasic.All** — Vereist om het bestaan van kanalen te verifiëren en kanaaldetails op te halen
+- **ChannelMessage.Send** — Vereist om berichten programmatisch naar kanalen te sturen
 
 **Opmerking:** Het Bot Framework verwerkt berichtbezorging met behulp van Resource-Specific Consent (RSC)-machtigingen die zijn gedefinieerd in het Teams-app-manifest. Deze machtigingen zijn:
-   - **ChannelMessage.Send.Group** — Stelt de bot in staat berichten te sturen naar teamkanalen
-   - **ChannelMessage.Read.Group** — Stelt de bot in staat kanaalberichten te lezen voor interactieve opdrachten
-   - **Channel.Create.Group** — Stelt de bot in staat kanalen aan te maken indien nodig
+
+- **ChannelMessage.Send.Group** — Stelt de bot in staat berichten te sturen naar teamkanalen
+- **ChannelMessage.Read.Group** — Stelt de bot in staat kanaalberichten te lezen voor interactieve opdrachten
+- **Channel.Create.Group** — Stelt de bot in staat kanalen aan te maken indien nodig
 
 3. Klik op "Beheerdersmachtiging verlenen" voor uw organisatie
 
@@ -57,6 +60,7 @@ Om Microsoft Teams te integreren met uw zelf-gehoste OneUptime-instantie, moet u
 
 1. Navigeer in de Azure Portal naar "Azure Bot" en klik op "Aanmaken"
 2. Vul het formulier voor het aanmaken van de bot in:
+
    - **Bot-handle:** oneuptime-bot
    - **Abonnement:** Uw Azure-abonnement
    - **Resourcegroep:** Maak een nieuwe aan of gebruik een bestaande

@@ -4,21 +4,21 @@ Bei jeder Ausführung eines Workflows speichert OneUptime einen Datensatz darüb
 
 ## Wo Sie sie finden
 
-| Seite | Was Sie sehen |
-| --- | --- |
+| Seite                               | Was Sie sehen                                                                            |
+| ----------------------------------- | ---------------------------------------------------------------------------------------- |
 | **Workflows → Ausführungen & Logs** | Jede Ausführung aus jedem Workflow im Projekt. Filterbar nach Workflow, Status und Zeit. |
-| **Workflow → Logs-Tab** | Nur die Ausführungen dieses einen Workflows. |
-| **Eine einzelne Ausführung** | Eine Ausführung mit der Ausgabe jedes Bausteins. |
+| **Workflow → Logs-Tab**             | Nur die Ausführungen dieses einen Workflows.                                             |
+| **Eine einzelne Ausführung**        | Eine Ausführung mit der Ausgabe jedes Bausteins.                                         |
 
 ## Ausführungsstatus
 
-| Status | Bedeutung |
-| --- | --- |
-| **Geplant** | Der Auslöser hat gefeuert und die Ausführung steht kurz vor dem Start. Dauert üblicherweise nur den Bruchteil einer Sekunde. |
-| **Läuft** | Der Workflow ist in Bearbeitung. Lang laufende Bausteine halten eine Ausführung in diesem Zustand. |
-| **Erfolg** | Jeder ausgeführte Baustein wurde fehlerfrei abgeschlossen. (Absichtlich einen **Fehler**-Zweig zu nehmen, zählt weiterhin als Erfolg – der Workflow selbst ist nicht fehlgeschlagen.) |
-| **Fehler** | Ein Baustein ist fehlgeschlagen und es gab keinen verbundenen **Fehler**-Pfad, um damit umzugehen. Die Ausführung wurde dort gestoppt. |
-| **Zeitüberschreitung** | Die Ausführung lief länger als erlaubt. Siehe [Konfiguration & Sicherheit](/docs/workflows/configuration). |
+| Status                 | Bedeutung                                                                                                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Geplant**            | Der Auslöser hat gefeuert und die Ausführung steht kurz vor dem Start. Dauert üblicherweise nur den Bruchteil einer Sekunde.                                                          |
+| **Läuft**              | Der Workflow ist in Bearbeitung. Lang laufende Bausteine halten eine Ausführung in diesem Zustand.                                                                                    |
+| **Erfolg**             | Jeder ausgeführte Baustein wurde fehlerfrei abgeschlossen. (Absichtlich einen **Fehler**-Zweig zu nehmen, zählt weiterhin als Erfolg – der Workflow selbst ist nicht fehlgeschlagen.) |
+| **Fehler**             | Ein Baustein ist fehlgeschlagen und es gab keinen verbundenen **Fehler**-Pfad, um damit umzugehen. Die Ausführung wurde dort gestoppt.                                                |
+| **Zeitüberschreitung** | Die Ausführung lief länger als erlaubt. Siehe [Konfiguration & Sicherheit](/docs/workflows/configuration).                                                                            |
 
 ## Eine Ausführung lesen
 

@@ -15,12 +15,12 @@ Diese haben Vorrang vor gespeicherten Kontexten, werden aber von CLI-Flags über
 
 ## Exit-Codes
 
-| Code | Bedeutung |
-|------|---------|
-| `0` | Erfolg |
-| `1` | Allgemeiner Fehler |
-| `2` | Authentifizierungsfehler (fehlende oder ungültige Anmeldedaten) |
-| `3` | Nicht gefunden (404) |
+| Code | Bedeutung                                                       |
+| ---- | --------------------------------------------------------------- |
+| `0`  | Erfolg                                                          |
+| `1`  | Allgemeiner Fehler                                              |
+| `2`  | Authentifizierungsfehler (fehlende oder ungültige Anmeldedaten) |
+| `3`  | Nicht gefunden (404)                                            |
 
 Verwenden Sie Exit-Codes in Skripten zur Fehlerbehandlung:
 
@@ -80,7 +80,7 @@ done
 name: Check Active Incidents
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: "*/5 * * * *"
 
 jobs:
   health-check:

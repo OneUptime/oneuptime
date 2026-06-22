@@ -34,27 +34,27 @@ oneuptime resources
 
 ## Dokumentation
 
-| Guide | Beskrivning |
-|-------|-------------|
-| [Autentisering](./authentication.md) | Inloggning, kontexter och hantering av autentiseringsuppgifter |
-| [Resursoperationer](./resource-operations.md) | CRUD-operationer för monitorer, incidenter, varningar och mer |
-| [Utdataformat](./output-formats.md) | JSON-, tabell- och bred utdataläge |
-| [Skriptning och CI/CD](./scripting.md) | Automatisering, miljövariabler och pipelineanvändning |
-| [Kommandonreferens](./command-reference.md) | Fullständig referens för alla kommandon och alternativ |
+| Guide                                         | Beskrivning                                                    |
+| --------------------------------------------- | -------------------------------------------------------------- |
+| [Autentisering](./authentication.md)          | Inloggning, kontexter och hantering av autentiseringsuppgifter |
+| [Resursoperationer](./resource-operations.md) | CRUD-operationer för monitorer, incidenter, varningar och mer  |
+| [Utdataformat](./output-formats.md)           | JSON-, tabell- och bred utdataläge                             |
+| [Skriptning och CI/CD](./scripting.md)        | Automatisering, miljövariabler och pipelineanvändning          |
+| [Kommandonreferens](./command-reference.md)   | Fullständig referens för alla kommandon och alternativ         |
 
 ## Globala alternativ
 
 Dessa flaggor kan användas med vilket kommando som helst:
 
-| Flagga | Beskrivning |
-|--------|-------------|
-| `--api-key <key>` | Åsidosätt API-nyckel för detta kommando |
-| `--url <url>` | Åsidosätt instans-URL för detta kommando |
-| `--context <name>` | Använd en specifik namngiven kontext |
-| `-o, --output <format>` | Utdataformat: `json`, `table`, `wide` |
-| `--no-color` | Inaktivera färgad utdata |
-| `--help` | Visa kommandohjälp |
-| `--version` | Visa CLI-version |
+| Flagga                  | Beskrivning                              |
+| ----------------------- | ---------------------------------------- |
+| `--api-key <key>`       | Åsidosätt API-nyckel för detta kommando  |
+| `--url <url>`           | Åsidosätt instans-URL för detta kommando |
+| `--context <name>`      | Använd en specifik namngiven kontext     |
+| `-o, --output <format>` | Utdataformat: `json`, `table`, `wide`    |
+| `--no-color`            | Inaktivera färgad utdata                 |
+| `--help`                | Visa kommandohjälp                       |
+| `--version`             | Visa CLI-version                         |
 
 ## Få hjälp
 

@@ -28,18 +28,18 @@ profiles monitor करने के लिए एक या अधिक servic
 
 ### Profile Filters
 
-| Filter | विवरण | आवश्यक |
-|--------|-------|--------|
-| Profile Types | profile type names (जैसे CPU, memory, goroutines) से filter करें | नहीं |
-| Attributes | custom profile attributes पर filter के लिए Key-value pairs | नहीं |
-| Time Window | profiles के लिए कितना पीछे search करें (seconds में, default: 60) | नहीं |
+| Filter        | विवरण                                                             | आवश्यक |
+| ------------- | ----------------------------------------------------------------- | ------ |
+| Profile Types | profile type names (जैसे CPU, memory, goroutines) से filter करें  | नहीं   |
+| Attributes    | custom profile attributes पर filter के लिए Key-value pairs        | नहीं   |
+| Time Window   | profiles के लिए कितना पीछे search करें (seconds में, default: 60) | नहीं   |
 
 ## Monitoring Criteria
 
 ### उपलब्ध Check Types
 
-| Check Type | विवरण |
-|------------|-------|
+| Check Type    | विवरण                                                              |
+| ------------- | ------------------------------------------------------------------ |
 | Profile Count | time window में आपके filters से match करने वाले profiles की संख्या |
 
 ### Filter Types

@@ -6,23 +6,26 @@ Global SSO är en funktion i **OneUptime Enterprise Edition** och är endast til
 
 ## Global SSO jämfört med Project SSO
 
-| | Project SSO | Global SSO |
-|---|---|---|
-| Konfigureras av | Projektägare/administratör (Projektinställningar) | Instansens master admin (Admin Dashboard) |
-| Omfattning | Ett enskilt projekt | Hela instansen — anslutningsbar till valfritt projekt |
-| Resultat vid inloggning | Åtkomst till det enda projektet | Åtkomst till alla projekt användaren har tillgång till |
+|                         | Project SSO                                       | Global SSO                                             |
+| ----------------------- | ------------------------------------------------- | ------------------------------------------------------ |
+| Konfigureras av         | Projektägare/administratör (Projektinställningar) | Instansens master admin (Admin Dashboard)              |
+| Omfattning              | Ett enskilt projekt                               | Hela instansen — anslutningsbar till valfritt projekt  |
+| Resultat vid inloggning | Åtkomst till det enda projektet                   | Åtkomst till alla projekt användaren har tillgång till |
 
 ## Konfigurera Global SSO
 
 1. **Öppna Admin Dashboard**
+
    - Logga in som master admin och öppna **Admin** > **Settings** > **Global SSO** (för SAML) eller **Global OIDC** (för OpenID Connect).
 
 2. **Skapa en leverantör**
+
    - Klicka på **Create Global SSO**.
    - För SAML: ange ett **Name**, **Sign On URL** och **Issuer** från din identitetsleverantör, och klistra in **Public Certificate**. Välj **Signature**- och **Digest**-metoderna (behåll standardvärdena — `RSA-SHA256` / `SHA256` — om du är osäker).
    - För OIDC: ange **Discovery URL**, **Issuer**, **Client ID**, **Client Secret**, **Scopes** (måste inkludera `openid`), och claim-namnen för **email** / **name**.
 
 3. **Kopiera OneUptime-URL:erna till din identitetsleverantör**
+
    - Öppna leverantören (klicka på dess rad i listan) för att visa kortet **Identity Provider URLs**.
    - För SAML, kopiera **ACS URL (Reply URL)** och **Issuer (Entity ID)** till din IdP (Okta, Azure AD, OneLogin, JumpCloud med flera).
    - För OIDC, kopiera **Redirect URI** till din IdP:s lista över tillåtna omdirigeringar.
@@ -44,7 +47,7 @@ Om du vill förhindra all automatisk kontoskapande även när projekt är anslut
 
 Att konfigurera en global leverantör tvingar ingen att använda den; lösenordsinloggning fungerar fortfarande. För att kräva SSO, använd kontrollerna **Require SSO for Login**:
 
-- **Per projekt:** ett projekt kan kräva SSO, och valfritt kräva en *specifik* leverantör (projekt eller global).
+- **Per projekt:** ett projekt kan kräva SSO, och valfritt kräva en _specifik_ leverantör (projekt eller global).
 - **Instansövergripande:** **Admin** > **Settings** > **Authentication** har en växel **Require SSO for Login** som tvingar fram SSO för varje användare i hela instansen. Master admins förblir undantagna så att de inte kan låsas ute.
 
 ## Relaterat

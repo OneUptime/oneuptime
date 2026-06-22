@@ -22,11 +22,11 @@ Om du föredrar att använda dina egna API-nycklar eller en specifik leverantör
 
 OneUptime stöder för närvarande följande LLM-leverantörer:
 
-| Leverantör | Beskrivning | API-nyckel krävs | Bas-URL krävs |
-|------------|-------------|------------------|----------------|
-| **OpenAI** | GPT-4, GPT-4o, GPT-3.5 Turbo och andra OpenAI-modeller | Ja | Nej (använder standard) |
-| **Anthropic** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku och andra Claude-modeller | Ja | Nej (använder standard) |
-| **Ollama** | Egeninstallerade öppen källkods-modeller som Llama 2, Mistral, CodeLlama etc. | Nej | Ja |
+| Leverantör    | Beskrivning                                                                   | API-nyckel krävs | Bas-URL krävs           |
+| ------------- | ----------------------------------------------------------------------------- | ---------------- | ----------------------- |
+| **OpenAI**    | GPT-4, GPT-4o, GPT-3.5 Turbo och andra OpenAI-modeller                        | Ja               | Nej (använder standard) |
+| **Anthropic** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku och andra Claude-modeller      | Ja               | Nej (använder standard) |
+| **Ollama**    | Egeninstallerade öppen källkods-modeller som Llama 2, Mistral, CodeLlama etc. | Nej              | Ja                      |
 
 ## Konfigurera en LLM-leverantör
 
@@ -61,6 +61,7 @@ Fyll i följande fält:
    - `gpt-3.5-turbo` – Snabb och ekonomisk
 
 **Exempelkonfiguration:**
+
 ```
 Name: Production OpenAI
 LLM Type: OpenAI
@@ -80,6 +81,7 @@ Model Name: gpt-4o
    - `claude-3-5-sonnet-20241022` – Senaste Sonnet-modellen
 
 **Exempelkonfiguration:**
+
 ```
 Name: Production Anthropic
 LLM Type: Anthropic
@@ -99,6 +101,7 @@ Ollama låter dig köra öppen källkods-LLM:er lokalt eller i din egen infrastr
 6. Ange modellnamnet du hämtade
 
 **Exempelkonfiguration:**
+
 ```
 Name: Local Ollama
 LLM Type: Ollama
@@ -107,6 +110,7 @@ Model Name: llama2
 ```
 
 **Populära Ollama-modeller:**
+
 - `llama2` – Metas Llama 2-modell
 - `llama3` – Metas Llama 3-modell
 - `mistral` – Mistral AIs modell

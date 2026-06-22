@@ -48,6 +48,7 @@ const DockerArchivedPage: FunctionComponent<
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
         searchableFields={["name", "description"]}
+        filters={[]}
         columns={[
           {
             field: {

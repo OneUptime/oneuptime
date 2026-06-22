@@ -21,16 +21,12 @@ Sie können Geheimnisse in den folgenden Überwachungstypen verwenden:
 - Synthetischer Monitor, Benutzerdefinierter Code-Monitor (im Code)
 - SNMP-Monitor (in Community-String, SNMPv3-Auth-Schlüssel und Priv-Schlüssel)
 
-
 ![Geheimnis verwenden](/docs/static/images/UsingMonitorSecret.png)
 
 Um ein Geheimnis zu verwenden, fügen Sie `{{monitorSecrets.SECRET_NAME}}` in das Feld ein, in dem Sie das Geheimnis verwenden möchten. In diesem Fall haben wir zum Beispiel `{{monitorSecrets.ApiKey}}` im Feld Anfrage-Header hinzugefügt.
 
 Geheimnisse werden auf der Probe injiziert, bevor Synthetische oder Benutzerdefinierte Code-Monitor-Skripte ausgeführt werden, sodass Referenzen wie `{{monitorSecrets.ApiKey}}` zum entschlüsselten Wert innerhalb des laufenden Skripts aufgelöst werden.
 
-
 ### Monitor-Geheimnis-Berechtigungen
 
 Sie können auswählen, welche Monitore Zugriff auf das Geheimnis haben. Sie können die Berechtigungen auch jederzeit aktualisieren. Wenn Sie also einen neuen Monitor hinzufügen möchten, der Zugriff auf das Geheimnis haben soll, können Sie dies tun, indem Sie die Berechtigungen aktualisieren.
-
-

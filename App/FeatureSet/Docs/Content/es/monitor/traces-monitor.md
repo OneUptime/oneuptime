@@ -28,12 +28,12 @@ Selecciona uno o más servicios desde los que monitorear trazas. Los servicios d
 
 ### Filtros de spans
 
-| Filtro | Descripción | Requerido |
-|--------|-------------|----------|
-| Estados de span | Filtra por código de estado del span (OK, ERROR, UNSET) | No |
-| Nombre del span | Búsqueda de texto para nombres de span específicos (por ejemplo, nombres de operación o punto de conexión) | No |
-| Atributos | Pares clave-valor para filtrar en atributos de span personalizados | No |
-| Ventana de tiempo | Hasta qué punto atrás buscar spans (en segundos, predeterminado: 60) | No |
+| Filtro            | Descripción                                                                                                | Requerido |
+| ----------------- | ---------------------------------------------------------------------------------------------------------- | --------- |
+| Estados de span   | Filtra por código de estado del span (OK, ERROR, UNSET)                                                    | No        |
+| Nombre del span   | Búsqueda de texto para nombres de span específicos (por ejemplo, nombres de operación o punto de conexión) | No        |
+| Atributos         | Pares clave-valor para filtrar en atributos de span personalizados                                         | No        |
+| Ventana de tiempo | Hasta qué punto atrás buscar spans (en segundos, predeterminado: 60)                                       | No        |
 
 ### Códigos de estado de span
 
@@ -45,9 +45,9 @@ Selecciona uno o más servicios desde los que monitorear trazas. Los servicios d
 
 ### Tipos de verificación disponibles
 
-| Tipo de verificación | Descripción |
-|------------|-------------|
-| Recuento de spans | El número de spans que coinciden con tus filtros en la ventana de tiempo |
+| Tipo de verificación | Descripción                                                              |
+| -------------------- | ------------------------------------------------------------------------ |
+| Recuento de spans    | El número de spans que coinciden con tus filtros en la ventana de tiempo |
 
 ### Tipos de filtro
 

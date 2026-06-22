@@ -30,12 +30,12 @@ Gjør dette først, ettersom du trenger webhook-URL-en den genererer.
 3. Dra en **Conditions**-blokk inn på lerretet og koble triggerens utdata til den. Konfigurer:
    - **Left value**: `{{Zabbix.Request Body.status}}`
    - **Operator**: `==`
-   - **Right value**: `1`  *(Zabbix sender `1` for et problem, `0` for gjenoppretting)*
+   - **Right value**: `1` _(Zabbix sender `1` for et problem, `0` for gjenoppretting)_
 4. Dra en **Create Incident**-blokk og koble den til **Yes**-utgangen på Conditions-blokken. Fyll inn:
    - **Title**: `Zabbix: {{Zabbix.Request Body.name}}`
    - **Description**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
    - **Severity**: velg den OneUptime-hendelsesalvorlighetsgraden du ønsker (du kan finjustere dette senere med flere Conditions-grener som mapper Zabbix-alvorlighetsgrader).
-5. Lagre. La **Enabled** stå *av* foreløpig — du slår det på etter en test.
+5. Lagre. La **Enabled** stå _av_ foreløpig — du slår det på etter en test.
 
 > **Tips:** Å legge Zabbix `event_id` i beskrivelsen (eller en hendelseskode) gjør det mulig å finne denne hendelsen igjen senere hvis du ønsker automatisk løsning ved gjenoppretting. Se [Løse automatisk](#løse-automatisk-valgfritt).
 
@@ -46,28 +46,28 @@ Gjør dette først, ettersom du trenger webhook-URL-en den genererer.
 1. I Zabbix, gå til **Alerts → Media types** (på eldre versjoner: **Administration → Media types**).
 2. Klikk **Create media type** og sett **Type** til **Webhook**.
 3. **Name**: `OneUptime`.
-4. Legg til disse **Parameters** (klikk *Add* for hver). Disse mapper Zabbix-[makroer](https://www.zabbix.com/documentation/current/en/manual/appendix/macros/supported_by_location) til en ryddig nyttelast:
+4. Legg til disse **Parameters** (klikk _Add_ for hver). Disse mapper Zabbix-[makroer](https://www.zabbix.com/documentation/current/en/manual/appendix/macros/supported_by_location) til en ryddig nyttelast:
 
-   | Navn | Verdi |
-   | --- | --- |
-   | `url` | `{ALERT.SENDTO}` |
-   | `event_id` | `{EVENT.ID}` |
-   | `event_name` | `{EVENT.NAME}` |
-   | `event_value` | `{EVENT.VALUE}` |
+   | Navn             | Verdi              |
+   | ---------------- | ------------------ |
+   | `url`            | `{ALERT.SENDTO}`   |
+   | `event_id`       | `{EVENT.ID}`       |
+   | `event_name`     | `{EVENT.NAME}`     |
+   | `event_value`    | `{EVENT.VALUE}`    |
    | `event_severity` | `{EVENT.SEVERITY}` |
-   | `host` | `{HOST.NAME}` |
-   | `event_date` | `{EVENT.DATE}` |
-   | `event_time` | `{EVENT.TIME}` |
+   | `host`           | `{HOST.NAME}`      |
+   | `event_date`     | `{EVENT.DATE}`     |
+   | `event_time`     | `{EVENT.TIME}`     |
 
 5. Lim inn dette i **Script**-feltet:
 
    ```javascript
    var params = JSON.parse(value);
    var request = new HttpRequest();
-   request.addHeader('Content-Type: application/json');
+   request.addHeader("Content-Type: application/json");
 
    var payload = {
-     source: 'zabbix',
+     source: "zabbix",
      event_id: params.event_id,
      name: params.event_name,
      host: params.host,
@@ -75,16 +75,18 @@ Gjør dette først, ettersom du trenger webhook-URL-en den genererer.
      // "1" = problem, "0" = recovered. OneUptime reads this in a Conditions block.
      status: params.event_value,
      date: params.event_date,
-     time: params.event_time
+     time: params.event_time,
    };
 
    var response = request.post(params.url, JSON.stringify(payload));
 
    if (request.getStatus() < 200 || request.getStatus() >= 300) {
-     throw 'OneUptime responded with HTTP ' + request.getStatus() + ': ' + response;
+     throw (
+       "OneUptime responded with HTTP " + request.getStatus() + ": " + response
+     );
    }
 
-   return 'OK';
+   return "OK";
    ```
 
 6. Klikk på fanen **Message templates** og legg til en mal for **Problem** og **Problem recovery** (body-en kan være tom — nyttelasten bygges i skriptet). Dette kreves for at Zabbix skal bruke medietypen for disse hendelsestypene.
@@ -92,7 +94,7 @@ Gjør dette først, ettersom du trenger webhook-URL-en den genererer.
 
 ### Steg 2: Opprett en bruker til å bære webhoken
 
-Zabbix sender varsler *til en bruker*. Opprett en dedikert bruker slik at integrasjonen er lett å finne og deaktivere.
+Zabbix sender varsler _til en bruker_. Opprett en dedikert bruker slik at integrasjonen er lett å finne og deaktivere.
 
 1. Gå til **Users → Users → Create user**. Gi den navnet `OneUptime Webhook`, gi den en rolle som kan motta varsler (f.eks. **User role**), og legg den til i en brukergruppe.
 2. På **Media**-fanen, klikk **Add**:
@@ -105,7 +107,7 @@ Zabbix sender varsler *til en bruker*. Opprett en dedikert bruker slik at integr
 
 1. Gå til **Alerts → Actions → Trigger actions → Create action**.
 2. **Name**: `Notify OneUptime`.
-3. **Conditions** (valgfritt): avgrens — for eksempel, *Trigger severity >= Warning*. La stå tom for å sende alt.
+3. **Conditions** (valgfritt): avgrens — for eksempel, _Trigger severity >= Warning_. La stå tom for å sende alt.
 4. På **Operations**-fanen, legg til en operasjon som sender til **User: OneUptime Webhook** via **OneUptime**-medietypen.
 5. For å løse hendelser ved gjenoppretting senere, fyll også inn **Recovery operations** med samme bruker/medietype.
 6. Klikk **Add** for å lagre og sørg for at action-en er **Enabled**.
@@ -121,12 +123,12 @@ Hvis ingenting ankommer, se [Feilsøking](#feilsøking).
 
 ## Løse automatisk (valgfritt)
 
-Kjernarbeidsflyten ovenfor *åpner* hendelser. For også å *lukke* dem når Zabbix gjenopprettes:
+Kjernarbeidsflyten ovenfor _åpner_ hendelser. For også å _lukke_ dem når Zabbix gjenopprettes:
 
 1. Sørg for at Zabbix-action-en har **Recovery operations** konfigurert (Steg 3 ovenfor) slik at gjenopprettingshendelser også sendes. Ved gjenoppretting ankommer `status` som `0`.
 2. I arbeidsflyten, legg til en ny **Conditions**-gren: venstre `{{Zabbix.Request Body.status}}`, operator `==`, høyre `0`.
 3. Fra **Yes**-utgangen, legg til en **Find Incident**-blokk som slår opp den åpne hendelsen du opprettet tidligere — match på Zabbix `event_id` du lagret i beskrivelsen eller en kode.
-4. Koble det til en **Update Incident**-blokk og flytt hendelsen til din *løst*-tilstand.
+4. Koble det til en **Update Incident**-blokk og flytt hendelsen til din _løst_-tilstand.
 
 Fordi løsning avhenger av hvordan du modellerer hendelsetilstander i prosjektet ditt, hold **create**-stien som den pålitelige kjernen og legg til løsningsstien når du har bekreftet at hendelser flyter korrekt. Se [Komponenter → OneUptime-datakomponenter](/docs/workflows/components#oneuptime-data-components).
 
@@ -137,19 +139,23 @@ Zabbix-alvorlighetsgrader (`Not classified`, `Information`, `Warning`, `Average`
 ## Feilsøking
 
 **Arbeidsflyten kjører aldri.**
+
 - Bekreft at arbeidsflytens **Enabled**-bryter er på.
 - Fra Zabbix-serveren, bekreft at den kan nå URL-en: `curl -i -X POST <workflow-url> -d '{}' -H 'Content-Type: application/json'`. Du bør få en rask bekreftelse.
 - Sjekk **Reports → Action log** i Zabbix for leveringsfeil.
 
 **Zabbix rapporterer en skriptfeil.**
+
 - Åpne medietypen og bruk **Test** for å sende en eksempelnyttelast. Zabbix viser skriptets utdata eller den kastede feilen.
 - Et ikke-2xx-svar fra OneUptime vises av `throw` i skriptet — sjekk at arbeidsflyt-URL-en er nøyaktig riktig.
 
 **Hendelsen opprettes, men felt er tomme.**
+
 - Åpne arbeidsflytens **Logs**-fane og inspiser triggerutdataene. Bekreft at feltnavnene under **Request Body** matcher det du refererer til (`name`, `host`, `severity`, `status`, `event_id`).
 - Et manglende felt løses til en tom streng i stedet for en feil — se [Variabler → Gotchas](/docs/workflows/variables#gotchas).
 
 **Alt utløses to ganger.**
+
 - Du har sannsynligvis både en problemoperasjon og et eskaleringssteg som sender til den samme medietypen. Sjekk action-ens **Operations**-steg.
 
 ## Sikkerhetsnotes

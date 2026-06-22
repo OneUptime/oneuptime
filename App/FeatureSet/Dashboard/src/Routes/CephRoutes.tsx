@@ -12,6 +12,7 @@ import CephClusters from "../Pages/Ceph/Clusters";
 import CephDocumentation from "../Pages/Ceph/Documentation";
 import CephSettingsOwnerRules from "../Pages/Ceph/Settings/OwnerRules";
 import CephSettingsLabelRules from "../Pages/Ceph/Settings/LabelRules";
+import CephArchived from "../Pages/Ceph/Archived";
 import CephClusterOverview from "../Pages/Ceph/View/Index";
 import CephClusterOsds from "../Pages/Ceph/View/Osds";
 import CephClusterOsdDetail from "../Pages/Ceph/View/OsdDetail";
@@ -70,6 +71,15 @@ const CephRoutes: FunctionComponent<ComponentProps> = (
             <CephSettingsLabelRules
               {...props}
               pageRoute={RouteMap[PageMap.CEPH_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CephRoutePath[PageMap.CEPH_ARCHIVED] || ""}
+          element={
+            <CephArchived
+              {...props}
+              pageRoute={RouteMap[PageMap.CEPH_ARCHIVED] as Route}
             />
           }
         />

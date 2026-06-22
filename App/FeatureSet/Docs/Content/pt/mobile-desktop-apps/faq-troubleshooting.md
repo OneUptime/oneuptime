@@ -91,37 +91,44 @@ O PWA é atualizado automaticamente sempre que você o abre estando online. Para
 ### Problemas no Aplicativo Mobile
 
 **O aplicativo não faz login / "Erro de Rede":**
+
 - Confirme que o **URL do Servidor** está correto e acessível a partir do seu celular.
 - Verifique se o seu celular está conectado à internet.
 - Para instâncias auto-hospedadas atrás de uma VPN, certifique-se de que a VPN está ativa.
 
 **Notificações push atrasadas ou ausentes (Android):**
+
 - Desative a otimização de bateria: **Configurações → Apps → OneUptime On-Call → Bateria → Sem restrições**.
 - Desative o Economia de Dados para o aplicativo.
 - Em dispositivos Samsung, desative **Cuidado com o dispositivo → Bateria → Limites de uso em segundo plano** para o OneUptime On-Call.
 
 **Notificações push atrasadas ou ausentes (iOS):**
+
 - Evite encerrar o aplicativo forçadamente — o iOS pode pausar a entrega em segundo plano.
 - Desative o Modo de Pouca Energia enquanto estiver de plantão.
 - Adicione o OneUptime On-Call à lista de permissões de qualquer modo de Foco ativo.
 
 **Face ID / Touch ID / impressão digital não funcionam:**
+
 - Certifique-se de que a biometria está cadastrada nas configurações do seu sistema operacional.
 - Reabilite o desbloqueio biométrico pela tela de **Configurações** dentro do aplicativo OneUptime On-Call.
 
 ### Problemas no Aplicativo Desktop (PWA)
 
 **Botão de instalar ausente:**
+
 - Use um navegador compatível (baseado em Chromium ou Safari no macOS Sonoma+).
 - Garanta que a instância do OneUptime é servida via HTTPS.
 - Aguarde a página terminar de carregar e verifique a barra de endereço pelo ícone de instalação.
 
 **Notificações desktop não aparecem:**
+
 - Permita as notificações quando o navegador solicitar.
 - Verifique as configurações de notificação do sistema operacional (Assistente de Foco no Windows, Notificações no macOS, daemon de notificações no Linux).
 - Para instâncias auto-hospedadas, garanta que a configuração de [Notificações Push](/docs/self-hosted/push-notifications) esteja completa.
 
 **O aplicativo não mostra os dados mais recentes:**
+
 - Recarregue com **Ctrl+R** / **Cmd+R**.
 - Feche e reabra a janela.
 - Verifique sua conexão de rede.

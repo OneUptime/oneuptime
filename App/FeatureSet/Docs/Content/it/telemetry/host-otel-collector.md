@@ -9,13 +9,13 @@ Puoi eseguire l'**OpenTelemetry Collector** come servizio direttamente sui tuoi 
 - **systemd journal** (Linux) tramite il [`journaldreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/journaldreceiver)
 - **Apple Unified Log** (macOS) tramite il [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor) che incapsula l'output di un `log stream` sottoposto a tailing
 - **Windows Event Logs** tramite il [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver)
-- **Stato dei servizi Windows** (che alimenta la scheda **Services** dell'host) tramite il [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) — *non incluso nel collector precompilato upstream; usa l'**OneUptime Host Collector** precompilato o una build personalizzata (vedi "Windows Services (metriche)" più avanti)*
+- **Stato dei servizi Windows** (che alimenta la scheda **Services** dell'host) tramite il [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) — _non incluso nel collector precompilato upstream; usa l'**OneUptime Host Collector** precompilato o una build personalizzata (vedi "Windows Services (metriche)" più avanti)_
 
-> **E l'Infrastructure Agent di OneUptime?** Quell'agente è un daemon Go separato e leggero, focalizzato sulle metriche di base e sulla funzionalità *Server / VM Monitor* (stato, processi, alerting). L'OpenTelemetry Collector descritto qui è indipendente ed è lo strumento giusto quando vuoi log (log da file, journald, Windows Event Logs) o metriche dell'host più ricche acquisite come OTLP standard. Entrambi possono essere eseguiti sullo stesso host senza interferire.
+> **E l'Infrastructure Agent di OneUptime?** Quell'agente è un daemon Go separato e leggero, focalizzato sulle metriche di base e sulla funzionalità _Server / VM Monitor_ (stato, processi, alerting). L'OpenTelemetry Collector descritto qui è indipendente ed è lo strumento giusto quando vuoi log (log da file, journald, Windows Event Logs) o metriche dell'host più ricche acquisite come OTLP standard. Entrambi possono essere eseguiti sullo stesso host senza interferire.
 
 ## Prerequisiti
 
-- Un **OneUptime Telemetry Ingestion Token** — creane uno da *Project Settings → Telemetry Ingestion Keys* e copia il valore `x-oneuptime-token`.
+- Un **OneUptime Telemetry Ingestion Token** — creane uno da _Project Settings → Telemetry Ingestion Keys_ e copia il valore `x-oneuptime-token`.
 - La distribuzione **OpenTelemetry Collector Contrib** (`otelcol-contrib`). La build predefinita `otelcol` **non** include receiver come `windowseventlogreceiver`, `journaldreceiver` o gli extra di `hostmetrics` — assicurati di usare la distribuzione `contrib`. Un'eccezione da conoscere fin da subito: il `windowsservicereceiver` alpha (che alimenta la scheda Windows **Services**) **non** è incluso nel binario `contrib` precompilato upstream — usa l'**OneUptime Host Collector** precompilato (che lo include) oppure compila la tua build; vedi "Windows Services (metriche)" più avanti.
 - Root / Administrator sull'host per installare il collector come servizio e (ove applicabile) leggere le sorgenti di log privilegiate.
 
@@ -68,7 +68,7 @@ Creerai `/etc/otelcol-contrib/config.yaml` nel Passo 2 e un plist `launchd` nel 
 
 ### Windows
 
-Su Windows, installa l'**OneUptime Host Collector** — il collector precompilato di OneUptime che include il receiver `windows_service` (che alimenta la scheda **Services** dell'host e *non* è presente nella build `otelcol-contrib` upstream). Da un prompt PowerShell **con privilegi elevati**:
+Su Windows, installa l'**OneUptime Host Collector** — il collector precompilato di OneUptime che include il receiver `windows_service` (che alimenta la scheda **Services** dell'host e _non_ è presente nella build `otelcol-contrib` upstream). Da un prompt PowerShell **con privilegi elevati**:
 
 ```powershell
 $dest = "C:\Program Files\OneUptimeHostCollector"
@@ -87,11 +87,11 @@ Creerai `C:\Program Files\OneUptimeHostCollector\config.yaml` nel Passo 2 e regi
 
 Il file di configurazione si trova in:
 
-| Sistema operativo | Percorso |
-|---|---|
-| Linux | `/etc/otelcol-contrib/config.yaml` |
-| macOS | `/etc/otelcol-contrib/config.yaml` |
-| Windows | `C:\Program Files\OneUptimeHostCollector\config.yaml` |
+| Sistema operativo | Percorso                                              |
+| ----------------- | ----------------------------------------------------- |
+| Linux             | `/etc/otelcol-contrib/config.yaml`                    |
+| macOS             | `/etc/otelcol-contrib/config.yaml`                    |
+| Windows           | `C:\Program Files\OneUptimeHostCollector\config.yaml` |
 
 Ogni configurazione segue la stessa struttura — scegli i receiver che desideri, aggiungi un processor `batch` e `resource` ed esporta verso OneUptime tramite OTLP HTTP. Gli esempi seguenti mostrano una configurazione completa e pronta da copiare e incollare per ciascun sistema operativo, quindi illustrano ogni blocco receiver in modo che tu possa combinarli a piacimento.
 
@@ -223,7 +223,7 @@ receivers:
       - type: json_parser
         timestamp:
           parse_from: attributes.timestamp
-          layout: '%Y-%m-%d %H:%M:%S.%f%j'
+          layout: "%Y-%m-%d %H:%M:%S.%f%j"
 ```
 
 (Se non hai bisogno dell'unified log, salta questa parte — le flotte di Mac spesso funzionano bene con le sole metriche dell'host + qualche log da file.)
@@ -250,18 +250,18 @@ receivers:
 Per restringere il canale `Security` ad alto volume a specifici event ID:
 
 ```yaml
-  windowseventlog/security:
-    channel: Security
-    start_at: end
-    query: "*[System[(EventID=4625 or EventID=4740)]]"
+windowseventlog/security:
+  channel: Security
+  start_at: end
+  query: "*[System[(EventID=4625 or EventID=4740)]]"
 ```
 
-Per leggere un canale personalizzato o specifico di un'applicazione (qualsiasi cosa tu possa vedere sotto *Event Viewer → Applications and Services Logs*), usa il suo nome visualizzato esatto:
+Per leggere un canale personalizzato o specifico di un'applicazione (qualsiasi cosa tu possa vedere sotto _Event Viewer → Applications and Services Logs_), usa il suo nome visualizzato esatto:
 
 ```yaml
-  windowseventlog/iis:
-    channel: Microsoft-IIS-Logging/Logs
-    start_at: end
+windowseventlog/iis:
+  channel: Microsoft-IIS-Logging/Logs
+  start_at: end
 ```
 
 ### Windows Services (metriche)
@@ -597,10 +597,10 @@ L'OpenTelemetry Collector rispetta le variabili d'ambiente standard `HTTPS_PROXY
 - **Nessuna telemetria appare in OneUptime**
   - Aggiungi `service.telemetry.logs.level: debug` alla configurazione e riavvia il collector per un output dettagliato.
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f` (Linux) o `tail -f /var/log/otelcol-contrib.err.log` (macOS).
-  - **Windows:** cerca sotto *Event Viewer → Windows Logs → Application* la sorgente `otelcol-contrib`.
+  - **Windows:** cerca sotto _Event Viewer → Windows Logs → Application_ la sorgente `otelcol-contrib`.
   - Verifica che l'host possa raggiungere `https://oneuptime.com/otlp` (o il tuo endpoint self-hosted): `curl -v https://oneuptime.com/otlp` dalla stessa macchina.
-- **HTTP 401 dall'exporter** — il token di ingestione non è valido o è stato revocato. Generane uno nuovo da *Project Settings → Telemetry Ingestion Keys*.
-- **Il canale `Security` del Windows Event Log restituisce access denied** — il servizio non viene eseguito con privilegi sufficienti. Ricrealo come `LocalSystem` (l'impostazione predefinita con `sc.exe create`) o concedi all'account del servizio il diritto utente *Manage auditing and security log*.
+- **HTTP 401 dall'exporter** — il token di ingestione non è valido o è stato revocato. Generane uno nuovo da _Project Settings → Telemetry Ingestion Keys_.
+- **Il canale `Security` del Windows Event Log restituisce access denied** — il servizio non viene eseguito con privilegi sufficienti. Ricrealo come `LocalSystem` (l'impostazione predefinita con `sc.exe create`) o concedi all'account del servizio il diritto utente _Manage auditing and security log_.
 - **Il receiver `journald` non si avvia** — assicurati che `journalctl` sia nel `PATH` del collector e che `/var/log/journal` esista (esegui `sudo systemd-tmpfiles --create --prefix /var/log/journal` in caso contrario).
 - **Volume / costo elevato** — restringi i receiver (canali Windows specifici, unità systemd specifiche, file di log specifici), aggiungi un filtro `query:` sul receiver del Windows Event Log, oppure aggiungi un processor `filter` per scartare gli eventi a bassa severità prima dell'esportazione.
 

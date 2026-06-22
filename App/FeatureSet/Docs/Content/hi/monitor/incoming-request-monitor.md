@@ -56,8 +56,8 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 ```javascript
 // Node.js example
-const https = require('https');
-https.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY');
+const https = require("https");
+https.get("https://oneuptime.com/heartbeat/YOUR_SECRET_KEY");
 ```
 
 ```python
@@ -74,12 +74,12 @@ requests.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY')
 
 ### उपलब्ध Check Types
 
-| Check Type | विवरण |
-|------------|-------|
-| Incoming Request | एक time window के भीतर heartbeat received हुआ था या नहीं |
-| Request Body | heartbeat के साथ भेजे गए request body का content |
-| Request Header | एक specific request header का नाम |
-| Request Header Value | एक specific request header का value |
+| Check Type           | विवरण                                                    |
+| -------------------- | -------------------------------------------------------- |
+| Incoming Request     | एक time window के भीतर heartbeat received हुआ था या नहीं |
+| Request Body         | heartbeat के साथ भेजे गए request body का content         |
+| Request Header       | एक specific request header का नाम                        |
+| Request Header Value | एक specific request header का value                      |
 
 ### Filter Types
 

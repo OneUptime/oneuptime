@@ -82,9 +82,12 @@ Varumärket gäller endast när instrumentpanelen visas offentligt. Interna titt
 Du kan bädda in en offentlig instrumentpanel på din egen sajt med en iframe:
 
 ```html
-<iframe src="https://dashboard.acme.com/view"
-        width="100%" height="800"
-        frameborder="0"></iframe>
+<iframe
+  src="https://dashboard.acme.com/view"
+  width="100%"
+  height="800"
+  frameborder="0"
+></iframe>
 ```
 
 Om instrumentpanelen har ett huvudlösenord ser besökare lösenordsprompten inuti iframen.

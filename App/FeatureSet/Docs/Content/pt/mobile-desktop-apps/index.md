@@ -29,11 +29,13 @@ O painel web do OneUptime é um Progressive Web App, então você pode instalá-
 ### Solução de Problemas no Desktop
 
 **A opção de instalar não aparece:**
+
 - Certifique-se de estar usando um navegador compatível.
 - Confirme que sua instância do OneUptime é servida via HTTPS.
 - Atualize a página ou limpe o cache do navegador.
 
 **As notificações push não funcionam:**
+
 - Conceda permissões de notificação quando o navegador solicitar.
 - Verifique as configurações de notificação do sistema operacional para o navegador.
 - Usuários auto-hospedados: confirme que as notificações push estão configuradas na sua instância do OneUptime.

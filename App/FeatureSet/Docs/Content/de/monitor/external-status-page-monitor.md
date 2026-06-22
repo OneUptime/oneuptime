@@ -16,12 +16,12 @@ Externe Status-Seiten-Monitore prüfen die Gesundheit von Diensten, auf die Sie 
 
 OneUptime unterstützt die Überwachung von Status-Seiten über folgende Methoden:
 
-| Anbietertyp | Beschreibung |
-|---|---|
-| **Auto** (Standard) | Erkennt automatisch das Format der Status-Seite |
+| Anbietertyp              | Beschreibung                                                |
+| ------------------------ | ----------------------------------------------------------- |
+| **Auto** (Standard)      | Erkennt automatisch das Format der Status-Seite             |
 | **Atlassian Statuspage** | Status-Seiten betrieben von Atlassian Statuspage (JSON API) |
-| **RSS** | Status-Seiten, die einen RSS-Feed bereitstellen |
-| **Atom** | Status-Seiten, die einen Atom-Feed bereitstellen |
+| **RSS**                  | Status-Seiten, die einen RSS-Feed bereitstellen             |
+| **Atom**                 | Status-Seiten, die einen Atom-Feed bereitstellen            |
 
 ### Automatische Erkennung
 
@@ -77,28 +77,28 @@ Sie können Kriterien konfigurieren, um zu bestimmen, wann der externe Dienst al
 
 ## Beliebte Status-Seiten-URLs
 
-| Dienst | Status-Seiten-URL |
-|---|---|
-| AWS | `https://health.aws.amazon.com/health/status` |
-| Google Cloud Platform | `https://status.cloud.google.com` |
-| Microsoft Azure | `https://status.azure.com` |
-| GitHub | `https://www.githubstatus.com` |
-| Cloudflare | `https://www.cloudflarestatus.com` |
-| Datadog | `https://status.datadoghq.com` |
-| PagerDuty | `https://status.pagerduty.com` |
-| Twilio | `https://status.twilio.com` |
-| Stripe | `https://status.stripe.com` |
-| Slack | `https://status.slack.com` |
-| Atlassian (Jira, Confluence) | `https://status.atlassian.com` |
-| Vercel | `https://www.vercel-status.com` |
-| Netlify | `https://www.netlifystatus.com` |
-| DigitalOcean | `https://status.digitalocean.com` |
-| Heroku | `https://status.heroku.com` |
-| MongoDB Atlas | `https://status.cloud.mongodb.com` |
-| Fastly | `https://status.fastly.com` |
-| New Relic | `https://status.newrelic.com` |
-| Sentry | `https://status.sentry.io` |
-| CircleCI | `https://status.circleci.com` |
+| Dienst                       | Status-Seiten-URL                             |
+| ---------------------------- | --------------------------------------------- |
+| AWS                          | `https://health.aws.amazon.com/health/status` |
+| Google Cloud Platform        | `https://status.cloud.google.com`             |
+| Microsoft Azure              | `https://status.azure.com`                    |
+| GitHub                       | `https://www.githubstatus.com`                |
+| Cloudflare                   | `https://www.cloudflarestatus.com`            |
+| Datadog                      | `https://status.datadoghq.com`                |
+| PagerDuty                    | `https://status.pagerduty.com`                |
+| Twilio                       | `https://status.twilio.com`                   |
+| Stripe                       | `https://status.stripe.com`                   |
+| Slack                        | `https://status.slack.com`                    |
+| Atlassian (Jira, Confluence) | `https://status.atlassian.com`                |
+| Vercel                       | `https://www.vercel-status.com`               |
+| Netlify                      | `https://www.netlifystatus.com`               |
+| DigitalOcean                 | `https://status.digitalocean.com`             |
+| Heroku                       | `https://status.heroku.com`                   |
+| MongoDB Atlas                | `https://status.cloud.mongodb.com`            |
+| Fastly                       | `https://status.fastly.com`                   |
+| New Relic                    | `https://status.newrelic.com`                 |
+| Sentry                       | `https://status.sentry.io`                    |
+| CircleCI                     | `https://status.circleci.com`                 |
 
 > **Hinweis:** Viele davon nutzen Atlassian Statuspage, sodass der **Auto**-Anbietertyp sie automatisch erkennt.
 
@@ -106,14 +106,14 @@ Sie können Kriterien konfigurieren, um zu bestimmen, wann der externe Dienst al
 
 Beim Erstellen von Incidents oder Benachrichtigungen aus Externen Status-Seiten-Monitoren können Sie folgende Vorlagenvariablen verwenden:
 
-| Variable | Beschreibung |
-|---|---|
-| `{{isOnline}}` | Ob die Status-Seite online ist (true/false) |
-| `{{responseTimeInMs}}` | Antwortzeit in Millisekunden |
-| `{{failureCause}}` | Ursache des Fehlers, falls vorhanden |
-| `{{overallStatus}}` | Der allgemeine Statusindikatorwert |
-| `{{activeIncidentCount}}` | Anzahl aktiver Incidents |
-| `{{componentStatuses}}` | JSON-Array von Komponentenstatus |
+| Variable                  | Beschreibung                                |
+| ------------------------- | ------------------------------------------- |
+| `{{isOnline}}`            | Ob die Status-Seite online ist (true/false) |
+| `{{responseTimeInMs}}`    | Antwortzeit in Millisekunden                |
+| `{{failureCause}}`        | Ursache des Fehlers, falls vorhanden        |
+| `{{overallStatus}}`       | Der allgemeine Statusindikatorwert          |
+| `{{activeIncidentCount}}` | Anzahl aktiver Incidents                    |
+| `{{componentStatuses}}`   | JSON-Array von Komponentenstatus            |
 
 ## Best Practices
 

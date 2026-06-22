@@ -31,11 +31,11 @@ Inserire l'hostname o l'indirizzo IP del target da monitorare (ad es. `example.c
 
 ### Tipi di Controllo Disponibili
 
-| Tipo di Controllo | Descrizione |
-|------------|-------------|
-| È Online | Se l'host risponde alle richieste ping |
+| Tipo di Controllo         | Descrizione                                                    |
+| ------------------------- | -------------------------------------------------------------- |
+| È Online                  | Se l'host risponde alle richieste ping                         |
 | Tempo di Risposta (in ms) | Tempo di andata e ritorno della richiesta ping in millisecondi |
-| Richiesta Timeout | Se la richiesta ping è andata in timeout |
+| Richiesta Timeout         | Se la richiesta ping è andata in timeout                       |
 
 ### Tipi di Filtro
 

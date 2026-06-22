@@ -14,10 +14,12 @@ SSO-integration giver følgende fordele:
 ## Opsætning af SSO
 
 1. **Naviger til projektindstillinger**
+
    - Gå til dit OneUptime-projekt
    - Naviger til **Projektindstillinger** > **Autentificering** > **SSO**
 
 2. **Opret SSO-konfiguration**
+
    - Klik på **Opret SSO**
    - Indtast et **Navn** til SSO-konfigurationen (f.eks. "Keycloak SAML" eller "Okta SAML")
    - Indtast **Sign On URL** fra din identitetsudbyder
@@ -152,12 +154,12 @@ Microsoft Entra ID er Microsofts skybaserede identitets- og adgangsstyringstjene
 1. På SAML-konfigurationssiden skal du klikke på **Rediger** i **Attributter og krav**
 2. Sørg for, at følgende krav er konfigureret:
 
-| Kravnavn | Værdi |
-|-----------|-------|
-| `Unique User Identifier (Name ID)` | `user.userprincipalname` eller `user.mail` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | `user.mail` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname` | `user.givenname` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname` | `user.surname` |
+| Kravnavn                                                             | Værdi                                      |
+| -------------------------------------------------------------------- | ------------------------------------------ |
+| `Unique User Identifier (Name ID)`                                   | `user.userprincipalname` eller `user.mail` |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | `user.mail`                                |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`    | `user.givenname`                           |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname`      | `user.surname`                             |
 
 3. Sæt **Name identifier format** til `Email address`
 4. Klik på **Gem**
@@ -239,11 +241,11 @@ Okta er en bredt anvendt identitetsplatform, der leverer robuste SAML SSO-kapaci
 2. Klik på **Rediger** i afsnittet **SAML-indstillinger** og klik på **Næste** for at nå SAML-indstillingerne
 3. I afsnittet **Attributudsagn** skal du tilføje:
 
-| Navn | Værdi |
-|------|-------|
-| `email` | `user.email` |
+| Navn        | Værdi            |
+| ----------- | ---------------- |
+| `email`     | `user.email`     |
 | `firstName` | `user.firstName` |
-| `lastName` | `user.lastName` |
+| `lastName`  | `user.lastName`  |
 
 4. Klik på **Næste** og derefter **Udfør**
 

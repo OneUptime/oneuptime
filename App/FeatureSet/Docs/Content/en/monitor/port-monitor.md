@@ -29,16 +29,16 @@ Enter the hostname or IP address of the target host (e.g., `example.com` or `192
 
 Enter the port number to monitor (1–65535). Common examples:
 
-| Port | Service |
-|------|---------|
-| 22 | SSH |
-| 25 | SMTP |
-| 80 | HTTP |
-| 443 | HTTPS |
-| 3306 | MySQL |
-| 5432 | PostgreSQL |
-| 6379 | Redis |
-| 27017 | MongoDB |
+| Port  | Service    |
+| ----- | ---------- |
+| 22    | SSH        |
+| 25    | SMTP       |
+| 80    | HTTP       |
+| 443   | HTTPS      |
+| 3306  | MySQL      |
+| 5432  | PostgreSQL |
+| 6379  | Redis      |
+| 27017 | MongoDB    |
 
 ## Monitoring Criteria
 
@@ -46,11 +46,11 @@ You can configure criteria to determine when your port is considered online, deg
 
 ### Available Check Types
 
-| Check Type | Description |
-|------------|-------------|
-| Is Online | Whether the port is open and accepting connections |
-| Response Time (in ms) | Time to establish a connection in milliseconds |
-| Is Request Timeout | Whether the connection attempt timed out |
+| Check Type            | Description                                        |
+| --------------------- | -------------------------------------------------- |
+| Is Online             | Whether the port is open and accepting connections |
+| Response Time (in ms) | Time to establish a connection in milliseconds     |
+| Is Request Timeout    | Whether the connection attempt timed out           |
 
 ### Filter Types
 

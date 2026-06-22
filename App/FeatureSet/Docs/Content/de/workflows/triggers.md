@@ -65,11 +65,11 @@ Suchen Sie in der Auslöser-Palette nach dem Namen, um den gewünschten zu finde
 
 ## Welchen Auslöser soll ich verwenden?
 
-| Wenn Sie … | Wählen Sie |
-| --- | --- |
-| eine Schaltfläche zum Starten des Workflows wollen | **Manuell** |
-| nach einem festen Zeitplan ausführen wollen | **Zeitplan** |
-| ein anderes System Daten einsenden lassen wollen | **Webhook** |
+| Wenn Sie …                                         | Wählen Sie             |
+| -------------------------------------------------- | ---------------------- |
+| eine Schaltfläche zum Starten des Workflows wollen | **Manuell**            |
+| nach einem festen Zeitplan ausführen wollen        | **Zeitplan**           |
+| ein anderes System Daten einsenden lassen wollen   | **Webhook**            |
 | auf etwas innerhalb von OneUptime reagieren wollen | **OneUptime-Ereignis** |
 
 Ein Workflow kann nur einen Auslöser haben. Wenn Sie dieselbe Automatisierung auf zwei Wegen starten möchten, bauen Sie die gemeinsame Logik in einem Workflow und rufen Sie ihn aus zwei schlanken „Wrapper"-Workflows mit der Komponente **Workflow ausführen** auf.

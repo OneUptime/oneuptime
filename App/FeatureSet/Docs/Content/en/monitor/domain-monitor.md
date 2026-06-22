@@ -24,16 +24,16 @@ Domain monitors query WHOIS data for your domains to track registration details.
 
 ### Basic Settings
 
-| Field | Description | Required |
-|-------|-------------|----------|
-| Domain Name | The domain to monitor (e.g., `example.com`) | Yes |
+| Field       | Description                                 | Required |
+| ----------- | ------------------------------------------- | -------- |
+| Domain Name | The domain to monitor (e.g., `example.com`) | Yes      |
 
 ### Advanced Settings
 
-| Field | Description | Default |
-|-------|-------------|---------|
-| Timeout (ms) | How long to wait for a WHOIS response | 10000 |
-| Retries | Number of retry attempts on failure | 3 |
+| Field        | Description                           | Default |
+| ------------ | ------------------------------------- | ------- |
+| Timeout (ms) | How long to wait for a WHOIS response | 10000   |
+| Retries      | Number of retry attempts on failure   | 3       |
 
 ## Monitoring Criteria
 
@@ -41,13 +41,13 @@ You can configure criteria to determine when your domain is considered online, d
 
 ### Available Check Types
 
-| Check Type | Description |
-|------------|-------------|
+| Check Type             | Description                                          |
+| ---------------------- | ---------------------------------------------------- |
 | Domain Expires In Days | Number of days until the domain registration expires |
-| Domain Registrar | The domain registrar name |
-| Domain Name Server | Nameserver hostnames for the domain |
-| Domain Status Code | WHOIS domain status codes |
-| Domain Is Expired | Whether the domain has expired |
+| Domain Registrar       | The domain registrar name                            |
+| Domain Name Server     | Nameserver hostnames for the domain                  |
+| Domain Status Code     | WHOIS domain status codes                            |
+| Domain Is Expired      | Whether the domain has expired                       |
 
 ### Filter Types
 

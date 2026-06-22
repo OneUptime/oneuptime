@@ -156,15 +156,15 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 
 ## Umgebungsvariablen
 
-| Variable | Standard | Beschreibung |
-|---|---|---|
-| `PROBE_INGRESS_PORT` | _nicht gesetzt_ (deaktiviert) | Port, an dem der eingehende Listener bindet. Jeder Wert `> 0` aktiviert den Ingress. |
-| `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | Timeout (ms) für jeden Weiterleitungsversuch an OneUptime. Minimum `1000`. |
-| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | Anzahl der Wiederholungsversuche, bevor die Probe eine Weiterleitung aufgibt. |
+| Variable                            | Standard                      | Beschreibung                                                                         |
+| ----------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------ |
+| `PROBE_INGRESS_PORT`                | _nicht gesetzt_ (deaktiviert) | Port, an dem der eingehende Listener bindet. Jeder Wert `> 0` aktiviert den Ingress. |
+| `PROBE_INGRESS_FORWARD_TIMEOUT_MS`  | `10000`                       | Timeout (ms) für jeden Weiterleitungsversuch an OneUptime. Minimum `1000`.           |
+| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3`                           | Anzahl der Wiederholungsversuche, bevor die Probe eine Weiterleitung aufgibt.        |
 
 ## Sicherheitsüberlegungen
 
-- **Der Endpunkt ist bewusst nicht authentifiziert** — der geheime Schlüssel im URL-Pfad *ist* die Authentifizierung. Behandeln Sie den geheimen Schlüssel als Anmeldedatum.
+- **Der Endpunkt ist bewusst nicht authentifiziert** — der geheime Schlüssel im URL-Pfad _ist_ die Authentifizierung. Behandeln Sie den geheimen Schlüssel als Anmeldedatum.
 - **Nur an eine private Schnittstelle binden.** Der Ingress-Listener sollte nicht vom öffentlichen Internet erreichbar sein.
 - **HTTPS-Terminierung verwenden, wenn Sie Verschlüsselung im Transit benötigen.** Der Listener der Probe spricht einfaches HTTP.
 

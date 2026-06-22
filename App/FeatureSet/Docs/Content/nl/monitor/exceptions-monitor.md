@@ -28,20 +28,20 @@ Selecteer een of meer diensten waarvan uitzonderingen worden bewaakt. Diensten m
 
 ### Uitzonderingsfilters
 
-| Filter | Beschrijving | Vereist |
-|--------|-------------|----------|
-| Uitzonderingstypes | Filteren op namen van uitzonderingstypes (bijv. `NullPointerException`, `TypeError`) | Nee |
-| Bericht | Zoek in tekst van uitzonderingsberichten | Nee |
-| Opgeloste includeren | Opgeloste uitzonderingen includeren (standaard: false) | Nee |
-| Gearchiveerde includeren | Gearchiveerde uitzonderingen includeren (standaard: false) | Nee |
-| Tijdvenster | Hoe ver terug te zoeken naar uitzonderingen (in seconden, standaard: 60) | Nee |
+| Filter                   | Beschrijving                                                                         | Vereist |
+| ------------------------ | ------------------------------------------------------------------------------------ | ------- |
+| Uitzonderingstypes       | Filteren op namen van uitzonderingstypes (bijv. `NullPointerException`, `TypeError`) | Nee     |
+| Bericht                  | Zoek in tekst van uitzonderingsberichten                                             | Nee     |
+| Opgeloste includeren     | Opgeloste uitzonderingen includeren (standaard: false)                               | Nee     |
+| Gearchiveerde includeren | Gearchiveerde uitzonderingen includeren (standaard: false)                           | Nee     |
+| Tijdvenster              | Hoe ver terug te zoeken naar uitzonderingen (in seconden, standaard: 60)             | Nee     |
 
 ## Monitoringcriteria
 
 ### Beschikbare controletypen
 
-| Controletype | Beschrijving |
-|------------|-------------|
+| Controletype         | Beschrijving                                                            |
+| -------------------- | ----------------------------------------------------------------------- |
 | Uitzonderingstelling | Het aantal uitzonderingen dat voldoet aan uw filters in het tijdvenster |
 
 ### Filtertypen

@@ -55,6 +55,7 @@ Os Agentes de IA Globais estão automaticamente disponíveis para todos os proje
 Para organizações que precisam executar agentes de IA dentro de sua própria infraestrutura (por exemplo, por requisitos de segurança, conformidade ou acesso à rede), o OneUptime suporta agentes de IA auto-hospedados.
 
 Agentes de IA auto-hospedados:
+
 - Executam dentro da sua rede privada
 - Podem acessar recursos e sistemas internos
 - Oferecem controle total sobre o ambiente do agente
@@ -134,15 +135,15 @@ spec:
         app: oneuptime-ai-agent
     spec:
       containers:
-      - name: oneuptime-ai-agent
-        image: oneuptime/ai-agent:release
-        env:
-          - name: AI_AGENT_KEY
-            value: "<ai-agent-key>"
-          - name: AI_AGENT_ID
-            value: "<ai-agent-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-ai-agent
+          image: oneuptime/ai-agent:release
+          env:
+            - name: AI_AGENT_KEY
+              value: "<ai-agent-key>"
+            - name: AI_AGENT_ID
+              value: "<ai-agent-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 Aplique a configuração:
@@ -157,12 +158,11 @@ O agente de IA suporta as seguintes variáveis de ambiente:
 
 #### Variáveis Obrigatórias
 
-| Variável | Descrição |
-|----------|-------------|
-| `AI_AGENT_KEY` | A chave do agente de IA do seu painel do OneUptime |
-| `AI_AGENT_ID` | O ID do agente de IA do seu painel do OneUptime |
+| Variável        | Descrição                                                           |
+| --------------- | ------------------------------------------------------------------- |
+| `AI_AGENT_KEY`  | A chave do agente de IA do seu painel do OneUptime                  |
+| `AI_AGENT_ID`   | O ID do agente de IA do seu painel do OneUptime                     |
 | `ONEUPTIME_URL` | A URL da sua instância do OneUptime (padrão: https://oneuptime.com) |
-
 
 ## Verificando Seu Agente de IA
 

@@ -23,27 +23,27 @@ See [Widgets](/docs/dashboards/widgets) for the full list and what each one show
 
 ## Key terms
 
-| Term | What it means |
-| --- | --- |
-| **Dashboard** | The whole page — a name, a grid of widgets, time range controls, and a list of variables. |
-| **Widget** | One tile on the page — a chart, a number, a list, a paragraph. |
-| **Variable** | A dropdown at the top that filters every widget at once (cluster, service, customer, environment). |
-| **Time range** | The window of time every chart and number uses. Set it once at the top of the page. |
-| **Refresh** | How often widgets re-query the data. Off, every few seconds, every few minutes. |
-| **Mode** | Either **Edit** (drag widgets around) or **View** (read-only, the way visitors see it). |
+| Term           | What it means                                                                                      |
+| -------------- | -------------------------------------------------------------------------------------------------- |
+| **Dashboard**  | The whole page — a name, a grid of widgets, time range controls, and a list of variables.          |
+| **Widget**     | One tile on the page — a chart, a number, a list, a paragraph.                                     |
+| **Variable**   | A dropdown at the top that filters every widget at once (cluster, service, customer, environment). |
+| **Time range** | The window of time every chart and number uses. Set it once at the top of the page.                |
+| **Refresh**    | How often widgets re-query the data. Off, every few seconds, every few minutes.                    |
+| **Mode**       | Either **Edit** (drag widgets around) or **View** (read-only, the way visitors see it).            |
 
 ## Where to find dashboards
 
 Open **Dashboards** in the left navigation.
 
-| Page | What you do there |
-| --- | --- |
-| **Dashboards** | Your list of dashboards. Create a new one, search, or filter by label. |
-| **Dashboard → View** | The canvas. Toggle between **Edit** and **View** in the header. |
-| **Dashboard → Overview** | Description, owners, and labels. |
-| **Dashboard → Settings** | Public sharing, password, IP allowlist, custom domain, branding. |
-| **Dashboard → Owners** | Users and teams with explicit access. |
-| **Dashboard → Delete** | Remove the dashboard. |
+| Page                     | What you do there                                                      |
+| ------------------------ | ---------------------------------------------------------------------- |
+| **Dashboards**           | Your list of dashboards. Create a new one, search, or filter by label. |
+| **Dashboard → View**     | The canvas. Toggle between **Edit** and **View** in the header.        |
+| **Dashboard → Overview** | Description, owners, and labels.                                       |
+| **Dashboard → Settings** | Public sharing, password, IP allowlist, custom domain, branding.       |
+| **Dashboard → Owners**   | Users and teams with explicit access.                                  |
+| **Dashboard → Delete**   | Remove the dashboard.                                                  |
 
 ## Building a dashboard
 

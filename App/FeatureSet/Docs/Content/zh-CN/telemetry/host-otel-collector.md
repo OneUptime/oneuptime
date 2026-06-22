@@ -9,13 +9,13 @@
 - 通过 [`journaldreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/journaldreceiver) 采集 **systemd journal**（Linux）
 - 通过 [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor) 包装对 `log stream` 输出的 tail 来采集 **Apple Unified Log**（macOS）
 - 通过 [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver) 采集 **Windows 事件日志**
-- 通过 [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) 采集 **Windows 服务状态**（为主机的 **Services** 标签页提供数据）—— *未包含在上游预构建的 collector 中；请使用预构建的 **OneUptime Host Collector** 或自定义构建（见下文“Windows 服务（指标）”）*
+- 通过 [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) 采集 **Windows 服务状态**（为主机的 **Services** 标签页提供数据）—— _未包含在上游预构建的 collector 中；请使用预构建的 **OneUptime Host Collector** 或自定义构建（见下文“Windows 服务（指标）”）_
 
 > **那么 OneUptime 基础设施代理（Infrastructure Agent）呢？** 该代理是一个独立的、轻量级的 Go 守护进程，专注于基础指标和*服务器 / 虚拟机监控器（Server / VM Monitor）*功能（状态、进程、告警）。这里描述的 OpenTelemetry Collector 是独立的，当你希望将日志（文件日志、journald、Windows 事件日志）或更丰富的主机指标作为标准 OTLP 数据接入时，它是合适的工具。两者可以在同一台主机上运行而互不干扰。
 
 ## 前提条件
 
-- 一个 **OneUptime 遥测接入令牌（Telemetry Ingestion Token）**——从 *Project Settings → Telemetry Ingestion Keys* 创建一个，并复制 `x-oneuptime-token` 值。
+- 一个 **OneUptime 遥测接入令牌（Telemetry Ingestion Token）**——从 _Project Settings → Telemetry Ingestion Keys_ 创建一个，并复制 `x-oneuptime-token` 值。
 - **OpenTelemetry Collector Contrib** 发行版（`otelcol-contrib`）。默认的 `otelcol` 构建**不**包含诸如 `windowseventlogreceiver`、`journaldreceiver` 或 `hostmetrics` 附加项之类的接收器——请务必使用 `contrib` 发行版。有一个值得提前了解的例外：alpha 阶段的 `windowsservicereceiver`（它为 Windows **Services** 标签页提供数据）**未**打包进上游预构建的 `contrib` 二进制文件中——请使用预构建的 **OneUptime Host Collector**（它已包含该接收器）或自行构建；见下文“Windows 服务（指标）”。
 - 主机上的 root / 管理员权限，用于将 collector 安装为服务，并（在适用的情况下）读取需要特权的日志源。
 
@@ -87,11 +87,11 @@ Expand-Archive -Path $zip -DestinationPath $dest -Force
 
 配置文件位于：
 
-| 操作系统 | 路径 |
-|---|---|
-| Linux | `/etc/otelcol-contrib/config.yaml` |
-| macOS | `/etc/otelcol-contrib/config.yaml` |
-| Windows | `C:\Program Files\OneUptimeHostCollector\config.yaml` |
+| 操作系统 | 路径                                                  |
+| -------- | ----------------------------------------------------- |
+| Linux    | `/etc/otelcol-contrib/config.yaml`                    |
+| macOS    | `/etc/otelcol-contrib/config.yaml`                    |
+| Windows  | `C:\Program Files\OneUptimeHostCollector\config.yaml` |
 
 每份配置都遵循相同的结构——选择你想要的接收器，添加一个 `batch` 和 `resource` 处理器，并通过 OTLP HTTP 导出到 OneUptime。下面的示例为每种操作系统展示了一份完整的、可复制粘贴的配置，然后逐一介绍各个接收器块，以便你可以混合搭配。
 
@@ -223,7 +223,7 @@ receivers:
       - type: json_parser
         timestamp:
           parse_from: attributes.timestamp
-          layout: '%Y-%m-%d %H:%M:%S.%f%j'
+          layout: "%Y-%m-%d %H:%M:%S.%f%j"
 ```
 
 （如果你不需要 unified log，可跳过此项——Mac 机群通常仅靠主机指标 + 几个文件日志就能良好运行。）
@@ -250,18 +250,18 @@ receivers:
 要将高流量的 `Security` 通道缩小到特定的事件 ID：
 
 ```yaml
-  windowseventlog/security:
-    channel: Security
-    start_at: end
-    query: "*[System[(EventID=4625 or EventID=4740)]]"
+windowseventlog/security:
+  channel: Security
+  start_at: end
+  query: "*[System[(EventID=4625 or EventID=4740)]]"
 ```
 
-要读取自定义或特定于应用程序的通道（任何你能在 *Event Viewer → Applications and Services Logs* 下看到的内容），请使用其确切的显示名称：
+要读取自定义或特定于应用程序的通道（任何你能在 _Event Viewer → Applications and Services Logs_ 下看到的内容），请使用其确切的显示名称：
 
 ```yaml
-  windowseventlog/iis:
-    channel: Microsoft-IIS-Logging/Logs
-    start_at: end
+windowseventlog/iis:
+  channel: Microsoft-IIS-Logging/Logs
+  start_at: end
 ```
 
 ### Windows 服务（指标）
@@ -597,10 +597,10 @@ OpenTelemetry Collector 遵循标准的 `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY
 - **OneUptime 中未出现任何遥测数据**
   - 向配置中添加 `service.telemetry.logs.level: debug` 并重启 collector 以获得详细输出。
   - **Linux / macOS：** `journalctl -u otelcol-contrib -f`（Linux）或 `tail -f /var/log/otelcol-contrib.err.log`（macOS）。
-  - **Windows：** 在 *Event Viewer → Windows Logs → Application* 下查找来源为 `otelcol-contrib` 的条目。
+  - **Windows：** 在 _Event Viewer → Windows Logs → Application_ 下查找来源为 `otelcol-contrib` 的条目。
   - 确认主机能够访问 `https://oneuptime.com/otlp`（或你的自托管端点）：从同一台机器执行 `curl -v https://oneuptime.com/otlp`。
-- **导出器返回 HTTP 401**——接入令牌无效或已被吊销。从 *Project Settings → Telemetry Ingestion Keys* 生成一个新令牌。
-- **`Security` Windows 事件日志返回拒绝访问（access denied）**——该服务未以足够的权限运行。在 `LocalSystem` 身份下重新创建它（`sc.exe create` 的默认设置），或为服务账户授予 *Manage auditing and security log* 用户权限。
+- **导出器返回 HTTP 401**——接入令牌无效或已被吊销。从 _Project Settings → Telemetry Ingestion Keys_ 生成一个新令牌。
+- **`Security` Windows 事件日志返回拒绝访问（access denied）**——该服务未以足够的权限运行。在 `LocalSystem` 身份下重新创建它（`sc.exe create` 的默认设置），或为服务账户授予 _Manage auditing and security log_ 用户权限。
 - **`journald` 接收器无法启动**——确保 `journalctl` 在 collector 的 `PATH` 中，并且 `/var/log/journal` 存在（如不存在，请运行 `sudo systemd-tmpfiles --create --prefix /var/log/journal`）。
 - **流量 / 成本过高**——缩小接收器范围（特定的 Windows 通道、特定的 systemd 单元、特定的日志文件），在 Windows 事件日志接收器上添加 `query:` 过滤器，或添加一个 `filter` 处理器以在导出前丢弃低严重性事件。
 

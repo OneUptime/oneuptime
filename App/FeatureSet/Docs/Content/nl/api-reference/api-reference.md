@@ -6,7 +6,6 @@ OneUptime biedt een uitgebreide REST API waarmee u monitoring-, incidentbeheer- 
 
 Onze API is georganiseerd rond REST-principes en maakt gebruik van standaard HTTP-responscodes, authenticatie en werkwoorden. Alle API-eindpunten retourneren JSON-responses.
 
-
 ### Authenticatie
 
 Voor alle API-verzoeken is authenticatie met API-sleutels vereist. U kunt API-sleutels genereren via uw OneUptime-dashboard onder Instellingen > API-sleutels.

@@ -15,12 +15,12 @@ Estas tienen prioridad sobre los contextos guardados, pero son reemplazadas por 
 
 ## Códigos de salida
 
-| Código | Significado |
-|------|---------|
-| `0` | Éxito |
-| `1` | Error general |
-| `2` | Error de autenticación (credenciales faltantes o inválidas) |
-| `3` | No encontrado (404) |
+| Código | Significado                                                 |
+| ------ | ----------------------------------------------------------- |
+| `0`    | Éxito                                                       |
+| `1`    | Error general                                               |
+| `2`    | Error de autenticación (credenciales faltantes o inválidas) |
+| `3`    | No encontrado (404)                                         |
 
 Usa los códigos de salida en scripts para manejar errores:
 
@@ -80,7 +80,7 @@ done
 name: Check Active Incidents
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: "*/5 * * * *"
 
 jobs:
   health-check:

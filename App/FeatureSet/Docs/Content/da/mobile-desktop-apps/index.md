@@ -29,11 +29,13 @@ OneUptimes webdashboard er en Progressive Web App, så du kan installere det som
 ### Fejlfinding for desktop
 
 **Installer-mulighed vises ikke:**
+
 - Sørg for, at du bruger en understøttet browser.
 - Bekræft, at din OneUptime-instans serveres over HTTPS.
 - Genindlæs siden, eller ryd din browsers cache.
 
 **Push-notifikationer virker ikke:**
+
 - Giv notifikationstilladelser, når browseren beder om det.
 - Tjek dit operativsystems notifikationsindstillinger for browseren.
 - Selvhostede brugere: bekræft, at push-notifikationer er konfigureret på din OneUptime-instans.

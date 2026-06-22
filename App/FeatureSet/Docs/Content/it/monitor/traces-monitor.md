@@ -28,12 +28,12 @@ Selezionare uno o più servizi da cui monitorare le tracce. I servizi devono inv
 
 ### Filtri Span
 
-| Filtro | Descrizione | Obbligatorio |
-|--------|-------------|----------|
-| Stati Span | Filtrare per codice di stato dello span (OK, ERROR, UNSET) | No |
-| Nome Span | Ricerca testuale per nomi di span specifici (ad es. nomi di operazioni o endpoint) | No |
-| Attributi | Coppie chiave-valore per filtrare su attributi personalizzati degli span | No |
-| Finestra Temporale | Quanto indietro cercare negli span (in secondi, predefinito: 60) | No |
+| Filtro             | Descrizione                                                                        | Obbligatorio |
+| ------------------ | ---------------------------------------------------------------------------------- | ------------ |
+| Stati Span         | Filtrare per codice di stato dello span (OK, ERROR, UNSET)                         | No           |
+| Nome Span          | Ricerca testuale per nomi di span specifici (ad es. nomi di operazioni o endpoint) | No           |
+| Attributi          | Coppie chiave-valore per filtrare su attributi personalizzati degli span           | No           |
+| Finestra Temporale | Quanto indietro cercare negli span (in secondi, predefinito: 60)                   | No           |
 
 ### Codici di Stato degli Span
 
@@ -45,9 +45,9 @@ Selezionare uno o più servizi da cui monitorare le tracce. I servizi devono inv
 
 ### Tipi di Controllo Disponibili
 
-| Tipo di Controllo | Descrizione |
-|------------|-------------|
-| Conteggio Span | Il numero di span che corrispondono ai filtri nella finestra temporale |
+| Tipo di Controllo | Descrizione                                                            |
+| ----------------- | ---------------------------------------------------------------------- |
+| Conteggio Span    | Il numero di span che corrispondono ai filtri nella finestra temporale |
 
 ### Tipi di Filtro
 

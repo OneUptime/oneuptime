@@ -28,12 +28,12 @@ Selecione um ou mais serviços para monitorar logs. Os serviços devem estar env
 
 ### Filtros de Log
 
-| Filtro | Descrição | Obrigatório |
-|--------|-------------|----------|
-| Severity Levels | Filtrar por severidade do log (ERROR, WARN, INFO, DEBUG, etc.) | Não |
-| Body | Pesquisa de texto dentro do corpo da mensagem de log | Não |
-| Attributes | Pares chave-valor para filtrar em atributos de log personalizados | Não |
-| Time Window | Quão longe retrospectar para pesquisar logs (em segundos, padrão: 60) | Não |
+| Filtro          | Descrição                                                             | Obrigatório |
+| --------------- | --------------------------------------------------------------------- | ----------- |
+| Severity Levels | Filtrar por severidade do log (ERROR, WARN, INFO, DEBUG, etc.)        | Não         |
+| Body            | Pesquisa de texto dentro do corpo da mensagem de log                  | Não         |
+| Attributes      | Pares chave-valor para filtrar em atributos de log personalizados     | Não         |
+| Time Window     | Quão longe retrospectar para pesquisar logs (em segundos, padrão: 60) | Não         |
 
 ### Níveis de Severidade
 
@@ -51,9 +51,9 @@ Filtre logs por um ou mais níveis de severidade:
 
 ### Tipos de Verificação Disponíveis
 
-| Tipo de Verificação | Descrição |
-|------------|-------------|
-| Log Count | O número de logs que correspondem aos seus filtros na janela de tempo |
+| Tipo de Verificação | Descrição                                                             |
+| ------------------- | --------------------------------------------------------------------- |
+| Log Count           | O número de logs que correspondem aos seus filtros na janela de tempo |
 
 ### Tipos de Filtro
 

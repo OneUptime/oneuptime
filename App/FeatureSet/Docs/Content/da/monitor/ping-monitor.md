@@ -31,11 +31,11 @@ Du kan konfigurere kriterier til at afgøre, hvornår din host betragtes som onl
 
 ### Tilgængelige kontroltyper
 
-| Kontroltype | Beskrivelse |
-|------------|-------------|
-| Er online | Om hosten svarer på ping-anmodninger |
-| Svartid (ms) | Tur-retur-tid for ping-anmodningen i millisekunder |
-| Er anmodning-timeout | Om ping-anmodningen fik timeout |
+| Kontroltype          | Beskrivelse                                        |
+| -------------------- | -------------------------------------------------- |
+| Er online            | Om hosten svarer på ping-anmodninger               |
+| Svartid (ms)         | Tur-retur-tid for ping-anmodningen i millisekunder |
+| Er anmodning-timeout | Om ping-anmodningen fik timeout                    |
 
 ### Filtertyper
 

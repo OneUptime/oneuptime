@@ -1,9 +1,10 @@
 # Desarrollo local
 
-Para el desarrollo local necesitas usar el archivo docker-compose.dev.yml. 
+Para el desarrollo local necesitas usar el archivo docker-compose.dev.yml.
 
-Debes asegurarte de tener: 
-- Docker y Docker Compose instalados. 
+Debes asegurarte de tener:
+
+- Docker y Docker Compose instalados.
 - Node.js y NPM instalados.
 
 ```

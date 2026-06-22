@@ -23,131 +23,130 @@ JavaScriptエクスプレッションの監視条件と同じ `{{variable}}` プ
 
 ### ウェブサイト・APIモニター
 
-| 変数 | 説明 | 型 |
-| --- | --- | --- |
-| `responseBody` | レスポンスボディオブジェクト。HTML/XMLの場合は文字列、JSONの場合はJSONオブジェクト。 | `string` または `JSON` |
-| `responseHeaders` | レスポンスヘッダーオブジェクト（キーは小文字）。 | `Dictionary<string>` |
-| `responseStatusCode` | HTTPレスポンスステータスコード。 | `number` |
-| `responseTimeInMs` | レスポンスタイム（ミリ秒）。 | `number` |
-| `isOnline` | モニターがオンラインと判定されているか。 | `boolean` |
+| 変数                 | 説明                                                                                 | 型                     |
+| -------------------- | ------------------------------------------------------------------------------------ | ---------------------- |
+| `responseBody`       | レスポンスボディオブジェクト。HTML/XMLの場合は文字列、JSONの場合はJSONオブジェクト。 | `string` または `JSON` |
+| `responseHeaders`    | レスポンスヘッダーオブジェクト（キーは小文字）。                                     | `Dictionary<string>`   |
+| `responseStatusCode` | HTTPレスポンスステータスコード。                                                     | `number`               |
+| `responseTimeInMs`   | レスポンスタイム（ミリ秒）。                                                         | `number`               |
+| `isOnline`           | モニターがオンラインと判定されているか。                                             | `boolean`              |
 
 ### 受信リクエストモニター
 
-| 変数 | 説明 | 型 |
-| --- | --- | --- |
-| `requestBody` | リクエストボディオブジェクト。 | `string` または `JSON` |
-| `requestHeaders` | リクエストヘッダーオブジェクト（キーは小文字）。 | `Dictionary<string>` |
-| `requestMethod` | 受信リクエストのHTTPメソッド（GET、POSTなど）。 | `string` |
-| `incomingRequestReceivedAt` | 受信リクエストを受け取った日時。 | `Date` |
+| 変数                        | 説明                                             | 型                     |
+| --------------------------- | ------------------------------------------------ | ---------------------- |
+| `requestBody`               | リクエストボディオブジェクト。                   | `string` または `JSON` |
+| `requestHeaders`            | リクエストヘッダーオブジェクト（キーは小文字）。 | `Dictionary<string>`   |
+| `requestMethod`             | 受信リクエストのHTTPメソッド（GET、POSTなど）。  | `string`               |
+| `incomingRequestReceivedAt` | 受信リクエストを受け取った日時。                 | `Date`                 |
 
 ### Pingモニター
 
-| 変数 | 説明 | 型 |
-| --- | --- | --- |
-| `isOnline` | Pingターゲットがオンラインと判定されているか。 | `boolean` |
-| `responseTimeInMs` | Pingのレスポンスタイム（ミリ秒）。 | `number` |
-| `failureCause` | Pingが失敗した場合の原因。 | `string` |
-| `isTimeout` | Pingリクエストがタイムアウトしたか。 | `boolean` |
+| 変数               | 説明                                           | 型        |
+| ------------------ | ---------------------------------------------- | --------- |
+| `isOnline`         | Pingターゲットがオンラインと判定されているか。 | `boolean` |
+| `responseTimeInMs` | Pingのレスポンスタイム（ミリ秒）。             | `number`  |
+| `failureCause`     | Pingが失敗した場合の原因。                     | `string`  |
+| `isTimeout`        | Pingリクエストがタイムアウトしたか。           | `boolean` |
 
 ### ポートモニター
 
-| 変数 | 説明 | 型 |
-| --- | --- | --- |
-| `isOnline` | ポートがオンライン/アクセス可能と判定されているか。 | `boolean` |
-| `responseTimeInMs` | 接続のレスポンスタイム（ミリ秒）。 | `number` |
-| `failureCause` | ポートチェックが失敗した場合の原因。 | `string` |
-| `isTimeout` | ポート接続がタイムアウトしたか。 | `boolean` |
+| 変数               | 説明                                                | 型        |
+| ------------------ | --------------------------------------------------- | --------- |
+| `isOnline`         | ポートがオンライン/アクセス可能と判定されているか。 | `boolean` |
+| `responseTimeInMs` | 接続のレスポンスタイム（ミリ秒）。                  | `number`  |
+| `failureCause`     | ポートチェックが失敗した場合の原因。                | `string`  |
+| `isTimeout`        | ポート接続がタイムアウトしたか。                    | `boolean` |
 
 ### IPモニター
 
-| 変数 | 説明 | 型 |
-| --- | --- | --- |
-| `isOnline` | IPアドレスがオンラインと判定されているか。 | `boolean` |
-| `responseTimeInMs` | Pingのレスポンスタイム（ミリ秒）。 | `number` |
-| `failureCause` | IPチェックが失敗した場合の原因。 | `string` |
-| `isTimeout` | IP Pingリクエストがタイムアウトしたか。 | `boolean` |
+| 変数               | 説明                                       | 型        |
+| ------------------ | ------------------------------------------ | --------- |
+| `isOnline`         | IPアドレスがオンラインと判定されているか。 | `boolean` |
+| `responseTimeInMs` | Pingのレスポンスタイム（ミリ秒）。         | `number`  |
+| `failureCause`     | IPチェックが失敗した場合の原因。           | `string`  |
+| `isTimeout`        | IP Pingリクエストがタイムアウトしたか。    | `boolean` |
 
 ### SSL証明書モニター
 
-| 変数 | 説明 | 型 |
-| --- | --- | --- |
-| `isOnline` | SSL証明書チェックが成功したか。 | `boolean` |
-| `isSelfSigned` | SSL証明書が自己署名であるか。 | `boolean` |
-| `createdAt` | SSL証明書が作成された日付。 | `Date` |
-| `expiresAt` | SSL証明書の有効期限日。 | `Date` |
-| `commonName` | 証明書のコモンネーム（CN）。 | `string` |
-| `organizationalUnit` | 証明書の組織単位（OU）。 | `string` |
-| `organization` | 証明書の組織（O）。 | `string` |
-| `locality` | 証明書の地域（L）。 | `string` |
-| `state` | 証明書の都道府県（ST）。 | `string` |
-| `country` | 証明書の国（C）。 | `string` |
-| `serialNumber` | 証明書のシリアル番号。 | `string` |
-| `fingerprint` | 証明書のSHA-1フィンガープリント。 | `string` |
-| `fingerprint256` | 証明書のSHA-256フィンガープリント。 | `string` |
-| `failureCause` | SSLチェックが失敗した場合の原因。 | `string` |
+| 変数                 | 説明                                | 型        |
+| -------------------- | ----------------------------------- | --------- |
+| `isOnline`           | SSL証明書チェックが成功したか。     | `boolean` |
+| `isSelfSigned`       | SSL証明書が自己署名であるか。       | `boolean` |
+| `createdAt`          | SSL証明書が作成された日付。         | `Date`    |
+| `expiresAt`          | SSL証明書の有効期限日。             | `Date`    |
+| `commonName`         | 証明書のコモンネーム（CN）。        | `string`  |
+| `organizationalUnit` | 証明書の組織単位（OU）。            | `string`  |
+| `organization`       | 証明書の組織（O）。                 | `string`  |
+| `locality`           | 証明書の地域（L）。                 | `string`  |
+| `state`              | 証明書の都道府県（ST）。            | `string`  |
+| `country`            | 証明書の国（C）。                   | `string`  |
+| `serialNumber`       | 証明書のシリアル番号。              | `string`  |
+| `fingerprint`        | 証明書のSHA-1フィンガープリント。   | `string`  |
+| `fingerprint256`     | 証明書のSHA-256フィンガープリント。 | `string`  |
+| `failureCause`       | SSLチェックが失敗した場合の原因。   | `string`  |
 
 ### サーバー/VMモニター
 
-| 変数 | 説明 | 型 |
-| --- | --- | --- |
-| `hostname` | 監視対象サーバーのホスト名。 | `string` |
-| `requestReceivedAt` | サーバーモニターリクエストを受け取った日時。 | `Date` |
-| `cpuUsagePercent` | CPU使用率（パーセント）。 | `number` |
-| `cpuCores` | CPUコア数。 | `number` |
-| `memoryUsagePercent` | メモリ使用率（パーセント）。 | `number` |
-| `memoryFreePercent` | メモリ空き率（パーセント）。 | `number` |
-| `memoryTotalBytes` | 合計メモリ（バイト）。 | `number` |
-| `diskMetrics` | すべてのマウント済みディスクのメトリクス配列。 | `Array<Object>` |
-| `diskMetrics[].diskPath` | ディスクマウントポイントのパス。 | `string` |
-| `diskMetrics[].usagePercent` | このマウントポイントのディスク使用率。 | `number` |
-| `diskMetrics[].freePercent` | このマウントポイントのディスク空き率。 | `number` |
-| `diskMetrics[].totalBytes` | このマウントポイントの合計ディスク容量（バイト）。 | `number` |
-| `processes` | サーバーで実行中のプロセス配列。 | `Array<Object>` |
-| `processes[].pid` | プロセスID。 | `number` |
-| `processes[].name` | プロセス名。 | `string` |
-| `processes[].command` | プロセスを起動したコマンド。 | `string` |
-| `failureCause` | サーバーチェックが失敗した場合の原因。 | `string` |
+| 変数                         | 説明                                               | 型              |
+| ---------------------------- | -------------------------------------------------- | --------------- |
+| `hostname`                   | 監視対象サーバーのホスト名。                       | `string`        |
+| `requestReceivedAt`          | サーバーモニターリクエストを受け取った日時。       | `Date`          |
+| `cpuUsagePercent`            | CPU使用率（パーセント）。                          | `number`        |
+| `cpuCores`                   | CPUコア数。                                        | `number`        |
+| `memoryUsagePercent`         | メモリ使用率（パーセント）。                       | `number`        |
+| `memoryFreePercent`          | メモリ空き率（パーセント）。                       | `number`        |
+| `memoryTotalBytes`           | 合計メモリ（バイト）。                             | `number`        |
+| `diskMetrics`                | すべてのマウント済みディスクのメトリクス配列。     | `Array<Object>` |
+| `diskMetrics[].diskPath`     | ディスクマウントポイントのパス。                   | `string`        |
+| `diskMetrics[].usagePercent` | このマウントポイントのディスク使用率。             | `number`        |
+| `diskMetrics[].freePercent`  | このマウントポイントのディスク空き率。             | `number`        |
+| `diskMetrics[].totalBytes`   | このマウントポイントの合計ディスク容量（バイト）。 | `number`        |
+| `processes`                  | サーバーで実行中のプロセス配列。                   | `Array<Object>` |
+| `processes[].pid`            | プロセスID。                                       | `number`        |
+| `processes[].name`           | プロセス名。                                       | `string`        |
+| `processes[].command`        | プロセスを起動したコマンド。                       | `string`        |
+| `failureCause`               | サーバーチェックが失敗した場合の原因。             | `string`        |
 
 ### 合成モニター
 
 合成モニターは複数のブラウザ（Chromium、Firefox、Webkit）と画面サイズ（モバイル、タブレット、デスクトップ）でスクリプトを実行し、設定ごとに1つのレスポンスを生成します。各実行は `syntheticResponses` 配列を通じてアクセスできます。インデックスで特定の実行にアクセスする（`{{syntheticResponses[0].browserType}}`）か、`{{#each syntheticResponses}}` でイテレートします。
 
-| 変数 | 説明 | 型 |
-| --- | --- | --- |
-| `failureCause` | 合成チェックが失敗した場合の原因。 | `string` |
-| `syntheticResponses` | スクリプトが実行されたブラウザ/画面サイズの組み合わせごとに1エントリを含む配列。 | `Array<Object>` |
-| `syntheticResponses[].executionTimeInMs` | この実行の実行時間（ミリ秒）。 | `number` |
-| `syntheticResponses[].result` | この実行が返した結果。 | `string`、`number`、`boolean`、または `JSON` |
-| `syntheticResponses[].scriptError` | この実行中に発生したエラー。 | `string` |
-| `syntheticResponses[].logMessages` | この実行中に生成されたログメッセージ。 | `Array<string>` |
-| `syntheticResponses[].screenshots` | この実行中にキャプチャされたスクリーンショット。 | `Object` |
-| `syntheticResponses[].browserType` | この実行に使用されたブラウザ。 | `string` |
-| `syntheticResponses[].screenSizeType` | この実行に使用された画面サイズ。 | `string` |
+| 変数                                     | 説明                                                                             | 型                                           |
+| ---------------------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------- |
+| `failureCause`                           | 合成チェックが失敗した場合の原因。                                               | `string`                                     |
+| `syntheticResponses`                     | スクリプトが実行されたブラウザ/画面サイズの組み合わせごとに1エントリを含む配列。 | `Array<Object>`                              |
+| `syntheticResponses[].executionTimeInMs` | この実行の実行時間（ミリ秒）。                                                   | `number`                                     |
+| `syntheticResponses[].result`            | この実行が返した結果。                                                           | `string`、`number`、`boolean`、または `JSON` |
+| `syntheticResponses[].scriptError`       | この実行中に発生したエラー。                                                     | `string`                                     |
+| `syntheticResponses[].logMessages`       | この実行中に生成されたログメッセージ。                                           | `Array<string>`                              |
+| `syntheticResponses[].screenshots`       | この実行中にキャプチャされたスクリーンショット。                                 | `Object`                                     |
+| `syntheticResponses[].browserType`       | この実行に使用されたブラウザ。                                                   | `string`                                     |
+| `syntheticResponses[].screenSizeType`    | この実行に使用された画面サイズ。                                                 | `string`                                     |
 
 ### カスタムJavaScriptコードモニター
 
-| 変数 | 説明 | 型 |
-| --- | --- | --- |
-| `executionTimeInMs` | カスタムコードの実行にかかった時間（ミリ秒）。 | `number` |
-| `result` | カスタムコードが返した結果。 | `string`、`number`、`boolean`、または `JSON` |
-| `scriptError` | コード実行中に発生したエラー。 | `string` |
-| `logMessages` | 実行中に生成されたログメッセージの配列。 | `Array<string>` |
+| 変数                | 説明                                           | 型                                           |
+| ------------------- | ---------------------------------------------- | -------------------------------------------- |
+| `executionTimeInMs` | カスタムコードの実行にかかった時間（ミリ秒）。 | `number`                                     |
+| `result`            | カスタムコードが返した結果。                   | `string`、`number`、`boolean`、または `JSON` |
+| `scriptError`       | コード実行中に発生したエラー。                 | `string`                                     |
+| `logMessages`       | 実行中に生成されたログメッセージの配列。       | `Array<string>`                              |
 
 ### SNMPモニター
 
-| 変数 | 説明 | 型 |
-| --- | --- | --- |
-| `isOnline` | SNMPデバイスがオンラインで応答しているか。 | `boolean` |
-| `responseTimeInMs` | SNMPクエリのレスポンスタイム（ミリ秒）。 | `number` |
-| `failureCause` | SNMPクエリが失敗した場合の原因。 | `string` |
-| `isTimeout` | SNMPクエリがタイムアウトしたか。 | `boolean` |
-| `oidResponses` | OID、名前、値、タイプを持つOIDレスポンスオブジェクトの配列。 | `Array<Object>` |
-| `oidResponses[].oid` | 照会されたOID。 | `string` |
-| `oidResponses[].name` | OIDのフレンドリーネーム（指定されている場合）。 | `string` |
-| `oidResponses[].value` | OIDが返した値。 | `string` または `number` |
-| `oidResponses[].type` | 値のSNMPデータ型。 | `string` |
-| `{{OID_NAME}}` | 名前でOID値に直接アクセス（例：`{{sysUpTime}}`）。 | `string` または `number` |
-
+| 変数                   | 説明                                                         | 型                       |
+| ---------------------- | ------------------------------------------------------------ | ------------------------ |
+| `isOnline`             | SNMPデバイスがオンラインで応答しているか。                   | `boolean`                |
+| `responseTimeInMs`     | SNMPクエリのレスポンスタイム（ミリ秒）。                     | `number`                 |
+| `failureCause`         | SNMPクエリが失敗した場合の原因。                             | `string`                 |
+| `isTimeout`            | SNMPクエリがタイムアウトしたか。                             | `boolean`                |
+| `oidResponses`         | OID、名前、値、タイプを持つOIDレスポンスオブジェクトの配列。 | `Array<Object>`          |
+| `oidResponses[].oid`   | 照会されたOID。                                              | `string`                 |
+| `oidResponses[].name`  | OIDのフレンドリーネーム（指定されている場合）。              | `string`                 |
+| `oidResponses[].value` | OIDが返した値。                                              | `string` または `number` |
+| `oidResponses[].type`  | 値のSNMPデータ型。                                           | `string`                 |
+| `{{OID_NAME}}`         | 名前でOID値に直接アクセス（例：`{{sysUpTime}}`）。           | `string` または `number` |
 
 ## 基本的な使用方法
 
@@ -181,12 +180,14 @@ APIは842ミリ秒で502を返しました
 ## 高度な使用方法
 
 ### 配列要素へのアクセス
+
 ```
 最初のディスク使用率: {{diskMetrics[0].usagePercent}}%
 最後のプロセス: {{processes[-1].name}}
 ```
 
 ### ネストされたオブジェクトへのアクセス
+
 ```
 エラーメッセージ: {{responseBody.error.details.message}}
 サーバーの場所: {{sslCertificate.locality}} {{sslCertificate.country}}
@@ -197,6 +198,7 @@ APIは842ミリ秒で502を返しました
 `{{#each path}}...{{/each}}` ブロック構文を使ってデータに含まれるリストの各アイテムをインシデントやアラートの説明に含めることができます。
 
 **構文：**
+
 ```
 {{#each arrayPath}}
   ...各要素の{{property}}を使った本文...
@@ -204,6 +206,7 @@ APIは842ミリ秒で502を返しました
 ```
 
 ループ本文内：
+
 - `{{propertyName}}` は現在の配列要素を基準に解決されます
 - `{{nested.property}}` のドット記法は現在の要素で機能します
 - `{{@index}}` は現在のイテレーションの0始まりのインデックスとして解決されます
@@ -213,6 +216,7 @@ APIは842ミリ秒で502を返しました
 **例 — アラート配列を含む受信リクエスト（Grafanaウェブフックなど）：**
 
 受信リクエストのボディが以下の場合：
+
 ```json
 {
   "status": "firing",
@@ -225,6 +229,7 @@ APIは842ミリ秒で502を返しました
 ```
 
 次のようなテンプレートを記述できます：
+
 ```
 アラートラベル:
 {{#each requestBody.alerts}}
@@ -233,6 +238,7 @@ APIは842ミリ秒で502を返しました
 ```
 
 出力結果：
+
 ```
 アラートラベル:
 - Coralpay (firing)
@@ -241,6 +247,7 @@ APIは842ミリ秒で502を返しました
 ```
 
 **例 — サーバーのディスクメトリクス：**
+
 ```
 ディスク使用率:
 {{#each diskMetrics}}
@@ -249,6 +256,7 @@ APIは842ミリ秒で502を返しました
 ```
 
 **例 — `{{@index}}` の使用：**
+
 ```
 プロセス:
 {{#each processes}}
@@ -257,6 +265,7 @@ APIは842ミリ秒で502を返しました
 ```
 
 **例 — `{{this}}` を使ったプリミティブ配列：**
+
 ```
 ログメッセージ:
 {{#each logMessages}}
@@ -267,6 +276,7 @@ APIは842ミリ秒で502を返しました
 **例 — ネストされたループ：**
 
 多段階の配列に対して `{{#each}}` ブロックをネストできます：
+
 ```
 {{#each requestBody.groups}}
 グループ: {{name}}
@@ -278,47 +288,53 @@ APIは842ミリ秒で502を返しました
 
 > **注意**：パスが配列として解決されない場合、`{{#each}}...{{/each}}` ブロック全体が出力から削除されます。空の配列はブロックの出力を生成しません。
 
-
 ## 使用例
 
 ### ウェブサイト/APIモニターのインシデントタイトル
+
 ```
 高遅延: {{responseTimeInMs}}ms（> しきい値）
 ```
 
 ### ウェブサイト/APIモニターのインシデント説明
+
 ```
 ### APIエラー
-ステータス: **{{responseStatusCode}}**  
-遅延: **{{responseTimeInMs}}ms**  
+ステータス: **{{responseStatusCode}}**
+遅延: **{{responseTimeInMs}}ms**
 ボディの抜粋: `{{responseBody.error.message}}`
 ```
 
 ### 受信リクエストのアラートタイトル
+
 ```
 不正な受信リクエスト: method={{requestMethod}} auth={{requestHeaders.authorization}}
 ```
 
 ### SSL証明書のアラートタイトル
+
 ```
 SSL証明書の有効期限が近づいています: {{commonName}} は {{expiresAt}} に期限切れ
 ```
 
 ### サーバーモニターのアラート説明
+
 ```
 ### サーバーアラート: {{hostname}}
-CPU使用率: **{{cpuUsagePercent}}%**  
-メモリ使用率: **{{memoryUsagePercent}}%**  
-最初のディスク使用率: **{{diskMetrics[0].usagePercent}}%**  
+CPU使用率: **{{cpuUsagePercent}}%**
+メモリ使用率: **{{memoryUsagePercent}}%**
+最初のディスク使用率: **{{diskMetrics[0].usagePercent}}%**
 最終確認: {{requestReceivedAt}}
 ```
 
 ### PingモニターのアラートタイトルN
+
 ```
 ターゲットのPing失敗: {{failureCause}} ({{responseTimeInMs}}ms)
 ```
 
 ### ポートモニターのアラート説明
+
 ```
 ポート接続の問題
 ターゲットポートのステータス: {{isOnline}}
@@ -329,12 +345,14 @@ CPU使用率: **{{cpuUsagePercent}}%**
 ### 合成モニターのアラート
 
 インデックスで特定のブラウザ/画面サイズの実行にアクセス：
+
 ```
 最初の実行: {{syntheticResponses[0].browserType}} / {{syntheticResponses[0].screenSizeType}}
 結果: {{syntheticResponses[0].result}} - {{syntheticResponses[0].executionTimeInMs}}ms
 ```
 
 `{{#each}}` を使ってすべてのブラウザ/画面サイズの組み合わせをイテレート：
+
 ```
 ### 合成モニターの結果
 {{#each syntheticResponses}}
@@ -345,17 +363,20 @@ CPU使用率: **{{cpuUsagePercent}}%**
 ```
 
 ### カスタムコードモニターのアラート
+
 ```
 カスタムコードの実行: {{executionTimeInMs}}ms
 ログ出力: {{logMessages[0]}}
 ```
 
 ### SNMPモニターのアラートタイトル
+
 ```
 SNMPデバイスがオフライン: {{failureCause}} ({{responseTimeInMs}}ms)
 ```
 
 ### SNMPモニターのアラート説明
+
 ```
 ### SNMPデバイスアラート
 ステータス: **{{isOnline}}**
@@ -368,11 +389,13 @@ SNMPデバイスがオフライン: {{failureCause}} ({{responseTimeInMs}}ms)
 ### 配列ループを使った受信リクエスト（Grafanaウェブフック）
 
 タイトル：
+
 ```
 [{{requestBody.status}}] {{requestBody.receiver}}
 ```
 
 説明：
+
 ```
 ### {{requestBody.receiver}} からのアラート
 
@@ -388,6 +411,7 @@ SNMPデバイスがオフライン: {{failureCause}} ({{responseTimeInMs}}ms)
 ### ディスクループを使ったサーバーモニター
 
 説明：
+
 ```
 ### サーバーアラート: {{hostname}}
 CPU使用率: **{{cpuUsagePercent}}%**
@@ -407,6 +431,7 @@ CPU使用率: **{{cpuUsagePercent}}%**
 ### OIDループを使ったSNMPモニター
 
 説明：
+
 ```
 ### SNMPデバイスステータス
 オンライン: {{isOnline}}

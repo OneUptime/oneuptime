@@ -21,7 +21,7 @@ FluentBit unterstützt hunderte von Datenquellen und Sie können Logs und Teleme
 - Java
 - PHP
 - Go
-- Rust 
+- Rust
 
 und viele mehr.
 
@@ -44,29 +44,24 @@ Sobald Sie ein Token erstellt haben, klicken Sie auf „Anzeigen", um das Token 
 
 ![Service anzeigen](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
 ## Konfiguration
 
 Sie können die folgende Konfiguration verwenden, um die Telemetriedaten an den OneUptime OpenTelemetry HTTP Collector zu senden. Fügen Sie diese Konfiguration zur FluentBit-Konfigurationsdatei hinzu. Die Konfigurationsdatei befindet sich normalerweise unter `/etc/fluent-bit/fluent-bit.yaml`. So würde ein Outputs-Abschnitt der Konfigurationsdatei aussehen:
 
-
 ```yaml
-
-
 outputs:
   - name: stdout
-    match: '*'
+    match: "*"
   - name: opentelemetry
-    match: '*'
-    host: 'oneuptime.com'
+    match: "*"
+    host: "oneuptime.com"
     port: 443
-    metrics_uri: '/otlp/v1/metrics'
-    logs_uri: '/otlp/v1/logs'
-    traces_uri: '/otlp/v1/traces'
+    metrics_uri: "/otlp/v1/metrics"
+    logs_uri: "/otlp/v1/logs"
+    traces_uri: "/otlp/v1/traces"
     tls: On
     header:
       - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
-
 ```
 
 Stellen Sie sicher, dass Sie `opentelemetry_envelope` in Ihrem Inputs-Abschnitt haben. Hier ist ein Beispiel für den Inputs-Abschnitt:
@@ -74,18 +69,18 @@ Stellen Sie sicher, dass Sie `opentelemetry_envelope` in Ihrem Inputs-Abschnitt 
 ```yaml
 pipeline:
   inputs:
-      # Ihre Inputs
+    # Ihre Inputs
 
-      processors:
-        logs:
-          - name: opentelemetry_envelope
+    processors:
+      logs:
+        - name: opentelemetry_envelope
 
-          - name: content_modifier
-            context: otel_resource_attributes
-            action: upsert
-            key: service.name
-            # Ersetzen Sie YOUR_SERVICE_NAME durch den Namen Ihres Dienstes
-            value: YOUR_SERVICE_NAME
+        - name: content_modifier
+          context: otel_resource_attributes
+          action: upsert
+          key: service.name
+          # Ersetzen Sie YOUR_SERVICE_NAME durch den Namen Ihres Dienstes
+          value: YOUR_SERVICE_NAME
 ```
 
 **Wenn Sie OneUptime selbst hosten**: Wenn Sie OneUptime selbst hosten, können Sie `host` durch den Host Ihrer OneUptime-Instanz ersetzen. Wenn Sie auf einem HTTP-Server (nicht HTTPS) hosten, können Sie `port` durch den Port Ihrer OneUptime-Instanz ersetzen (wahrscheinlich Port 80).

@@ -10,15 +10,15 @@ OneUptime continuously improves customer software using the telemetry it collect
 
 **The open-source AI SRE that owns the whole loop — it investigates before you wake up, fixes with evidence, and proves the fix worked in production.**
 
-The loop: **detect → investigate → fix → verify → learn.** The step nobody else closes — post-merge verification in production telemetry ("0 occurrences since deploy, was 1,247/week", commented on the PR) — is ours because we *are* the observability system.
+The loop: **detect → investigate → fix → verify → learn.** The step nobody else closes — post-merge verification in production telemetry ("0 occurrences since deploy, was 1,247/week", commented on the PR) — is ours because we _are_ the observability system.
 
 ## Documents
 
-| Doc | What it covers |
-|---|---|
-| [Roadmap.md](./Roadmap.md) | **The roadmap.** Thesis, key decisions, the dual-lane Day-1 wow (Incident Replay + First Fifteen Minutes), six product pillars, Phases 0–3 with verified codebase citations, autonomy ladder & trust model, differentiation, metrics, risks, and the spec backlog (design docs to write before each phase). |
-| [CurrentState.md](./CurrentState.md) | Honest inventory of today's AI agent + code repository features: what exists (exception→OpenCode→GitHub PR pipeline, LLM billing, GitHub App, telemetry layer), what's broken, what's missing. Keep/fix/replace verdicts. |
-| [MarketLandscape.md](./MarketLandscape.md) | Competitive research, June 2026: Sentry Seer, Datadog Bits AI, SRE-agent startups, coding agents, open-source peers. Wow patterns that work, failure patterns to avoid, and the open lane. |
+| Doc                                        | What it covers                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Roadmap.md](./Roadmap.md)                 | **The roadmap.** Thesis, key decisions, the dual-lane Day-1 wow (Incident Replay + First Fifteen Minutes), six product pillars, Phases 0–3 with verified codebase citations, autonomy ladder & trust model, differentiation, metrics, risks, and the spec backlog (design docs to write before each phase). |
+| [CurrentState.md](./CurrentState.md)       | Honest inventory of today's AI agent + code repository features: what exists (exception→OpenCode→GitHub PR pipeline, LLM billing, GitHub App, telemetry layer), what's broken, what's missing. Keep/fix/replace verdicts.                                                                                   |
+| [MarketLandscape.md](./MarketLandscape.md) | Competitive research, June 2026: Sentry Seer, Datadog Bits AI, SRE-agent startups, coding agents, open-source peers. Wow patterns that work, failure patterns to avoid, and the open lane.                                                                                                                  |
 
 ## TL;DR of the roadmap
 

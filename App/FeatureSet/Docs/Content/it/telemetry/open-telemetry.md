@@ -1,4 +1,4 @@
-# Integrare OpenTelemetry (logging, metriche e tracce) con OneUptime. 
+# Integrare OpenTelemetry (logging, metriche e tracce) con OneUptime.
 
 ### Fase 1 - Creare un Token di Acquisizione Telemetria.
 
@@ -6,7 +6,7 @@ Una volta creato un account OneUptime, è possibile creare un token di acquisizi
 
 Dopo aver effettuato la registrazione a OneUptime e creato un progetto, fare clic su "Altro" nella barra di navigazione e fare clic su "Impostazioni Progetto".
 
-Nella pagina Chiave di Acquisizione Telemetria, fare clic su "Crea Chiave di Acquisizione" per creare un token. 
+Nella pagina Chiave di Acquisizione Telemetria, fare clic su "Crea Chiave di Acquisizione" per creare un token.
 
 ![Crea Servizio](/docs/static/images/TelemetryIngestionKeys.png)
 
@@ -14,8 +14,7 @@ Una volta creato il token, fare clic su "Visualizza" per vederlo.
 
 ![Visualizza Servizio](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
-### Fase 2 
+### Fase 2
 
 #### Configurare il servizio di telemetria nella propria applicazione.
 
@@ -35,17 +34,15 @@ Si usa OpenTelemetry per raccogliere i log dell'applicazione. OneUptime attualme
 - [.NET / C#](https://opentelemetry.io/docs/instrumentation/net/)
 - [Swift](https://opentelemetry.io/docs/instrumentation/swift/)
 
-
 **Integrazione con OneUptime**
 
 Una volta configurato il servizio di telemetria nella propria applicazione, è possibile integrarsi con OneUptime impostando le seguenti variabili d'ambiente.
 
-| Variabile d'Ambiente | Valore |
-| --- | --- |
-| OTEL_EXPORTER_OTLP_HEADERS | x-oneuptime-token=VOSTRO_TOKEN_SERVIZIO_ONEUPTIME |
-| OTEL_EXPORTER_OTLP_ENDPOINT | https://oneuptime.com/otlp |
-| OTEL_SERVICE_NAME | NOME_DEL_VOSTRO_SERVIZIO |
-
+| Variabile d'Ambiente        | Valore                                            |
+| --------------------------- | ------------------------------------------------- |
+| OTEL_EXPORTER_OTLP_HEADERS  | x-oneuptime-token=VOSTRO_TOKEN_SERVIZIO_ONEUPTIME |
+| OTEL_EXPORTER_OTLP_ENDPOINT | https://oneuptime.com/otlp                        |
+| OTEL_SERVICE_NAME           | NOME_DEL_VOSTRO_SERVIZIO                          |
 
 **Esempio**
 
@@ -55,17 +52,15 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=https://oneuptime.com/otlp
 export OTEL_SERVICE_NAME=mio-servizio
 ```
 
-
 **OneUptime Self-Hosted**
 
 Se si ospita autonomamente OneUptime, questo può essere cambiato con il proprio endpoint del collector OpenTelemetry self-hosted (ad es.: `http(s)://VOSTRO-HOST-ONEUPTIME/otlp`)
 
 Una volta eseguita l'applicazione, si dovrebbero vedere i log nella pagina del servizio di telemetria di OneUptime. Contattare support@oneuptime.com per qualsiasi assistenza.
 
-
 #### Uso del Collector OpenTelemetry
 
-È anche possibile usare il collector OpenTelemetry invece di inviare i dati di telemetria direttamente dall'applicazione. 
+È anche possibile usare il collector OpenTelemetry invece di inviare i dati di telemetria direttamente dall'applicazione.
 Se si usa il Collector OpenTelemetry, è possibile configurare l'esportatore OneUptime nel file di configurazione del collector.
 
 Ecco la configurazione di esempio per il Collector OpenTelemetry.
@@ -80,7 +75,6 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 exporters:
-
   # Esporta via HTTP
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"

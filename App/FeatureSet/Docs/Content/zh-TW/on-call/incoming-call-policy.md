@@ -178,11 +178,11 @@ flowchart TD
     end
 ```
 
-| 順序 | 升級等待時間 | 目標對象 |
-|-------|----------------|--------|
-| 1 | 30 秒 | 主要待命排程 |
-| 2 | 30 秒 | 次要待命排程 |
-| 3 | 30 秒 | 工程團隊主管 |
+| 順序 | 升級等待時間 | 目標對象     |
+| ---- | ------------ | ------------ |
+| 1    | 30 秒        | 主要待命排程 |
+| 2    | 30 秒        | 次要待命排程 |
+| 3    | 30 秒        | 工程團隊主管 |
 
 ## 步驟 7：設定語音訊息（選填）
 
@@ -199,23 +199,23 @@ flowchart TD
 
 ### 政策設定
 
-| 設定 | 描述 | 預設值 |
-|---------|-------------|---------|
-| Greeting Message | 通話被接通時所播放的 TTS 訊息 | "Please wait while we connect you to the on-call engineer." |
-| No Answer Message | 所有升級規則都失敗時的訊息 | "No one is available. Please try again later." |
-| No One Available Message | 無人待命時的訊息 | "We're sorry, but no on-call engineer is currently available." |
-| Repeat Policy If No One Answers | 若全部失敗則從第一條規則重新開始 | 停用 |
-| Repeat Policy Times | 最大重複嘗試次數 | 1 |
+| 設定                            | 描述                             | 預設值                                                         |
+| ------------------------------- | -------------------------------- | -------------------------------------------------------------- |
+| Greeting Message                | 通話被接通時所播放的 TTS 訊息    | "Please wait while we connect you to the on-call engineer."    |
+| No Answer Message               | 所有升級規則都失敗時的訊息       | "No one is available. Please try again later."                 |
+| No One Available Message        | 無人待命時的訊息                 | "We're sorry, but no on-call engineer is currently available." |
+| Repeat Policy If No One Answers | 若全部失敗則從第一條規則重新開始 | 停用                                                           |
+| Repeat Policy Times             | 最大重複嘗試次數                 | 1                                                              |
 
 ### 升級規則設定
 
-| 設定 | 描述 |
-|---------|-------------|
-| Order | 優先順序（1 = 最高優先） |
+| 設定                   | 描述                                      |
+| ---------------------- | ----------------------------------------- |
+| Order                  | 優先順序（1 = 最高優先）                  |
 | Escalate After Seconds | 嘗試下一條規則前的等待時間（預設：30 秒） |
-| On-Call Schedule | 路由給當下待命的人 |
-| Teams | 路由給所選團隊的所有成員 |
-| Users | 路由給特定的使用者 |
+| On-Call Schedule       | 路由給當下待命的人                        |
+| Teams                  | 路由給所選團隊的所有成員                  |
+| Users                  | 路由給特定的使用者                        |
 
 ## 檢視通話記錄
 
@@ -226,6 +226,7 @@ flowchart TD
 3. 前往 **Call Logs** 分頁
 
 記錄會顯示：
+
 - 來電者的電話號碼
 - 通話狀態（Completed、No Answer、Failed 等）
 - 接聽該通電話的人

@@ -324,6 +324,7 @@ enum IconProp {
   XCircle = "XCircle",
   Kubernetes = "Kubernetes",
   Docker = "Docker",
+  DockerSwarm = "DockerSwarm",
   Podman = "Podman",
   Proxmox = "Proxmox",
   Ceph = "Ceph",

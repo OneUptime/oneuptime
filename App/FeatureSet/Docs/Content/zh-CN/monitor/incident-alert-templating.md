@@ -23,131 +23,130 @@
 
 ### 网站和 API 监控器
 
-| 变量 | 描述 | 类型 |
-|------|------|------|
-| `responseBody` | 响应体对象。如果是 HTML/XML 则为字符串，如果是 JSON 则为 JSON 对象。 | `string` 或 `JSON` |
-| `responseHeaders` | 响应头对象（键名为小写）。 | `Dictionary<string>` |
-| `responseStatusCode` | HTTP 响应状态码。 | `number` |
-| `responseTimeInMs` | 响应时间（毫秒）。 | `number` |
-| `isOnline` | 监控器是否被认为在线。 | `boolean` |
+| 变量                 | 描述                                                                 | 类型                 |
+| -------------------- | -------------------------------------------------------------------- | -------------------- |
+| `responseBody`       | 响应体对象。如果是 HTML/XML 则为字符串，如果是 JSON 则为 JSON 对象。 | `string` 或 `JSON`   |
+| `responseHeaders`    | 响应头对象（键名为小写）。                                           | `Dictionary<string>` |
+| `responseStatusCode` | HTTP 响应状态码。                                                    | `number`             |
+| `responseTimeInMs`   | 响应时间（毫秒）。                                                   | `number`             |
+| `isOnline`           | 监控器是否被认为在线。                                               | `boolean`            |
 
 ### 传入请求监控器
 
-| 变量 | 描述 | 类型 |
-|------|------|------|
-| `requestBody` | 请求体对象。 | `string` 或 `JSON` |
-| `requestHeaders` | 请求头对象（键名为小写）。 | `Dictionary<string>` |
-| `requestMethod` | 传入请求的 HTTP 方法（GET、POST 等）。 | `string` |
-| `incomingRequestReceivedAt` | 收到传入请求的日期和时间。 | `Date` |
+| 变量                        | 描述                                   | 类型                 |
+| --------------------------- | -------------------------------------- | -------------------- |
+| `requestBody`               | 请求体对象。                           | `string` 或 `JSON`   |
+| `requestHeaders`            | 请求头对象（键名为小写）。             | `Dictionary<string>` |
+| `requestMethod`             | 传入请求的 HTTP 方法（GET、POST 等）。 | `string`             |
+| `incomingRequestReceivedAt` | 收到传入请求的日期和时间。             | `Date`               |
 
 ### Ping 监控器
 
-| 变量 | 描述 | 类型 |
-|------|------|------|
-| `isOnline` | Ping 目标是否被认为在线。 | `boolean` |
-| `responseTimeInMs` | Ping 响应时间（毫秒）。 | `number` |
-| `failureCause` | Ping 失败的原因（如失败）。 | `string` |
-| `isTimeout` | Ping 请求是否超时。 | `boolean` |
+| 变量               | 描述                        | 类型      |
+| ------------------ | --------------------------- | --------- |
+| `isOnline`         | Ping 目标是否被认为在线。   | `boolean` |
+| `responseTimeInMs` | Ping 响应时间（毫秒）。     | `number`  |
+| `failureCause`     | Ping 失败的原因（如失败）。 | `string`  |
+| `isTimeout`        | Ping 请求是否超时。         | `boolean` |
 
 ### 端口监控器
 
-| 变量 | 描述 | 类型 |
-|------|------|------|
-| `isOnline` | 端口是否被认为在线/可访问。 | `boolean` |
-| `responseTimeInMs` | 连接响应时间（毫秒）。 | `number` |
-| `failureCause` | 端口检查失败的原因（如失败）。 | `string` |
-| `isTimeout` | 端口连接是否超时。 | `boolean` |
+| 变量               | 描述                           | 类型      |
+| ------------------ | ------------------------------ | --------- |
+| `isOnline`         | 端口是否被认为在线/可访问。    | `boolean` |
+| `responseTimeInMs` | 连接响应时间（毫秒）。         | `number`  |
+| `failureCause`     | 端口检查失败的原因（如失败）。 | `string`  |
+| `isTimeout`        | 端口连接是否超时。             | `boolean` |
 
 ### IP 监控器
 
-| 变量 | 描述 | 类型 |
-|------|------|------|
-| `isOnline` | IP 地址是否被认为在线。 | `boolean` |
-| `responseTimeInMs` | Ping 响应时间（毫秒）。 | `number` |
-| `failureCause` | IP 检查失败的原因（如失败）。 | `string` |
-| `isTimeout` | IP Ping 请求是否超时。 | `boolean` |
+| 变量               | 描述                          | 类型      |
+| ------------------ | ----------------------------- | --------- |
+| `isOnline`         | IP 地址是否被认为在线。       | `boolean` |
+| `responseTimeInMs` | Ping 响应时间（毫秒）。       | `number`  |
+| `failureCause`     | IP 检查失败的原因（如失败）。 | `string`  |
+| `isTimeout`        | IP Ping 请求是否超时。        | `boolean` |
 
 ### SSL 证书监控器
 
-| 变量 | 描述 | 类型 |
-|------|------|------|
-| `isOnline` | SSL 证书检查是否成功。 | `boolean` |
-| `isSelfSigned` | SSL 证书是否为自签名证书。 | `boolean` |
-| `createdAt` | SSL 证书创建日期。 | `Date` |
-| `expiresAt` | SSL 证书过期日期。 | `Date` |
-| `commonName` | 证书中的通用名称（CN）。 | `string` |
-| `organizationalUnit` | 证书中的组织单位（OU）。 | `string` |
-| `organization` | 证书中的组织（O）。 | `string` |
-| `locality` | 证书中的地区（L）。 | `string` |
-| `state` | 证书中的州/省（ST）。 | `string` |
-| `country` | 证书中的国家（C）。 | `string` |
-| `serialNumber` | 证书的序列号。 | `string` |
-| `fingerprint` | 证书的 SHA-1 指纹。 | `string` |
-| `fingerprint256` | 证书的 SHA-256 指纹。 | `string` |
-| `failureCause` | SSL 检查失败的原因（如失败）。 | `string` |
+| 变量                 | 描述                           | 类型      |
+| -------------------- | ------------------------------ | --------- |
+| `isOnline`           | SSL 证书检查是否成功。         | `boolean` |
+| `isSelfSigned`       | SSL 证书是否为自签名证书。     | `boolean` |
+| `createdAt`          | SSL 证书创建日期。             | `Date`    |
+| `expiresAt`          | SSL 证书过期日期。             | `Date`    |
+| `commonName`         | 证书中的通用名称（CN）。       | `string`  |
+| `organizationalUnit` | 证书中的组织单位（OU）。       | `string`  |
+| `organization`       | 证书中的组织（O）。            | `string`  |
+| `locality`           | 证书中的地区（L）。            | `string`  |
+| `state`              | 证书中的州/省（ST）。          | `string`  |
+| `country`            | 证书中的国家（C）。            | `string`  |
+| `serialNumber`       | 证书的序列号。                 | `string`  |
+| `fingerprint`        | 证书的 SHA-1 指纹。            | `string`  |
+| `fingerprint256`     | 证书的 SHA-256 指纹。          | `string`  |
+| `failureCause`       | SSL 检查失败的原因（如失败）。 | `string`  |
 
 ### 服务器/虚拟机监控器
 
-| 变量 | 描述 | 类型 |
-|------|------|------|
-| `hostname` | 受监控服务器的主机名。 | `string` |
-| `requestReceivedAt` | 收到服务器监控请求的日期和时间。 | `Date` |
-| `cpuUsagePercent` | CPU 使用率百分比。 | `number` |
-| `cpuCores` | CPU 核心数。 | `number` |
-| `memoryUsagePercent` | 内存使用率百分比。 | `number` |
-| `memoryFreePercent` | 内存空闲百分比。 | `number` |
-| `memoryTotalBytes` | 总内存（字节）。 | `number` |
-| `diskMetrics` | 所有挂载磁盘的磁盘指标数组。 | `Array<Object>` |
-| `diskMetrics[].diskPath` | 磁盘挂载点路径。 | `string` |
-| `diskMetrics[].usagePercent` | 该挂载点的磁盘使用率百分比。 | `number` |
-| `diskMetrics[].freePercent` | 该挂载点的磁盘空闲百分比。 | `number` |
-| `diskMetrics[].totalBytes` | 该挂载点的总磁盘空间（字节）。 | `number` |
-| `processes` | 服务器上运行的进程数组。 | `Array<Object>` |
-| `processes[].pid` | 进程 ID。 | `number` |
-| `processes[].name` | 进程名称。 | `string` |
-| `processes[].command` | 启动进程的命令。 | `string` |
-| `failureCause` | 服务器检查失败的原因（如失败）。 | `string` |
+| 变量                         | 描述                             | 类型            |
+| ---------------------------- | -------------------------------- | --------------- |
+| `hostname`                   | 受监控服务器的主机名。           | `string`        |
+| `requestReceivedAt`          | 收到服务器监控请求的日期和时间。 | `Date`          |
+| `cpuUsagePercent`            | CPU 使用率百分比。               | `number`        |
+| `cpuCores`                   | CPU 核心数。                     | `number`        |
+| `memoryUsagePercent`         | 内存使用率百分比。               | `number`        |
+| `memoryFreePercent`          | 内存空闲百分比。                 | `number`        |
+| `memoryTotalBytes`           | 总内存（字节）。                 | `number`        |
+| `diskMetrics`                | 所有挂载磁盘的磁盘指标数组。     | `Array<Object>` |
+| `diskMetrics[].diskPath`     | 磁盘挂载点路径。                 | `string`        |
+| `diskMetrics[].usagePercent` | 该挂载点的磁盘使用率百分比。     | `number`        |
+| `diskMetrics[].freePercent`  | 该挂载点的磁盘空闲百分比。       | `number`        |
+| `diskMetrics[].totalBytes`   | 该挂载点的总磁盘空间（字节）。   | `number`        |
+| `processes`                  | 服务器上运行的进程数组。         | `Array<Object>` |
+| `processes[].pid`            | 进程 ID。                        | `number`        |
+| `processes[].name`           | 进程名称。                       | `string`        |
+| `processes[].command`        | 启动进程的命令。                 | `string`        |
+| `failureCause`               | 服务器检查失败的原因（如失败）。 | `string`        |
 
 ### 合成监控器
 
 合成监控器在多个浏览器（Chromium、Firefox、Webkit）和屏幕尺寸（移动端、平板、桌面）上运行相同的脚本，每个配置产生一个响应。每次运行通过 `syntheticResponses` 数组暴露——通过索引访问特定运行（`{{syntheticResponses[0].browserType}}`）或使用 `{{#each syntheticResponses}}` 迭代。
 
-| 变量 | 描述 | 类型 |
-|------|------|------|
-| `failureCause` | 合成检查失败的原因（如失败）。 | `string` |
-| `syntheticResponses` | 包含脚本针对每个浏览器/屏幕尺寸组合运行的一个条目的数组。 | `Array<Object>` |
-| `syntheticResponses[].executionTimeInMs` | 该次运行的执行时间（毫秒）。 | `number` |
-| `syntheticResponses[].result` | 该次运行返回的结果。 | `string`、`number`、`boolean` 或 `JSON` |
-| `syntheticResponses[].scriptError` | 该次运行期间发生的任何错误。 | `string` |
-| `syntheticResponses[].logMessages` | 该次运行期间生成的日志消息。 | `Array<string>` |
-| `syntheticResponses[].screenshots` | 该次运行期间捕获的截图。 | `Object` |
-| `syntheticResponses[].browserType` | 该次运行使用的浏览器。 | `string` |
-| `syntheticResponses[].screenSizeType` | 该次运行使用的屏幕尺寸。 | `string` |
+| 变量                                     | 描述                                                      | 类型                                    |
+| ---------------------------------------- | --------------------------------------------------------- | --------------------------------------- |
+| `failureCause`                           | 合成检查失败的原因（如失败）。                            | `string`                                |
+| `syntheticResponses`                     | 包含脚本针对每个浏览器/屏幕尺寸组合运行的一个条目的数组。 | `Array<Object>`                         |
+| `syntheticResponses[].executionTimeInMs` | 该次运行的执行时间（毫秒）。                              | `number`                                |
+| `syntheticResponses[].result`            | 该次运行返回的结果。                                      | `string`、`number`、`boolean` 或 `JSON` |
+| `syntheticResponses[].scriptError`       | 该次运行期间发生的任何错误。                              | `string`                                |
+| `syntheticResponses[].logMessages`       | 该次运行期间生成的日志消息。                              | `Array<string>`                         |
+| `syntheticResponses[].screenshots`       | 该次运行期间捕获的截图。                                  | `Object`                                |
+| `syntheticResponses[].browserType`       | 该次运行使用的浏览器。                                    | `string`                                |
+| `syntheticResponses[].screenSizeType`    | 该次运行使用的屏幕尺寸。                                  | `string`                                |
 
 ### 自定义 JavaScript 代码监控器
 
-| 变量 | 描述 | 类型 |
-|------|------|------|
-| `executionTimeInMs` | 执行自定义代码所花费的时间（毫秒）。 | `number` |
-| `result` | 自定义代码返回的结果。 | `string`、`number`、`boolean` 或 `JSON` |
-| `scriptError` | 代码执行期间发生的任何错误。 | `string` |
-| `logMessages` | 执行期间生成的日志消息数组。 | `Array<string>` |
+| 变量                | 描述                                 | 类型                                    |
+| ------------------- | ------------------------------------ | --------------------------------------- |
+| `executionTimeInMs` | 执行自定义代码所花费的时间（毫秒）。 | `number`                                |
+| `result`            | 自定义代码返回的结果。               | `string`、`number`、`boolean` 或 `JSON` |
+| `scriptError`       | 代码执行期间发生的任何错误。         | `string`                                |
+| `logMessages`       | 执行期间生成的日志消息数组。         | `Array<string>`                         |
 
 ### SNMP 监控器
 
-| 变量 | 描述 | 类型 |
-|------|------|------|
-| `isOnline` | SNMP 设备是否在线并响应。 | `boolean` |
-| `responseTimeInMs` | SNMP 查询响应时间（毫秒）。 | `number` |
-| `failureCause` | SNMP 查询失败的原因（如失败）。 | `string` |
-| `isTimeout` | SNMP 查询是否超时。 | `boolean` |
-| `oidResponses` | 包含 oid、name、value 和 type 的 OID 响应对象数组。 | `Array<Object>` |
-| `oidResponses[].oid` | 被查询的 OID。 | `string` |
-| `oidResponses[].name` | OID 的友好名称（如果提供）。 | `string` |
-| `oidResponses[].value` | OID 返回的值。 | `string` 或 `number` |
-| `oidResponses[].type` | 值的 SNMP 数据类型。 | `string` |
-| `{{OID_NAME}}` | 按名称直接访问 OID 值（例如 `{{sysUpTime}}`）。 | `string` 或 `number` |
-
+| 变量                   | 描述                                                | 类型                 |
+| ---------------------- | --------------------------------------------------- | -------------------- |
+| `isOnline`             | SNMP 设备是否在线并响应。                           | `boolean`            |
+| `responseTimeInMs`     | SNMP 查询响应时间（毫秒）。                         | `number`             |
+| `failureCause`         | SNMP 查询失败的原因（如失败）。                     | `string`             |
+| `isTimeout`            | SNMP 查询是否超时。                                 | `boolean`            |
+| `oidResponses`         | 包含 oid、name、value 和 type 的 OID 响应对象数组。 | `Array<Object>`      |
+| `oidResponses[].oid`   | 被查询的 OID。                                      | `string`             |
+| `oidResponses[].name`  | OID 的友好名称（如果提供）。                        | `string`             |
+| `oidResponses[].value` | OID 返回的值。                                      | `string` 或 `number` |
+| `oidResponses[].type`  | 值的 SNMP 数据类型。                                | `string`             |
+| `{{OID_NAME}}`         | 按名称直接访问 OID 值（例如 `{{sysUpTime}}`）。     | `string` 或 `number` |
 
 ## 基本用法
 
@@ -181,12 +180,14 @@ First User: {{responseBody.users[0].name}}
 ## 高级用法
 
 ### 访问数组元素
+
 ```
 First disk usage: {{diskMetrics[0].usagePercent}}%
 Last process: {{processes[-1].name}}
 ```
 
 ### 嵌套对象访问
+
 ```
 Error message: {{responseBody.error.details.message}}
 Server location: {{sslCertificate.locality}} {{sslCertificate.country}}
@@ -197,6 +198,7 @@ Server location: {{sslCertificate.locality}} {{sslCertificate.country}}
 您可以使用 `{{#each path}}...{{/each}}` 块语法迭代数组。当数据包含一系列项目且您希望在事件或告警描述中包含每个项目时，这非常有用。
 
 **语法：**
+
 ```
 {{#each arrayPath}}
   ...使用每个元素的 {{property}} 的正文...
@@ -204,6 +206,7 @@ Server location: {{sslCertificate.locality}} {{sslCertificate.country}}
 ```
 
 在循环体内：
+
 - `{{propertyName}}` 相对于当前数组元素解析
 - `{{nested.property}}` 点符号访问在当前元素上有效
 - `{{@index}}` 解析为当前迭代的从 0 开始的索引
@@ -213,6 +216,7 @@ Server location: {{sslCertificate.locality}} {{sslCertificate.country}}
 **示例 — 包含告警数组的传入请求（例如 Grafana Webhooks）：**
 
 如果您的传入请求体如下：
+
 ```json
 {
   "status": "firing",
@@ -225,6 +229,7 @@ Server location: {{sslCertificate.locality}} {{sslCertificate.country}}
 ```
 
 您可以编写如下模板：
+
 ```
 Alert Labels:
 {{#each requestBody.alerts}}
@@ -233,6 +238,7 @@ Alert Labels:
 ```
 
 输出为：
+
 ```
 Alert Labels:
 - Coralpay (firing)
@@ -241,6 +247,7 @@ Alert Labels:
 ```
 
 **示例 — 服务器磁盘指标：**
+
 ```
 Disk Usage:
 {{#each diskMetrics}}
@@ -249,6 +256,7 @@ Disk Usage:
 ```
 
 **示例 — 使用 `{{@index}}`：**
+
 ```
 Processes:
 {{#each processes}}
@@ -257,6 +265,7 @@ Processes:
 ```
 
 **示例 — 使用 `{{this}}` 的基本类型数组：**
+
 ```
 Log messages:
 {{#each logMessages}}
@@ -267,6 +276,7 @@ Log messages:
 **示例 — 嵌套循环：**
 
 您可以为多级数组嵌套 `{{#each}}` 块：
+
 ```
 {{#each requestBody.groups}}
 Group: {{name}}
@@ -278,47 +288,53 @@ Group: {{name}}
 
 > **注意**：如果路径未解析为数组，则整个 `{{#each}}...{{/each}}` 块将从输出中删除。空数组不会为该块产生任何输出。
 
-
 ## 示例
 
 ### 网站/API 监控器事件标题
+
 ```
 High latency: {{responseTimeInMs}}ms (> threshold)
 ```
 
 ### 网站/API 监控器事件描述
+
 ```
 ### API Error
-Status: **{{responseStatusCode}}**  
-Latency: **{{responseTimeInMs}}ms**  
+Status: **{{responseStatusCode}}**
+Latency: **{{responseTimeInMs}}ms**
 Body Snippet: `{{responseBody.error.message}}`
 ```
 
 ### 传入请求告警标题
+
 ```
 Bad inbound request: method={{requestMethod}} auth={{requestHeaders.authorization}}
 ```
 
 ### SSL 证书告警标题
+
 ```
 SSL Certificate expiring: {{commonName}} expires {{expiresAt}}
 ```
 
 ### 服务器监控告警描述
+
 ```
 ### Server Alert: {{hostname}}
-CPU Usage: **{{cpuUsagePercent}}%**  
-Memory Usage: **{{memoryUsagePercent}}%**  
-First Disk Usage: **{{diskMetrics[0].usagePercent}}%**  
+CPU Usage: **{{cpuUsagePercent}}%**
+Memory Usage: **{{memoryUsagePercent}}%**
+First Disk Usage: **{{diskMetrics[0].usagePercent}}%**
 Last Check: {{requestReceivedAt}}
 ```
 
 ### Ping 监控告警标题
+
 ```
 Ping failed for target: {{failureCause}} ({{responseTimeInMs}}ms)
 ```
 
 ### 端口监控告警描述
+
 ```
 Port connectivity issue
 Target port status: {{isOnline}}
@@ -329,12 +345,14 @@ Failure cause: {{failureCause}}
 ### 合成监控告警
 
 通过索引访问特定浏览器/屏幕尺寸运行：
+
 ```
 First run: {{syntheticResponses[0].browserType}} / {{syntheticResponses[0].screenSizeType}}
 Result: {{syntheticResponses[0].result}} in {{syntheticResponses[0].executionTimeInMs}}ms
 ```
 
 使用 `{{#each}}` 迭代每个浏览器/屏幕尺寸组合：
+
 ```
 ### Synthetic Monitor Results
 {{#each syntheticResponses}}
@@ -345,17 +363,20 @@ Result: {{syntheticResponses[0].result}} in {{syntheticResponses[0].executionTim
 ```
 
 ### 自定义代码监控告警
+
 ```
 Custom code execution: {{executionTimeInMs}}ms
 Log output: {{logMessages[0]}}
 ```
 
 ### SNMP 监控告警标题
+
 ```
 SNMP device offline: {{failureCause}} ({{responseTimeInMs}}ms)
 ```
 
 ### SNMP 监控告警描述
+
 ```
 ### SNMP Device Alert
 Status: **{{isOnline}}**
@@ -368,11 +389,13 @@ First OID Value: {{oidResponses[0].value}}
 ### 包含数组循环的传入请求（Grafana Webhook）
 
 标题：
+
 ```
 [{{requestBody.status}}] {{requestBody.receiver}}
 ```
 
 描述：
+
 ```
 ### Alerts from {{requestBody.receiver}}
 
@@ -388,6 +411,7 @@ First OID Value: {{oidResponses[0].value}}
 ### 带磁盘循环的服务器监控
 
 描述：
+
 ```
 ### Server Alert: {{hostname}}
 CPU Usage: **{{cpuUsagePercent}}%**
@@ -407,6 +431,7 @@ Memory Usage: **{{memoryUsagePercent}}%**
 ### 带 OID 循环的 SNMP 监控
 
 描述：
+
 ```
 ### SNMP Device Status
 Online: {{isOnline}}

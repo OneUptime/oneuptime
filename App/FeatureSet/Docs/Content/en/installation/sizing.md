@@ -10,11 +10,11 @@ If you are running the single-server Docker Compose install instead, sizing is s
 
 OneUptime requires three datastores in production. They scale on completely different inputs, so size them independently.
 
-| Datastore | What it stores | What drives its size |
-| --- | --- | --- |
-| **ClickHouse** | All telemetry — logs, metrics, traces, exceptions, profiles | Telemetry **ingest rate × retention**. This is ~95% of your storage and the dominant cost. |
-| **PostgreSQL** | Configuration and state — monitors, incidents, alerts, users, teams, projects, workflows, status pages, dashboards | **Entity count and history**, not telemetry volume. Grows slowly. |
-| **Redis** | Cache, work queues, and sessions | **Queue depth and active sessions**. Memory-bound and modest. Not a source of truth. |
+| Datastore      | What it stores                                                                                                     | What drives its size                                                                       |
+| -------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| **ClickHouse** | All telemetry — logs, metrics, traces, exceptions, profiles                                                        | Telemetry **ingest rate × retention**. This is ~95% of your storage and the dominant cost. |
+| **PostgreSQL** | Configuration and state — monitors, incidents, alerts, users, teams, projects, workflows, status pages, dashboards | **Entity count and history**, not telemetry volume. Grows slowly.                          |
+| **Redis**      | Cache, work queues, and sessions                                                                                   | **Queue depth and active sessions**. Memory-bound and modest. Not a source of truth.       |
 
 Object storage (S3/MinIO) is **not** required for OneUptime to run. It is only used optionally for database **backups** (via the CloudNativePG Barman plugin for PostgreSQL, or `clickhouse-backup` for ClickHouse). OneUptime does not tier telemetry to object storage — see the "Retention and how it affects storage" section below.
 
@@ -39,16 +39,16 @@ Compression depends on the signal:
 A fleet of **10 clusters**, each ~10 nodes / ~100 pods at INFO-level verbosity, produces roughly **50–150 GB of raw logs per cluster over 30 days** (≈ 1.7–5 GB/day per cluster). Across the fleet, with metrics and traces added and after compression, budget roughly **5–15 GB/day of compressed telemetry**.
 
 | Retention | Single replica | 2 replicas + 30% headroom |
-| --- | --- | --- |
-| 30 days | ~150–450 GB | **~0.4–1.2 TB** |
-| 90 days | ~0.45–1.35 TB | **~1.2–3.5 TB** |
+| --------- | -------------- | ------------------------- |
+| 30 days   | ~150–450 GB    | **~0.4–1.2 TB**           |
+| 90 days   | ~0.45–1.35 TB  | **~1.2–3.5 TB**           |
 
 Storage scales **linearly with retention** — a 90-day window costs ~3× a 30-day window.
 
 ### RAM and disk type
 
 - **Use NVMe/SSD.** Telemetry is write-heavy with bursty aggregation reads; ClickHouse on spinning disk will struggle.
-- **Give ClickHouse generous RAM.** Aggregation queries are memory-intensive. As a rule of thumb, size RAM to a meaningful fraction (25–50%) of your *hot* (recently queried) compressed dataset, with a practical floor of 16 GB for any real production fleet.
+- **Give ClickHouse generous RAM.** Aggregation queries are memory-intensive. As a rule of thumb, size RAM to a meaningful fraction (25–50%) of your _hot_ (recently queried) compressed dataset, with a practical floor of 16 GB for any real production fleet.
 - **Police metric cardinality.** It is the single biggest lever on both ClickHouse RAM and disk. Enforce low-cardinality label conventions at the collection layer and watch active series counts.
 
 ## PostgreSQL — configuration and state
@@ -73,12 +73,12 @@ Pick the tier closest to your environment as a starting point, then watch actual
 - **Medium / Production fleet** — ~10 clusters, ~100 nodes, 10–30 GB/day raw telemetry, 30–90-day retention.
 - **Large / Multi-fleet** — 50+ clusters, 500+ nodes, 100+ GB/day raw telemetry, 90-day retention.
 
-| | Small / PoC | Medium / Production fleet | Large / Multi-fleet |
-| --- | --- | --- | --- |
-| **ClickHouse** | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe, **sharded** |
-| **PostgreSQL** | 2 vCPU / 4 GB / 50 GB SSD | 4 vCPU / 8 GB / 100 GB SSD | 8 vCPU / 16–32 GB / 250 GB SSD (+ PgBouncer) |
-| **Redis** | 1 vCPU / 2 GB | 2 vCPU / 4 GB | 4 vCPU / 8–16 GB |
-| **Retention assumed** | 30 days | 30–90 days | 90 days |
+|                       | Small / PoC                  | Medium / Production fleet    | Large / Multi-fleet                              |
+| --------------------- | ---------------------------- | ---------------------------- | ------------------------------------------------ |
+| **ClickHouse**        | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe, **sharded** |
+| **PostgreSQL**        | 2 vCPU / 4 GB / 50 GB SSD    | 4 vCPU / 8 GB / 100 GB SSD   | 8 vCPU / 16–32 GB / 250 GB SSD (+ PgBouncer)     |
+| **Redis**             | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                 |
+| **Retention assumed** | 30 days                      | 30–90 days                   | 90 days                                          |
 
 These size the OneUptime **backend**. The OneUptime collectors that run on each monitored cluster are sized separately — see the [Kubernetes Agent](/docs/telemetry/kubernetes-agent) sizing tiers.
 

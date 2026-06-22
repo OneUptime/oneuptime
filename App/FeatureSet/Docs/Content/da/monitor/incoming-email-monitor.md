@@ -40,34 +40,34 @@ Du kan kopiere denne adresse fra monitorens detaljeside og konfigurere dine ekst
 
 Du kan oprette kriterier baseret på følgende e-mailfelter:
 
-| Felt | Beskrivelse |
-|-------|-------------|
-| **E-mailemne** | Emnelinjen i den indgående e-mail |
-| **E-mail fra** | Afsenderens e-mailadresse |
-| **E-mailindhold** | Det rene tekstindhold af e-mailens krop |
-| **E-mail til** | Modtagerens e-mailadresse |
+| Felt                | Beskrivelse                                          |
+| ------------------- | ---------------------------------------------------- |
+| **E-mailemne**      | Emnelinjen i den indgående e-mail                    |
+| **E-mail fra**      | Afsenderens e-mailadresse                            |
+| **E-mailindhold**   | Det rene tekstindhold af e-mailens krop              |
+| **E-mail til**      | Modtagerens e-mailadresse                            |
 | **E-mail modtaget** | Tidsbaserede kriterier for, hvornår e-mails modtages |
 
 ## Tilgængelige filtertyper
 
 ### Strengfiltre (Emne, Fra, Indhold, Til)
 
-| Filter | Beskrivelse | Eksempel |
-|--------|-------------|---------|
-| **Indeholder** | Feltet indeholder den angivne tekst | Emne indeholder "KRITISK" |
-| **Indeholder ikke** | Feltet indeholder ikke den angivne tekst | Emne indeholder ikke "TEST" |
-| **Er lig med** | Feltet matcher nøjagtigt den angivne tekst | Fra er lig med "alerts@service.com" |
-| **Er ikke lig med** | Feltet matcher ikke den angivne tekst | Emne er ikke lig med "OK" |
-| **Starter med** | Feltet starter med den angivne tekst | Emne starter med "[ADVARSEL]" |
-| **Slutter med** | Feltet slutter med den angivne tekst | Emne slutter med "- Produktion" |
-| **Er tomt** | Feltet er tomt eller blankt | Indhold er tomt |
-| **Er ikke tomt** | Feltet har indhold | Emne er ikke tomt |
+| Filter              | Beskrivelse                                | Eksempel                            |
+| ------------------- | ------------------------------------------ | ----------------------------------- |
+| **Indeholder**      | Feltet indeholder den angivne tekst        | Emne indeholder "KRITISK"           |
+| **Indeholder ikke** | Feltet indeholder ikke den angivne tekst   | Emne indeholder ikke "TEST"         |
+| **Er lig med**      | Feltet matcher nøjagtigt den angivne tekst | Fra er lig med "alerts@service.com" |
+| **Er ikke lig med** | Feltet matcher ikke den angivne tekst      | Emne er ikke lig med "OK"           |
+| **Starter med**     | Feltet starter med den angivne tekst       | Emne starter med "[ADVARSEL]"       |
+| **Slutter med**     | Feltet slutter med den angivne tekst       | Emne slutter med "- Produktion"     |
+| **Er tomt**         | Feltet er tomt eller blankt                | Indhold er tomt                     |
+| **Er ikke tomt**    | Feltet har indhold                         | Emne er ikke tomt                   |
 
 ### Tidsbaserede filtre (E-mail modtaget)
 
-| Filter | Beskrivelse | Eksempel |
-|--------|-------------|---------|
-| **Modtaget inden for minutter** | E-mail modtaget inden for X minutter | E-mail modtaget inden for 30 minutter |
+| Filter                               | Beskrivelse                                | Eksempel                                   |
+| ------------------------------------ | ------------------------------------------ | ------------------------------------------ |
+| **Modtaget inden for minutter**      | E-mail modtaget inden for X minutter       | E-mail modtaget inden for 30 minutter      |
 | **Ikke modtaget inden for minutter** | Ingen e-mail modtaget inden for X minutter | E-mail ikke modtaget inden for 60 minutter |
 
 ## Eksempelkonfigurationer
@@ -75,11 +75,13 @@ Du kan oprette kriterier baseret på følgende e-mailfelter:
 ### Eksempel 1: Opret advarsel ved kritiske e-mails
 
 **Advarselsopretnelseskriterier:**
+
 - E-mailemne **Indeholder** "KRITISK"
 - ELLER E-mailemne **Indeholder** "ADVARSEL"
 - ELLER E-mailemne **Indeholder** "FEJL"
 
 **Advarselssolverende kriterier:**
+
 - E-mailemne **Indeholder** "LØST"
 - ELLER E-mailemne **Indeholder** "OK"
 - ELLER E-mailemne **Indeholder** "GENOPRETTET"
@@ -87,21 +89,25 @@ Du kan oprette kriterier baseret på følgende e-mailfelter:
 ### Eksempel 2: Overvåg specifik afsender
 
 **Advarselsopretnelseskriterier:**
+
 - E-mail fra **Er lig med** "monitoring@legacy-system.com"
 - OG E-mailemne **Indeholder** "Mislykket"
 
 **Advarselssolverende kriterier:**
+
 - E-mail fra **Er lig med** "monitoring@legacy-system.com"
 - OG E-mailemne **Indeholder** "Succes"
 
 ### Eksempel 3: Hjerteslag-monitor (ingen e-mail = advarsel)
 
 **Advarselsopretnelseskriterier:**
+
 - E-mail modtaget **Ikke modtaget inden for minutter** med værdien `60`
 
 Dette opretter en advarsel, hvis ingen e-mail modtages inden for 60 minutter – nyttigt til overvågning af planlagte jobs eller batchprocesser, der bør sende afslutnings-e-mails.
 
 **Advarselssolverende kriterier:**
+
 - E-mail modtaget **Modtaget inden for minutter** med værdien `5`
 
 Dette løser advarslen, når en e-mail modtages.
@@ -111,6 +117,7 @@ Dette løser advarslen, når en e-mail modtages.
 ### Integration med ældre systemer
 
 Mange ældre systemer understøtter kun e-mailbaseret advarsling. Brug Indgående e-mailmonitor til at:
+
 - Konvertere e-mailadvarsler til OneUptime-incidents
 - Automatisk løse incidents, når gendannelses-e-mails ankommer
 - Centralisere advarsling fra flere ældre systemer
@@ -118,6 +125,7 @@ Mange ældre systemer understøtter kun e-mailbaseret advarsling. Brug Indgåend
 ### Overvågning af tredjepartstjenester
 
 Integrer med tjenester, der sender e-mailnotifikationer:
+
 - Advarsler fra cloud-udbydere (AWS, GCP, Azure)
 - Sikkerhedsscanningsværktøjer
 - Notifikationer om afslutning af sikkerhedskopier
@@ -126,6 +134,7 @@ Integrer med tjenester, der sender e-mailnotifikationer:
 ### Overvågning af planlagte jobs
 
 Overvåg batchjobs og planlagte opgaver:
+
 - Opret advarsler, hvis afslutnings-e-mails ikke modtages til tiden
 - Spor jobbejl via notifikations-e-mails om fejl
 - Overvåg afslutning af datapipelines
@@ -133,6 +142,7 @@ Overvåg batchjobs og planlagte opgaver:
 ### Aggregering af multi-leverandøradvarsler
 
 Konsolider advarsler fra flere overvågningsværktøjer:
+
 - Modtag advarsler fra Nagios, Zabbix eller andre værktøjer via e-mail
 - Forener incident management i OneUptime
 - Oprethold en enkelt kilde til sandhed for alle advarsler
@@ -141,17 +151,18 @@ Konsolider advarsler fra flere overvågningsværktøjer:
 
 Når du konfigurerer incident-skabeloner, kan du bruge disse variabler fra indgående e-mails:
 
-| Variabel | Beskrivelse |
-|----------|-------------|
-| `{{emailSubject}}` | Emnet i den modtagne e-mail |
-| `{{emailFrom}}` | Afsenderens e-mailadresse |
-| `{{emailTo}}` | Modtagerens e-mailadresse |
-| `{{emailBody}}` | Den rene tekstkrop i e-mailen |
+| Variabel              | Beskrivelse                    |
+| --------------------- | ------------------------------ |
+| `{{emailSubject}}`    | Emnet i den modtagne e-mail    |
+| `{{emailFrom}}`       | Afsenderens e-mailadresse      |
+| `{{emailTo}}`         | Modtagerens e-mailadresse      |
+| `{{emailBody}}`       | Den rene tekstkrop i e-mailen  |
 | `{{emailReceivedAt}}` | Hvornår e-mailen blev modtaget |
 
 ## Monitor-oversigtvisning
 
 Monitoroversigten viser:
+
 - **Seneste e-mail modtaget kl.:** Hvornår den seneste e-mail blev modtaget
 - **Fra:** Afsenderen af den seneste e-mail
 - **Emne:** Emnelinjen i den seneste e-mail

@@ -29,11 +29,13 @@ Het webdashboard van OneUptime is een Progressive Web App, dus u kunt het als ee
 ### Desktop Probleemoplossing
 
 **Installatieoptie verschijnt niet:**
+
 - Zorg ervoor dat u een ondersteunde browser gebruikt.
 - Bevestig dat uw OneUptime instantie via HTTPS wordt aangeboden.
 - Vernieuw de pagina of wis uw browsercache.
 
 **Pushmeldingen werken niet:**
+
 - Verleen meldingsrechten wanneer de browser daarom vraagt.
 - Controleer de meldingsinstellingen van uw besturingssysteem voor de browser.
 - Zelf-gehoste gebruikers: bevestig dat pushmeldingen zijn geconfigureerd op uw OneUptime instantie.

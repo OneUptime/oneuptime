@@ -161,17 +161,17 @@ curl -X POST http://probe.internal:3875/heartbeat/VOSTRA_CHIAVE_SEGRETA \
 
 ## Variabili d'Ambiente
 
-| Variabile | Predefinito | Descrizione |
-|---|---|---|
-| `PROBE_INGRESS_PORT` | _non impostato_ (disabilitato) | Porta su cui il listener inbound si vincola. Qualsiasi valore `> 0` abilita l'ingress. |
-| `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | Timeout (ms) per ogni tentativo di inoltro a OneUptime. Minimo `1000`. |
-| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | Numero di tentativi prima che il probe rinunci a un inoltro. Impostare a `0` per disabilitare i tentativi. |
+| Variabile                           | Predefinito                    | Descrizione                                                                                                |
+| ----------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `PROBE_INGRESS_PORT`                | _non impostato_ (disabilitato) | Porta su cui il listener inbound si vincola. Qualsiasi valore `> 0` abilita l'ingress.                     |
+| `PROBE_INGRESS_FORWARD_TIMEOUT_MS`  | `10000`                        | Timeout (ms) per ogni tentativo di inoltro a OneUptime. Minimo `1000`.                                     |
+| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3`                            | Numero di tentativi prima che il probe rinunci a un inoltro. Impostare a `0` per disabilitare i tentativi. |
 
 Le variabili standard del probe (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL`, variabili proxy) si applicano tutte — vedere [Probe Personalizzati](/docs/probe/custom-probe) per l'elenco completo.
 
 ## Considerazioni sulla Sicurezza
 
-- **L'endpoint è non autenticato by design** — la chiave segreta nel percorso URL *è* l'autenticazione, proprio come avviene sull'endpoint pubblico di `oneuptime.com`. Trattare la chiave segreta come una credenziale.
+- **L'endpoint è non autenticato by design** — la chiave segreta nel percorso URL _è_ l'autenticazione, proprio come avviene sull'endpoint pubblico di `oneuptime.com`. Trattare la chiave segreta come una credenziale.
 - **Vincolare solo a un'interfaccia privata.** Il listener ingress non dovrebbe essere raggiungibile da Internet pubblico. Usare una network policy, una regola firewall o un servizio `ClusterIP` per limitare l'accesso.
 - **Usare la terminazione HTTPS se si richiede crittografia in transito.** Il listener del probe parla HTTP semplice. Metterlo dietro un load balancer interno / ingress controller se si necessita di TLS sul hop inbound. Il leg di inoltro dal probe a OneUptime usa sempre HTTPS (assumendo che `ONEUPTIME_URL` sia `https://`).
 - **Limiti di risorse.** Il listener accetta corpi di richiesta fino a 50 MB. Se si necessita di un limite più stretto, porre un reverse proxy davanti.

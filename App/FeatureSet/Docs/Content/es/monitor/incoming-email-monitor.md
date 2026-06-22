@@ -40,46 +40,48 @@ Puedes copiar esta dirección desde la página de detalles del monitor y configu
 
 Puedes crear criterios basados en los siguientes campos de correo electrónico:
 
-| Campo | Descripción |
-|-------|-------------|
-| **Asunto del correo** | La línea de asunto del correo electrónico entrante |
-| **Remitente del correo** | La dirección de correo electrónico del remitente |
-| **Cuerpo del correo** | El contenido de texto simple del cuerpo del correo electrónico |
-| **Destinatario del correo** | La dirección de correo electrónico del destinatario |
-| **Correo recibido** | Criterios basados en el tiempo de cuándo se reciben los correos |
+| Campo                       | Descripción                                                     |
+| --------------------------- | --------------------------------------------------------------- |
+| **Asunto del correo**       | La línea de asunto del correo electrónico entrante              |
+| **Remitente del correo**    | La dirección de correo electrónico del remitente                |
+| **Cuerpo del correo**       | El contenido de texto simple del cuerpo del correo electrónico  |
+| **Destinatario del correo** | La dirección de correo electrónico del destinatario             |
+| **Correo recibido**         | Criterios basados en el tiempo de cuándo se reciben los correos |
 
 ## Tipos de filtro disponibles
 
 ### Filtros de cadena (Asunto, Remitente, Cuerpo, Destinatario)
 
-| Filtro | Descripción | Ejemplo |
-|--------|-------------|---------|
-| **Contiene** | El campo contiene el texto especificado | El asunto contiene "CRÍTICO" |
-| **No contiene** | El campo no contiene el texto especificado | El asunto no contiene "PRUEBA" |
-| **Igual a** | El campo coincide exactamente con el texto especificado | El remitente es igual a "alertas@servicio.com" |
-| **Diferente de** | El campo no coincide con el texto especificado | El asunto no es igual a "OK" |
-| **Comienza con** | El campo comienza con el texto especificado | El asunto comienza con "[ALERTA]" |
-| **Termina con** | El campo termina con el texto especificado | El asunto termina con "- Producción" |
-| **Está vacío** | El campo está vacío o en blanco | El cuerpo está vacío |
-| **No está vacío** | El campo tiene contenido | El asunto no está vacío |
+| Filtro            | Descripción                                             | Ejemplo                                        |
+| ----------------- | ------------------------------------------------------- | ---------------------------------------------- |
+| **Contiene**      | El campo contiene el texto especificado                 | El asunto contiene "CRÍTICO"                   |
+| **No contiene**   | El campo no contiene el texto especificado              | El asunto no contiene "PRUEBA"                 |
+| **Igual a**       | El campo coincide exactamente con el texto especificado | El remitente es igual a "alertas@servicio.com" |
+| **Diferente de**  | El campo no coincide con el texto especificado          | El asunto no es igual a "OK"                   |
+| **Comienza con**  | El campo comienza con el texto especificado             | El asunto comienza con "[ALERTA]"              |
+| **Termina con**   | El campo termina con el texto especificado              | El asunto termina con "- Producción"           |
+| **Está vacío**    | El campo está vacío o en blanco                         | El cuerpo está vacío                           |
+| **No está vacío** | El campo tiene contenido                                | El asunto no está vacío                        |
 
 ### Filtros basados en el tiempo (Correo recibido)
 
-| Filtro | Descripción | Ejemplo |
-|--------|-------------|---------|
-| **Recibido en minutos** | El correo se recibió dentro de X minutos | Correo recibido en 30 minutos |
-| **No recibido en minutos** | Ningún correo recibido en X minutos | Correo no recibido en 60 minutos |
+| Filtro                     | Descripción                              | Ejemplo                          |
+| -------------------------- | ---------------------------------------- | -------------------------------- |
+| **Recibido en minutos**    | El correo se recibió dentro de X minutos | Correo recibido en 30 minutos    |
+| **No recibido en minutos** | Ningún correo recibido en X minutos      | Correo no recibido en 60 minutos |
 
 ## Configuraciones de ejemplo
 
 ### Ejemplo 1: Crear alerta en correos críticos
 
 **Criterios de creación de alertas:**
+
 - El asunto del correo **Contiene** "CRÍTICO"
 - O el asunto del correo **Contiene** "ALERTA"
 - O el asunto del correo **Contiene** "ERROR"
 
 **Criterios de resolución de alertas:**
+
 - El asunto del correo **Contiene** "RESUELTO"
 - O el asunto del correo **Contiene** "OK"
 - O el asunto del correo **Contiene** "RECUPERADO"
@@ -87,21 +89,25 @@ Puedes crear criterios basados en los siguientes campos de correo electrónico:
 ### Ejemplo 2: Monitorear un remitente específico
 
 **Criterios de creación de alertas:**
+
 - El remitente del correo **Igual a** "monitoreo@sistema-heredado.com"
 - Y el asunto del correo **Contiene** "Fallido"
 
 **Criterios de resolución de alertas:**
+
 - El remitente del correo **Igual a** "monitoreo@sistema-heredado.com"
 - Y el asunto del correo **Contiene** "Exitoso"
 
 ### Ejemplo 3: Monitor de latido (Sin correo = Alerta)
 
 **Criterios de creación de alertas:**
+
 - Correo recibido **No recibido en minutos** con valor `60`
 
 Esto crea una alerta si no se recibe ningún correo durante 60 minutos, útil para monitorear trabajos programados o procesos por lotes que deben enviar correos de finalización.
 
 **Criterios de resolución de alertas:**
+
 - Correo recibido **Recibido en minutos** con valor `5`
 
 Esto resuelve la alerta cuando se recibe un correo electrónico.
@@ -111,6 +117,7 @@ Esto resuelve la alerta cuando se recibe un correo electrónico.
 ### Integración con sistemas heredados
 
 Muchos sistemas más antiguos solo admiten alertas basadas en correo electrónico. Usa el Monitor de correo electrónico entrante para:
+
 - Convertir alertas de correo electrónico en incidentes de OneUptime
 - Resolver automáticamente los incidentes cuando lleguen correos de recuperación
 - Centralizar las alertas de múltiples sistemas heredados
@@ -118,6 +125,7 @@ Muchos sistemas más antiguos solo admiten alertas basadas en correo electrónic
 ### Monitoreo de servicios de terceros
 
 Intégrate con servicios que envían notificaciones por correo electrónico:
+
 - Alertas de proveedores de nube (AWS, GCP, Azure)
 - Herramientas de análisis de seguridad
 - Notificaciones de finalización de copias de seguridad
@@ -126,6 +134,7 @@ Intégrate con servicios que envían notificaciones por correo electrónico:
 ### Monitoreo de trabajos programados
 
 Monitorea trabajos por lotes y tareas programadas:
+
 - Crea alertas si no se reciben correos de finalización a tiempo
 - Rastrear fallos de trabajos a través de correos de notificación de error
 - Monitorear finalizaciones de pipelines de datos
@@ -133,6 +142,7 @@ Monitorea trabajos por lotes y tareas programadas:
 ### Agregación de alertas de múltiples proveedores
 
 Consolida alertas de múltiples herramientas de monitoreo:
+
 - Recibe alertas de Nagios, Zabbix u otras herramientas por correo electrónico
 - Unifica la gestión de incidentes en OneUptime
 - Mantiene una única fuente de verdad para todas las alertas
@@ -141,17 +151,18 @@ Consolida alertas de múltiples herramientas de monitoreo:
 
 Al configurar plantillas de incidentes, puedes usar estas variables de correos electrónicos entrantes:
 
-| Variable | Descripción |
-|----------|-------------|
-| `{{emailSubject}}` | El asunto del correo electrónico recibido |
-| `{{emailFrom}}` | La dirección de correo electrónico del remitente |
-| `{{emailTo}}` | La dirección de correo electrónico del destinatario |
-| `{{emailBody}}` | El cuerpo de texto simple del correo electrónico |
-| `{{emailReceivedAt}}` | Cuándo se recibió el correo electrónico |
+| Variable              | Descripción                                         |
+| --------------------- | --------------------------------------------------- |
+| `{{emailSubject}}`    | El asunto del correo electrónico recibido           |
+| `{{emailFrom}}`       | La dirección de correo electrónico del remitente    |
+| `{{emailTo}}`         | La dirección de correo electrónico del destinatario |
+| `{{emailBody}}`       | El cuerpo de texto simple del correo electrónico    |
+| `{{emailReceivedAt}}` | Cuándo se recibió el correo electrónico             |
 
 ## Vista de resumen del monitor
 
 El resumen del monitor muestra:
+
 - **Último correo recibido el**: Cuándo se recibió el correo electrónico más reciente
 - **De**: El remitente del último correo electrónico
 - **Asunto**: La línea de asunto del último correo electrónico

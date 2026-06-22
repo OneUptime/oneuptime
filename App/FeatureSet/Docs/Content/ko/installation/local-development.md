@@ -1,9 +1,10 @@
 # 로컬 개발
 
-로컬 개발을 위해서는 docker-compose.dev.yml 파일을 사용해야 합니다. 
+로컬 개발을 위해서는 docker-compose.dev.yml 파일을 사용해야 합니다.
 
-다음이 있는지 확인해야 합니다: 
-- Docker 및 Docker Compose 설치됨. 
+다음이 있는지 확인해야 합니다:
+
+- Docker 및 Docker Compose 설치됨.
 - Node.js 및 NPM 설치됨.
 
 ```

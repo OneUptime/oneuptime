@@ -28,21 +28,21 @@ Selecione um ou mais serviços para monitorar exceções. Os serviços devem est
 
 ### Filtros de Exceção
 
-| Filtro | Descrição | Obrigatório |
-|--------|-------------|----------|
-| Exception Types | Filtrar por nomes de tipos de exceção (ex.: `NullPointerException`, `TypeError`) | Não |
-| Message | Pesquisa de texto dentro de mensagens de exceção | Não |
-| Include Resolved | Incluir exceções marcadas como resolvidas (padrão: false) | Não |
-| Include Archived | Incluir exceções arquivadas (padrão: false) | Não |
-| Time Window | Quão longe retrospectar para pesquisar exceções (em segundos, padrão: 60) | Não |
+| Filtro           | Descrição                                                                        | Obrigatório |
+| ---------------- | -------------------------------------------------------------------------------- | ----------- |
+| Exception Types  | Filtrar por nomes de tipos de exceção (ex.: `NullPointerException`, `TypeError`) | Não         |
+| Message          | Pesquisa de texto dentro de mensagens de exceção                                 | Não         |
+| Include Resolved | Incluir exceções marcadas como resolvidas (padrão: false)                        | Não         |
+| Include Archived | Incluir exceções arquivadas (padrão: false)                                      | Não         |
+| Time Window      | Quão longe retrospectar para pesquisar exceções (em segundos, padrão: 60)        | Não         |
 
 ## Critérios de Monitoramento
 
 ### Tipos de Verificação Disponíveis
 
-| Tipo de Verificação | Descrição |
-|------------|-------------|
-| Exception Count | O número de exceções que correspondem aos seus filtros na janela de tempo |
+| Tipo de Verificação | Descrição                                                                 |
+| ------------------- | ------------------------------------------------------------------------- |
+| Exception Count     | O número de exceções que correspondem aos seus filtros na janela de tempo |
 
 ### Tipos de Filtro
 

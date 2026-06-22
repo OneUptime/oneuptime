@@ -7,7 +7,6 @@ Synthetic monitoring user interactions simulate करके आपके applic
 निम्नलिखित उदाहरण दिखाता है कि Synthetic Monitor कैसे उपयोग करें:
 
 ```javascript
-
 // script के context में उपलब्ध Objects हैं:
 
 // - axios: HTTP requests करने के लिए Axios module
@@ -17,22 +16,22 @@ Synthetic monitoring user interactions simulate करके आपके applic
 
 // आप browser के साथ interact करने और HTTP requests करने के लिए इन objects का उपयोग कर सकते हैं।
 
-await page.goto('https://playwright.dev/');
+await page.goto("https://playwright.dev/");
 
 // Playwright Documentation यहाँ: https://playwright.dev/docs/intro
 
 // यहाँ कुछ variables हैं जो आप monitored object के context में उपयोग कर सकते हैं:
 
-console.log(browserType) // यह वर्तमान run context में browser type list करेगा - Chromium, Firefox, Webkit
+console.log(browserType); // यह वर्तमान run context में browser type list करेगा - Chromium, Firefox, Webkit
 
-console.log(screenSizeType) // यह वर्तमान run context में screen size type list करेगा - Mobile, Tablet, Desktop
+console.log(screenSizeType); // यह वर्तमान run context में screen size type list करेगा - Mobile, Tablet, Desktop
 
 // Playwright page object उस specific browser context का है, इसलिए आप browser के साथ interact करने के लिए इसका उपयोग कर सकते हैं।
 
 // Screenshots लेने के लिए, उन्हें script context में provided `screenshots` object को assign करें।
 // इस तरह capture किए गए Screenshots preserved रहते हैं चाहे script बाद में throw करे — failed runs debug करने के लिए उपयोगी।
 
-screenshots['screenshot-name'] = await page.screenshot(); // आप multiple screenshots save कर सकते हैं और उन्हें अलग-अलग names दे सकते हैं।
+screenshots["screenshot-name"] = await page.screenshot(); // आप multiple screenshots save कर सकते हैं और उन्हें अलग-अलग names दे सकते हैं।
 
 // जब आप value return करना चाहते हैं, तो data को prop के रूप में return statement उपयोग करें।
 
@@ -41,40 +40,37 @@ screenshots['screenshot-name'] = await page.screenshot(); // आप multiple scr
 
 // यदि आवश्यक हो तो आप page.context() के माध्यम से browser context access कर सकते हैं (उदाहरण के लिए, एक नया page बनाने या popups handle करने के लिए)।
 
-
 return {
-    data: 'Hello World'
+  data: "Hello World",
 };
 ```
 
 ### Playwright का उपयोग
 
-हम user interactions simulate करने के लिए Playwright उपयोग करते हैं। आप Playwright `page` object का उपयोग browser के साथ interact करने और buttons clicking, forms filling और screenshots लेने जैसे actions perform करने के लिए कर सकते हैं। 
+हम user interactions simulate करने के लिए Playwright उपयोग करते हैं। आप Playwright `page` object का उपयोग browser के साथ interact करने और buttons clicking, forms filling और screenshots लेने जैसे actions perform करने के लिए कर सकते हैं।
 
 ### Screenshots
 
 script context में एक pre-declared `screenshots` object उपलब्ध है। script में किसी भी point पर इसे screenshots assign करें — ये screenshots **चाहे script throw करे** (assertion failures, timeouts, या unexpected errors सहित) capture होते हैं, इसलिए आप देख सकते हैं कि run fail होने पर page कैसा दिखता था। Captured screenshots उस specific monitor run के लिए OneUptime Dashboard में दिखाई देते हैं।
 
 ```javascript
-
 // `screenshots` side-channel के माध्यम से Screenshots capture करें — ये success और failure दोनों पर preserved होते हैं।
 
-await page.goto('https://app.example.com/login');
-screenshots['login-page'] = await page.screenshot();
+await page.goto("https://app.example.com/login");
+screenshots["login-page"] = await page.screenshot();
 
-await page.fill('#email', 'user@example.com');
-await page.fill('#password', 'wrong');
-await page.click('button[type=submit]');
+await page.fill("#email", "user@example.com");
+await page.fill("#password", "wrong");
+await page.click("button[type=submit]");
 
 // यदि अगला assertion throw करता है, तो ऊपर का `login-page` screenshot अभी भी capture होगा।
-await page.waitForSelector('.dashboard', { timeout: 5000 });
+await page.waitForSelector(".dashboard", { timeout: 5000 });
 
-screenshots['dashboard'] = await page.screenshot();
+screenshots["dashboard"] = await page.screenshot();
 
 return {
-    data: 'Login succeeded'
+  data: "Login succeeded",
 };
-
 ```
 
 #### Screenshots return करना (legacy)
@@ -84,14 +80,13 @@ Backward compatibility के लिए, आप script से return value क�
 ```javascript
 // Legacy pattern — screenshots केवल successful return पर capture होते हैं।
 const screenshots = {};
-screenshots['screenshot-name'] = await page.screenshot();
+screenshots["screenshot-name"] = await page.screenshot();
 
 return {
-    data: 'Hello World',
-    screenshots: screenshots
+  data: "Hello World",
+  screenshots: screenshots,
 };
 ```
-
 
 ### Monitor Secrets का उपयोग
 
@@ -103,7 +98,7 @@ secret जोड़ने के लिए, कृपया OneUptime Dashboard 
 
 आप चुन सकते हैं कि कौन से monitors को secret तक पहुंच हो। इस मामले में हमने `ApiKey` secret जोड़ा और monitors को उस तक पहुंच देने के लिए चुना।
 
-**कृपया ध्यान दें**: Secrets encrypted और सुरक्षित रूप से stored होते हैं। यदि आप secret खो देते हैं, तो आपको एक नया secret बनाना होगा। Save होने के बाद आप secret देख या update नहीं कर सकते। 
+**कृपया ध्यान दें**: Secrets encrypted और सुरक्षित रूप से stored होते हैं। यदि आप secret खो देते हैं, तो आपको एक नया secret बनाना होगा। Save होने के बाद आप secret देख या update नहीं कर सकते।
 
 #### एक secret का उपयोग
 
@@ -120,7 +115,7 @@ let numberSecret = {{monitorSecrets.NumberSecret}};
 let booleanSecret = {{monitorSecrets.BooleanSecret}};
 
 // आप console log भी कर सकते हैं यह देखने के लिए कि secrets सही तरीके से fetch हो रहे हैं
-console.log(stringSecret); 
+console.log(stringSecret);
 ```
 
 ### Custom Metrics
@@ -138,30 +133,32 @@ oneuptime.captureMetric(name, value, attributes);
 #### उदाहरण
 
 ```javascript
-await page.goto('https://app.example.com');
+await page.goto("https://app.example.com");
 
 const startTime = Date.now();
-await page.waitForSelector('#dashboard-loaded');
+await page.waitForSelector("#dashboard-loaded");
 const loadTime = Date.now() - startTime;
 
 // page load time को custom metric के रूप में capture करें
-oneuptime.captureMetric('dashboard.load.time', loadTime, {
-    page: 'dashboard'
+oneuptime.captureMetric("dashboard.load.time", loadTime, {
+  page: "dashboard",
 });
 
-screenshots['dashboard'] = await page.screenshot();
+screenshots["dashboard"] = await page.screenshot();
 
 return {
-    data: { loadTime }
+  data: { loadTime },
 };
 ```
 
 **सीमाएं:**
+
 - प्रति script execution अधिकतम 100 metrics।
 - Metric names 200 characters तक सीमित।
 - Values numeric होनी चाहिए।
 
 ### Script में उपलब्ध Modules
+
 - `page`: आप इस module का उपयोग browser के साथ interact करने के लिए कर सकते हैं। यह एक Playwright Page object है।
 - `screenshots`: एक pre-declared object जिसे आप screenshots assign करते हैं। यहाँ assign किए गए Screenshots चाहे script बाद में throw करे preserved होते हैं।
 - `axios`: आप इस module का उपयोग HTTP requests करने के लिए कर सकते हैं।

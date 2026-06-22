@@ -20,6 +20,7 @@ oneuptime incident list
 ```
 
 테이블 형식 동작:
+
 - `_id`, `name`, `title`, `createdAt`, `updatedAt`를 우선시하여 최대 6개의 열을 선택합니다
 - 60자보다 긴 값은 `...`로 잘립니다
 - 색상 코드 헤더를 사용합니다 (`--no-color`로 비활성화 가능)
@@ -72,9 +73,9 @@ NO_COLOR=1 oneuptime incident list
 
 ## 특수 출력 사례
 
-| 시나리오 | 출력 |
-|----------|--------|
-| 빈 결과 집합 | `"No results found."` |
-| 반환된 데이터 없음 | `"No data returned."` |
-| 단일 객체 (예: `get`) | 키-값 테이블 형식 |
-| `count` 명령 | 일반 숫자 값 |
+| 시나리오              | 출력                  |
+| --------------------- | --------------------- |
+| 빈 결과 집합          | `"No results found."` |
+| 반환된 데이터 없음    | `"No data returned."` |
+| 단일 객체 (예: `get`) | 키-값 테이블 형식     |
+| `count` 명령          | 일반 숫자 값          |

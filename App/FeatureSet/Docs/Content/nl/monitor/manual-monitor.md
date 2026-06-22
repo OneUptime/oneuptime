@@ -39,10 +39,10 @@ U kunt incidenten en meldingen aanmaken voor handmatige monitors, net als bij el
 
 ## Wanneer handmatige monitors gebruiken
 
-| Gebruiksscenario | Beschrijving |
-|----------|-------------|
-| Diensten van derden | De status bijhouden van externe diensten waarvan u afhankelijk bent maar die u niet direct kunt bewaken |
-| Fysieke infrastructuur | Hardware of fysieke systemen vertegenwoordigen zonder netwerkmonitoring |
-| Bedrijfsprocessen | Niet-technische processen bijhouden die de dienststatus beïnvloeden |
-| API-gestuurde status | Externe tools laten de monitorstatus bijwerken via de OneUptime API |
-| Statuspagina-plaatshouders | Componenten weergeven op uw statuspagina die buiten OneUptime worden beheerd |
+| Gebruiksscenario           | Beschrijving                                                                                            |
+| -------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Diensten van derden        | De status bijhouden van externe diensten waarvan u afhankelijk bent maar die u niet direct kunt bewaken |
+| Fysieke infrastructuur     | Hardware of fysieke systemen vertegenwoordigen zonder netwerkmonitoring                                 |
+| Bedrijfsprocessen          | Niet-technische processen bijhouden die de dienststatus beïnvloeden                                     |
+| API-gestuurde status       | Externe tools laten de monitorstatus bijwerken via de OneUptime API                                     |
+| Statuspagina-plaatshouders | Componenten weergeven op uw statuspagina die buiten OneUptime worden beheerd                            |

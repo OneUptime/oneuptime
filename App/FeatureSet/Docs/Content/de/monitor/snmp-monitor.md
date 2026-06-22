@@ -23,11 +23,11 @@ SNMP-Monitore fragen Netzwerkgeräte nach bestimmten Verwaltungsinformationen mi
 
 ### Grundeinstellungen
 
-| Feld | Beschreibung | Erforderlich |
-|-------|-------------|----------|
-| SNMP-Version | Protokollversion: v1, v2c oder v3 | Ja |
-| Hostname/IP | Hostname oder IP-Adresse des SNMP-Geräts | Ja |
-| Port | SNMP-Port (Standard: 161) | Ja |
+| Feld         | Beschreibung                             | Erforderlich |
+| ------------ | ---------------------------------------- | ------------ |
+| SNMP-Version | Protokollversion: v1, v2c oder v3        | Ja           |
+| Hostname/IP  | Hostname oder IP-Adresse des SNMP-Geräts | Ja           |
+| Port         | SNMP-Port (Standard: 161)                | Ja           |
 
 ### Authentifizierung
 
@@ -35,22 +35,22 @@ SNMP-Monitore fragen Netzwerkgeräte nach bestimmten Verwaltungsinformationen mi
 
 Für SNMP v1 und v2c benötigen Sie nur einen Community-String:
 
-| Feld | Beschreibung | Erforderlich |
-|-------|-------------|----------|
-| Community-String | Der SNMP-Community-String (z. B. „public") | Ja |
+| Feld             | Beschreibung                               | Erforderlich |
+| ---------------- | ------------------------------------------ | ------------ |
+| Community-String | Der SNMP-Community-String (z. B. „public") | Ja           |
 
 #### SNMP v3
 
 SNMPv3 bietet erweiterte Sicherheit mit Authentifizierung und Verschlüsselung:
 
-| Feld | Beschreibung | Erforderlich |
-|-------|-------------|----------|
-| Sicherheitsstufe | noAuthNoPriv, authNoPriv oder authPriv | Ja |
-| Benutzername | SNMPv3-Benutzername | Ja |
-| Auth-Protokoll | MD5, SHA, SHA256 oder SHA512 | Wenn authNoPriv oder authPriv |
-| Auth-Schlüssel | Authentifizierungspasswort | Wenn authNoPriv oder authPriv |
-| Priv-Protokoll | DES, AES oder AES256 | Wenn authPriv |
-| Priv-Schlüssel | Datenschutz-/Verschlüsselungspasswort | Wenn authPriv |
+| Feld             | Beschreibung                           | Erforderlich                  |
+| ---------------- | -------------------------------------- | ----------------------------- |
+| Sicherheitsstufe | noAuthNoPriv, authNoPriv oder authPriv | Ja                            |
+| Benutzername     | SNMPv3-Benutzername                    | Ja                            |
+| Auth-Protokoll   | MD5, SHA, SHA256 oder SHA512           | Wenn authNoPriv oder authPriv |
+| Auth-Schlüssel   | Authentifizierungspasswort             | Wenn authNoPriv oder authPriv |
+| Priv-Protokoll   | DES, AES oder AES256                   | Wenn authPriv                 |
+| Priv-Schlüssel   | Datenschutz-/Verschlüsselungspasswort  | Wenn authPriv                 |
 
 ### Zu überwachende OIDs
 
@@ -58,21 +58,21 @@ Fügen Sie die OIDs hinzu, die Sie vom Gerät abfragen möchten.
 
 ### Erweiterte Einstellungen
 
-| Feld | Beschreibung | Standard |
-|-------|-------------|---------|
-| Timeout | Wartezeit auf eine Antwort (ms) | 5000 |
-| Wiederholungsversuche | Anzahl der Wiederholungsversuche bei Fehlschlag | 3 |
+| Feld                  | Beschreibung                                    | Standard |
+| --------------------- | ----------------------------------------------- | -------- |
+| Timeout               | Wartezeit auf eine Antwort (ms)                 | 5000     |
+| Wiederholungsversuche | Anzahl der Wiederholungsversuche bei Fehlschlag | 3        |
 
 ## Überwachungskriterien
 
 ### Verfügbare Prüftypen
 
-| Prüftyp | Beschreibung |
-|------------|-------------|
-| SNMP-Gerät ist online | Ob das Gerät auf SNMP-Abfragen antwortet |
-| SNMP-Antwortzeit | Abfrage-Antwortzeit in Millisekunden |
-| SNMP-OID-Wert | Der von einer bestimmten OID zurückgegebene Wert |
-| SNMP-OID existiert | Ob eine OID einen Wert zurückgibt (nicht null) |
+| Prüftyp               | Beschreibung                                     |
+| --------------------- | ------------------------------------------------ |
+| SNMP-Gerät ist online | Ob das Gerät auf SNMP-Abfragen antwortet         |
+| SNMP-Antwortzeit      | Abfrage-Antwortzeit in Millisekunden             |
+| SNMP-OID-Wert         | Der von einer bestimmten OID zurückgegebene Wert |
+| SNMP-OID existiert    | Ob eine OID einen Wert zurückgibt (nicht null)   |
 
 ## Monitor-Geheimnisse verwenden
 
@@ -89,12 +89,14 @@ Verwenden Sie die Syntax `{{monitorSecrets.SECRET_NAME}}` in jedem sensiblen Fel
 ## Fehlerbehebung
 
 ### Gerät antwortet nicht
+
 - Überprüfen Sie, ob die IP/Hostname des Geräts korrekt ist
 - Prüfen Sie, ob SNMP auf dem Gerät aktiviert ist
 - Überprüfen Sie, ob Firewall-Regeln UDP-Port 161 erlauben
 - Sicherstellen, dass der Community-String korrekt ist
 
 ### Authentifizierungsfehler (v3)
+
 - Benutzername, Auth-Protokoll und Auth-Schlüssel überprüfen
 - Sicherstellen, dass die Sicherheitsstufe der Gerätekonfiguration entspricht
 

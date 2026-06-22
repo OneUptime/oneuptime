@@ -14,10 +14,12 @@ L'intégration SSO offre les avantages suivants :
 ## Configuration du SSO
 
 1. **Accéder aux paramètres du projet**
+
    - Accédez à votre projet OneUptime
    - Naviguez vers **Paramètres du projet** > **Authentification** > **SSO**
 
 2. **Créer une configuration SSO**
+
    - Cliquez sur **Créer SSO**
    - Saisissez un **Nom** pour la configuration SSO (par ex., « Keycloak SAML » ou « Okta SAML »)
    - Saisissez l'**URL d'ouverture de session** de votre fournisseur d'identité
@@ -152,12 +154,12 @@ Microsoft Entra ID est le service de gestion des identités et des accès basé 
 1. Dans la page de configuration SAML, cliquez sur **Modifier** sur **Attributs et revendications**
 2. Assurez-vous que les revendications suivantes sont configurées :
 
-| Nom de la revendication | Valeur |
-|------------------------|--------|
-| `Unique User Identifier (Name ID)` | `user.userprincipalname` ou `user.mail` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | `user.mail` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname` | `user.givenname` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname` | `user.surname` |
+| Nom de la revendication                                              | Valeur                                  |
+| -------------------------------------------------------------------- | --------------------------------------- |
+| `Unique User Identifier (Name ID)`                                   | `user.userprincipalname` ou `user.mail` |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | `user.mail`                             |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`    | `user.givenname`                        |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname`      | `user.surname`                          |
 
 3. Définissez le **Format d'identifiant de nom** sur `Adresse e-mail`
 4. Cliquez sur **Enregistrer**
@@ -239,11 +241,11 @@ Okta est une plateforme d'identité largement utilisée qui offre des capacités
 2. Cliquez sur **Modifier** dans la section **Paramètres SAML** et cliquez sur **Suivant** pour accéder aux paramètres SAML
 3. Dans la section **Déclarations d'attributs**, ajoutez :
 
-| Nom | Valeur |
-|-----|--------|
-| `email` | `user.email` |
+| Nom         | Valeur           |
+| ----------- | ---------------- |
+| `email`     | `user.email`     |
 | `firstName` | `user.firstName` |
-| `lastName` | `user.lastName` |
+| `lastName`  | `user.lastName`  |
 
 4. Cliquez sur **Suivant** puis sur **Terminer**
 

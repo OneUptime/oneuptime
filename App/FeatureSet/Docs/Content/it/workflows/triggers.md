@@ -65,12 +65,12 @@ Cerca nel pannello dei trigger per nome per trovare quello che ti serve.
 
 ## Quale trigger usare?
 
-| Se vuoi… | Scegli |
-| --- | --- |
-| Cliccare un pulsante per eseguire il workflow | **Manual** |
-| Eseguire su una pianificazione ricorrente | **Schedule** |
-| Far inviare dati a un altro sistema | **Webhook** |
-| Reagire a qualcosa all'interno di OneUptime | **OneUptime event** |
+| Se vuoi…                                      | Scegli              |
+| --------------------------------------------- | ------------------- |
+| Cliccare un pulsante per eseguire il workflow | **Manual**          |
+| Eseguire su una pianificazione ricorrente     | **Schedule**        |
+| Far inviare dati a un altro sistema           | **Webhook**         |
+| Reagire a qualcosa all'interno di OneUptime   | **OneUptime event** |
 
 Un workflow puo avere un solo trigger. Se hai bisogno di due modi per avviare la stessa automazione, costruisci la logica condivisa in un workflow e richiamala da due workflow "wrapper" sottili usando il componente **Execute Workflow**.
 

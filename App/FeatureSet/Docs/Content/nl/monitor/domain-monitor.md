@@ -24,16 +24,16 @@ Domeinmonitors bevragen WHOIS-gegevens voor uw domeinen om registratiedetails bi
 
 ### Basisinstellingen
 
-| Veld | Beschrijving | Vereist |
-|-------|-------------|----------|
-| Domeinnaam | Het te bewaken domein (bijv. `example.com`) | Ja |
+| Veld       | Beschrijving                                | Vereist |
+| ---------- | ------------------------------------------- | ------- |
+| Domeinnaam | Het te bewaken domein (bijv. `example.com`) | Ja      |
 
 ### Geavanceerde instellingen
 
-| Veld | Beschrijving | Standaard |
-|-------|-------------|---------|
-| Time-out (ms) | Hoe lang te wachten op een WHOIS-antwoord | 10000 |
-| Nieuwe pogingen | Aantal nieuwe pogingen bij mislukking | 3 |
+| Veld            | Beschrijving                              | Standaard |
+| --------------- | ----------------------------------------- | --------- |
+| Time-out (ms)   | Hoe lang te wachten op een WHOIS-antwoord | 10000     |
+| Nieuwe pogingen | Aantal nieuwe pogingen bij mislukking     | 3         |
 
 ## Monitoringcriteria
 
@@ -41,13 +41,13 @@ U kunt criteria configureren om te bepalen wanneer uw domein als online, gedegra
 
 ### Beschikbare controletypen
 
-| Controletype | Beschrijving |
-|------------|-------------|
+| Controletype                    | Beschrijving                                      |
+| ------------------------------- | ------------------------------------------------- |
 | Domein verloopt over (in dagen) | Aantal dagen totdat de domeinregistratie verloopt |
-| Domeinregistrar | De naam van de domeinregistrar |
-| Domein-naamserver | Naamserverhostnamen voor het domein |
-| Domeinstatuscode | WHOIS-domeinstatuscodes |
-| Domein is verlopen | Of het domein is verlopen |
+| Domeinregistrar                 | De naam van de domeinregistrar                    |
+| Domein-naamserver               | Naamserverhostnamen voor het domein               |
+| Domeinstatuscode                | WHOIS-domeinstatuscodes                           |
+| Domein is verlopen              | Of het domein is verlopen                         |
 
 ### Filtertypen
 

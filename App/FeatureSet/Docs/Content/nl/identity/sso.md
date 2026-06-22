@@ -14,10 +14,12 @@ SSO-integratie biedt de volgende voordelen:
 ## SSO instellen
 
 1. **Navigeer naar Projectinstellingen**
+
    - Ga naar uw OneUptime-project
    - Navigeer naar **Projectinstellingen** > **Authenticatie** > **SSO**
 
 2. **SSO-configuratie aanmaken**
+
    - Klik op **SSO aanmaken**
    - Voer een **Naam** in voor de SSO-configuratie (bijv. "Keycloak SAML" of "Okta SAML")
    - Voer de **Sign On URL** in van uw identiteitsprovider
@@ -152,12 +154,12 @@ Microsoft Entra ID is de cloudgebaseerde identiteits- en toegangsbeheerservice v
 1. Klik op de SAML-configuratiepagina op **Bewerken** bij **Attributen en claims**
 2. Zorg dat de volgende claims zijn geconfigureerd:
 
-| Claimnaam | Waarde |
-|-----------|-------|
-| `Unique User Identifier (Name ID)` | `user.userprincipalname` of `user.mail` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | `user.mail` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname` | `user.givenname` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname` | `user.surname` |
+| Claimnaam                                                            | Waarde                                  |
+| -------------------------------------------------------------------- | --------------------------------------- |
+| `Unique User Identifier (Name ID)`                                   | `user.userprincipalname` of `user.mail` |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | `user.mail`                             |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`    | `user.givenname`                        |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname`      | `user.surname`                          |
 
 3. Stel de **Name identifier-indeling** in op `E-mailadres`
 4. Klik op **Opslaan**
@@ -239,11 +241,11 @@ Okta is een veelgebruikt identiteitsplatform dat robuuste SAML SSO-mogelijkheden
 2. Klik op **Bewerken** in de sectie **SAML-instellingen** en klik op **Volgende** om bij de SAML-instellingen te komen
 3. Voeg in de sectie **Attribuutstatements** toe:
 
-| Naam | Waarde |
-|------|-------|
-| `email` | `user.email` |
+| Naam        | Waarde           |
+| ----------- | ---------------- |
+| `email`     | `user.email`     |
 | `firstName` | `user.firstName` |
-| `lastName` | `user.lastName` |
+| `lastName`  | `user.lastName`  |
 
 4. Klik op **Volgende** en vervolgens op **Voltooien**
 

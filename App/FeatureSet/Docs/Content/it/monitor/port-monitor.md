@@ -29,16 +29,16 @@ Inserire l'hostname o l'indirizzo IP dell'host di destinazione (ad es. `example.
 
 Inserire il numero di porta da monitorare (1–65535). Esempi comuni:
 
-| Porta | Servizio |
-|------|---------|
-| 22 | SSH |
-| 25 | SMTP |
-| 80 | HTTP |
-| 443 | HTTPS |
-| 3306 | MySQL |
-| 5432 | PostgreSQL |
-| 6379 | Redis |
-| 27017 | MongoDB |
+| Porta | Servizio   |
+| ----- | ---------- |
+| 22    | SSH        |
+| 25    | SMTP       |
+| 80    | HTTP       |
+| 443   | HTTPS      |
+| 3306  | MySQL      |
+| 5432  | PostgreSQL |
+| 6379  | Redis      |
+| 27017 | MongoDB    |
 
 ## Criteri di Monitoraggio
 
@@ -46,11 +46,11 @@ Inserire il numero di porta da monitorare (1–65535). Esempi comuni:
 
 ### Tipi di Controllo Disponibili
 
-| Tipo di Controllo | Descrizione |
-|------------|-------------|
-| È Online | Se la porta è aperta e accetta connessioni |
+| Tipo di Controllo         | Descrizione                                         |
+| ------------------------- | --------------------------------------------------- |
+| È Online                  | Se la porta è aperta e accetta connessioni          |
 | Tempo di Risposta (in ms) | Tempo per stabilire una connessione in millisecondi |
-| Richiesta Timeout | Se il tentativo di connessione è andato in timeout |
+| Richiesta Timeout         | Se il tentativo di connessione è andato in timeout  |
 
 ### Tipi di Filtro
 

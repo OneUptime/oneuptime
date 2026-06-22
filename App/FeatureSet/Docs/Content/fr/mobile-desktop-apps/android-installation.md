@@ -54,9 +54,11 @@ Les notifications push sont délivrées via Firebase Cloud Messaging (FCM) à tr
 ## Mises à jour
 
 **Google Play :**
+
 - Les mises à jour s'installent automatiquement. Pour en déclencher une manuellement, ouvrez **Play Store → Profil → Gérer les applications et l'appareil → Mises à jour disponibles → OneUptime On-Call → Mettre à jour**.
 
 **Installation manuelle de l'APK :**
+
 - Téléchargez à nouveau le dernier APK depuis le lien GitHub Releases ci-dessus et installez-le par-dessus l'application existante — vos données, l'URL du serveur et votre connexion sont préservées.
 
 ## Désinstaller
@@ -70,11 +72,13 @@ Votre compte OneUptime et vos plannings d'astreinte sont stockés côté serveur
 ## Dépannage
 
 **« Erreur réseau » lors de la connexion :**
+
 - Vérifiez que l'**URL du serveur** est correcte et accessible depuis votre appareil.
 - Si vous êtes sur un réseau d'entreprise ou un VPN, assurez-vous que l'instance OneUptime est accessible.
 - Vérifiez que le serveur est servi via HTTPS avec un certificat valide.
 
 **Vous ne recevez pas les notifications push :**
+
 - Vérifiez que les notifications sont activées dans **Paramètres → Applications → OneUptime On-Call → Notifications**.
 - Désactivez l'optimisation de la batterie pour OneUptime On-Call (voir Notifications push ci-dessus).
 - Assurez-vous que Do Not Disturb est désactivé, ou que OneUptime On-Call figure dans la liste des exceptions.
@@ -82,14 +86,17 @@ Votre compte OneUptime et vos plannings d'astreinte sont stockés côté serveur
 - Utilisateurs auto-hébergés : confirmez que les notifications push sont configurées sur votre instance OneUptime (consultez le guide [Notifications push](/docs/self-hosted/push-notifications) pour l'auto-hébergement).
 
 **Le déverrouillage biométrique ne fonctionne pas :**
+
 - Enregistrez une empreinte digitale dans **Paramètres → Sécurité → Empreinte digitale**.
 - Réactivez le déverrouillage biométrique depuis l'écran **Paramètres** à l'intérieur de l'application OneUptime On-Call.
 
 **L'installation de l'APK est bloquée :**
+
 - Vous devez accorder au navigateur l'autorisation d'installer des applications inconnues (voir l'Option 2 ci-dessus).
 - Certains opérateurs ou profils d'appareils d'entreprise bloquent entièrement l'installation manuelle ; dans ce cas, utilisez plutôt la version Google Play.
 
 **L'application plante au lancement :**
+
 - Mettez à jour vers la dernière version depuis Google Play ou le dernier APK.
 - Redémarrez votre appareil.
 - Si le problème persiste, désinstallez et réinstallez l'application, puis reconnectez-vous.

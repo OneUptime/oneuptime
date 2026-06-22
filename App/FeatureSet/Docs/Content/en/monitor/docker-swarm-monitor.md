@@ -41,15 +41,15 @@ You can also create **formulas** that combine multiple metric queries using math
 
 The OneUptime Docker Swarm Agent runs the OpenTelemetry **docker_stats** receiver against the cluster's containers, so the series that arrive are the standard container-runtime metrics:
 
-| Metric | Description |
-|--------|-------------|
-| `container.cpu.utilization` | CPU utilization (%) of a task's container (100% = one full core) |
-| `container.memory.usage.total` | Total memory used by a task's container (bytes) |
-| `container.memory.percent` | Memory used as a percentage of the container's limit |
-| `container.network.io.usage.rx_bytes` | Bytes received over the network |
-| `container.network.io.usage.tx_bytes` | Bytes transmitted over the network |
-| `container.pids.count` | Number of processes inside the container |
-| `container.uptime` | How long the task's container has been running (seconds) |
+| Metric                                | Description                                                      |
+| ------------------------------------- | ---------------------------------------------------------------- |
+| `container.cpu.utilization`           | CPU utilization (%) of a task's container (100% = one full core) |
+| `container.memory.usage.total`        | Total memory used by a task's container (bytes)                  |
+| `container.memory.percent`            | Memory used as a percentage of the container's limit             |
+| `container.network.io.usage.rx_bytes` | Bytes received over the network                                  |
+| `container.network.io.usage.tx_bytes` | Bytes transmitted over the network                               |
+| `container.pids.count`                | Number of processes inside the container                         |
+| `container.uptime`                    | How long the task's container has been running (seconds)         |
 
 There are **no** `docker_swarm_*` metrics — Swarm topology (nodes, services, tasks) is collected separately as inventory, not as metrics. These metric series describe the containers that back each service task.
 
@@ -59,12 +59,12 @@ Every metric the agent collects is scoped by the `docker.swarm.cluster.name` **r
 
 Each datapoint carries the owning container's identity as datapoint labels:
 
-| Attribute | Meaning | Example |
-|-----------|---------|---------|
-| `container.name` | A Swarm task's container, named `<service>.<slot>.<taskid>` | `web.1.abc123` |
-| `container.image.name` | The container's image | `nginx:latest` |
-| `docker.swarm.service.name` | The owning Swarm service (when stamped) | `web` |
-| `docker.swarm.node.name` | The Swarm node the task runs on (when stamped) | `swarm-node-1` |
+| Attribute                   | Meaning                                                     | Example        |
+| --------------------------- | ----------------------------------------------------------- | -------------- |
+| `container.name`            | A Swarm task's container, named `<service>.<slot>.<taskid>` | `web.1.abc123` |
+| `container.image.name`      | The container's image                                       | `nginx:latest` |
+| `docker.swarm.service.name` | The owning Swarm service (when stamped)                     | `web`          |
+| `docker.swarm.node.name`    | The Swarm node the task runs on (when stamped)              | `swarm-node-1` |
 
 Filter on `container.image.name`, `docker.swarm.service.name`, or `docker.swarm.node.name` to scope a query, on `container.name` to scope to one task, and group by `container.name` to evaluate each task independently — one incident per task.
 
@@ -81,12 +81,12 @@ Select the time window for metric evaluation:
 
 The Quick Setup tab offers pre-built templates that auto-configure the metric, aggregation, grouping, time range, and thresholds:
 
-| Template | Severity | Fires when |
-|----------|----------|------------|
-| **Task Down (Low Uptime)** | Critical | Any task's `container.uptime` drops to 0 (rescheduled, restarted, or crashed) |
-| **High Task CPU Usage** | Warning | Any task's `container.cpu.utilization` exceeds 80% |
-| **High Task Memory Usage** | Warning | Any task's `container.memory.percent` exceeds 85% of its limit |
-| **High Task Process Count** | Warning | Any task's `container.pids.count` exceeds 500 |
+| Template                    | Severity | Fires when                                                                    |
+| --------------------------- | -------- | ----------------------------------------------------------------------------- |
+| **Task Down (Low Uptime)**  | Critical | Any task's `container.uptime` drops to 0 (rescheduled, restarted, or crashed) |
+| **High Task CPU Usage**     | Warning  | Any task's `container.cpu.utilization` exceeds 80%                            |
+| **High Task Memory Usage**  | Warning  | Any task's `container.memory.percent` exceeds 85% of its limit                |
+| **High Task Process Count** | Warning  | Any task's `container.pids.count` exceeds 500                                 |
 
 Each template groups by `container.name`, so one incident fires per affected task.
 

@@ -51,6 +51,10 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
       resourceIdField: "podmanHostId",
     });
 
+  const { archiveBulkActions } = useBulkArchiveActions<PodmanHost>({
+    modelType: PodmanHost,
+  });
+
   const podmanExtraFacets: Array<ResourceFacet> = [
     {
       key: "otelCollectorStatus",
@@ -135,7 +139,7 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         topContent={filterBar}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
-        query={mergeFiltersIntoQuery(undefined)}
+        query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<PodmanHost>) => {
           onResourcesFetched(data);
         }}
@@ -144,7 +148,11 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isCreateable={true}
         showRefreshButton={true}
         bulkActions={{
-          buttons: [...labelBulkActions, ...ownerBulkActions],
+          buttons: [
+            ...labelBulkActions,
+            ...ownerBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         name="Podman Hosts"
         isViewable={true}

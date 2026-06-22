@@ -15,12 +15,12 @@ Dessa har prioritet över sparade kontexter men åsidosätts av CLI-flaggor.
 
 ## Avslutningskoder
 
-| Kod | Betydelse |
-|-----|-----------|
-| `0` | Lyckades |
-| `1` | Allmänt fel |
+| Kod | Betydelse                                                          |
+| --- | ------------------------------------------------------------------ |
+| `0` | Lyckades                                                           |
+| `1` | Allmänt fel                                                        |
 | `2` | Autentiseringsfel (saknade eller ogiltiga autentiseringsuppgifter) |
-| `3` | Hittades inte (404) |
+| `3` | Hittades inte (404)                                                |
 
 Använd avslutningskoder i skript för att hantera fel:
 
@@ -80,7 +80,7 @@ done
 name: Check Active Incidents
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: "*/5 * * * *"
 
 jobs:
   health-check:

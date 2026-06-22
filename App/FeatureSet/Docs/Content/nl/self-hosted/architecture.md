@@ -113,6 +113,7 @@ flowchart TB
 ```
 
 ## Wat dit toont
+
 - Eindgebruikers krijgen toegang tot OneUptime via de Ingress (NGINX) van uw cluster, die routeert naar de UI en API.
 - Kerndiensten lezen/schrijven status naar PostgreSQL, Redis en ClickHouse.
 - Probes kunnen draaien binnen uw cluster (aanbevolen) en/of elders op uw netwerk. Ze kunnen het volgende bewaken:

@@ -8,10 +8,10 @@ OneUptime exposes a **Pyroscope-compatible ingest API**. Anything that can push 
 
 ## Ingest Endpoint
 
-| Setting | Value |
-| --- | --- |
-| Base URL (Pyroscope server address) | `https://oneuptime.com/pyroscope` |
-| Authentication header | `x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_TOKEN` |
+| Setting                             | Value                                               |
+| ----------------------------------- | --------------------------------------------------- |
+| Base URL (Pyroscope server address) | `https://oneuptime.com/pyroscope`                   |
+| Authentication header               | `x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_TOKEN` |
 
 Pyroscope SDKs append `/ingest` to the base URL and Grafana Alloy appends `/push.v1.PusherService/Push` — you always configure just the base URL. SDKs that take an `authToken` / `auth_token` option send it as `Authorization: Bearer <token>`, which OneUptime accepts as an alias for the `x-oneuptime-token` header.
 
@@ -19,11 +19,11 @@ Pyroscope SDKs append `/ingest` to the base URL and Grafana Alloy appends `/push
 
 ## Supported Profile Formats
 
-| Format | Sent by | Supported |
-| --- | --- | --- |
-| pprof (binary protobuf, optionally gzipped) | Go, Node.js, and .NET Pyroscope SDKs; Grafana Alloy | Yes |
-| Folded / collapsed text | Python, Ruby, and Rust Pyroscope SDKs (their default upload format) | Yes |
-| JFR (Java Flight Recorder) | Pyroscope Java agent | Not yet — use Grafana Alloy for Java services |
+| Format                                      | Sent by                                                             | Supported                                     |
+| ------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------- |
+| pprof (binary protobuf, optionally gzipped) | Go, Node.js, and .NET Pyroscope SDKs; Grafana Alloy                 | Yes                                           |
+| Folded / collapsed text                     | Python, Ruby, and Rust Pyroscope SDKs (their default upload format) | Yes                                           |
+| JFR (Java Flight Recorder)                  | Pyroscope Java agent                                                | Not yet — use Grafana Alloy for Java services |
 
 ## Step 1 - Create a Telemetry Ingestion Token
 
@@ -129,12 +129,12 @@ pyroscope.Start(pyroscope.Config{
 **Node.js** (uploads pprof):
 
 ```javascript
-const Pyroscope = require('@pyroscope/nodejs');
+const Pyroscope = require("@pyroscope/nodejs");
 
 Pyroscope.init({
-  serverAddress: 'https://oneuptime.com/pyroscope',
-  appName: 'my-service',
-  authToken: 'YOUR_ONEUPTIME_INGESTION_TOKEN',
+  serverAddress: "https://oneuptime.com/pyroscope",
+  appName: "my-service",
+  authToken: "YOUR_ONEUPTIME_INGESTION_TOKEN",
 });
 
 Pyroscope.start();
@@ -162,14 +162,14 @@ The Pyroscope Java agent uploads profiles in JFR format, which OneUptime does no
 
 Each uploaded profile is classified by the first sample type it declares (the standard pprof / Pyroscope convention). Any type is stored and viewable; the types below get first-class grouping, units, and labels in the OneUptime UI:
 
-| Profile type | Shown as | Unit |
-| --- | --- | --- |
-| `cpu`, `samples` | CPU time | nanoseconds |
-| `wall` | Wall time | nanoseconds |
-| `inuse_space`, `alloc_space`, `heap` | Memory (bytes) | bytes |
-| `inuse_objects`, `alloc_objects` | Memory (object counts) | count |
-| `mutex`, `contention`, `block` | Lock contention | nanoseconds |
-| `goroutine` | Goroutines (Go) | count |
+| Profile type                         | Shown as               | Unit        |
+| ------------------------------------ | ---------------------- | ----------- |
+| `cpu`, `samples`                     | CPU time               | nanoseconds |
+| `wall`                               | Wall time              | nanoseconds |
+| `inuse_space`, `alloc_space`, `heap` | Memory (bytes)         | bytes       |
+| `inuse_objects`, `alloc_objects`     | Memory (object counts) | count       |
+| `mutex`, `contention`, `block`       | Lock contention        | nanoseconds |
+| `goroutine`                          | Goroutines (Go)        | count       |
 
 Anything else (for example a custom sample type) appears under "Other" with its raw name.
 

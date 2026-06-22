@@ -56,24 +56,29 @@ Votre compte OneUptime et vos plannings d'astreinte sont stockés côté serveur
 ## Dépannage
 
 **L'App Store indique que l'application n'est « Pas disponible dans votre région » :**
+
 - L'application est publiée sur l'App Store mondial. Si elle n'apparaît pas dans votre région, contactez le [support](mailto:support@oneuptime.com).
 
 **« Erreur réseau » lors de la connexion :**
+
 - Vérifiez que l'**URL du serveur** est correcte et accessible depuis votre appareil.
 - Si vous êtes sur un réseau d'entreprise ou un VPN, assurez-vous que l'instance OneUptime est accessible.
 - Vérifiez que le serveur est servi via HTTPS avec un certificat valide.
 
 **Vous ne recevez pas les notifications push :**
+
 - Ouvrez **Réglages → Notifications → OneUptime On-Call** et confirmez que les notifications sont autorisées.
 - Désactivez **Ne pas déranger** ou ajoutez OneUptime On-Call à la liste d'autorisation de votre mode Concentration actif.
 - Déconnectez-vous et reconnectez-vous pour actualiser le jeton push enregistré auprès du serveur.
 - Utilisateurs auto-hébergés : confirmez que les notifications push sont configurées sur votre instance OneUptime (consultez le guide [Notifications push](/docs/self-hosted/push-notifications) pour l'auto-hébergement).
 
 **Face ID / Touch ID ne fonctionne pas :**
+
 - Assurez-vous que la biométrie est enregistrée dans **Réglages → Face ID et code** ou **Réglages → Touch ID et code**.
 - Réactivez le déverrouillage biométrique depuis l'écran **Paramètres** à l'intérieur de l'application OneUptime On-Call.
 
 **L'application plante au lancement :**
+
 - Mettez à jour vers la dernière version depuis l'App Store.
 - Redémarrez votre appareil.
 - Si le problème persiste, supprimez et réinstallez l'application, puis reconnectez-vous.

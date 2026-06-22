@@ -123,15 +123,15 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 ##### Met proxyconfiguratie
@@ -153,29 +153,29 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
-          # Proxyconfiguratie (optioneel)
-          - name: HTTP_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: HTTPS_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: NO_PROXY
-            value: "localhost,.internal.example.com"
-          # Voor proxy met authenticatie, gebruik:
-          # - name: HTTP_PROXY_URL
-          #   value: "http://username:password@proxy.example.com:8080"
-          # - name: HTTPS_PROXY_URL
-          #   value: "http://username:password@proxy.example.com:8080"
-          # - name: NO_PROXY
-          #   value: "localhost,.internal.example.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
+            # Proxyconfiguratie (optioneel)
+            - name: HTTP_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: HTTPS_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: NO_PROXY
+              value: "localhost,.internal.example.com"
+            # Voor proxy met authenticatie, gebruik:
+            # - name: HTTP_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: HTTPS_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: NO_PROXY
+            #   value: "localhost,.internal.example.com"
 ```
 
 Voer vervolgens de volgende opdracht uit:
@@ -191,11 +191,13 @@ Als u OneUptime zelf host, kunt u `ONEUPTIME_URL` wijzigen naar uw aangepaste ze
 De probe ondersteunt de volgende omgevingsvariabelen:
 
 #### Verplichte variabelen
+
 - `PROBE_KEY` - De probesleutel van uw OneUptime-dashboard
 - `PROBE_ID` - Het probe-ID van uw OneUptime-dashboard
 - `ONEUPTIME_URL` - De URL van uw OneUptime-instantie (standaard: https://oneuptime.com)
 
 #### Optionele variabelen
+
 - `HTTP_PROXY_URL` - HTTP-proxyserver-URL voor HTTP-verzoeken
 - `HTTPS_PROXY_URL` - HTTP-proxyserver-URL voor HTTPS-verzoeken
 - `NO_PROXY` - Door komma's gescheiden hosts of domeinen die de proxy moeten omzeilen
@@ -212,15 +214,18 @@ De probe ondersteunt de volgende omgevingsvariabelen:
 De probe ondersteunt zowel HTTP- als HTTPS-proxyservers. Wanneer geconfigureerd, zal de probe al het monitoringverkeer via de opgegeven proxyservers routeren. U kunt ook een door komma's gescheiden `NO_PROXY`-lijst opgeven om de proxy te omzeilen voor interne hosts of netwerken.
 
 **Proxy-URL-formaat:**
+
 ```
 http://[gebruikersnaam:wachtwoord@]proxy.server.com:poort
 ```
 
 **Voorbeelden:**
+
 - Basisproxy: `http://proxy.example.com:8080`
 - Met authenticatie: `http://username:password@proxy.example.com:8080`
 
 **Ondersteunde functies:**
+
 - HTTP- en HTTPS-proxyondersteuning
 - Proxyauthenticatie (gebruikersnaam/wachtwoord)
 - Automatische terugvaloptie tussen HTTP- en HTTPS-proxy's

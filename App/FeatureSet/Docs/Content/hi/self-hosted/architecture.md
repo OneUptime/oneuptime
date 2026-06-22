@@ -113,6 +113,7 @@ flowchart TB
 ```
 
 ## यह क्या दिखाता है
+
 - End users आपके cluster के Ingress (NGINX) के माध्यम से OneUptime तक पहुंचते हैं, जो UI और API पर route करता है।
 - Core services PostgreSQL, Redis और ClickHouse पर state read/write करती हैं।
 - Probes आपके cluster के अंदर (अनुशंसित) और/या आपके network पर अन्यत्र चल सकते हैं। वे monitor कर सकते हैं:

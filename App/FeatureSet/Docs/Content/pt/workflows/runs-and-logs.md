@@ -4,21 +4,21 @@ Toda vez que um workflow roda, o OneUptime salva um registro do que aconteceu �
 
 ## Onde encontrá-las
 
-| Página | O que você vê |
-| --- | --- |
+| Página                                | O que você vê                                                                             |
+| ------------------------------------- | ----------------------------------------------------------------------------------------- |
 | **Workflows → Execuções e Registros** | Todas as execuções de todos os workflows do projeto. Filtre por workflow, status e tempo. |
-| **Workflow → Aba Logs** | Apenas as execuções deste workflow. |
-| **Uma execução individual** | Uma execução, com a saída de cada bloco. |
+| **Workflow → Aba Logs**               | Apenas as execuções deste workflow.                                                       |
+| **Uma execução individual**           | Uma execução, com a saída de cada bloco.                                                  |
 
 ## Status de execução
 
-| Status | Significado |
-| --- | --- |
-| **Agendada** | O gatilho disparou e a execução está prestes a começar. Geralmente leva uma fração de segundo. |
-| **Em Execução** | O workflow está em andamento. Blocos demorados mantêm a execução nesse estado. |
-| **Sucesso** | Todo bloco que rodou terminou sem erro. (Pegar um ramo de **erro** de propósito ainda conta como sucesso — o próprio workflow não falhou.) |
-| **Erro** | Um bloco falhou e não havia caminho de **erro** conectado para tratá-lo. A execução parou aí. |
-| **Timeout** | A execução durou mais que o permitido. Veja [Configuração e Segurança](/docs/workflows/configuration). |
+| Status          | Significado                                                                                                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Agendada**    | O gatilho disparou e a execução está prestes a começar. Geralmente leva uma fração de segundo.                                             |
+| **Em Execução** | O workflow está em andamento. Blocos demorados mantêm a execução nesse estado.                                                             |
+| **Sucesso**     | Todo bloco que rodou terminou sem erro. (Pegar um ramo de **erro** de propósito ainda conta como sucesso — o próprio workflow não falhou.) |
+| **Erro**        | Um bloco falhou e não havia caminho de **erro** conectado para tratá-lo. A execução parou aí.                                              |
+| **Timeout**     | A execução durou mais que o permitido. Veja [Configuração e Segurança](/docs/workflows/configuration).                                     |
 
 ## Lendo uma execução
 

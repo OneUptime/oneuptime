@@ -123,15 +123,15 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 ##### 프록시 구성과 함께
@@ -153,29 +153,29 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
-          # 프록시 구성 (선택 사항)
-          - name: HTTP_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: HTTPS_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: NO_PROXY
-            value: "localhost,.internal.example.com"
-          # 인증이 있는 프록시의 경우 사용:
-          # - name: HTTP_PROXY_URL
-          #   value: "http://username:password@proxy.example.com:8080"
-          # - name: HTTPS_PROXY_URL
-          #   value: "http://username:password@proxy.example.com:8080"
-          # - name: NO_PROXY
-          #   value: "localhost,.internal.example.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
+            # 프록시 구성 (선택 사항)
+            - name: HTTP_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: HTTPS_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: NO_PROXY
+              value: "localhost,.internal.example.com"
+            # 인증이 있는 프록시의 경우 사용:
+            # - name: HTTP_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: HTTPS_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: NO_PROXY
+            #   value: "localhost,.internal.example.com"
 ```
 
 그런 다음 다음 명령을 실행합니다:
@@ -191,11 +191,13 @@ OneUptime을 자체 호스팅하는 경우 `ONEUPTIME_URL`을 커스텀 자체 �
 프로브는 다음 환경 변수를 지원합니다:
 
 #### 필수 변수
+
 - `PROBE_KEY` - OneUptime 대시보드의 프로브 키
 - `PROBE_ID` - OneUptime 대시보드의 프로브 ID
 - `ONEUPTIME_URL` - OneUptime 인스턴스의 URL (기본값: https://oneuptime.com)
 
 #### 선택적 변수
+
 - `HTTP_PROXY_URL` - HTTP 요청을 위한 HTTP 프록시 서버 URL
 - `HTTPS_PROXY_URL` - HTTPS 요청을 위한 HTTP 프록시 서버 URL
 - `NO_PROXY` - 프록시를 우회해야 하는 쉼표로 구분된 호스트 또는 도메인
@@ -212,15 +214,18 @@ OneUptime을 자체 호스팅하는 경우 `ONEUPTIME_URL`을 커스텀 자체 �
 프로브는 HTTP 및 HTTPS 프록시 서버를 모두 지원합니다. 구성된 경우 프로브는 지정된 프록시 서버를 통해 모든 모니터링 트래픽을 라우팅합니다. 쉼표로 구분된 `NO_PROXY` 목록을 제공하여 내부 호스트나 네트워크에 대한 프록시를 우회할 수도 있습니다.
 
 **프록시 URL 형식:**
+
 ```
 http://[username:password@]proxy.server.com:port
 ```
 
 **예시:**
+
 - 기본 프록시: `http://proxy.example.com:8080`
 - 인증 포함: `http://username:password@proxy.example.com:8080`
 
 **지원되는 기능:**
+
 - HTTP 및 HTTPS 프록시 지원
 - 프록시 인증 (사용자 이름/비밀번호)
 - HTTP와 HTTPS 프록시 간의 자동 폴백

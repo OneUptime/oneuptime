@@ -19,17 +19,17 @@ OAuth 2.0 gir en sikrere måte å autentisere med e-postservere, spesielt for be
 
 Når du konfigurerer SMTP med OAuth-autentisering i OneUptime, trenger du:
 
-| Felt | Beskrivelse |
-|------|-------------|
-| **Vertsnavn** | SMTP-serveradresse |
-| **Port** | SMTP-port (vanligvis 587 for STARTTLS eller 465 for implisitt TLS) |
-| **Brukernavn** | E-postadressen å sende fra |
-| **Autentiseringstype** | Velg "OAuth" |
+| Felt                     | Beskrivelse                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------ |
+| **Vertsnavn**            | SMTP-serveradresse                                                                   |
+| **Port**                 | SMTP-port (vanligvis 587 for STARTTLS eller 465 for implisitt TLS)                   |
+| **Brukernavn**           | E-postadressen å sende fra                                                           |
+| **Autentiseringstype**   | Velg "OAuth"                                                                         |
 | **OAuth-leverandørtype** | Velg "Client Credentials" for Microsoft 365, eller "JWT Bearer" for Google Workspace |
-| **Klient-ID** | Applikasjon/klient-ID fra OAuth-leverandøren din (for Google: tjenestekontos e-post) |
-| **Klienthemmelighet** | Klienthemmelighet fra OAuth-leverandøren din (for Google: privat nøkkel) |
-| **Token-URL** | OAuth-tokenendepunkt-URL |
-| **Omfang** | Påkrevde OAuth-omfang for SMTP-tilgang |
+| **Klient-ID**            | Applikasjon/klient-ID fra OAuth-leverandøren din (for Google: tjenestekontos e-post) |
+| **Klienthemmelighet**    | Klienthemmelighet fra OAuth-leverandøren din (for Google: privat nøkkel)             |
+| **Token-URL**            | OAuth-tokenendepunkt-URL                                                             |
+| **Omfang**               | Påkrevde OAuth-omfang for SMTP-tilgang                                               |
 
 ---
 
@@ -48,6 +48,7 @@ For å bruke OAuth med Microsoft 365/Exchange Online må du registrere en applik
 7. Klikk **Registrer**
 
 Etter registrering, noter følgende verdier fra **Oversikt**-siden:
+
 - **Applikasjons-(klient-)ID** – Dette er klient-ID-en din
 - **Katalog-(leietaker-)ID** – Du trenger dette for token-URL-en
 
@@ -107,19 +108,19 @@ Add-MailboxPermission -Identity "sender@yourdomain.com" -User <service-principal
 
 I OneUptime, opprett eller rediger en SMTP-konfigurasjon med disse innstillingene:
 
-| Felt | Verdi |
-|------|-------|
-| Vertsnavn | `smtp.office365.com` |
-| Port | `587` |
-| Brukernavn | E-postadressen du ga tillatelser til (f.eks. `sender@yourdomain.com`) |
-| Autentiseringstype | `OAuth` |
-| OAuth-leverandørtype | `Client Credentials` |
-| Klient-ID | Applikasjons-(klient-)ID fra trinn 1 |
-| Klienthemmelighet | Hemmelighetsverdien fra trinn 2 |
-| Token-URL | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` |
-| Omfang | `https://outlook.office365.com/.default` |
-| Fra e-post | Samme som brukernavn |
-| Sikker (TLS) | Aktivert |
+| Felt                 | Verdi                                                                 |
+| -------------------- | --------------------------------------------------------------------- |
+| Vertsnavn            | `smtp.office365.com`                                                  |
+| Port                 | `587`                                                                 |
+| Brukernavn           | E-postadressen du ga tillatelser til (f.eks. `sender@yourdomain.com`) |
+| Autentiseringstype   | `OAuth`                                                               |
+| OAuth-leverandørtype | `Client Credentials`                                                  |
+| Klient-ID            | Applikasjons-(klient-)ID fra trinn 1                                  |
+| Klienthemmelighet    | Hemmelighetsverdien fra trinn 2                                       |
+| Token-URL            | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`     |
+| Omfang               | `https://outlook.office365.com/.default`                              |
+| Fra e-post           | Samme som brukernavn                                                  |
+| Sikker (TLS)         | Aktivert                                                              |
 
 Erstatt `<tenant-id>` med katalog-(leietaker-)ID-en fra trinn 1.
 
@@ -189,19 +190,19 @@ Merk: Det kan ta noen minutter til 24 timer for delegeringen å propagere.
 
 I OneUptime, opprett eller rediger en SMTP-konfigurasjon med disse innstillingene:
 
-| Felt | Verdi |
-|------|-------|
-| Vertsnavn | `smtp.gmail.com` |
-| Port | `587` |
-| Brukernavn | Google Workspace-e-postadressen å sende fra (f.eks. `notifications@yourdomain.com`). Denne brukeren vil bli representert av tjenestekontoen. |
-| Autentiseringstype | `OAuth` |
-| OAuth-leverandørtype | `JWT Bearer` |
-| Klient-ID | `client_email` fra tjenestekonto-JSON (f.eks. `your-service@your-project.iam.gserviceaccount.com`) |
-| Klienthemmelighet | `private_key` fra tjenestekonto-JSON (hele nøkkelen inkludert `-----BEGIN PRIVATE KEY-----` og `-----END PRIVATE KEY-----`) |
-| Token-URL | `https://oauth2.googleapis.com/token` |
-| Omfang | `https://mail.google.com/` |
-| Fra e-post | Samme som brukernavn |
-| Sikker (TLS) | Aktivert |
+| Felt                 | Verdi                                                                                                                                        |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vertsnavn            | `smtp.gmail.com`                                                                                                                             |
+| Port                 | `587`                                                                                                                                        |
+| Brukernavn           | Google Workspace-e-postadressen å sende fra (f.eks. `notifications@yourdomain.com`). Denne brukeren vil bli representert av tjenestekontoen. |
+| Autentiseringstype   | `OAuth`                                                                                                                                      |
+| OAuth-leverandørtype | `JWT Bearer`                                                                                                                                 |
+| Klient-ID            | `client_email` fra tjenestekonto-JSON (f.eks. `your-service@your-project.iam.gserviceaccount.com`)                                           |
+| Klienthemmelighet    | `private_key` fra tjenestekonto-JSON (hele nøkkelen inkludert `-----BEGIN PRIVATE KEY-----` og `-----END PRIVATE KEY-----`)                  |
+| Token-URL            | `https://oauth2.googleapis.com/token`                                                                                                        |
+| Omfang               | `https://mail.google.com/`                                                                                                                   |
+| Fra e-post           | Samme som brukernavn                                                                                                                         |
+| Sikker (TLS)         | Aktivert                                                                                                                                     |
 
 **Viktig:** For Google (JWT Bearer) er klient-ID-en **tjenestekontoens e-post** (`client_email`), IKKE den numeriske `client_id`. Tjenestekontoen vil representere brukeren angitt i brukernavnfeltet for å sende e-poster.
 
@@ -211,21 +212,21 @@ I OneUptime, opprett eller rediger en SMTP-konfigurasjon med disse innstillingen
 
 ### Microsoft 365
 
-| Problem | Løsning |
-|---------|---------|
-| "Authentication unsuccessful" | Bekreft at tjenesteprinsipalen er registrert i Exchange og har postbokstillatelser |
-| "AADSTS700016: Application not found" | Sjekk at klient-ID-en er riktig og at appen finnes i leietakeren din |
-| "AADSTS7000215: Invalid client secret" | Generer klienthemmeligheten på nytt – den kan ha utløpt |
-| "The mailbox is not enabled for this operation" | Kjør `Add-MailboxPermission` for å gi tilgang til postboksen |
+| Problem                                         | Løsning                                                                            |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------- |
+| "Authentication unsuccessful"                   | Bekreft at tjenesteprinsipalen er registrert i Exchange og har postbokstillatelser |
+| "AADSTS700016: Application not found"           | Sjekk at klient-ID-en er riktig og at appen finnes i leietakeren din               |
+| "AADSTS7000215: Invalid client secret"          | Generer klienthemmeligheten på nytt – den kan ha utløpt                            |
+| "The mailbox is not enabled for this operation" | Kjør `Add-MailboxPermission` for å gi tilgang til postboksen                       |
 
 ### Google Workspace
 
-| Problem | Løsning |
-|---------|---------|
-| "invalid_grant" | Sørg for at domenomfattende delegering er korrekt konfigurert og propagert |
-| "unauthorized_client" | Bekreft at klient-ID-en er autorisert i Google Workspace Admin Console |
-| "access_denied" | Sjekk at omfanget `https://mail.google.com/` er autorisert |
-| "Domain policy has disabled third-party Drive apps" | Aktiver API-tilgang i Google Workspace Admin > Sikkerhet > API-kontroller |
+| Problem                                             | Løsning                                                                    |
+| --------------------------------------------------- | -------------------------------------------------------------------------- |
+| "invalid_grant"                                     | Sørg for at domenomfattende delegering er korrekt konfigurert og propagert |
+| "unauthorized_client"                               | Bekreft at klient-ID-en er autorisert i Google Workspace Admin Console     |
+| "access_denied"                                     | Sjekk at omfanget `https://mail.google.com/` er autorisert                 |
+| "Domain policy has disabled third-party Drive apps" | Aktiver API-tilgang i Google Workspace Admin > Sikkerhet > API-kontroller  |
 
 ### Generelt
 
@@ -248,10 +249,12 @@ I OneUptime, opprett eller rediger en SMTP-konfigurasjon med disse innstillingen
 ## Ytterligere ressurser
 
 ### Microsoft 365
+
 - [Authenticate an IMAP, POP or SMTP connection using OAuth](https://learn.microsoft.com/en-us/exchange/client-developer/legacy-protocols/how-to-authenticate-an-imap-pop-smtp-application-by-using-oauth)
 - [Register an application with Microsoft identity platform](https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app)
 
 ### Google Workspace
+
 - [Using OAuth 2.0 for Server to Server Applications](https://developers.google.com/identity/protocols/oauth2/service-account)
 - [Gmail API Documentation](https://developers.google.com/gmail/api)
 - [XOAUTH2 Protocol](https://developers.google.com/gmail/imap/xoauth2-protocol)

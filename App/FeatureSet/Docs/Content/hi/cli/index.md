@@ -34,27 +34,27 @@ oneuptime resources
 
 ## Documentation
 
-| गाइड | विवरण |
-|------|-------|
-| [Authentication](./authentication.md) | Login, contexts और credential management |
+| गाइड                                            | विवरण                                                  |
+| ----------------------------------------------- | ------------------------------------------------------ |
+| [Authentication](./authentication.md)           | Login, contexts और credential management               |
 | [Resource Operations](./resource-operations.md) | monitors, incidents, alerts और अधिक पर CRUD operations |
-| [Output Formats](./output-formats.md) | JSON, table और wide output modes |
-| [Scripting और CI/CD](./scripting.md) | Automation, environment variables और pipeline उपयोग |
-| [Command Reference](./command-reference.md) | सभी commands और options का पूर्ण संदर्भ |
+| [Output Formats](./output-formats.md)           | JSON, table और wide output modes                       |
+| [Scripting और CI/CD](./scripting.md)            | Automation, environment variables और pipeline उपयोग    |
+| [Command Reference](./command-reference.md)     | सभी commands और options का पूर्ण संदर्भ                |
 
 ## Global Options
 
 इन flags का उपयोग किसी भी command के साथ किया जा सकता है:
 
-| Flag | विवरण |
-|------|-------|
-| `--api-key <key>` | इस command के लिए API key override करें |
-| `--url <url>` | इस command के लिए instance URL override करें |
-| `--context <name>` | एक specific named context उपयोग करें |
-| `-o, --output <format>` | Output format: `json`, `table`, `wide` |
-| `--no-color` | colored output अक्षम करें |
-| `--help` | command help दिखाएं |
-| `--version` | CLI version दिखाएं |
+| Flag                    | विवरण                                        |
+| ----------------------- | -------------------------------------------- |
+| `--api-key <key>`       | इस command के लिए API key override करें      |
+| `--url <url>`           | इस command के लिए instance URL override करें |
+| `--context <name>`      | एक specific named context उपयोग करें         |
+| `-o, --output <format>` | Output format: `json`, `table`, `wide`       |
+| `--no-color`            | colored output अक्षम करें                    |
+| `--help`                | command help दिखाएं                          |
+| `--version`             | CLI version दिखाएं                           |
 
 ## सहायता प्राप्त करना
 

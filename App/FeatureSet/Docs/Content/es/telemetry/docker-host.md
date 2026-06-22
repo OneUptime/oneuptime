@@ -10,7 +10,7 @@ Esta página es la **guía de instalación**. Para configurar monitores y alerta
 
 - Docker Engine 20.10+
 - Acceso a `/var/run/docker.sock` en el host
-- Un **Token de Ingesta de Telemetría de OneUptime** — crea uno desde *Project Settings → Telemetry Ingestion Keys* y copia el valor
+- Un **Token de Ingesta de Telemetría de OneUptime** — crea uno desde _Project Settings → Telemetry Ingestion Keys_ y copia el valor
 
 ## Inicio rápido (un comando)
 
@@ -64,11 +64,11 @@ docker compose up -d
 
 ## Variables de entorno
 
-| Variable | Obligatoria | Descripción |
-|----------|----------|-------------|
-| `ONEUPTIME_URL` | Sí | La URL de tu instancia de OneUptime (por ejemplo `https://oneuptime.com` o tu host autoalojado) |
-| `ONEUPTIME_SERVICE_TOKEN` | Sí | Token de ingesta de telemetría de *Project Settings → Telemetry Ingestion Keys* |
-| `DOCKER_HOST_NAME` | No | Nombre descriptivo para este host. El valor predeterminado es `docker-host`. Configúralo con algo estable por host (p. ej. `prod-docker-01`) |
+| Variable                  | Obligatoria | Descripción                                                                                                                                  |
+| ------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`           | Sí          | La URL de tu instancia de OneUptime (por ejemplo `https://oneuptime.com` o tu host autoalojado)                                              |
+| `ONEUPTIME_SERVICE_TOKEN` | Sí          | Token de ingesta de telemetría de _Project Settings → Telemetry Ingestion Keys_                                                              |
+| `DOCKER_HOST_NAME`        | No          | Nombre descriptivo para este host. El valor predeterminado es `docker-host`. Configúralo con algo estable por host (p. ej. `prod-docker-01`) |
 
 ## Verificar la instalación
 
@@ -117,14 +117,14 @@ docker compose down
 
 ## Qué se recopila
 
-| Categoría | Datos |
-|----------|------|
-| **Métricas de CPU** | Uso total, porcentaje de uso, tiempo de limitación (throttling) (por contenedor) |
-| **Métricas de memoria** | Uso, límite, porcentaje, RSS, caché (por contenedor) |
-| **Métricas de red** | Bytes y paquetes recibidos / transmitidos (por contenedor) |
-| **Métricas de E/S de bloques** | Bytes y operaciones de lectura / escritura (por contenedor) |
-| **Información del contenedor** | Tiempo de actividad, recuento de reinicios, recuento de procesos |
-| **Registros del contenedor** | Registros stdout / stderr de todos los contenedores |
+| Categoría                      | Datos                                                                            |
+| ------------------------------ | -------------------------------------------------------------------------------- |
+| **Métricas de CPU**            | Uso total, porcentaje de uso, tiempo de limitación (throttling) (por contenedor) |
+| **Métricas de memoria**        | Uso, límite, porcentaje, RSS, caché (por contenedor)                             |
+| **Métricas de red**            | Bytes y paquetes recibidos / transmitidos (por contenedor)                       |
+| **Métricas de E/S de bloques** | Bytes y operaciones de lectura / escritura (por contenedor)                      |
+| **Información del contenedor** | Tiempo de actividad, recuento de reinicios, recuento de procesos                 |
+| **Registros del contenedor**   | Registros stdout / stderr de todos los contenedores                              |
 
 ## OneUptime autoalojado
 

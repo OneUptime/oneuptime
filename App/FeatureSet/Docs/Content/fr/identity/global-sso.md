@@ -6,23 +6,26 @@ Global SSO est une fonctionnalité de **OneUptime Enterprise Edition** et n'est 
 
 ## Global SSO vs. SSO de projet
 
-| | SSO de projet | Global SSO |
-|---|---|---|
-| Configuré par | Propriétaire/administrateur du projet (Paramètres du projet) | Master admin de l'instance (Admin Dashboard) |
-| Portée | Un seul projet | L'ensemble de l'instance — connectable à n'importe quel projet |
-| Résultat de la connexion | Accès à ce seul projet | Accès à tous les projets que l'utilisateur peut atteindre |
+|                          | SSO de projet                                                | Global SSO                                                     |
+| ------------------------ | ------------------------------------------------------------ | -------------------------------------------------------------- |
+| Configuré par            | Propriétaire/administrateur du projet (Paramètres du projet) | Master admin de l'instance (Admin Dashboard)                   |
+| Portée                   | Un seul projet                                               | L'ensemble de l'instance — connectable à n'importe quel projet |
+| Résultat de la connexion | Accès à ce seul projet                                       | Accès à tous les projets que l'utilisateur peut atteindre      |
 
 ## Configuration de Global SSO
 
 1. **Ouvrir l'Admin Dashboard**
+
    - Connectez-vous en tant que master admin et ouvrez **Admin** > **Settings** > **Global SSO** (pour SAML) ou **Global OIDC** (pour OpenID Connect).
 
 2. **Créer un fournisseur**
+
    - Cliquez sur **Create Global SSO**.
    - Pour SAML : saisissez un **Name**, le **Sign On URL** et l'**Issuer** de votre fournisseur d'identité, puis collez le **Public Certificate**. Choisissez les méthodes **Signature** et **Digest** (laissez les valeurs par défaut — `RSA-SHA256` / `SHA256` — si vous n'êtes pas sûr).
    - Pour OIDC : saisissez le **Discovery URL**, l'**Issuer**, le **Client ID**, le **Client Secret**, les **Scopes** (doivent inclure `openid`), ainsi que les noms de revendications **email** / **name**.
 
 3. **Copier les URL OneUptime dans votre fournisseur d'identité**
+
    - Ouvrez le fournisseur (cliquez sur sa ligne dans la liste) pour afficher la carte **Identity Provider URLs**.
    - Pour SAML, copiez l'**ACS URL (Reply URL)** et l'**Issuer (Entity ID)** dans votre IdP (Okta, Azure AD, OneLogin, JumpCloud et plus encore).
    - Pour OIDC, copiez le **Redirect URI** dans la liste des redirections autorisées de votre IdP.
@@ -44,7 +47,7 @@ Si vous souhaitez empêcher toute création automatique de compte même lorsque 
 
 Configurer un fournisseur global n'oblige personne à l'utiliser ; la connexion par mot de passe fonctionne toujours. Pour exiger le SSO, utilisez les contrôles **Require SSO for Login** :
 
-- **Par projet :** un projet peut exiger le SSO, et éventuellement exiger un fournisseur *spécifique* (de projet ou global).
+- **Par projet :** un projet peut exiger le SSO, et éventuellement exiger un fournisseur _spécifique_ (de projet ou global).
 - **À l'échelle de l'instance :** **Admin** > **Settings** > **Authentication** dispose d'un commutateur **Require SSO for Login** qui force le SSO pour chaque utilisateur de l'instance. Les master admins restent exemptés afin de ne pas pouvoir être verrouillés à l'extérieur.
 
 ## Connexes

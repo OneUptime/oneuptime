@@ -14,10 +14,12 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 - 一个你想要提交 issue 的 GitHub 仓库。
 - 一个可以创建 issue 的令牌：
+
   - **细粒度 PAT**，作用域限定到该仓库，具备 **Issues: Read and write** 权限，或
   - 具有 `repo` 范围的**经典 PAT**。
 
   在 [github.com/settings/tokens](https://github.com/settings/tokens) 创建。
+
 - 一个可以创建工作流的 OneUptime 项目。
 
 ## 步骤 1——存储令牌
@@ -30,6 +32,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 1. 打开 **Workflows → Create Workflow**，命名为 `Incidents → GitHub Issues`，并打开 **Builder**。
 2. 添加 **Incident** 触发器，设置为 **On Create**。重命名为 `Incident`。
 3. 添加连接到触发器的 **API** 模块：
+
    - **Method**：`POST`
    - **URL**：`https://api.github.com/repos/your-org/your-repo/issues`
    - **Headers**：

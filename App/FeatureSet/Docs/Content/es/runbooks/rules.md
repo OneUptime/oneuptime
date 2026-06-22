@@ -10,14 +10,14 @@ Las tres páginas editan el mismo modelo subyacente de reglas — simplemente es
 
 ## Anatomía de una regla
 
-| Campo | Propósito |
-| --- | --- |
-| **Nombre** | Etiqueta corta y legible. Aparece en los logs de auditoría. |
-| **Descripción** | Contexto opcional para los compañeros de equipo. |
-| **Habilitada** | Conmutador para suspender una regla sin borrarla. |
-| **Title Pattern** | Regex sin distinguir mayúsculas, evaluado contra el título de la entidad. Vacío = cualquier título. |
+| Campo                   | Propósito                                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Nombre**              | Etiqueta corta y legible. Aparece en los logs de auditoría.                                                   |
+| **Descripción**         | Contexto opcional para los compañeros de equipo.                                                              |
+| **Habilitada**          | Conmutador para suspender una regla sin borrarla.                                                             |
+| **Title Pattern**       | Regex sin distinguir mayúsculas, evaluado contra el título de la entidad. Vacío = cualquier título.           |
 | **Description Pattern** | Regex sin distinguir mayúsculas, evaluado contra la descripción de la entidad. Vacío = cualquier descripción. |
-| **Runbooks a iniciar** | Uno o más runbooks que se lanzan al dispararse la regla. |
+| **Runbooks a iniciar**  | Uno o más runbooks que se lanzan al dispararse la regla.                                                      |
 
 ## Semántica de coincidencia
 

@@ -36,6 +36,7 @@ Agora você pode usar `Basic {{variable.JIRA_AUTH}}` como cabeçalho de autentic
 1. Abra **Workflows → Create Workflow**, nomeie-o `Incidents → Jira` e abra o **Builder**.
 2. Arraste um gatilho **Incident** para o canvas e escolha o evento **On Create**. Renomeie-o para `Incident`.
 3. Arraste um bloco **API** e conecte o gatilho a ele. Configure:
+
    - **Method**: `POST`
    - **URL**: `https://seu-dominio.atlassian.net/rest/api/3/issue`
    - **Headers**:
@@ -70,6 +71,7 @@ Agora você pode usar `Basic {{variable.JIRA_AUTH}}` como cabeçalho de autentic
      ```
 
    Substitua `OPS` pela sua chave de projeto e `Bug` por um tipo de issue que exista nesse projeto.
+
 4. **Salve.** Deixe o workflow desativado até testá-lo.
 
 ## Passo 3 — Teste
@@ -96,8 +98,9 @@ Para resolver o incidente no OneUptime quando alguém fechar o issue no Jira, ad
 
 1. Crie um segundo workflow que começa com um gatilho **Webhook** e copie sua URL.
 2. No Jira, vá em **Project settings → Automation → Create rule**:
-   - **Trigger**: *Issue transitioned* para **Done** (ou *Issue resolved*).
-   - **Action**: *Send web request* → método `POST`, URL = URL do webhook do seu workflow, corpo inclui a chave do issue e o id do incidente do OneUptime, ex.:
+
+   - **Trigger**: _Issue transitioned_ para **Done** (ou _Issue resolved_).
+   - **Action**: _Send web request_ → método `POST`, URL = URL do webhook do seu workflow, corpo inclui a chave do issue e o id do incidente do OneUptime, ex.:
 
      ```json
      { "issueKey": "{{issue.key}}", "status": "resolved" }
@@ -121,16 +124,20 @@ Para descobrir os nomes exatos de campos que um projeto espera, chame o endpoint
 ## Solução de problemas
 
 **`401 Unauthorized`.**
+
 - Re-codifique `email:api_token` e atualize a variável `JIRA_AUTH`. Uma quebra de linha no final é a causa mais comum — use `printf` (não `echo`) ao codificar.
 - Confirme que a conta dona do token de API pode criar issues no projeto.
 
 **`400 Bad Request` mencionando um campo.**
+
 - O tipo de issue ou um campo obrigatório está errado. Verifique o nome do **issue type** do projeto e se ele tem campos personalizados obrigatórios. Use `createmeta` (acima) para ver o que é obrigatório.
 
 **`404 Not Found`.**
+
 - Verifique a URL base e se você está usando `/rest/api/3/issue` (Cloud) ou `/rest/api/2/issue` (Server/Data Center).
 
 **A descrição aparece como uma única linha / fica estranha.**
+
 - A v3 exige o Atlassian Document Format mostrado acima. Se preferir enviar texto puro, use o endpoint `/rest/api/2/issue` com `"description": "{{Incident.description}}"` como uma string simples.
 
 ## O que ler em seguida

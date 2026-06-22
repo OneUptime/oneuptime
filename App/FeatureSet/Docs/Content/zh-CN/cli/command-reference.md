@@ -12,11 +12,11 @@ OneUptime CLI 所有命令的完整参考。
 oneuptime login <api-key> <instance-url> [--context-name <name>]
 ```
 
-| 参数 | 类型 | 是否必填 | 描述 |
-|------|------|---------|------|
-| `<api-key>` | 参数 | 是 | 用于认证的 API 密钥 |
-| `<instance-url>` | 参数 | 是 | OneUptime 实例 URL |
-| `--context-name` | 选项 | 否 | 上下文名称（默认：`"default"`） |
+| 参数             | 类型 | 是否必填 | 描述                            |
+| ---------------- | ---- | -------- | ------------------------------- |
+| `<api-key>`      | 参数 | 是       | 用于认证的 API 密钥             |
+| `<instance-url>` | 参数 | 是       | OneUptime 实例 URL              |
+| `--context-name` | 选项 | 否       | 上下文名称（默认：`"default"`） |
 
 ---
 
@@ -38,9 +38,9 @@ oneuptime context list
 oneuptime context use <name>
 ```
 
-| 参数 | 类型 | 是否必填 | 描述 |
-|------|------|---------|------|
-| `<name>` | 参数 | 是 | 要激活的上下文名称 |
+| 参数     | 类型 | 是否必填 | 描述               |
+| -------- | ---- | -------- | ------------------ |
+| `<name>` | 参数 | 是       | 要激活的上下文名称 |
 
 ---
 
@@ -62,9 +62,9 @@ oneuptime context current
 oneuptime context delete <name>
 ```
 
-| 参数 | 类型 | 是否必填 | 描述 |
-|------|------|---------|------|
-| `<name>` | 参数 | 是 | 要删除的上下文名称 |
+| 参数     | 类型 | 是否必填 | 描述               |
+| -------- | ---- | -------- | ------------------ |
+| `<name>` | 参数 | 是       | 要删除的上下文名称 |
 
 ---
 
@@ -80,13 +80,13 @@ oneuptime context delete <name>
 oneuptime <resource> list [options]
 ```
 
-| 选项 | 类型 | 默认值 | 描述 |
-|------|------|--------|------|
-| `--query <json>` | 字符串 | 无 | JSON 格式的过滤条件 |
-| `--limit <n>` | 数字 | `10` | 最大结果数 |
-| `--skip <n>` | 数字 | `0` | 跳过的结果数 |
-| `--sort <json>` | 字符串 | 无 | JSON 格式的排序顺序 |
-| `-o, --output` | 字符串 | `table` | 输出格式 |
+| 选项             | 类型   | 默认值  | 描述                |
+| ---------------- | ------ | ------- | ------------------- |
+| `--query <json>` | 字符串 | 无      | JSON 格式的过滤条件 |
+| `--limit <n>`    | 数字   | `10`    | 最大结果数          |
+| `--skip <n>`     | 数字   | `0`     | 跳过的结果数        |
+| `--sort <json>`  | 字符串 | 无      | JSON 格式的排序顺序 |
+| `-o, --output`   | 字符串 | `table` | 输出格式            |
 
 ---
 
@@ -98,10 +98,10 @@ oneuptime <resource> list [options]
 oneuptime <resource> get <id> [-o <format>]
 ```
 
-| 参数 | 类型 | 是否必填 | 描述 |
-|------|------|---------|------|
-| `<id>` | 参数 | 是 | 资源 ID（UUID） |
-| `-o, --output` | 选项 | 否 | 输出格式 |
+| 参数           | 类型 | 是否必填 | 描述            |
+| -------------- | ---- | -------- | --------------- |
+| `<id>`         | 参数 | 是       | 资源 ID（UUID） |
+| `-o, --output` | 选项 | 否       | 输出格式        |
 
 ---
 
@@ -113,11 +113,11 @@ oneuptime <resource> get <id> [-o <format>]
 oneuptime <resource> create [--data <json> | --file <path>] [-o <format>]
 ```
 
-| 选项 | 类型 | 是否必填 | 描述 |
-|------|------|---------|------|
+| 选项            | 类型   | 是否必填                    | 描述                |
+| --------------- | ------ | --------------------------- | ------------------- |
 | `--data <json>` | 字符串 | `--data` 或 `--file` 二选一 | JSON 格式的资源数据 |
-| `--file <path>` | 字符串 | `--data` 或 `--file` 二选一 | JSON 文件的路径 |
-| `-o, --output` | 字符串 | 否 | 输出格式 |
+| `--file <path>` | 字符串 | `--data` 或 `--file` 二选一 | JSON 文件的路径     |
+| `-o, --output`  | 字符串 | 否                          | 输出格式            |
 
 ---
 
@@ -129,11 +129,11 @@ oneuptime <resource> create [--data <json> | --file <path>] [-o <format>]
 oneuptime <resource> update <id> --data <json> [-o <format>]
 ```
 
-| 参数 | 类型 | 是否必填 | 描述 |
-|------|------|---------|------|
-| `<id>` | 参数 | 是 | 资源 ID |
-| `--data <json>` | 选项 | 是 | JSON 格式的待更新字段 |
-| `-o, --output` | 选项 | 否 | 输出格式 |
+| 参数            | 类型 | 是否必填 | 描述                  |
+| --------------- | ---- | -------- | --------------------- |
+| `<id>`          | 参数 | 是       | 资源 ID               |
+| `--data <json>` | 选项 | 是       | JSON 格式的待更新字段 |
+| `-o, --output`  | 选项 | 否       | 输出格式              |
 
 ---
 
@@ -145,10 +145,10 @@ oneuptime <resource> update <id> --data <json> [-o <format>]
 oneuptime <resource> delete <id> [--force]
 ```
 
-| 参数 | 类型 | 是否必填 | 描述 |
-|------|------|---------|------|
-| `<id>` | 参数 | 是 | 资源 ID |
-| `--force` | 选项 | 否 | 跳过确认提示 |
+| 参数      | 类型 | 是否必填 | 描述         |
+| --------- | ---- | -------- | ------------ |
+| `<id>`    | 参数 | 是       | 资源 ID      |
+| `--force` | 选项 | 否       | 跳过确认提示 |
 
 ---
 
@@ -160,9 +160,9 @@ oneuptime <resource> delete <id> [--force]
 oneuptime <resource> count [--query <json>]
 ```
 
-| 选项 | 类型 | 默认值 | 描述 |
-|------|------|--------|------|
-| `--query <json>` | 字符串 | 无 | JSON 格式的过滤条件 |
+| 选项             | 类型   | 默认值 | 描述                |
+| ---------------- | ------ | ------ | ------------------- |
+| `--query <json>` | 字符串 | 无     | JSON 格式的过滤条件 |
 
 ---
 
@@ -198,9 +198,9 @@ oneuptime whoami
 oneuptime resources [--type <type>]
 ```
 
-| 选项 | 类型 | 默认值 | 描述 |
-|------|------|--------|------|
-| `--type <type>` | 字符串 | 无 | 按 `database` 或 `analytics` 过滤 |
+| 选项            | 类型   | 默认值 | 描述                              |
+| --------------- | ------ | ------ | --------------------------------- |
+| `--type <type>` | 字符串 | 无     | 按 `database` 或 `analytics` 过滤 |
 
 ---
 
@@ -208,27 +208,27 @@ oneuptime resources [--type <type>]
 
 这些标志可用于所有命令：
 
-| 选项 | 描述 |
-|------|------|
-| `--api-key <key>` | 覆盖 API 密钥 |
-| `--url <url>` | 覆盖实例 URL |
-| `--context <name>` | 使用特定上下文 |
+| 选项                    | 描述                              |
+| ----------------------- | --------------------------------- |
+| `--api-key <key>`       | 覆盖 API 密钥                     |
+| `--url <url>`           | 覆盖实例 URL                      |
+| `--context <name>`      | 使用特定上下文                    |
 | `-o, --output <format>` | 输出格式：`json`、`table`、`wide` |
-| `--no-color` | 禁用彩色输出 |
-| `--help` | 显示帮助 |
-| `--version` | 显示版本 |
+| `--no-color`            | 禁用彩色输出                      |
+| `--help`                | 显示帮助                          |
+| `--version`             | 显示版本                          |
 
 ## API 路由
 
 以下是 CLI 命令与 API 端点的映射关系，供参考：
 
-| 命令 | 方法 | 端点 |
-|------|------|------|
-| `list` | POST | `/api/<resource>/get-list` |
-| `get` | POST | `/api/<resource>/<id>/get-item` |
-| `create` | POST | `/api/<resource>` |
-| `update` | PUT | `/api/<resource>/<id>/` |
-| `delete` | DELETE | `/api/<resource>/<id>/` |
-| `count` | POST | `/api/<resource>/count` |
+| 命令     | 方法   | 端点                            |
+| -------- | ------ | ------------------------------- |
+| `list`   | POST   | `/api/<resource>/get-list`      |
+| `get`    | POST   | `/api/<resource>/<id>/get-item` |
+| `create` | POST   | `/api/<resource>`               |
+| `update` | PUT    | `/api/<resource>/<id>/`         |
+| `delete` | DELETE | `/api/<resource>/<id>/`         |
+| `count`  | POST   | `/api/<resource>/count`         |
 
 所有请求都包含用于认证的 `APIKey` 请求头。

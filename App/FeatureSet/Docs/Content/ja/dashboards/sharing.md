@@ -82,9 +82,12 @@
 公開ダッシュボードは iframe で自社サイトに埋め込めます:
 
 ```html
-<iframe src="https://dashboard.acme.com/view"
-        width="100%" height="800"
-        frameborder="0"></iframe>
+<iframe
+  src="https://dashboard.acme.com/view"
+  width="100%"
+  height="800"
+  frameborder="0"
+></iframe>
 ```
 
 ダッシュボードにマスターパスワードがある場合、訪問者は iframe 内でパスワード入力を求められます。

@@ -28,19 +28,19 @@ Sélectionnez un ou plusieurs services depuis lesquels surveiller les profils. L
 
 ### Filtres de profils
 
-| Filtre | Description | Obligatoire |
-|--------|-------------|-------------|
-| Types de profils | Filtrer par noms de types de profils (ex. : CPU, mémoire, goroutines) | Non |
-| Attributs | Paires clé-valeur pour filtrer sur des attributs de profils personnalisés | Non |
-| Fenêtre temporelle | Jusqu'où chercher les profils (en secondes, par défaut : 60) | Non |
+| Filtre             | Description                                                               | Obligatoire |
+| ------------------ | ------------------------------------------------------------------------- | ----------- |
+| Types de profils   | Filtrer par noms de types de profils (ex. : CPU, mémoire, goroutines)     | Non         |
+| Attributs          | Paires clé-valeur pour filtrer sur des attributs de profils personnalisés | Non         |
+| Fenêtre temporelle | Jusqu'où chercher les profils (en secondes, par défaut : 60)              | Non         |
 
 ## Critères de surveillance
 
 ### Types de vérifications disponibles
 
-| Type de vérification | Description |
-|----------------------|-------------|
-| Nombre de profils | Le nombre de profils correspondant à vos filtres dans la fenêtre temporelle |
+| Type de vérification | Description                                                                 |
+| -------------------- | --------------------------------------------------------------------------- |
+| Nombre de profils    | Le nombre de profils correspondant à vos filtres dans la fenêtre temporelle |
 
 ### Types de filtres
 

@@ -10,12 +10,12 @@ Cada workflow comienza con un **disparador** al principio. Todo lo demás es un 
 
 ## Qué hay en un bloque
 
-| Campo | Qué hace |
-| --- | --- |
-| **Título** | El nombre que aparece en el lienzo. Renómbralo para que los workflows complejos sean más fáciles de leer. |
-| **Configuración** | Lo que el bloque necesita para hacer su trabajo: una URL, un canal de Slack, el cuerpo de un mensaje, etc. Los campos obligatorios están marcados con un asterisco. |
-| **Entrada** | El punto en la izquierda donde llegan las líneas desde bloques anteriores. |
-| **Salidas** | Los puntos en la derecha donde salen las líneas hacia los siguientes bloques. Muchos bloques tienen salidas separadas de **éxito** y **error** para que puedas manejar ambos casos. |
+| Campo             | Qué hace                                                                                                                                                                            |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Título**        | El nombre que aparece en el lienzo. Renómbralo para que los workflows complejos sean más fáciles de leer.                                                                           |
+| **Configuración** | Lo que el bloque necesita para hacer su trabajo: una URL, un canal de Slack, el cuerpo de un mensaje, etc. Los campos obligatorios están marcados con un asterisco.                 |
+| **Entrada**       | El punto en la izquierda donde llegan las líneas desde bloques anteriores.                                                                                                          |
+| **Salidas**       | Los puntos en la derecha donde salen las líneas hacia los siguientes bloques. Muchos bloques tienen salidas separadas de **éxito** y **error** para que puedas manejar ambos casos. |
 
 ## Conectar bloques
 

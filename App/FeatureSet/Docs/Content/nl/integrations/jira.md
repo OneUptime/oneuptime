@@ -36,6 +36,7 @@ Nu kun je `Basic {{variable.JIRA_AUTH}}` gebruiken als auth-header en het token 
 1. Open **Workflows → Create Workflow**, geef het de naam `Incidents → Jira`, en open de **Builder**.
 2. Sleep een **Incident**-trigger op het canvas en kies het event **On Create**. Hernoem het naar `Incident`.
 3. Sleep een **API**-blok en verbind de trigger ermee. Configureer:
+
    - **Method**: `POST`
    - **URL**: `https://your-domain.atlassian.net/rest/api/3/issue`
    - **Headers**:
@@ -70,6 +71,7 @@ Nu kun je `Basic {{variable.JIRA_AUTH}}` gebruiken als auth-header en het token 
      ```
 
    Vervang `OPS` door je projectsleutel en `Bug` door een issuetype dat in dat project bestaat.
+
 4. **Sla op.** Laat de workflow uitgeschakeld totdat je hem hebt getest.
 
 ## Stap 3 — Test het
@@ -96,8 +98,9 @@ Om het OneUptime-incident op te lossen wanneer iemand de Jira-issue sluit, voeg 
 
 1. Maak een tweede workflow aan die start met een **Webhook**-trigger en kopieer de URL ervan.
 2. Ga in Jira naar **Project settings → Automation → Create rule**:
-   - **Trigger**: *Issue transitioned* naar **Done** (of *Issue resolved*).
-   - **Action**: *Send web request* → methode `POST`, URL = je workflow-webhook-URL, body bevat de issuekey en het OneUptime-incident-id, bijv.:
+
+   - **Trigger**: _Issue transitioned_ naar **Done** (of _Issue resolved_).
+   - **Action**: _Send web request_ → methode `POST`, URL = je workflow-webhook-URL, body bevat de issuekey en het OneUptime-incident-id, bijv.:
 
      ```json
      { "issueKey": "{{issue.key}}", "status": "resolved" }
@@ -121,16 +124,20 @@ Om de exacte veldnamen te ontdekken die een project verwacht, roep je Jira's ein
 ## Probleemoplossing
 
 **`401 Unauthorized`.**
+
 - Hercodeer `email:api_token` en update de variabele `JIRA_AUTH`. Een afsluitende regelafbreking is de gebruikelijke boosdoener — gebruik `printf` (niet `echo`) bij het coderen.
 - Bevestig dat het account waarvan de API-token afkomstig is issues kan aanmaken in het project.
 
 **`400 Bad Request` met vermelding van een veld.**
+
 - Het issuetype of een verplicht veld klopt niet. Controleer de naam van het **issuetype** van het project en of het verplichte aangepaste velden heeft. Gebruik `createmeta` (hierboven) om te zien wat verplicht is.
 
 **`404 Not Found`.**
+
 - Controleer nogmaals de basis-URL en of je `/rest/api/3/issue` (Cloud) of `/rest/api/2/issue` (Server/Data Center) aanroept.
 
 **De beschrijving wordt als één regel weergegeven / ziet er vreemd uit.**
+
 - v3 vereist het Atlassian Document Format zoals hierboven getoond. Als je liever platte tekst verstuurt, gebruik dan het eindpunt `/rest/api/2/issue` met `"description": "{{Incident.description}}"` als gewone string.
 
 ## Waar verder lezen

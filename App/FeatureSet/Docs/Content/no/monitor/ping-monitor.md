@@ -31,11 +31,11 @@ Du kan konfigurere kriterier for å bestemme når verten anses som tilgjengelig,
 
 ### Tilgjengelige kontrolltyper
 
-| Kontrolltype | Beskrivelse |
-|-------------|-------------|
-| Is Online | Om verten svarer på ping-forespørsler |
+| Kontrolltype          | Beskrivelse                                          |
+| --------------------- | ---------------------------------------------------- |
+| Is Online             | Om verten svarer på ping-forespørsler                |
 | Response Time (in ms) | Tur-retur-tid for ping-forespørselen i millisekunder |
-| Is Request Timeout | Om ping-forespørselen fikk tidsavbrudd |
+| Is Request Timeout    | Om ping-forespørselen fikk tidsavbrudd               |
 
 ### Filtertyper
 

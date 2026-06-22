@@ -98,10 +98,10 @@ provider "oneuptime" {
 
 ### Opciones de configuración
 
-| Argumento | Variable de entorno | Descripción | Requerido |
-|----------|---------------------|-------------|----------|
-| `oneuptime_url` | `ONEUPTIME_URL` | URL de OneUptime | Sí |
-| `api_key` | `ONEUPTIME_API_KEY` | Clave de API de OneUptime | Sí |
+| Argumento       | Variable de entorno | Descripción               | Requerido |
+| --------------- | ------------------- | ------------------------- | --------- |
+| `oneuptime_url` | `ONEUPTIME_URL`     | URL de OneUptime          | Sí        |
+| `api_key`       | `ONEUPTIME_API_KEY` | Clave de API de OneUptime | Sí        |
 
 ## Inicio rápido
 
@@ -195,11 +195,11 @@ terraform {
 
 **Crítico**: Los clientes auto-alojados deben fijar la versión del proveedor para que coincida con su instalación de OneUptime:
 
-| Versión de OneUptime | Versión del proveedor | Configuración |
-|-------------------|------------------|---------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| 7.2.x | 7.2.x | `version = "~> 7.2.0"` |
+| Versión de OneUptime | Versión del proveedor | Configuración          |
+| -------------------- | --------------------- | ---------------------- |
+| 7.0.x                | 7.0.x                 | `version = "~> 7.0.0"` |
+| 7.1.x                | 7.1.x                 | `version = "~> 7.1.0"` |
+| 7.2.x                | 7.2.x                 | `version = "~> 7.2.0"` |
 
 Ejemplo para OneUptime 7.0.123:
 
@@ -219,26 +219,33 @@ terraform {
 El proveedor Terraform de OneUptime admite los siguientes recursos:
 
 ### Recursos principales
+
 - `oneuptime_team`: Gestionar equipos
 
 ### Monitoreo
+
 - `oneuptime_monitor`: Crear y gestionar monitores
 - `oneuptime_probe`: Gestionar sondas de monitoreo
 
 ### Gestión de guardia
+
 - `oneuptime_on_call_duty_policy`: Configurar horarios de guardia
 
 ### Páginas de estado
+
 - `oneuptime_status_page`: Crear páginas de estado
 
 ### Catálogo de servicios
+
 - `oneuptime_service_catalog`: Gestionar entradas del catálogo de servicios
 
 ### Catálogo de servicios
+
 - `oneuptime_service`: Definir servicios
 - `oneuptime_service_dependency`: Mapear dependencias de servicios
 
 ### Fuentes de datos
+
 Nota: Las fuentes de datos no están disponibles actualmente en el proveedor ya que no se definen datasources en el esquema del proveedor.
 
 ## Ejemplos
@@ -326,10 +333,12 @@ provider "oneuptime" {
 ### 1. Gestión de versiones
 
 **Para clientes en la nube:**
+
 - Usa el versionado semántico con `~>` para obtener actualizaciones compatibles
 - Revisa el registro de cambios antes de actualizar versiones principales
 
 **Para clientes auto-alojados:**
+
 - Siempre fija a la versión exacta que coincida con tu instalación
 - Actualiza la versión del proveedor cuando actualices OneUptime
 - Prueba primero en un entorno que no sea de producción
@@ -464,15 +473,19 @@ terraform apply
 ### Problemas comunes
 
 1. **Desajuste de versiones (auto-alojado)**
+
    ```
    Error: API version incompatible
    ```
+
    **Solución**: Asegúrate de que la versión del proveedor coincida con la instalación de OneUptime
 
 2. **Problemas de autenticación**
+
    ```
    Error: Invalid API key
    ```
+
    **Solución**: Verifica la clave de API y los permisos
 
 3. **Recurso no encontrado**

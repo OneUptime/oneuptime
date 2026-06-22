@@ -24,11 +24,11 @@ helm repo update
 
 차트는 `preset`이라는 단일 최상위 옵션을 노출하며, 이는 Kubernetes 배포판에 호환되는 기본값을 선택합니다. 이 옵션은 직접 수동으로 조정해야 했을 항목들 — hostPath DaemonSet을 통해 로그를 전송할지 아니면 Kubernetes API를 통해 전송할지, 그리고 어떤 보안 컨텍스트를 적용할지 — 을 제어합니다.
 
-| `preset` | 사용 대상 | 로그 수집 |
-|---|---|---|
-| `standard` *(기본값)* | 자체 관리형 클러스터, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | hostPath를 통해 `/var/log/pods`를 읽는 DaemonSet (가장 낮은 오버헤드) |
-| `gke-autopilot` | **GKE Autopilot** | Kubernetes API 로그 테일러 Deployment (hostPath 없음, 호스트 접근 없음) |
-| `eks-fargate` | **EKS Fargate** | Kubernetes API 로그 테일러 Deployment (hostPath 없음, 호스트 접근 없음) |
+| `preset`              | 사용 대상                                                                            | 로그 수집                                                               |
+| --------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| `standard` _(기본값)_ | 자체 관리형 클러스터, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | hostPath를 통해 `/var/log/pods`를 읽는 DaemonSet (가장 낮은 오버헤드)   |
+| `gke-autopilot`       | **GKE Autopilot**                                                                    | Kubernetes API 로그 테일러 Deployment (hostPath 없음, 호스트 접근 없음) |
+| `eks-fargate`         | **EKS Fargate**                                                                      | Kubernetes API 로그 테일러 Deployment (hostPath 없음, 호스트 접근 없음) |
 
 확실하지 않다면 `standard`로 시작하세요. 설치가 `hostPath`를 언급하는 Pod Security 오류로 실패하면 `preset=gke-autopilot`(또는 Fargate에서는 `eks-fargate`)으로 다시 실행하면 작동합니다.
 
@@ -208,19 +208,19 @@ kubectl delete namespace oneuptime-agent
 
 ## 수집되는 항목
 
-| 카테고리 | 데이터 |
-|----------|------|
-| **노드 메트릭** | CPU 사용률, 메모리 사용량, 파일 시스템 사용량, 네트워크 I/O |
-| **파드 메트릭** | CPU 사용량, 메모리 사용량, 네트워크 I/O, 재시작 |
-| **컨테이너 메트릭** | 컨테이너별 CPU 사용량, 메모리 사용량 |
-| **클러스터 메트릭** | 노드 상태, 할당 가능 리소스, 파드 수 |
-| **Kubernetes 이벤트** | 경고, 오류, 스케줄링 이벤트 |
-| **파드 로그** | 모든 컨테이너의 stdout/stderr 로그 (표준 클러스터에서는 hostPath DaemonSet을 통해, Autopilot / Fargate에서는 Kubernetes API를 통해) |
-| **애플리케이션 트레이스** *(eBPF를 통해, 기본 활성화)* | 모든 파드의 HTTP, gRPC, SQL/Redis 스팬 — SDK나 코드 변경 없음 |
-| **HTTP RED 메트릭** *(eBPF를 통해)* | 서비스별 `http.server.request.duration`, 요청 및 응답 본문 크기 |
-| **서비스 그래프** *(eBPF를 통해)* | 호출자 → 피호출자 요청 속도, 지연 시간 및 오류 엣지 — 서비스 맵 뷰를 구동 |
-| **네트워크 흐름 메트릭** *(eBPF를 통해)* | k8s 메타데이터와 함께 파드 간 TCP/UDP 바이트 및 패킷 카운터 |
-| **TCP 통계** *(eBPF를 통해)* | 노드 수준 RTT, 실패한 연결 및 재전송 카운터 |
+| 카테고리                                               | 데이터                                                                                                                              |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **노드 메트릭**                                        | CPU 사용률, 메모리 사용량, 파일 시스템 사용량, 네트워크 I/O                                                                         |
+| **파드 메트릭**                                        | CPU 사용량, 메모리 사용량, 네트워크 I/O, 재시작                                                                                     |
+| **컨테이너 메트릭**                                    | 컨테이너별 CPU 사용량, 메모리 사용량                                                                                                |
+| **클러스터 메트릭**                                    | 노드 상태, 할당 가능 리소스, 파드 수                                                                                                |
+| **Kubernetes 이벤트**                                  | 경고, 오류, 스케줄링 이벤트                                                                                                         |
+| **파드 로그**                                          | 모든 컨테이너의 stdout/stderr 로그 (표준 클러스터에서는 hostPath DaemonSet을 통해, Autopilot / Fargate에서는 Kubernetes API를 통해) |
+| **애플리케이션 트레이스** _(eBPF를 통해, 기본 활성화)_ | 모든 파드의 HTTP, gRPC, SQL/Redis 스팬 — SDK나 코드 변경 없음                                                                       |
+| **HTTP RED 메트릭** _(eBPF를 통해)_                    | 서비스별 `http.server.request.duration`, 요청 및 응답 본문 크기                                                                     |
+| **서비스 그래프** _(eBPF를 통해)_                      | 호출자 → 피호출자 요청 속도, 지연 시간 및 오류 엣지 — 서비스 맵 뷰를 구동                                                           |
+| **네트워크 흐름 메트릭** _(eBPF를 통해)_               | k8s 메타데이터와 함께 파드 간 TCP/UDP 바이트 및 패킷 카운터                                                                         |
+| **TCP 통계** _(eBPF를 통해)_                           | 노드 수준 RTT, 실패한 연결 및 재전송 카운터                                                                                         |
 
 ## eBPF를 통한 애플리케이션 트레이스 및 HTTP 메트릭 (기본 활성화)
 
@@ -250,15 +250,15 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 모두 기본적으로 활성화되어 있습니다. `--set ebpf.features.<name>=false`로 어느 것이든 끌 수 있습니다:
 
-| `ebpf.features.*` | 기본값 | 추가하는 항목 |
-|---|---|---|
-| `httpMetrics` | on | 서비스별 HTTP/gRPC RED 메트릭 (요청 속도, 지연 시간, 오류) |
-| `spanMetrics` | on | 스팬별 요청/응답 크기 및 지속 시간 |
-| `serviceGraph` | on | 호출자 → 피호출자 엣지 메트릭, 서비스 맵을 구동 |
-| `hostMetrics` | on | 계측된 프로세스별 CPU 및 메모리 |
-| `networkMetrics` | on | 파드 간 TCP/UDP 흐름 카운터 |
-| `networkInterZoneMetrics` | off | 네트워크 메트릭의 영역 간 변형 (카디널리티가 두 배가 됨) |
-| `tcpStats` | on | 노드 수준 TCP RTT, 실패한 연결, 재전송 카운터 |
+| `ebpf.features.*`         | 기본값 | 추가하는 항목                                              |
+| ------------------------- | ------ | ---------------------------------------------------------- |
+| `httpMetrics`             | on     | 서비스별 HTTP/gRPC RED 메트릭 (요청 속도, 지연 시간, 오류) |
+| `spanMetrics`             | on     | 스팬별 요청/응답 크기 및 지속 시간                         |
+| `serviceGraph`            | on     | 호출자 → 피호출자 엣지 메트릭, 서비스 맵을 구동            |
+| `hostMetrics`             | on     | 계측된 프로세스별 CPU 및 메모리                            |
+| `networkMetrics`          | on     | 파드 간 TCP/UDP 흐름 카운터                                |
+| `networkInterZoneMetrics` | off    | 네트워크 메트릭의 영역 간 변형 (카디널리티가 두 배가 됨)   |
+| `tcpStats`                | on     | 노드 수준 TCP RTT, 실패한 연결, 재전송 카운터              |
 
 서비스 간 트레이스 컨텍스트 전파도 기본적으로 활성화되어 있습니다 — OBI는 아웃바운드 HTTP/TCP에 W3C `traceparent`를 주입하므로, 파드 A → 파드 B를 가로지르는 요청이 단일 트레이스로 표시되며 어디에서도 SDK 변경이 필요 없습니다. `--set ebpf.contextPropagation=false`로 끌 수 있습니다.
 

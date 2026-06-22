@@ -24,19 +24,19 @@ DNSSEC-monitorer validerar hela förtroendekedjan från rotzonen ner till din do
 
 ### Grundinställningar
 
-| Fält | Beskrivning | Obligatorisk |
-|------|-------------|--------------|
-| Zon (domännamn) | Zonen att validera via DNSSEC (t.ex. `example.com`) | Ja |
-| Resolvrar | Kommaseparerad lista över validerande resolvrar att fråga (t.ex. `1.1.1.1, 8.8.8.8, 9.9.9.9`) | Ja |
-| Kontrollera namnserverkonsekvens | Frågar varje auktoritativ namnserver direkt och verifierar att de returnerar samma SOA-serienummer | Nej |
+| Fält                             | Beskrivning                                                                                        | Obligatorisk |
+| -------------------------------- | -------------------------------------------------------------------------------------------------- | ------------ |
+| Zon (domännamn)                  | Zonen att validera via DNSSEC (t.ex. `example.com`)                                                | Ja           |
+| Resolvrar                        | Kommaseparerad lista över validerande resolvrar att fråga (t.ex. `1.1.1.1, 8.8.8.8, 9.9.9.9`)      | Ja           |
+| Kontrollera namnserverkonsekvens | Frågar varje auktoritativ namnserver direkt och verifierar att de returnerar samma SOA-serienummer | Nej          |
 
 ### Avancerade inställningar
 
-| Fält | Beskrivning | Standard |
-|------|-------------|----------|
-| Varning om signaturutgång (dagar) | Standardtröskel för RRSIG-utgångsfiltret | 7 |
-| Timeout (ms) | Hur länge man väntar på varje DNS-fråga | 10000 |
-| Återförsök | Antal återförsök vid fel | 3 |
+| Fält                              | Beskrivning                              | Standard |
+| --------------------------------- | ---------------------------------------- | -------- |
+| Varning om signaturutgång (dagar) | Standardtröskel för RRSIG-utgångsfiltret | 7        |
+| Timeout (ms)                      | Hur länge man väntar på varje DNS-fråga  | 10000    |
+| Återförsök                        | Antal återförsök vid fel                 | 3        |
 
 ## Övervakningskriterier
 
@@ -44,15 +44,15 @@ Du kan konfigurera kriterier för att avgöra när din zon anses vara online, de
 
 ### Tillgängliga kontrolltyper
 
-| Kontrolltyp | Beskrivning |
-|------------|-------------|
-| DNSSEC-kedjan är giltig | Hela valideringskedjan (root → TLD → zon) löses korrekt |
-| DNSSEC DNSKEY-post finns | Zonen publicerar minst en DNSKEY-post |
-| DNSSEC DS-post finns hos överordnad | Den överordnade zonen publicerar en DS-post som matchar zonens KSK |
-| DNSSEC-signatur löper ut om dagar | Antal dagar tills den närmast utgående RRSIG-signaturen löper ut |
+| Kontrolltyp                          | Beskrivning                                                         |
+| ------------------------------------ | ------------------------------------------------------------------- |
+| DNSSEC-kedjan är giltig              | Hela valideringskedjan (root → TLD → zon) löses korrekt             |
+| DNSSEC DNSKEY-post finns             | Zonen publicerar minst en DNSKEY-post                               |
+| DNSSEC DS-post finns hos överordnad  | Den överordnade zonen publicerar en DS-post som matchar zonens KSK  |
+| DNSSEC-signatur löper ut om dagar    | Antal dagar tills den närmast utgående RRSIG-signaturen löper ut    |
 | DNSSEC-resolverkonsensus (AD-flagga) | Varje förfrågad resolver returnerar AD-flaggan (Authenticated Data) |
-| DNSSEC-namnservrar är konsekventa | Alla auktoritativa namnservrar returnerar samma SOA-serienummer |
-| DNSSEC är giltig | Samlat godkänt/underkänt över alla valideringskontroller |
+| DNSSEC-namnservrar är konsekventa    | Alla auktoritativa namnservrar returnerar samma SOA-serienummer     |
+| DNSSEC är giltig                     | Samlat godkänt/underkänt över alla valideringskontroller            |
 
 ### Filtertyper
 

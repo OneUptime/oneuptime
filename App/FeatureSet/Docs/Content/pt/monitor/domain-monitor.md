@@ -24,16 +24,16 @@ Os monitores de domínio consultam dados WHOIS para seus domínios para rastrear
 
 ### Configurações Básicas
 
-| Campo | Descrição | Obrigatório |
-|-------|-------------|----------|
-| Domain Name | O domínio para monitorar (ex.: `example.com`) | Sim |
+| Campo       | Descrição                                     | Obrigatório |
+| ----------- | --------------------------------------------- | ----------- |
+| Domain Name | O domínio para monitorar (ex.: `example.com`) | Sim         |
 
 ### Configurações Avançadas
 
-| Campo | Descrição | Padrão |
-|-------|-------------|---------|
-| Timeout (ms) | Tempo de espera por uma resposta WHOIS | 10000 |
-| Retries | Número de tentativas de repetição em caso de falha | 3 |
+| Campo        | Descrição                                          | Padrão |
+| ------------ | -------------------------------------------------- | ------ |
+| Timeout (ms) | Tempo de espera por uma resposta WHOIS             | 10000  |
+| Retries      | Número de tentativas de repetição em caso de falha | 3      |
 
 ## Critérios de Monitoramento
 
@@ -41,13 +41,13 @@ Você pode configurar critérios para determinar quando seu domínio é consider
 
 ### Tipos de Verificação Disponíveis
 
-| Tipo de Verificação | Descrição |
-|------------|-------------|
+| Tipo de Verificação    | Descrição                                           |
+| ---------------------- | --------------------------------------------------- |
 | Domain Expires In Days | Número de dias até que o registro do domínio expire |
-| Domain Registrar | O nome do registrador do domínio |
-| Domain Name Server | Hostnames dos servidores de nomes para o domínio |
-| Domain Status Code | Códigos de status WHOIS do domínio |
-| Domain Is Expired | Se o domínio expirou |
+| Domain Registrar       | O nome do registrador do domínio                    |
+| Domain Name Server     | Hostnames dos servidores de nomes para o domínio    |
+| Domain Status Code     | Códigos de status WHOIS do domínio                  |
+| Domain Is Expired      | Se o domínio expirou                                |
 
 ### Tipos de Filtro
 

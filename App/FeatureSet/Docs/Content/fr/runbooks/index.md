@@ -24,13 +24,13 @@ La gestion des incidents fait souvent la différence entre une panne d'une minut
 
 Quelques termes reviennent dans toute la documentation runbook. Clarifions-les d'abord :
 
-| Terme | Signification |
-| --- | --- |
-| **Runbook** | Le modèle. Une procédure nommée et réutilisable, avec une liste ordonnée d'étapes et un drapeau `isEnabled`. |
-| **Étape** | Un élément d'un runbook. Possède un type (Manuelle / JavaScript / HTTP / Bash), un titre, une description et une configuration spécifique au type. |
-| **Règle de runbook** | Un motif qui attache automatiquement un ou plusieurs runbooks à des incidents, alertes ou maintenances planifiées lorsque leur titre ou description correspond à une expression régulière. |
-| **Exécution** | Une exécution d'un runbook. Créée lorsqu'une règle se déclenche, lorsqu'on clique « Exécuter le runbook » sur un événement, ou lorsqu'on clique « Exécuter maintenant » sur le runbook lui-même. Contient un snapshot des étapes ainsi que le statut et la sortie de chaque étape. |
-| **Snapshot** | La copie figée des étapes du runbook qui vit sur chaque exécution. Permet de modifier le modèle plus tard sans réécrire l'historique. |
+| Terme                | Signification                                                                                                                                                                                                                                                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Runbook**          | Le modèle. Une procédure nommée et réutilisable, avec une liste ordonnée d'étapes et un drapeau `isEnabled`.                                                                                                                                                                       |
+| **Étape**            | Un élément d'un runbook. Possède un type (Manuelle / JavaScript / HTTP / Bash), un titre, une description et une configuration spécifique au type.                                                                                                                                 |
+| **Règle de runbook** | Un motif qui attache automatiquement un ou plusieurs runbooks à des incidents, alertes ou maintenances planifiées lorsque leur titre ou description correspond à une expression régulière.                                                                                         |
+| **Exécution**        | Une exécution d'un runbook. Créée lorsqu'une règle se déclenche, lorsqu'on clique « Exécuter le runbook » sur un événement, ou lorsqu'on clique « Exécuter maintenant » sur le runbook lui-même. Contient un snapshot des étapes ainsi que le statut et la sortie de chaque étape. |
+| **Snapshot**         | La copie figée des étapes du runbook qui vit sur chaque exécution. Permet de modifier le modèle plus tard sans réécrire l'historique.                                                                                                                                              |
 
 ## Le cycle de vie d'un runbook
 
@@ -44,25 +44,25 @@ Quelques termes reviennent dans toute la documentation runbook. Clarifions-les d
 
 Un guide rapide de décision. La présentation complète se trouve dans [Rédiger un runbook](/docs/runbooks/authoring).
 
-| Type d'étape | À utiliser quand… | Exemple |
-| --- | --- | --- |
-| **Manuelle** | Un humain doit vérifier quelque chose, porter un jugement ou effectuer une action que OneUptime ne peut pas observer. | « Confirmer que le trafic est basculé sur la région secondaire dans le tableau du load balancer. » |
-| **JavaScript** | Vous avez besoin d'un petit calcul contenu — interroger un service de configuration, transformer une charge utile, exécuter une logique avant l'étape suivante. Tourne en bac à sable sur un [Agent de runbook](/docs/runbooks/agents) dans votre propre infrastructure. | Calculer le retard de réplication actuel et décider si l'on continue. |
-| **Requête HTTP** | Vous appelez une API existante — votre endpoint d'administration, un fournisseur cloud, PagerDuty, Slack. | `POST` vers votre orchestrateur de bascule. |
-| **Bash** | Vous devez exécuter des commandes shell sur votre propre infrastructure — redémarrer un service, lancer `kubectl`, appeler un script de déploiement. Nécessite un [Agent de runbook](/docs/runbooks/agents) installé dans votre environnement. | Redémarrer un service, `kubectl rollout restart`, exécuter un script de récupération. |
+| Type d'étape     | À utiliser quand…                                                                                                                                                                                                                                                        | Exemple                                                                                            |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| **Manuelle**     | Un humain doit vérifier quelque chose, porter un jugement ou effectuer une action que OneUptime ne peut pas observer.                                                                                                                                                    | « Confirmer que le trafic est basculé sur la région secondaire dans le tableau du load balancer. » |
+| **JavaScript**   | Vous avez besoin d'un petit calcul contenu — interroger un service de configuration, transformer une charge utile, exécuter une logique avant l'étape suivante. Tourne en bac à sable sur un [Agent de runbook](/docs/runbooks/agents) dans votre propre infrastructure. | Calculer le retard de réplication actuel et décider si l'on continue.                              |
+| **Requête HTTP** | Vous appelez une API existante — votre endpoint d'administration, un fournisseur cloud, PagerDuty, Slack.                                                                                                                                                                | `POST` vers votre orchestrateur de bascule.                                                        |
+| **Bash**         | Vous devez exécuter des commandes shell sur votre propre infrastructure — redémarrer un service, lancer `kubectl`, appeler un script de déploiement. Nécessite un [Agent de runbook](/docs/runbooks/agents) installé dans votre environnement.                           | Redémarrer un service, `kubectl rollout restart`, exécuter un script de récupération.              |
 
 Vous pouvez mélanger les quatre types dans un même runbook — la force des runbooks réside dans l'entrelacement de la vérification humaine et de l'automatisation.
 
 ## Où vivent les runbooks dans le tableau de bord
 
-| Page | Ce que vous y faites |
-| --- | --- |
-| **Analyse & Automatisation → Runbooks** | Parcourir, créer et modifier les modèles de runbook. |
-| **Onglet Étapes d'un runbook** | Rédiger et réorganiser la liste d'étapes. |
-| **Onglet Exécutions d'un runbook** | Voir chaque exécution de ce runbook avec des filtres par statut. |
-| **Bouton « Exécuter maintenant » d'un runbook** | Lancer une exécution ad hoc qui n'est attachée à aucun événement. |
-| **Incidents / Alertes / Maintenances Planifiées → Paramètres → Règles de runbook** | Créer les règles de déclenchement automatique par type d'entité. |
-| **Un incident / alerte / événement de maintenance → Onglet Runbooks** | Voir les exécutions attachées à cet événement et cliquer **Exécuter le runbook** pour un lancement manuel. |
+| Page                                                                               | Ce que vous y faites                                                                                       |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Analyse & Automatisation → Runbooks**                                            | Parcourir, créer et modifier les modèles de runbook.                                                       |
+| **Onglet Étapes d'un runbook**                                                     | Rédiger et réorganiser la liste d'étapes.                                                                  |
+| **Onglet Exécutions d'un runbook**                                                 | Voir chaque exécution de ce runbook avec des filtres par statut.                                           |
+| **Bouton « Exécuter maintenant » d'un runbook**                                    | Lancer une exécution ad hoc qui n'est attachée à aucun événement.                                          |
+| **Incidents / Alertes / Maintenances Planifiées → Paramètres → Règles de runbook** | Créer les règles de déclenchement automatique par type d'entité.                                           |
+| **Un incident / alerte / événement de maintenance → Onglet Runbooks**              | Voir les exécutions attachées à cet événement et cliquer **Exécuter le runbook** pour un lancement manuel. |
 
 ## Cas d'usage courants
 
@@ -80,13 +80,13 @@ Supposons que vous vouliez que chaque incident contenant « db-primary » dans l
 
 **1. Créer le runbook.** Sous **Runbooks → Créer un runbook**, nommez-le « Bascule DB primary » et ajoutez ces étapes :
 
-| # | Type | Titre |
-| --- | --- | --- |
-| 1 | JavaScript | Capturer le retard de réplication avant bascule |
-| 2 | Manuelle | Confirmer la santé du réplica dans le tableau DBA |
-| 3 | HTTP | `POST` vers l'orchestrateur de bascule |
-| 4 | Manuelle | Vérifier que les écritures vont vers le nouveau primary |
-| 5 | HTTP | Poster le tout-clair dans `#db-incidents` sur Slack |
+| #   | Type       | Titre                                                   |
+| --- | ---------- | ------------------------------------------------------- |
+| 1   | JavaScript | Capturer le retard de réplication avant bascule         |
+| 2   | Manuelle   | Confirmer la santé du réplica dans le tableau DBA       |
+| 3   | HTTP       | `POST` vers l'orchestrateur de bascule                  |
+| 4   | Manuelle   | Vérifier que les écritures vont vers le nouveau primary |
+| 5   | HTTP       | Poster le tout-clair dans `#db-incidents` sur Slack     |
 
 **2. Ajouter une règle.** Sous **Incidents → Paramètres → Règles de runbook**, créez :
 

@@ -27,20 +27,23 @@ To integrate Microsoft Teams with your self-hosted OneUptime instance, you need 
 2. Click "Add a permission" and select "Microsoft Graph"
 
 **Add Delegated Permissions** (when acting on behalf of a signed-in user):
-   - **User.Read** - Required to get the authenticated user's profile information (display name, email) during the OAuth flow
-   - **Team.ReadBasic.All** - Required to list teams that the user is a member of when selecting which team to connect
-   - **Channel.ReadBasic.All** - Required to read channel information and list channels within teams for notification delivery
-   - **ChannelMessage.Send** - Required to send alert and incident notifications to Teams channels
+
+- **User.Read** - Required to get the authenticated user's profile information (display name, email) during the OAuth flow
+- **Team.ReadBasic.All** - Required to list teams that the user is a member of when selecting which team to connect
+- **Channel.ReadBasic.All** - Required to read channel information and list channels within teams for notification delivery
+- **ChannelMessage.Send** - Required to send alert and incident notifications to Teams channels
 
 **Add Application Permissions** (when acting as the app itself, without a signed-in user):
-   - **Team.ReadBasic.All** - Required to list all teams in the organization after admin consent is granted
-   - **Channel.ReadBasic.All** - Required to verify channel existence and retrieve channel details
-   - **ChannelMessage.Send** - Required to send messages to channels programmatically
+
+- **Team.ReadBasic.All** - Required to list all teams in the organization after admin consent is granted
+- **Channel.ReadBasic.All** - Required to verify channel existence and retrieve channel details
+- **ChannelMessage.Send** - Required to send messages to channels programmatically
 
 **Note:** The Bot Framework handles message delivery using Resource-Specific Consent (RSC) permissions defined in the Teams app manifest. These permissions are:
-   - **ChannelMessage.Send.Group** - Allows the bot to send messages to team channels
-   - **ChannelMessage.Read.Group** - Allows the bot to read channel messages for interactive commands
-   - **Channel.Create.Group** - Allows the bot to create channels when needed
+
+- **ChannelMessage.Send.Group** - Allows the bot to send messages to team channels
+- **ChannelMessage.Read.Group** - Allows the bot to read channel messages for interactive commands
+- **Channel.Create.Group** - Allows the bot to create channels when needed
 
 3. Click "Grant admin consent" for your organization
 
@@ -57,6 +60,7 @@ To integrate Microsoft Teams with your self-hosted OneUptime instance, you need 
 
 1. In the Azure Portal, navigate to "Azure Bot" and click "Create"
 2. Fill out the bot creation form:
+
    - **Bot handle:** oneuptime-bot
    - **Subscription:** Your Azure subscription
    - **Resource group:** Create a new one or use an existing one

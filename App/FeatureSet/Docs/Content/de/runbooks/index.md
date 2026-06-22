@@ -24,13 +24,13 @@ Vorfallreaktion entscheidet oft zwischen einem einminütigen Hänger und einem m
 
 Ein paar Begriffe tauchen in den restlichen Runbook-Docs immer wieder auf. Klären Sie diese zuerst:
 
-| Begriff | Bedeutung |
-| --- | --- |
-| **Runbook** | Die Vorlage. Eine benannte, wiederverwendbare Prozedur mit einer geordneten Schrittliste und einem `isEnabled`-Flag. |
-| **Schritt** | Ein Eintrag in einem Runbook. Hat einen Typ (Manuell / JavaScript / HTTP / Bash), einen Titel, eine Beschreibung und typspezifische Konfiguration. |
-| **Runbook-Regel** | Ein Muster, das eines oder mehrere Runbooks automatisch an Vorfälle, Warnmeldungen oder geplante Wartungsereignisse anhängt, wenn deren Titel oder Beschreibung einem Regex entspricht. |
-| **Ausführung** | Ein Lauf eines Runbooks. Wird erstellt, wenn eine Regel feuert, jemand „Runbook ausführen" auf einem Ereignis klickt oder jemand „Jetzt ausführen" auf dem Runbook selbst klickt. Enthält einen Snapshot der Schritte und den Status / die Ausgabe pro Schritt. |
-| **Snapshot** | Die eingefrorene Kopie der Runbook-Schritte, die auf jeder Ausführung lebt. Damit können Sie die Vorlage später bearbeiten, ohne die Historie umzuschreiben. |
+| Begriff           | Bedeutung                                                                                                                                                                                                                                                       |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Runbook**       | Die Vorlage. Eine benannte, wiederverwendbare Prozedur mit einer geordneten Schrittliste und einem `isEnabled`-Flag.                                                                                                                                            |
+| **Schritt**       | Ein Eintrag in einem Runbook. Hat einen Typ (Manuell / JavaScript / HTTP / Bash), einen Titel, eine Beschreibung und typspezifische Konfiguration.                                                                                                              |
+| **Runbook-Regel** | Ein Muster, das eines oder mehrere Runbooks automatisch an Vorfälle, Warnmeldungen oder geplante Wartungsereignisse anhängt, wenn deren Titel oder Beschreibung einem Regex entspricht.                                                                         |
+| **Ausführung**    | Ein Lauf eines Runbooks. Wird erstellt, wenn eine Regel feuert, jemand „Runbook ausführen" auf einem Ereignis klickt oder jemand „Jetzt ausführen" auf dem Runbook selbst klickt. Enthält einen Snapshot der Schritte und den Status / die Ausgabe pro Schritt. |
+| **Snapshot**      | Die eingefrorene Kopie der Runbook-Schritte, die auf jeder Ausführung lebt. Damit können Sie die Vorlage später bearbeiten, ohne die Historie umzuschreiben.                                                                                                    |
 
 ## Der Lebenszyklus eines Runbooks
 
@@ -44,25 +44,25 @@ Ein paar Begriffe tauchen in den restlichen Runbook-Docs immer wieder auf. Klär
 
 Ein schneller Entscheidungsguide. Die längere Erklärung steht in [Ein Runbook verfassen](/docs/runbooks/authoring).
 
-| Schritttyp | Greifen Sie hierzu, wenn… | Beispiel |
-| --- | --- | --- |
-| **Manuell** | Ein Mensch muss etwas verifizieren, ein Urteil fällen oder eine Aktion ausführen, die OneUptime nicht beobachten kann. | „Sekundären Region-Traffic auf dem Load-Balancer-Dashboard bestätigen." |
-| **JavaScript** | Sie brauchen eine kleine, abgeschlossene Berechnung — einen Config-Service abfragen, ein Payload transformieren, vor dem nächsten Schritt Logik laufen lassen. Läuft sandboxed auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur. | Aktuelles Replica-Lag berechnen und entscheiden, ob weitergemacht wird. |
-| **HTTP-Anfrage** | Sie rufen ein bestehendes API auf — Ihren eigenen Admin-Endpoint, einen Cloud-Provider, PagerDuty, Slack. | `POST` an Ihren Failover-Orchestrator. |
-| **Bash** | Sie müssen Shell-Befehle in Ihrer eigenen Infrastruktur ausführen — einen Dienst neu starten, `kubectl` aufrufen, ein Deploy-Skript aufrufen. Benötigt einen [Runbook-Agent](/docs/runbooks/agents), der in Ihrer Umgebung installiert ist. | Einen Dienst neu starten, `kubectl rollout restart` ausführen, ein Recovery-Skript aufrufen. |
+| Schritttyp       | Greifen Sie hierzu, wenn…                                                                                                                                                                                                                                       | Beispiel                                                                                     |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Manuell**      | Ein Mensch muss etwas verifizieren, ein Urteil fällen oder eine Aktion ausführen, die OneUptime nicht beobachten kann.                                                                                                                                          | „Sekundären Region-Traffic auf dem Load-Balancer-Dashboard bestätigen."                      |
+| **JavaScript**   | Sie brauchen eine kleine, abgeschlossene Berechnung — einen Config-Service abfragen, ein Payload transformieren, vor dem nächsten Schritt Logik laufen lassen. Läuft sandboxed auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur. | Aktuelles Replica-Lag berechnen und entscheiden, ob weitergemacht wird.                      |
+| **HTTP-Anfrage** | Sie rufen ein bestehendes API auf — Ihren eigenen Admin-Endpoint, einen Cloud-Provider, PagerDuty, Slack.                                                                                                                                                       | `POST` an Ihren Failover-Orchestrator.                                                       |
+| **Bash**         | Sie müssen Shell-Befehle in Ihrer eigenen Infrastruktur ausführen — einen Dienst neu starten, `kubectl` aufrufen, ein Deploy-Skript aufrufen. Benötigt einen [Runbook-Agent](/docs/runbooks/agents), der in Ihrer Umgebung installiert ist.                     | Einen Dienst neu starten, `kubectl rollout restart` ausführen, ein Recovery-Skript aufrufen. |
 
 Sie können alle vier in einem einzigen Runbook mischen — die Stärke von Runbooks liegt darin, menschliche Verifizierung mit Automatisierung zu verschränken.
 
 ## Wo Runbooks im Dashboard leben
 
-| Seite | Was Sie dort tun |
-| --- | --- |
-| **Analytics & Automation → Runbooks** | Runbook-Vorlagen durchsuchen, erstellen und bearbeiten. |
-| **Steps-Tab eines Runbooks** | Schrittliste verfassen und sortieren. |
-| **Executions-Tab eines Runbooks** | Jeden Lauf dieses Runbooks mit Statusfiltern sehen. |
-| **„Jetzt ausführen"-Button eines Runbooks** | Eine Ad-hoc-Ausführung starten, die an kein Ereignis gekoppelt ist. |
-| **Incidents / Alerts / Scheduled Maintenance → Settings → Runbook Rules** | Auto-Trigger-Regeln pro Entitätstyp erstellen. |
-| **Vorfall / Warnmeldung / Wartungsereignis → Runbooks-Tab** | Ausführungen sehen, die an dieses Ereignis angehängt sind, und **Runbook ausführen** für einen manuellen Lauf klicken. |
+| Seite                                                                     | Was Sie dort tun                                                                                                       |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Analytics & Automation → Runbooks**                                     | Runbook-Vorlagen durchsuchen, erstellen und bearbeiten.                                                                |
+| **Steps-Tab eines Runbooks**                                              | Schrittliste verfassen und sortieren.                                                                                  |
+| **Executions-Tab eines Runbooks**                                         | Jeden Lauf dieses Runbooks mit Statusfiltern sehen.                                                                    |
+| **„Jetzt ausführen"-Button eines Runbooks**                               | Eine Ad-hoc-Ausführung starten, die an kein Ereignis gekoppelt ist.                                                    |
+| **Incidents / Alerts / Scheduled Maintenance → Settings → Runbook Rules** | Auto-Trigger-Regeln pro Entitätstyp erstellen.                                                                         |
+| **Vorfall / Warnmeldung / Wartungsereignis → Runbooks-Tab**               | Ausführungen sehen, die an dieses Ereignis angehängt sind, und **Runbook ausführen** für einen manuellen Lauf klicken. |
 
 ## Häufige Anwendungsfälle
 
@@ -80,13 +80,13 @@ Angenommen, Sie möchten, dass jeder Vorfall mit „db-primary" im Titel automat
 
 **1. Runbook erstellen.** Unter **Runbooks → Runbook erstellen** nennen Sie es „DB-Primary-Failover" und fügen diese Schritte hinzu:
 
-| # | Typ | Titel |
-| --- | --- | --- |
-| 1 | JavaScript | Replica-Lag vor dem Failover erfassen |
-| 2 | Manuell | Replica-Gesundheit im DBA-Dashboard bestätigen |
-| 3 | HTTP | `POST` an den Failover-Orchestrator |
-| 4 | Manuell | Bestätigen, dass Writes nun an den neuen Primary gehen |
-| 5 | HTTP | Entwarnung an `#db-incidents` Slack posten |
+| #   | Typ        | Titel                                                  |
+| --- | ---------- | ------------------------------------------------------ |
+| 1   | JavaScript | Replica-Lag vor dem Failover erfassen                  |
+| 2   | Manuell    | Replica-Gesundheit im DBA-Dashboard bestätigen         |
+| 3   | HTTP       | `POST` an den Failover-Orchestrator                    |
+| 4   | Manuell    | Bestätigen, dass Writes nun an den neuen Primary gehen |
+| 5   | HTTP       | Entwarnung an `#db-incidents` Slack posten             |
 
 **2. Regel hinzufügen.** Unter **Incidents → Settings → Runbook Rules** erstellen Sie:
 

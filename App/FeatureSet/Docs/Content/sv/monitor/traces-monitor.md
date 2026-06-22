@@ -28,12 +28,12 @@ Välj en eller flera tjänster att övervaka spårningar från. Tjänster måste
 
 ### Span-filter
 
-| Filter | Beskrivning | Obligatorisk |
-|--------|-------------|--------------|
-| Span-statusar | Filtrera efter span-statuskod (OK, ERROR, UNSET) | Nej |
-| Span-namn | Textsökning för specifika span-namn (t.ex. operations- eller slutpunktsnamn) | Nej |
-| Attribut | Nyckel-värdepar för filtrering på anpassade span-attribut | Nej |
-| Tidsfönster | Hur långt bakåt man söker efter spans (i sekunder, standard: 60) | Nej |
+| Filter        | Beskrivning                                                                  | Obligatorisk |
+| ------------- | ---------------------------------------------------------------------------- | ------------ |
+| Span-statusar | Filtrera efter span-statuskod (OK, ERROR, UNSET)                             | Nej          |
+| Span-namn     | Textsökning för specifika span-namn (t.ex. operations- eller slutpunktsnamn) | Nej          |
+| Attribut      | Nyckel-värdepar för filtrering på anpassade span-attribut                    | Nej          |
+| Tidsfönster   | Hur långt bakåt man söker efter spans (i sekunder, standard: 60)             | Nej          |
 
 ### Span-statuskoder
 
@@ -45,9 +45,9 @@ Välj en eller flera tjänster att övervaka spårningar från. Tjänster måste
 
 ### Tillgängliga kontrolltyper
 
-| Kontrolltyp | Beskrivning |
-|------------|-------------|
-| Span-antal | Antalet spans som matchar dina filter i tidsfönstret |
+| Kontrolltyp | Beskrivning                                          |
+| ----------- | ---------------------------------------------------- |
+| Span-antal  | Antalet spans som matchar dina filter i tidsfönstret |
 
 ### Filtertyper
 

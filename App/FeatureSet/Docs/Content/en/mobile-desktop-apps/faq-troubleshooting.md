@@ -91,37 +91,44 @@ The PWA updates automatically whenever you open it while online. To force an upd
 ### Mobile App Issues
 
 **App won't sign in / "Network Error":**
+
 - Confirm the **Server URL** is correct and reachable from your phone.
 - Check that your phone is connected to the internet.
 - For self-hosted instances behind a VPN, ensure the VPN is active.
 
 **Push notifications delayed or missing (Android):**
+
 - Disable battery optimisation: **Settings → Apps → OneUptime On-Call → Battery → Unrestricted**.
 - Disable Data Saver for the app.
 - On Samsung devices, turn off **Device care → Battery → Background usage limits** for OneUptime On-Call.
 
 **Push notifications delayed or missing (iOS):**
+
 - Avoid Force-Quitting the app — iOS may pause background delivery.
 - Disable Low Power Mode while you are on-call.
 - Add OneUptime On-Call to any active Focus mode's allow list.
 
 **Face ID / Touch ID / fingerprint not working:**
+
 - Make sure biometrics are enrolled in your OS settings.
 - Re-enable biometric unlock from the **Settings** screen inside the OneUptime On-Call app.
 
 ### Desktop App (PWA) Issues
 
 **Install button missing:**
+
 - Use a supported browser (Chromium-based or Safari on macOS Sonoma+).
 - Ensure the OneUptime instance is served over HTTPS.
 - Wait for the page to finish loading, then check the address bar for the install icon.
 
 **Desktop notifications not appearing:**
+
 - Allow notifications when the browser prompts you.
 - Check OS notification settings (Windows Focus Assist, macOS Notifications, Linux notification daemon).
 - For self-hosted instances, ensure the [Push Notifications](/docs/self-hosted/push-notifications) configuration is complete.
 
 **App not showing latest data:**
+
 - Refresh with **Ctrl+R** / **Cmd+R**.
 - Close and reopen the window.
 - Check your network connection.

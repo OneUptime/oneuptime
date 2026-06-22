@@ -27,12 +27,12 @@ Metrics monitors आपकी telemetry services से numeric metrics query �
 
 एक या अधिक metric queries define करें। प्रत्येक query में शामिल है:
 
-| Field | विवरण | आवश्यक |
-|-------|-------|--------|
-| Metric Name | query करने के लिए metric का नाम | हाँ |
-| Aggregation Type | raw metric values को कैसे aggregate करें (sum, avg, min, max, count) | हाँ |
-| Attributes | metric data narrow करने के लिए Key-value filters | नहीं |
-| Aggregate By | metric को group करने के लिए Dimensions | नहीं |
+| Field            | विवरण                                                                | आवश्यक |
+| ---------------- | -------------------------------------------------------------------- | ------ |
+| Metric Name      | query करने के लिए metric का नाम                                      | हाँ    |
+| Aggregation Type | raw metric values को कैसे aggregate करें (sum, avg, min, max, count) | हाँ    |
+| Attributes       | metric data narrow करने के लिए Key-value filters                     | नहीं   |
+| Aggregate By     | metric को group करने के लिए Dimensions                               | नहीं   |
 
 प्रत्येक query को formulas में उपयोग के लिए एक alias assign किया जाता है (जैसे `a`, `b`, `c`)।
 
@@ -59,21 +59,21 @@ metric evaluation के लिए time window चुनें:
 
 evaluation के लिए metric values को कैसे aggregate करें चुनें:
 
-| Strategy | विवरण |
-|----------|-------|
-| Average | time window पर average value |
-| Sum | सभी values का sum |
-| Maximum Value | time window में highest value |
-| Minimum Value | time window में lowest value |
-| All Values | सभी values criteria से match होनी चाहिए |
-| Any Value | कम से कम एक value match होनी चाहिए |
+| Strategy      | विवरण                                   |
+| ------------- | --------------------------------------- |
+| Average       | time window पर average value            |
+| Sum           | सभी values का sum                       |
+| Maximum Value | time window में highest value           |
+| Minimum Value | time window में lowest value            |
+| All Values    | सभी values criteria से match होनी चाहिए |
+| Any Value     | कम से कम एक value match होनी चाहिए      |
 
 ## Monitoring Criteria
 
 ### उपलब्ध Check Types
 
-| Check Type | विवरण |
-|------------|-------|
+| Check Type   | विवरण                                                  |
+| ------------ | ------------------------------------------------------ |
 | Metric Value | configured metric query या formula का aggregated value |
 
 ### Filter Types

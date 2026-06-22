@@ -6,23 +6,26 @@ Global SSO è una funzionalità della **OneUptime Enterprise Edition** ed è dis
 
 ## Global SSO vs. SSO di Progetto
 
-| | SSO di Progetto | Global SSO |
-|---|---|---|
-| Configurato da | Proprietario/admin del progetto (Impostazioni Progetto) | Master admin dell'istanza (Admin Dashboard) |
-| Ambito | Un singolo progetto | L'intera istanza — collegabile a qualsiasi progetto |
-| Risultato dell'accesso | Accesso a quell'unico progetto | Accesso a tutti i progetti che l'utente può raggiungere |
+|                        | SSO di Progetto                                         | Global SSO                                              |
+| ---------------------- | ------------------------------------------------------- | ------------------------------------------------------- |
+| Configurato da         | Proprietario/admin del progetto (Impostazioni Progetto) | Master admin dell'istanza (Admin Dashboard)             |
+| Ambito                 | Un singolo progetto                                     | L'intera istanza — collegabile a qualsiasi progetto     |
+| Risultato dell'accesso | Accesso a quell'unico progetto                          | Accesso a tutti i progetti che l'utente può raggiungere |
 
 ## Configurazione di Global SSO
 
 1. **Apri l'Admin Dashboard**
+
    - Accedi come master admin e apri **Admin** > **Settings** > **Global SSO** (per SAML) o **Global OIDC** (per OpenID Connect).
 
 2. **Crea un provider**
+
    - Clicca su **Create Global SSO**.
    - Per SAML: inserisci un **Name**, il **Sign On URL** e l'**Issuer** dal tuo provider di identità, e incolla il **Public Certificate**. Scegli i metodi **Signature** e **Digest** (lascia i valori predefiniti — `RSA-SHA256` / `SHA256` — se hai dubbi).
    - Per OIDC: inserisci il **Discovery URL**, l'**Issuer**, il **Client ID**, il **Client Secret**, gli **Scopes** (devono includere `openid`) e i nomi delle attestazioni **email** / **name**.
 
 3. **Copia gli URL di OneUptime nel tuo provider di identità**
+
    - Apri il provider (clicca sulla sua riga nell'elenco) per visualizzare la scheda **Identity Provider URLs**.
    - Per SAML, copia l'**ACS URL (Reply URL)** e l'**Issuer (Entity ID)** nel tuo IdP (Okta, Azure AD, OneLogin, JumpCloud e altri).
    - Per OIDC, copia il **Redirect URI** nell'elenco dei redirect consentiti del tuo IdP.
@@ -44,7 +47,7 @@ Se vuoi impedire qualsiasi creazione automatica di account anche quando i proget
 
 Configurare un provider globale non obbliga nessuno a usarlo; l'accesso con password continua a funzionare. Per richiedere l'SSO, usa i controlli **Require SSO for Login**:
 
-- **Per progetto:** un progetto può richiedere l'SSO e, facoltativamente, richiedere un provider *specifico* (di progetto o globale).
+- **Per progetto:** un progetto può richiedere l'SSO e, facoltativamente, richiedere un provider _specifico_ (di progetto o globale).
 - **A livello di istanza:** **Admin** > **Settings** > **Authentication** dispone di un interruttore **Require SSO for Login** che forza l'SSO per ogni utente dell'intera istanza. I master admin restano esenti per non rischiare di rimanere bloccati fuori.
 
 ## Correlati

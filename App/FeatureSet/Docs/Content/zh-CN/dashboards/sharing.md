@@ -82,9 +82,12 @@
 你可以用 iframe 把公开仪表板嵌入到自己的网站:
 
 ```html
-<iframe src="https://dashboard.acme.com/view"
-        width="100%" height="800"
-        frameborder="0"></iframe>
+<iframe
+  src="https://dashboard.acme.com/view"
+  width="100%"
+  height="800"
+  frameborder="0"
+></iframe>
 ```
 
 如果仪表板有主密码,访客会在 iframe 内看到密码提示。

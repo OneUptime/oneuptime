@@ -54,6 +54,7 @@ provider "oneuptime" {
 - Изменённые правила валидации
 
 Использование версии провайдера, не совпадающей с вашей установкой OneUptime, может привести к:
+
 - Ошибкам совместимости API
 - Неудачному созданию/обновлению ресурсов
 - Неожиданному поведению
@@ -62,16 +63,19 @@ provider "oneuptime" {
 ## Определение версии OneUptime
 
 ### Метод 1: Панель управления
+
 1. Войдите в панель управления OneUptime
 2. Перейдите в **Настройки** → **О программе**
 3. Запишите номер версии (например, «7.0.123»)
 
 ### Метод 2: API
+
 ```bash
 curl https://your-oneuptime-instance.com/api/version | jq '.version'
 ```
 
 ### Метод 3: Docker
+
 ```bash
 docker images | grep oneuptime
 # Посмотрите тег, например: oneuptime/dashboard:7.0.123
@@ -86,11 +90,11 @@ docker images | grep oneuptime
 
 ## Матрица совместимости версий
 
-| Версия OneUptime | Версия провайдера | Конфигурация Terraform |
-|-----------------|-------------------|------------------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| Последний облачный | Последний провайдер | `version = "~> 7.0"` |
+| Версия OneUptime   | Версия провайдера   | Конфигурация Terraform |
+| ------------------ | ------------------- | ---------------------- |
+| 7.0.x              | 7.0.x               | `version = "~> 7.0.0"` |
+| 7.1.x              | 7.1.x               | `version = "~> 7.1.0"` |
+| Последний облачный | Последний провайдер | `version = "~> 7.0"`   |
 
 ## Пример быстрого старта
 
@@ -120,11 +124,11 @@ resource "oneuptime_project" "example" {
 resource "oneuptime_monitor" "website" {
   name       = "Website Monitor"
   project_id = oneuptime_project.example.id
-  
+
   monitor_type = "website"
   url          = "https://example.com"
   interval     = "5m"
-  
+
   tags = {
     managed_by = "terraform"
   }

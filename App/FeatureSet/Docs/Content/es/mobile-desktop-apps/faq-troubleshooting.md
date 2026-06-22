@@ -91,37 +91,44 @@ La PWA se actualiza automáticamente cada vez que la abre estando en línea. Par
 ### Problemas con la aplicación móvil
 
 **La aplicación no inicia sesión / "Error de red":**
+
 - Confirme que la **URL del servidor** sea correcta y accesible desde su teléfono.
 - Compruebe que su teléfono esté conectado a Internet.
 - Para instancias autoalojadas detrás de una VPN, asegúrese de que la VPN esté activa.
 
 **Notificaciones push retrasadas o ausentes (Android):**
+
 - Deshabilite la optimización de batería: **Ajustes → Aplicaciones → OneUptime On-Call → Batería → Sin restricciones**.
 - Deshabilite el Ahorro de datos para la aplicación.
 - En dispositivos Samsung, desactive **Mantenimiento del dispositivo → Batería → Límites de uso en segundo plano** para OneUptime On-Call.
 
 **Notificaciones push retrasadas o ausentes (iOS):**
+
 - Evite forzar el cierre de la aplicación — iOS puede pausar la entrega en segundo plano.
 - Desactive el Modo de bajo consumo mientras esté de guardia.
 - Añada OneUptime On-Call a la lista de permitidos de cualquier modo de Concentración activo.
 
 **Face ID / Touch ID / huella dactilar no funcionan:**
+
 - Asegúrese de tener datos biométricos registrados en la configuración del sistema operativo.
 - Vuelva a habilitar el desbloqueo biométrico desde la pantalla **Configuración** dentro de la aplicación OneUptime On-Call.
 
 ### Problemas con la aplicación de escritorio (PWA)
 
 **Falta el botón de instalación:**
+
 - Use un navegador compatible (basado en Chromium o Safari en macOS Sonoma o posterior).
 - Asegúrese de que la instancia de OneUptime se sirva a través de HTTPS.
 - Espere a que la página termine de cargar y, a continuación, compruebe la barra de direcciones en busca del icono de instalación.
 
 **No aparecen las notificaciones de escritorio:**
+
 - Permita las notificaciones cuando el navegador se lo solicite.
 - Compruebe la configuración de notificaciones del sistema operativo (Asistente de concentración de Windows, Notificaciones de macOS, demonio de notificaciones de Linux).
 - Para instancias autoalojadas, asegúrese de que la configuración de [Notificaciones push](/docs/self-hosted/push-notifications) esté completa.
 
 **La aplicación no muestra los datos más recientes:**
+
 - Actualice con **Ctrl+R** / **Cmd+R**.
 - Cierre y vuelva a abrir la ventana.
 - Compruebe su conexión de red.

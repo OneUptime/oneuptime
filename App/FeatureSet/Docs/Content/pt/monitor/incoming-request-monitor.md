@@ -56,8 +56,8 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 ```javascript
 // Node.js example
-const https = require('https');
-https.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY');
+const https = require("https");
+https.get("https://oneuptime.com/heartbeat/YOUR_SECRET_KEY");
 ```
 
 ```python
@@ -74,12 +74,12 @@ Você pode configurar critérios para determinar quando seu serviço é consider
 
 ### Tipos de Verificação Disponíveis
 
-| Tipo de Verificação | Descrição |
-|------------|-------------|
-| Incoming Request | Se um heartbeat foi recebido dentro de uma janela de tempo |
-| Request Body | Conteúdo do corpo de requisição enviado com o heartbeat |
-| Request Header | Nome de um cabeçalho de requisição específico |
-| Request Header Value | Valor de um cabeçalho de requisição específico |
+| Tipo de Verificação  | Descrição                                                  |
+| -------------------- | ---------------------------------------------------------- |
+| Incoming Request     | Se um heartbeat foi recebido dentro de uma janela de tempo |
+| Request Body         | Conteúdo do corpo de requisição enviado com o heartbeat    |
+| Request Header       | Nome de um cabeçalho de requisição específico              |
+| Request Header Value | Valor de um cabeçalho de requisição específico             |
 
 ### Tipos de Filtro
 

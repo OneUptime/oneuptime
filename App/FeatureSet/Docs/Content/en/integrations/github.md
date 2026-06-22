@@ -4,7 +4,7 @@ Open a [GitHub](https://github.com) issue automatically when a OneUptime inciden
 
 This integration is **outbound**: OneUptime calls the [GitHub REST API](https://docs.github.com/en/rest/issues/issues). It uses a OneUptime **[Workflow](/docs/workflows/index)** with an **Incident → On Create** trigger and an **API component**.
 
-> **Looking for the deeper GitHub connection?** OneUptime also has a native **GitHub App** integration for connecting code repositories (used by the AI agent and code features). That's configured with environment variables, not workflows — see [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration). This page is specifically about *filing issues from incidents*.
+> **Looking for the deeper GitHub connection?** OneUptime also has a native **GitHub App** integration for connecting code repositories (used by the AI agent and code features). That's configured with environment variables, not workflows — see [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration). This page is specifically about _filing issues from incidents_.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -14,10 +14,12 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 - A GitHub repository where you want issues filed.
 - A token that can create issues:
+
   - **Fine-grained PAT** scoped to that repo with **Issues: Read and write**, or
   - a **classic PAT** with the `repo` scope.
 
   Create one at [github.com/settings/tokens](https://github.com/settings/tokens).
+
 - A OneUptime project where you can create workflows.
 
 ## Step 1 — Store the token
@@ -30,6 +32,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 1. Open **Workflows → Create Workflow**, name it `Incidents → GitHub Issues`, and open the **Builder**.
 2. Add an **Incident** trigger set to **On Create**. Rename it `Incident`.
 3. Add an **API** block connected to the trigger:
+
    - **Method**: `POST`
    - **URL**: `https://api.github.com/repos/your-org/your-repo/issues`
    - **Headers**:

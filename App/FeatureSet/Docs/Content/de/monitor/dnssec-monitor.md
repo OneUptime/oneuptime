@@ -24,19 +24,19 @@ DNSSEC-Monitore validieren die gesamte Vertrauenskette von der Root-Zone bis zu 
 
 ### Grundeinstellungen
 
-| Feld | Beschreibung | Erforderlich |
-|-------|-------------|----------|
-| Zone (Domainname) | Die per DNSSEC zu validierende Zone (z. B. `example.com`) | Ja |
-| Resolver | Kommagetrennte Liste validierender Resolver für Abfragen (z. B. `1.1.1.1, 8.8.8.8, 9.9.9.9`) | Ja |
-| Nameserver-Konsistenz prüfen | Jeden autoritativen Nameserver direkt abfragen und überprüfen, ob sie dieselbe SOA-Seriennummer zurückgeben | Nein |
+| Feld                         | Beschreibung                                                                                                | Erforderlich |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------ |
+| Zone (Domainname)            | Die per DNSSEC zu validierende Zone (z. B. `example.com`)                                                   | Ja           |
+| Resolver                     | Kommagetrennte Liste validierender Resolver für Abfragen (z. B. `1.1.1.1, 8.8.8.8, 9.9.9.9`)                | Ja           |
+| Nameserver-Konsistenz prüfen | Jeden autoritativen Nameserver direkt abfragen und überprüfen, ob sie dieselbe SOA-Seriennummer zurückgeben | Nein         |
 
 ### Erweiterte Einstellungen
 
-| Feld | Beschreibung | Standard |
-|-------|-------------|---------|
-| Signatur-Ablaufwarnung (Tage) | Standardschwellenwert für den RRSIG-Ablauffilter | 7 |
-| Timeout (ms) | Wartezeit für jede DNS-Abfrage | 10000 |
-| Wiederholungsversuche | Anzahl der Wiederholungsversuche bei Fehlschlag | 3 |
+| Feld                          | Beschreibung                                     | Standard |
+| ----------------------------- | ------------------------------------------------ | -------- |
+| Signatur-Ablaufwarnung (Tage) | Standardschwellenwert für den RRSIG-Ablauffilter | 7        |
+| Timeout (ms)                  | Wartezeit für jede DNS-Abfrage                   | 10000    |
+| Wiederholungsversuche         | Anzahl der Wiederholungsversuche bei Fehlschlag  | 3        |
 
 ## Überwachungskriterien
 
@@ -44,15 +44,15 @@ Sie können Kriterien konfigurieren, um zu bestimmen, wann Ihre Zone als online,
 
 ### Verfügbare Prüftypen
 
-| Prüftyp | Beschreibung |
-|------------|-------------|
-| DNSSEC-Kette ist gültig | Die gesamte Validierungskette (Root → TLD → Zone) wird korrekt aufgelöst |
-| DNSSEC-DNSKEY-Eintrag existiert | Die Zone veröffentlicht mindestens einen DNSKEY-Eintrag |
+| Prüftyp                                            | Beschreibung                                                                                   |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| DNSSEC-Kette ist gültig                            | Die gesamte Validierungskette (Root → TLD → Zone) wird korrekt aufgelöst                       |
+| DNSSEC-DNSKEY-Eintrag existiert                    | Die Zone veröffentlicht mindestens einen DNSKEY-Eintrag                                        |
 | DNSSEC-DS-Eintrag existiert in übergeordneter Zone | Die übergeordnete Zone veröffentlicht einen DS-Eintrag, der mit dem KSK der Zone übereinstimmt |
-| DNSSEC-Signatur läuft ab in Tagen | Tage bis die nächste RRSIG-Signatur abläuft |
-| DNSSEC-Resolver-Konsens (AD-Flag) | Jeder abgefragte Resolver gibt das AD-Flag (Authenticated Data) zurück |
-| DNSSEC-Nameserver sind konsistent | Alle autoritativen Nameserver geben dieselbe SOA-Seriennummer zurück |
-| DNSSEC ist gültig | Gesamtergebnis bestanden/nicht bestanden über alle Validierungsprüfungen |
+| DNSSEC-Signatur läuft ab in Tagen                  | Tage bis die nächste RRSIG-Signatur abläuft                                                    |
+| DNSSEC-Resolver-Konsens (AD-Flag)                  | Jeder abgefragte Resolver gibt das AD-Flag (Authenticated Data) zurück                         |
+| DNSSEC-Nameserver sind konsistent                  | Alle autoritativen Nameserver geben dieselbe SOA-Seriennummer zurück                           |
+| DNSSEC ist gültig                                  | Gesamtergebnis bestanden/nicht bestanden über alle Validierungsprüfungen                       |
 
 ### Filtertypen
 
