@@ -27,8 +27,11 @@ import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigDat
 import TableColumnsEditor from "./TableColumnsEditor";
 import {
   TableColumn,
+  TableColumnKind,
   TableGroupByAttribute,
 } from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
+import DictionaryForm from "Common/UI/Components/Dictionary/Dictionary";
+import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -924,6 +927,61 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         (args["columns"] as unknown as Array<TableColumn> | undefined) || [];
 
       /*
+       * Widget-level attribute filter (applied to every metric column).
+       * Distinct metric names referenced by the table's columns; used to
+       * load value suggestions for the filter's attribute keys. Suggestions
+       * are unioned across those metrics so the autocomplete works no matter
+       * which column the value came from.
+       */
+      const attributeFilters: Dictionary<DictionaryEntryValue> =
+        (args["attributeFilters"] as
+          | Dictionary<DictionaryEntryValue>
+          | undefined) || {};
+
+      const tableMetricNames: Array<string> = Array.from(
+        new Set(
+          columns
+            .filter((c: TableColumn): boolean => {
+              return c.kind === TableColumnKind.Metric && Boolean(c.metricName);
+            })
+            .map((c: TableColumn): string => {
+              return c.metricName as string;
+            }),
+        ),
+      );
+
+      const mergedAttributeValueSuggestions: Record<string, Array<string>> = {};
+      for (const metricName of tableMetricNames) {
+        const perMetric: Record<
+          string,
+          Array<string>
+        > = attributeValueSuggestions[metricName] || {};
+        for (const attributeKey of Object.keys(perMetric)) {
+          const merged: Set<string> = new Set<string>(
+            mergedAttributeValueSuggestions[attributeKey] || [],
+          );
+          for (const value of perMetric[attributeKey] || []) {
+            merged.add(value);
+          }
+          mergedAttributeValueSuggestions[attributeKey] = Array.from(merged);
+        }
+      }
+
+      const writeAttributeFilters: (
+        next: Dictionary<DictionaryEntryValue>,
+      ) => void = (next: Dictionary<DictionaryEntryValue>): void => {
+        commitComponent({
+          ...component,
+          arguments: {
+            ...((component.arguments as JSONObject) || {}),
+            attributeFilters: (next && Object.keys(next).length > 0
+              ? next
+              : undefined) as any,
+          },
+        });
+      };
+
+      /*
        * Read the new groupByAttributes shape; fall back to legacy
        * groupByAttributeKeys for widgets saved before per-attribute
        * headers existed. Both are converted into the same in-memory
@@ -1075,6 +1133,54 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                       )}
                     </div>
                   )}
+                </div>
+              )}
+
+              {hasTableColumnsArg && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Filter by Attributes
+                  </label>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Optional. Only include data where these attributes match —
+                    applied to every metric column. For example, filter
+                    oneuptime.host.environment = production to show this table
+                    for one environment/product only. Leave empty to include
+                    everything.
+                  </p>
+                  <div className="mt-2">
+                    <DictionaryForm
+                      key={`${component.componentId.toString()}-attribute-filters`}
+                      initialValue={attributeFilters}
+                      keys={props.metrics.telemetryAttributes || []}
+                      valueSuggestions={mergedAttributeValueSuggestions}
+                      loadingValueKeys={Array.from(
+                        new Set(
+                          tableMetricNames.flatMap(
+                            (metricName: string): Array<string> => {
+                              return Array.from(
+                                loadingAttributeValues[metricName] || [],
+                              );
+                            },
+                          ),
+                        ),
+                      )}
+                      addButtonSuffix="Filter"
+                      keyPlaceholder="attribute (e.g. host.name)"
+                      valuePlaceholder="value"
+                      enableOperators={true}
+                      onKeySelected={(attributeKey: string): void => {
+                        for (const metricName of tableMetricNames) {
+                          void loadAttributeValues(metricName, attributeKey);
+                        }
+                      }}
+                      onChange={(
+                        value: Dictionary<DictionaryEntryValue>,
+                      ): void => {
+                        writeAttributeFilters(value);
+                      }}
+                    />
+                  </div>
                 </div>
               )}
 

@@ -21,6 +21,15 @@ const ServiceSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.List,
         },
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
       ],
     },
     {

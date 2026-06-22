@@ -46,6 +46,7 @@ import PartialEntity from "../../Types/Database/PartialEntity";
 import { TableColumnMetadata } from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import { getUniqueColumnsBy } from "../../Types/Database/UniqueColumnBy";
+import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
 import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConnectedException";
@@ -580,6 +581,28 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     if (!isUpdate && props.userId) {
       (data as any)["createdByUserId"] = props.userId;
+    }
+
+    /*
+     * Stamp archive audit fields when a resource is being (un)archived.
+     * The client only ever sends `isArchived`; we stamp `archivedAt` and
+     * `archivedByUserId` here — which runs after column update-permission
+     * checks — so these audit fields are server-controlled and cannot be
+     * spoofed, exactly like `createdByUserId` above.
+     */
+    if (isUpdate && (data as any)["isArchived"] !== undefined) {
+      const isArchivedValue: boolean = Boolean((data as any)["isArchived"]);
+
+      if (this.model.hasColumn("archivedAt")) {
+        (data as any)["archivedAt"] = isArchivedValue
+          ? OneUptimeDate.getCurrentDate()
+          : null;
+      }
+
+      if (this.model.hasColumn("archivedByUserId")) {
+        (data as any)["archivedByUserId"] =
+          isArchivedValue && props.userId ? props.userId : null;
+      }
     }
 
     return data;

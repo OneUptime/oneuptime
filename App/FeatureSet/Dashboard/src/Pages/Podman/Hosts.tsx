@@ -22,6 +22,7 @@ import React, {
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Label from "Common/Models/DatabaseModels/Label";

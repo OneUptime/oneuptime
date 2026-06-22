@@ -23,6 +23,15 @@ const KubernetesSideMenu: FunctionComponent = (): ReactElement => {
         },
         {
           link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
+        {
+          link: {
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.KUBERNETES_DOCUMENTATION] as Route,

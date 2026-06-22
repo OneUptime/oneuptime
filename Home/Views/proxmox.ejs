@@ -6,7 +6,7 @@
 <head>
   <title>OneUptime | Proxmox Monitoring - Nodes, VMs, Storage & Backups</title>
   <meta name="description"
-    content="Monitor Proxmox VE clusters end to end: node and guest health, storage usage, backup coverage, and replication alerting. One agent per cluster, flat project pricing, 10-minute setup. Open source.">
+    content="Monitor Proxmox VE clusters end to end: node and guest health, storage usage, backup coverage, and replication alerting. One agent per cluster, usage-based pricing, 10-minute setup. Open source.">
   <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
@@ -922,7 +922,7 @@
         <div class="mx-auto mt-16 max-w-7xl">
           <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
 
-            <!-- Card 1: Flat pricing -->
+            <!-- Card 1: Usage-based pricing (no per-host fees) -->
             <div class="group relative">
               <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-orange-200 hover:shadow-lg">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 ring-1 ring-orange-200">
@@ -930,8 +930,8 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 class="mt-6 text-xl font-semibold text-gray-900">Flat Project Pricing</h3>
-                <p class="mt-4 text-gray-600 leading-relaxed">Per-host SaaS pricing runs $15&ndash;23 per host per month — and every VM you monitor can count as a host. OneUptime prices the project, not the hypervisor. Spin up fifty guests without calling sales.</p>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">No Per-Host Pricing</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Per-host SaaS pricing runs $15&ndash;23 per host per month — and every VM you monitor can count as a host. OneUptime charges only for the telemetry you ingest ($0.10/GB), never per VM or hypervisor. Spin up fifty guests and pay only for the data they send — no calling sales.</p>
               </div>
             </div>
 

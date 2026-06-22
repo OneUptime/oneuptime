@@ -47,6 +47,8 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import CephResourceUtils from "../Utils/CephResourceUtils";
+import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import React, {
   Fragment,
   FunctionComponent,
@@ -161,6 +163,7 @@ const CephClusterOverview: FunctionComponent<
   const [cluster, setCluster] = useState<CephCluster | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [pageError, setPageError] = useState<string>("");
 
   // Inventory-backed sections (Postgres, instant).
@@ -199,7 +202,11 @@ const CephClusterOverview: FunctionComponent<
     );
   }, []);
 
-  const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
+  const fetchCluster: (
+    showLoader: boolean,
+  ) => Promise<CephCluster | null> = async (
+    showLoader: boolean,
+  ): Promise<CephCluster | null> => {
     const item: CephCluster | null = await ModelAPI.getItem({
       modelType: CephCluster,
       id: modelId,
@@ -222,11 +229,20 @@ const CephClusterOverview: FunctionComponent<
     });
 
     if (!item?.name) {
-      setPageError("Cluster not found.");
-      return;
+      /*
+       * get-item returns 200 {} (never 404) for a momentarily-missing item,
+       * so a transient blip looks like "not found". Only escalate that to a
+       * full-page error on the initial load; a background tick keeps the
+       * current view.
+       */
+      if (showLoader) {
+        setPageError("Cluster not found.");
+      }
+      return null;
     }
 
     setCluster(item);
+    return item;
   };
 
   const fetchInventory: PromiseVoidFunction = async (): Promise<void> => {
@@ -568,13 +584,24 @@ const CephClusterOverview: FunctionComponent<
     }
   };
 
-  const fetchAll: PromiseVoidFunction = async (): Promise<void> => {
+  const fetchAll: (showLoader: boolean) => Promise<void> = async (
+    showLoader: boolean,
+  ): Promise<void> => {
     setIsRefreshing(true);
-    setPageError("");
+    if (showLoader) {
+      setPageError("");
+    }
+    let item: CephCluster | null = null;
     try {
-      await fetchCluster();
+      item = await fetchCluster(showLoader);
     } catch (err) {
-      setPageError(API.getFriendlyMessage(err));
+      /*
+       * A background refresh keeps the existing data on screen; only the
+       * initial load escalates a failure to a full-page error.
+       */
+      if (showLoader) {
+        setPageError(API.getFriendlyMessage(err));
+      }
       setIsRefreshing(false);
       setIsInitialLoading(false);
       return;
@@ -584,24 +611,38 @@ const CephClusterOverview: FunctionComponent<
     // Inventory is Postgres-fast; failures only blank its sections.
     fetchInventory().catch(() => {});
 
+    /*
+     * Pull the ClickHouse-backed panels (health checks, PG stats, capacity)
+     * here rather than from a name-keyed effect. The cluster name is stable
+     * across refreshes, so a [cluster?.name] effect would never re-run on an
+     * auto-refresh tick — these live time-series would silently freeze.
+     * Driving them from fetchAll keeps every tick (and the manual button)
+     * actually refreshing them.
+     */
+    if (item?.name) {
+      // A healthy refresh clears any stale "not found" from a transient blip.
+      setPageError("");
+      fetchHealthChecks(item.name).catch(() => {});
+      fetchPgStats(item.name).catch(() => {});
+      fetchCapacity(item.name).catch(() => {});
+    }
+
+    setLastRefreshedAt(OneUptimeDate.getCurrentDate());
     setIsRefreshing(false);
   };
 
   useEffect(() => {
-    fetchAll().catch((err: Error) => {
+    fetchAll(true).catch((err: Error) => {
       setPageError(API.getFriendlyMessage(err));
     });
   }, []);
 
-  // ClickHouse sections load independently once the cluster name is known.
-  useEffect(() => {
-    if (!cluster?.name) {
-      return;
-    }
-    fetchHealthChecks(cluster.name).catch(() => {});
-    fetchPgStats(cluster.name).catch(() => {});
-    fetchCapacity(cluster.name).catch(() => {});
-  }, [cluster?.name]);
+  const { autoRefreshInterval, setAutoRefreshInterval } = useAutoRefresh({
+    storageKey: "ceph-overview-auto-refresh-interval",
+    onRefresh: (): void => {
+      fetchAll(false).catch(() => {});
+    },
+  });
 
   const osdsRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.CEPH_CLUSTER_VIEW_OSDS] as Route,
@@ -772,25 +813,15 @@ const CephClusterOverview: FunctionComponent<
                 </div>
               </div>
               <div className="flex-shrink-0 md:self-start">
-                <button
-                  type="button"
-                  onClick={() => {
-                    fetchAll().catch(() => {});
+                <AutoRefreshControl
+                  autoRefreshInterval={autoRefreshInterval}
+                  onAutoRefreshIntervalChange={setAutoRefreshInterval}
+                  onManualRefresh={(): void => {
+                    fetchAll(false).catch(() => {});
                   }}
-                  disabled={isRefreshing}
-                  title="Refresh now"
-                  className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <Icon
-                    icon={IconProp.Refresh}
-                    className={`h-3.5 w-3.5 ${
-                      isRefreshing
-                        ? "animate-spin text-gray-400"
-                        : "text-gray-500"
-                    }`}
-                  />
-                  <span className="hidden sm:inline">Refresh</span>
-                </button>
+                  isRefreshing={isRefreshing}
+                  lastRefreshedAt={lastRefreshedAt}
+                />
               </div>
             </div>
 

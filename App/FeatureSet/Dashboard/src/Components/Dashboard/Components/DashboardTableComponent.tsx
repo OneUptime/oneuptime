@@ -784,6 +784,17 @@ function resolveQueries(
 
   const columns: Array<TableColumn> = args.columns || [];
 
+  /*
+   * Widget-level attribute filter (e.g. environment = production). Applied
+   * to every metric column's query so the whole table is scoped to the same
+   * subset of series. Omitted when empty so unfiltered widgets behave exactly
+   * as before.
+   */
+  const widgetAttributeFilters: DashboardTableComponent["arguments"]["attributeFilters"] =
+    args.attributeFilters && Object.keys(args.attributeFilters).length > 0
+      ? args.attributeFilters
+      : undefined;
+
   if (columns.length > 0) {
     for (const column of columns) {
       const visible: boolean = column.showAsColumn !== false;
@@ -806,6 +817,9 @@ function resolveQueries(
             filterData: {
               metricName: column.metricName,
               aggegationType: column.aggregation || MetricsAggregationType.Avg,
+              ...(widgetAttributeFilters
+                ? { attributes: widgetAttributeFilters as any }
+                : {}),
             },
             groupBy: undefined,
             groupByAttributeKeys:

@@ -93,36 +93,20 @@ export class MonitorTypeHelper {
         monitorTypes: [MonitorType.IncomingRequest, MonitorType.IncomingEmail],
       },
       {
-        label: "Infrastructure",
+        label: "Network",
         monitorTypes: [MonitorType.SNMP],
       },
       {
-        label: "Kubernetes",
-        monitorTypes: [MonitorType.Kubernetes],
-      },
-      {
-        label: "Docker",
-        monitorTypes: [MonitorType.Docker],
-      },
-      {
-        label: "Host",
-        monitorTypes: [MonitorType.Host],
-      },
-      {
-        label: "Podman",
-        monitorTypes: [MonitorType.Podman],
-      },
-      {
-        label: "Docker Swarm",
-        monitorTypes: [MonitorType.DockerSwarm],
-      },
-      {
-        label: "Proxmox",
-        monitorTypes: [MonitorType.Proxmox],
-      },
-      {
-        label: "Ceph",
-        monitorTypes: [MonitorType.Ceph],
+        label: "Infrastructure",
+        monitorTypes: [
+          MonitorType.Host,
+          MonitorType.Kubernetes,
+          MonitorType.Docker,
+          MonitorType.Podman,
+          MonitorType.DockerSwarm,
+          MonitorType.Proxmox,
+          MonitorType.Ceph,
+        ],
       },
       {
         label: "Telemetry",
@@ -225,7 +209,7 @@ export class MonitorTypeHelper {
         title: "Podman Container",
         description:
           "This monitor type lets you monitor Podman containers — CPU, memory, network, restarts, and lifecycle events.",
-        icon: IconProp.Cube,
+        icon: IconProp.Podman,
       },
       {
         monitorType: MonitorType.DockerSwarm,
@@ -239,14 +223,14 @@ export class MonitorTypeHelper {
         title: "Proxmox",
         description:
           "This monitor type lets you monitor Proxmox VE clusters — node availability, VM and container (guest) health, CPU, memory, storage, and HA state.",
-        icon: IconProp.ServerStack,
+        icon: IconProp.Proxmox,
       },
       {
         monitorType: MonitorType.Ceph,
         title: "Ceph",
         description:
           "This monitor type lets you monitor Ceph storage clusters — cluster health, monitor quorum, OSD availability, pool capacity, and placement group states.",
-        icon: IconProp.Database,
+        icon: IconProp.Ceph,
       },
       {
         monitorType: MonitorType.IP,

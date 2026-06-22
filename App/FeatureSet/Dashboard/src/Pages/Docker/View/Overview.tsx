@@ -48,8 +48,8 @@ import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import {
   AutoRefreshInterval,
   getAutoRefreshIntervalInMs,
-  getAutoRefreshIntervalLabel,
 } from "Common/Types/Dashboard/DashboardViewConfig";
+import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -896,80 +896,22 @@ const DockerHostOverview: FunctionComponent<
   );
 
   const renderRefreshControl: () => ReactElement = (): ReactElement => {
-    const intervals: Array<AutoRefreshInterval> = [
-      AutoRefreshInterval.OFF,
-      AutoRefreshInterval.THIRTY_SECONDS,
-      AutoRefreshInterval.ONE_MINUTE,
-      AutoRefreshInterval.FIVE_MINUTES,
-      AutoRefreshInterval.FIFTEEN_MINUTES,
-    ];
-
-    const lastRefreshedLabel: string = lastRefreshedAt
-      ? `Updated ${OneUptimeDate.fromNow(lastRefreshedAt)}`
-      : "Not refreshed yet";
-
-    const isOff: boolean = autoRefreshInterval === AutoRefreshInterval.OFF;
-
     return (
-      <div className="flex flex-col items-end gap-1.5">
-        <div className="flex items-center gap-2">
+      <AutoRefreshControl
+        autoRefreshInterval={autoRefreshInterval}
+        onAutoRefreshIntervalChange={onAutoRefreshIntervalChange}
+        onManualRefresh={onManualRefresh}
+        isRefreshing={isRefreshing}
+        lastRefreshedAt={lastRefreshedAt}
+        timeRangePicker={
           <TelemetryTimeRangePicker
             value={timeRange}
             onChange={(value: RangeStartAndEndDateTime): void => {
               setTimeRange(value);
             }}
           />
-          <button
-            type="button"
-            onClick={onManualRefresh}
-            disabled={isRefreshing}
-            title="Refresh now"
-            className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Icon
-              icon={IconProp.Refresh}
-              className={`h-3.5 w-3.5 ${
-                isRefreshing ? "animate-spin text-gray-400" : "text-gray-500"
-              }`}
-            />
-            <span className="hidden sm:inline">Refresh</span>
-          </button>
-          <label className="flex items-center gap-1.5 text-xs text-gray-500">
-            <span className="hidden sm:inline">Auto-refresh</span>
-            <select
-              value={autoRefreshInterval}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => {
-                onAutoRefreshIntervalChange(
-                  e.target.value as AutoRefreshInterval,
-                );
-              }}
-              className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-            >
-              {intervals.map((interval: AutoRefreshInterval): ReactElement => {
-                return (
-                  <option key={interval} value={interval}>
-                    {interval === AutoRefreshInterval.OFF
-                      ? "Off"
-                      : `Every ${getAutoRefreshIntervalLabel(interval)}`}
-                  </option>
-                );
-              })}
-            </select>
-          </label>
-        </div>
-        <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${
-              isRefreshing
-                ? "bg-amber-500 animate-pulse"
-                : isOff
-                  ? "bg-gray-300"
-                  : "bg-emerald-500"
-            }`}
-          />
-          <span>{lastRefreshedLabel}</span>
-        </div>
-      </div>
+        }
+      />
     );
   };
 

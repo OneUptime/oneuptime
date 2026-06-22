@@ -13,6 +13,10 @@ import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import TelemetryRetentionConfigForm from "Common/UI/Components/Telemetry/TelemetryRetentionConfigForm";
 import TelemetryRetentionConfigSummary from "Common/UI/Components/Telemetry/TelemetryRetentionConfigSummary";
+import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const ServiceSettings: FunctionComponent<
@@ -155,6 +159,14 @@ const ServiceSettings: FunctionComponent<
           ],
           modelId: modelId,
         }}
+      />
+      <ArchiveResourceCard<Service>
+        modelType={Service}
+        modelId={modelId}
+        singularName="service"
+        listRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.SERVICES] as Route,
+        )}
       />
     </Fragment>
   );

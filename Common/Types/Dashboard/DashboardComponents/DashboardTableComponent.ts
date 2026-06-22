@@ -2,6 +2,8 @@ import MetricFormulaConfigData from "../../Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../../Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../Metrics/MetricsAggregationType";
 import ObjectID from "../../ObjectID";
+import Dictionary from "../../Dictionary";
+import { DictionaryEntryValue } from "../../../UI/Components/Dictionary/DictionaryFilterOperator";
 import DashboardComponentType from "../DashboardComponentType";
 import BaseComponent from "./DashboardBaseComponent";
 
@@ -76,6 +78,15 @@ export default interface DashboardTableComponent extends BaseComponent {
     maxRows?: number | undefined;
     reduce?: TableReduce | undefined;
     decimals?: number | undefined;
+    /*
+     * Widget-level attribute filter applied to EVERY metric column's query
+     * (e.g. deployment.environment = production, so the table only shows
+     * hosts/services in that environment). Stored in the same operator-aware
+     * shape the chart widget writes into filterData.attributes, so it flows
+     * straight through MetricUtil.fetchResults' sanitizeAttributeFilters with
+     * no backend changes. Empty/undefined = no filter (every series shown).
+     */
+    attributeFilters?: Dictionary<DictionaryEntryValue> | undefined;
     /*
      * Legacy widget shape from before the columns/groupByAttributes
      * redesign — read-only at render time, never written by the editor.

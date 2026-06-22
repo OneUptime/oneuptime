@@ -22,6 +22,7 @@ import React, {
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -51,6 +52,10 @@ const KubernetesClusters: FunctionComponent<
       ownerTeamModelType: KubernetesClusterOwnerTeam,
       resourceIdField: "kubernetesClusterId",
     });
+
+  const { archiveBulkActions } = useBulkArchiveActions<KubernetesCluster>({
+    modelType: KubernetesCluster,
+  });
 
   const kubernetesExtraFacets: Array<ResourceFacet> = [
     {
@@ -137,7 +142,7 @@ const KubernetesClusters: FunctionComponent<
         topContent={filterBar}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
-        query={mergeFiltersIntoQuery(undefined)}
+        query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<KubernetesCluster>) => {
           onResourcesFetched(data);
         }}
@@ -146,7 +151,11 @@ const KubernetesClusters: FunctionComponent<
         isCreateable={true}
         showRefreshButton={true}
         bulkActions={{
-          buttons: [...labelBulkActions, ...ownerBulkActions],
+          buttons: [
+            ...labelBulkActions,
+            ...ownerBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         name="Kubernetes Clusters"
         isViewable={true}

@@ -545,7 +545,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   "/product/proxmox": {
     title: "Proxmox Monitoring | Nodes, VMs, Storage & Backups | OneUptime",
     description:
-      "Monitor Proxmox VE clusters end to end: node and guest health, storage usage, backup coverage, and replication alerting. One agent per cluster, flat project pricing, 10-minute setup. Open source.",
+      "Monitor Proxmox VE clusters end to end: node and guest health, storage usage, backup coverage, and replication alerting. One agent per cluster, usage-based pricing, 10-minute setup. Open source.",
     canonicalPath: "/product/proxmox",
     twitterCard: "summary_large_image",
     pageType: "product",
@@ -569,7 +569,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "Storage usage and growth tracking",
         "Guest-to-host agent cross-linking",
         "Copy-paste onboarding with token validator",
-        "Flat project pricing, not per-host",
+        "Usage-based pricing, not per-host",
         "OpenTelemetry native",
         "Open source",
       ],
@@ -615,7 +615,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     title:
       "Docker Swarm Monitoring | Nodes, Services, Tasks & Stacks | OneUptime",
     description:
-      "Monitor Docker Swarm clusters end to end: manager and worker node health, services and their task replicas, stacks, overlay networks, secrets, configs, and volumes. One agent on a manager node, flat project pricing, 10-minute setup. Open source.",
+      "Monitor Docker Swarm clusters end to end: manager and worker node health, services and their task replicas, stacks, overlay networks, secrets, configs, and volumes. One agent on a manager node, usage-based pricing, 10-minute setup. Open source.",
     canonicalPath: "/product/docker-swarm",
     twitterCard: "summary_large_image",
     pageType: "product",
@@ -640,7 +640,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "Raft manager quorum & service convergence alerting",
         "Per-container CPU and memory metrics",
         "Container and service logs",
-        "Flat project pricing",
+        "Usage-based pricing",
         "OpenTelemetry native",
         "Open source",
       ],

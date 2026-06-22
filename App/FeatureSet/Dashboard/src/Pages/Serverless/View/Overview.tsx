@@ -17,7 +17,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import OneUptimeDate from "Common/Types/Date";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -32,6 +32,8 @@ import ResourceOverview, {
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
+import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import {
   fetchSpanMetrics,
   formatCompact,
@@ -61,11 +63,19 @@ const ServerlessFunctionOverview: FunctionComponent<
   const [timeRange, setTimeRange] =
     useState<RangeStartAndEndDateTime>(DEFAULT_RANGE);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string>("");
 
-  const fetchModel: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    setError("");
+  const fetchModel: (showLoader: boolean) => Promise<void> = async (
+    showLoader: boolean,
+  ): Promise<void> => {
+    if (showLoader) {
+      setIsLoading(true);
+      setError("");
+    } else {
+      setIsRefreshing(true);
+    }
     try {
       const item: ServerlessFunction | null = await ModelAPI.getItem({
         modelType: ServerlessFunction,
@@ -89,13 +99,18 @@ const ServerlessFunctionOverview: FunctionComponent<
       });
 
       if (!item?.functionIdentifier) {
-        setError("Serverless function not found.");
+        if (showLoader) {
+          setError("Serverless function not found.");
+        }
         setIsLoading(false);
+        setIsRefreshing(false);
         return;
       }
 
       setServerlessFunction(item);
+      setLastRefreshedAt(OneUptimeDate.getCurrentDate());
       setIsLoading(false);
+      setIsRefreshing(false);
 
       ModelAPI.count({
         modelType: ServerlessFunctionInstance,
@@ -107,13 +122,20 @@ const ServerlessFunctionOverview: FunctionComponent<
           return setInstanceCount(0);
         });
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      /*
+       * Keep stale data visible on a background refresh; only the initial
+       * load surfaces a page-level error.
+       */
+      if (showLoader) {
+        setError(API.getFriendlyMessage(err));
+      }
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
-    fetchModel().catch((err: Error) => {
+    fetchModel(true).catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
   }, []);
@@ -142,6 +164,13 @@ const ServerlessFunctionOverview: FunctionComponent<
         setMetricsLoading(false);
       });
   }, [serverlessFunction, timeRange]);
+
+  const { autoRefreshInterval, setAutoRefreshInterval } = useAutoRefresh({
+    storageKey: "serverless-overview-auto-refresh-interval",
+    onRefresh: (): void => {
+      fetchModel(false).catch(() => {});
+    },
+  });
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -296,11 +325,22 @@ const ServerlessFunctionOverview: FunctionComponent<
       tiles={tiles}
       charts={charts}
       controls={
-        <TelemetryTimeRangePicker
-          value={timeRange}
-          onChange={(value: RangeStartAndEndDateTime): void => {
-            setTimeRange(value);
+        <AutoRefreshControl
+          autoRefreshInterval={autoRefreshInterval}
+          onAutoRefreshIntervalChange={setAutoRefreshInterval}
+          onManualRefresh={(): void => {
+            fetchModel(false).catch(() => {});
           }}
+          isRefreshing={isRefreshing}
+          lastRefreshedAt={lastRefreshedAt}
+          timeRangePicker={
+            <TelemetryTimeRangePicker
+              value={timeRange}
+              onChange={(value: RangeStartAndEndDateTime): void => {
+                setTimeRange(value);
+              }}
+            />
+          }
         />
       }
       quickLinks={quickLinks}

@@ -55,6 +55,7 @@ import KubernetesClusterViewDocumentation from "../Pages/Kubernetes/View/Documen
 import KubernetesDocumentation from "../Pages/Kubernetes/Documentation";
 import KubernetesSettingsOwnerRules from "../Pages/Kubernetes/Settings/OwnerRules";
 import KubernetesSettingsLabelRules from "../Pages/Kubernetes/Settings/LabelRules";
+import KubernetesArchived from "../Pages/Kubernetes/Archived";
 
 const KubernetesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -103,6 +104,15 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.KUBERNETES_SETTINGS_LABEL_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={KubernetesRoutePath[PageMap.KUBERNETES_ARCHIVED] || ""}
+          element={
+            <KubernetesArchived
+              {...props}
+              pageRoute={RouteMap[PageMap.KUBERNETES_ARCHIVED] as Route}
             />
           }
         />

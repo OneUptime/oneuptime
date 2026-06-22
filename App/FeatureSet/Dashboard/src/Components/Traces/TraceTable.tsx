@@ -337,8 +337,10 @@ const TraceTable: FunctionComponent<ComponentProps> = (
               );
             }
 
-            // Pass the clicked span so the trace explorer can highlight and
-            // scroll to it.
+            /*
+             * Pass the clicked span so the trace explorer can highlight and
+             * scroll to it.
+             */
             if (span.spanId) {
               route = new Route(route.toString()).addQueryParams({
                 spanId: span.spanId.toString(),
