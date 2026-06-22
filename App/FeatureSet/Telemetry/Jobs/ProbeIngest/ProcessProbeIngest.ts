@@ -119,8 +119,14 @@ export async function processIncomingEmailFromQueue(
     onlyCheckForIncomingEmailReceivedAt: false,
   };
 
-  // Update monitor with last email received time
-  await MonitorService.updateOneById({
+  /*
+   * Update monitor with last email received time. Heartbeat write:
+   * single-statement UPDATE, no hooks and no `version` bump. These columns
+   * trigger no onUpdateSuccess work and Monitor enables no update
+   * workflow/realtime/audit, so nothing is lost. See
+   * ServiceService.updateLastSeen.
+   */
+  await MonitorService.updateColumnsByIdWithoutHooks({
     id: new ObjectID(monitor._id.toString()),
     data: {
       incomingEmailMonitorLastEmailReceivedAt: now,
@@ -129,9 +135,6 @@ export async function processIncomingEmailFromQueue(
         unknown
       >,
       incomingEmailMonitorHeartbeatCheckedAt: now,
-    },
-    props: {
-      isRoot: true,
     },
   });
 

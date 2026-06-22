@@ -128,6 +128,17 @@ describe("DatabaseService.updateColumnsByIdWithoutHooks", () => {
     ).rejects.toThrow(/unknown column "notAColumn"/);
   });
 
+  test("rejects SQL-expression (function) values it cannot bind", async () => {
+    const query: jest.Mock = mockRepository();
+    await expect(
+      ServiceService.updateColumnsByIdWithoutHooks({
+        id: ObjectID.generate(),
+        data: { lastSeenAt: (() => "NOW()") as never } as never,
+      }),
+    ).rejects.toThrow(/SQL-expression values are not supported/);
+    expect(query).not.toHaveBeenCalled();
+  });
+
   test("does not issue a query when there are no columns to update", async () => {
     const query: jest.Mock = mockRepository();
     await ServiceService.updateColumnsByIdWithoutHooks({

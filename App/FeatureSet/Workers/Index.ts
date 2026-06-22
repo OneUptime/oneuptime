@@ -193,7 +193,6 @@ import "./Jobs/EnterpriseLicense/ReportUserCount";
 
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";
-import { RunDatabaseMigrationsOnBoot } from "Common/Server/EnvironmentConfig";
 import JobDictionary from "./Utils/JobDictionary";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Queue, { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
@@ -204,6 +203,7 @@ import {
   DisableQueueWorkers,
   EnableQueueDashboard,
   QueueDashboardSecret,
+  RunDatabaseMigrationsOnBoot,
 } from "Common/Server/EnvironmentConfig";
 import { WORKER_CONCURRENCY } from "./Config";
 import MetricsAPI from "./API/Metrics";

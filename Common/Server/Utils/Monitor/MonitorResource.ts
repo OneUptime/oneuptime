@@ -316,16 +316,20 @@ export default class MonitorResourceUtil {
            * the monitor to flap between Online and Offline every minute.
            */
           if (!serverMonitorResponse.onlyCheckRequestReceivedAt) {
-            await MonitorService.updateOneById({
+            /*
+             * Heartbeat write: single-statement UPDATE, no hooks and no
+             * `version` bump. Monitor enables no update workflow/realtime/
+             * audit and these heartbeat columns trigger no onUpdateSuccess
+             * work, so nothing is lost; it also skips the pre-SELECT that
+             * would reload the large serverMonitorResponse jsonb row. See
+             * ServiceService.updateLastSeen.
+             */
+            await MonitorService.updateColumnsByIdWithoutHooks({
               id: monitor.id!,
               data: {
                 serverMonitorRequestReceivedAt:
                   serverMonitorResponse.requestReceivedAt!,
                 serverMonitorResponse,
-              },
-              props: {
-                isRoot: true,
-                ignoreHooks: true,
               },
             });
 
@@ -344,7 +348,13 @@ export default class MonitorResourceUtil {
             `${dataToProcess.monitorId.toString()} - Incoming request received at ${incomingMonitorRequest.incomingRequestReceivedAt}`,
           );
 
-          await MonitorService.updateOneById({
+          /*
+           * Heartbeat write: single-statement UPDATE, no hooks and no
+           * `version` bump; skips the pre-SELECT of the large
+           * incomingMonitorRequest jsonb row. See
+           * ServiceService.updateLastSeen.
+           */
+          await MonitorService.updateColumnsByIdWithoutHooks({
             id: monitor.id!,
             data: {
               incomingRequestMonitorHeartbeatCheckedAt:
@@ -353,10 +363,6 @@ export default class MonitorResourceUtil {
                 JSON.stringify(incomingMonitorRequest),
               ) as IncomingMonitorRequest,
             } as any,
-            props: {
-              isRoot: true,
-              ignoreHooks: true,
-            },
           });
 
           logger.debug(

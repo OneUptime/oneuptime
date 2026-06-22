@@ -69,7 +69,6 @@ import {
 } from "typeorm";
 import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
 import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
-import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { ObjectLiteral } from "typeorm/common/ObjectLiteral";
 import { FindWhere } from "../../Types/BaseDatabase/Query";
 import Realtime from "../Utils/Realtime";
@@ -2005,7 +2004,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   @CaptureSpan()
   public async updateColumnsByIdWithoutHooks(input: {
     id: ObjectID;
-    data: QueryDeepPartialEntity<TBaseModel>;
+    data: PartialEntity<TBaseModel>;
   }): Promise<void> {
     if (!input.id) {
       throw new BadDataException("id is required");
@@ -2026,6 +2025,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       if (!column) {
         throw new BadDataException(
           `updateColumnsByIdWithoutHooks: unknown column "${propertyName}" on "${metadata.tableName}"`,
+        );
+      }
+      /*
+       * PartialEntity permits `() => string` SQL-expression values, but this
+       * raw bind path can only parameterize literals (and the save()-based
+       * updateOneById it replaces doesn't support expressions either). Fail
+       * loudly rather than binding a function object.
+       */
+      if (typeof value === "function") {
+        throw new BadDataException(
+          `updateColumnsByIdWithoutHooks: SQL-expression values are not supported (column "${propertyName}"); pass a literal value.`,
         );
       }
       /*

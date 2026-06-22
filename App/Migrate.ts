@@ -7,6 +7,7 @@ import {
 import RunDatabaseMigrations from "./FeatureSet/Workers/Utils/DataMigration";
 import AnalyticsTableManagement from "./FeatureSet/Workers/Utils/AnalyticsDatabase/TableManegement";
 import logger from "Common/Server/Utils/Logger";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 
 /*
  * One-shot migration runner. Runs the SAME schema + data migrations the app
@@ -22,7 +23,7 @@ import logger from "Common/Server/Utils/Logger";
 
 const APP_NAME: string = "migrate";
 
-const migrate = async (): Promise<void> => {
+const migrate: PromiseVoidFunction = async (): Promise<void> => {
   logger.debug(
     `${APP_NAME}: connecting to Postgres (applies schema migrations)`,
   );
