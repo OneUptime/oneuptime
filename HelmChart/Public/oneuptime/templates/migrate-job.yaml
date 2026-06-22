@@ -59,6 +59,29 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       {{- end }}
+      initContainers:
+        # Wait for Postgres to accept TCP connections before migrating. As a
+        # post-install hook this Job can start before the bundled Postgres /
+        # CNPG cluster is ready; waiting here (instead of letting the migrate
+        # container fail-and-retry) avoids racing the database bootstrap on a
+        # fresh install. Talks directly to the backend (never the pooler).
+        - name: wait-for-postgres
+          image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "app") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - bash
+            - -c
+            - |
+              until (exec 3<>/dev/tcp/"$PGHOST"/"$PGPORT") 2>/dev/null; do
+                echo "waiting for postgres at $PGHOST:$PGPORT ..."
+                sleep 3
+              done
+              echo "postgres reachable at $PGHOST:$PGPORT"
+          env:
+            - name: PGHOST
+              value: {{ include "oneuptime.postgres.backendHost" . }}
+            - name: PGPORT
+              value: {{ include "oneuptime.postgres.backendPort" . | quote }}
       containers:
         - name: {{ .Release.Name }}-migrate
           image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "app") }}

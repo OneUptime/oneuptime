@@ -456,24 +456,27 @@ clickhouseOperator:
       nodes: []
 
 # =============================================================================
-# Database migrations (opt-in dedicated Job).
+# Database migrations (dedicated Job — enabled by default).
 #
-# By default (enabled: false) every app/worker/nginx pod runs schema + data
-# migrations on boot, serialized across replicas by a Postgres session-level
-# advisory lock. That lock breaks under pgbouncer TRANSACTION-mode pooling.
+# Schema + data migrations run ONCE per release in a dedicated pre-upgrade /
+# post-install Job (App/Migrate.ts), connecting directly to the backend. The
+# runtime app/worker/nginx pods are gated off (RUN_DATABASE_MIGRATIONS_ON_BOOT=
+# false), so the data-migration session advisory lock never runs on a pooled
+# connection — which is the prerequisite for safely setting
+# pgbouncer.poolMode=transaction. See HelmChart/Docs/Postgres.md.
 #
-# Set enabled: true to instead run migrations ONCE in a dedicated pre-upgrade /
-# post-install Job (App/Migrate.ts), connecting directly to the backend. Runtime
-# pods are then gated off (RUN_DATABASE_MIGRATIONS_ON_BOOT=false), so the
-# advisory lock never runs on a pooled connection — which is the prerequisite
-# for safely setting pgbouncer.poolMode=transaction. See HelmChart/Docs/Postgres.md.
+# Set enabled: false to fall back to the legacy model where every pod runs
+# migrations on boot (serialized by the advisory lock). That fallback is NOT
+# compatible with pgbouncer.poolMode=transaction (the chart rejects that combo).
 #
-# Trade-off: deploys then gate on the migration Job (cleaner, atomic, no race),
-# and on a FRESH install the app pods may briefly fail readiness until the Job
-# has created the schema. The advisory lock stays in the code (it still protects
-# the boot path used by docker-compose and enabled: false installs).
+# Behavior: deploys gate on the migration Job (cleaner, atomic, no cross-pod
+# race). An init container waits for the database first, so a fresh install does
+# not race the bundled Postgres / CNPG bootstrap; on a very slow first-time
+# cluster bootstrap you may need a longer `helm upgrade --install --timeout`.
+# The advisory lock stays in the code — it still protects the boot path used by
+# docker-compose and enabled: false installs.
 migrate:
-  enabled: false
+  enabled: true
   # Job retries (handles the DB not being ready yet on a fresh install).
   backoffLimit: 6
   # Optional hard timeout for the whole migration run (seconds). Empty = none.

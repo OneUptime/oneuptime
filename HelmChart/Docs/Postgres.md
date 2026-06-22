@@ -347,18 +347,19 @@ the mode to use when you actually want to *reduce* the connection count Postgres
 holds.
 
 Transaction mode is safe here **once migrations no longer run on the pooled
-runtime pods**. Enable the dedicated migration Job, then switch the pool mode:
+runtime pods** — which is already the default, because `migrate.enabled` is
+`true`. So enabling transaction mode is just one change:
 
 ```yaml
-migrate:
-  enabled: true        # schema + data migrations run in a one-shot pre-upgrade Job
 pgbouncer:
   enabled: true
   poolMode: transaction
+# migrate.enabled is true by default — schema + data migrations run in a
+# dedicated one-shot Job, not on the pooled runtime pods.
 ```
 
-With `migrate.enabled: true`, the app/worker/nginx pods are gated off
-(`RUN_DATABASE_MIGRATIONS_ON_BOOT=false`) and a Job (`App/Migrate.ts`) runs
+With `migrate.enabled: true` (the default), the app/worker/nginx pods are gated
+off (`RUN_DATABASE_MIGRATIONS_ON_BOOT=false`) and a Job (`App/Migrate.ts`) runs
 migrations once, connecting **directly** to the backend (bypassing PgBouncer).
 The data-migration advisory lock then only ever runs in that single Job, so it
 never lands on a pooled connection — which is what makes transaction mode safe.
@@ -367,10 +368,14 @@ prevent the unsafe combination.
 
 Notes on the migration Job:
 - It is a `pre-upgrade` + `post-install` Helm hook. On upgrades it runs before
-  the new pods roll (old release still serving). On a **fresh** install the app
-  pods may briefly fail readiness until the Job has created the schema.
-- The advisory lock stays in the code — it still protects the boot-migration path
-  used by docker-compose and any install with `migrate.enabled: false`.
+  the new pods roll (old release still serving). On a **fresh** install an init
+  container waits for the database first, then the Job creates the schema; the
+  app pods may briefly fail readiness until it completes. A very slow first-time
+  cluster bootstrap may need a longer `helm upgrade --install --timeout`.
+- Set `migrate.enabled: false` to restore the legacy "every pod migrates on
+  boot" model (required if you keep `poolMode: session` and want boot
+  migrations). The advisory lock stays in the code — it still protects that boot
+  path, also used by docker-compose.
 - Through the pooler the server-side `statement_timeout` GUC is dropped (as in
   session mode); the app's client-side `query_timeout` still applies.
 
