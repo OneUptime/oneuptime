@@ -1,5 +1,7 @@
 import AdminModelAPI from "../../Utils/ModelAPI";
 import EnterpriseFeatureUpgrade from "../../Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
+import MigrationStatus from "./MigrationStatus";
+import SupportBundle from "./SupportBundle";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -134,6 +136,14 @@ const Health: FunctionComponent = (): ReactElement => {
           },
         ]}
       >
+        {/*
+         * Migration status and the support bundle are available on every
+         * edition — Community self-hosters need these to verify upgrades and
+         * to send diagnostics to OneUptime.
+         */}
+        <MigrationStatus />
+        <SupportBundle />
+
         <EnterpriseFeatureUpgrade
           title="Instance health"
           description="Operational health of this OneUptime instance."
@@ -454,6 +464,10 @@ const Health: FunctionComponent = (): ReactElement => {
       ) : (
         <></>
       )}
+
+      {/* Migration status and support bundle sit at the top — they apply to every edition. */}
+      <MigrationStatus />
+      <SupportBundle />
 
       {renderOverview()}
 

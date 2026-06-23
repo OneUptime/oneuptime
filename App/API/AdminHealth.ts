@@ -2,7 +2,15 @@ import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDa
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import Redis from "Common/Server/Infrastructure/Redis";
 import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
-import { IsEnterpriseEdition } from "Common/Server/EnvironmentConfig";
+import {
+  AppVersion,
+  ClickhouseDatabase as ClickhouseDatabaseName,
+  GitSha,
+  Host,
+  IsEnterpriseEdition,
+} from "Common/Server/EnvironmentConfig";
+import PostgresSchemaMigrations from "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index";
+import DataMigrationsList from "../FeatureSet/Workers/DataMigrations/Index";
 import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
 import Express, {
   ExpressRequest,
@@ -12,6 +20,7 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
+import OneUptimeDate from "Common/Types/Date";
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 
@@ -215,6 +224,369 @@ async function getQueueStats(): Promise<JSONArray> {
   return stats;
 }
 
+/*
+ * Migration-name timestamps are the trailing epoch in the class name
+ * (e.g. "AddArchiveToResources1782600000000"). TypeORM sorts and stores
+ * migrations by this value, so it is also how we identify the newest one.
+ */
+function parseMigrationTimestamp(name: string): number | null {
+  const match: RegExpMatchArray | null = name.match(/(\d{10,})$/);
+  return match ? toNumberOrNull(match[1]) : null;
+}
+
+/*
+ * De-duplicate migration names while preserving first-seen order. Both runners
+ * key applied migrations by NAME, so a name that appears twice in a build (e.g.
+ * a copy-paste mistake in a migration's super(name) call) is a single tracked
+ * unit — counting it twice would make a fully-migrated instance look behind.
+ */
+function distinctNames(names: Array<string>): Array<string> {
+  return Array.from(new Set(names));
+}
+
+/*
+ * Postgres (TypeORM) schema migration status: compare the migrations shipped
+ * in this build against the rows recorded in the `migrations` table so an
+ * operator can tell at a glance whether the schema is fully migrated.
+ */
+async function getPostgresMigrationStatus(): Promise<JSONObject> {
+  const result: JSONObject = {
+    connected: false,
+    isUpToDate: false,
+    totalDefined: 0,
+    totalApplied: 0,
+    totalPending: 0,
+    latestDefinedMigration: null,
+    latestAppliedMigration: null,
+    pendingMigrations: [],
+  };
+
+  // Source-of-truth list of schema migrations compiled into this build.
+  const definedNames: Array<string> = distinctNames(
+    (PostgresSchemaMigrations as Array<new () => { name: string }>).map(
+      (MigrationClass: new () => { name: string }): string => {
+        return new MigrationClass().name;
+      },
+    ),
+  );
+
+  result["totalDefined"] = definedNames.length;
+
+  // Newest migration this build knows about (highest epoch timestamp in name).
+  const latestDefined: string | undefined = [...definedNames]
+    .sort((a: string, b: string): number => {
+      return (
+        (parseMigrationTimestamp(a) || 0) - (parseMigrationTimestamp(b) || 0)
+      );
+    })
+    .pop();
+
+  if (latestDefined) {
+    result["latestDefinedMigration"] = {
+      name: latestDefined,
+      timestamp: parseMigrationTimestamp(latestDefined),
+    };
+  }
+
+  try {
+    const dataSource: ReturnType<typeof PostgresAppInstance.getDataSource> =
+      PostgresAppInstance.getDataSource();
+
+    if (!dataSource) {
+      return result;
+    }
+
+    const rows: Array<{ name: string; timestamp: string }> =
+      await dataSource.query(
+        "SELECT name, timestamp FROM migrations ORDER BY timestamp ASC",
+      );
+
+    result["connected"] = true;
+    result["totalApplied"] = rows.length;
+
+    const appliedNames: Set<string> = new Set(
+      rows.map((row: { name: string }): string => {
+        return row.name;
+      }),
+    );
+
+    const pending: Array<string> = definedNames.filter(
+      (name: string): boolean => {
+        return !appliedNames.has(name);
+      },
+    );
+
+    result["pendingMigrations"] = pending;
+    result["totalPending"] = pending.length;
+    result["isUpToDate"] = pending.length === 0;
+
+    const lastRow: { name: string; timestamp: string } | undefined =
+      rows[rows.length - 1];
+
+    if (lastRow) {
+      result["latestAppliedMigration"] = {
+        name: lastRow.name,
+        timestamp: toNumberOrNull(lastRow.timestamp),
+      };
+    }
+  } catch (err) {
+    logger.error("AdminHealth: failed to read Postgres migration status");
+    logger.error(err);
+  }
+
+  return result;
+}
+
+/*
+ * Data migrations (ClickHouse schema + data backfills) run in a fixed array
+ * order and record themselves in the Postgres `DataMigrations` table on
+ * success. Because the runner halts the chain at the first failure, the first
+ * pending migration is the one that is blocking every migration after it.
+ */
+async function getDataMigrationStatus(): Promise<JSONObject> {
+  const result: JSONObject = {
+    connected: false,
+    isUpToDate: false,
+    totalDefined: 0,
+    totalApplied: 0,
+    totalPending: 0,
+    latestDefinedMigration: null,
+    lastExecutedMigration: null,
+    nextPendingMigration: null,
+    pendingMigrations: [],
+  };
+
+  // Ordered list of data / ClickHouse migrations compiled into this build.
+  const definedNames: Array<string> = distinctNames(
+    DataMigrationsList.map((migration: { name: string }): string => {
+      return migration.name;
+    }),
+  );
+
+  result["totalDefined"] = definedNames.length;
+
+  if (definedNames.length > 0) {
+    result["latestDefinedMigration"] = {
+      name: definedNames[definedNames.length - 1],
+    };
+  }
+
+  try {
+    const dataSource: ReturnType<typeof PostgresAppInstance.getDataSource> =
+      PostgresAppInstance.getDataSource();
+
+    if (!dataSource) {
+      return result;
+    }
+
+    const rows: Array<{ name: string; executedAt: string | null }> =
+      await dataSource.query(
+        'SELECT name, "executedAt" FROM "DataMigrations" WHERE executed = true',
+      );
+
+    result["connected"] = true;
+    result["totalApplied"] = rows.length;
+
+    const appliedNames: Set<string> = new Set(
+      rows.map((row: { name: string }): string => {
+        return row.name;
+      }),
+    );
+
+    // Keep run order so the first pending migration is the one blocking the chain.
+    const pending: Array<string> = definedNames.filter(
+      (name: string): boolean => {
+        return !appliedNames.has(name);
+      },
+    );
+
+    result["pendingMigrations"] = pending;
+    result["totalPending"] = pending.length;
+    result["isUpToDate"] = pending.length === 0;
+    result["nextPendingMigration"] = pending[0] || null;
+
+    // Most-recently executed migration (executedAt may be null on very old rows).
+    const lastExecuted: { name: string; executedAt: string | null } | null =
+      rows
+        .filter((row: { executedAt: string | null }): boolean => {
+          return Boolean(row.executedAt);
+        })
+        .sort(
+          (
+            a: { executedAt: string | null },
+            b: { executedAt: string | null },
+          ): number => {
+            return (
+              new Date(a.executedAt as string).getTime() -
+              new Date(b.executedAt as string).getTime()
+            );
+          },
+        )
+        .pop() || null;
+
+    if (lastExecuted) {
+      result["lastExecutedMigration"] = {
+        name: lastExecuted.name,
+        executedAt: lastExecuted.executedAt,
+      };
+    }
+  } catch (err) {
+    logger.error("AdminHealth: failed to read data migration status");
+    logger.error(err);
+  }
+
+  return result;
+}
+
+async function getMigrationStatus(): Promise<JSONObject> {
+  const [postgres, dataMigrations] = await Promise.all([
+    getPostgresMigrationStatus(),
+    getDataMigrationStatus(),
+  ]);
+
+  return {
+    postgres,
+    dataMigrations,
+  };
+}
+
+/*
+ * Full Postgres schema (tables + columns) read from information_schema. We
+ * deliberately dump structure only — never row data — so the support bundle is
+ * safe to share with OneUptime for diagnostics.
+ */
+async function getPostgresSchema(): Promise<JSONObject> {
+  const result: JSONObject = {
+    connected: false,
+    serverVersion: null,
+    databaseSizeInBytes: null,
+    tableCount: 0,
+    tables: [],
+  };
+
+  try {
+    const dataSource: ReturnType<typeof PostgresAppInstance.getDataSource> =
+      PostgresAppInstance.getDataSource();
+
+    if (!dataSource) {
+      return result;
+    }
+
+    result["connected"] = true;
+
+    const versionRows: Array<{ server_version: string }> =
+      await dataSource.query("SHOW server_version");
+    result["serverVersion"] = versionRows?.[0]?.server_version || null;
+
+    const sizeRows: Array<{ size: string }> = await dataSource.query(
+      "SELECT pg_database_size(current_database()) AS size",
+    );
+    result["databaseSizeInBytes"] = toNumberOrNull(sizeRows?.[0]?.size);
+
+    const columnRows: Array<{
+      table_name: string;
+      column_name: string;
+      data_type: string;
+      is_nullable: string;
+      column_default: string | null;
+      character_maximum_length: number | null;
+    }> = await dataSource.query(
+      `SELECT table_name, column_name, data_type, is_nullable, column_default, character_maximum_length
+       FROM information_schema.columns
+       WHERE table_schema = 'public'
+       ORDER BY table_name ASC, ordinal_position ASC`,
+    );
+
+    // Group the flat column list into one entry per table, preserving order.
+    const tableMap: Map<string, JSONArray> = new Map();
+
+    for (const row of columnRows) {
+      const columns: JSONArray = tableMap.get(row.table_name) || [];
+      columns.push({
+        name: row.column_name,
+        type: row.data_type,
+        nullable: row.is_nullable === "YES",
+        default: row.column_default,
+        maxLength: toNumberOrNull(row.character_maximum_length),
+      });
+      tableMap.set(row.table_name, columns);
+    }
+
+    const tables: JSONArray = [];
+    for (const [name, columns] of tableMap) {
+      tables.push({ name, columns });
+    }
+
+    result["tables"] = tables;
+    result["tableCount"] = tables.length;
+  } catch (err) {
+    logger.error("AdminHealth: failed to dump Postgres schema");
+    logger.error(err);
+  }
+
+  return result;
+}
+
+/*
+ * Full ClickHouse schema. system.tables.create_table_query gives the exact DDL
+ * (engine, ordering keys, codecs) for every table and materialized view in the
+ * configured database — exactly what we need to diagnose schema drift.
+ */
+async function getClickhouseSchema(): Promise<JSONObject> {
+  const result: JSONObject = {
+    connected: false,
+    database: ClickhouseDatabaseName,
+    serverVersion: null,
+    tableCount: 0,
+    tables: [],
+  };
+
+  try {
+    const client: ReturnType<typeof ClickhouseAppInstance.getDataSource> =
+      ClickhouseAppInstance.getDataSource();
+
+    if (!client) {
+      return result;
+    }
+
+    result["connected"] = true;
+
+    const versionResult: ClickhouseJsonResult = (await (
+      await client.query({
+        query: "SELECT version() AS version",
+        format: "JSON",
+      })
+    ).json()) as ClickhouseJsonResult;
+    result["serverVersion"] = versionResult.data?.[0]?.["version"] || null;
+
+    const tablesResult: ClickhouseJsonResult = (await (
+      await client.query({
+        query:
+          "SELECT name, engine, create_table_query FROM system.tables WHERE database = currentDatabase() ORDER BY name ASC",
+        format: "JSON",
+      })
+    ).json()) as ClickhouseJsonResult;
+
+    const tables: JSONArray = (tablesResult.data || []).map(
+      (row: JSONObject): JSONObject => {
+        return {
+          name: String(row["name"]),
+          engine: String(row["engine"]),
+          createTableQuery: String(row["create_table_query"]),
+        };
+      },
+    );
+
+    result["tables"] = tables;
+    result["tableCount"] = tables.length;
+  } catch (err) {
+    logger.error("AdminHealth: failed to dump ClickHouse schema");
+    logger.error(err);
+  }
+
+  return result;
+}
+
 router.get(
   "/overview",
   MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
@@ -257,6 +629,72 @@ router.get(
       };
 
       return Response.sendJsonObjectResponse(req, res, data);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * Migration status is intentionally NOT gated behind the Enterprise Edition:
+ * every self-hosting operator (Community included) needs to confirm their
+ * schema is fully migrated, and this is the data we ask them for when they
+ * report an upgrade problem.
+ */
+router.get(
+  "/migrations",
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const data: JSONObject = await getMigrationStatus();
+      return Response.sendJsonObjectResponse(req, res, data);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * Support bundle: a single JSON document with the instance version, migration
+ * status and full Postgres + ClickHouse schema (structure only, no row data).
+ * Self-hosting customers download this and send it to OneUptime so we can
+ * diagnose schema / migration issues without access to their cluster. Like the
+ * migration status above, it is available on every edition for master admins.
+ */
+router.get(
+  "/support-bundle",
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const [migrations, postgresSchema, clickhouseSchema] = await Promise.all([
+        getMigrationStatus(),
+        getPostgresSchema(),
+        getClickhouseSchema(),
+      ]);
+
+      const bundle: JSONObject = {
+        generatedAt: OneUptimeDate.getCurrentDate().toISOString(),
+        instance: {
+          appVersion: AppVersion,
+          gitSha: GitSha,
+          edition: IsEnterpriseEdition ? "Enterprise" : "Community",
+          host: Host,
+          nodeVersion: process.version,
+        },
+        migrations,
+        postgres: postgresSchema,
+        clickhouse: clickhouseSchema,
+      };
+
+      return Response.sendJsonObjectResponse(req, res, bundle);
     } catch (err) {
       return next(err);
     }

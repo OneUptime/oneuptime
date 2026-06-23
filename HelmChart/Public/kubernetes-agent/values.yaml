@@ -347,13 +347,20 @@ ebpf:
     repository: otel/ebpf-instrument
     tag: "v0.9.0"
     pullPolicy: IfNotPresent
+  # OBI's memory scales with the number of processes it instruments and the
+  # traffic through them, so the busiest nodes (databases + app tier packed
+  # together) need more headroom than a lightly-loaded node. 1Gi OOM-loops on
+  # those — 2Gi gives the limit room; request raised so the scheduler accounts
+  # for steady-state on heavy nodes. If a node still OOMs, narrow what OBI
+  # attaches to via `autoTargetExe` / `excludeExePaths` rather than raising
+  # this unboundedly.
   resources:
     requests:
       cpu: 100m
-      memory: 256Mi
+      memory: 512Mi
     limits:
       cpu: 1000m
-      memory: 1Gi
+      memory: 2Gi
   # Glob pattern of executable paths to instrument. "*" means "every process
   # OBI can recognize". Set to a narrower pattern (e.g. "*/python,*/java") if
   # you only want specific runtimes.

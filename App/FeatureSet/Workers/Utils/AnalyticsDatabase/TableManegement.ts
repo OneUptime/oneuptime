@@ -8,7 +8,10 @@ import logger from "Common/Server/Utils/Logger";
 import MaterializedView from "Common/Types/AnalyticsDatabase/MaterializedView";
 import { JSONObject } from "Common/Types/JSON";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
+import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
+import Projection from "Common/Types/AnalyticsDatabase/Projection";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
+import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 
 /**
  * A column as it physically exists in ClickHouse (read from
@@ -45,6 +48,21 @@ export default class AnalyticsTableManagement {
        * column in the sort key still has to drop+recreate the table.
        */
       await this.reconcileColumns(service);
+
+      /*
+       * Self-heal the two other additive schema layers the inline
+       * CREATE TABLE owns but CREATE ... IF NOT EXISTS can never re-apply
+       * once the table exists:
+       *  - skip indexes: addColumnInDatabase adds a column's index in a
+       *    separate, non-atomic ALTER, so a failed ADD INDEX after a
+       *    succeeded ADD COLUMN would otherwise never be retried.
+       *  - projections: a projection added to a model after table creation
+       *    never reaches the physical table without this.
+       * Both are purely additive (never drop) and run after reconcileColumns
+       * so every model column physically exists before we index/project it.
+       */
+      await this.reconcileSkipIndexes(service);
+      await this.reconcileProjections(service);
     }
   }
 
@@ -145,6 +163,100 @@ export default class AnalyticsTableManagement {
   }
 
   /**
+   * Add any skip index declared on a model column that the physical table is
+   * missing. reconcileColumns adds a freshly-added column's skip index in the
+   * same pass (via addColumnInDatabase), but that is a TWO-statement,
+   * non-atomic sequence: `ADD COLUMN` then a separate `ADD INDEX`. If the
+   * column add succeeds but the index add throws, the column exists on the
+   * next boot, so reconcileColumns short-circuits it (existingColumns.has) and
+   * the index would never be retried. This reconciler closes that gap by
+   * keying on INDEX existence (system.data_skipping_indices), not column
+   * existence, so a missing index self-heals on a later boot.
+   *
+   * `ADD INDEX IF NOT EXISTS` is idempotent and race-safe across booting
+   * replicas. Definition-only — it does NOT `MATERIALIZE INDEX` over historical
+   * parts (matching addColumnInDatabase and the inline CREATE-TABLE index), so
+   * the index applies to new and merged parts going forward. Failures are
+   * logged and skipped so one bad index never aborts startup.
+   */
+  private static async reconcileSkipIndexes(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+  ): Promise<void> {
+    const indexedColumns: Array<AnalyticsTableColumn> =
+      service.model.tableColumns.filter((column: AnalyticsTableColumn) => {
+        return Boolean(column.skipIndex);
+      });
+
+    if (indexedColumns.length === 0) {
+      return;
+    }
+
+    let existingIndexNames: Set<string>;
+
+    try {
+      existingIndexNames = await this.getExistingSkipIndexNames(service);
+    } catch (error) {
+      logger.error({
+        message: `Failed to read existing skip indexes for ${service.model.tableName} - skipping skip-index reconciliation.`,
+        error: (error as Error).message,
+      });
+      return;
+    }
+
+    for (const column of indexedColumns) {
+      const indexName: string = column.skipIndex!.name;
+
+      if (existingIndexNames.has(indexName)) {
+        continue;
+      }
+
+      const indexStatement: Statement | null =
+        service.statementGenerator.toAddSkipIndexStatement(column);
+
+      if (!indexStatement) {
+        continue;
+      }
+
+      try {
+        logger.info(
+          `Skip index ${indexName} is missing on ${service.model.tableName} - adding it.`,
+        );
+        await service.execute(indexStatement);
+      } catch (error) {
+        logger.error({
+          message: `Failed to add missing skip index ${indexName} on ${service.model.tableName}`,
+          error: (error as Error).message,
+        });
+      }
+    }
+  }
+
+  private static async getExistingSkipIndexNames(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+  ): Promise<Set<string>> {
+    const escapedTableName: string = this.escapeForQuery(
+      service.model.tableName,
+    );
+
+    const result: Results = await service.executeQuery(
+      `SELECT name FROM system.data_skipping_indices WHERE database = currentDatabase() AND table = '${escapedTableName}'`,
+    );
+
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const names: Set<string> = new Set<string>();
+
+    for (const row of response.data || []) {
+      const record: JSONObject = row as JSONObject;
+      names.add(String(record["name"]));
+    }
+
+    return names;
+  }
+
+  /**
    * Log (loudly) any column whose physical type or codec has drifted from
    * the model. AggregateFunction state drift is logged at error level
    * because it breaks materialized-view creation; other type/codec changes
@@ -200,8 +312,18 @@ export default class AnalyticsTableManagement {
         }
       }
 
-      // ---- Codec drift (best-effort; only when the model declares one) ----
-      if (column.codec && existing.codec) {
+      /*
+       * ---- Codec drift (best-effort) ----
+       * Gate on the MODEL declaring a codec, NOT on both sides having one.
+       * system.columns.compression_codec is the empty string for a column
+       * with no explicit codec, so an `&& existing.codec` guard would
+       * silently swallow the most common real drift — the model now declares
+       * a codec but the physical column has none (e.g. a codec added to the
+       * model after the table was created, which the boot ADD path never
+       * applies). The model is the source of truth: if it declares a codec
+       * and the column lacks/differs from it, that is drift worth surfacing.
+       */
+      if (column.codec) {
         let expectedCodec: string = "";
         try {
           expectedCodec = StatementGenerator.buildCodecString(column.codec);
@@ -215,11 +337,11 @@ export default class AnalyticsTableManagement {
             this.normalizeCodec(existing.codec)
         ) {
           logger.warn({
-            message: `ClickHouse codec drift on ${tableName}.${column.key}: model declares CODEC(${expectedCodec}) but the column reports ${existing.codec}. A MODIFY COLUMN ... CODEC migration is needed to converge it.`,
+            message: `ClickHouse codec drift on ${tableName}.${column.key}: model declares CODEC(${expectedCodec}) but the column reports ${existing.codec || "no codec"}. A MODIFY COLUMN ... CODEC migration is needed to converge it.`,
             table: tableName,
             column: column.key,
             expectedCodec,
-            actualCodec: existing.codec,
+            actualCodec: existing.codec || "(none)",
           });
         }
       }
@@ -371,7 +493,37 @@ export default class AnalyticsTableManagement {
             }
 
             /*
-             * SAFETY GATE: only auto-drop when the recreate is sure to
+             * SAFETY GATE 1: enforce the invariant the next gate relies on.
+             * hasAggregateTypeDrift below inspects the OWNING service's table
+             * (service.model.tableName) — that is only the MV's real recreate
+             * target when the MV's `TO` clause points at the owning table,
+             * which holds for every MV today. If a future MV targets a
+             * DIFFERENT table, that assumption breaks: the gate would clear a
+             * table that is not the recreate target, we could DROP a working
+             * view, and the CREATE could then fail against a drifted foreign
+             * target — leaving NO view. Rather than silently trust the
+             * assumption, verify it and refuse the destructive drop when it
+             * does not hold.
+             */
+            const declaredTarget: string | null =
+              this.extractMaterializedViewTarget(materializedView.query);
+
+            if (
+              declaredTarget &&
+              declaredTarget.toLowerCase() !==
+                service.model.tableName.toLowerCase()
+            ) {
+              logger.error({
+                message: `Materialized view ${materializedView.name} has drifted but its TO target (${declaredTarget}) is not the owning table ${service.model.tableName}. The aggregate-drift safety gate only inspects the owning table, so an auto-drop here cannot be proven safe — leaving the existing view in place. A DataMigration must own recreating an MV that targets a different table.`,
+                view: materializedView.name,
+                declaredTarget,
+                owningTable: service.model.tableName,
+              });
+              continue;
+            }
+
+            /*
+             * SAFETY GATE 2: only auto-drop when the recreate is sure to
              * succeed. If the MV's target table has AggregateFunction
              * type drift (e.g. quantile → quantileBFloat16), recreating the
              * model MV would fail the aggregate cast — and we'd have dropped
@@ -406,7 +558,9 @@ export default class AnalyticsTableManagement {
               `Materialized view ${materializedView.name} has drifted from the model definition - dropping and recreating it.`,
             );
             await service.execute(
-              `DROP VIEW IF EXISTS ${materializedView.name} SYNC`,
+              `DROP VIEW IF EXISTS ${this.escapeIdentifier(
+                materializedView.name,
+              )} SYNC`,
             );
           } else {
             logger.info(
@@ -556,6 +710,112 @@ export default class AnalyticsTableManagement {
     }
 
     return Array.from(tokens);
+  }
+
+  /**
+   * The bare table name a model MV writes into (its `TO` target), or null if
+   * the query has no `TO` clause. Strips an optional `db.` qualifier and
+   * backticks so it can be compared to a model's tableName. Used to verify
+   * the documented invariant that an MV targets its declaring model's own
+   * table before the aggregate-drift safety gate (which only inspects that
+   * owning table) is trusted to authorise a destructive drop.
+   */
+  private static extractMaterializedViewTarget(query: string): string | null {
+    const toMatch: RegExpMatchArray | null = query.match(
+      /\bTO\s+`?(?:[A-Za-z0-9_]+\.)?([A-Za-z0-9_]+)`?/,
+    );
+
+    if (toMatch && toMatch[1]) {
+      return toMatch[1];
+    }
+
+    return null;
+  }
+
+  /**
+   * Ensure every projection declared on a model exists on its physical table.
+   * Projections are emitted inline by toColumnsCreateStatement, but that only
+   * fires under CREATE TABLE IF NOT EXISTS — a no-op once the table exists. So
+   * a projection ADDED to a model after the table was created (the normal way
+   * to introduce one going forward) never reaches the table. This is the
+   * projection-layer counterpart to reconcileColumns: on every boot, ADD any
+   * declared projection the table is missing (`ALTER ... ADD PROJECTION IF NOT
+   * EXISTS` — idempotent and race-safe across replicas), then MATERIALIZE it
+   * over existing parts asynchronously (mutations_sync=0) so it also covers
+   * historical rows without blocking boot. A fresh table already has the
+   * projection inline, so doesProjectionExist short-circuits there.
+   *
+   * Purely additive, like reconcileColumns: a projection REMOVED from a model
+   * is left in place (dropping is destructive and owned by a DataMigration).
+   * One failing projection is logged and skipped, never aborting startup.
+   */
+  private static async reconcileProjections(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+  ): Promise<void> {
+    const projections: Array<Projection> = service.model.projections || [];
+
+    if (projections.length === 0) {
+      return;
+    }
+
+    const databaseName: string | undefined =
+      service.database.getDatasourceOptions().database;
+
+    if (!databaseName) {
+      logger.warn(
+        `Cannot reconcile projections on ${service.model.tableName} because database name is undefined`,
+      );
+      return;
+    }
+
+    const escapedDatabase: string = this.escapeIdentifier(databaseName);
+    const escapedTable: string = this.escapeIdentifier(service.model.tableName);
+
+    for (const projection of projections) {
+      let exists: boolean;
+
+      try {
+        exists = await this.doesProjectionExist(service, projection.name);
+      } catch (error) {
+        logger.error({
+          message: `Failed to check projection ${projection.name} on ${service.model.tableName} - skipping it.`,
+          error: (error as Error).message,
+        });
+        continue;
+      }
+
+      if (exists) {
+        continue;
+      }
+
+      const escapedProjection: string = this.escapeIdentifier(projection.name);
+
+      try {
+        logger.info(
+          `Projection ${projection.name} is missing on ${service.model.tableName} - adding it.`,
+        );
+
+        await service.execute(
+          `ALTER TABLE ${escapedDatabase}.${escapedTable} ADD PROJECTION IF NOT EXISTS ${escapedProjection} (${projection.query})`,
+        );
+
+        /*
+         * Materialize over existing parts so the projection covers historical
+         * rows, not just future inserts. mutations_sync=0 returns immediately
+         * and runs the mutation in the background server-side — materializing
+         * a projection on a large table can take a long time and must never
+         * block boot. New and merged parts get the projection automatically.
+         */
+        await service.execute(
+          `ALTER TABLE ${escapedDatabase}.${escapedTable} MATERIALIZE PROJECTION ${escapedProjection} SETTINGS mutations_sync=0`,
+        );
+      } catch (error) {
+        logger.error({
+          message: `Failed to add/materialize projection ${projection.name} on ${service.model.tableName}`,
+          error: (error as Error).message,
+        });
+      }
+    }
   }
 
   public static async doesProjectionExist(
