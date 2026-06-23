@@ -903,9 +903,8 @@ describe("StatementGenerator", () => {
     )
     ENGINE = ReplicatedMergeTree
 PARTITION BY (column_ObjectID)
-
-    PRIMARY KEY (${'column_ObjectID'})
-    ORDER BY (${'column_ObjectID'})
+PRIMARY KEY ({p0:Identifier})
+            ORDER BY ({p1:Identifier})
     `;
             /* eslint-enable prettier/prettier */
 
@@ -916,11 +915,12 @@ PARTITION BY (column_ObjectID)
         return s.replace(/\s+/g, " ").trim();
       };
       expect(normalizeWhitespace(statement.query)).toBe(
-        normalizeWhitespace(expectedStatement.query),
+        normalizeWhitespace(expectedQuery),
       );
-      expect(statement.query_params).toStrictEqual(
-        expectedStatement.query_params,
-      );
+      expect(statement.query_params).toStrictEqual({
+        p0: "column_ObjectID",
+        p1: "column_ObjectID",
+      });
     });
 
     test("should append storage policy before table settings", () => {
@@ -957,10 +957,11 @@ PARTITION BY (column_ObjectID)
       const normalizedQuery: string = statement.query.replace(/\s+/g, " ").trim();
 
       expect(normalizedQuery).toContain(
-        "CREATE TABLE IF NOT EXISTS {p0:Identifier}.{p1:Identifier}{p2:Identifier}",
+        "CREATE TABLE IF NOT EXISTS oneuptime.MetricItemV3 ON CLUSTER ou",
       );
-      expect(statement.query_params).toMatchObject({
-        p2: " ON CLUSTER ou",
+      expect(statement.query_params).toStrictEqual({
+        p0: "projectId",
+        p1: "projectId",
       });
       expect(normalizedQuery).toContain(
         "ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/oneuptime/MetricItemV3', '{replica}')",

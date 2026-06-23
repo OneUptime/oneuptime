@@ -204,6 +204,7 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.shardingKey = data.shardingKey;
     this.storagePolicy = data.storagePolicy;
     this.tableSettings = data.tableSettings;
+    this.ttlExpression = data.ttlExpression || "";
     this.projections = data.projections || [];
     this.materializedViews = data.materializedViews || [];
     if (data.distributedClusterName) {

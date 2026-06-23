@@ -94,20 +94,17 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
      * in single-node mode, leaving the original statement unchanged.
      */
     /* eslint-disable prettier/prettier */
-    const statement: Statement = SQL`
-            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${getStorageTableName(
-              this.model.tableName,
-            )}`
+    const statement: Statement = new Statement();
+    statement
+      .append(
+        `ALTER TABLE ${this.database.getDatasourceOptions().database!}.${getStorageTableName(
+          this.model.tableName,
+        )}`,
+      )
       .append(onClusterClause())
-      .append(
-        SQL`
-            UPDATE `,
-      )
+      .append(` UPDATE `)
       .append(setStatement)
-      .append(
-        SQL`
-            WHERE TRUE `,
-      )
+      .append(` WHERE TRUE `)
       .append(whereStatement);
 
     logger.debug(`${this.model.getMutationTableName()} Update Statement`);
@@ -1326,12 +1323,15 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       );
     }
 
-    const statement: Statement = SQL`
-            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${getStorageTableName(
-              this.model.tableName,
-            )}`
+    const statement: Statement = new Statement();
+    statement
+      .append(
+        `ALTER TABLE ${this.database.getDatasourceOptions().database!}.${getStorageTableName(
+          this.model.tableName,
+        )}`,
+      )
       .append(onClusterClause())
-      .append(SQL` ADD COLUMN IF NOT EXISTS `)
+      .append(` ADD COLUMN IF NOT EXISTS `)
       .append(columnDef);
 
     logger.debug(`${this.model.getSchemaTableName()} Add Column Statement`);
@@ -1420,8 +1420,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     const partitionKey: string = this.model.partitionKey;
 
-    const statement: Statement = SQL`
-            CREATE TABLE IF NOT EXISTS ${databaseName}.${storageTableName}`
+    const statement: Statement = new Statement();
+    statement
+      .append(`CREATE TABLE IF NOT EXISTS ${databaseName}.${storageTableName}`)
       /*
        * ON CLUSTER is appended as RAW SQL — the SQL tag turns every ${..}
        * interpolation into a {pN:Identifier} parameter, which would wrongly
@@ -1429,21 +1430,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
        * onCluster is "" in single-node mode, so this is a no-op there.
        */
       .append(onCluster)
-      .append(
-        SQL`
-            (\n`,
-      )
+      .append(` (\n`)
       .append(columnsStatement)
-      .append(
-        SQL`
-            )
-            ENGINE = `,
-      )
-      .append(tableEngineStatement).append(`
-        PARTITION BY (${partitionKey})
-        `).append(SQL`
-            PRIMARY KEY (`);
-
+      .append(`\n)\nENGINE = `)
+      .append(tableEngineStatement)
+      .append(`\nPARTITION BY (${partitionKey})\nPRIMARY KEY (`);
     for (let i: number = 0; i < this.model.primaryKeys.length; i++) {
       const key: string = this.model.primaryKeys[i]!;
       if (i !== 0) {

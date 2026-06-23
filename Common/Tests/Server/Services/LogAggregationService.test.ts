@@ -2,11 +2,12 @@ import LogAggregationService, {
   FacetRequest,
 } from "../../../Server/Services/LogAggregationService";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
-import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import { describe, expect, test } from "@jest/globals";
 
+
+const expectedLogTableName: string = (LogAggregationService as any).TABLE_NAME;
 describe("LogAggregationService", () => {
   const defaultRequest: FacetRequest = {
     projectId: ObjectID.generate(),
@@ -36,7 +37,7 @@ describe("LogAggregationService", () => {
 
     expect(statement.query_params).toStrictEqual({
       p0: "severityText",
-      p1: AnalyticsTableName.Log,
+      p1: expectedLogTableName,
       p2: defaultRequest.projectId.toString(),
       p3: OneUptimeDate.toClickhouseDateTime(defaultRequest.startTime),
       p4: OneUptimeDate.toClickhouseDateTime(defaultRequest.endTime),
@@ -61,7 +62,7 @@ describe("LogAggregationService", () => {
 
     expect(statement.query_params).toStrictEqual({
       p0: facetKey,
-      p1: AnalyticsTableName.Log,
+      p1: expectedLogTableName,
       p2: defaultRequest.projectId.toString(),
       p3: OneUptimeDate.toClickhouseDateTime(defaultRequest.startTime),
       p4: OneUptimeDate.toClickhouseDateTime(defaultRequest.endTime),

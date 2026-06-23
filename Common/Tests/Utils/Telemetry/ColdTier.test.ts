@@ -24,6 +24,9 @@ describe("Telemetry cold-tier config", () => {
 
   test("builds cold-tier TTL when enabled", () => {
     process.env["CLICKHOUSE_COLD_TIER_ENABLED"] = "true";
+    delete process.env["CLICKHOUSE_COLD_TIER_METRICS_DAYS"];
+    delete process.env["CLICKHOUSE_COLD_TIER_LOGS_DAYS"];
+    delete process.env["CLICKHOUSE_COLD_TIER_TRACES_DAYS"];
 
     expect(getClickhouseColdTierStoragePolicy()).toBe("tiered");
     expect(
