@@ -167,16 +167,18 @@ changelog:
   }
 
   private async generateRegistryManifest(): Promise<void> {
-    // The Terraform Registry reads this manifest to learn which Terraform plugin
-    // protocol versions the provider speaks. This provider is built with
-    // terraform-plugin-framework (providerserver.Serve in main.go), which speaks
-    // protocol 6.0. The manifest must be shipped as a release asset AND listed in
-    // SHA256SUMS (handled via checksum.extra_files in .goreleaser.yml and the
-    // publish script); without it, `terraform init` protocol negotiation fails and
-    // the provider cannot be installed from the Registry.
-    //
-    // Note: the top-level "version" is the manifest *format* version (always 1),
-    // not the provider version.
+    /*
+     * The Terraform Registry reads this manifest to learn which Terraform plugin
+     * protocol versions the provider speaks. This provider is built with
+     * terraform-plugin-framework (providerserver.Serve in main.go), which speaks
+     * protocol 6.0. The manifest must be shipped as a release asset AND listed in
+     * SHA256SUMS (handled via checksum.extra_files in .goreleaser.yml and the
+     * publish script); without it, `terraform init` protocol negotiation fails and
+     * the provider cannot be installed from the Registry.
+     *
+     * Note: the top-level "version" is the manifest *format* version (always 1),
+     * not the provider version.
+     */
     const manifest: {
       version: number;
       metadata: { protocol_versions: Array<string> };

@@ -17,9 +17,11 @@ const execAsync: (
   options?: { cwd?: string },
 ) => Promise<{ stdout: string; stderr: string }> = promisify(exec);
 
-// Extract the most useful diagnostic text from a failed `exec` call. Compiler
-// and `go mod` errors land on stderr/stdout, not in the bare Error message, so
-// surface those so a failure is actually debuggable from the logs.
+/*
+ * Extract the most useful diagnostic text from a failed `exec` call. Compiler
+ * and `go mod` errors land on stderr/stdout, not in the bare Error message, so
+ * surface those so a failure is actually debuggable from the logs.
+ */
 function formatCommandError(error: unknown): string {
   const execError: { stdout?: string; stderr?: string; message?: string } =
     error as { stdout?: string; stderr?: string; message?: string };
@@ -133,9 +135,11 @@ async function main(): Promise<void> {
       await execAsync("go mod tidy", { cwd: providerDir });
       Logger.info("✅ go mod tidy completed successfully");
     } catch (error) {
-      // Fail hard. A failed `go mod tidy` means go.mod/go.sum are inconsistent,
-      // which yields a provider that won't build. Stopping here keeps a broken
-      // module from being pushed/tagged/released by publish-terraform-provider.sh.
+      /*
+       * Fail hard. A failed `go mod tidy` means go.mod/go.sum are inconsistent,
+       * which yields a provider that won't build. Stopping here keeps a broken
+       * module from being pushed/tagged/released by publish-terraform-provider.sh.
+       */
       throw new Error(`go mod tidy failed:\n${formatCommandError(error)}`);
     }
 
@@ -155,10 +159,12 @@ async function main(): Promise<void> {
       });
       Logger.info("✅ Provider compiled successfully");
     } catch (error) {
-      // Fail hard. A non-compiling provider MUST stop the pipeline here, before
-      // publish-terraform-provider.sh pushes/tags/releases the broken code.
-      // Otherwise the failure resurfaces much later (and confusingly) as a
-      // GoReleaser cross-compile failure rather than a generation bug.
+      /*
+       * Fail hard. A non-compiling provider MUST stop the pipeline here, before
+       * publish-terraform-provider.sh pushes/tags/releases the broken code.
+       * Otherwise the failure resurfaces much later (and confusingly) as a
+       * GoReleaser cross-compile failure rather than a generation bug.
+       */
       throw new Error(
         `Generated provider failed to compile (go build):\n${formatCommandError(error)}`,
       );
