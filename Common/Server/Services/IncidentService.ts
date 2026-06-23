@@ -533,7 +533,7 @@ export class Service extends DatabaseService<Model> {
       createBy.data.incidentSeverityId &&
       !createBy.data.incidentSeverityId.toString()
     ) {
-      createBy.data.incidentSeverityId = undefined;
+      delete createBy.data.incidentSeverityId;
     }
 
     // Determine the initial incident state
