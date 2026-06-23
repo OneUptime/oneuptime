@@ -837,9 +837,13 @@ export default class AnalyticsTableManagement {
       }
 
       try {
-        const createQuery: string | null =
-          await this.getTableCreateQuery(service);
-
+        const targetTableName: string = this.getModelOwnedTableSettingsTargetName(
+          service,
+        );
+        const createQuery: string | null = await this.getTableCreateQuery(
+          service,
+          targetTableName,
+        );
         if (!createQuery) {
           logger.warn(
             `Cannot reconcile table settings for ${service.model.getSchemaTableName()} because the table does not exist yet.`,
@@ -861,7 +865,7 @@ export default class AnalyticsTableManagement {
             `Table ${service.model.getSchemaTableName()} is missing storage policy ${service.model.storagePolicy} - applying it.`,
           );
           await service.execute(
-            `ALTER TABLE ${service.model.getSchemaTableName()}${this.getOnClusterClause(service)} MODIFY SETTING ${storagePolicyClause}`,
+            `ALTER TABLE ${targetTableName}${this.getOnClusterClause(service)} MODIFY SETTING ${storagePolicyClause}`,
           );
         }
 
@@ -874,7 +878,7 @@ export default class AnalyticsTableManagement {
             `Table ${service.model.getSchemaTableName()} is missing cold-tier TTL - applying it.`,
           );
           await service.execute(
-            `ALTER TABLE ${service.model.getSchemaTableName()}${this.getOnClusterClause(service)} MODIFY TTL ${service.model.ttlExpression}`,
+            `ALTER TABLE ${targetTableName}${this.getOnClusterClause(service)} MODIFY TTL ${service.model.ttlExpression}`,
           );
         }
       } catch (error) {
@@ -888,6 +892,7 @@ export default class AnalyticsTableManagement {
 
   public static async getTableCreateQuery(
     service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+    tableName: string = service.model.getSchemaTableName(),
   ): Promise<string | null> {
     const databaseName: string | undefined =
       service.database.getDatasourceOptions().database;
@@ -897,9 +902,7 @@ export default class AnalyticsTableManagement {
     }
 
     const escapedDatabaseName: string = this.escapeForQuery(databaseName);
-    const escapedTableName: string = this.escapeForQuery(
-      service.model.getSchemaTableName(),
-    );
+    const escapedTableName: string = this.escapeForQuery(tableName);
     const statement: string = `SELECT create_table_query FROM system.tables WHERE database = '${escapedDatabaseName}' AND name = '${escapedTableName}' AND engine != 'MaterializedView' LIMIT 1`;
     const result: Results = await service.executeQuery(statement);
     const response: DbJSONResponse = await result.json<{
@@ -1260,6 +1263,14 @@ export default class AnalyticsTableManagement {
       service.model.distributedClusterName
       ? ` ON CLUSTER ${service.model.distributedClusterName}`
       : "";
+  }
+
+  private static getModelOwnedTableSettingsTargetName(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+  ): string {
+    return service.model.isDistributedTableEnabled()
+      ? getStorageTableName(service.model.tableName)
+      : service.model.getSchemaTableName();
   }
 
   public static async doesMaterializedViewExist(

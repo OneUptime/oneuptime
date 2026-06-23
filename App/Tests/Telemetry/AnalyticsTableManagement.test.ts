@@ -125,6 +125,9 @@ describe("AnalyticsTableManagement.reconcileModelOwnedTableSettings", () => {
     await AnalyticsTableManagement.reconcileModelOwnedTableSettings();
 
     expect(service.execute).toHaveBeenCalledTimes(2);
+    expect(service.executeQuery).toHaveBeenCalledWith(
+      "SELECT create_table_query FROM system.tables WHERE database = 'oneuptime' AND name = 'MetricItemV3' AND engine != 'MaterializedView' LIMIT 1",
+    );
     expect(service.execute).toHaveBeenNthCalledWith(
       1,
       "ALTER TABLE MetricItemV3 MODIFY SETTING storage_policy = 'tiered'",
@@ -204,13 +207,16 @@ describe("AnalyticsTableManagement.reconcileModelOwnedTableSettings", () => {
 
     await AnalyticsTableManagement.reconcileModelOwnedTableSettings();
 
+    expect(service.executeQuery).toHaveBeenCalledWith(
+      "SELECT create_table_query FROM system.tables WHERE database = 'oneuptime' AND name = 'MetricItemV3Local' AND engine != 'MaterializedView' LIMIT 1",
+    );
     expect(service.execute).toHaveBeenNthCalledWith(
       1,
-      "ALTER TABLE MetricItemV3 ON CLUSTER ou MODIFY SETTING storage_policy = 'tiered'",
+      "ALTER TABLE MetricItemV3Local ON CLUSTER ou MODIFY SETTING storage_policy = 'tiered'",
     );
     expect(service.execute).toHaveBeenNthCalledWith(
       2,
-      "ALTER TABLE MetricItemV3 ON CLUSTER ou MODIFY TTL time + INTERVAL 7 DAY TO VOLUME 's3_cold', retentionDate DELETE",
+      "ALTER TABLE MetricItemV3Local ON CLUSTER ou MODIFY TTL time + INTERVAL 7 DAY TO VOLUME 's3_cold', retentionDate DELETE",
     );
   });
 
