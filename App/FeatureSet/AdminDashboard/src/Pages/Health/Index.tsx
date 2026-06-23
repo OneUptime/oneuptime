@@ -136,14 +136,6 @@ const Health: FunctionComponent = (): ReactElement => {
           },
         ]}
       >
-        {/*
-         * Migration status and the support bundle are available on every
-         * edition — Community self-hosters need these to verify upgrades and
-         * to send diagnostics to OneUptime.
-         */}
-        <MigrationStatus />
-        <SupportBundle />
-
         <EnterpriseFeatureUpgrade
           title="Instance health"
           description="Operational health of this OneUptime instance."
@@ -176,6 +168,14 @@ const Health: FunctionComponent = (): ReactElement => {
             },
           ]}
         />
+
+        {/*
+         * Migration status and the support bundle are available on every
+         * edition — Community self-hosters need these to verify upgrades and
+         * to send diagnostics to OneUptime. They sit at the end of the page.
+         */}
+        <MigrationStatus />
+        <SupportBundle />
       </Page>
     );
   }
@@ -465,10 +465,6 @@ const Health: FunctionComponent = (): ReactElement => {
         <></>
       )}
 
-      {/* Migration status and support bundle sit at the top — they apply to every edition. */}
-      <MigrationStatus />
-      <SupportBundle />
-
       {renderOverview()}
 
       {/* Global probes — read straight from the Probe model, no new backend needed. */}
@@ -562,6 +558,10 @@ const Health: FunctionComponent = (): ReactElement => {
         ]}
         userPreferencesKey="admin-health-probes-table"
       />
+
+      {/* Migration status and support bundle sit at the end — they apply to every edition. */}
+      <MigrationStatus />
+      <SupportBundle />
     </Page>
   );
 };

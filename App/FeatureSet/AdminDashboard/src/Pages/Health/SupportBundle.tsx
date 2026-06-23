@@ -6,9 +6,21 @@ import { JSONObject } from "Common/Types/JSON";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+
+/*
+ * What the diagnostic bundle ships with — rendered as a checklist so admins
+ * know exactly what leaves their instance before they download it.
+ */
+const BUNDLE_CONTENTS: Array<string> = [
+  "Instance version & build",
+  "Database migration status",
+  "Postgres schema (structure only)",
+  "ClickHouse schema (structure only)",
+];
 
 // Trigger a client-side download of the given text content as a file.
 const downloadFile: (
@@ -67,7 +79,7 @@ const SupportBundle: FunctionComponent = (): ReactElement => {
   return (
     <Card
       title="Support bundle"
-      description="Download a diagnostic bundle with this instance's version, migration status and full Postgres + ClickHouse schema (structure only — no customer data). Send this file to the OneUptime team when you need help with an upgrade or schema issue."
+      description="A diagnostic snapshot you can send to the OneUptime team when you need help with an upgrade or a schema issue."
     >
       <div>
         {error ? (
@@ -75,17 +87,60 @@ const SupportBundle: FunctionComponent = (): ReactElement => {
         ) : (
           <></>
         )}
-        <Button
-          title="Download support bundle"
-          icon={IconProp.Download}
-          buttonStyle={ButtonStyleType.PRIMARY}
-          isLoading={isDownloading}
-          onClick={() => {
-            downloadBundle().catch(() => {
-              // handled via setError
-            });
-          }}
-        />
+
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 md:p-5">
+          <div className="flex items-start gap-4">
+            <div className="hidden h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 sm:flex">
+              <Icon icon={IconProp.Archive} size={SizeProp.Regular} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                What&apos;s included
+              </div>
+              <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+                {BUNDLE_CONTENTS.map(
+                  (item: string, index: number): ReactElement => {
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 text-sm text-gray-700"
+                      >
+                        <Icon
+                          icon={IconProp.CheckCircle}
+                          size={SizeProp.Small}
+                          className="h-4 w-4 flex-shrink-0 text-green-500"
+                        />
+                        <span className="truncate">{item}</span>
+                      </div>
+                    );
+                  },
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <Icon
+                icon={IconProp.ShieldCheck}
+                size={SizeProp.Small}
+                className="h-4 w-4 flex-shrink-0 text-gray-400"
+              />
+              <span>Structure only — contains no customer data.</span>
+            </div>
+            <Button
+              title="Download support bundle"
+              icon={IconProp.Download}
+              buttonStyle={ButtonStyleType.PRIMARY}
+              isLoading={isDownloading}
+              onClick={() => {
+                downloadBundle().catch(() => {
+                  // handled via setError
+                });
+              }}
+            />
+          </div>
+        </div>
       </div>
     </Card>
   );
