@@ -402,9 +402,18 @@ export default class MonitorResourceUtil {
         `${dataToProcess.monitorId.toString()} - Monitor metrics saved`,
       );
 
-      const monitorSteps: MonitorSteps = monitor.monitorSteps!;
+      /*
+       * `monitorSteps` is optional on the model. When a monitor has none
+       * configured, `monitor.monitorSteps` is undefined and the previous
+       * non-null assertion (`!`) was a lie — `monitorSteps.data` then threw
+       * "Cannot read properties of null (reading 'data')" inside the probe
+       * ingest worker. Guard the value itself and take the existing
+       * "no monitoring steps" early return.
+       */
+      const monitorSteps: MonitorSteps | undefined = monitor.monitorSteps;
 
       if (
+        !monitorSteps ||
         !monitorSteps.data?.monitorStepsInstanceArray ||
         monitorSteps.data?.monitorStepsInstanceArray.length === 0
       ) {
@@ -856,15 +865,36 @@ export default class MonitorResourceUtil {
           monitorStatusTimeline.rootCause =
             "No monitoring criteria met. Change to default status. ";
 
-          await MonitorStatusTimelineService.create({
-            data: monitorStatusTimeline,
-            props: {
-              isRoot: true,
-            },
-          });
-          logger.debug(
-            `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`,
-          );
+          try {
+            await MonitorStatusTimelineService.create({
+              data: monitorStatusTimeline,
+              props: {
+                isRoot: true,
+              },
+            });
+            logger.debug(
+              `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`,
+            );
+          } catch (err) {
+            /*
+             * Idempotent concurrency race (see MonitorStatusTimeline.ts): a
+             * concurrent result already moved the monitor to this default status,
+             * so onBeforeCreate's dedupe check throws this exact BadDataException.
+             * Treat as a no-op at debug level rather than failing the job. Match the
+             * exact message so unrelated BadDataExceptions still propagate.
+             */
+            if (
+              err instanceof BadDataException &&
+              err.message ===
+                "Monitor Status cannot be same as previous status."
+            ) {
+              logger.debug(
+                `${dataToProcess.monitorId.toString()} - Monitor status already at default; skipping duplicate status timeline (concurrent race).`,
+              );
+            } else {
+              throw err;
+            }
+          }
 
           const defaultStatusName: string | null = await getMonitorStatusName(
             monitorSteps.data.defaultMonitorStatusId,

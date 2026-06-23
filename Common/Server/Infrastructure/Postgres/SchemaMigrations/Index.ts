@@ -399,6 +399,7 @@ import { RemoveIsTestedFromGlobalSsoAndOidc1782400000000 } from "./1782400000000
 import { OptimizeTelemetryExceptionWritePath1782500000000 } from "./1782500000000-OptimizeTelemetryExceptionWritePath";
 import { AddArchiveToResources1782600000000 } from "./1782600000000-AddArchiveToResources";
 import { RemoveDeprecatedEnableSubscribersFromStatusPage1782700000000 } from "./1782700000000-RemoveDeprecatedEnableSubscribersFromStatusPage";
+import { WidenDockerResourceImageColumns1782800000000 } from "./1782800000000-WidenDockerResourceImageColumns";
 
 export default [
   InitialMigration,
@@ -802,4 +803,5 @@ export default [
   OptimizeTelemetryExceptionWritePath1782500000000,
   AddArchiveToResources1782600000000,
   RemoveDeprecatedEnableSubscribersFromStatusPage1782700000000,
+  WidenDockerResourceImageColumns1782800000000,
 ];
