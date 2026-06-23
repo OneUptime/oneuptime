@@ -463,7 +463,7 @@ export default class Queue {
       data: JSONObject;
       opts: JSONObject;
       returnValue: unknown;
-      progress: number | object | null;
+      progress: number | Record<string, unknown> | null;
       failedReason: string;
       stackTrace: Array<string>;
       logs: Array<string>;
@@ -493,7 +493,7 @@ export default class Queue {
       data: JSONObject;
       opts: JSONObject;
       returnValue: unknown;
-      progress: number | object | null;
+      progress: number | Record<string, unknown> | null;
       failedReason: string;
       stackTrace: Array<string>;
       logs: Array<string>;
@@ -533,7 +533,7 @@ export default class Queue {
         data: (job.data as JSONObject) || {},
         opts: (job.opts as unknown as JSONObject) || {},
         returnValue: job.returnvalue ?? null,
-        progress: (job.progress as number | object) ?? null,
+        progress: (job.progress as number | Record<string, unknown>) ?? null,
         failedReason: job.failedReason || "No reason provided",
         stackTrace: job.stacktrace || [],
         logs: logs,

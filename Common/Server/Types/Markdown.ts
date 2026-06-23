@@ -154,7 +154,7 @@ export default class Markdown {
 
     renderer.heading = function (text, level) {
       if (level <= 2) {
-        return `<h3 class="mt-6 mb-2 first:mt-0 text-xs font-semibold uppercase tracking-wider text-emerald-700">${text}</h3>`;
+        return `<h3 class="mt-7 mb-3 pt-6 border-t border-gray-100 first:mt-0 first:pt-0 first:border-t-0 text-[0.7rem] font-semibold uppercase tracking-wider text-emerald-700">${text}</h3>`;
       }
       if (level === 3) {
         return `<h4 class="mt-5 mb-1.5 text-sm font-semibold text-gray-900">${text}</h4>`;
@@ -163,7 +163,7 @@ export default class Markdown {
     };
 
     renderer.paragraph = function (text) {
-      return `<p class="my-2 text-sm leading-relaxed text-gray-600">${text}</p>`;
+      return `<p class="my-2.5 text-sm leading-relaxed text-gray-600">${text}</p>`;
     };
 
     renderer.list = function (body, ordered, start) {

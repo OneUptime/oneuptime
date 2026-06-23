@@ -60,11 +60,40 @@ const formatTimestamp: (value: unknown) => string = (
   }
 };
 
+// Pretty-print a value as JSON for a collapsible code block.
+const formatJson: (value: unknown) => string = (value: unknown): string => {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+};
+
+// True when a value is worth showing (not null/undefined/empty object).
+const hasValue: (value: unknown) => boolean = (value: unknown): boolean => {
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (typeof value === "object" && !Array.isArray(value)) {
+    return Object.keys(value as Record<string, unknown>).length > 0;
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  return true;
+};
+
 /*
  * Modal that lazily loads the most-recent failed jobs for a single queue and
- * shows each job's failure reason and (collapsible) stack trace. This is the
- * "more information" an operator needs to act on a non-zero failed count
- * straight from the dashboard, without dropping into the Bull Board inspector.
+ * shows, per job, the full debugging picture: failure reason, stack trace,
+ * metadata (timings, attempts, priority, worker), and the collapsible job body,
+ * options, return value and per-job logs. The body/options can contain customer
+ * data (credentials are scrubbed server-side), so they are collapsed by default
+ * with a warning. This is the "more information" an operator needs to act on a
+ * failed count without dropping into the Bull Board inspector.
  */
 export interface FailedJobsModalProps {
   queueName: string;
@@ -77,7 +106,9 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [failedJobs, setFailedJobs] = useState<JSONArray>([]);
-  const [expandedJobIndex, setExpandedJobIndex] = useState<number | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set<string>(),
+  );
 
   const loadFailedJobs: () => Promise<void> = async (): Promise<void> => {
     setError("");
@@ -108,6 +139,132 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
     });
   }, []);
 
+  const toggleSection: (key: string) => void = (key: string): void => {
+    setExpandedSections((previous: Set<string>): Set<string> => {
+      const next: Set<string> = new Set<string>(previous);
+
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+
+      return next;
+    });
+  };
+
+  // A labelled, collapsible code/log block for one job section.
+  const renderCollapsible: (
+    sectionKey: string,
+    label: string,
+    content: ReactElement,
+    isSensitive: boolean,
+  ) => ReactElement = (
+    sectionKey: string,
+    label: string,
+    content: ReactElement,
+    isSensitive: boolean,
+  ): ReactElement => {
+    const isOpen: boolean = expandedSections.has(sectionKey);
+
+    return (
+      <div className="mt-2">
+        <button
+          type="button"
+          className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700"
+          onClick={() => {
+            toggleSection(sectionKey);
+          }}
+        >
+          <Icon
+            icon={isOpen ? IconProp.ChevronDown : IconProp.ChevronRight}
+            size={SizeProp.Small}
+            className="h-3.5 w-3.5"
+          />
+          {isOpen ? `Hide ${label}` : `Show ${label}`}
+        </button>
+        {isOpen ? (
+          <div>
+            {isSensitive ? (
+              <div className="mt-1 text-xs text-amber-600">
+                May contain customer data — credentials are scrubbed, but review
+                before sharing.
+              </div>
+            ) : (
+              <></>
+            )}
+            {content}
+          </div>
+        ) : (
+          <></>
+        )}
+      </div>
+    );
+  };
+
+  const renderMetaChips: (jobObject: JSONObject) => ReactElement = (
+    jobObject: JSONObject,
+  ): ReactElement => {
+    const fields: Array<{ label: string; value: string }> = [];
+
+    const pushIf: (
+      label: string,
+      value: unknown,
+      formatted?: string,
+    ) => void = (label: string, value: unknown, formatted?: string): void => {
+      if (value !== null && value !== undefined && value !== "") {
+        fields.push({ label, value: formatted ?? String(value) });
+      }
+    };
+
+    pushIf(
+      "Created",
+      jobObject["createdAt"],
+      formatTimestamp(jobObject["createdAt"]),
+    );
+    pushIf(
+      "Processed",
+      jobObject["processedAt"],
+      formatTimestamp(jobObject["processedAt"]),
+    );
+    pushIf(
+      "Finished",
+      jobObject["finishedAt"],
+      formatTimestamp(jobObject["finishedAt"]),
+    );
+    pushIf("Attempts started", jobObject["attemptsStarted"]);
+    pushIf("Stalled count", jobObject["stalledCounter"]);
+    pushIf("Priority", jobObject["priority"]);
+    pushIf("Delay (ms)", jobObject["delayMs"]);
+    pushIf("Worker", jobObject["processedBy"]);
+    pushIf("Queue", jobObject["queueQualifiedName"]);
+    pushIf("Repeat key", jobObject["repeatJobKey"]);
+    pushIf("Dedup id", jobObject["deduplicationId"]);
+    pushIf("Parent", jobObject["parentKey"]);
+
+    if (fields.length === 0) {
+      return <></>;
+    }
+
+    return (
+      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3">
+        {fields.map(
+          (
+            field: { label: string; value: string },
+            i: number,
+          ): ReactElement => {
+            return (
+              <div key={i} className="text-xs">
+                <span className="text-gray-400">{field.label}: </span>
+                <span className="font-medium text-gray-700">{field.value}</span>
+              </div>
+            );
+          },
+        )}
+      </div>
+    );
+  };
+
   const renderBody: () => ReactElement = (): ReactElement => {
     if (error) {
       return <Alert type={AlertType.DANGER} title={error} />;
@@ -132,18 +289,17 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
     }
 
     return (
-      <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+      <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
         <div className="text-xs text-gray-500">
           Showing the {failedJobs.length} most recent failed{" "}
-          {failedJobs.length === 1 ? "job" : "jobs"}. Job payloads are omitted —
-          only payload keys are shown.
+          {failedJobs.length === 1 ? "job" : "jobs"} with full detail.
         </div>
         {failedJobs.map((job: unknown, index: number): ReactElement => {
           const jobObject: JSONObject = job as JSONObject;
           const dataKeys: JSONArray = (jobObject["dataKeys"] ||
             []) as JSONArray;
           const stackTrace: string = String(jobObject["stackTrace"] || "");
-          const isExpanded: boolean = expandedJobIndex === index;
+          const logs: JSONArray = (jobObject["logs"] || []) as JSONArray;
 
           return (
             <div
@@ -174,6 +330,8 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
                 {String(jobObject["failedReason"] || "No reason provided")}
               </div>
 
+              {renderMetaChips(jobObject)}
+
               {dataKeys.length > 0 ? (
                 <div className="mt-2 text-xs text-gray-500">
                   <span className="font-medium text-gray-600">
@@ -191,37 +349,62 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
                 <></>
               )}
 
-              {stackTrace ? (
-                <div className="mt-2">
-                  <button
-                    type="button"
-                    className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700"
-                    onClick={() => {
-                      setExpandedJobIndex(isExpanded ? null : index);
-                    }}
-                  >
-                    <Icon
-                      icon={
-                        isExpanded
-                          ? IconProp.ChevronDown
-                          : IconProp.ChevronRight
-                      }
-                      size={SizeProp.Small}
-                      className="h-3.5 w-3.5"
-                    />
-                    {isExpanded ? "Hide stack trace" : "Show stack trace"}
-                  </button>
-                  {isExpanded ? (
+              {stackTrace
+                ? renderCollapsible(
+                    `${index}:stack`,
+                    "stack trace",
                     <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-gray-900 p-3 text-xs leading-relaxed text-gray-100">
                       {stackTrace}
-                    </pre>
-                  ) : (
-                    <></>
-                  )}
-                </div>
-              ) : (
-                <></>
+                    </pre>,
+                    false,
+                  )
+                : null}
+
+              {renderCollapsible(
+                `${index}:body`,
+                "job body",
+                <pre className="mt-2 max-h-72 overflow-auto rounded-md bg-gray-900 p-3 text-xs leading-relaxed text-gray-100">
+                  {formatJson(jobObject["data"])}
+                </pre>,
+                true,
               )}
+
+              {hasValue(jobObject["options"])
+                ? renderCollapsible(
+                    `${index}:options`,
+                    "options",
+                    <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-gray-900 p-3 text-xs leading-relaxed text-gray-100">
+                      {formatJson(jobObject["options"])}
+                    </pre>,
+                    true,
+                  )
+                : null}
+
+              {hasValue(jobObject["returnValue"])
+                ? renderCollapsible(
+                    `${index}:return`,
+                    "return value",
+                    <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-gray-900 p-3 text-xs leading-relaxed text-gray-100">
+                      {formatJson(jobObject["returnValue"])}
+                    </pre>,
+                    true,
+                  )
+                : null}
+
+              {logs.length > 0
+                ? renderCollapsible(
+                    `${index}:logs`,
+                    `job logs (${logs.length})`,
+                    <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-gray-900 p-3 text-xs leading-relaxed text-gray-100">
+                      {logs
+                        .map((line: unknown): string => {
+                          return String(line);
+                        })
+                        .join("\n")}
+                    </pre>,
+                    false,
+                  )
+                : null}
             </div>
           );
         })}
@@ -232,7 +415,7 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
   return (
     <Modal
       title={`Failed jobs · ${props.queueName} queue`}
-      description="The most recent jobs this queue's workers failed to process. Use the failure reason and stack trace to diagnose what is wedging the worker."
+      description="The most recent jobs this queue's workers failed to process, with full detail. Use the failure reason, stack trace, job body and logs to diagnose what is wedging the worker."
       icon={IconProp.Error}
       iconType={IconType.Danger}
       modalWidth={ModalWidth.Large}

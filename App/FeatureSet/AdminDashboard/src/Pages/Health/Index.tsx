@@ -1,6 +1,7 @@
 import AdminModelAPI from "../../Utils/ModelAPI";
 import EnterpriseFeatureUpgrade from "../../Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
 import BackgroundQueues from "./BackgroundQueues";
+import DiagnosticLogs from "./DiagnosticLogs";
 import MigrationStatus from "./MigrationStatus";
 import SupportBundle from "./SupportBundle";
 import PageMap from "../../Utils/PageMap";
@@ -484,6 +485,9 @@ const Health: FunctionComponent = (): ReactElement => {
         ]}
         userPreferencesKey="admin-health-probes-table"
       />
+
+      {/* Diagnostic logs (Enterprise-only, like the overview above). */}
+      <DiagnosticLogs />
 
       {/* Migration status and support bundle sit at the end — they apply to every edition. */}
       <MigrationStatus />

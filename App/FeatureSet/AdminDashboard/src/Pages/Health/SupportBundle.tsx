@@ -21,7 +21,8 @@ const BUNDLE_CONTENTS: Array<string> = [
   "Effective configuration (secrets redacted)",
   "Component health & datastore capacity",
   "Database migration status",
-  "Queue stats & recent failed job logs",
+  "Queue stats & failed jobs (full body, options & logs)",
+  "Application, Postgres, ClickHouse & Redis logs",
   "Postgres diagnostics (connections, table stats)",
   "ClickHouse diagnostics (mutations, parts)",
   "Postgres & ClickHouse schema (structure only)",
@@ -84,7 +85,7 @@ const SupportBundle: FunctionComponent = (): ReactElement => {
   return (
     <Card
       title="Support bundle"
-      description="A diagnostic snapshot of this instance — version, configuration, component health, migrations, queue and database diagnostics (including recent failed job logs) — that you can send to the OneUptime team when you need help."
+      description="A diagnostic snapshot of this instance — version, configuration, component health, migrations, queue/database diagnostics, full failed-job detail and recent application & datastore logs — that you can send to the OneUptime team when you need help. Credentials are scrubbed, but it may contain customer data, so review it before sharing."
     >
       <div>
         {error ? (
@@ -132,8 +133,9 @@ const SupportBundle: FunctionComponent = (): ReactElement => {
                 className="h-4 w-4 flex-shrink-0 text-gray-400"
               />
               <span>
-                No secrets or customer data — config is redacted; schema is
-                structure-only.
+                Credentials are scrubbed (config, schema, connection strings).
+                Failed-job bodies and logs may contain customer data — review
+                before sharing externally.
               </span>
             </div>
             <Button

@@ -385,7 +385,9 @@ function deepRedactValue(value: unknown, depth: number): JSONValue {
       });
 
     if (value.length > MAX_REDACT_ARRAY_ITEMS) {
-      items.push(`… ${value.length - MAX_REDACT_ARRAY_ITEMS} more items truncated`);
+      items.push(
+        `… ${value.length - MAX_REDACT_ARRAY_ITEMS} more items truncated`,
+      );
     }
 
     return items;
@@ -406,7 +408,8 @@ function deepRedactValue(value: unknown, depth: number): JSONValue {
     }
 
     if (allKeys.length > MAX_REDACT_OBJECT_KEYS) {
-      out["_truncated"] = `… ${allKeys.length - MAX_REDACT_OBJECT_KEYS} more keys truncated`;
+      out["_truncated"] =
+        `… ${allKeys.length - MAX_REDACT_OBJECT_KEYS} more keys truncated`;
     }
 
     return out;
@@ -449,7 +452,7 @@ function redactFullFailedJob(job: {
   data: JSONObject;
   opts: JSONObject;
   returnValue: unknown;
-  progress: number | object | null;
+  progress: number | Record<string, unknown> | null;
   failedReason: string;
   stackTrace: Array<string>;
   logs: Array<string>;
@@ -529,13 +532,12 @@ function redactFullFailedJob(job: {
 
 // Most-recent failed jobs for one queue, with full (redacted) detail.
 async function getFailedJobsForQueue(queueName: QueueName): Promise<JSONArray> {
-  const failedJobs: Awaited<
-    ReturnType<typeof Queue.getFailedJobsWithDetails>
-  > = await Queue.getFailedJobsWithDetails(queueName, {
-    start: 0,
-    // getFailed(start, end) is an inclusive range, so end = count - 1.
-    end: MAX_FAILED_JOBS_PER_QUEUE - 1,
-  });
+  const failedJobs: Awaited<ReturnType<typeof Queue.getFailedJobsWithDetails>> =
+    await Queue.getFailedJobsWithDetails(queueName, {
+      start: 0,
+      // getFailed(start, end) is an inclusive range, so end = count - 1.
+      end: MAX_FAILED_JOBS_PER_QUEUE - 1,
+    });
 
   return failedJobs.map(redactFullFailedJob);
 }
@@ -1728,13 +1730,15 @@ async function getRedisLogs(): Promise<JSONObject> {
 function getApplicationLogs(): JSONObject {
   const entries: JSONArray = logger
     .getRecentLogs(500)
-    .map((entry: { time: string; level: string; message: string }): JSONObject => {
-      return {
-        time: entry.time,
-        level: entry.level,
-        message: scrubSecretsFromText(entry.message),
-      };
-    });
+    .map(
+      (entry: { time: string; level: string; message: string }): JSONObject => {
+        return {
+          time: entry.time,
+          level: entry.level,
+          message: scrubSecretsFromText(entry.message),
+        };
+      },
+    );
 
   return {
     source: "In-process ring buffer (this app instance only).",
