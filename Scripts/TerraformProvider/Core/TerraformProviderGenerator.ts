@@ -15,6 +15,7 @@ export class TerraformProviderGenerator {
   public async generateBuildScripts(): Promise<void> {
     await this.generateMakefile();
     await this.generateGoReleaserConfig();
+    await this.generateRegistryManifest();
     await this.generateInstallScript();
     await this.generateBuildScript();
     await this.generateTestScript();
@@ -134,6 +135,14 @@ archives:
 checksum:
   name_template: "terraform-provider-${this.config.providerName}_{{ .Version }}_SHA256SUMS"
   algorithm: sha256
+  # Include the Terraform Registry manifest's checksum in SHA256SUMS. The Registry
+  # verifies every file it ingests against the (GPG-signed) SHA256SUMS, so the
+  # manifest must be listed here. GoReleaser does NOT copy this file into dist/;
+  # the publish script copies terraform-registry-manifest.json into dist/ under
+  # this same name before uploading, so the uploaded asset's hash matches.
+  extra_files:
+    - glob: terraform-registry-manifest.json
+      name_template: "terraform-provider-${this.config.providerName}_{{ .Version }}_manifest.json"
 
 signs:
   - artifacts: checksum
@@ -155,6 +164,35 @@ changelog:
 `.trim();
 
     await this.fileGenerator.writeFile(".goreleaser.yml", goReleaserContent);
+  }
+
+  private async generateRegistryManifest(): Promise<void> {
+    // The Terraform Registry reads this manifest to learn which Terraform plugin
+    // protocol versions the provider speaks. This provider is built with
+    // terraform-plugin-framework (providerserver.Serve in main.go), which speaks
+    // protocol 6.0. The manifest must be shipped as a release asset AND listed in
+    // SHA256SUMS (handled via checksum.extra_files in .goreleaser.yml and the
+    // publish script); without it, `terraform init` protocol negotiation fails and
+    // the provider cannot be installed from the Registry.
+    //
+    // Note: the top-level "version" is the manifest *format* version (always 1),
+    // not the provider version.
+    const manifest: {
+      version: number;
+      metadata: { protocol_versions: Array<string> };
+    } = {
+      version: 1,
+      metadata: {
+        protocol_versions: ["6.0"],
+      },
+    };
+
+    const manifestContent: string = `${JSON.stringify(manifest, null, 2)}\n`;
+
+    await this.fileGenerator.writeFile(
+      "terraform-registry-manifest.json",
+      manifestContent,
+    );
   }
 
   private async generateInstallScript(): Promise<void> {

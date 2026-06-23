@@ -755,8 +755,26 @@ goreleaser_release_assets() {
         exit 1
     fi
 
+    # GoReleaser lists the Terraform Registry manifest in SHA256SUMS (via
+    # checksum.extra_files in .goreleaser.yml) but does NOT copy it into dist/.
+    # Place it in dist/ under the exact name that appears in SHA256SUMS so it is
+    # uploaded and its hash matches the checksum entry. The Terraform Registry
+    # needs this manifest to negotiate the plugin protocol version - without it,
+    # `terraform init` fails even when every archive/checksum/signature is present.
+    if [[ -f "terraform-registry-manifest.json" ]]; then
+        cp "terraform-registry-manifest.json" \
+            "$dist_dir/terraform-provider-${PROVIDER_NAME}_${VERSION}_manifest.json"
+        print_status "Staged registry manifest as terraform-provider-${PROVIDER_NAME}_${VERSION}_manifest.json"
+    else
+        print_error "terraform-registry-manifest.json not found in $PROVIDER_FRAMEWORK_DIR"
+        print_error "The provider generator must emit it; otherwise the release is missing the Registry manifest."
+        exit 1
+    fi
+
     local files_uploaded=0
-    for file in "$dist_dir"/*.zip "$dist_dir"/*SHA256SUMS* "$dist_dir"/*.sig "$dist_dir"/*.json; do
+    # Glob *_manifest.json (not *.json) so GoReleaser's internal artifacts.json /
+    # metadata.json are not uploaded as release assets.
+    for file in "$dist_dir"/*.zip "$dist_dir"/*SHA256SUMS* "$dist_dir"/*.sig "$dist_dir"/*_manifest.json; do
         if [[ -f "$file" ]]; then
             local filename=$(basename "$file")
             print_status "Uploading $filename..."
@@ -782,7 +800,7 @@ goreleaser_release_assets() {
     # no matching artifacts would let the job exit 0 with an empty release - the exact
     # "green but no assets" failure mode this script is meant to prevent.
     if [[ "$files_uploaded" -eq 0 ]]; then
-        print_error "GoReleaser produced no release assets to upload (dist/ had no zip/SHA256SUMS/sig/json files)"
+        print_error "GoReleaser produced no release assets to upload (dist/ had no zip/SHA256SUMS/sig/manifest files)"
         exit 1
     fi
 
