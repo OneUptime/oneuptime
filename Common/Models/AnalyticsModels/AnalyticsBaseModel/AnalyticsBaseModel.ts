@@ -66,6 +66,10 @@ export default class AnalyticsBaseModel extends CommonModel {
      * Correctness never depends on this — the Distributed table fans reads out
      * to every shard regardless — it is purely a distribution/locality choice.
      * Falls back to cityHash64(projectId) when unset.
+     *
+     * MUST evaluate to a NON-nullable integer: ClickHouse rejects a Distributed
+     * sharding expression of type Nullable(...). Wrap nullable columns, e.g.
+     * cityHash64(ifNull(traceId, '')).
      */
     shardingKey?: string | undefined;
     tableSettings?: string | undefined;
