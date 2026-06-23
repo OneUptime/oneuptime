@@ -65,6 +65,7 @@ export default class logger {
    */
   private static recentLogs: Array<RecentLogEntry> = [];
   private static readonly maxRecentLogs: number = 1000;
+  private static readonly recentLogTrimSlack: number = 256;
   private static readonly maxRecentLogMessageLength: number = 4000;
 
   private static record(level: string, body: LogBody): void {
@@ -80,9 +81,16 @@ export default class logger {
             : message,
       });
 
-      // Keep only the newest maxRecentLogs entries.
-      if (this.recentLogs.length > this.maxRecentLogs) {
-        this.recentLogs.splice(0, this.recentLogs.length - this.maxRecentLogs);
+      /*
+       * Trim in batches rather than on every push so this stays O(1) amortised
+       * on the logging hot path: only re-slice once we have grown past a soft
+       * ceiling above the target size.
+       */
+      if (
+        this.recentLogs.length >
+        this.maxRecentLogs + this.recentLogTrimSlack
+      ) {
+        this.recentLogs = this.recentLogs.slice(-this.maxRecentLogs);
       }
     } catch {
       // Never let log capture break the app.
