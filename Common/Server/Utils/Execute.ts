@@ -59,6 +59,12 @@ export default class Execute {
      * can emit large output (e.g. `git log` over a whole repo) should raise this.
      */
     maxBuffer?: number | undefined;
+    /*
+     * Hard upper bound (ms) on how long the child may run. When exceeded the
+     * child is force-killed (SIGKILL) and the promise rejects, so a slow command
+     * (e.g. `git log` over a huge full-history repo) can never hang the caller.
+     */
+    timeoutInMS?: number | undefined;
   }): Promise<string> {
     return new Promise(
       (
@@ -71,6 +77,9 @@ export default class Execute {
           {
             cwd: data.cwd,
             ...(data.maxBuffer ? { maxBuffer: data.maxBuffer } : {}),
+            ...(data.timeoutInMS
+              ? { timeout: data.timeoutInMS, killSignal: "SIGKILL" }
+              : {}),
           },
           (err: ExecException | null, stdout: string, stderr: string) => {
             if (err) {

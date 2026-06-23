@@ -397,6 +397,13 @@ export default class CodeRepositoryUtil {
   public static async getCommitAuthorsWithFiles(data: {
     repoPath: string;
     path?: string | undefined;
+    /*
+     * Hard upper bound (ms) on the `git log` invocation. Over a full-history repo
+     * this walk can take a very long time, so callers on (or near) a request path
+     * should bound it; on timeout the child is killed and this rejects, letting
+     * the caller fall back gracefully.
+     */
+    timeoutInMS?: number | undefined;
   }): Promise<
     Array<{
       authorName: string;
@@ -428,6 +435,7 @@ export default class CodeRepositoryUtil {
       cwd: path.resolve(data.repoPath),
       // git log over a full repo can easily exceed the 1 MB default.
       maxBuffer: 256 * 1024 * 1024,
+      ...(data.timeoutInMS ? { timeoutInMS: data.timeoutInMS } : {}),
     });
 
     const commits: Array<{

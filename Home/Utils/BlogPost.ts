@@ -68,25 +68,59 @@ export default class BlogPostUtil {
   private static blogsMetaCache: Array<JSONObject> | null = null;
   // Cache Authors.json (keyed by github username)
   private static authorsMetaCache: JSONObject | null = null;
-  // Cache the constructed blog post header list
+  // Cache the constructed blog post header list (without git-derived contributors)
   private static blogPostListCache: Array<BlogPostHeader> | null = null;
+  /*
+   * Cache the header list enriched with git-history contributors. Building this
+   * runs an expensive `git log` over the whole blog repo, so it is only computed
+   * when a caller explicitly asks for contributors (the blog list/tag pages).
+   */
+  private static blogPostListWithContributorsCache: Array<BlogPostHeader> | null =
+    null;
   // Cache tags from Tags.md
   private static tagsCache: string[] | null = null;
   // Cache fully rendered blog posts by fileName
   private static blogPostCache: Map<string, BlogPost> = new Map();
-  // Cache contributors (from git history) keyed by post folder name
+  /*
+   * Cache contributors (from git history) keyed by post folder name. Populated
+   * only by a successful background warm (see warmContributors) — never on the
+   * request path, which reads this best-effort and falls back to author-only.
+   */
   private static contributorsByPostCache: Map<
     string,
     BlogPostContributor[]
   > | null = null;
+  /*
+   * In-flight promise of the background contributor warm, so concurrent triggers
+   * share a single `git log` instead of spawning one per request (a cold-start
+   * burst on /blog would otherwise launch many parallel git walks).
+   */
+  private static contributorsWarmInFlight: Promise<void> | null = null;
+  /*
+   * Whether a warm has been kicked off this process (reset by clearAllCaches on
+   * the periodic repo pull). Stops the request path from re-launching the walk
+   * over and over once an attempt has failed.
+   */
+  private static contributorsWarmAttempted: boolean = false;
+  /*
+   * Hard upper bound for the background `git log` walk. It runs off the request
+   * path so it can be generous (the full-history blog repo walk takes ~60s+),
+   * but is still bounded so a pathological repo can never pin a git process for
+   * the lifetime of the service.
+   */
+  private static readonly CONTRIBUTORS_WARM_TIMEOUT_IN_MS: number =
+    4 * 60 * 1000;
 
   public static clearAllCaches(): void {
     this.blogsMetaCache = null;
     this.authorsMetaCache = null;
     this.blogPostListCache = null;
+    this.blogPostListWithContributorsCache = null;
     this.tagsCache = null;
     this.blogPostCache.clear();
     this.contributorsByPostCache = null;
+    this.contributorsWarmInFlight = null;
+    this.contributorsWarmAttempted = false;
   }
   private static async getBlogsMeta(): Promise<Array<JSONObject>> {
     if (this.blogsMetaCache) {
@@ -125,7 +159,18 @@ export default class BlogPostUtil {
 
   public static async getBlogPostList(
     tagName?: string | undefined,
+    options?: { includeContributors?: boolean } | undefined,
   ): Promise<BlogPostHeader[]> {
+    /*
+     * Contributors are derived from git history (one expensive `git log` over the
+     * whole blog repo) and are only needed by the blog list/tag pages. Callers
+     * that do not render them (sitemap, RSS feed) get the lightweight list so
+     * they never trigger that work — previously the sitemap index timed out (504)
+     * because it ran the contributor `git log` just to count posts.
+     */
+    const includeContributors: boolean = options?.includeContributors === true;
+
+    // Build the base (lightweight) list once, from Blogs.json only.
     if (!this.blogPostListCache) {
       const blogs: Array<JSONObject> = [
         ...(await this.getBlogsMeta()),
@@ -150,10 +195,7 @@ export default class BlogPostUtil {
           postDate,
           tags: blog["tags"] as string[],
           authorGitHubUsername,
-          contributors: await this.buildContributors(
-            fileName,
-            authorGitHubUsername,
-          ),
+          contributors: [],
           blogUrl: `/blog/post/${fileName}/view`,
         });
       }
@@ -161,8 +203,39 @@ export default class BlogPostUtil {
       this.blogPostListCache = resultList;
     }
 
+    let list: Array<BlogPostHeader> = this.blogPostListCache;
+
+    if (includeContributors) {
+      // Enrich each post with git-history contributors (cached after first build).
+      if (this.blogPostListWithContributorsCache) {
+        list = this.blogPostListWithContributorsCache;
+      } else {
+        const enriched: Array<BlogPostHeader> = [];
+        for (const post of this.blogPostListCache) {
+          enriched.push({
+            ...post,
+            contributors: await this.buildContributors(
+              post.fileName,
+              post.authorGitHubUsername,
+            ),
+          });
+        }
+        /*
+         * Only cache once the background warm has resolved contributors. Before
+         * that, buildContributors returns author-only, so caching here would pin
+         * the degraded list for the whole process lifetime; instead we rebuild
+         * (cheap — no git, metadata is cached) until the warm completes, which
+         * also clears this cache so the next call rebuilds with full contributors.
+         */
+        if (this.contributorsByPostCache) {
+          this.blogPostListWithContributorsCache = enriched;
+        }
+        list = enriched;
+      }
+    }
+
     if (tagName) {
-      return this.blogPostListCache.filter((blog: BlogPostHeader) => {
+      return list.filter((blog: BlogPostHeader) => {
         return blog.tags
           .map((item: string) => {
             return Text.replaceAll(item.toLowerCase(), " ", "-");
@@ -171,7 +244,7 @@ export default class BlogPostUtil {
       });
     }
 
-    return this.blogPostListCache;
+    return list;
   }
 
   public static async getBlogPost(fileName: string): Promise<BlogPost | null> {
@@ -183,7 +256,12 @@ export default class BlogPostUtil {
     try {
       const blogPost: BlogPost | null =
         await this.getBlogPostFromFile(fileName);
-      if (blogPost) {
+      if (blogPost && this.contributorsByPostCache) {
+        /*
+         * Only cache once the background warm has resolved contributors, so a
+         * post rendered before the warm finishes isn't pinned with author-only
+         * contributors. The warm clears this cache on completion too.
+         */
         this.blogPostCache.set(fileName, blogPost);
       }
       return blogPost;
@@ -412,8 +490,15 @@ export default class BlogPostUtil {
       accept(authorContributor);
     }
 
+    /*
+     * Never block the request on the expensive `git log`: read whatever the
+     * background warm has resolved so far and kick the warm off if it has not
+     * started. Until it completes (or if it fails) this is empty and the caller
+     * degrades to the declared author only.
+     */
+    this.ensureContributorsWarmStarted();
     const contributorsByPost: Map<string, BlogPostContributor[]> =
-      await this.getContributorsByPost();
+      this.contributorsByPostCache ?? new Map<string, BlogPostContributor[]>();
 
     for (const contributor of contributorsByPost.get(fileName) || []) {
       const username: string | null = normalize(contributor.username);
@@ -445,14 +530,70 @@ export default class BlogPostUtil {
   }
 
   /*
+   * Derive per-post contributors from git history in the background so the blog
+   * list/post pages never pay the cold-start `git log` cost on the request path
+   * (over the full-history blog repo that walk takes ~60s+ and previously risked
+   * 504s). Idempotent and concurrency-safe: a single walk is shared across
+   * callers, and once it succeeds the derived list/post caches are dropped so
+   * they rebuild with the full contributor lists. Triggered at boot / after each
+   * repo pull (see the UpdateBlog job) and lazily on first request as a fallback.
+   */
+  public static async warmContributors(): Promise<void> {
+    // Already resolved — nothing to do.
+    if (this.contributorsByPostCache) {
+      return;
+    }
+    // A walk is already running — share it instead of launching another.
+    if (this.contributorsWarmInFlight) {
+      return this.contributorsWarmInFlight;
+    }
+
+    this.contributorsWarmAttempted = true;
+    const warm: Promise<void> = (async (): Promise<void> => {
+      await this.getContributorsByPost(this.CONTRIBUTORS_WARM_TIMEOUT_IN_MS);
+      if (this.contributorsByPostCache) {
+        /*
+         * Contributors are now available. Drop the derived caches (which may have
+         * been built author-only while the walk was running) so the blog
+         * list/post pages rebuild with the full contributor lists.
+         */
+        this.blogPostListWithContributorsCache = null;
+        this.blogPostCache.clear();
+      }
+    })();
+
+    this.contributorsWarmInFlight = warm;
+    try {
+      await warm;
+    } finally {
+      this.contributorsWarmInFlight = null;
+    }
+  }
+
+  /*
+   * Kick the background warm once per process (until the next repo pull resets
+   * it). Fire-and-forget: the request path must never wait on the `git log`.
+   */
+  private static ensureContributorsWarmStarted(): void {
+    if (this.contributorsByPostCache || this.contributorsWarmAttempted) {
+      return;
+    }
+    this.warmContributors().catch(() => {
+      // Failures are already logged inside the walk; nothing actionable here.
+    });
+  }
+
+  /*
    * One `git log` pass over the cloned blog repo, bucketed into a map of
    * post folder name -> contributors (ordered by commit count, most first).
-   * Returns an empty map (callers fall back to the declared author) when the
-   * repo has no git history, e.g. in local dev where it is not cloned.
+   * Bounded by `timeoutInMS` (the child is killed on timeout). Only invoked by
+   * the background warm. Returns an empty map WITHOUT caching when the walk
+   * fails (timeout / shallow clone / not a repo / git missing) so a later warm
+   * can retry; callers fall back to the declared author only.
    */
-  private static async getContributorsByPost(): Promise<
-    Map<string, BlogPostContributor[]>
-  > {
+  private static async getContributorsByPost(
+    timeoutInMS: number,
+  ): Promise<Map<string, BlogPostContributor[]>> {
     if (this.contributorsByPostCache) {
       return this.contributorsByPostCache;
     }
@@ -471,6 +612,7 @@ export default class BlogPostUtil {
       }> = await CodeRepositoryUtil.getCommitAuthorsWithFiles({
         repoPath: BlogRootPath,
         path: "posts",
+        timeoutInMS,
       });
 
       for (const commit of commits) {
@@ -519,11 +661,13 @@ export default class BlogPostUtil {
       }
     } catch (err) {
       /*
-       * No git history (shallow clone / not a repo / git missing). Callers fall
-       * back to the declared author only.
+       * Walk failed (timed out / shallow clone / not a repo / git missing). Do
+       * NOT cache: a later warm (e.g. after the next repo pull) can retry, and
+       * callers fall back to the declared author only in the meantime.
        */
       logger.debug("BlogPost: unable to derive contributors from git history");
       logger.debug(err);
+      return new Map<string, BlogPostContributor[]>();
     }
 
     const result: Map<string, BlogPostContributor[]> = new Map();
