@@ -513,6 +513,28 @@ clickhouseOperator:
       nodes: []
 
 # =============================================================================
+# Telemetry cold-tiering for ClickHouse telemetry tables. This only affects the
+# OneUptime app/runtime DDL; you still need to provision the backing disk and
+# storage policy in ClickHouse itself (for example via clickhouseOperator.altinity.files).
+clickhouseColdTier:
+  enabled: false
+  storagePolicy: tiered
+  volume: s3_cold
+  metricsDays: 7
+  logsDays: 7
+  tracesDays: 3
+
+# =============================================================================
+# App-level telemetry sharding. When enabled, OneUptime routes telemetry
+# reads/writes through Distributed wrappers while local tables continue to own
+# schema, TTL, and mutations. For the bundled Altinity operator this same value
+# also becomes the CHI cluster name.
+clickhouseSharding:
+  enabled: false
+  clusterName: oneuptime
+
+
+# =============================================================================
 # Database migrations (dedicated Job — enabled by default).
 #
 # Schema + data migrations run ONCE per release in a dedicated pre-upgrade /

@@ -233,6 +233,10 @@ its userlist at startup.
   {{- end }}
 {{- end }}
 
+{{- define "oneuptime.clickhouse.clusterName" -}}
+{{- .Values.clickhouseSharding.clusterName | default "oneuptime" -}}
+{{- end }}
+
 {{- define "oneuptime.env.runtime" }}
 
 - name: VAPID_PRIVATE_KEY
@@ -411,6 +415,28 @@ its userlist at startup.
 - name: CLICKHOUSE_SHARDING_KEY
   value: {{ . | squote }}
 {{- end }}
+{{- end }}
+
+{{- if $.Values.clickhouseColdTier.enabled }}
+- name: CLICKHOUSE_COLD_TIER_ENABLED
+  value: "true"
+- name: CLICKHOUSE_COLD_TIER_STORAGE_POLICY
+  value: {{ $.Values.clickhouseColdTier.storagePolicy | squote }}
+- name: CLICKHOUSE_COLD_TIER_VOLUME
+  value: {{ $.Values.clickhouseColdTier.volume | squote }}
+- name: CLICKHOUSE_COLD_TIER_METRICS_DAYS
+  value: {{ $.Values.clickhouseColdTier.metricsDays | squote }}
+- name: CLICKHOUSE_COLD_TIER_LOGS_DAYS
+  value: {{ $.Values.clickhouseColdTier.logsDays | squote }}
+- name: CLICKHOUSE_COLD_TIER_TRACES_DAYS
+  value: {{ $.Values.clickhouseColdTier.tracesDays | squote }}
+{{- end }}
+
+{{- if $.Values.clickhouseSharding.enabled }}
+- name: CLICKHOUSE_TELEMETRY_SHARDING_ENABLED
+  value: "true"
+- name: CLICKHOUSE_CLUSTER_NAME
+  value: {{ include "oneuptime.clickhouse.clusterName" . | squote }}
 {{- end }}
 
 

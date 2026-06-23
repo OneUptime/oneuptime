@@ -112,9 +112,27 @@ If you use IAM roles / workload identity instead of static S3 credentials, confi
 
 ---
 
-## 3. Inject the OneUptime environment variables
+## 3. Configure the OneUptime runtime flags
 
-These variables must be present in both the **app** and **worker** runtimes.
+If you deploy with `HelmChart/Public/oneuptime`, set these chart values and the
+chart will inject the matching env vars into the migrate job plus the runtime
+pods that create or reconcile analytics tables.
+
+```yaml
+clickhouseColdTier:
+  enabled: true
+  storagePolicy: tiered
+  volume: s3_cold
+  metricsDays: 7
+  logsDays: 7
+  tracesDays: 3
+
+clickhouseSharding:
+  enabled: true
+  clusterName: oneuptime
+```
+
+For non-chart installs, the equivalent environment variables are:
 
 ### Cold tier
 
@@ -137,14 +155,12 @@ Meaning:
 
 ```bash
 CLICKHOUSE_TELEMETRY_SHARDING_ENABLED=true
-CLICKHOUSE_CLUSTER_NAME=ou
+CLICKHOUSE_CLUSTER_NAME=oneuptime
 ```
 
 Meaning:
 - `CLICKHOUSE_TELEMETRY_SHARDING_ENABLED`: turns on distributed-table routing for telemetry
-- `CLICKHOUSE_CLUSTER_NAME`: must match the ClickHouse cluster name exposed in your `remote_servers` / operator topology
-
-> The public Helm chart in this repository does not automatically expose these env vars yet. Inject them using your own deployment overlay, Helm customization, or platform-specific env wiring.
+- `CLICKHOUSE_CLUSTER_NAME`: must match the ClickHouse cluster name exposed in your `remote_servers` / operator topology. In the public chart, `clickhouseSharding.clusterName` also sets the Altinity CHI cluster name.
 
 ---
 
@@ -181,7 +197,7 @@ That means:
 ### Cold tier only
 1. enable operator-managed ClickHouse
 2. expose `s3_cold` disk and `tiered` policy
-3. inject `CLICKHOUSE_COLD_TIER_*` env vars
+3. enable `clickhouseColdTier`
 4. deploy
 5. verify
 
@@ -190,10 +206,10 @@ That means:
 2. set `shardsCount > 1`
 3. keep `replicasCount >= 1`
 4. expose `s3_cold` disk and `tiered` policy
-5. inject both:
-   - `CLICKHOUSE_COLD_TIER_*`
-   - `CLICKHOUSE_TELEMETRY_SHARDING_ENABLED=true`
-   - `CLICKHOUSE_CLUSTER_NAME=<cluster>`
+5. enable both:
+   - `clickhouseColdTier`
+   - `clickhouseSharding.enabled=true`
+   - `clickhouseSharding.clusterName=<cluster>`
 6. deploy
 7. verify
 
@@ -312,15 +328,18 @@ clickhouseOperator:
         </clickhouse>
 ```
 
-Inject these env vars into both app and worker:
+If you deploy with the public chart, add:
 
-```bash
-CLICKHOUSE_COLD_TIER_ENABLED=true
-CLICKHOUSE_COLD_TIER_STORAGE_POLICY=tiered
-CLICKHOUSE_COLD_TIER_VOLUME=s3_cold
-CLICKHOUSE_COLD_TIER_METRICS_DAYS=7
-CLICKHOUSE_COLD_TIER_LOGS_DAYS=7
-CLICKHOUSE_COLD_TIER_TRACES_DAYS=3
-CLICKHOUSE_TELEMETRY_SHARDING_ENABLED=true
-CLICKHOUSE_CLUSTER_NAME=ou
+```yaml
+clickhouseColdTier:
+  enabled: true
+  storagePolicy: tiered
+  volume: s3_cold
+  metricsDays: 7
+  logsDays: 7
+  tracesDays: 3
+
+clickhouseSharding:
+  enabled: true
+  clusterName: oneuptime
 ```

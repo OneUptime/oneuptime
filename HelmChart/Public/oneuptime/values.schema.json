@@ -603,6 +603,26 @@
             },
             "additionalProperties": false
         },
+        "clickhouseColdTier": {
+            "type": "object",
+            "properties": {
+                "enabled": { "type": "boolean" },
+                "storagePolicy": { "type": "string" },
+                "volume": { "type": "string" },
+                "metricsDays": { "type": "integer", "minimum": 1 },
+                "logsDays": { "type": "integer", "minimum": 1 },
+                "tracesDays": { "type": "integer", "minimum": 1 }
+            },
+            "additionalProperties": false
+        },
+        "clickhouseSharding": {
+            "type": "object",
+            "properties": {
+                "enabled": { "type": "boolean" },
+                "clusterName": { "type": "string" }
+            },
+            "additionalProperties": false
+        },
         "clickhouse": {
             "type": "object",
             "properties": {

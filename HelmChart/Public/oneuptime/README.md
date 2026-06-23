@@ -385,11 +385,22 @@ clickhouseOperator:
     keeper:
       enabled: true
       replicas: 3        # Keeper quorum (1 for dev, 3/5 for production)
+
+clickhouseColdTier:
+  enabled: true
+  storagePolicy: tiered
+  volume: s3_cold
+
+clickhouseSharding:
+  enabled: true
+  clusterName: oneuptime
 ```
 
 When `clickhouseOperator.altinity.enabled` is `true`, the built-in `clickhouse` StatefulSet/Service/ConfigMap are not rendered, and the OneUptime app connects (as the `oneuptime` user) to the operator-managed `ClickHouseInstallation`'s root service `<release>-clickhouse-altinity` on port `8123`. A ClickHouse Keeper ensemble (`<release>-clickhouse-keeper`) is created to coordinate replication; bring your own ZooKeeper/Keeper instead with `clickhouseOperator.altinity.zookeeper.nodes`. Follow the step-by-step [Standalone → Altinity operator migration runbook](../../Docs/MigrateClickhouseStandaloneToOperator.md) to move your data, and see [Docs/Clickhouse.md](../../Docs/Clickhouse.md) for scaling and backups (via [clickhouse-backup](https://github.com/Altinity/clickhouse-backup)).
 
 > **Bundled-operator notes.** The Altinity operator is cluster-scoped and owns the ClickHouse CRDs. Do not enable it in more than one OneUptime release per cluster. Tune the operator itself (including its management-user credentials) under the top-level `altinity-clickhouse-operator:` values.
+
+To enable telemetry cold-tiering or Distributed-table routing from this public chart, use the top-level `clickhouseColdTier` and `clickhouseSharding` values shown above. `clickhouseSharding.clusterName` is injected into the OneUptime runtime and, when you use the bundled Altinity operator, also becomes the rendered CHI cluster name so the app and ClickHouse stay aligned. The detailed setup and verification flow is in [Docs/ClickhouseTelemetryColdTierAndSharding.md](../../Docs/ClickhouseTelemetryColdTierAndSharding.md).
 
 #### External ClickHouse Configuration
 
