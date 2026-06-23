@@ -42,6 +42,18 @@ const RunDatabaseMigrations: PromiseVoidFunction = async (): Promise<void> => {
   const queryRunner: DatabaseQueryRunner = dataSource.createQueryRunner();
   await queryRunner.connect();
 
+  /*
+   * Records the first migration that threw. The runner deliberately stops
+   * the chain at the first failure (see the `break` below), but it must
+   * also SURFACE that failure to its callers: the dedicated migrate Job
+   * (App/Migrate.ts) awaits this function and exits non-zero only if it
+   * rejects. Without re-throwing, a failed data migration was swallowed
+   * here, the Job exited 0, and the broken/blocked schema looked like a
+   * successful deploy. We re-throw AFTER releasing the advisory lock in
+   * the finally block so the lock is never leaked.
+   */
+  let firstFailure: { name: string; error: unknown } | null = null;
+
   try {
     await queryRunner.query("SELECT pg_advisory_lock(hashtext($1))", [
       DATA_MIGRATION_LOCK_LABEL,
@@ -108,6 +120,7 @@ const RunDatabaseMigrations: PromiseVoidFunction = async (): Promise<void> => {
           logger.error(err, { service: "workers" });
         }
 
+        firstFailure = { name: migration.name, error: err };
         break; // Stop running migrations
       }
     }
@@ -123,6 +136,25 @@ const RunDatabaseMigrations: PromiseVoidFunction = async (): Promise<void> => {
     }
 
     await queryRunner.release();
+  }
+
+  /*
+   * Propagate the failure now that the lock is released. The migrate Job's
+   * .catch() turns this into process.exit(1), failing the Helm Job/hook so
+   * the deploy surfaces the broken migration instead of silently shipping a
+   * schema that is frozen at this migration. On runtime pods the on-boot
+   * call is fire-and-forget with its own .catch (Workers/Index.ts), so this
+   * only logs there and never crashes the pod.
+   */
+  if (firstFailure) {
+    const underlying: Error =
+      firstFailure.error instanceof Error
+        ? firstFailure.error
+        : new Error(String(firstFailure.error));
+
+    throw new Error(
+      `Data migration "${firstFailure.name}" failed; halting the migration chain (every migration after it is skipped until this one succeeds). Underlying error: ${underlying.message}`,
+    );
   }
 };
 
