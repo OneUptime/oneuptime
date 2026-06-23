@@ -100,13 +100,21 @@ export default class RebuildMetricAggTablesMissingPrimaryEntityId extends DataMi
     const materializedViews: Array<MaterializedView> =
       service.model.materializedViews || [];
 
-    // 1. Detach the write path (MV triggers) before swapping the table.
+    /*
+     * 1. Detach the write path (MV triggers) before swapping the table.
+     * SYNC forces each drop to complete synchronously; under the Atomic
+     * database engine a deferred drop lets the following
+     * `CREATE TABLE IF NOT EXISTS` no-op against the still-present old
+     * object, leaving the drifted (serviceId-keyed) table in place.
+     */
     for (const materializedView of materializedViews) {
-      await service.execute(`DROP VIEW IF EXISTS ${materializedView.name}`);
+      await service.execute(
+        `DROP VIEW IF EXISTS ${materializedView.name} SYNC`,
+      );
     }
 
     // 2. Drop the drifted table (this is the accepted data loss).
-    await service.execute(`DROP TABLE IF EXISTS ${tableName}`);
+    await service.execute(`DROP TABLE IF EXISTS ${tableName} SYNC`);
 
     // 3. Recreate table + MV(s) from the current model (key-correct).
     await service.execute(service.statementGenerator.toTableCreateStatement());

@@ -63,7 +63,7 @@ export default class RebuildMetricBaselineHourlyWithBFloat16Quantiles extends Da
        * sure the model's definition is the one attached.
        */
       await MetricBaselineService.execute(
-        `DROP VIEW IF EXISTS MetricBaselineHourly_mv`,
+        `DROP VIEW IF EXISTS MetricBaselineHourly_mv SYNC`,
       );
       await MetricBaselineService.execute(
         MetricBaselineService.model.materializedViews[0]!.query,
@@ -71,9 +71,16 @@ export default class RebuildMetricBaselineHourlyWithBFloat16Quantiles extends Da
       return;
     }
 
-    // 1. Detach the write path first so nothing inserts mid-swap.
+    /*
+     * 1. Detach the write path first so nothing inserts mid-swap.
+     * SYNC forces the drop to complete before we return: under the Atomic
+     * database engine a bare DROP is deferred (the name is freed lazily),
+     * so a following `CREATE TABLE IF NOT EXISTS` can race the old object
+     * and become a no-op — leaving the legacy quantile-typed table in
+     * place and making the quantileBFloat16 MV fail its aggregate cast.
+     */
     await MetricBaselineService.execute(
-      `DROP VIEW IF EXISTS MetricBaselineHourly_mv`,
+      `DROP VIEW IF EXISTS MetricBaselineHourly_mv SYNC`,
     );
     logger.info(
       "RebuildMetricBaselineHourlyWithBFloat16Quantiles: dropped MetricBaselineHourly_mv",
@@ -81,7 +88,7 @@ export default class RebuildMetricBaselineHourlyWithBFloat16Quantiles extends Da
 
     // 2. Drop the legacy-typed table (this is the accepted data loss).
     await MetricBaselineService.execute(
-      `DROP TABLE IF EXISTS MetricBaselineHourly`,
+      `DROP TABLE IF EXISTS MetricBaselineHourly SYNC`,
     );
     logger.info(
       "RebuildMetricBaselineHourlyWithBFloat16Quantiles: dropped MetricBaselineHourly",

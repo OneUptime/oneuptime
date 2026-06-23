@@ -7,6 +7,17 @@ import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel
 import logger from "Common/Server/Utils/Logger";
 import MaterializedView from "Common/Types/AnalyticsDatabase/MaterializedView";
 import { JSONObject } from "Common/Types/JSON";
+import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
+import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
+
+/**
+ * A column as it physically exists in ClickHouse (read from
+ * system.columns) — used to detect drift between the model and the table.
+ */
+type ExistingColumn = {
+  type: string;
+  codec: string;
+};
 
 export default class AnalyticsTableManagement {
   public static async createTables(): Promise<void> {
@@ -47,10 +58,10 @@ export default class AnalyticsTableManagement {
   private static async reconcileColumns(
     service: AnalyticsDatabaseService<AnalyticsBaseModel>,
   ): Promise<void> {
-    let existingColumns: Set<string>;
+    let existingColumns: Map<string, ExistingColumn>;
 
     try {
-      existingColumns = await this.getExistingColumnNames(service);
+      existingColumns = await this.getExistingColumns(service);
     } catch (error) {
       logger.error({
         message: `Failed to read existing columns for ${service.model.tableName} - skipping column reconciliation.`,
@@ -85,30 +96,217 @@ export default class AnalyticsTableManagement {
         });
       }
     }
+
+    /*
+     * Surface — do NOT silently repair — columns whose physical TYPE no
+     * longer matches the model. `ADD COLUMN` above only fixes MISSING
+     * columns; a column whose type changed (most importantly an
+     * AggregateFunction state type, e.g. quantile → quantileBFloat16)
+     * keeps its old type forever, and the boot CREATE/ADD path can never
+     * converge it. That exact drift makes a materialized view fail its
+     * aggregate cast and — because the data-migration runner stops at the
+     * first failure — can freeze the whole migration chain. Auto-dropping
+     * the table here is unsafe (base tables hold irreplaceable telemetry),
+     * so convergence stays owned by an explicit, data-loss-aware
+     * DataMigration; this just makes the drift loud instead of silent.
+     */
+    this.reportColumnDrift(service, existingColumns);
   }
 
-  private static async getExistingColumnNames(
+  private static async getExistingColumns(
     service: AnalyticsDatabaseService<AnalyticsBaseModel>,
-  ): Promise<Set<string>> {
+  ): Promise<Map<string, ExistingColumn>> {
     const escapedTableName: string = this.escapeForQuery(
       service.model.tableName,
     );
 
     const result: Results = await service.executeQuery(
-      `SELECT name FROM system.columns WHERE database = currentDatabase() AND table = '${escapedTableName}'`,
+      `SELECT name, type, compression_codec FROM system.columns WHERE database = currentDatabase() AND table = '${escapedTableName}'`,
     );
 
     const response: DbJSONResponse = await result.json<{
       data?: Array<JSONObject>;
     }>();
 
-    const names: Set<string> = new Set<string>();
+    const columns: Map<string, ExistingColumn> = new Map<
+      string,
+      ExistingColumn
+    >();
 
     for (const row of response.data || []) {
-      names.add(String((row as JSONObject)["name"]));
+      const record: JSONObject = row as JSONObject;
+      columns.set(String(record["name"]), {
+        type: String(record["type"] ?? ""),
+        codec: String(record["compression_codec"] ?? ""),
+      });
     }
 
-    return names;
+    return columns;
+  }
+
+  /**
+   * Log (loudly) any column whose physical type or codec has drifted from
+   * the model. AggregateFunction state drift is logged at error level
+   * because it breaks materialized-view creation; other type/codec changes
+   * are warnings. Never mutates the table — convergence of a type change is
+   * a destructive, data-loss-aware operation owned by an explicit
+   * DataMigration. Conservative comparison (normalized) so cosmetic
+   * differences never raise a false alarm and spam boot logs.
+   */
+  private static reportColumnDrift(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+    existingColumns: Map<string, ExistingColumn>,
+  ): void {
+    const tableName: string = service.model.tableName;
+
+    for (const column of service.model.tableColumns) {
+      const existing: ExistingColumn | undefined = existingColumns.get(
+        column.key,
+      );
+
+      if (!existing) {
+        // Missing columns are handled by the ADD COLUMN path above.
+        continue;
+      }
+
+      // ---- Type drift (most importantly AggregateFunction state types) ----
+      let expectedType: string;
+      try {
+        expectedType = service.statementGenerator
+          .toFullColumnType(column)
+          .query.trim();
+      } catch {
+        // A column we cannot render (should never happen) is not worth a false alarm.
+        continue;
+      }
+
+      if (
+        this.normalizeChType(expectedType) !==
+        this.normalizeChType(existing.type)
+      ) {
+        const detail: JSONObject = {
+          message: `ClickHouse schema drift on ${tableName}.${column.key}: physical column type does not match the model. The boot schema-sync only ADDs missing columns and cannot change a type — a one-time DataMigration must drop+recreate (or MODIFY) this column to converge it.`,
+          table: tableName,
+          column: column.key,
+          expectedType,
+          actualType: existing.type,
+        };
+
+        if (column.type === TableColumnType.AggregateFunction) {
+          // State-type drift here is what breaks CREATE MATERIALIZED VIEW.
+          logger.error(detail);
+        } else {
+          logger.warn(detail);
+        }
+      }
+
+      // ---- Codec drift (best-effort; only when the model declares one) ----
+      if (column.codec && existing.codec) {
+        let expectedCodec: string = "";
+        try {
+          expectedCodec = StatementGenerator.buildCodecString(column.codec);
+        } catch {
+          expectedCodec = "";
+        }
+
+        if (
+          expectedCodec &&
+          this.normalizeCodec(expectedCodec) !==
+            this.normalizeCodec(existing.codec)
+        ) {
+          logger.warn({
+            message: `ClickHouse codec drift on ${tableName}.${column.key}: model declares CODEC(${expectedCodec}) but the column reports ${existing.codec}. A MODIFY COLUMN ... CODEC migration is needed to converge it.`,
+            table: tableName,
+            column: column.key,
+            expectedCodec,
+            actualCodec: existing.codec,
+          });
+        }
+      }
+    }
+  }
+
+  /*
+   * Normalize a ClickHouse type for comparison: lower-cased, whitespace
+   * removed, and `Double` (what the model emits for Decimal) folded to the
+   * canonical `Float64` that system.columns reports. Intentionally
+   * conservative — it only flags real changes (and AggregateFunction state
+   * types, which both sides render identically).
+   */
+  private static normalizeChType(type: string): string {
+    return type
+      .toLowerCase()
+      .replace(/\s+/g, "")
+      .replace(/double/g, "float64");
+  }
+
+  /*
+   * Normalize a codec for comparison: lower-cased, whitespace removed, and
+   * the surrounding `CODEC( ... )` wrapper that system.columns reports
+   * stripped so it lines up with buildCodecString's bare output.
+   */
+  private static normalizeCodec(codec: string): string {
+    return codec
+      .toLowerCase()
+      .replace(/\s+/g, "")
+      .replace(/^codec\(/, "")
+      .replace(/\)$/, "");
+  }
+
+  /**
+   * True when the service's own table has at least one AggregateFunction
+   * column whose physical state type no longer matches the model. This is
+   * the drift that would make a `CREATE MATERIALIZED VIEW … TO <table>`
+   * fail its aggregate cast, so createMaterializedViews uses it to refuse a
+   * destructive auto-drop. Returns false on any read error (never block or
+   * destroy on a transient failure).
+   */
+  private static async hasAggregateTypeDrift(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+  ): Promise<boolean> {
+    let existingColumns: Map<string, ExistingColumn>;
+
+    try {
+      existingColumns = await this.getExistingColumns(service);
+    } catch {
+      return false;
+    }
+
+    if (existingColumns.size === 0) {
+      return false;
+    }
+
+    for (const column of service.model.tableColumns) {
+      if (column.type !== TableColumnType.AggregateFunction) {
+        continue;
+      }
+
+      const existing: ExistingColumn | undefined = existingColumns.get(
+        column.key,
+      );
+
+      if (!existing) {
+        continue;
+      }
+
+      let expectedType: string;
+      try {
+        expectedType = service.statementGenerator
+          .toFullColumnType(column)
+          .query.trim();
+      } catch {
+        continue;
+      }
+
+      if (
+        this.normalizeChType(expectedType) !==
+        this.normalizeChType(existing.type)
+      ) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -138,15 +336,61 @@ export default class AnalyticsTableManagement {
           );
 
           if (exists) {
-            logger.debug(
-              `Materialized view ${materializedView.name} already exists - skipping create.`,
+            const drifted: boolean = await this.hasMaterializedViewDrifted(
+              service,
+              materializedView,
             );
-            continue;
-          }
 
-          logger.info(
-            `Materialized view ${materializedView.name} is missing - creating it.`,
-          );
+            if (!drifted) {
+              logger.debug(
+                `Materialized view ${materializedView.name} already exists and matches the model - skipping create.`,
+              );
+              continue;
+            }
+
+            /*
+             * SAFETY GATE: only auto-drop when the recreate is sure to
+             * succeed. If the MV's target table has AggregateFunction
+             * type drift (e.g. quantile → quantileBFloat16), recreating the
+             * model MV would fail the aggregate cast — and we'd have dropped
+             * a stale-but-functioning view, leaving NO view until a
+             * migration rebuilds the table. That table+view rebuild is a
+             * destructive, data-loss-aware operation owned by an explicit
+             * DataMigration, so here we leave the existing view untouched
+             * and log loudly instead.
+             */
+            const targetDrift: boolean =
+              await this.hasAggregateTypeDrift(service);
+
+            if (targetDrift) {
+              logger.error({
+                message: `Materialized view ${materializedView.name} has drifted AND its target table ${service.model.tableName} has AggregateFunction type drift. Not auto-dropping the view (recreating it would fail the aggregate cast) — a DataMigration must rebuild the table and view together. Leaving the existing view in place.`,
+                view: materializedView.name,
+                table: service.model.tableName,
+              });
+              continue;
+            }
+
+            /*
+             * Pure MV-definition drift (e.g. a changed source table or a
+             * non-state SELECT change) with a matching target table. DROP it
+             * so the create below re-attaches the canonical definition;
+             * otherwise the existence check would skip it forever and reads
+             * would run against a stale view. SYNC so the drop completes
+             * before the recreate. The MV holds no data of its own (its
+             * target table does), so this only rebuilds the trigger.
+             */
+            logger.warn(
+              `Materialized view ${materializedView.name} has drifted from the model definition - dropping and recreating it.`,
+            );
+            await service.execute(
+              `DROP VIEW IF EXISTS ${materializedView.name} SYNC`,
+            );
+          } else {
+            logger.info(
+              `Materialized view ${materializedView.name} is missing - creating it.`,
+            );
+          }
 
           await this.createMaterializedView(service, materializedView);
         } catch (error) {
@@ -196,6 +440,100 @@ export default class AnalyticsTableManagement {
     const createQuery: unknown = row["create_table_query"];
 
     return typeof createQuery === "string" ? createQuery : null;
+  }
+
+  /**
+   * Decide whether an existing materialized view's stored definition has
+   * drifted from the model's canonical definition. ClickHouse rewrites and
+   * fully-qualifies `create_table_query`, so a raw textual diff would always
+   * report a (false) change and churn DROP/CREATE every boot. Instead we
+   * extract the load-bearing identifiers from the MODEL query — the source
+   * table (FROM), the target table (TO) and every aggregate-state function
+   * (e.g. sumState, quantileBFloat16State) — and require each to appear in
+   * the stored definition. ClickHouse preserves table and function names
+   * verbatim, so a missing token means a real semantic change (a renamed
+   * source table, or a changed aggregate function), which is exactly the
+   * drift that breaks the view. Conservative by design: it under-reports
+   * rather than risk a destructive false positive. Returns false on any
+   * read error so a transient failure never triggers a drop.
+   */
+  private static async hasMaterializedViewDrifted(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+    materializedView: MaterializedView,
+  ): Promise<boolean> {
+    let storedQuery: string | null;
+
+    try {
+      storedQuery = await this.getMaterializedViewCreateQuery(
+        service,
+        materializedView.name,
+      );
+    } catch (error) {
+      logger.error({
+        message: `Failed to read stored definition for materialized view ${materializedView.name} - assuming no drift.`,
+        error: (error as Error).message,
+      });
+      return false;
+    }
+
+    if (!storedQuery) {
+      return false;
+    }
+
+    const haystack: string = storedQuery.toLowerCase();
+    const expectedTokens: Array<string> = this.extractMaterializedViewTokens(
+      materializedView.query,
+    );
+
+    const missing: Array<string> = expectedTokens.filter((token: string) => {
+      return !haystack.includes(token.toLowerCase());
+    });
+
+    if (missing.length > 0) {
+      logger.warn({
+        message: `Materialized view ${materializedView.name} is missing expected identifiers from its stored definition - treating as drift.`,
+        missing,
+      });
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Pull the load-bearing identifiers out of a model MV definition: the
+   * source table after FROM, the target table after TO, and every
+   * aggregate-state function (a `<name>State(` call). Used to fingerprint a
+   * view against its stored ClickHouse definition without a brittle textual
+   * diff.
+   */
+  private static extractMaterializedViewTokens(query: string): Array<string> {
+    const tokens: Set<string> = new Set<string>();
+
+    const fromMatch: RegExpMatchArray | null = query.match(
+      /\bFROM\s+([A-Za-z0-9_]+)/,
+    );
+    if (fromMatch && fromMatch[1]) {
+      tokens.add(fromMatch[1]);
+    }
+
+    const toMatch: RegExpMatchArray | null = query.match(
+      /\bTO\s+([A-Za-z0-9_]+)/,
+    );
+    if (toMatch && toMatch[1]) {
+      tokens.add(toMatch[1]);
+    }
+
+    const stateFnRegex: RegExp = /\b([A-Za-z0-9]+State)\s*\(/g;
+    let stateMatch: RegExpExecArray | null = stateFnRegex.exec(query);
+    while (stateMatch !== null) {
+      if (stateMatch[1]) {
+        tokens.add(stateMatch[1]);
+      }
+      stateMatch = stateFnRegex.exec(query);
+    }
+
+    return Array.from(tokens);
   }
 
   public static async doesProjectionExist(
