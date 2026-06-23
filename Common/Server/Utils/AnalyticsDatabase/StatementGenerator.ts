@@ -193,8 +193,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     return record;
   }
 
-  private escapeStringLiteral(raw: string): string {
+  private escapeStringLiteral(raw: string | undefined | null): string {
     // escape String literal based on https://clickhouse.com/docs/en/sql-reference/syntax#string
+    if (raw === undefined || raw === null) {
+      return "''";
+    }
     return `'${raw.replace(/'|\\/g, "\\$&")}'`;
   }
 
