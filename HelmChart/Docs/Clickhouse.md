@@ -1,5 +1,7 @@
 ### Clickhouse Ops
 
+For telemetry cold-tier and app-level sharding setup, see [ClickhouseTelemetryColdTierAndSharding.md](./ClickhouseTelemetryColdTierAndSharding.md).
+
 To access clickhouse use port forwarding in kubernetes
 
 ```
