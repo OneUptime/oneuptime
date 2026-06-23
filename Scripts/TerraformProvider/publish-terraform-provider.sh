@@ -28,6 +28,7 @@ TEST_RELEASE=false
 SKIP_TESTS=false
 FORCE=false
 RELEASE_ALREADY_EXISTS=false
+TAG_ALREADY_EXISTS=false
 
 # Function to print colored output
 print_status() {
@@ -455,13 +456,22 @@ Changes include:
             print_warning "Tag v$VERSION exists on remote, force mode enabled - will overwrite"
         else
             print_warning "Tag v$VERSION already exists on remote repository"
-            print_warning "Skipping publishing as this version has already been published"
-            print_status "Use --force flag to overwrite if needed"
-            # Exit gracefully - this is not an error, just means the version was already published
-            exit 0
+            print_warning "Code and tag are already published; will NOT re-push them."
+            print_status "Continuing so release assets can be (re)built and uploaded to heal the release."
+            print_status "Use --force flag to overwrite the code/tag if needed"
+            TAG_ALREADY_EXISTS=true
+            # Do NOT exit here. A previous run may have pushed the tag but failed
+            # before GoReleaser produced the archives (leaving a release with no
+            # assets). We still want create_github_release() to build and upload
+            # the assets. GoReleaser derives the version from the git tag at HEAD,
+            # so make sure a local tag exists even though we won't push it.
+            if ! git tag -l | grep -q "^v$VERSION$"; then
+                git tag -a "v$VERSION" -m "Release v$VERSION"
+            fi
+            return
         fi
     fi
-    
+
     git tag -a "v$VERSION" -m "Release v$VERSION"
 
     # Push to remote repository
@@ -527,9 +537,16 @@ create_github_release() {
 
     if [[ "$release_exists" == true ]]; then
         print_warning "GitHub release v$VERSION already exists. Skipping release creation."
+        print_status "Will still (re)build and upload assets so the release ends up complete."
         RELEASE_ALREADY_EXISTS=true
-        return
     fi
+
+    # Only create the GitHub release when it does not already exist. Either way we
+    # fall through to the GoReleaser asset build + upload below, so a release that
+    # a previous run created but never finished populating (e.g. the build OOMed
+    # before producing archives) gets healed when the job is re-run. The upload
+    # step uses --clobber, so re-uploading existing assets is safe and idempotent.
+    if [[ "$release_exists" == false ]]; then
 
     # Create release notes
     local release_notes_file="release-notes-v$VERSION.md"
@@ -648,8 +665,11 @@ EOF
     # Clean up
     rm -f "$release_notes_file"
 
+    fi  # end: create release only when it did not already exist
+
     # Use GoReleaser to build archives, checksums, and sign if available
-    # Otherwise fall back to manual process
+    # Otherwise fall back to manual process. This runs whether or not the release
+    # already existed, so missing assets are always (re)built and uploaded.
     if command -v goreleaser &> /dev/null && [[ -f "$PROVIDER_FRAMEWORK_DIR/.goreleaser.yml" ]]; then
         goreleaser_release_assets
     else
@@ -757,6 +777,14 @@ goreleaser_release_assets() {
             files_uploaded=$((files_uploaded + 1))
         fi
     done
+
+    # Fail loudly if nothing was uploaded. Otherwise a GoReleaser run that produced
+    # no matching artifacts would let the job exit 0 with an empty release - the exact
+    # "green but no assets" failure mode this script is meant to prevent.
+    if [[ "$files_uploaded" -eq 0 ]]; then
+        print_error "GoReleaser produced no release assets to upload (dist/ had no zip/SHA256SUMS/sig/json files)"
+        exit 1
+    fi
 
     print_success "Uploaded $files_uploaded release assets via GoReleaser"
 }
@@ -1027,14 +1055,18 @@ show_summary() {
     echo ""
 
     if [[ "$RELEASE_ALREADY_EXISTS" == true ]]; then
-        print_warning "GitHub release v$VERSION already existed. Skipped release creation and registry publishing."
+        print_warning "GitHub release v$VERSION already existed. Skipped release creation, but (re)built and uploaded assets."
         echo "✓ Generated Terraform provider"
         echo "✓ Ran tests (if not skipped)"
-        echo "✓ Pushed code to terraform-provider-oneuptime repository"
-        echo "✗ Release creation skipped"
-        echo "✗ Terraform Registry publish skipped"
+        if [[ "$TAG_ALREADY_EXISTS" == true ]]; then
+            echo "• Code/tag already published — not re-pushed"
+        else
+            echo "✓ Pushed code to terraform-provider-oneuptime repository"
+        fi
+        echo "• Release creation skipped (release already existed)"
+        echo "✓ (Re)built and uploaded release assets (archives, checksums, signatures)"
         echo ""
-        print_status "If you need to update the existing release, delete it first or rerun with --force."
+        print_status "Assets were healed on this run. To recreate the release from scratch, delete it first or rerun with --force."
         return
     fi
     
