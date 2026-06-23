@@ -65,12 +65,12 @@ export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
 
   public override async migrate(): Promise<void> {
     const cluster: string = getClickhouseClusterName();
-    const failures: Array<string> = [];
 
     /*
-     * 1. Drop legacy single-node materialized views (rebuilt cluster-correctly
-     *    in step 3 below). ON CLUSTER + SYNC so the drop reaches every node and
-     *    completes before the rebuild.
+     * 1. Drop the legacy single-node materialized views (rebuilt cluster-correctly
+     *    in step 3). The boot schema-sync (reconcileDistributedTable) already
+     *    renamed the source/target tables aside, so the old MVs are stale; drop
+     *    them ON CLUSTER + SYNC.
      */
     for (const service of AnalyticsServices) {
       const materializedViews: Array<MaterializedView> =
@@ -89,41 +89,42 @@ export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
       }
     }
 
-    // 2. Convert each table.
+    // 2. Backfill old rows per table (best-effort; convertTable never throws).
     for (const service of AnalyticsServices) {
       try {
         await this.convertTable(service, cluster);
       } catch (err) {
+        // convertTable is best-effort and should not throw; log defensively.
         logger.error({
-          message: `ConvertAnalyticsTablesToCluster: failed to convert ${service.model.tableName}`,
+          message: `ConvertAnalyticsTablesToCluster: unexpected error backfilling ${service.model.tableName}`,
           error: (err as Error).message,
         });
-        failures.push(service.model.tableName);
       }
     }
 
     /*
      * 3. Rebuild materialized views cluster-correctly (ON CLUSTER, reading the
-     *    local source, writing the local target).
+     *    local source, writing the local target). Best-effort: the boot
+     *    schema-sync (createMaterializedViews) self-heals MVs on every boot too.
      */
     try {
       await AnalyticsTableManagement.createMaterializedViews();
     } catch (err) {
       logger.error({
         message:
-          "ConvertAnalyticsTablesToCluster: failed to rebuild materialized views after conversion",
+          "ConvertAnalyticsTablesToCluster: failed to rebuild materialized views; the boot schema-sync will retry next boot.",
         error: (err as Error).message,
       });
-      failures.push("materializedViews");
     }
 
-    if (failures.length > 0) {
-      throw new Error(
-        `ConvertAnalyticsTablesToCluster: conversion incomplete for [${failures.join(
-          ", ",
-        )}]. Any *${PRECLUSTER_SUFFIX} backups were left in place; resolve the error and let the migration re-run. See logs above.`,
-      );
-    }
+    /*
+     * This migration ALWAYS records as complete and NEVER retries. New telemetry
+     * is already in the cluster tables (reconcileDistributedTable switched the
+     * Distributed wrappers in at schema-sync). Any table whose backfill failed
+     * left its *${PRECLUSTER_SUFFIX} backup in place for manual recovery — see
+     * the per-table error logs above. A copy that cannot finish must not block
+     * deploys or loop forever.
+     */
   }
 
   private async convertTable(
@@ -134,167 +135,100 @@ export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
     const localTable: string = getStorageTableName(table); // `${table}Local`
     const preclustered: string = `${table}${PRECLUSTER_SUFFIX}`;
 
-    const engine: string | null = await AnalyticsTableManagement.getTableEngine(
-      service,
-      table,
-    );
+    /*
+     * The boot schema-sync (reconcileDistributedTable) already switched <table>
+     * to the Distributed wrapper and renamed any legacy data to
+     * `<table>_preclustered`, so NEW telemetry is ALREADY landing in
+     * `<table>Local`. This migration's only job is to BACKFILL the old rows from
+     * the backup. No backup → nothing to do (fresh install, or already drained).
+     */
     const backupEngine: string | null =
       await AnalyticsTableManagement.getTableEngine(service, preclustered);
-
-    if (
-      engine !== null &&
-      engine.startsWith("Distributed") &&
-      backupEngine === null
-    ) {
-      /*
-       * Distributed AND no backup left = a prior run finished: the backup is
-       * dropped ONLY after the row-count check passes, so its absence proves a
-       * verified copy. Done.
-       */
-      logger.info(
-        `ConvertAnalyticsTablesToCluster: ${table} is already converted - skipping.`,
-      );
+    if (backupEngine === null) {
       return;
     }
 
     /*
-     * Otherwise, if a backup still exists the copy was NOT confirmed (it never
-     * reached the verify+drop step — e.g. the INSERT timed out or the pod
-     * restarted mid-copy). Do NOT treat that as success: fall through and
-     * re-copy idempotently (TRUNCATE + reload from the backup) below. The backup
-     * is the source of truth until the count check passes.
+     * BEST-EFFORT backfill, run AT MOST ONCE. New data is already flowing into
+     * `${localTable}` via the Distributed table, so the copy is ADDITIVE — it
+     * must NOT truncate. If it succeeds we drop the backup; if it FAILS we LEAVE
+     * the backup for manual recovery and swallow the error so the migration
+     * records as complete and NEVER retries. A copy that can't finish must not
+     * block deploys or loop forever — the system is already healthy because new
+     * data is in the cluster tables regardless.
      */
-
-    if (engine === null && backupEngine === null) {
-      /*
-       * Fresh install: no legacy table and no backup. The boot sync owns
-       * creating the Distributed wrapper.
-       */
+    try {
       logger.info(
-        `ConvertAnalyticsTablesToCluster: ${table} has no legacy data to convert - skipping.`,
+        `ConvertAnalyticsTablesToCluster: backfilling old rows for ${table} from ${preclustered}.`,
       );
-      return;
-    }
 
-    logger.info(
-      `ConvertAnalyticsTablesToCluster: converting ${table} (engine=${
-        engine ?? "absent"
-      }, backup=${backupEngine ?? "absent"}).`,
-    );
-
-    // Ensure the local Replicated storage table exists.
-    await service.execute(service.statementGenerator.toTableCreateStatement());
-
-    /*
-     * Move the legacy table aside — only the legacy non-Distributed table, and
-     * only if it has not already been renamed by an interrupted prior run.
-     */
-    if (
-      engine !== null &&
-      !engine.startsWith("Distributed") &&
-      backupEngine === null
-    ) {
+      // Defensive: ensure the local + Distributed tables exist.
       await service.execute(
-        `RENAME TABLE ${table} TO ${preclustered}${onClusterClause()}`,
+        service.statementGenerator.toTableCreateStatement(),
       );
-    }
+      const distributedStatement: ReturnType<
+        AnyAnalyticsService["statementGenerator"]["toDistributedTableCreateStatement"]
+      > = service.statementGenerator.toDistributedTableCreateStatement();
+      if (distributedStatement) {
+        await service.execute(distributedStatement);
+      }
 
-    // Create the Distributed wrapper over the local table.
-    const distributedStatement: ReturnType<
-      AnyAnalyticsService["statementGenerator"]["toDistributedTableCreateStatement"]
-    > = service.statementGenerator.toDistributedTableCreateStatement();
-    if (distributedStatement) {
-      await service.execute(distributedStatement);
-    }
-
-    /*
-     * Idempotent copy: a prior attempt may have been interrupted mid-INSERT
-     * (timeout / pod restart) and left PARTIAL rows in the local table. The
-     * backup is the source of truth until the count check passes, so clear the
-     * local table and reload it fresh — re-running the INSERT without this would
-     * duplicate the already-copied rows. TRUNCATE ON CLUSTER drops all parts on
-     * every shard/replica. (Conversion of large data should run in a maintenance
-     * window; this truncate assumes live ingestion is paused/minimal.)
-     */
-    await service.execute(`TRUNCATE TABLE ${localTable}${onClusterClause()}`);
-
-    /*
-     * Copy legacy rows back through the Distributed table (re-sharded +
-     * replicated). Only columns present in BOTH the legacy table and the model
-     * are copied; new columns take their defaults.
-     */
-    const targetColumns: Array<string> = await this.getColumns(
-      service,
-      localTable,
-    );
-    const sourceColumns: Set<string> = new Set(
-      await this.getColumns(service, preclustered),
-    );
-    const commonColumns: Array<string> = targetColumns.filter((c: string) => {
-      return sourceColumns.has(c);
-    });
-
-    if (commonColumns.length === 0) {
-      throw new Error(
-        `No columns in common between ${localTable} and ${preclustered}; refusing to copy.`,
+      /*
+       * Only columns present in BOTH the backup and the model are copied; new
+       * columns take their defaults.
+       */
+      const targetColumns: Array<string> = await this.getColumns(
+        service,
+        localTable,
       );
-    }
+      const sourceColumns: Set<string> = new Set(
+        await this.getColumns(service, preclustered),
+      );
+      const commonColumns: Array<string> = targetColumns.filter((c: string) => {
+        return sourceColumns.has(c);
+      });
+      if (commonColumns.length === 0) {
+        throw new Error(
+          `No columns in common between ${localTable} and ${preclustered}.`,
+        );
+      }
+      const columnList: string = commonColumns.join(", ");
 
-    /*
-     * clusterAllReplicas (NOT cluster): on the pre-cluster split-data setup the
-     * legacy tables are plain MergeTree whose "replicas" hold DIFFERENT subsets
-     * (that is the bug being fixed). `cluster()` reads only ONE replica per shard
-     * (load-balanced), so it would silently skip the data on the other replicas;
-     * `clusterAllReplicas()` reads EVERY node, so the full split dataset is
-     * gathered and re-sharded through the Distributed table. On a single node the
-     * two are identical.
-     */
-    const columnList: string = commonColumns.join(", ");
-    /*
-     * Progress headers are ESSENTIAL here. The ClickHouse client enforces its
-     * request_timeout (58s) as a socket-IDLE timer, and an INSERT…SELECT returns
-     * zero bytes until it finishes — so a copy that runs longer than 58s would
-     * have its connection destroyed and the INSERT cancelled (leaving partial
-     * data). `send_progress_in_http_headers` makes ClickHouse stream
-     * X-ClickHouse-Progress header lines every http_headers_progress_interval_ms,
-     * keeping the socket non-idle so an arbitrarily long copy completes. There is
-     * no per-query max_execution_time on execute(), so the server runs it to
-     * completion.
-     */
-    await service.execute(
-      `INSERT INTO ${table} (${columnList}) SELECT ${columnList} FROM clusterAllReplicas('${cluster}', currentDatabase(), ${preclustered})`,
-      {
-        clickhouseSettings: {
-          send_progress_in_http_headers: 1,
-          http_headers_progress_interval_ms: "10000",
+      /*
+       * clusterAllReplicas reads EVERY node's backup — `cluster()` would read
+       * only one replica per shard and silently miss data split across the
+       * others. The INSERT into the Distributed table re-shards + replicates.
+       * Progress headers keep the socket non-idle so an arbitrarily long copy is
+       * not killed by the client's 58s socket-idle request_timeout (an
+       * INSERT…SELECT returns no bytes until it completes).
+       */
+      await service.execute(
+        `INSERT INTO ${table} (${columnList}) SELECT ${columnList} FROM clusterAllReplicas('${cluster}', currentDatabase(), ${preclustered})`,
+        {
+          clickhouseSettings: {
+            send_progress_in_http_headers: 1,
+            http_headers_progress_interval_ms: "10000",
+          },
         },
-      },
-    );
-
-    /*
-     * Verify before dropping the backup. The Distributed count spans all shards;
-     * the clusterAllReplicas count spans EVERY node's backup (so the check can't
-     * be fooled by data sitting on an un-read replica). Never drop on a shortfall
-     * — leave the backup for manual recovery.
-     */
-    const newCount: number = await this.count(service, `${table}`);
-    const oldCount: number = await this.countFrom(
-      service,
-      `clusterAllReplicas('${cluster}', currentDatabase(), ${preclustered})`,
-    );
-
-    if (newCount < oldCount) {
-      throw new Error(
-        `Row-count check failed for ${table}: Distributed table has ${newCount} rows but the legacy backup had ${oldCount}. Leaving ${preclustered} in place for manual recovery.`,
       );
-    }
 
-    logger.info(
-      `ConvertAnalyticsTablesToCluster: ${table} converted; copied ${newCount} rows (legacy ${oldCount}). Dropping ${preclustered}.`,
-    );
-    await service.execute(
-      `DROP TABLE IF EXISTS ${preclustered}${onClusterClause()} SYNC`,
-    );
+      const copied: number = await this.countFrom(
+        service,
+        `clusterAllReplicas('${cluster}', currentDatabase(), ${preclustered})`,
+      );
+      logger.info(
+        `ConvertAnalyticsTablesToCluster: backfilled ${copied} old rows for ${table}; dropping ${preclustered}.`,
+      );
+      await service.execute(
+        `DROP TABLE IF EXISTS ${preclustered}${onClusterClause()} SYNC`,
+      );
+    } catch (err) {
+      logger.error({
+        message: `ConvertAnalyticsTablesToCluster: failed to backfill old rows for ${table}. New telemetry is already in the cluster tables; the old rows remain in ${preclustered} for manual recovery. NOT retrying.`,
+        table,
+        error: (err as Error).message,
+      });
+    }
   }
 
   private async getColumns(

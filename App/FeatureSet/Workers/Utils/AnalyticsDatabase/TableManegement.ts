@@ -80,39 +80,78 @@ export default class AnalyticsTableManagement {
   }
 
   /**
-   * Create (or re-sync) the app-facing Distributed table that wraps a model's
+   * Ensure the app-facing `<tableName>` is the `Distributed` wrapper over the
    * local `<tableName>Local` storage table.
    *
-   * Critical safety: createTables() runs on every boot BEFORE data migrations.
-   * On a cluster-conversion boot the model's table still exists as the legacy
-   * single-node MergeTree holding real data. `CREATE OR REPLACE TABLE … ENGINE
-   * = Distributed` would atomically REPLACE that table — destroying the data —
-   * before the ConvertAnalyticsTablesToCluster migration ever gets to rename and
-   * copy it. So we first inspect the existing engine and refuse to clobber a
-   * non-Distributed table; the converter renames it to `<table>_preclustered`,
-   * after which the model name is free and the Distributed wrapper is created.
+   * createTables() runs on every boot BEFORE data migrations. On a
+   * cluster-conversion boot the model's table still exists as the legacy
+   * single-node MergeTree holding real data. We must NOT clobber it — but we
+   * also must switch `<tableName>` to the Distributed table HERE (at schema-sync,
+   * before ingestion ramps) rather than waiting for the late-running converter,
+   * so NEW telemetry lands in the cluster tables from the get-go instead of
+   * piling back into the legacy (and, on a multi-node cluster, re-splitting)
+   * table. So: rename the legacy table aside to `<tableName>_preclustered`, then
+   * create the Distributed wrapper. The ConvertAnalyticsTablesToCluster
+   * migration later backfills the old rows from the backup (best-effort).
+   *
+   * The `_preclustered` suffix MUST match ConvertAnalyticsTablesToCluster's
+   * PRECLUSTER_SUFFIX.
    */
   private static async reconcileDistributedTable(
     service: AnalyticsDatabaseService<AnalyticsBaseModel>,
   ): Promise<void> {
-    const distributedStatement: Statement =
-      service.statementGenerator.toDistributedTableCreateStatement();
+    const tableName: string = service.model.tableName;
+    const preclustered: string = `${tableName}_preclustered`;
 
     const existingEngine: string | null = await this.getTableEngine(
       service,
-      service.model.tableName,
+      tableName,
     );
 
     if (existingEngine && !existingEngine.startsWith("Distributed")) {
-      logger.warn({
-        message: `${service.model.tableName} exists as a non-Distributed (${existingEngine}) table holding pre-cluster data. Skipping Distributed-wrapper creation so the data is not clobbered — the ConvertAnalyticsTablesToCluster migration will rename and convert it.`,
-        table: service.model.tableName,
-        engine: existingEngine,
-      });
-      return;
+      // Legacy non-Distributed table holding pre-cluster data.
+      const backupEngine: string | null = await this.getTableEngine(
+        service,
+        preclustered,
+      );
+      if (backupEngine !== null) {
+        /*
+         * Inconsistent: the legacy table AND a backup both exist. Don't rename
+         * (would fail) or create the Distributed wrapper (would clobber the
+         * legacy table's live data). Leave it for manual intervention.
+         */
+        logger.error({
+          message: `${tableName} still exists as a non-Distributed (${existingEngine}) table AND ${preclustered} already exists. Not renaming or creating the Distributed wrapper — manual intervention needed.`,
+          table: tableName,
+        });
+        return;
+      }
+
+      try {
+        logger.info({
+          message: `Renaming legacy ${tableName} to ${preclustered} so new telemetry lands in the cluster tables immediately; ConvertAnalyticsTablesToCluster will backfill the old rows.`,
+          table: tableName,
+        });
+        await service.execute(
+          `RENAME TABLE ${tableName} TO ${preclustered}${onClusterClause()}`,
+        );
+      } catch (error) {
+        // Rename failed — do NOT create the Distributed wrapper over the still
+        // present legacy table (that would clobber it). Retry next boot.
+        logger.error({
+          message: `Failed to rename legacy ${tableName} to ${preclustered}; leaving it in place. Distributed wrapper not created this boot.`,
+          table: tableName,
+          error: (error as Error).message,
+        });
+        return;
+      }
     }
 
-    await service.execute(distributedStatement);
+    // <tableName> is now absent (just renamed) or already Distributed — safe to
+    // create / re-sync the Distributed wrapper.
+    await service.execute(
+      service.statementGenerator.toDistributedTableCreateStatement(),
+    );
   }
 
   /**
