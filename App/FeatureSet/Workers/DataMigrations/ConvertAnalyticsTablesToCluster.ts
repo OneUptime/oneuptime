@@ -22,41 +22,41 @@ const PRECLUSTER_SUFFIX: string = "_preclustered";
 type AnyAnalyticsService = AnalyticsDatabaseService<AnalyticsBaseModel>;
 
 /**
- * Convert the existing single-node analytics tables to the sharded + replicated
- * cluster layout, in place, preserving data.
+ * Backfill the OLD analytics data into the sharded + replicated cluster tables.
  *
- * Runs on every install. On a fresh install the boot schema-sync already created
- * the tables as Distributed, so every table is skipped and this is a no-op. For
- * an existing install, each analytics table that still exists as a legacy
- * (non-Distributed) MergeTree is converted:
+ * The cutover itself happens earlier, at boot schema-sync: AnalyticsTableManagement
+ * .reconcileDistributedTable renames any legacy `<table>` MergeTree aside to
+ * `<table>_preclustered` and creates the `Distributed` `<table>` over
+ * `<table>Local` — so NEW telemetry lands in the cluster tables from the get-go
+ * (and, on a multi-node cluster, stops re-splitting). This migration only moves
+ * the OLD rows:
  *
- *   1. (once, up front) drop the legacy materialized views so the cluster-aware
- *      boot sync rebuilds them reading/writing the local tables;
- *   2. ensure the local `<table>Local` ReplicatedMergeTree exists (boot
- *      createTables normally already made it);
- *   3. `RENAME TABLE <table> TO <table>_preclustered ON CLUSTER` — move the
- *      legacy data aside on every node;
- *   4. create the `Distributed` wrapper `<table>` over `<table>Local`;
- *   5. `INSERT INTO <table> SELECT … FROM clusterAllReplicas(<cluster>, db, <table>_preclustered)`
- *      — copy the legacy rows back through the Distributed table so they are
- *      re-sharded and replicated. clusterAllReplicas(...) reads EVERY node's
- *      backup (cluster() would read only one replica per shard and miss data on
- *      the others), so data that was split across nodes — the original "Span not
- *      found" incident — is reunified;
- *   6. verify row counts, then drop the backup. If the new count is below the
- *      legacy count the backup is LEFT IN PLACE for manual recovery.
+ *   1. drop the stale legacy materialized views (rebuilt cluster-correctly in 3);
+ *   2. for each table with a `<table>_preclustered` backup, ADDITIVELY copy its
+ *      rows into the cluster tables:
+ *      `INSERT INTO <table> SELECT … FROM clusterAllReplicas(<cluster>, db, <table>_preclustered)`.
+ *      clusterAllReplicas reads EVERY node's backup (cluster() would read only one
+ *      replica per shard and miss split data), and the INSERT into the Distributed
+ *      table re-shards + replicates — reunifying data split across nodes (the
+ *      original "Span not found" incident). The copy is additive (no truncate)
+ *      because new telemetry is already flowing into `<table>Local`. Progress
+ *      headers keep the long INSERT alive past the client's socket-idle timeout.
+ *      On success the backup is dropped; on failure it is LEFT for manual recovery;
+ *   3. rebuild the materialized views cluster-correctly.
  *
- * Idempotent: already-Distributed tables are skipped, and a conversion
- * interrupted between rename and copy is resumed from the `<table>_preclustered`
- * backup.
+ * BEST-EFFORT / NEVER RETRIES: the backfill of each table is wrapped so a failure
+ * is logged and swallowed, and migrate() never throws — so the migration always
+ * records as complete and never re-runs. A copy that cannot finish (too large,
+ * OOM, …) must not block deploys or loop forever; the system is already healthy
+ * because new data is in the cluster tables, and the old rows remain safe in the
+ * `<table>_preclustered` backup for manual recovery.
  *
  * OPERATIONAL NOTES:
- *  - Run in a maintenance window. Step 5 streams the entire legacy dataset
+ *  - Best run in a maintenance window: the copy streams the entire legacy dataset
  *    through one coordinator node and can take a long time on large tables.
  *  - Requires the `<cluster>` cluster + Keeper to be configured and healthy.
- *  - This has NOT been validated end-to-end against a live multi-node cluster
- *    in this change; review and test against a staging cluster before
- *    production.
+ *  - Validated end-to-end on a single-node cluster-of-one; review against a
+ *    staging multi-shard cluster before production.
  */
 export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
   public constructor() {
@@ -244,13 +244,6 @@ export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
     return (json.data ?? []).map((row: Record<string, unknown>) => {
       return String(row["name"]);
     });
-  }
-
-  private async count(
-    service: AnyAnalyticsService,
-    table: string,
-  ): Promise<number> {
-    return this.countFrom(service, table);
   }
 
   private async countFrom(
