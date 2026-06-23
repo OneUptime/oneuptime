@@ -31,7 +31,6 @@ import StatementGenerator from "../Utils/AnalyticsDatabase/StatementGenerator";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import {
   getStorageTableName,
-  isClickhouseClustered,
   onClusterClause,
 } from "../Utils/AnalyticsDatabase/ClusterConfig";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -1302,39 +1301,23 @@ export default class AnalyticsDatabaseService<
     );
 
     /*
-     * Single-node: use ClickHouse lightweight deletes (`DELETE FROM`) rather
-     * than `ALTER TABLE … DELETE`. The latter creates an async mutation that
-     * rewrites whole parts and is bounded by `number_of_mutations_to_throw`
-     * (default 1000). Customers with chatty state transitions hit that
-     * ceiling and every subsequent delete fails with TOO_MANY_MUTATIONS.
-     * Lightweight deletes mark rows via the hidden `_row_exists` column
-     * and are reconciled during normal merges, so they don't accumulate
-     * in the mutations queue.
-     *
-     * Cluster mode: lightweight `DELETE FROM` cannot target a Distributed
-     * table and does not accept `ON CLUSTER`, so deletes become an
-     * `ALTER TABLE <local> ON CLUSTER … DELETE` mutation dispatched to every
-     * shard (and replicated within each shard via Keeper). This reintroduces
-     * the mutation-queue ceiling above, but it is the only cluster-correct
-     * form; deletes are rare here (retention is handled by TTL).
+     * Lightweight `DELETE FROM` cannot target a Distributed table and does not
+     * accept `ON CLUSTER`, so deletes are an `ALTER TABLE <local> ON CLUSTER …
+     * DELETE` mutation dispatched to every shard (and replicated within each
+     * shard via Keeper). ALTER ... DELETE mutations are bounded by
+     * `number_of_mutations_to_throw` (default 1000) — but deletes are rare here
+     * (retention is handled by TTL), so the queue does not accumulate.
      */
     /* eslint-disable prettier/prettier */
-    let statement: Statement;
-    if (isClickhouseClustered()) {
-      const localTableName: string = getStorageTableName(this.model.tableName);
-      statement = SQL`
+    const localTableName: string = getStorageTableName(this.model.tableName);
+    const statement: Statement = SQL`
             ALTER TABLE ${databaseName}.${localTableName}`
-        .append(onClusterClause())
-        .append(
-          SQL`
+      .append(onClusterClause())
+      .append(
+        SQL`
             DELETE WHERE TRUE `,
-        )
-        .append(whereStatement);
-    } else {
-      statement = SQL`
-            DELETE FROM ${databaseName}.${this.model.tableName}
-            WHERE TRUE `.append(whereStatement);
-    }
+      )
+      .append(whereStatement);
 
     logger.debug(`${this.model.tableName} Delete Statement`, {
       tableName: this.model.tableName,

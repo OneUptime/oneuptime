@@ -802,6 +802,9 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       sortKeys: ["projectId", "time", "primaryEntityId", "fingerprint"],
       primaryKeys: ["projectId", "time", "primaryEntityId", "fingerprint"],
       partitionKey: "toYYYYMMDD(time)",
+      // Shard by fingerprint so all occurrences of one exception co-locate and a
+      // big project's distinct exceptions spread across shards.
+      shardingKey: "cityHash64(projectId, fingerprint)",
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",

@@ -697,6 +697,9 @@ export default class Log extends AnalyticsBaseModel {
       sortKeys: ["projectId", "time", "primaryEntityId"],
       primaryKeys: ["projectId", "time", "primaryEntityId"],
       partitionKey: "toYYYYMMDD(time)",
+      // Shard by traceId so a trace's logs co-locate with its spans and load
+      // spreads evenly (telemetry logs carry trace context).
+      shardingKey: "cityHash64(traceId)",
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",

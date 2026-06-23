@@ -70,10 +70,10 @@ export default class AnalyticsTableManagement {
       await this.reconcileProjections(service);
 
       /*
-       * In cluster mode the model's tableName is a Distributed table that wraps
-       * the local `<tableName>Local` table created above. Reconcile it AFTER the
-       * local table's columns / indexes / projections so the Distributed layout
-       * matches. No-op in single-node mode.
+       * The model's tableName is a Distributed table that wraps the local
+       * `<tableName>Local` table created above. Reconcile it AFTER the local
+       * table's columns / indexes / projections so the Distributed layout
+       * matches.
        */
       await this.reconcileDistributedTable(service);
     }
@@ -81,7 +81,7 @@ export default class AnalyticsTableManagement {
 
   /**
    * Create (or re-sync) the app-facing Distributed table that wraps a model's
-   * local `<tableName>Local` storage table, in cluster mode only.
+   * local `<tableName>Local` storage table.
    *
    * Critical safety: createTables() runs on every boot BEFORE data migrations.
    * On a cluster-conversion boot the model's table still exists as the legacy
@@ -95,13 +95,8 @@ export default class AnalyticsTableManagement {
   private static async reconcileDistributedTable(
     service: AnalyticsDatabaseService<AnalyticsBaseModel>,
   ): Promise<void> {
-    const distributedStatement: Statement | null =
+    const distributedStatement: Statement =
       service.statementGenerator.toDistributedTableCreateStatement();
-
-    if (!distributedStatement) {
-      // single-node mode — the model's table IS the storage table.
-      return;
-    }
 
     const existingEngine: string | null = await this.getTableEngine(
       service,
@@ -1081,9 +1076,8 @@ export default class AnalyticsTableManagement {
   ): Promise<void> {
     try {
       /*
-       * In cluster mode this injects ON CLUSTER and retargets the view's
-       * TO/FROM at the local source/target tables; in single-node mode the
-       * canonical query is executed unchanged.
+       * Inject ON CLUSTER and retarget the view's TO/FROM at the local
+       * source/target tables before creating it.
        */
       await service.execute(
         applyClusterToMaterializedViewQuery(materializedView.query),

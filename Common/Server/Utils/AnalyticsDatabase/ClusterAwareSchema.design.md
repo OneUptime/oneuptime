@@ -31,38 +31,59 @@ consistent and the cluster is HA.
 Because the **app-facing name is the Distributed table**, the entire
 read / write / query-generation layer is unchanged — only schema *creation* changes.
 
-### Sharding key
+### Sharding key (per model)
 
-`CLICKHOUSE_SHARDING_KEY`, default `cityHash64(projectId)`. Co-locates a project's
-rows (hence all spans of a trace) on a single shard — better locality, keeps a
-trace whole. Correctness does not depend on this (the Distributed read fans out to
-all shards regardless); it is a locality/perf choice. Override to `rand()` for even
-spread if a single tenant is too large for one shard.
+The sharding key is a **per-model property** (`AnalyticsBaseModel.shardingKey`),
+chosen to be high-cardinality (so a big tenant spreads evenly) and to co-locate
+what you read/aggregate together. Correctness never depends on it — the Distributed
+read fans out to all shards regardless; it is purely a distribution/locality choice.
 
-## Gating
+| Model | shardingKey |
+|---|---|
+| Span | `cityHash64(traceId)` |
+| Log | `cityHash64(traceId)` |
+| Metric / agg MVs | `cityHash64(projectId, name, primaryEntityId)` (the series) |
+| ExceptionInstance | `cityHash64(projectId, fingerprint)` |
+| MonitorLog | `cityHash64(monitorId)` |
+| Profile / ProfileSample | `cityHash64(projectId, primaryEntityId)` / `cityHash64(profileId)` |
+| AuditLog | `cityHash64(projectId, resourceId)` |
 
-Everything is gated by `CLICKHOUSE_CLUSTER_NAME`:
+`projectId` was the original key but is a **bad** choice: low cardinality (few
+projects) → uneven shards and a big tenant hotspots one shard. The Metric/agg keys
+align with the rollup MV `GROUP BY` so each series' states stay on one shard.
+Resolution order: `CLICKHOUSE_SHARDING_KEY` (global override) → model `shardingKey`
+→ `cityHash64(projectId)` fallback.
 
-- **empty (default)** → single-node behaviour, byte-for-byte unchanged: plain
-  `MergeTree`, no `ON CLUSTER`, no Distributed wrapper, `non_replicated_deduplication_window`.
-- **non-empty** → cluster mode as above. Must match the cluster name in the
-  ClickHouse config / CHI (the bundled Altinity operator names its cluster
-  `oneuptime`).
+## Always-on (no dual mode)
 
-Live, test-toggleable readers: `Common/Server/Utils/AnalyticsDatabase/ClusterConfig.ts`.
-Mirror consts on the documented env surface: `Common/Server/EnvironmentConfig.ts`.
+There is **no** single-node-vs-cluster branch: the schema is ALWAYS Distributed over
+local `ReplicatedMergeTree`. A single node is a "cluster of one" (1 shard, 1 replica)
+backed by an **embedded** ClickHouse Keeper. `CLICKHOUSE_CLUSTER_NAME` defaults to
+`oneuptime` and only selects WHICH cluster to target; it can never disable clustering.
 
-## Engine / settings mapping (cluster mode)
+This means **every** deployment needs a Keeper:
+- bundled StatefulSet / Docker Compose → embedded Keeper + a 1-node `oneuptime`
+  cluster, configured in `Clickhouse/config.d/cluster.xml` and the Helm
+  `clickhouse.configuration` (a `config.d` drop-in);
+- Altinity operator → its bundled Keeper ensemble + CHI cluster;
+- external ClickHouse → the operator MUST provide a Keeper + a cluster named via
+  `externalClickhouse.clusterName`.
 
-| single-node | cluster (local table) |
+Helpers: `Common/Server/Utils/AnalyticsDatabase/ClusterConfig.ts` (live env readers);
+documented env surface: `Common/Server/EnvironmentConfig.ts`.
+
+## Engine / settings mapping
+
+| logical (model) | storage (local table) |
 |---|---|
 | `MergeTree` | `ReplicatedMergeTree` |
 | `AggregatingMergeTree` | `ReplicatedAggregatingMergeTree` |
 | `non_replicated_deduplication_window` | `replicated_deduplication_window` |
 
 `Replicated*` engines are written **without** explicit Keeper-path args, relying on
-the server's `default_replica_path` / `default_replica_name` macros (the Altinity
-operator provisions `/clickhouse/tables/{uuid}/{shard}` and `{replica}`).
+the server's `default_replica_path` / `default_replica_name` macros
+(`/clickhouse/tables/{uuid}/{shard}` and `{replica}`) — provisioned by the embedded
+Keeper config and the Altinity operator alike.
 
 ## DDL rules
 
@@ -131,15 +152,29 @@ multi-node data (the original incident) the per-node re-insert is what reunifies
   the Distributed wrapper, guarded so it never clobbers legacy single-node data.
 - [x] **Phase 4** — `ConvertAnalyticsTablesToCluster` in-place converter +
   `DataMigrationBase.runsInClusterMode()` baseline hook + runner support; all legacy
-  ClickHouse-DDL migrations gated off in cluster mode (boot builds the schema).
+  ClickHouse-DDL migrations gated off (boot builds the schema).
 - [x] **Phase 5** — Helm: `CLICKHOUSE_CLUSTER_NAME` / `CLICKHOUSE_SHARDING_KEY`
-  wired in `oneuptime.env.runtime`, CHI cluster name shared via
-  `cluster.name`, values + values.schema.json, and `HelmChart/Docs/Clickhouse.md`.
+  wired in `oneuptime.env.runtime`, CHI cluster name shared via `cluster.name`,
+  values + values.schema.json, and `HelmChart/Docs/Clickhouse.md`.
+- [x] **Unify (Q1)** — removed the single-node branch; schema is always Replicated +
+  Distributed. Embedded Keeper + 1-node `oneuptime` cluster added to
+  `Clickhouse/config.d/cluster.xml`, the Helm `clickhouse.configuration` drop-in, and
+  the base Docker Compose mount. `CLICKHOUSE_CLUSTER_NAME` defaults to `oneuptime`
+  everywhere (operator / built-in / external).
+- [x] **Per-model shard keys (Q2)** — `AnalyticsBaseModel.shardingKey` set per model.
 
 ## Limitations / validation
 
+> **CRITICAL — needs a real-ClickHouse smoke-test before merge.** Because the schema
+> is now always `ReplicatedMergeTree`, ClickHouse MUST have a reachable Keeper and the
+> `oneuptime` cluster defined, or boot fails to create tables. The embedded-Keeper
+> config (`Clickhouse/config.d/cluster.xml` + Helm `clickhouse.configuration`) is
+> **unvalidated against a live boot** in this change — verify a single-node ClickHouse
+> starts, creates the `*Local`/Distributed tables, and ingests/reads before shipping.
+
 - End-to-end behaviour (replication, Distributed scatter-gather, MV-on-shard,
-  async_insert + dedup token through Distributed) requires a real multi-node
-  ClickHouse to validate; unit tests cover DDL generation only.
-- Sharding by `projectId` can hotspot a very large single tenant; switch the
+  async_insert + dedup token through Distributed, the converter's `cluster()` copy)
+  requires a real ClickHouse to validate; unit tests cover DDL generation only.
+- Sharding keys are per-model now; a very large single tenant could still hotspot if
+  its co-location key (e.g. one giant trace) is skewed — switch the
   sharding key if needed.

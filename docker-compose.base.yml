@@ -164,6 +164,11 @@ services:
       - oneuptime
     volumes:
       - clickhouse:/var/lib/clickhouse/
+      # Cluster + embedded-Keeper drop-in: OneUptime's analytics schema is always
+      # ReplicatedMergeTree + Distributed, so a single node runs an embedded
+      # Keeper and a 1-node "oneuptime" cluster (config.d is merged into the
+      # server config regardless of the main config.xml).
+      - ./Clickhouse/config.d/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml
     healthcheck:
       test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1'"]
       interval: 10s

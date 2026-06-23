@@ -162,11 +162,15 @@ actually replicated/distributed. OneUptime's analytics tables default to plain
 span/trace visible only on the fraction of reads that hit the node holding it
 (the "Span not found" / "No spans found" symptom).
 
-When the operator path is enabled the app is therefore put into **cluster mode**:
-the chart sets `CLICKHOUSE_CLUSTER_NAME` (to
-`clickhouseOperator.altinity.cluster.name`, default `oneuptime`, which must match
-the cluster in the `ClickHouseInstallation`). In cluster mode the schema-sync
-creates, for every analytics table `<T>`:
+OneUptime therefore ALWAYS runs the analytics schema as a sharded + replicated
+cluster — there is no single-node code path. A single node is a "cluster of one"
+(1 shard, 1 replica) backed by an **embedded** ClickHouse Keeper: the built-in
+StatefulSet ships the embedded Keeper + a 1-node `oneuptime` cluster in
+`clickhouse.configuration` (a `config.d` drop-in), the operator path uses its
+bundled Keeper ensemble + CHI cluster, and an external ClickHouse must provide its
+own Keeper + cluster (`externalClickhouse.clusterName`). `CLICKHOUSE_CLUSTER_NAME`
+(default `oneuptime`) only selects WHICH cluster to target. For every analytics
+table `<T>` the schema-sync creates:
 
 - a **local** table `<T>Local` — `ReplicatedMergeTree` / `ReplicatedAggregatingMergeTree`,
   created `ON CLUSTER`, so each shard's replicas hold a consistent copy of that
@@ -175,16 +179,18 @@ creates, for every analytics table `<T>`:
   `Distributed('<cluster>', <db>, <T>Local, <shardingKey>)`. Reads scatter-gather
   across shards; writes route by the sharding key.
 
-The sharding key defaults to `cityHash64(projectId)` (co-locates a project's rows,
-hence all spans of a trace, on one shard). Override with
-`clickhouseOperator.altinity.cluster.shardingKey` if a single tenant is too large
-for one shard. Materialized views are created `ON CLUSTER`, aggregating per-shard
-from the local source into the local target; reads go through the target's
-Distributed wrapper.
+The sharding key is **per-table**, chosen to be high-cardinality (so a big tenant
+spreads evenly across shards) and to co-locate what you read together — spans by
+`traceId`, metrics by series (`projectId, name, primaryEntityId`), exceptions by
+`fingerprint`, etc. (`projectId` is deliberately NOT used — too few projects, so it
+would hotspot one shard for a big tenant.) Override globally with
+`clickhouseOperator.altinity.cluster.shardingKey`. Materialized views are created
+`ON CLUSTER`, aggregating per-shard from the local source into the local target;
+reads go through the target's Distributed wrapper.
 
-Single-node deployments (the built-in `StatefulSet` and external ClickHouse) leave
-`CLICKHOUSE_CLUSTER_NAME` empty and keep the original plain-`MergeTree` schema —
-behaviour is unchanged.
+A single node is not a special case — it is a 1-shard/1-replica cluster with an
+embedded Keeper, so it uses the exact same `ReplicatedMergeTree` + `Distributed`
+schema. There is no plain-`MergeTree` mode.
 
 **Converting existing data.** On a fresh operator install the tables are created
 in the cluster layout from the start (nothing to convert). If the operator-managed

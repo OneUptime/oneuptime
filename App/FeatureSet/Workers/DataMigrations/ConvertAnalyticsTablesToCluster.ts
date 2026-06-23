@@ -8,7 +8,6 @@ import AnalyticsTableManagement from "../Utils/AnalyticsDatabase/TableManegement
 import {
   getClickhouseClusterName,
   getStorageTableName,
-  isClickhouseClustered,
   onClusterClause,
 } from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
 
@@ -26,8 +25,10 @@ type AnyAnalyticsService = AnalyticsDatabaseService<AnalyticsBaseModel>;
  * Convert the existing single-node analytics tables to the sharded + replicated
  * cluster layout, in place, preserving data.
  *
- * Runs ONLY when CLICKHOUSE_CLUSTER_NAME is set; a no-op otherwise. For each
- * analytics table that still exists as a legacy (non-Distributed) MergeTree:
+ * Runs on every install. On a fresh install the boot schema-sync already created
+ * the tables as Distributed, so every table is skipped and this is a no-op. For
+ * an existing install, each analytics table that still exists as a legacy
+ * (non-Distributed) MergeTree is converted:
  *
  *   1. (once, up front) drop the legacy materialized views so the cluster-aware
  *      boot sync rebuilds them reading/writing the local tables;
@@ -62,13 +63,6 @@ export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
   }
 
   public override async migrate(): Promise<void> {
-    if (!isClickhouseClustered()) {
-      logger.info(
-        "ConvertAnalyticsTablesToCluster: ClickHouse is not clustered (CLICKHOUSE_CLUSTER_NAME unset) - nothing to convert.",
-      );
-      return;
-    }
-
     const cluster: string = getClickhouseClusterName();
     const failures: Array<string> = [];
 

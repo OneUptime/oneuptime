@@ -809,6 +809,8 @@ export default class Profile extends AnalyticsBaseModel {
       sortKeys: ["projectId", "startTime", "primaryEntityId", "profileType"],
       primaryKeys: ["projectId", "startTime", "primaryEntityId", "profileType"],
       partitionKey: "toYYYYMMDD(startTime)",
+      // Shard by service so a service's profiles co-locate; spreads across shards.
+      shardingKey: "cityHash64(projectId, primaryEntityId)",
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",

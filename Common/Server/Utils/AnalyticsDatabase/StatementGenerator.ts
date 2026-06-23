@@ -11,7 +11,6 @@ import {
   getDistributedEngine,
   getStorageEngine,
   getStorageTableName,
-  isClickhouseClustered,
   onClusterClause,
 } from "./ClusterConfig";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
@@ -1492,26 +1491,23 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   }
 
   /*
-   * The app-facing Distributed table that wraps the local storage table when
-   * clustered. Returns null in single-node mode (the model's own table IS the
-   * storage table). Built with `AS <db>.<local>` so its column layout is copied
-   * from — and stays identical to — the local table, and with
-   * `CREATE OR REPLACE` so re-running it every boot atomically re-syncs the
-   * wrapper after a column is reconciled onto the local table (the Distributed
-   * table holds no data, so the replace is cheap and lossless). The Distributed
-   * engine routes writes by the configured sharding key and scatter-gathers
-   * reads across all shards.
+   * The app-facing Distributed table that wraps the model's local storage table.
+   * Built with `AS <db>.<local>` so its column layout is copied from — and stays
+   * identical to — the local table, and with `CREATE OR REPLACE` so re-running it
+   * every boot atomically re-syncs the wrapper after a column is reconciled onto
+   * the local table (the Distributed table holds no data, so the replace is cheap
+   * and lossless). The Distributed engine routes writes by the model's sharding
+   * key and scatter-gathers reads across all shards.
    */
-  public toDistributedTableCreateStatement(): Statement | null {
-    if (!isClickhouseClustered()) {
-      return null;
-    }
-
+  public toDistributedTableCreateStatement(): Statement {
     const databaseName: string = this.database.getDatasourceOptions().database!;
     const distributedTableName: string = this.model.tableName;
     const localTableName: string = getStorageTableName(this.model.tableName);
     const onCluster: string = onClusterClause();
-    const distributedEngine: string = getDistributedEngine(localTableName);
+    const distributedEngine: string = getDistributedEngine(
+      localTableName,
+      this.model.shardingKey,
+    );
 
     const statement: Statement = new Statement();
     statement.append(

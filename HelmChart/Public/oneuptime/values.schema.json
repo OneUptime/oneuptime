@@ -1864,6 +1864,12 @@
                         "null"
                     ]
                 },
+                "clusterName": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
                 "isHostHttps": {
                     "type": "boolean"
                 },

@@ -427,13 +427,12 @@ export const MaxClickhouseIngestConnections: number = parseInt(
 );
 
 /*
- * Cluster awareness. When CLICKHOUSE_CLUSTER_NAME is non-empty the analytics
- * schema is created as Distributed tables over local ReplicatedMergeTree
- * tables `ON CLUSTER '<name>'`, giving HA and consistent reads across nodes.
- * Empty (the default) preserves the historical single-node behaviour: plain
- * MergeTree, no ON CLUSTER, no Distributed wrapper. The name must match the
- * cluster defined in the ClickHouse config / Altinity ClickHouseInstallation
- * (the bundled operator names its cluster 'oneuptime').
+ * Cluster name. The analytics schema ALWAYS runs as a sharded + replicated
+ * cluster (Distributed tables over local ReplicatedMergeTree, `ON CLUSTER
+ * '<name>'`); a single node is just a 1-shard/1-replica cluster backed by an
+ * embedded Keeper. The name must match the cluster defined in the ClickHouse
+ * config / ClickHouseInstallation; it defaults to 'oneuptime' (what the bundled
+ * StatefulSet config and the Altinity operator both create).
  *
  * NOTE: the live, test-toggleable readers live in
  * Common/Server/Utils/AnalyticsDatabase/ClusterConfig.ts (which reads
@@ -441,16 +440,16 @@ export const MaxClickhouseIngestConnections: number = parseInt(
  * so the env surface is discoverable here alongside the other CLICKHOUSE_* vars.
  */
 export const ClickhouseClusterName: string =
-  process.env["CLICKHOUSE_CLUSTER_NAME"] || "";
+  process.env["CLICKHOUSE_CLUSTER_NAME"] || "oneuptime";
 
 /*
- * Sharding-key expression for the Distributed tables created in cluster mode.
- * Defaults to cityHash64(projectId) so a project's rows — hence all spans of a
- * trace — co-locate on a single shard. Only used when ClickhouseClusterName is
- * set.
+ * Optional GLOBAL override of the Distributed sharding-key expression. Empty by
+ * default, which means each model's own `shardingKey` is used (e.g.
+ * cityHash64(traceId) for spans, the series tuple for metrics). Set this to
+ * force one expression across all tables.
  */
-export const ClickhouseShardingKey: string =
-  process.env["CLICKHOUSE_SHARDING_KEY"] || "cityHash64(projectId)";
+export const ClickhouseShardingKeyOverride: string =
+  process.env["CLICKHOUSE_SHARDING_KEY"] || "";
 
 export const GitSha: string = process.env["GIT_SHA"] || "unknown";
 

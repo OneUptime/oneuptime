@@ -58,6 +58,16 @@ export default class AnalyticsBaseModel extends CommonModel {
     enableWorkflowOn?: EnableWorkflowOn | undefined;
     enableRealtimeEventsOn?: EnableRealtimeEventsOn | undefined;
     partitionKey: string;
+    /*
+     * Sharding-key EXPRESSION for the Distributed table created in cluster
+     * mode (e.g. "cityHash64(traceId)"). Pick a HIGH-cardinality column so a
+     * single big project/tenant spreads evenly across shards, and co-locate
+     * what you read/aggregate together (a trace's spans, a metric series).
+     * Correctness never depends on this — the Distributed table fans reads out
+     * to every shard regardless — it is purely a distribution/locality choice.
+     * Falls back to cityHash64(projectId) when unset.
+     */
+    shardingKey?: string | undefined;
     tableSettings?: string | undefined;
     projections?: Array<Projection> | undefined;
     materializedViews?: Array<MaterializedView> | undefined;
@@ -172,6 +182,7 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.isMasterAdminApiDocs = data.isMasterAdminApiDocs || false;
     this.enableRealtimeEventsOn = data.enableRealtimeEventsOn;
     this.partitionKey = data.partitionKey;
+    this.shardingKey = data.shardingKey;
     this.tableSettings = data.tableSettings;
     this.projections = data.projections || [];
     this.materializedViews = data.materializedViews || [];
@@ -248,6 +259,14 @@ export default class AnalyticsBaseModel extends CommonModel {
   }
   public set partitionKey(v: string) {
     this._partitionKey = v;
+  }
+
+  private _shardingKey: string | undefined = undefined;
+  public get shardingKey(): string | undefined {
+    return this._shardingKey;
+  }
+  public set shardingKey(v: string | undefined) {
+    this._shardingKey = v;
   }
 
   private _tableSettings: string | undefined = undefined;

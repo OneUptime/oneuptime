@@ -1,28 +1,30 @@
 import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 
 /*
- * ClickHouse cluster-awareness helpers.
+ * ClickHouse cluster helpers.
  *
- * When CLICKHOUSE_CLUSTER_NAME is set, OneUptime's analytics schema is created
- * as a sharded + replicated cluster:
+ * OneUptime's analytics schema runs as a sharded + replicated cluster on EVERY
+ * deployment — there is no separate single-node code path. A single node is just
+ * a "cluster of one": a 1-shard / 1-replica cluster backed by an (embedded)
+ * Keeper. For each model:
  *
- *   - the model's `tableName` becomes a `Distributed` table the app reads from
- *     and writes to (scatter-gather on read, shard-routing on write);
- *   - the actual data lives in a local `<tableName>Local` table whose engine is
- *     the `Replicated*` variant of the model engine, so each shard's replicas
- *     hold a consistent copy of that shard's data.
+ *   - the model's `tableName` is a `Distributed` table the app reads from and
+ *     writes to (scatter-gather on read, shard-routing on write);
+ *   - the data lives in a local `<tableName>Local` table whose engine is the
+ *     `Replicated*` variant of the model engine, so each shard's replicas hold a
+ *     consistent copy of that shard's data (coordinated through Keeper).
  *
- * When CLICKHOUSE_CLUSTER_NAME is empty (the default) every helper here is a
- * no-op: storage table name == model table name, engine is unchanged, and no
- * ON CLUSTER clause is emitted — i.e. the historical single-node behaviour.
+ * Because there is no dual mode, these helpers are unconditional: the storage
+ * table is always `<tableName>Local`, the engine is always `Replicated*`, and
+ * every object-lifecycle DDL statement carries `ON CLUSTER`.
  *
- * These functions intentionally read process.env LIVE (rather than importing
- * the cached EnvironmentConfig consts) so unit tests can toggle cluster mode by
- * setting/clearing the env vars around a call. The keys and defaults mirror the
- * `Clickhouse*` consts in Common/Server/EnvironmentConfig.ts. Env is stable for
- * the lifetime of a real process, so the live read costs nothing at runtime.
+ * The cluster NAME is read live from process.env (CLICKHOUSE_CLUSTER_NAME,
+ * default "oneuptime") so it can be pointed at a differently-named external
+ * cluster, and so unit tests can vary it. It must match the cluster defined in
+ * the ClickHouse config / ClickHouseInstallation.
  */
 
+export const DEFAULT_CLICKHOUSE_CLUSTER_NAME: string = "oneuptime";
 export const DEFAULT_CLICKHOUSE_SHARDING_KEY: string = "cityHash64(projectId)";
 export const DEFAULT_CLICKHOUSE_DATABASE: string = "oneuptime";
 
@@ -30,17 +32,17 @@ export const DEFAULT_CLICKHOUSE_DATABASE: string = "oneuptime";
 export const LOCAL_TABLE_SUFFIX: string = "Local";
 
 export function getClickhouseClusterName(): string {
-  return (process.env["CLICKHOUSE_CLUSTER_NAME"] || "").trim();
+  const name: string = (process.env["CLICKHOUSE_CLUSTER_NAME"] || "").trim();
+  return name.length > 0 ? name : DEFAULT_CLICKHOUSE_CLUSTER_NAME;
 }
 
-export function isClickhouseClustered(): boolean {
-  return getClickhouseClusterName().length > 0;
-}
-
-export function getClickhouseShardingKey(): string {
-  return (
-    process.env["CLICKHOUSE_SHARDING_KEY"] || DEFAULT_CLICKHOUSE_SHARDING_KEY
-  );
+/*
+ * Global sharding-key OVERRIDE (CLICKHOUSE_SHARDING_KEY). Empty by default,
+ * which means each model's own `shardingKey` is used (see getDistributedEngine).
+ * Set it to force one expression across all tables.
+ */
+export function getClickhouseShardingKeyOverride(): string {
+  return (process.env["CLICKHOUSE_SHARDING_KEY"] || "").trim();
 }
 
 export function getClickhouseDatabaseName(): string {
@@ -48,45 +50,35 @@ export function getClickhouseDatabaseName(): string {
 }
 
 /*
- * The `ON CLUSTER '<name>'` clause (with a leading space) when clustered, or an
- * empty string otherwise. Used on every object-lifecycle DDL statement
- * (CREATE TABLE / CREATE MATERIALIZED VIEW / DROP) so the object is created or
- * dropped on every node of the cluster. Per-table ALTERs and data mutations are
- * NOT required to carry ON CLUSTER — ReplicatedMergeTree propagates those
- * through Keeper automatically — but emitting it is harmless and keeps the
- * reconcilers deterministic across replicas.
+ * The `ON CLUSTER '<name>'` clause (with a leading space), emitted on every
+ * object-lifecycle DDL statement (CREATE TABLE / CREATE MATERIALIZED VIEW /
+ * DROP / RENAME) so the object is created or dropped on every node of the
+ * cluster. Per-table ALTERs and data mutations on ReplicatedMergeTree propagate
+ * through Keeper automatically; emitting ON CLUSTER on them too is harmless and
+ * keeps the reconcilers deterministic across replicas.
  */
 export function onClusterClause(): string {
-  if (!isClickhouseClustered()) {
-    return "";
-  }
   return ` ON CLUSTER '${getClickhouseClusterName()}'`;
 }
 
 /*
- * The physical table that actually stores rows for a model. In cluster mode
- * this is `<tableName>Local` (a ReplicatedMergeTree); in single-node mode it is
- * the model's own tableName. All schema DDL (columns / indexes / projections)
- * and data mutations (ALTER ... DELETE/UPDATE) must target this name.
+ * The physical table that stores a model's rows: `<tableName>Local` (a
+ * Replicated* table). All schema DDL (columns / indexes / projections) and data
+ * mutations (ALTER ... DELETE/UPDATE) target this name; the app-facing
+ * `tableName` is the Distributed wrapper.
  */
 export function getStorageTableName(tableName: string): string {
-  return isClickhouseClustered()
-    ? `${tableName}${LOCAL_TABLE_SUFFIX}`
-    : tableName;
+  return `${tableName}${LOCAL_TABLE_SUFFIX}`;
 }
 
 /*
- * Map a logical model engine to the engine string used for the local storage
- * table. In cluster mode this is the `Replicated*` variant, written WITHOUT
- * explicit Keeper-path arguments so it relies on the server's
- * `default_replica_path` / `default_replica_name` macros (the Altinity operator
- * provisions these as `/clickhouse/tables/{uuid}/{shard}` and `{replica}`).
- * In single-node mode the engine is unchanged.
+ * Map a logical model engine to the `Replicated*` engine string for the local
+ * storage table, written WITHOUT explicit Keeper-path arguments so it relies on
+ * the server's `default_replica_path` / `default_replica_name` macros (the
+ * Altinity operator and the bundled embedded-Keeper config both provision these
+ * as `/clickhouse/tables/{uuid}/{shard}` and `{replica}`).
  */
 export function getStorageEngine(engine: AnalyticsTableEngine): string {
-  if (!isClickhouseClustered()) {
-    return engine;
-  }
   switch (engine) {
     case AnalyticsTableEngine.AggregatingMergeTree:
       return "ReplicatedAggregatingMergeTree";
@@ -97,15 +89,24 @@ export function getStorageEngine(engine: AnalyticsTableEngine): string {
 }
 
 /*
- * The `Distributed(...)` engine string for the app-facing table that wraps a
- * local storage table. internal_replication is configured on the cluster
- * definition (the CHI sets it true) so the Distributed table writes each row to
- * a single replica per shard and lets ReplicatedMergeTree fan it out.
+ * The `Distributed(...)` engine string for the app-facing table wrapping a local
+ * storage table. The sharding key resolves as: global override
+ * (CLICKHOUSE_SHARDING_KEY) > the model's own shardingKey > cityHash64(projectId).
+ * internal_replication is configured on the cluster definition (true) so the
+ * Distributed table writes each row to one replica per shard and lets
+ * ReplicatedMergeTree fan it out.
  */
-export function getDistributedEngine(localTableName: string): string {
+export function getDistributedEngine(
+  localTableName: string,
+  modelShardingKey?: string | undefined,
+): string {
   const cluster: string = getClickhouseClusterName();
   const database: string = getClickhouseDatabaseName();
-  const shardingKey: string = getClickhouseShardingKey();
+  const shardingKey: string =
+    getClickhouseShardingKeyOverride() ||
+    (modelShardingKey && modelShardingKey.trim().length > 0
+      ? modelShardingKey.trim()
+      : DEFAULT_CLICKHOUSE_SHARDING_KEY);
   return `Distributed('${cluster}', ${database}, ${localTableName}, ${shardingKey})`;
 }
 
@@ -119,7 +120,7 @@ export function getDistributedEngine(localTableName: string): string {
 export function adaptTableSettingsForStorage(
   tableSettings: string | undefined,
 ): string | undefined {
-  if (!tableSettings || !isClickhouseClustered()) {
+  if (!tableSettings) {
     return tableSettings;
   }
   return tableSettings.replace(
@@ -130,7 +131,7 @@ export function adaptTableSettingsForStorage(
 
 /*
  * Rewrite a model's canonical `CREATE MATERIALIZED VIEW … TO <target> AS SELECT
- * … FROM <source> …` statement for cluster mode:
+ * … FROM <source> …` statement for the cluster:
  *
  *   1. inject `ON CLUSTER '<name>'` after the view name, so the trigger exists
  *      on every node;
@@ -140,7 +141,7 @@ export function adaptTableSettingsForStorage(
  *      MV fires per-shard on local inserts rather than on the Distributed table.
  *
  * The Distributed wrapper over the target (created by the agg model's own
- * CREATE) then scatter-gathers reads across shards. No-op in single-node mode.
+ * CREATE) then scatter-gathers reads across shards.
  *
  * The replacements are deliberately precise: only the FIRST `TO`/`FROM` clause
  * (the view's target/source) is rewritten, matched on the uppercase keyword our
@@ -149,10 +150,6 @@ export function adaptTableSettingsForStorage(
  * subqueries, which this relies on.
  */
 export function applyClusterToMaterializedViewQuery(query: string): string {
-  if (!isClickhouseClustered()) {
-    return query;
-  }
-
   const cluster: string = getClickhouseClusterName();
 
   let result: string = query.replace(
