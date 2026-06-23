@@ -3,6 +3,7 @@ import Log from "./Log";
 import Metric from "./Metric";
 import MetricItemAggMV1m from "./MetricItemAggMV1m";
 import MetricItemAggMV1mByHostV2 from "./MetricItemAggMV1mByHostV2";
+import MetricItemAttributeAggMV1m from "./MetricItemAttributeAggMV1m";
 import MetricBaselineHourly from "./MetricBaselineHourly";
 import Span from "./Span";
 import ExceptionInstance from "./ExceptionInstance";
@@ -26,6 +27,7 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
    * boot-time schema sync doesn't resurrect the dropped V1 table.
    */
   MetricItemAggMV1mByHostV2,
+  MetricItemAttributeAggMV1m,
   MetricBaselineHourly,
   ExceptionInstance,
   MonitorLog,

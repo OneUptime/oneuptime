@@ -758,6 +758,12 @@ export default class AnalyticsDatabaseService<
       const groupByColumnNames: Array<string> = aggregateBy.groupBy
         ? Object.keys(aggregateBy.groupBy)
         : [];
+      if (
+        aggregateBy.groupByAttributeKeys &&
+        aggregateBy.groupByAttributeKeys.length > 0
+      ) {
+        groupByColumnNames.push("attributes");
+      }
 
       for (const item of items) {
         if (

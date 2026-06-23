@@ -20,6 +20,7 @@ enum AnalyticsTableName {
    * hostEntityKey instead of the raw host.name spelling.
    */
   MetricItemAggMV1mByHostV2 = "MetricItemAggMV1mByHostV2",
+  MetricItemAttributeAggMV1m = "MetricItemAttributeAggMV1m",
   MetricBaselineHourly = "MetricBaselineHourly",
 }
 

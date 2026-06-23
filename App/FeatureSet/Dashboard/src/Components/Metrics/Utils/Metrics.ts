@@ -291,26 +291,16 @@ export default class MetricUtil {
     const rawResults: Array<AggregatedResult> = await Promise.all(
       metricViewData.queryConfigs.map((queryConfig: MetricQueryConfigData) => {
         /*
-         * Per-series viewing: when the user has selected attribute
-         * keys to group by (e.g. host.name), inject the nested
-         * `attributes` column into the aggregation's GROUP BY so
-         * ClickHouse emits one row per unique attribute map. The
-         * chart layer then splits those rows into one line per
-         * unique label combination via `getSeries` (injected in
-         * MetricView before render).
+         * Per-series viewing: pass the selected attribute keys to the server
+         * explicitly. Older code translated this to `groupBy: {attributes:
+         * true}`, which made ClickHouse group by the entire attributes map.
+         * High-cardinality telemetry (Istio/Cilium) then exhausted the fixed
+         * aggregate LIMIT with only the newest buckets. The MetricService path
+         * now groups by exactly these map keys and returns a compact attributes
+         * map for chart labeling.
          */
-        const hasGroupByAttributes: boolean = Boolean(
-          queryConfig.metricQueryData.groupByAttributeKeys &&
-            queryConfig.metricQueryData.groupByAttributeKeys.length > 0,
-        );
-
-        const aggregationGroupBy: typeof queryConfig.metricQueryData.groupBy =
-          hasGroupByAttributes
-            ? ({
-                ...(queryConfig.metricQueryData.groupBy || {}),
-                attributes: true,
-              } as typeof queryConfig.metricQueryData.groupBy)
-            : queryConfig.metricQueryData.groupBy;
+        const groupByAttributeKeys: Array<string> | undefined =
+          queryConfig.metricQueryData.groupByAttributeKeys;
 
         return dedupedAggregate({
           query: {
@@ -337,7 +327,11 @@ export default class MetricUtil {
             OneUptimeDate.getCurrentDate(),
           limit: LIMIT_PER_PROJECT,
           skip: 0,
-          groupBy: aggregationGroupBy,
+          groupBy: queryConfig.metricQueryData.groupBy,
+          groupByAttributeKeys:
+            groupByAttributeKeys && groupByAttributeKeys.length > 0
+              ? groupByAttributeKeys
+              : undefined,
         } as AggregateBy<Metric>);
       }),
     );

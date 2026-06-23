@@ -13,6 +13,7 @@ import AggregationType, {
   isPercentileAggregation,
 } from "../../Types/BaseDatabase/AggregationType";
 import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
+import AggregationIntervalUtil from "../../Types/BaseDatabase/AggregationIntervalUtil";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { keyForHost } from "../../Utils/Telemetry/EntityKey";
@@ -20,6 +21,19 @@ import ObjectID from "../../Types/ObjectID";
 import logger, { LogAttributes } from "../Utils/Logger";
 
 export class MetricService extends AnalyticsDatabaseService<Metric> {
+  private static readonly attributeRollupKeys: ReadonlySet<string> =
+    new Set<string>([
+      "oneuptime.kubernetes.cluster.name",
+      "resource.k8s.cluster.name",
+      "resource.k8s.namespace.name",
+      "destination_service",
+      "source_workload",
+      "response_code",
+      "http.response.status_code",
+      "http.request.method",
+      "request_protocol",
+    ]);
+
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
     super({ modelType: Metric, database: clickhouseDatabase });
   }
@@ -64,6 +78,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
 
     const cascadeTargets: ReadonlyArray<AnalyticsTableName> = [
       AnalyticsTableName.MetricItemAggMV1m,
+      AnalyticsTableName.MetricItemAttributeAggMV1m,
       AnalyticsTableName.MetricBaselineHourly,
     ];
 
@@ -172,6 +187,22 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     statement: Statement;
     columns: Array<string>;
   } {
+    const attributeRollupStatement: {
+      statement: Statement;
+      columns: Array<string>;
+    } | null = this.tryBuildSelectedAttributeAggregateMVStatement(aggregateBy);
+    if (attributeRollupStatement) {
+      return attributeRollupStatement;
+    }
+
+    const attributeGroupStatement: {
+      statement: Statement;
+      columns: Array<string>;
+    } | null = this.tryBuildSelectedAttributeAggregateStatement(aggregateBy);
+    if (attributeGroupStatement) {
+      return attributeGroupStatement;
+    }
+
     if (!isPercentileAggregation(aggregateBy.aggregationType)) {
       /*
        * Try the per-host MV first — host detail pages are the
@@ -385,6 +416,485 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     } as LogAttributes);
 
     return { statement, columns };
+  }
+
+  /*
+   * Fast path for scalar dashboard charts grouped by a single allowlisted
+   * attribute. Reads the 1-minute selected-attribute MV instead of raw
+   * MetricItemV3, preserving the response shape expected by chart labeling:
+   * `attributes = { [attributeKey]: attributeValue }`.
+   */
+  private tryBuildSelectedAttributeAggregateMVStatement(
+    aggregateBy: AggregateBy<Metric>,
+  ): { statement: Statement; columns: Array<string> } | null {
+    const aggType: AggregationType = aggregateBy.aggregationType;
+    const supported: ReadonlyArray<AggregationType> = [
+      AggregationType.Sum,
+      AggregationType.Avg,
+      AggregationType.Min,
+      AggregationType.Max,
+      AggregationType.Count,
+    ];
+    if (!supported.includes(aggType)) {
+      return null;
+    }
+
+    if (
+      aggregateBy.aggregateColumnName.toString() !== "value" ||
+      aggregateBy.aggregationTimestampColumnName.toString() !== "time"
+    ) {
+      return null;
+    }
+
+    const attributeKeys: Array<string> = Array.from(
+      new Set(
+        (aggregateBy.groupByAttributeKeys || [])
+          .map((key: string) => {
+            return key.trim();
+          })
+          .filter((key: string) => {
+            return key.length > 0;
+          }),
+      ),
+    );
+    if (attributeKeys.length !== 1) {
+      return null;
+    }
+
+    const attributeKey: string = attributeKeys[0]!;
+    if (!MetricService.attributeRollupKeys.has(attributeKey)) {
+      return null;
+    }
+
+    const nonAttributeGroupByKeys: Array<string> = aggregateBy.groupBy
+      ? Object.keys(aggregateBy.groupBy).filter((key: string) => {
+          return key !== "attributes";
+        })
+      : [];
+    if (nonAttributeGroupByKeys.length > 0) {
+      return null;
+    }
+
+    const queryRecord: Record<string, unknown> =
+      (aggregateBy.query as unknown as Record<string, unknown>) || {};
+    const attributeFilters: Record<string, unknown> | null =
+      this.getAttributeRollupFilters(queryRecord["attributes"]);
+    if (attributeFilters === null) {
+      return null;
+    }
+
+    /*
+     * A single-key rollup cannot satisfy filters on different attributes
+     * because each MV row represents one key/value pair. Fall back to raw rows
+     * when the chart combines, for example, group-by namespace with a cluster
+     * variable filter.
+     */
+    const attributeFilterKeys: Array<string> = Object.keys(attributeFilters);
+    if (
+      attributeFilterKeys.length > 1 ||
+      (attributeFilterKeys.length === 1 &&
+        attributeFilterKeys[0] !== attributeKey)
+    ) {
+      return null;
+    }
+
+    const mvQueryableColumns: ReadonlyArray<string> = [
+      "projectId",
+      "name",
+      "primaryEntityId",
+      "time",
+      "attributes",
+    ];
+    for (const queryKey of Object.keys(queryRecord)) {
+      if (!mvQueryableColumns.includes(queryKey)) {
+        return null;
+      }
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+    const interval: AggregationInterval = AggregateUtil.getAggregationInterval({
+      startDate: aggregateBy.startTimestamp!,
+      endDate: aggregateBy.endTimestamp!,
+    });
+    const intervalLower: string = interval.toLowerCase();
+    const maxSeries: number = this.getMaxSeriesForAggregateWindow({
+      startTimestamp: aggregateBy.startTimestamp!,
+      endTimestamp: aggregateBy.endTimestamp!,
+      interval,
+      limit: Number(aggregateBy.limit),
+    });
+
+    let mergedExpr: string;
+    if (aggType === AggregationType.Sum) {
+      mergedExpr = "sumMerge(valueSumState)";
+    } else if (aggType === AggregationType.Count) {
+      mergedExpr = "countMerge(valueCountState)";
+    } else if (aggType === AggregationType.Min) {
+      mergedExpr = "minMerge(valueMinState)";
+    } else if (aggType === AggregationType.Max) {
+      mergedExpr = "maxMerge(valueMaxState)";
+    } else {
+      mergedExpr =
+        "if(countMerge(valueCountState) = 0, 0, sumMerge(valueSumState) / countMerge(valueCountState))";
+    }
+
+    const queryWithoutTimeAndAttributes: Query<Metric> =
+      this.stripAttributesAndTimeFromQuery(aggregateBy.query) as Query<Metric>;
+    const nonAttributeWhere: Statement =
+      this.statementGenerator.toWhereStatement(queryWithoutTimeAndAttributes);
+    const sortStatement: Statement = this.statementGenerator.toSortStatement(
+      aggregateBy.sort!,
+    );
+
+    const statement: Statement = SQL``;
+    statement.append(
+      `SELECT ${mergedExpr} as value, date_trunc('${intervalLower}', toStartOfInterval(bucketTime, INTERVAL 1 ${intervalLower})) as time, map(`,
+    );
+    statement.append(
+      SQL`${{
+        value: attributeKey,
+        type: TableColumnType.Text,
+      }}`,
+    );
+    statement.append(`, attributeValue) AS attributes`);
+    statement.append(SQL` FROM ${databaseName}.MetricItemAttributeAggMV1m`);
+    statement.append(
+      ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')${this.getRetentionReadFilter()}`,
+    );
+    statement.append(
+      SQL` AND attributeKey = ${{
+        value: attributeKey,
+        type: TableColumnType.Text,
+      }}`,
+    );
+    if (attributeFilters[attributeKey] !== undefined) {
+      statement.append(
+        SQL` AND attributeValue = ${{
+          value: String(attributeFilters[attributeKey]),
+          type: TableColumnType.Text,
+        }}`,
+      );
+    } else {
+      statement.append(
+        SQL` AND attributeValue IN (SELECT attributeValue FROM ${databaseName}.MetricItemAttributeAggMV1m WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')${this.getRetentionReadFilter()} AND attributeKey = ${{
+          value: attributeKey,
+          type: TableColumnType.Text,
+        }} `,
+      );
+      statement.append(nonAttributeWhere);
+      statement.append(
+        SQL` GROUP BY attributeValue ORDER BY countMerge(valueCountState) DESC LIMIT ${{
+          value: maxSeries,
+          type: TableColumnType.Number,
+        }})`,
+      );
+    }
+    statement.append(SQL` `).append(nonAttributeWhere);
+    statement.append(SQL` GROUP BY time, attributeValue`);
+    statement.append(SQL` ORDER BY `).append(sortStatement);
+    statement.append(
+      SQL` LIMIT ${{
+        value: Number(aggregateBy.limit),
+        type: TableColumnType.Number,
+      }}`,
+    );
+    statement.append(
+      SQL` OFFSET ${{
+        value: Number(aggregateBy.skip),
+        type: TableColumnType.Number,
+      }} `,
+    );
+    statement.append(
+      getQuerySettings({
+        additionalSettings: {
+          optimize_aggregation_in_order: 1,
+          optimize_move_to_prewhere: 1,
+          max_threads: 4,
+        },
+      }),
+    );
+
+    logger.debug(`${this.model.tableName} Attribute MV Aggregate Statement`, {
+      tableName: this.model.tableName,
+    } as LogAttributes);
+    logger.debug(statement, {
+      tableName: this.model.tableName,
+    } as LogAttributes);
+
+    return {
+      statement,
+      columns: [
+        aggregateBy.aggregateColumnName.toString(),
+        aggregateBy.aggregationTimestampColumnName.toString(),
+        "attributes",
+      ],
+    };
+  }
+
+  private getAttributeRollupFilters(
+    attributes: unknown,
+  ): Record<string, string> | null {
+    if (attributes === undefined || attributes === null) {
+      return {};
+    }
+    if (typeof attributes !== "object" || Array.isArray(attributes)) {
+      return null;
+    }
+
+    const filters: Record<string, string> = {};
+    for (const [key, value] of Object.entries(
+      attributes as Record<string, unknown>,
+    )) {
+      if (typeof value !== "string") {
+        return null;
+      }
+      filters[key] = value;
+    }
+    return filters;
+  }
+
+  private getMaxSeriesForAggregateWindow(data: {
+    startTimestamp: Date;
+    endTimestamp: Date;
+    interval: AggregationInterval;
+    limit: number;
+  }): number {
+    const intervalMs: number = AggregationIntervalUtil.getAggregationIntervalMs(
+      data.interval,
+    );
+    const bucketCount: number = Math.max(
+      1,
+      Math.ceil(
+        (data.endTimestamp.getTime() - data.startTimestamp.getTime()) /
+          intervalMs,
+      ) + 1,
+    );
+    return Math.max(1, Math.min(100, Math.floor(data.limit / bucketCount)));
+  }
+
+  /*
+   * Group dashboard metric charts by exactly the selected attribute keys.
+   * The generic aggregate path can only group top-level columns, so older
+   * widgets used `groupBy: { attributes: true }` and accidentally grouped by
+   * the entire attributes map. Istio/Cilium metrics carry many labels, which
+   * made the result set high-cardinality enough for LIMIT to truncate older
+   * buckets. This path returns a compact attributes map containing only the
+   * selected keys so existing chart labeling keeps working.
+   */
+  private tryBuildSelectedAttributeAggregateStatement(
+    aggregateBy: AggregateBy<Metric>,
+  ): { statement: Statement; columns: Array<string> } | null {
+    const attributeKeys: Array<string> = Array.from(
+      new Set(
+        (aggregateBy.groupByAttributeKeys || [])
+          .map((key: string) => {
+            return key.trim();
+          })
+          .filter((key: string) => {
+            return key.length > 0;
+          }),
+      ),
+    );
+
+    if (attributeKeys.length === 0) {
+      return null;
+    }
+
+    const nonAttributeGroupByKeys: Array<string> = aggregateBy.groupBy
+      ? Object.keys(aggregateBy.groupBy).filter((key: string) => {
+          return key !== "attributes";
+        })
+      : [];
+    if (nonAttributeGroupByKeys.length > 0) {
+      return null;
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+    const aggregationColumn: string =
+      aggregateBy.aggregateColumnName.toString();
+    const aggregationTimestampColumn: string =
+      aggregateBy.aggregationTimestampColumnName.toString();
+    const aggregationInterval: string = AggregateUtil.getAggregationInterval({
+      startDate: aggregateBy.startTimestamp!,
+      endDate: aggregateBy.endTimestamp!,
+    }).toLowerCase();
+    const percentileLevel: number | null = getPercentileLevel(
+      aggregateBy.aggregationType,
+    );
+
+    const whereStatement: Statement = this.statementGenerator.toWhereStatement(
+      aggregateBy.query,
+    );
+    const sortStatement: Statement = this.statementGenerator.toSortStatement(
+      aggregateBy.sort!,
+    );
+
+    const attributeSelectStatement: Statement = SQL``;
+    const attributeGroupByStatement: Statement = SQL``;
+    const attributeMapStatement: Statement = SQL`map(`;
+
+    attributeKeys.forEach((attributeKey: string, index: number) => {
+      const alias: string = `__attr_${index}`;
+      if (index > 0) {
+        attributeGroupByStatement.append(SQL`, `);
+        attributeMapStatement.append(SQL`, `);
+      }
+
+      attributeSelectStatement.append(
+        SQL`, attributes[${{
+          value: attributeKey,
+          type: TableColumnType.Text,
+        }}] AS ${alias}`,
+      );
+      attributeGroupByStatement.append(alias);
+      attributeMapStatement
+        .append(
+          SQL`${{
+            value: attributeKey,
+            type: TableColumnType.Text,
+          }}`,
+        )
+        .append(SQL`, `)
+        .append(alias);
+    });
+    attributeMapStatement.append(SQL`) AS attributes`);
+
+    const statement: Statement = SQL``;
+
+    if (percentileLevel !== null) {
+      const fanoutExpression: string = `
+        multiIf(
+          metricPointType = 'ExponentialHistogram' AND notEmpty(positiveBucketCounts),
+            arrayMap(
+              i -> tuple(
+                pow(
+                  pow(2.0, pow(2.0, -toFloat64(coalesce(scale, 0)))),
+                  toFloat64(coalesce(positiveOffset, 0)) + toFloat64(i) - 0.5
+                ),
+                toFloat64(positiveBucketCounts[i])
+              ),
+              arrayEnumerate(positiveBucketCounts)
+            ),
+          metricPointType = 'Histogram' AND notEmpty(bucketCounts),
+            arrayMap(
+              i -> tuple(
+                multiIf(
+                  length(explicitBounds) = 0,
+                    toFloat64(coalesce(value, sum, 0)),
+                  i = 1,
+                    toFloat64(explicitBounds[1]) / 2.0,
+                  i > length(explicitBounds),
+                    toFloat64(explicitBounds[length(explicitBounds)]) * 1.5,
+                  (toFloat64(explicitBounds[i - 1]) + toFloat64(explicitBounds[i])) / 2.0
+                ),
+                toFloat64(bucketCounts[i])
+              ),
+              arrayEnumerate(bucketCounts)
+            ),
+          metricPointType = 'Summary' AND notEmpty(summaryValues),
+            [tuple(
+              if(
+                arrayFirstIndex(q -> q >= ${percentileLevel}, summaryQuantiles) > 0,
+                summaryValues[arrayFirstIndex(q -> q >= ${percentileLevel}, summaryQuantiles)],
+                summaryValues[length(summaryValues)]
+              ),
+              1.0
+            )],
+          [tuple(toFloat64(coalesce(value, sum, 0)), 1.0)]
+        )
+      `;
+
+      statement.append(
+        `SELECT quantileExactWeighted(${percentileLevel})(__pcl_pair.1, toUInt64(greatest(0, round(__pcl_pair.2)))) as ${aggregationColumn}, date_trunc('${aggregationInterval}', toStartOfInterval(${aggregationTimestampColumn}, INTERVAL 1 ${aggregationInterval})) as ${aggregationTimestampColumn}, `,
+      );
+      statement.append(attributeMapStatement);
+      statement.append(SQL` FROM (`);
+      statement
+        .append(`SELECT ${aggregationTimestampColumn}`)
+        .append(attributeSelectStatement)
+        .append(`, arrayJoin(${fanoutExpression}) AS __pcl_pair`);
+    } else {
+      const aggregateExpression: string =
+        this.getSelectedAttributeScalarAggregateExpression(
+          aggregateBy.aggregationType,
+        );
+      statement.append(
+        `SELECT ${aggregateExpression} as ${aggregationColumn}, date_trunc('${aggregationInterval}', toStartOfInterval(${aggregationTimestampColumn}, INTERVAL 1 ${aggregationInterval})) as ${aggregationTimestampColumn}, `,
+      );
+      statement.append(attributeMapStatement);
+      statement.append(SQL` FROM (`);
+      statement
+        .append(`SELECT ${aggregationTimestampColumn}`)
+        .append(attributeSelectStatement)
+        .append(
+          `, toFloat64(coalesce(${aggregationColumn}, sum, 0)) AS __metric_value`,
+        );
+    }
+
+    statement.append(
+      ` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `,
+    );
+    statement.append(whereStatement);
+    statement.append(this.getRetentionReadFilter());
+    statement.append(SQL`) `);
+    statement
+      .append(SQL` GROUP BY `)
+      .append(`${aggregationTimestampColumn}`)
+      .append(SQL`, `)
+      .append(attributeGroupByStatement);
+    statement.append(SQL` ORDER BY `).append(sortStatement);
+    statement.append(
+      SQL` LIMIT ${{
+        value: Number(aggregateBy.limit),
+        type: TableColumnType.Number,
+      }}`,
+    );
+    statement.append(
+      SQL` OFFSET ${{
+        value: Number(aggregateBy.skip),
+        type: TableColumnType.Number,
+      }} `,
+    );
+    statement.append(
+      ` SETTINGS optimize_aggregation_in_order=1, optimize_move_to_prewhere=1, max_threads=4`,
+    );
+
+    logger.debug(`${this.model.tableName} Attribute Aggregate Statement`, {
+      tableName: this.model.tableName,
+    } as LogAttributes);
+    logger.debug(statement, {
+      tableName: this.model.tableName,
+    } as LogAttributes);
+
+    return {
+      statement,
+      columns: [aggregationColumn, aggregationTimestampColumn, "attributes"],
+    };
+  }
+
+  private getSelectedAttributeScalarAggregateExpression(
+    aggregationType: AggregationType,
+  ): string {
+    if (aggregationType === AggregationType.Sum) {
+      return "sum(__metric_value)";
+    }
+    if (aggregationType === AggregationType.Count) {
+      return "count()";
+    }
+    if (aggregationType === AggregationType.Min) {
+      return "min(__metric_value)";
+    }
+    if (aggregationType === AggregationType.Max) {
+      return "max(__metric_value)";
+    }
+    return "avg(__metric_value)";
   }
 
   /*
