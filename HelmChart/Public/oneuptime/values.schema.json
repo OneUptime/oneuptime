@@ -537,6 +537,45 @@
                             },
                             "additionalProperties": false
                         },
+                        "host": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "isHostHttps": {
+                            "type": "boolean"
+                        },
+                        "port": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ]
+                        },
+                        "username": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "existingSecret": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "passwordKey": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            },
+                            "additionalProperties": false
+                        },
                         "database": { "type": "string" },
                         "service": {
                             "type": "object",
