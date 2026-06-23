@@ -21,6 +21,7 @@ const BUNDLE_CONTENTS: Array<string> = [
   "Effective configuration (secrets redacted)",
   "Component health & datastore capacity",
   "Database migration status",
+  "Queue stats & recent failed job logs",
   "Postgres diagnostics (connections, table stats)",
   "ClickHouse diagnostics (mutations, parts)",
   "Postgres & ClickHouse schema (structure only)",
@@ -83,7 +84,7 @@ const SupportBundle: FunctionComponent = (): ReactElement => {
   return (
     <Card
       title="Support bundle"
-      description="A diagnostic snapshot of this instance — version, configuration, component health, migrations and database diagnostics — that you can send to the OneUptime team when you need help."
+      description="A diagnostic snapshot of this instance — version, configuration, component health, migrations, queue and database diagnostics (including recent failed job logs) — that you can send to the OneUptime team when you need help."
     >
       <div>
         {error ? (

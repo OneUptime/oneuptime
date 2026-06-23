@@ -59,6 +59,8 @@ export interface BlogPost extends BlogPostBaseProps {
    * post has not been validated yet.
    */
   validationStatus: string | null;
+  // Formatted validation date (from validation.json `validatedAt`), or null.
+  validationDate: string | null;
 }
 
 export default class BlogPostUtil {
@@ -289,6 +291,9 @@ export default class BlogPostUtil {
       MarkdownContentType.Blog,
     );
 
+    const validation: { status: string; validatedAt: string | null } | null =
+      await this.getValidation(fileName);
+
     const blogPost: BlogPost = {
       title,
       description,
@@ -297,7 +302,10 @@ export default class BlogPostUtil {
         fileName,
         blogPostAuthor?.username,
       ),
-      validationStatus: await this.getValidationStatus(fileName),
+      validationStatus: validation?.status ?? null,
+      validationDate: validation?.validatedAt
+        ? this.getFormattedValidationDate(validation.validatedAt)
+        : null,
       htmlBody,
       markdownBody: markdownContent,
       fileName,
@@ -338,6 +346,11 @@ export default class BlogPostUtil {
      */
     const seenUsernames: Set<string> = new Set<string>();
     const seenGravatarNames: Set<string> = new Set<string>();
+    /*
+     * Position of each accepted Gravatar entry, keyed by its display name, so a
+     * later GitHub entry for the same person can replace (upgrade) it in place.
+     */
+    const gravatarIndexByName: Map<string, number> = new Map();
     let authorNameLower: string | null = null;
 
     const normalize: (value: string | undefined) => string | null = (
@@ -354,8 +367,8 @@ export default class BlogPostUtil {
       const name: string | null = normalize(contributor.name);
 
       if (username) {
-        // Same GitHub user, or already shown via a Gravatar entry of that name.
-        return seenUsernames.has(username) || seenGravatarNames.has(username);
+        // Same GitHub user (the Gravatar-name match is handled as an upgrade).
+        return seenUsernames.has(username);
       }
 
       if (name) {
@@ -379,6 +392,7 @@ export default class BlogPostUtil {
         seenUsernames.add(username);
       } else if (name) {
         seenGravatarNames.add(name);
+        gravatarIndexByName.set(name, contributors.length - 1);
       }
     };
 
@@ -402,6 +416,25 @@ export default class BlogPostUtil {
       await this.getContributorsByPost();
 
     for (const contributor of contributorsByPost.get(fileName) || []) {
+      const username: string | null = normalize(contributor.username);
+
+      /*
+       * Same person already shown as a Gravatar (commit under a personal email):
+       * upgrade that entry in place to this richer GitHub entry (avatar + link).
+       */
+      if (
+        username &&
+        !seenUsernames.has(username) &&
+        gravatarIndexByName.has(username)
+      ) {
+        const index: number = gravatarIndexByName.get(username) as number;
+        contributors[index] = contributor;
+        gravatarIndexByName.delete(username);
+        seenGravatarNames.delete(username);
+        seenUsernames.add(username);
+        continue;
+      }
+
       if (isDuplicate(contributor)) {
         continue;
       }
@@ -577,12 +610,12 @@ export default class BlogPostUtil {
   }
 
   /*
-   * Reads the post's validation.json status (e.g. "validated"), or null when the
+   * Reads the post's validation.json ({ status, validatedAt }), or null when the
    * post has not been validated yet / the file is absent or malformed.
    */
-  public static async getValidationStatus(
+  public static async getValidation(
     fileName: string,
-  ): Promise<string | null> {
+  ): Promise<{ status: string; validatedAt: string | null } | null> {
     const filePath: string = `${BlogRootPath}/posts/${fileName}/validation.json`;
 
     try {
@@ -591,7 +624,33 @@ export default class BlogPostUtil {
       }
       const content: string = await LocalFile.read(filePath);
       const json: JSONObject = JSONFunctions.parse(content) as JSONObject;
-      return (json["status"] as string) || null;
+      const status: string | null = (json["status"] as string) || null;
+      if (!status) {
+        return null;
+      }
+      return {
+        status,
+        validatedAt: (json["validatedAt"] as string) || null,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /*
+   * Formats validation.json `validatedAt` (YYYY-MM-DD) into a friendly date,
+   * matching how post dates are rendered. Returns null on malformed input.
+   */
+  private static getFormattedValidationDate(
+    validatedAt: string,
+  ): string | null {
+    const [year, month, day] = validatedAt.split("-");
+    if (!year || !month || !day) {
+      return null;
+    }
+    try {
+      const date: Date = OneUptimeDate.getDateFromYYYYMMDD(year, month, day);
+      return OneUptimeDate.getDateAsLocalFormattedString(date, true);
     } catch {
       return null;
     }
@@ -607,13 +666,17 @@ export default class BlogPostUtil {
       if (!(await LocalFile.doesFileExist(filePath))) {
         return null;
       }
-      const markdownContent: string = await LocalFile.read(filePath);
+      let markdownContent: string = await LocalFile.read(filePath);
       if (!markdownContent || !markdownContent.trim()) {
         return null;
       }
+      // Drop a leading top-level title; the modal already has its own heading.
+      markdownContent = markdownContent
+        .replace(/^[\uFEFF\s]*#\s+.*(\r?\n)+/, "")
+        .trim();
       return await Markdown.convertToHTML(
         markdownContent,
-        MarkdownContentType.Docs,
+        MarkdownContentType.BlogValidation,
       );
     } catch {
       return null;

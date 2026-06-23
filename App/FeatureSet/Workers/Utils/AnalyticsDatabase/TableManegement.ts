@@ -563,6 +563,45 @@ export default class AnalyticsTableManagement {
               )} SYNC`,
             );
           } else {
+            /*
+             * SAFETY GATE (missing-view path): creating the view issues
+             * CREATE MATERIALIZED VIEW … TO <table> AS SELECT …, which makes
+             * ClickHouse build converting actions from the SELECT's
+             * aggregate-state output to the target table's columns. If the
+             * target table still has the OLD AggregateFunction state type
+             * (e.g. quantile while the model now emits quantileBFloat16State),
+             * that cast is impossible and the CREATE throws
+             * (createAggregateFunctionWrapper). This is the SAME hazard
+             * Safety Gate 2 guards on the drift-recreate path above; the
+             * missing-view branch must guard it too. The window where the
+             * view is gone but the table is still the legacy type is opened
+             * by the table+view rebuild DataMigration (DROP VIEW → DROP TABLE
+             * → CREATE TABLE): this method runs unlocked on every replica's
+             * boot, so a concurrent replica can observe the view missing while
+             * the table has not yet been rebuilt. Refuse the create and let
+             * that DataMigration rebuild the table and view together. Only
+             * gate when the MV's TO target IS the owning table, since
+             * hasAggregateTypeDrift inspects that table — a foreign-target MV
+             * (none exist today) has no drift signal here and creates as
+             * before, matching prior behavior.
+             */
+            const declaredTarget: string | null =
+              this.extractMaterializedViewTarget(materializedView.query);
+
+            if (
+              declaredTarget &&
+              declaredTarget.toLowerCase() ===
+                service.model.tableName.toLowerCase() &&
+              (await this.hasAggregateTypeDrift(service))
+            ) {
+              logger.error({
+                message: `Materialized view ${materializedView.name} is missing AND its target table ${service.model.tableName} has AggregateFunction type drift. Not creating the view (the aggregate cast would fail) — a DataMigration must rebuild the table and view together. Leaving the view absent until then.`,
+                view: materializedView.name,
+                table: service.model.tableName,
+              });
+              continue;
+            }
+
             logger.info(
               `Materialized view ${materializedView.name} is missing - creating it.`,
             );

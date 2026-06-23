@@ -1,5 +1,6 @@
 import AdminModelAPI from "../../Utils/ModelAPI";
 import EnterpriseFeatureUpgrade from "../../Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
+import BackgroundQueues from "./BackgroundQueues";
 import MigrationStatus from "./MigrationStatus";
 import SupportBundle from "./SupportBundle";
 import PageMap from "../../Utils/PageMap";
@@ -68,11 +69,6 @@ const toNumberOrNull: (value: unknown) => number | null = (
 
   const parsed: number = Number(value);
   return isNaN(parsed) ? null : parsed;
-};
-
-const countLabel: (value: unknown) => string = (value: unknown): string => {
-  const parsed: number | null = toNumberOrNull(value);
-  return parsed === null ? "—" : parsed.toLocaleString();
 };
 
 const Health: FunctionComponent = (): ReactElement => {
@@ -361,86 +357,16 @@ const Health: FunctionComponent = (): ReactElement => {
         </Card>
 
         {/* Background queues */}
-        <Card
-          title="Background queues"
-          description="Job backlog across the queue workers. A growing backlog or failures indicate workers are unhealthy."
-        >
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase text-gray-500">
-                  <th className="py-2 pr-4 font-medium">Queue</th>
-                  <th className="py-2 px-4 font-medium tabular-nums">
-                    Waiting
-                  </th>
-                  <th className="py-2 px-4 font-medium tabular-nums">Active</th>
-                  <th className="py-2 px-4 font-medium tabular-nums">
-                    Completed
-                  </th>
-                  <th className="py-2 px-4 font-medium tabular-nums">Failed</th>
-                  <th className="py-2 pl-4 font-medium tabular-nums">
-                    Delayed
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {queues.map((queue: unknown, index: number): ReactElement => {
-                  const queueObject: JSONObject = queue as JSONObject;
-                  const queueName: string = String(queueObject["name"]);
-
-                  if (queueObject["error"]) {
-                    return (
-                      <tr key={index}>
-                        <td className="py-2 pr-4 font-medium text-gray-800">
-                          {queueName}
-                        </td>
-                        <td
-                          className="py-2 px-4 text-gray-400 italic"
-                          colSpan={5}
-                        >
-                          Unavailable
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  const failed: number | null = toNumberOrNull(
-                    queueObject["failed"],
-                  );
-
-                  return (
-                    <tr key={index}>
-                      <td className="py-2 pr-4 font-medium text-gray-800">
-                        {queueName}
-                      </td>
-                      <td className="py-2 px-4 tabular-nums text-gray-700">
-                        {countLabel(queueObject["waiting"])}
-                      </td>
-                      <td className="py-2 px-4 tabular-nums text-gray-700">
-                        {countLabel(queueObject["active"])}
-                      </td>
-                      <td className="py-2 px-4 tabular-nums text-gray-700">
-                        {countLabel(queueObject["completed"])}
-                      </td>
-                      <td
-                        className={`py-2 px-4 tabular-nums ${
-                          failed && failed > 0
-                            ? "text-red-600 font-semibold"
-                            : "text-gray-700"
-                        }`}
-                      >
-                        {countLabel(queueObject["failed"])}
-                      </td>
-                      <td className="py-2 pl-4 tabular-nums text-gray-700">
-                        {countLabel(queueObject["delayed"])}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <BackgroundQueues
+          queues={queues}
+          isRefreshing={isRefreshing}
+          onRefresh={() => {
+            setIsRefreshing(true);
+            loadOverview().catch(() => {
+              // handled via setError
+            });
+          }}
+        />
       </div>
     );
   };
