@@ -13,7 +13,12 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import {
+  ErrorFunction,
+  PromiseVoidFunction,
+  VoidFunction,
+} from "Common/Types/FunctionTypes";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -237,12 +242,34 @@ const DockerHostContainers: FunctionComponent<
     });
   }, []);
 
+  const getContainerDetailRoute: (row: DockerContainerRow) => Route = (
+    row: DockerContainerRow,
+  ): Route => {
+    return RouteUtil.populateRouteParams(
+      RouteMap[PageMap.DOCKER_HOST_VIEW_CONTAINER_DETAIL] as Route,
+      {
+        modelId: modelId,
+        subModelId: row.containerName,
+      },
+    );
+  };
+
   const tableColumns: Array<Column<DockerContainerRow>> = useMemo(() => {
     return [
       {
         title: "Container Name",
-        type: FieldType.Text,
+        type: FieldType.Element,
         key: "containerName",
+        getElement: (row: DockerContainerRow): ReactElement => {
+          return (
+            <Link
+              to={getContainerDetailRoute(row)}
+              className="font-medium text-gray-900 hover:text-indigo-600 hover:underline"
+            >
+              {row.containerName}
+            </Link>
+          );
+        },
       },
       {
         title: "Image",
@@ -276,29 +303,31 @@ const DockerHostContainers: FunctionComponent<
       },
       {
         title: "",
-        type: FieldType.Element,
-        key: "containerName",
+        type: FieldType.Actions,
+        key: null,
         disableSort: true,
-        getElement: (row: DockerContainerRow): ReactElement => {
-          const route: Route = RouteUtil.populateRouteParams(
-            RouteMap[PageMap.DOCKER_HOST_VIEW_CONTAINER_DETAIL] as Route,
-            {
-              modelId: modelId,
-              subModelId: row.containerName,
-            },
-          );
-          return (
-            <Link
-              to={route}
-              className="text-indigo-600 hover:text-indigo-900 font-medium"
-            >
-              View
-            </Link>
-          );
-        },
       },
     ];
   }, [modelId]);
+
+  const actionButtons: Array<ActionButtonSchema<DockerContainerRow>> = [
+    {
+      title: "View",
+      buttonStyleType: ButtonStyleType.NORMAL,
+      onClick: (
+        row: DockerContainerRow,
+        onCompleteAction: VoidFunction,
+        onError: ErrorFunction,
+      ): void => {
+        try {
+          Navigation.navigate(getContainerDetailRoute(row));
+          onCompleteAction();
+        } catch (err) {
+          onError(err as Error);
+        }
+      },
+    },
+  ];
 
   const cardButtons: Array<CardButtonSchema> = [
     {
@@ -329,6 +358,7 @@ const DockerHostContainers: FunctionComponent<
       <Table<DockerContainerRow>
         id="docker-containers-table"
         columns={tableColumns}
+        actionButtons={actionButtons}
         data={containers}
         singularLabel="Container"
         pluralLabel="Containers"

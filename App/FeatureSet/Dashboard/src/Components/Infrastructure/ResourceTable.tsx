@@ -6,6 +6,9 @@ import React, {
 } from "react";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import Navigation from "Common/UI/Utils/Navigation";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
 import Table from "Common/UI/Components/Table/Table";
@@ -321,6 +324,16 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
       type: FieldType.Element,
       key: "name",
       getElement: (resource: InfrastructureResource): ReactElement => {
+        if (props.getViewRoute) {
+          return (
+            <Link
+              to={props.getViewRoute(resource)}
+              className="font-medium text-gray-900 hover:text-indigo-600 hover:underline"
+            >
+              {resource.name}
+            </Link>
+          );
+        }
         return (
           <span className="font-medium text-gray-900">{resource.name}</span>
         );
@@ -507,21 +520,30 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
     });
   }
 
+  const actionButtons: Array<ActionButtonSchema<InfrastructureResource>> = [];
+
   if (props.getViewRoute) {
     tableColumns.push({
       title: "",
-      type: FieldType.Element,
-      key: "name",
+      type: FieldType.Actions,
+      key: null,
       disableSort: true,
-      getElement: (resource: InfrastructureResource): ReactElement => {
-        return (
-          <Link
-            to={props.getViewRoute!(resource)}
-            className="text-indigo-600 hover:text-indigo-900 font-medium"
-          >
-            View
-          </Link>
-        );
+    });
+
+    actionButtons.push({
+      title: "View",
+      buttonStyleType: ButtonStyleType.NORMAL,
+      onClick: (
+        resource: InfrastructureResource,
+        onCompleteAction: VoidFunction,
+        onError: ErrorFunction,
+      ): void => {
+        try {
+          Navigation.navigate(props.getViewRoute!(resource));
+          onCompleteAction();
+        } catch (err) {
+          onError(err as Error);
+        }
       },
     });
   }
@@ -557,6 +579,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
       <Table<InfrastructureResource>
         id={`${props.tableIdPrefix || "infrastructure"}-${props.title.toLowerCase().replace(/\s+/g, "-")}-table`}
         columns={tableColumns}
+        actionButtons={actionButtons}
         data={paginatedData}
         singularLabel={props.title}
         pluralLabel={props.title}

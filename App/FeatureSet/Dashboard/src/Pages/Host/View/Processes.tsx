@@ -4,7 +4,6 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Host from "Common/Models/DatabaseModels/Host";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -15,7 +14,12 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import {
+  ErrorFunction,
+  PromiseVoidFunction,
+  VoidFunction,
+} from "Common/Types/FunctionTypes";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -305,21 +309,22 @@ const HostProcesses: FunctionComponent<
     });
   }, []);
 
+  const processViewRouteFor: (row: ProcessRow) => Route | null = (
+    row: ProcessRow,
+  ): Route | null => {
+    if (!row.pid) {
+      return null;
+    }
+    return RouteUtil.populateRouteParams(
+      RouteMap[PageMap.HOST_VIEW_PROCESS_VIEW] as Route,
+      {
+        modelId: modelId,
+        subModelId: row.pid,
+      },
+    );
+  };
+
   const tableColumns: Array<Column<ProcessRow>> = useMemo(() => {
-    const processViewRouteFor: (row: ProcessRow) => Route | null = (
-      row: ProcessRow,
-    ): Route | null => {
-      if (!row.pid) {
-        return null;
-      }
-      return RouteUtil.populateRouteParams(
-        RouteMap[PageMap.HOST_VIEW_PROCESS_VIEW] as Route,
-        {
-          modelId: modelId,
-          subModelId: row.pid,
-        },
-      );
-    };
     return [
       {
         title: "Process",
@@ -424,26 +429,37 @@ const HostProcesses: FunctionComponent<
       },
       {
         title: "",
-        type: FieldType.Element,
-        key: "key",
+        type: FieldType.Actions,
+        key: null,
         disableSort: true,
-        getElement: (row: ProcessRow): ReactElement => {
-          const route: Route | null = processViewRouteFor(row);
-          if (!route) {
-            return <Fragment />;
-          }
-          return (
-            <Link
-              to={route}
-              className="text-indigo-600 hover:text-indigo-900 font-medium"
-            >
-              View
-            </Link>
-          );
-        },
       },
     ];
   }, [modelId]);
+
+  const actionButtons: Array<ActionButtonSchema<ProcessRow>> = [
+    {
+      title: "View",
+      buttonStyleType: ButtonStyleType.NORMAL,
+      isVisible: (row: ProcessRow): boolean => {
+        return processViewRouteFor(row) !== null;
+      },
+      onClick: (
+        row: ProcessRow,
+        onCompleteAction: VoidFunction,
+        onError: ErrorFunction,
+      ): void => {
+        try {
+          const route: Route | null = processViewRouteFor(row);
+          if (route) {
+            Navigation.navigate(route);
+          }
+          onCompleteAction();
+        } catch (err) {
+          onError(err as Error);
+        }
+      },
+    },
+  ];
 
   const cardButtons: Array<CardButtonSchema> = [
     {
@@ -489,6 +505,7 @@ const HostProcesses: FunctionComponent<
       <Table<ProcessRow>
         id="host-processes-table"
         columns={tableColumns}
+        actionButtons={actionButtons}
         data={rows}
         singularLabel="Process"
         pluralLabel="Processes"
