@@ -37,11 +37,12 @@ type AnyAnalyticsService = AnalyticsDatabaseService<AnalyticsBaseModel>;
  *   3. `RENAME TABLE <table> TO <table>_preclustered ON CLUSTER` — move the
  *      legacy data aside on every node;
  *   4. create the `Distributed` wrapper `<table>` over `<table>Local`;
- *   5. `INSERT INTO <table> SELECT … FROM cluster(<cluster>, db, <table>_preclustered)`
+ *   5. `INSERT INTO <table> SELECT … FROM clusterAllReplicas(<cluster>, db, <table>_preclustered)`
  *      — copy the legacy rows back through the Distributed table so they are
- *      re-sharded and replicated. cluster(...) reads EVERY node's backup, so
- *      data that was split across nodes (the original "Span not found" incident)
- *      is reunified;
+ *      re-sharded and replicated. clusterAllReplicas(...) reads EVERY node's
+ *      backup (cluster() would read only one replica per shard and miss data on
+ *      the others), so data that was split across nodes — the original "Span not
+ *      found" incident — is reunified;
  *   6. verify row counts, then drop the backup. If the new count is below the
  *      legacy count the backup is LEFT IN PLACE for manual recovery.
  *
@@ -202,19 +203,28 @@ export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
       );
     }
 
+    /*
+     * clusterAllReplicas (NOT cluster): on the pre-cluster split-data setup the
+     * legacy tables are plain MergeTree whose "replicas" hold DIFFERENT subsets
+     * (that is the bug being fixed). `cluster()` reads only ONE replica per shard
+     * (load-balanced), so it would silently skip the data on the other replicas;
+     * `clusterAllReplicas()` reads EVERY node, so the full split dataset is
+     * gathered and re-sharded through the Distributed table. On a single node the
+     * two are identical.
+     */
     const columnList: string = commonColumns.join(", ");
     await service.execute(
-      `INSERT INTO ${table} (${columnList}) SELECT ${columnList} FROM cluster('${cluster}', currentDatabase(), ${preclustered})`,
+      `INSERT INTO ${table} (${columnList}) SELECT ${columnList} FROM clusterAllReplicas('${cluster}', currentDatabase(), ${preclustered})`,
     );
 
     // Verify before dropping the backup. The Distributed count spans all shards;
-    // the cluster() count spans all nodes' backups. Never drop on a shortfall —
-    // leave the backup for manual recovery (e.g. if dedup legitimately reduced
-    // the count, an operator can confirm and drop it by hand).
+    // the clusterAllReplicas count spans EVERY node's backup (so the check can't
+    // be fooled by data sitting on an un-read replica). Never drop on a shortfall
+    // — leave the backup for manual recovery.
     const newCount: number = await this.count(service, `${table}`);
     const oldCount: number = await this.countFrom(
       service,
-      `cluster('${cluster}', currentDatabase(), ${preclustered})`,
+      `clusterAllReplicas('${cluster}', currentDatabase(), ${preclustered})`,
     );
 
     if (newCount < oldCount) {
