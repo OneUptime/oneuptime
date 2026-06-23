@@ -710,8 +710,17 @@ goreleaser_release_assets() {
 
     # GoReleaser builds archives + checksums + signs in one parallelized step
     # We use --skip=publish since we already created the release and upload separately
+    #
+    # --parallelism 1 forces GoReleaser to cross-compile one target at a time.
+    # The generated provider is a single ~600K-line `package provider`, so each
+    # Go compilation is memory-heavy. GoReleaser defaults parallelism to the CPU
+    # count (4 on GitHub's ubuntu-latest), which compiles 4 targets at once and
+    # exhausts the runner's 16GB RAM -> the host kills the runner mid-build
+    # ("The runner has received a shutdown signal" / exit 143). Serializing the
+    # builds keeps peak memory to a single compile and prevents the OOM.
     goreleaser release \
         --clean \
+        --parallelism 1 \
         --skip=publish \
         --config .goreleaser.yml
 

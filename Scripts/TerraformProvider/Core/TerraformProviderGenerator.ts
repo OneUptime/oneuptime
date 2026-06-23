@@ -127,7 +127,8 @@ builds:
       - -s -w
 
 archives:
-  - format: zip
+  - formats:
+      - zip
     name_template: "terraform-provider-${this.config.providerName}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
 checksum:

@@ -1076,6 +1076,10 @@ jobs:
         uses: goreleaser/goreleaser-action@v6.1.0
         with:
           install-only: true
+          # Pin to the latest GoReleaser v2.x. Without this the action installs
+          # whatever is newest, so a future v3 (with renamed flags/config) could
+          # silently break this release job with no code change on our side.
+          version: '~> v2'
 
       - name: Determine version
         id: version
