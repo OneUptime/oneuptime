@@ -351,16 +351,31 @@ ebpf:
   # traffic through them, so the busiest nodes (databases + app tier packed
   # together) need more headroom than a lightly-loaded node. 1Gi OOM-loops on
   # those — 2Gi gives the limit room; request raised so the scheduler accounts
-  # for steady-state on heavy nodes. If a node still OOMs, narrow what OBI
-  # attaches to via `autoTargetExe` / `excludeExePaths` rather than raising
-  # this unboundedly.
+  # for steady-state on heavy nodes. CPU also scales with process CHURN: on nodes
+  # running short-lived-process workloads (e.g. Playwright/Firefox synthetic-probe
+  # pods) OBI pegs a 1-core limit attaching/detaching uprobes, and a CPU-throttled
+  # agent can stall the node's container runtime (containerd CRI calls time out →
+  # pods stuck Init/Terminating). 2 cores gives headroom. If a node still OOMs or
+  # pegs CPU, narrow what OBI attaches to via `autoTargetExe` / `excludeExePaths`
+  # (the default already skips browser binaries) rather than raising this
+  # unboundedly.
   resources:
     requests:
       cpu: 100m
       memory: 512Mi
     limits:
-      cpu: 1000m
+      cpu: 2000m
       memory: 2Gi
+  # Scheduling controls. By DEFAULT the agent tolerates every taint (operator:
+  # Exists) so the DaemonSet covers all nodes. To keep it OFF a tainted DB-only
+  # pool — so it doesn't compete with or instrument the database tier — override
+  # `tolerations` with a narrower list and/or set `nodeSelector` / `affinity`.
+  nodeSelector: {}
+  tolerations:
+    - operator: Exists
+  affinity: {}
+  # Optional PriorityClass for the agent pods (empty = none).
+  priorityClassName: ""
   # Glob pattern of executable paths to instrument. "*" means "every process
   # OBI can recognize". Set to a narrower pattern (e.g. "*/python,*/java") if
   # you only want specific runtimes.
@@ -376,12 +391,19 @@ ebpf:
   #     restart them — and most of them already export their own
   #     Prometheus metrics that the chart can scrape via
   #     `serviceMesh.enabled: true` instead.
+  #   - Browser binaries (firefox, chrome, chromium, headless_shell, webkit) so
+  #     synthetic-monitoring / Playwright probe pods don't bury OBI in
+  #     short-lived-process churn — a CPU-peg + container-runtime-stall risk on
+  #     any node co-located with probes.
   #
   # CAUTION when adding your own entries: each pattern is an "if matched,
   # skip" rule, so a broad glob like `*/proxy` will also exclude any of
   # YOUR own binaries named `*-proxy` (auth-proxy, oauth2-proxy, …) and
   # silently drop their traces. Prefer specific basenames over wildcards.
-  excludeExePaths: "*/sh,*/bash,*/dash,*/busybox,*/sleep,*/grep,*/awk,*/sed,*/ps,*/cat,*/find,*/runc,*/containerd*,*/dockerd,*/kubelet,*/kube-proxy,*/coredns,*/etcd,*/otelcol*,*/ebpf-instrument,*/obi,*/linkerd2-proxy,*/envoy,*/istio-pilot-agent,*/pilot-agent,*/cilium-agent,*/cilium-operator,*/cilium-envoy,*/calico-node,*/kube-router"
+  # (Note: `*/node` is intentionally NOT excluded — it would drop traces for
+  # every Node.js service, including your own apps; the browser basenames above
+  # are what cover Playwright.)
+  excludeExePaths: "*/sh,*/bash,*/dash,*/busybox,*/sleep,*/grep,*/awk,*/sed,*/ps,*/cat,*/find,*/runc,*/containerd*,*/dockerd,*/kubelet,*/kube-proxy,*/coredns,*/etcd,*/otelcol*,*/ebpf-instrument,*/obi,*/linkerd2-proxy,*/envoy,*/istio-pilot-agent,*/pilot-agent,*/cilium-agent,*/cilium-operator,*/cilium-envoy,*/calico-node,*/kube-router,*/firefox,*/firefox-bin,*/headless_shell,*/chrome,*/chromium,*/webkit"
   # OBI log level: debug, info, warn, error
   logLevel: "info"
   # Print spans to stdout in addition to OTLP export — useful for confirming

@@ -498,7 +498,15 @@ migrate:
   # Optional hard timeout for the whole migration run (seconds). Empty = none.
   activeDeadlineSeconds:
   resources: {}
+  # Placement for the one-shot migration Job. It talks to Postgres over the
+  # network, so it should NOT co-locate with the database tier — keep it on the
+  # app pool, off any over-packed/tainted DB nodes (these fall back to the
+  # chart-wide nodeSelector/tolerations/affinity when left empty).
   nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  # Optional PriorityClass so the migration run isn't preempted under pressure.
+  priorityClassName: ""
 
 # =============================================================================
 # PgBouncer connection pooler (opt-in). Orthogonal to the Postgres backend:

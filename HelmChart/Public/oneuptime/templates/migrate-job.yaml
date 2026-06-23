@@ -68,9 +68,16 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with .Values.migrate.tolerations | default .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.migrate.affinity | default .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.migrate.priorityClassName }}
+      priorityClassName: {{ .Values.migrate.priorityClassName | quote }}
       {{- end }}
       {{- if .Values.podSecurityContext }}
       securityContext:

@@ -544,9 +544,14 @@ export default class Queue {
           typeof job.stalledCounter === "number" ? job.stalledCounter : null,
         priority: typeof job.priority === "number" ? job.priority : null,
         delay: typeof job.delay === "number" ? job.delay : null,
-        createdAt: job.timestamp ? new Date(job.timestamp) : null,
-        processedOn: job.processedOn ? new Date(job.processedOn) : null,
-        finishedOn: job.finishedOn ? new Date(job.finishedOn) : null,
+        createdAt:
+          typeof job.timestamp === "number" ? new Date(job.timestamp) : null,
+        processedOn:
+          typeof job.processedOn === "number"
+            ? new Date(job.processedOn)
+            : null,
+        finishedOn:
+          typeof job.finishedOn === "number" ? new Date(job.finishedOn) : null,
         queueQualifiedName: job.queueQualifiedName || null,
         repeatJobKey: job.repeatJobKey || null,
         deduplicationId: job.deduplicationId || null,

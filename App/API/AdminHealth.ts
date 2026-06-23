@@ -321,20 +321,53 @@ const MAX_JOB_VALUE_BYTES: number = 32768;
  * connection strings. Best-effort — it is the second line of defence behind the
  * key-name redaction in deepRedactValue, not a guarantee that all data is safe.
  */
+/*
+ * Mask the password in `scheme://user:pass@host`. The password class allows `@`
+ * (greedy up to the LAST `@` before a `/` or whitespace) so passwords that
+ * themselves contain `@` are fully masked rather than leaking the tail.
+ */
 const CONNECTION_STRING_SECRET_PATTERN: RegExp =
-  /([a-z][a-z0-9+.-]*:\/\/[^:@\s/]+):[^@\s/]+@/gi;
+  /([a-z][a-z0-9+.-]*:\/\/[^:@\s/]+):[^\s/]+@/gi;
+
+/*
+ * Auth material that the keyword='value' DDL scrubber misses: HTTP auth headers
+ * (`Authorization: Bearer …`, `X-Api-Key: …`), standalone `Bearer <token>`, and
+ * raw JWTs (three base64url segments starting `eyJ`). These commonly show up in
+ * job stack traces and log lines from failed outbound HTTP calls.
+ */
+const AUTH_HEADER_SECRET_PATTERN: RegExp =
+  /\b(authorization|proxy-authorization|x-api-key|x-auth-token|x-functions-key|api[-_]?key|access[-_]?token)\b(\s*[:=]\s*)(bearer\s+|basic\s+|token\s+)?([^\s,;"']+)/gi;
+const BEARER_TOKEN_PATTERN: RegExp = /\b(bearer)\s+[A-Za-z0-9._~+/=-]+/gi;
+const JWT_PATTERN: RegExp =
+  /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g;
 
 function scrubSecretsFromText(text: string): string {
   if (!text) {
     return text;
   }
 
-  return redactDdlSecrets(text).replace(
-    CONNECTION_STRING_SECRET_PATTERN,
-    (_match: string, prefix: string): string => {
-      return `${prefix}:***REDACTED***@`;
-    },
-  );
+  return redactDdlSecrets(text)
+    .replace(
+      CONNECTION_STRING_SECRET_PATTERN,
+      (_match: string, prefix: string): string => {
+        return `${prefix}:***REDACTED***@`;
+      },
+    )
+    .replace(
+      AUTH_HEADER_SECRET_PATTERN,
+      (
+        _match: string,
+        name: string,
+        separator: string,
+        scheme: string,
+      ): string => {
+        return `${name}${separator}${scheme || ""}***REDACTED***`;
+      },
+    )
+    .replace(BEARER_TOKEN_PATTERN, (_match: string, scheme: string): string => {
+      return `${scheme} ***REDACTED***`;
+    })
+    .replace(JWT_PATTERN, "***REDACTED-JWT***");
 }
 
 /*
@@ -1299,7 +1332,9 @@ async function getClickhouseDiagnostics(): Promise<JSONObject> {
             createTime: toIsoOrNull(row["create_time"]),
             latestFailTime: toIsoOrNull(row["latest_fail_time"]),
             latestFailReason: row["latest_fail_reason"]
-              ? String(row["latest_fail_reason"]).substring(0, 500)
+              ? scrubSecretsFromText(
+                  String(row["latest_fail_reason"]),
+                ).substring(0, 500)
               : null,
           };
         },
@@ -1571,7 +1606,10 @@ async function getClickhouseLogs(): Promise<JSONObject> {
             signal: toNumberOrNull(row["signal"]),
             threadId: toNumberOrNull(row["thread_id"]),
             queryId: String(row["query_id"]),
-            trace: String(row["trace"] || "").substring(0, 4000),
+            trace: scrubSecretsFromText(String(row["trace"] || "")).substring(
+              0,
+              4000,
+            ),
           };
         },
       );

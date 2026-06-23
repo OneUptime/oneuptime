@@ -473,6 +473,22 @@
           },
           "additionalProperties": false
         },
+        "nodeSelector": {
+          "type": "object",
+          "description": "nodeSelector for the eBPF agent DaemonSet pods."
+        },
+        "tolerations": {
+          "type": "array",
+          "description": "Tolerations for the eBPF agent DaemonSet pods. Defaults to [{operator: Exists}] (tolerate every taint). Narrow this to keep the agent off tainted nodes (e.g. a DB-only pool)."
+        },
+        "affinity": {
+          "type": "object",
+          "description": "Affinity for the eBPF agent DaemonSet pods."
+        },
+        "priorityClassName": {
+          "type": "string",
+          "description": "Optional PriorityClass for the eBPF agent DaemonSet pods. Empty = none."
+        },
         "autoTargetExe": {
           "type": "string",
           "description": "Glob pattern of executable paths to auto-instrument (e.g., '*' for all, '*/python,*/java' to scope)."

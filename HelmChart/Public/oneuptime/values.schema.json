@@ -766,6 +766,15 @@
                 },
                 "nodeSelector": {
                     "type": "object"
+                },
+                "tolerations": {
+                    "type": "array"
+                },
+                "affinity": {
+                    "type": "object"
+                },
+                "priorityClassName": {
+                    "type": "string"
                 }
             },
             "additionalProperties": false
