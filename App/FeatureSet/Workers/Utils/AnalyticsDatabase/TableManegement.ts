@@ -241,16 +241,33 @@ export default class AnalyticsTableManagement {
   }
 
   /*
-   * Normalize a codec for comparison: lower-cased, whitespace removed, and
-   * the surrounding `CODEC( ... )` wrapper that system.columns reports
-   * stripped so it lines up with buildCodecString's bare output.
+   * Reduce a codec spec to its ordered list of codec NAMES, dropping the
+   * surrounding `CODEC( ... )` wrapper that system.columns reports and every
+   * argument group. Comparing names only is deliberate: ClickHouse rewrites
+   * default args in system.columns (e.g. a column declared `Gorilla` reports
+   * back as `Gorilla(8)`, and levels like `ZSTD(1)` may be normalized), so an
+   * arg-sensitive compare would warn on every healthy boot. Name-level
+   * comparison still catches the meaningful drift — a codec added, removed,
+   * replaced, or reordered — without the false positives.
    */
   private static normalizeCodec(codec: string): string {
-    return codec
-      .toLowerCase()
-      .replace(/\s+/g, "")
-      .replace(/^codec\(/, "")
-      .replace(/\)$/, "");
+    let inner: string = codec.toLowerCase().trim();
+
+    const wrapped: RegExpMatchArray | null = inner.match(/^codec\((.*)\)$/);
+    if (wrapped && wrapped[1] !== undefined) {
+      inner = wrapped[1];
+    }
+
+    return inner
+      .split(",")
+      .map((part: string): string => {
+        // keep only the codec name, dropping any "(args)" that follow it
+        return part.replace(/\(.*$/, "").trim();
+      })
+      .filter((name: string): boolean => {
+        return name.length > 0;
+      })
+      .join(",");
   }
 
   /**
@@ -260,6 +277,11 @@ export default class AnalyticsTableManagement {
    * fail its aggregate cast, so createMaterializedViews uses it to refuse a
    * destructive auto-drop. Returns false on any read error (never block or
    * destroy on a transient failure).
+   *
+   * Assumes the MV's `TO` target is the owning service's own table, which
+   * holds for every MV defined today (each `*_mv` targets its declaring
+   * model's table). A future MV that targets a different table would need
+   * this gate to check that target instead.
    */
   private static async hasAggregateTypeDrift(
     service: AnalyticsDatabaseService<AnalyticsBaseModel>,
