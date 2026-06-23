@@ -2157,6 +2157,19 @@
                 "replicaCount": {
                     "type": "integer"
                 },
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "registry": { "type": "string" },
+                        "repository": { "type": "string" },
+                        "pullPolicy": {
+                            "type": "string",
+                            "enum": ["IfNotPresent", "Always", "Never"]
+                        },
+                        "tag": { "type": "string" }
+                    },
+                    "additionalProperties": false
+                },
                 "databaseMaxOpenConnections": {
                     "type": [
                         "integer",
@@ -2169,6 +2182,30 @@
                 },
                 "telemetryConcurrency": {
                     "type": "integer"
+                },
+                "telemetryLogFlushBatchSize": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryMetricFlushBatchSize": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryTraceFlushBatchSize": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryExceptionFlushBatchSize": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryProfileFlushBatchSize": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryProfileSampleFlushBatchSize": {
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "disableTelemetryCollection": {
                     "type": "boolean"
@@ -2264,6 +2301,19 @@
                 "replicaCount": {
                     "type": "integer"
                 },
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "registry": { "type": "string" },
+                        "repository": { "type": "string" },
+                        "pullPolicy": {
+                            "type": "string",
+                            "enum": ["IfNotPresent", "Always", "Never"]
+                        },
+                        "tag": { "type": "string" }
+                    },
+                    "additionalProperties": false
+                },
                 "databaseMaxOpenConnections": {
                     "type": [
                         "integer",
@@ -2276,6 +2326,30 @@
                 },
                 "telemetryConcurrency": {
                     "type": "integer"
+                },
+                "telemetryLogFlushBatchSize": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryMetricFlushBatchSize": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryTraceFlushBatchSize": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryExceptionFlushBatchSize": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryProfileFlushBatchSize": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryProfileSampleFlushBatchSize": {
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "disableTelemetryCollection": {
                     "type": "boolean"

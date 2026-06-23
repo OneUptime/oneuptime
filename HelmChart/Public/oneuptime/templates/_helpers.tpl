@@ -13,7 +13,10 @@ Usage:
 
 {{- define "oneuptime.image.tag" -}}
   {{- $values := .Values -}}
-  {{- $tag := default "release" $values.image.tag -}}
+  {{- $service := default "" .ServiceName -}}
+  {{- $serviceValues := get $values $service | default (dict) -}}
+  {{- $serviceImage := get $serviceValues "image" | default (dict) -}}
+  {{- $tag := default (default "release" $values.image.tag) $serviceImage.tag -}}
   {{- $imageType := default "community-edition" $values.image.type -}}
   {{- if and (eq $imageType "enterprise-edition") (not (contains "enterprise" $tag)) }}
     {{- printf "enterprise-%s" $tag -}}
@@ -26,7 +29,11 @@ Usage:
   {{- $values := .Values -}}
   {{- $service := .ServiceName -}}
   {{- $imageName := default $service .ImageName -}}
-  {{- printf "%s/%s/%s:%s" $values.image.registry $values.image.repository $imageName (include "oneuptime.image.tag" (dict "Values" $values)) -}}
+  {{- $serviceValues := get $values $service | default (dict) -}}
+  {{- $serviceImage := get $serviceValues "image" | default (dict) -}}
+  {{- $registry := default $values.image.registry $serviceImage.registry -}}
+  {{- $repository := default $values.image.repository $serviceImage.repository -}}
+  {{- printf "%s/%s/%s:%s" $registry $repository $imageName (include "oneuptime.image.tag" (dict "Values" $values "ServiceName" $service)) -}}
 {{- end -}}
 
 {{/*
@@ -401,7 +408,9 @@ its userlist at startup.
 # The ConvertAnalyticsTablesToCluster data-migration converts any existing
 # single-node data in place on boot.
 - name: CLICKHOUSE_CLUSTER_NAME
-  {{- if $chAltinity.enabled }}
+  {{- if $.Values.clickhouseSharding.enabled }}
+  value: {{ include "oneuptime.clickhouse.clusterName" . | squote }}
+  {{- else if $chAltinity.enabled }}
   value: {{ $chAltinity.cluster.name | default "oneuptime" | squote }}
   {{- else if $.Values.clickhouse.enabled }}
   value: "oneuptime"
@@ -435,8 +444,6 @@ its userlist at startup.
 {{- if $.Values.clickhouseSharding.enabled }}
 - name: CLICKHOUSE_TELEMETRY_SHARDING_ENABLED
   value: "true"
-- name: CLICKHOUSE_CLUSTER_NAME
-  value: {{ include "oneuptime.clickhouse.clusterName" . | squote }}
 {{- end }}
 
 
