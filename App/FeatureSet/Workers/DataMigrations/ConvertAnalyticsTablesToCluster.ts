@@ -141,19 +141,29 @@ export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
     const backupEngine: string | null =
       await AnalyticsTableManagement.getTableEngine(service, preclustered);
 
-    if (engine !== null && engine.startsWith("Distributed")) {
-      if (backupEngine !== null) {
-        logger.warn({
-          message: `ConvertAnalyticsTablesToCluster: ${table} is already Distributed but a ${preclustered} backup still exists. Not re-copying (risk of duplicates). Verify and drop the backup manually if the copy completed.`,
-          table,
-        });
-      } else {
-        logger.info(
-          `ConvertAnalyticsTablesToCluster: ${table} is already converted - skipping.`,
-        );
-      }
+    if (
+      engine !== null &&
+      engine.startsWith("Distributed") &&
+      backupEngine === null
+    ) {
+      /*
+       * Distributed AND no backup left = a prior run finished: the backup is
+       * dropped ONLY after the row-count check passes, so its absence proves a
+       * verified copy. Done.
+       */
+      logger.info(
+        `ConvertAnalyticsTablesToCluster: ${table} is already converted - skipping.`,
+      );
       return;
     }
+
+    /*
+     * Otherwise, if a backup still exists the copy was NOT confirmed (it never
+     * reached the verify+drop step — e.g. the INSERT timed out or the pod
+     * restarted mid-copy). Do NOT treat that as success: fall through and
+     * re-copy idempotently (TRUNCATE + reload from the backup) below. The backup
+     * is the source of truth until the count check passes.
+     */
 
     if (engine === null && backupEngine === null) {
       /*
@@ -176,10 +186,14 @@ export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
     await service.execute(service.statementGenerator.toTableCreateStatement());
 
     /*
-     * Move the legacy table aside (only if it has not been moved already by an
-     * interrupted prior run).
+     * Move the legacy table aside — only the legacy non-Distributed table, and
+     * only if it has not already been renamed by an interrupted prior run.
      */
-    if (engine !== null && backupEngine === null) {
+    if (
+      engine !== null &&
+      !engine.startsWith("Distributed") &&
+      backupEngine === null
+    ) {
       await service.execute(
         `RENAME TABLE ${table} TO ${preclustered}${onClusterClause()}`,
       );
@@ -192,6 +206,17 @@ export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
     if (distributedStatement) {
       await service.execute(distributedStatement);
     }
+
+    /*
+     * Idempotent copy: a prior attempt may have been interrupted mid-INSERT
+     * (timeout / pod restart) and left PARTIAL rows in the local table. The
+     * backup is the source of truth until the count check passes, so clear the
+     * local table and reload it fresh — re-running the INSERT without this would
+     * duplicate the already-copied rows. TRUNCATE ON CLUSTER drops all parts on
+     * every shard/replica. (Conversion of large data should run in a maintenance
+     * window; this truncate assumes live ingestion is paused/minimal.)
+     */
+    await service.execute(`TRUNCATE TABLE ${localTable}${onClusterClause()}`);
 
     /*
      * Copy legacy rows back through the Distributed table (re-sharded +
@@ -225,8 +250,25 @@ export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
      * two are identical.
      */
     const columnList: string = commonColumns.join(", ");
+    /*
+     * Progress headers are ESSENTIAL here. The ClickHouse client enforces its
+     * request_timeout (58s) as a socket-IDLE timer, and an INSERT…SELECT returns
+     * zero bytes until it finishes — so a copy that runs longer than 58s would
+     * have its connection destroyed and the INSERT cancelled (leaving partial
+     * data). `send_progress_in_http_headers` makes ClickHouse stream
+     * X-ClickHouse-Progress header lines every http_headers_progress_interval_ms,
+     * keeping the socket non-idle so an arbitrarily long copy completes. There is
+     * no per-query max_execution_time on execute(), so the server runs it to
+     * completion.
+     */
     await service.execute(
       `INSERT INTO ${table} (${columnList}) SELECT ${columnList} FROM clusterAllReplicas('${cluster}', currentDatabase(), ${preclustered})`,
+      {
+        clickhouseSettings: {
+          send_progress_in_http_headers: 1,
+          http_headers_progress_interval_ms: "10000",
+        },
+      },
     );
 
     /*
