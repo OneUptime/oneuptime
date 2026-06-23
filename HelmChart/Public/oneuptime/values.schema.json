@@ -466,6 +466,7 @@
                 "cnpg": {
                     "type": "object",
                     "properties": {
+                        "installOperator": { "type": "boolean" },
                         "enabled": { "type": "boolean" },
                         "instances": { "type": "integer" },
                         "synchronousReplicas": { "type": "integer" },

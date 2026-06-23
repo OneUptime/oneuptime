@@ -41,7 +41,7 @@ dependencies:
 - name: cloudnative-pg
   version: "0.28.2"
   repository: "https://cloudnative-pg.github.io/charts"
-  condition: postgresOperator.cnpg.enabled
+  condition: postgresOperator.cnpg.installOperator
 - name: altinity-clickhouse-operator
   version: "0.27.1"
   repository: "https://helm.altinity.com/"

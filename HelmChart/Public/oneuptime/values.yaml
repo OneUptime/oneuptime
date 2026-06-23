@@ -182,7 +182,7 @@ postgresql:
 postgresOperator:
   cnpg:
     enabled: false
-    # 1 = single primary. >1 = primary + (N-1) hot standbys for HA.
+    installOperator: true
     instances: 1
     # Synchronous (quorum) replication. 0 = async streaming (default).
     # When > 0, every commit waits for this many standbys to confirm the write
@@ -1290,7 +1290,7 @@ keda:
   enabled: true
 
 # CloudNativePG operator — bundled dependency. Installed ONLY when
-# postgresOperator.cnpg.enabled is true (see the condition in Chart.yaml).
+# postgresOperator.cnpg.installOperator is true (see the condition in Chart.yaml).
 # Full operator values: https://github.com/cloudnative-pg/charts/tree/main/charts/cloudnative-pg
 cloudnative-pg:
   # Install the CloudNativePG CRDs together with the operator.
