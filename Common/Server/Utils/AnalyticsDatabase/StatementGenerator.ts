@@ -6,6 +6,14 @@ import Sort from "../../Types/AnalyticsDatabase/Sort";
 import UpdateBy from "../../Types/AnalyticsDatabase/UpdateBy";
 import logger from "../Logger";
 import { SQL, Statement } from "./Statement";
+import {
+  adaptTableSettingsForStorage,
+  getDistributedEngine,
+  getStorageEngine,
+  getStorageTableName,
+  isClickhouseClustered,
+  onClusterClause,
+} from "./ClusterConfig";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import CommonModel, {
   Record as AnalyticsRecord,
@@ -78,12 +86,24 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     const setStatement: Statement = this.toSetStatement(updateBy.data);
     const whereStatement: Statement = this.toWhereStatement(updateBy.query);
 
+    /*
+     * `ALTER TABLE … UPDATE` is a mutation and cannot target a Distributed
+     * table, so in cluster mode it runs against the local storage table and is
+     * dispatched to every shard via ON CLUSTER (replicated within each shard by
+     * Keeper). onClusterClause() is appended as RAW SQL — it is not an
+     * identifier and must not become a {pN:Identifier} parameter — and is empty
+     * in single-node mode, leaving the original statement unchanged.
+     */
     /* eslint-disable prettier/prettier */
     const statement: Statement = SQL`
-            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
-              this.model.tableName
-            }
-            UPDATE `
+            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${getStorageTableName(
+              this.model.tableName,
+            )}`
+      .append(onClusterClause())
+      .append(
+        SQL`
+            UPDATE `,
+      )
       .append(setStatement)
       .append(
         SQL`
@@ -1089,9 +1109,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   ): Promise<Statement> {
     const statement: string = `ALTER TABLE ${
       this.database.getDatasourceOptions().database
-    }.${
-      this.model.tableName
-    } RENAME COLUMN IF EXISTS ${oldColumnName} TO ${newColumnName}`;
+    }.${getStorageTableName(
+      this.model.tableName,
+    )} RENAME COLUMN IF EXISTS ${oldColumnName} TO ${newColumnName}`;
 
     return SQL`${statement}`;
   }
@@ -1309,9 +1329,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     }
 
     const statement: Statement = SQL`
-            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
-              this.model.tableName
-            } ADD COLUMN IF NOT EXISTS `.append(columnDef);
+            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${getStorageTableName(
+              this.model.tableName,
+            )} ADD COLUMN IF NOT EXISTS `.append(columnDef);
 
     logger.debug(`${this.model.tableName} Add Column Statement`);
     logger.debug(statement);
@@ -1341,7 +1361,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     const databaseName: string = this.database.getDatasourceOptions().database!;
     const statement: Statement = new Statement();
     statement.append(
-      `ALTER TABLE ${databaseName}.${this.model.tableName} ADD INDEX IF NOT EXISTS ${idx.name} ${columnExpr} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`,
+      `ALTER TABLE ${databaseName}.${getStorageTableName(this.model.tableName)} ADD INDEX IF NOT EXISTS ${idx.name} ${columnExpr} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`,
     );
 
     logger.debug(`${this.model.tableName} Add Skip Index Statement`);
@@ -1352,7 +1372,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
   public toDropSkipIndexStatement(indexName: string): string {
     const databaseName: string = this.database.getDatasourceOptions().database!;
-    const statement: string = `ALTER TABLE ${databaseName}.${this.model.tableName} DROP INDEX IF EXISTS ${indexName}`;
+    const statement: string = `ALTER TABLE ${databaseName}.${getStorageTableName(this.model.tableName)} DROP INDEX IF EXISTS ${indexName}`;
 
     logger.debug(`${this.model.tableName} Drop Skip Index Statement`);
     logger.debug(statement);
@@ -1362,7 +1382,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
   public toDropColumnStatement(columnName: string): string {
     const statement: string = `ALTER TABLE ${this.database.getDatasourceOptions()
-      .database!}.${this.model.tableName} DROP COLUMN IF EXISTS ${columnName}`;
+      .database!}.${getStorageTableName(
+      this.model.tableName,
+    )} DROP COLUMN IF EXISTS ${columnName}`;
 
     logger.debug(`${this.model.tableName} Drop Column Statement`);
     logger.debug(statement);
@@ -1377,16 +1399,40 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     );
 
     /*
-     * special case - ClickHouse does not support using a query parameter
-     * to specify the table engine
+     * special case - ClickHouse does not support using a query parameter to
+     * specify the table name, engine, or ON CLUSTER clause, so these are
+     * interpolated as raw SQL (the SQL tag only parameterizes ${{value,type}}
+     * objects, not plain string interpolations).
+     *
+     * In cluster mode this builds the LOCAL storage table
+     * (`<tableName>Local` with a Replicated* engine) `ON CLUSTER '<name>'`; the
+     * app-facing Distributed table is created separately via
+     * toDistributedTableCreateStatement(). In single-node mode it builds the
+     * model's own table with its plain engine, exactly as before.
      */
-    const tableEngineStatement: string = this.model.tableEngine;
+    const tableEngineStatement: string = getStorageEngine(
+      this.model.tableEngine,
+    );
+
+    const storageTableName: string = getStorageTableName(this.model.tableName);
+
+    const onCluster: string = onClusterClause();
 
     const partitionKey: string = this.model.partitionKey;
 
     const statement: Statement = SQL`
-            CREATE TABLE IF NOT EXISTS ${databaseName}.${this.model.tableName}
-            (\n`
+            CREATE TABLE IF NOT EXISTS ${databaseName}.${storageTableName}`
+      /*
+       * ON CLUSTER is appended as RAW SQL — the SQL tag turns every ${..}
+       * interpolation into a {pN:Identifier} parameter, which would wrongly
+       * quote the whole " ON CLUSTER '<name>'" clause as a single identifier.
+       * onCluster is "" in single-node mode, so this is a no-op there.
+       */
+      .append(onCluster)
+      .append(
+        SQL`
+            (\n`,
+      )
       .append(columnsStatement)
       .append(
         SQL`
@@ -1426,15 +1472,53 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     /*
      * Append table-level SETTINGS if specified (e.g. ttl_only_drop_parts = 1
-     * so TTL drops whole time-partitions instead of rewriting parts).
+     * so TTL drops whole time-partitions instead of rewriting parts). In
+     * cluster mode the non-replicated dedup window is rewritten to its
+     * replicated equivalent so insert idempotency survives.
      */
-    if (this.model.tableSettings) {
-      statement.append(`\nSETTINGS ${this.model.tableSettings}`);
+    const tableSettings: string | undefined = adaptTableSettingsForStorage(
+      this.model.tableSettings,
+    );
+    if (tableSettings) {
+      statement.append(`\nSETTINGS ${tableSettings}`);
     }
 
     /* eslint-enable prettier/prettier */
 
     logger.debug(`${this.model.tableName} Table Create Statement`);
+    logger.debug(statement);
+
+    return statement;
+  }
+
+  /*
+   * The app-facing Distributed table that wraps the local storage table when
+   * clustered. Returns null in single-node mode (the model's own table IS the
+   * storage table). Built with `AS <db>.<local>` so its column layout is copied
+   * from — and stays identical to — the local table, and with
+   * `CREATE OR REPLACE` so re-running it every boot atomically re-syncs the
+   * wrapper after a column is reconciled onto the local table (the Distributed
+   * table holds no data, so the replace is cheap and lossless). The Distributed
+   * engine routes writes by the configured sharding key and scatter-gathers
+   * reads across all shards.
+   */
+  public toDistributedTableCreateStatement(): Statement | null {
+    if (!isClickhouseClustered()) {
+      return null;
+    }
+
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+    const distributedTableName: string = this.model.tableName;
+    const localTableName: string = getStorageTableName(this.model.tableName);
+    const onCluster: string = onClusterClause();
+    const distributedEngine: string = getDistributedEngine(localTableName);
+
+    const statement: Statement = new Statement();
+    statement.append(
+      `CREATE OR REPLACE TABLE ${databaseName}.${distributedTableName}${onCluster} AS ${databaseName}.${localTableName} ENGINE = ${distributedEngine}`,
+    );
+
+    logger.debug(`${this.model.tableName} Distributed Table Create Statement`);
     logger.debug(statement);
 
     return statement;

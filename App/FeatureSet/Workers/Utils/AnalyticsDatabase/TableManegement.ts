@@ -12,6 +12,7 @@ import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
 import Projection from "Common/Types/AnalyticsDatabase/Projection";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
+import { getStorageTableName } from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
 
 /**
  * A column as it physically exists in ClickHouse (read from
@@ -63,6 +64,20 @@ export default class AnalyticsTableManagement {
        */
       await this.reconcileSkipIndexes(service);
       await this.reconcileProjections(service);
+
+      /*
+       * In cluster mode the model's tableName is a Distributed table that wraps
+       * the local `<tableName>Local` table created above. (Re)create it AFTER
+       * the local table's columns / indexes / projections are reconciled so the
+       * Distributed layout always matches the local one (CREATE OR REPLACE is an
+       * atomic, data-less swap). Returns null — and is skipped — in single-node
+       * mode, where the model's table IS the storage table.
+       */
+      const distributedStatement: Statement | null =
+        service.statementGenerator.toDistributedTableCreateStatement();
+      if (distributedStatement) {
+        await service.execute(distributedStatement);
+      }
     }
   }
 
@@ -135,7 +150,7 @@ export default class AnalyticsTableManagement {
     service: AnalyticsDatabaseService<AnalyticsBaseModel>,
   ): Promise<Map<string, ExistingColumn>> {
     const escapedTableName: string = this.escapeForQuery(
-      service.model.tableName,
+      getStorageTableName(service.model.tableName),
     );
 
     const result: Results = await service.executeQuery(
@@ -235,7 +250,7 @@ export default class AnalyticsTableManagement {
     service: AnalyticsDatabaseService<AnalyticsBaseModel>,
   ): Promise<Set<string>> {
     const escapedTableName: string = this.escapeForQuery(
-      service.model.tableName,
+      getStorageTableName(service.model.tableName),
     );
 
     const result: Results = await service.executeQuery(
@@ -808,7 +823,13 @@ export default class AnalyticsTableManagement {
     }
 
     const escapedDatabase: string = this.escapeIdentifier(databaseName);
-    const escapedTable: string = this.escapeIdentifier(service.model.tableName);
+    /*
+     * Projections live on the physical (local) storage table — in cluster mode
+     * `<tableName>Local`, otherwise the model's own table.
+     */
+    const escapedTable: string = this.escapeIdentifier(
+      getStorageTableName(service.model.tableName),
+    );
 
     for (const projection of projections) {
       let exists: boolean;
@@ -870,7 +891,7 @@ export default class AnalyticsTableManagement {
 
     const escapedDatabaseName: string = this.escapeForQuery(databaseName);
     const escapedTableName: string = this.escapeForQuery(
-      service.model.tableName,
+      getStorageTableName(service.model.tableName),
     );
     const escapedProjectionName: string = this.escapeForQuery(projectionName);
 
@@ -910,7 +931,9 @@ export default class AnalyticsTableManagement {
     }
 
     const escapedDatabase: string = this.escapeIdentifier(databaseName);
-    const escapedTable: string = this.escapeIdentifier(service.model.tableName);
+    const escapedTable: string = this.escapeIdentifier(
+      getStorageTableName(service.model.tableName),
+    );
     const escapedProjection: string = this.escapeIdentifier(projectionName);
 
     const statement: string = `ALTER TABLE ${escapedDatabase}.${escapedTable} MATERIALIZE PROJECTION ${escapedProjection}`;

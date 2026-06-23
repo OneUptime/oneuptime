@@ -426,6 +426,32 @@ export const MaxClickhouseIngestConnections: number = parseInt(
   10,
 );
 
+/*
+ * Cluster awareness. When CLICKHOUSE_CLUSTER_NAME is non-empty the analytics
+ * schema is created as Distributed tables over local ReplicatedMergeTree
+ * tables `ON CLUSTER '<name>'`, giving HA and consistent reads across nodes.
+ * Empty (the default) preserves the historical single-node behaviour: plain
+ * MergeTree, no ON CLUSTER, no Distributed wrapper. The name must match the
+ * cluster defined in the ClickHouse config / Altinity ClickHouseInstallation
+ * (the bundled operator names its cluster 'oneuptime').
+ *
+ * NOTE: the live, test-toggleable readers live in
+ * Common/Server/Utils/AnalyticsDatabase/ClusterConfig.ts (which reads
+ * process.env directly). These consts mirror the same keys/defaults and exist
+ * so the env surface is discoverable here alongside the other CLICKHOUSE_* vars.
+ */
+export const ClickhouseClusterName: string =
+  process.env["CLICKHOUSE_CLUSTER_NAME"] || "";
+
+/*
+ * Sharding-key expression for the Distributed tables created in cluster mode.
+ * Defaults to cityHash64(projectId) so a project's rows — hence all spans of a
+ * trace — co-locate on a single shard. Only used when ClickhouseClusterName is
+ * set.
+ */
+export const ClickhouseShardingKey: string =
+  process.env["CLICKHOUSE_SHARDING_KEY"] || "cityHash64(projectId)";
+
 export const GitSha: string = process.env["GIT_SHA"] || "unknown";
 
 export const AppVersion: string = process.env["APP_VERSION"] || "unknown";
