@@ -26,9 +26,11 @@ import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType
 const CLUSTER_ENV_KEY: string = "CLICKHOUSE_CLUSTER_NAME";
 const SHARDING_ENV_KEY: string = "CLICKHOUSE_SHARDING_KEY";
 
-// Flatten a Statement into a single string (raw SQL + serialized identifier
-// params) so assertions don't have to care whether a name landed in the query
-// text or in query_params as a {pN:Identifier} parameter.
+/*
+ * Flatten a Statement into a single string (raw SQL + serialized identifier
+ * params) so assertions don't have to care whether a name landed in the query
+ * text or in query_params as a {pN:Identifier} parameter.
+ */
 function fullText(statement: Statement | string): string {
   if (typeof statement === "string") {
     return statement;

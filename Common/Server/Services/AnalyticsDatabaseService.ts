@@ -535,8 +535,10 @@ export default class AnalyticsDatabaseService<
     codec: string;
     expectedCodecValue: string;
   }): Promise<void> {
-    // MODIFY COLUMN on the local table; ReplicatedMergeTree fans the codec
-    // change out to the other replicas through Keeper.
+    /*
+     * MODIFY COLUMN on the local table; ReplicatedMergeTree fans the codec
+     * change out to the other replicas through Keeper.
+     */
     const tableName: string = getStorageTableName(this.model.tableName);
     const currentCodec: string = await this.getColumnCodec(data.columnName);
 

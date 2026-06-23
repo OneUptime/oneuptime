@@ -67,9 +67,11 @@ export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
     const cluster: string = getClickhouseClusterName();
     const failures: Array<string> = [];
 
-    // 1. Drop legacy single-node materialized views (rebuilt cluster-correctly
-    //    in step 3 below). ON CLUSTER + SYNC so the drop reaches every node and
-    //    completes before the rebuild.
+    /*
+     * 1. Drop legacy single-node materialized views (rebuilt cluster-correctly
+     *    in step 3 below). ON CLUSTER + SYNC so the drop reaches every node and
+     *    completes before the rebuild.
+     */
     for (const service of AnalyticsServices) {
       const materializedViews: Array<MaterializedView> =
         service.model.materializedViews || [];
@@ -100,8 +102,10 @@ export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
       }
     }
 
-    // 3. Rebuild materialized views cluster-correctly (ON CLUSTER, reading the
-    //    local source, writing the local target).
+    /*
+     * 3. Rebuild materialized views cluster-correctly (ON CLUSTER, reading the
+     *    local source, writing the local target).
+     */
     try {
       await AnalyticsTableManagement.createMaterializedViews();
     } catch (err) {
@@ -130,8 +134,10 @@ export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
     const localTable: string = getStorageTableName(table); // `${table}Local`
     const preclustered: string = `${table}${PRECLUSTER_SUFFIX}`;
 
-    const engine: string | null =
-      await AnalyticsTableManagement.getTableEngine(service, table);
+    const engine: string | null = await AnalyticsTableManagement.getTableEngine(
+      service,
+      table,
+    );
     const backupEngine: string | null =
       await AnalyticsTableManagement.getTableEngine(service, preclustered);
 
@@ -150,8 +156,10 @@ export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
     }
 
     if (engine === null && backupEngine === null) {
-      // Fresh install: no legacy table and no backup. The boot sync owns
-      // creating the Distributed wrapper.
+      /*
+       * Fresh install: no legacy table and no backup. The boot sync owns
+       * creating the Distributed wrapper.
+       */
       logger.info(
         `ConvertAnalyticsTablesToCluster: ${table} has no legacy data to convert - skipping.`,
       );
@@ -167,8 +175,10 @@ export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
     // Ensure the local Replicated storage table exists.
     await service.execute(service.statementGenerator.toTableCreateStatement());
 
-    // Move the legacy table aside (only if it has not been moved already by an
-    // interrupted prior run).
+    /*
+     * Move the legacy table aside (only if it has not been moved already by an
+     * interrupted prior run).
+     */
     if (engine !== null && backupEngine === null) {
       await service.execute(
         `RENAME TABLE ${table} TO ${preclustered}${onClusterClause()}`,
@@ -183,9 +193,11 @@ export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
       await service.execute(distributedStatement);
     }
 
-    // Copy legacy rows back through the Distributed table (re-sharded +
-    // replicated). Only columns present in BOTH the legacy table and the model
-    // are copied; new columns take their defaults.
+    /*
+     * Copy legacy rows back through the Distributed table (re-sharded +
+     * replicated). Only columns present in BOTH the legacy table and the model
+     * are copied; new columns take their defaults.
+     */
     const targetColumns: Array<string> = await this.getColumns(
       service,
       localTable,
@@ -217,10 +229,12 @@ export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
       `INSERT INTO ${table} (${columnList}) SELECT ${columnList} FROM clusterAllReplicas('${cluster}', currentDatabase(), ${preclustered})`,
     );
 
-    // Verify before dropping the backup. The Distributed count spans all shards;
-    // the clusterAllReplicas count spans EVERY node's backup (so the check can't
-    // be fooled by data sitting on an un-read replica). Never drop on a shortfall
-    // — leave the backup for manual recovery.
+    /*
+     * Verify before dropping the backup. The Distributed count spans all shards;
+     * the clusterAllReplicas count spans EVERY node's backup (so the check can't
+     * be fooled by data sitting on an un-read replica). Never drop on a shortfall
+     * — leave the backup for manual recovery.
+     */
     const newCount: number = await this.count(service, `${table}`);
     const oldCount: number = await this.countFrom(
       service,

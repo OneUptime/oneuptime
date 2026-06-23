@@ -356,9 +356,11 @@ describe("AnalyticsDatabaseService", () => {
         tableName: "<table-name>",
       });
 
-      // Cluster mode: deletes are an ALTER ... DELETE mutation on the local
-      // table, dispatched ON CLUSTER (lightweight DELETE can't hit a Distributed
-      // table).
+      /*
+       * Cluster mode: deletes are an ALTER ... DELETE mutation on the local
+       * table, dispatched ON CLUSTER (lightweight DELETE can't hit a Distributed
+       * table).
+       */
       expect(statement.query).toBe(
         "ALTER TABLE {p0:Identifier}.{p1:Identifier} ON CLUSTER 'oneuptime'\n" +
           "DELETE WHERE TRUE <where-statement>",

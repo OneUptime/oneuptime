@@ -164,8 +164,10 @@ GROUP BY projectId, name, primaryEntityId, bucketTime`,
       sortKeys: ["projectId", "name", "primaryEntityId", "bucketTime"],
       primaryKeys: ["projectId", "name", "primaryEntityId", "bucketTime"],
       partitionKey: "toYYYYMM(bucketTime)",
-      // Match the source Metric sharding (the series) so each series' rollup
-      // states stay on a single shard — no cross-shard partial-state merge.
+      /*
+       * Match the source Metric sharding (the series) so each series' rollup
+       * states stay on a single shard — no cross-shard partial-state merge.
+       */
       shardingKey: "cityHash64(projectId, name, primaryEntityId)",
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
