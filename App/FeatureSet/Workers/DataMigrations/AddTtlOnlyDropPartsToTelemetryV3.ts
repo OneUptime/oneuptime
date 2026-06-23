@@ -18,6 +18,10 @@ export default class AddTtlOnlyDropPartsToTelemetryV3 extends DataMigrationBase 
     super("AddTtlOnlyDropPartsToTelemetryV3");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     const tables: Array<string> = [
       "LogItemV3",

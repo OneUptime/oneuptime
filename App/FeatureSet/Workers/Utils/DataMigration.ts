@@ -8,6 +8,7 @@ import PostgresDatabase, {
   DatabaseQueryRunner,
   DatabaseSource,
 } from "Common/Server/Infrastructure/PostgresDatabase";
+import { isClickhouseClustered } from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
 
 /*
  * A fixed, app-specific label for the Postgres session-level advisory lock
@@ -76,6 +77,31 @@ const RunDatabaseMigrations: PromiseVoidFunction = async (): Promise<void> => {
         if (existingMigration) {
           logger.debug("Skipping Database Migration:" + migration.name, {
             service: "workers",
+          });
+          continue;
+        }
+
+        /*
+         * Baseline legacy ClickHouse schema migrations on a clustered
+         * ClickHouse: the boot schema-sync already built the full cluster
+         * schema, and running these single-node DDL migrations against the
+         * Distributed / *Local tables would fail and halt the chain. Record
+         * them as executed without running them. No effect in single-node mode.
+         */
+        if (isClickhouseClustered() && !migration.runsInClusterMode()) {
+          logger.info(
+            "Baselining Database Migration on clustered ClickHouse (recorded without running): " +
+              migration.name,
+          );
+          const baselined: DataMigration = new DataMigration();
+          baselined.name = migration.name;
+          baselined.executed = true;
+          baselined.executedAt = OneUptimeDate.getCurrentDate();
+          await DataMigrationService.create({
+            data: baselined,
+            props: {
+              isRoot: true,
+            },
           });
           continue;
         }

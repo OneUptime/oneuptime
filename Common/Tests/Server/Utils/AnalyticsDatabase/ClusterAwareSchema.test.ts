@@ -7,6 +7,7 @@ import {
 import UpdateBy from "../../../../Server/Types/AnalyticsDatabase/UpdateBy";
 import {
   adaptTableSettingsForStorage,
+  applyClusterToMaterializedViewQuery,
   getClickhouseClusterName,
   getClickhouseShardingKey,
   getDistributedEngine,
@@ -118,6 +119,39 @@ describe("ClickHouse cluster-aware schema", () => {
       process.env[CLUSTER_ENV_KEY] = "   ";
       expect(isClickhouseClustered()).toBe(false);
       expect(getStorageTableName("SpanItemV3")).toBe("SpanItemV3");
+    });
+  });
+
+  describe("applyClusterToMaterializedViewQuery", () => {
+    const MV_QUERY: string = `CREATE MATERIALIZED VIEW IF NOT EXISTS MetricItemAggMV1m_mv
+TO MetricItemAggMV1m
+AS
+SELECT
+  projectId,
+  toStartOfMinute(time) AS bucketTime,
+  sumState(toFloat64(coalesce(value, sum, 0))) AS valueSumState
+FROM MetricItemV3
+GROUP BY projectId, bucketTime`;
+
+    test("single-node: returns the query unchanged", () => {
+      delete process.env[CLUSTER_ENV_KEY];
+      expect(applyClusterToMaterializedViewQuery(MV_QUERY)).toBe(MV_QUERY);
+    });
+
+    test("clustered: injects ON CLUSTER and retargets TO/FROM at local tables", () => {
+      enableCluster("prod_cluster");
+      const out: string = applyClusterToMaterializedViewQuery(MV_QUERY);
+      expect(out).toContain(
+        "CREATE MATERIALIZED VIEW IF NOT EXISTS MetricItemAggMV1m_mv ON CLUSTER 'prod_cluster'",
+      );
+      expect(out).toContain("TO MetricItemAggMV1mLocal");
+      expect(out).toContain("FROM MetricItemV3Local");
+      // aggregate columns / time bucketing must NOT be rewritten
+      expect(out).toContain("toStartOfMinute(time) AS bucketTime");
+      expect(out).toContain("sumState(toFloat64(coalesce(value, sum, 0)))");
+      // no double-suffixing or stray edits
+      expect(out).not.toContain("MetricItemAggMV1mLocalLocal");
+      expect(out).not.toContain("MetricItemV3LocalLocal");
     });
   });
 

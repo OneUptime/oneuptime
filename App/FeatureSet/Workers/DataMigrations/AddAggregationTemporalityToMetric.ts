@@ -9,6 +9,10 @@ export default class AddAggregationTemporalityToMetric extends DataMigrationBase
     super("AddAggregationTemporalityToMetric");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     const column: AnalyticsTableColumn | undefined =
       new Metric().tableColumns.find((column: AnalyticsTableColumn) => {

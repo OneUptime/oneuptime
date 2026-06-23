@@ -65,6 +65,10 @@ export default class RebuildMetricAggTablesMissingPrimaryEntityId extends DataMi
     super("RebuildMetricAggTablesMissingPrimaryEntityId");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     const targets: Array<AnalyticsDatabaseService<AnalyticsBaseModel>> = [
       MetricItemAggMV1mService,

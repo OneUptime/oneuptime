@@ -17,6 +17,10 @@ export default class AddGorillaCodecToMetricValues extends DataMigrationBase {
     super("AddGorillaCodecToMetricValues");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     for (const column of ["value", "sum", "min", "max"]) {
       try {

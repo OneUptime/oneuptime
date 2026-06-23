@@ -127,3 +127,54 @@ export function adaptTableSettingsForStorage(
     "replicated_deduplication_window",
   );
 }
+
+/*
+ * Rewrite a model's canonical `CREATE MATERIALIZED VIEW … TO <target> AS SELECT
+ * … FROM <source> …` statement for cluster mode:
+ *
+ *   1. inject `ON CLUSTER '<name>'` after the view name, so the trigger exists
+ *      on every node;
+ *   2. point `TO <target>` at the LOCAL target table (`<target>Local`), so each
+ *      shard aggregates into its own replicated table;
+ *   3. point `FROM <source>` at the LOCAL source table (`<source>Local`), so the
+ *      MV fires per-shard on local inserts rather than on the Distributed table.
+ *
+ * The Distributed wrapper over the target (created by the agg model's own
+ * CREATE) then scatter-gathers reads across shards. No-op in single-node mode.
+ *
+ * The replacements are deliberately precise: only the FIRST `TO`/`FROM` clause
+ * (the view's target/source) is rewritten, matched on the uppercase keyword our
+ * canonical definitions use — so `toStartOfMinute(...)` and aggregate columns
+ * are never touched. OneUptime MV definitions are single-source with no JOINs or
+ * subqueries, which this relies on.
+ */
+export function applyClusterToMaterializedViewQuery(query: string): string {
+  if (!isClickhouseClustered()) {
+    return query;
+  }
+
+  const cluster: string = getClickhouseClusterName();
+
+  let result: string = query.replace(
+    /^(\s*CREATE\s+MATERIALIZED\s+VIEW\s+(?:IF\s+NOT\s+EXISTS\s+)?[A-Za-z_][A-Za-z0-9_]*)/,
+    (match: string): string => {
+      return `${match} ON CLUSTER '${cluster}'`;
+    },
+  );
+
+  result = result.replace(
+    /(\bTO\s+)([A-Za-z_][A-Za-z0-9_]*)/,
+    (_match: string, lead: string, table: string): string => {
+      return `${lead}${getStorageTableName(table)}`;
+    },
+  );
+
+  result = result.replace(
+    /(\bFROM\s+)([A-Za-z_][A-Za-z0-9_]*)/,
+    (_match: string, lead: string, table: string): string => {
+      return `${lead}${getStorageTableName(table)}`;
+    },
+  );
+
+  return result;
+}

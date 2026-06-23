@@ -12,7 +12,11 @@ import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
 import Projection from "Common/Types/AnalyticsDatabase/Projection";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
-import { getStorageTableName } from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
+import {
+  applyClusterToMaterializedViewQuery,
+  getStorageTableName,
+  onClusterClause,
+} from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
 
 /**
  * A column as it physically exists in ClickHouse (read from
@@ -67,18 +71,88 @@ export default class AnalyticsTableManagement {
 
       /*
        * In cluster mode the model's tableName is a Distributed table that wraps
-       * the local `<tableName>Local` table created above. (Re)create it AFTER
-       * the local table's columns / indexes / projections are reconciled so the
-       * Distributed layout always matches the local one (CREATE OR REPLACE is an
-       * atomic, data-less swap). Returns null — and is skipped — in single-node
-       * mode, where the model's table IS the storage table.
+       * the local `<tableName>Local` table created above. Reconcile it AFTER the
+       * local table's columns / indexes / projections so the Distributed layout
+       * matches. No-op in single-node mode.
        */
-      const distributedStatement: Statement | null =
-        service.statementGenerator.toDistributedTableCreateStatement();
-      if (distributedStatement) {
-        await service.execute(distributedStatement);
-      }
+      await this.reconcileDistributedTable(service);
     }
+  }
+
+  /**
+   * Create (or re-sync) the app-facing Distributed table that wraps a model's
+   * local `<tableName>Local` storage table, in cluster mode only.
+   *
+   * Critical safety: createTables() runs on every boot BEFORE data migrations.
+   * On a cluster-conversion boot the model's table still exists as the legacy
+   * single-node MergeTree holding real data. `CREATE OR REPLACE TABLE … ENGINE
+   * = Distributed` would atomically REPLACE that table — destroying the data —
+   * before the ConvertAnalyticsTablesToCluster migration ever gets to rename and
+   * copy it. So we first inspect the existing engine and refuse to clobber a
+   * non-Distributed table; the converter renames it to `<table>_preclustered`,
+   * after which the model name is free and the Distributed wrapper is created.
+   */
+  private static async reconcileDistributedTable(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+  ): Promise<void> {
+    const distributedStatement: Statement | null =
+      service.statementGenerator.toDistributedTableCreateStatement();
+
+    if (!distributedStatement) {
+      // single-node mode — the model's table IS the storage table.
+      return;
+    }
+
+    const existingEngine: string | null = await this.getTableEngine(
+      service,
+      service.model.tableName,
+    );
+
+    if (existingEngine && !existingEngine.startsWith("Distributed")) {
+      logger.warn({
+        message: `${service.model.tableName} exists as a non-Distributed (${existingEngine}) table holding pre-cluster data. Skipping Distributed-wrapper creation so the data is not clobbered — the ConvertAnalyticsTablesToCluster migration will rename and convert it.`,
+        table: service.model.tableName,
+        engine: existingEngine,
+      });
+      return;
+    }
+
+    await service.execute(distributedStatement);
+  }
+
+  /**
+   * The ClickHouse engine string of a table (e.g. "MergeTree",
+   * "ReplicatedMergeTree", "Distributed"), or null if it does not exist.
+   */
+  public static async getTableEngine(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+    tableName: string,
+  ): Promise<string | null> {
+    const escapedTableName: string = this.escapeForQuery(tableName);
+    let result: Results;
+    try {
+      result = await service.executeQuery(
+        `SELECT engine FROM system.tables WHERE database = currentDatabase() AND name = '${escapedTableName}' LIMIT 1`,
+      );
+    } catch (error) {
+      logger.error({
+        message: `Failed to read engine for ${tableName}`,
+        error: (error as Error).message,
+      });
+      return null;
+    }
+
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    if (!response.data || response.data.length === 0) {
+      return null;
+    }
+
+    const row: JSONObject = response.data[0] as JSONObject;
+    const engine: unknown = row["engine"];
+    return typeof engine === "string" ? engine : null;
   }
 
   /**
@@ -575,7 +649,7 @@ export default class AnalyticsTableManagement {
             await service.execute(
               `DROP VIEW IF EXISTS ${this.escapeIdentifier(
                 materializedView.name,
-              )} SYNC`,
+              )}${onClusterClause()} SYNC`,
             );
           } else {
             /*
@@ -1006,7 +1080,14 @@ export default class AnalyticsTableManagement {
     materializedView: MaterializedView,
   ): Promise<void> {
     try {
-      await service.execute(materializedView.query);
+      /*
+       * In cluster mode this injects ON CLUSTER and retargets the view's
+       * TO/FROM at the local source/target tables; in single-node mode the
+       * canonical query is executed unchanged.
+       */
+      await service.execute(
+        applyClusterToMaterializedViewQuery(materializedView.query),
+      );
     } catch (error) {
       const clickhouseError: { code?: string } = error as { code?: string };
 

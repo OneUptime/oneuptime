@@ -63,6 +63,10 @@ export default class AddIdAndTimestampsToMVTargetTables extends DataMigrationBas
     super("AddIdAndTimestampsToMVTargetTables");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     for (const table of TARGET_TABLES) {
       /*

@@ -29,6 +29,10 @@ export default class ChangeExplicitBoundsToFloat64 extends DataMigrationBase {
     super("ChangeExplicitBoundsToFloat64");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     const column: AnalyticsTableColumn | undefined =
       new Metric().tableColumns.find((c: AnalyticsTableColumn) => {
