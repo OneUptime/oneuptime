@@ -387,6 +387,27 @@ its userlist at startup.
   {{- else }}
   value: {{ $.Values.externalClickhouse.database }}
   {{- end }}
+# Cluster awareness. A non-empty cluster name switches the analytics schema to
+# the sharded + replicated layout (Distributed tables over local
+# ReplicatedMergeTree). It must match the cluster name in the ClickHouse config
+# / ClickHouseInstallation. Only the operator-managed path is a real cluster;
+# the built-in single StatefulSet and external ClickHouse stay single-node
+# (plain MergeTree) with an empty value. The ConvertAnalyticsTablesToCluster
+# data-migration converts any existing data in place on boot.
+- name: CLICKHOUSE_CLUSTER_NAME
+  {{- if $chAltinity.enabled }}
+  value: {{ $chAltinity.cluster.name | default "oneuptime" | squote }}
+  {{- else }}
+  value: ""
+  {{- end }}
+{{- if $chAltinity.enabled }}
+{{- with $chAltinity.cluster.shardingKey }}
+# Optional override of the Distributed sharding-key expression (default in the
+# app: cityHash64(projectId), which co-locates a project's rows on one shard).
+- name: CLICKHOUSE_SHARDING_KEY
+  value: {{ . | squote }}
+{{- end }}
+{{- end }}
 
 
 ## CLICKHOUSE SSL BLOCK

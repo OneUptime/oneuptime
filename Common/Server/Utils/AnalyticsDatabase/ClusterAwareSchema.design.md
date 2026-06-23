@@ -123,10 +123,18 @@ multi-node data (the original incident) the per-node re-insert is what reunifies
 
 - [x] **Phase 1** — config + `ClusterConfig` helper + `StatementGenerator`
   (local Replicated CREATE + Distributed wrapper + ALTER retargeting) + unit tests.
-- [ ] **Phase 2** — materialized-view cluster rewiring (structured MV type).
-- [ ] **Phase 3** — reconcilers + DML target local table; Distributed kept in sync.
-- [ ] **Phase 4** — in-place converter migration.
-- [ ] **Phase 5** — Helm wiring + docs.
+- [x] **Phase 2** — materialized-view cluster rewiring via
+  `applyClusterToMaterializedViewQuery` (injects ON CLUSTER, retargets TO/FROM at
+  `*Local`); MV drift check already tolerant (base names ⊂ `*Local`). + unit tests.
+- [x] **Phase 3** — reconcilers (`system.*` lookups), ALTER/DML (delete/update),
+  and codec/column checks target the local table; `createTables` creates + re-syncs
+  the Distributed wrapper, guarded so it never clobbers legacy single-node data.
+- [x] **Phase 4** — `ConvertAnalyticsTablesToCluster` in-place converter +
+  `DataMigrationBase.runsInClusterMode()` baseline hook + runner support; all legacy
+  ClickHouse-DDL migrations gated off in cluster mode (boot builds the schema).
+- [x] **Phase 5** — Helm: `CLICKHOUSE_CLUSTER_NAME` / `CLICKHOUSE_SHARDING_KEY`
+  wired in `oneuptime.env.runtime`, CHI cluster name shared via
+  `cluster.name`, values + values.schema.json, and `HelmChart/Docs/Clickhouse.md`.
 
 ## Limitations / validation
 

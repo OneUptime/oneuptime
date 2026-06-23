@@ -154,6 +154,53 @@ kubectl get chi <release>-clickhouse-altinity -o wide
 kubectl get pods -l app.kubernetes.io/component=clickhouse-keeper
 ```
 
+#### Cluster-aware analytics schema
+
+A multi-node ClickHouse only stays consistent if the application's tables are
+actually replicated/distributed. OneUptime's analytics tables default to plain
+`MergeTree` (no replication); pointing reads at several un-synced nodes makes a
+span/trace visible only on the fraction of reads that hit the node holding it
+(the "Span not found" / "No spans found" symptom).
+
+When the operator path is enabled the app is therefore put into **cluster mode**:
+the chart sets `CLICKHOUSE_CLUSTER_NAME` (to
+`clickhouseOperator.altinity.cluster.name`, default `oneuptime`, which must match
+the cluster in the `ClickHouseInstallation`). In cluster mode the schema-sync
+creates, for every analytics table `<T>`:
+
+- a **local** table `<T>Local` — `ReplicatedMergeTree` / `ReplicatedAggregatingMergeTree`,
+  created `ON CLUSTER`, so each shard's replicas hold a consistent copy of that
+  shard's data (coordinated by Keeper);
+- a **Distributed** table `<T>` (the name the app reads and writes) —
+  `Distributed('<cluster>', <db>, <T>Local, <shardingKey>)`. Reads scatter-gather
+  across shards; writes route by the sharding key.
+
+The sharding key defaults to `cityHash64(projectId)` (co-locates a project's rows,
+hence all spans of a trace, on one shard). Override with
+`clickhouseOperator.altinity.cluster.shardingKey` if a single tenant is too large
+for one shard. Materialized views are created `ON CLUSTER`, aggregating per-shard
+from the local source into the local target; reads go through the target's
+Distributed wrapper.
+
+Single-node deployments (the built-in `StatefulSet` and external ClickHouse) leave
+`CLICKHOUSE_CLUSTER_NAME` empty and keep the original plain-`MergeTree` schema —
+behaviour is unchanged.
+
+**Converting existing data.** On a fresh operator install the tables are created
+in the cluster layout from the start (nothing to convert). If the operator-managed
+ClickHouse already holds data in plain `MergeTree` tables (e.g. it was scaled to
+multiple nodes before this layout existed), the `ConvertAnalyticsTablesToCluster`
+data-migration converts each table **in place** on boot: it renames the legacy
+`<T>` to `<T>_preclustered`, creates the local + Distributed tables, then
+`INSERT … SELECT FROM cluster(<cluster>, …, <T>_preclustered)` to re-shard and
+replicate the rows (reading from **every** node, so data that was split across
+nodes is reunified), verifies the row count, and only then drops the backup. It is
+idempotent and conservative — a backup is never dropped on a row-count shortfall.
+
+> Run conversions in a maintenance window: the copy streams the whole dataset
+> through one coordinator node and can take a while on large tables. The
+> `*_preclustered` backups preserve the legacy data until the copy is verified.
+
 #### Backups (operator mode)
 
 The Altinity operator has **no built-in snapshot backup** (unlike the Postgres /

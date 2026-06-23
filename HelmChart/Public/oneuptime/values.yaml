@@ -379,9 +379,19 @@ clickhouseOperator:
     # Cluster topology. shardsCount distributes data; replicasCount adds copies for
     # HA. replicasCount > 1 requires a coordinator — keeper.enabled (below) provides
     # one. Scaling is online: change these and `helm upgrade`.
+    #
+    # When this operator path is enabled the OneUptime app runs in cluster mode:
+    # the analytics schema is created as Distributed tables over local
+    # ReplicatedMergeTree tables (CLICKHOUSE_CLUSTER_NAME is set to `name` below).
+    # `name` MUST match the cluster created in the ClickHouseInstallation.
     cluster:
+      name: oneuptime
       shardsCount: 1
       replicasCount: 1
+      # Optional: override the Distributed sharding-key expression. Empty uses the
+      # app default cityHash64(projectId), which co-locates a project's rows — and
+      # therefore all spans of a trace — on a single shard.
+      shardingKey: ""
     # The application user the OneUptime app authenticates as.
     auth:
       username: oneuptime
