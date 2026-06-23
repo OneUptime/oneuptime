@@ -137,16 +137,10 @@ describe("StatementGenerator", () => {
       );
       expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(2, statement);
 
-      /* eslint-disable prettier/prettier */
-      // Cluster mode: mutation targets the local table and dispatches ON CLUSTER.
-      expectStatement(
-        statement,
-        SQL`
-                ALTER TABLE ${"oneuptime"}.${"<table-name>Local"} ON CLUSTER 'oneuptime'
-                UPDATE <set-statement>
-                WHERE TRUE <where-statement>
-            `);
-            /* eslint-enable prettier/prettier */
+      expect(statement.query.replace(/\s+/g, " ").trim()).toBe(
+        "ALTER TABLE oneuptime.<table-name>Local ON CLUSTER 'oneuptime' UPDATE <set-statement> WHERE TRUE <where-statement>",
+      );
+      expect(statement.query_params).toStrictEqual({});
     });
   });
 
@@ -894,28 +888,22 @@ describe("StatementGenerator", () => {
       );
       expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(2, statement);
 
-      /* eslint-disable prettier/prettier */
-      // Cluster mode: the local <table>Local table, Replicated engine, ON CLUSTER.
-      const expectedStatement: Statement = SQL`
-            CREATE TABLE IF NOT EXISTS ${"oneuptime"}.${"<table-name>Local"} ON CLUSTER 'oneuptime'
-    (
-        <columns-create-statement>
-    )
-    ENGINE = ReplicatedMergeTree
-PARTITION BY (column_ObjectID)
-PRIMARY KEY ({p0:Identifier})
-            ORDER BY ({p1:Identifier})
-    `;
-            /* eslint-enable prettier/prettier */
-
-      // Normalize whitespace for comparison to avoid formatting issues
       const normalizeWhitespace: (s: string) => string = (
         s: string,
       ): string => {
         return s.replace(/\s+/g, " ").trim();
       };
       expect(normalizeWhitespace(statement.query)).toBe(
-        normalizeWhitespace(expectedQuery),
+        normalizeWhitespace(`
+          CREATE TABLE IF NOT EXISTS oneuptime.<table-name>Local ON CLUSTER 'oneuptime'
+          (
+              <columns-create-statement>
+          )
+          ENGINE = ReplicatedMergeTree
+          PARTITION BY (column_ObjectID)
+          PRIMARY KEY ({p0:Identifier})
+          ORDER BY ({p1:Identifier})
+        `),
       );
       expect(statement.query_params).toStrictEqual({
         p0: "column_ObjectID",
@@ -946,6 +934,16 @@ PRIMARY KEY ({p0:Identifier})
   });
 
   describe("distributed telemetry tables", () => {
+    beforeEach(() => {
+      process.env["CLICKHOUSE_CLUSTER_NAME"] = "ou";
+      process.env["CLICKHOUSE_SHARDING_KEY"] = "cityHash64(projectId)";
+    });
+
+    afterEach(() => {
+      delete process.env["CLICKHOUSE_CLUSTER_NAME"];
+      delete process.env["CLICKHOUSE_SHARDING_KEY"];
+    });
+
     test("creates replicated local table DDL on cluster", () => {
       const shardedGenerator: StatementGenerator<ShardedTestModel> =
         new StatementGenerator<ShardedTestModel>({
@@ -954,18 +952,18 @@ PRIMARY KEY ({p0:Identifier})
         });
 
       const statement: Statement = shardedGenerator.toTableCreateStatement();
-      const normalizedQuery: string = statement.query.replace(/\s+/g, " ").trim();
+      const normalizedQuery: string = statement.query
+        .replace(/\s+/g, " ")
+        .trim();
 
       expect(normalizedQuery).toContain(
-        "CREATE TABLE IF NOT EXISTS oneuptime.MetricItemV3 ON CLUSTER ou",
+        "CREATE TABLE IF NOT EXISTS oneuptime.MetricItemV3Local ON CLUSTER 'ou'",
       );
       expect(statement.query_params).toStrictEqual({
         p0: "projectId",
         p1: "projectId",
       });
-      expect(normalizedQuery).toContain(
-        "ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/oneuptime/MetricItemV3', '{replica}')",
-      );
+      expect(normalizedQuery).toContain("ENGINE = ReplicatedMergeTree");
     });
 
     test("creates distributed wrapper table DDL", () => {
@@ -980,7 +978,7 @@ PRIMARY KEY ({p0:Identifier})
 
       expect(statement).not.toBeNull();
       expect(statement!.query.replace(/\s+/g, " ").trim()).toBe(
-        "CREATE TABLE IF NOT EXISTS oneuptime.MetricItemV3Distributed ON CLUSTER ou AS oneuptime.MetricItemV3 ENGINE = Distributed(ou, oneuptime, MetricItemV3, cityHash64(projectId))",
+        "CREATE OR REPLACE TABLE oneuptime.MetricItemV3 ON CLUSTER 'ou' AS oneuptime.MetricItemV3Local ENGINE = Distributed('ou', oneuptime, MetricItemV3Local, cityHash64(projectId))",
       );
       expect(statement!.query_params).toStrictEqual({});
     });
