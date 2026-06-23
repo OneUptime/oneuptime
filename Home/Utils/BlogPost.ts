@@ -319,16 +319,68 @@ export default class BlogPostUtil {
     fileName: string,
     authorUsername: string | undefined,
   ): Promise<BlogPostContributor[]> {
-    const keyOf: (contributor: BlogPostContributor) => string = (
-      contributor: BlogPostContributor,
-    ): string => {
-      return contributor.username
-        ? `gh:${contributor.username.toLowerCase()}`
-        : `img:${contributor.profileImageUrl}`;
+    const contributors: BlogPostContributor[] = [];
+
+    /*
+     * Identity de-dup. A person can appear more than once when they commit under
+     * different emails: once with a GitHub noreply email (resolved to a username)
+     * and once with a personal email (resolved to a Gravatar entry whose display
+     * name is often their username or real name). We merge those, preferring the
+     * first-seen entry — and the declared author is always seen first.
+     *
+     * We only trust strong signals so two *different* GitHub users who merely
+     * share a display name are never merged:
+     *   - username  == a seen username
+     *   - Gravatar display name == a seen username (the reported case)
+     *   - Gravatar display name == another Gravatar display name
+     *   - Gravatar display name == the declared author's display name
+     * A GitHub user's display name is never used as a merge key.
+     */
+    const seenUsernames: Set<string> = new Set<string>();
+    const seenGravatarNames: Set<string> = new Set<string>();
+    let authorNameLower: string | null = null;
+
+    const normalize: (value: string | undefined) => string | null = (
+      value: string | undefined,
+    ): string | null => {
+      const normalized: string = (value || "").trim().toLowerCase();
+      return normalized.length > 0 ? normalized : null;
     };
 
-    const contributors: BlogPostContributor[] = [];
-    const seen: Set<string> = new Set<string>();
+    const isDuplicate: (contributor: BlogPostContributor) => boolean = (
+      contributor: BlogPostContributor,
+    ): boolean => {
+      const username: string | null = normalize(contributor.username);
+      const name: string | null = normalize(contributor.name);
+
+      if (username) {
+        // Same GitHub user, or already shown via a Gravatar entry of that name.
+        return seenUsernames.has(username) || seenGravatarNames.has(username);
+      }
+
+      if (name) {
+        return (
+          seenUsernames.has(name) ||
+          seenGravatarNames.has(name) ||
+          name === authorNameLower
+        );
+      }
+
+      return false;
+    };
+
+    const accept: (contributor: BlogPostContributor) => void = (
+      contributor: BlogPostContributor,
+    ): void => {
+      contributors.push(contributor);
+      const username: string | null = normalize(contributor.username);
+      const name: string | null = normalize(contributor.name);
+      if (username) {
+        seenUsernames.add(username);
+      } else if (name) {
+        seenGravatarNames.add(name);
+      }
+    };
 
     // Declared author goes first (with name/bio resolved from Authors.json).
     if (authorUsername) {
@@ -342,20 +394,18 @@ export default class BlogPostUtil {
         githubUrl: `https://github.com/${authorUsername}`,
         profileImageUrl: `https://avatars.githubusercontent.com/${authorUsername}?s=64`,
       };
-      contributors.push(authorContributor);
-      seen.add(keyOf(authorContributor));
+      authorNameLower = normalize(authorContributor.name);
+      accept(authorContributor);
     }
 
     const contributorsByPost: Map<string, BlogPostContributor[]> =
       await this.getContributorsByPost();
 
     for (const contributor of contributorsByPost.get(fileName) || []) {
-      const key: string = keyOf(contributor);
-      if (seen.has(key)) {
+      if (isDuplicate(contributor)) {
         continue;
       }
-      seen.add(key);
-      contributors.push(contributor);
+      accept(contributor);
     }
 
     return contributors;
