@@ -8,6 +8,9 @@ import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import { BlogRootPath } from "./Config";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
+import CodeRepositoryUtil from "Common/Server/Utils/CodeRepository/CodeRepository";
+import logger from "Common/Server/Utils/Logger";
+import crypto from "crypto";
 
 export interface BlogPostAuthor {
   username: string;
@@ -15,6 +18,18 @@ export interface BlogPostAuthor {
   profileImageUrl: string;
   name: string;
   bio?: string | undefined; // optional bio from Authors.json
+}
+
+/*
+ * A person who has contributed to a blog post (derived from git history of the
+ * post folder, plus the declared author). `username`/`githubUrl` are only set
+ * when we can resolve the commit to a GitHub account.
+ */
+export interface BlogPostContributor {
+  username?: string | undefined;
+  name: string;
+  profileImageUrl: string;
+  githubUrl?: string | undefined;
 }
 
 export interface BlogPostBaseProps {
@@ -26,6 +41,8 @@ export interface BlogPostBaseProps {
   tags: string[];
   postDate: string;
   blogUrl: string;
+  // Author first, then other git contributors ordered by commit count.
+  contributors: BlogPostContributor[];
 }
 
 export interface BlogPostHeader extends BlogPostBaseProps {
@@ -37,6 +54,11 @@ export interface BlogPost extends BlogPostBaseProps {
   markdownBody: string;
   socialMediaImageUrl: string;
   author: BlogPostAuthor | null;
+  /*
+   * Status from the post's validation.json (e.g. "validated"), or null when the
+   * post has not been validated yet.
+   */
+  validationStatus: string | null;
 }
 
 export default class BlogPostUtil {
@@ -50,6 +72,11 @@ export default class BlogPostUtil {
   private static tagsCache: string[] | null = null;
   // Cache fully rendered blog posts by fileName
   private static blogPostCache: Map<string, BlogPost> = new Map();
+  // Cache contributors (from git history) keyed by post folder name
+  private static contributorsByPostCache: Map<
+    string,
+    BlogPostContributor[]
+  > | null = null;
 
   public static clearAllCaches(): void {
     this.blogsMetaCache = null;
@@ -57,6 +84,7 @@ export default class BlogPostUtil {
     this.blogPostListCache = null;
     this.tagsCache = null;
     this.blogPostCache.clear();
+    this.contributorsByPostCache = null;
   }
   private static async getBlogsMeta(): Promise<Array<JSONObject>> {
     if (this.blogsMetaCache) {
@@ -108,6 +136,9 @@ export default class BlogPostUtil {
         const formattedPostDate: string =
           this.getFormattedPostDateFromFileName(fileName);
         const postDate: string = this.getPostDateFromFileName(fileName);
+        const authorGitHubUsername: string = blog[
+          "authorGitHubUsername"
+        ] as string;
 
         resultList.push({
           title: blog["title"] as string,
@@ -116,7 +147,11 @@ export default class BlogPostUtil {
           formattedPostDate,
           postDate,
           tags: blog["tags"] as string[],
-          authorGitHubUsername: blog["authorGitHubUsername"] as string,
+          authorGitHubUsername,
+          contributors: await this.buildContributors(
+            fileName,
+            authorGitHubUsername,
+          ),
           blogUrl: `/blog/post/${fileName}/view`,
         });
       }
@@ -258,6 +293,11 @@ export default class BlogPostUtil {
       title,
       description,
       author: blogPostAuthor,
+      contributors: await this.buildContributors(
+        fileName,
+        blogPostAuthor?.username,
+      ),
+      validationStatus: await this.getValidationStatus(fileName),
       htmlBody,
       markdownBody: markdownContent,
       fileName,
@@ -269,6 +309,265 @@ export default class BlogPostUtil {
     };
 
     return blogPost;
+  }
+
+  /*
+   * Build the ordered contributor list for a post: the declared author first,
+   * then every other git contributor (most commits first), de-duplicated.
+   */
+  private static async buildContributors(
+    fileName: string,
+    authorUsername: string | undefined,
+  ): Promise<BlogPostContributor[]> {
+    const keyOf: (contributor: BlogPostContributor) => string = (
+      contributor: BlogPostContributor,
+    ): string => {
+      return contributor.username
+        ? `gh:${contributor.username.toLowerCase()}`
+        : `img:${contributor.profileImageUrl}`;
+    };
+
+    const contributors: BlogPostContributor[] = [];
+    const seen: Set<string> = new Set<string>();
+
+    // Declared author goes first (with name/bio resolved from Authors.json).
+    if (authorUsername) {
+      const authorsMeta: JSONObject = await this.getAuthorsMeta();
+      const authorMeta: JSONObject | undefined = authorsMeta[authorUsername] as
+        | JSONObject
+        | undefined;
+      const authorContributor: BlogPostContributor = {
+        username: authorUsername,
+        name: (authorMeta?.["authorName"] as string) || authorUsername,
+        githubUrl: `https://github.com/${authorUsername}`,
+        profileImageUrl: `https://avatars.githubusercontent.com/${authorUsername}?s=64`,
+      };
+      contributors.push(authorContributor);
+      seen.add(keyOf(authorContributor));
+    }
+
+    const contributorsByPost: Map<string, BlogPostContributor[]> =
+      await this.getContributorsByPost();
+
+    for (const contributor of contributorsByPost.get(fileName) || []) {
+      const key: string = keyOf(contributor);
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      contributors.push(contributor);
+    }
+
+    return contributors;
+  }
+
+  /*
+   * One `git log` pass over the cloned blog repo, bucketed into a map of
+   * post folder name -> contributors (ordered by commit count, most first).
+   * Returns an empty map (callers fall back to the declared author) when the
+   * repo has no git history, e.g. in local dev where it is not cloned.
+   */
+  private static async getContributorsByPost(): Promise<
+    Map<string, BlogPostContributor[]>
+  > {
+    if (this.contributorsByPostCache) {
+      return this.contributorsByPostCache;
+    }
+
+    // Per slug: map of contributor key -> { contributor, commit count }.
+    const countsByPost: Map<
+      string,
+      Map<string, { contributor: BlogPostContributor; count: number }>
+    > = new Map();
+
+    try {
+      const commits: Array<{
+        authorName: string;
+        authorEmail: string;
+        files: Array<string>;
+      }> = await CodeRepositoryUtil.getCommitAuthorsWithFiles({
+        repoPath: BlogRootPath,
+        path: "posts",
+      });
+
+      for (const commit of commits) {
+        const resolved: {
+          key: string;
+          contributor: BlogPostContributor;
+        } | null = this.resolveContributor(
+          commit.authorName,
+          commit.authorEmail,
+        );
+
+        if (!resolved) {
+          continue;
+        }
+
+        // A commit may touch several posts; count it once per post folder.
+        const slugs: Set<string> = new Set<string>();
+        for (const file of commit.files) {
+          const parts: Array<string> = file.split("/");
+          if (parts[0] === "posts" && parts[1]) {
+            slugs.add(parts[1]);
+          }
+        }
+
+        for (const slug of slugs) {
+          let bySlug:
+            | Map<string, { contributor: BlogPostContributor; count: number }>
+            | undefined = countsByPost.get(slug);
+          if (!bySlug) {
+            bySlug = new Map();
+            countsByPost.set(slug, bySlug);
+          }
+
+          const existing:
+            | { contributor: BlogPostContributor; count: number }
+            | undefined = bySlug.get(resolved.key);
+          if (existing) {
+            existing.count++;
+          } else {
+            bySlug.set(resolved.key, {
+              contributor: resolved.contributor,
+              count: 1,
+            });
+          }
+        }
+      }
+    } catch (err) {
+      /*
+       * No git history (shallow clone / not a repo / git missing). Callers fall
+       * back to the declared author only.
+       */
+      logger.debug("BlogPost: unable to derive contributors from git history");
+      logger.debug(err);
+    }
+
+    const result: Map<string, BlogPostContributor[]> = new Map();
+    for (const [slug, bySlug] of countsByPost) {
+      const ordered: BlogPostContributor[] = [...bySlug.values()]
+        .sort(
+          (
+            a: { contributor: BlogPostContributor; count: number },
+            b: { contributor: BlogPostContributor; count: number },
+          ) => {
+            return b.count - a.count;
+          },
+        )
+        .map((entry: { contributor: BlogPostContributor; count: number }) => {
+          return entry.contributor;
+        });
+      result.set(slug, ordered);
+    }
+
+    this.contributorsByPostCache = result;
+    return result;
+  }
+
+  /*
+   * Map a commit's author (name + email) to a contributor. Resolves a GitHub
+   * username from `users.noreply.github.com` emails; otherwise falls back to a
+   * Gravatar identicon. Returns null for bots / unusable identities.
+   */
+  private static resolveContributor(
+    rawName: string,
+    rawEmail: string,
+  ): { key: string; contributor: BlogPostContributor } | null {
+    const name: string = (rawName || "").trim();
+    const email: string = (rawEmail || "").trim().toLowerCase();
+
+    const botPatterns: Array<RegExp> = [
+      /\[bot\]/i,
+      /github-actions/i,
+      /dependabot/i,
+      /web-flow/i,
+      /actions-user/i,
+    ];
+    if (
+      botPatterns.some((pattern: RegExp) => {
+        return pattern.test(name) || pattern.test(email);
+      })
+    ) {
+      return null;
+    }
+
+    /*
+     * GitHub noreply emails: "username@users.noreply.github.com" or
+     * "12345678+username@users.noreply.github.com".
+     */
+    const githubNoReplyMatch: RegExpMatchArray | null = email.match(
+      /^(?:\d+\+)?([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)@users\.noreply\.github\.com$/,
+    );
+    if (githubNoReplyMatch && githubNoReplyMatch[1]) {
+      const username: string = githubNoReplyMatch[1];
+      return {
+        key: `gh:${username.toLowerCase()}`,
+        contributor: {
+          username,
+          name: name || username,
+          githubUrl: `https://github.com/${username}`,
+          profileImageUrl: `https://avatars.githubusercontent.com/${username}?s=64`,
+        },
+      };
+    }
+
+    // Fall back to a stable Gravatar identicon for real emails.
+    if (email && email !== "noreply@github.com") {
+      const hash: string = crypto.createHash("md5").update(email).digest("hex");
+      return {
+        key: `em:${email}`,
+        contributor: {
+          name: name || email,
+          profileImageUrl: `https://www.gravatar.com/avatar/${hash}?d=identicon&s=64`,
+        },
+      };
+    }
+
+    return null;
+  }
+
+  /*
+   * Reads the post's validation.json status (e.g. "validated"), or null when the
+   * post has not been validated yet / the file is absent or malformed.
+   */
+  public static async getValidationStatus(
+    fileName: string,
+  ): Promise<string | null> {
+    const filePath: string = `${BlogRootPath}/posts/${fileName}/validation.json`;
+
+    try {
+      if (!(await LocalFile.doesFileExist(filePath))) {
+        return null;
+      }
+      const content: string = await LocalFile.read(filePath);
+      const json: JSONObject = JSONFunctions.parse(content) as JSONObject;
+      return (json["status"] as string) || null;
+    } catch {
+      return null;
+    }
+  }
+
+  // Renders the post's validation-summary.md to HTML, or null when absent/empty.
+  public static async getValidationSummaryHtml(
+    fileName: string,
+  ): Promise<string | null> {
+    const filePath: string = `${BlogRootPath}/posts/${fileName}/validation-summary.md`;
+
+    try {
+      if (!(await LocalFile.doesFileExist(filePath))) {
+        return null;
+      }
+      const markdownContent: string = await LocalFile.read(filePath);
+      if (!markdownContent || !markdownContent.trim()) {
+        return null;
+      }
+      return await Markdown.convertToHTML(
+        markdownContent,
+        MarkdownContentType.Docs,
+      );
+    } catch {
+      return null;
+    }
   }
 
   private static getPostDateFromFileName(fileName: string): string {

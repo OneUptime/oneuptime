@@ -54,6 +54,11 @@ export default class Execute {
     command: string;
     args: Array<string>;
     cwd: string;
+    /*
+     * Override the child_process default stdout/stderr cap (1 MB). Commands that
+     * can emit large output (e.g. `git log` over a whole repo) should raise this.
+     */
+    maxBuffer?: number | undefined;
   }): Promise<string> {
     return new Promise(
       (
@@ -65,6 +70,7 @@ export default class Execute {
           data.args,
           {
             cwd: data.cwd,
+            ...(data.maxBuffer ? { maxBuffer: data.maxBuffer } : {}),
           },
           (err: ExecException | null, stdout: string, stderr: string) => {
             if (err) {

@@ -17,9 +17,13 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  */
 const BUNDLE_CONTENTS: Array<string> = [
   "Instance version & build",
+  "Runtime & resource usage",
+  "Effective configuration (secrets redacted)",
+  "Component health & datastore capacity",
   "Database migration status",
-  "Postgres schema (structure only)",
-  "ClickHouse schema (structure only)",
+  "Postgres diagnostics (connections, table stats)",
+  "ClickHouse diagnostics (mutations, parts)",
+  "Postgres & ClickHouse schema (structure only)",
 ];
 
 // Trigger a client-side download of the given text content as a file.
@@ -79,7 +83,7 @@ const SupportBundle: FunctionComponent = (): ReactElement => {
   return (
     <Card
       title="Support bundle"
-      description="A diagnostic snapshot you can send to the OneUptime team when you need help with an upgrade or a schema issue."
+      description="A diagnostic snapshot of this instance — version, configuration, component health, migrations and database diagnostics — that you can send to the OneUptime team when you need help."
     >
       <div>
         {error ? (
@@ -126,7 +130,10 @@ const SupportBundle: FunctionComponent = (): ReactElement => {
                 size={SizeProp.Small}
                 className="h-4 w-4 flex-shrink-0 text-gray-400"
               />
-              <span>Structure only — contains no customer data.</span>
+              <span>
+                No secrets or customer data — config is redacted; schema is
+                structure-only.
+              </span>
             </div>
             <Button
               title="Download support bundle"

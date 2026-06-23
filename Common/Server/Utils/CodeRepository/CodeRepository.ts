@@ -385,6 +385,84 @@ export default class CodeRepositoryUtil {
     return hash.trim();
   }
 
+  /**
+   * Returns the author (name + email) and the list of files changed for every
+   * non-merge commit in the repository, newest first. Optionally limited to a
+   * pathspec (e.g. "posts"). Used to derive per-directory contributors.
+   *
+   * Note: a shallow clone (`--depth 1`) only has the latest commit, so this
+   * returns a single contributor unless the repo was cloned with history.
+   */
+  @CaptureSpan()
+  public static async getCommitAuthorsWithFiles(data: {
+    repoPath: string;
+    path?: string | undefined;
+  }): Promise<
+    Array<{
+      authorName: string;
+      authorEmail: string;
+      files: Array<string>;
+    }>
+  > {
+    /*
+     * ASCII record (0x1e) / unit (0x1f) separators never occur in author names,
+     * emails or file paths, so they delimit commits and fields unambiguously.
+     */
+    const recordSeparator: string = "\x1e";
+    const unitSeparator: string = "\x1f";
+
+    const args: Array<string> = [
+      "log",
+      "--no-merges",
+      `--pretty=format:${recordSeparator}%an${unitSeparator}%ae`,
+      "--name-only",
+    ];
+
+    if (data.path) {
+      args.push("--", data.path);
+    }
+
+    const stdout: string = await Execute.executeCommandFile({
+      command: "git",
+      args,
+      cwd: path.resolve(data.repoPath),
+      // git log over a full repo can easily exceed the 1 MB default.
+      maxBuffer: 256 * 1024 * 1024,
+    });
+
+    const commits: Array<{
+      authorName: string;
+      authorEmail: string;
+      files: Array<string>;
+    }> = [];
+
+    for (const record of stdout.split(recordSeparator)) {
+      if (!record.trim()) {
+        continue;
+      }
+
+      const lines: Array<string> = record.split("\n");
+      const header: string = lines.shift() || "";
+      const [authorName, authorEmail] = header.split(unitSeparator);
+
+      const files: Array<string> = lines
+        .map((line: string) => {
+          return line.trim();
+        })
+        .filter((line: string) => {
+          return line.length > 0;
+        });
+
+      commits.push({
+        authorName: (authorName || "").trim(),
+        authorEmail: (authorEmail || "").trim(),
+        files,
+      });
+    }
+
+    return commits;
+  }
+
   @CaptureSpan()
   public static async listFilesInDirectory(data: {
     directoryPath: string;

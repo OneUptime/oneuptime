@@ -740,12 +740,8 @@
                         <%= blogPost.description %>
                     </p>
                     <div class="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500">
-                        <% if(blogPost.author){ %>
-                        <a href="<%- blogPost.author.githubUrl -%>" target="_blank" class="flex items-center space-x-2 group">
-                            <!-- Added explicit width & height to stabilize layout (CLS) -->
-                            <img class="h-8 w-8 rounded-full ring-2 ring-gray-200 group-hover:ring-gray-400 transition" src="<%- blogPost.author.profileImageUrl -%>" alt="<%- blogPost.author.name -%>" width="32" height="32" decoding="async">
-                            <span class="font-medium text-gray-700 group-hover:text-gray-900 transition">@<%- blogPost.author.username -%></span>
-                        </a>
+                        <% if(blogPost.contributors && blogPost.contributors.length > 0){ %>
+                        <%- include('./Partials/ContributorByline', { contributors: blogPost.contributors, date: null, avatarSize: 'h-8 w-8', maxAvatars: 5, textClass: 'text-gray-700' }) -%>
                         <span class="hidden sm:inline select-none">•</span>
                         <span><%- blogPost.formattedPostDate -%></span>
                         <span class="hidden sm:inline select-none">•</span>
@@ -754,7 +750,25 @@
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <span class="sr-only">Reading time</span>
                         </span>
+                        <% if(blogPost.validationStatus === 'validated'){ %>
+                        <button type="button" id="validation-badge" data-file="<%- blogPost.fileName -%>" aria-expanded="false" aria-controls="validation-summary-panel" title="This post's code and technical claims were reviewed. Click to read the validation summary." class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-200 transition-colors duration-200">
+                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                            <span class="font-medium">Validated</span>
+                            <svg id="validation-badge-chevron" class="w-3 h-3 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <% } %>
                     </div>
+                    <% if(blogPost.validationStatus === 'validated'){ %>
+                    <div id="validation-summary-panel" class="hidden mt-6 mx-auto max-w-3xl text-left rounded-2xl border border-emerald-100 bg-emerald-50/40 shadow-sm overflow-hidden">
+                        <div class="px-5 py-3 border-b border-emerald-100 bg-emerald-50/60 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                            <span class="text-sm font-semibold text-emerald-800">Validation summary</span>
+                        </div>
+                        <div id="validation-summary-content" class="px-5 py-4 prose prose-sm prose-gray max-w-none">
+                            <div id="validation-summary-loading" class="text-sm text-gray-500">Loading validation summary…</div>
+                        </div>
+                    </div>
+                    <% } %>
                     <div class="mt-8">
                         <%- include('./Partials/Tags', { blogPost: blogPost }) -%>
                     </div>
@@ -850,6 +864,35 @@
                                             </a>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                            <% } %>
+
+                            <%
+                                // The author card above already shows the lead contributor
+                                // (blogPost.author === contributors[0]); list the rest here.
+                                const leadShown = !!blogPost.author;
+                                const coContributors = (blogPost.contributors || []);
+                                const otherContributors = leadShown ? coContributors.slice(1) : coContributors;
+                            %>
+                            <% if (otherContributors.length > 0) { %>
+                            <div class="mt-8 p-6 sm:p-8 rounded-2xl bg-gray-50/70 border border-gray-200 shadow-sm">
+                                <h3 class="text-sm font-semibold text-gray-900 mb-1"><%- leadShown ? 'Also contributed' : 'Contributors' -%></h3>
+                                <p class="text-xs text-gray-500 mb-4">People who helped write and improve this post.</p>
+                                <div class="flex flex-wrap gap-3">
+                                    <% otherContributors.forEach(function (contributor) { %>
+                                        <% if (contributor.githubUrl) { %>
+                                        <a href="<%- contributor.githubUrl -%>" target="_blank" rel="noopener" class="inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-white border border-gray-200 hover:border-gray-300 shadow-sm transition-all duration-200">
+                                            <img loading="lazy" decoding="async" src="<%- contributor.profileImageUrl -%>" alt="<%- contributor.name -%>" class="h-7 w-7 rounded-full ring-2 ring-white bg-gray-100 object-cover">
+                                            <span class="text-xs font-medium text-gray-700"><%- contributor.username ? ('@' + contributor.username) : contributor.name -%></span>
+                                        </a>
+                                        <% } else { %>
+                                        <span class="inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-white border border-gray-200 shadow-sm">
+                                            <img loading="lazy" decoding="async" src="<%- contributor.profileImageUrl -%>" alt="<%- contributor.name -%>" class="h-7 w-7 rounded-full ring-2 ring-white bg-gray-100 object-cover">
+                                            <span class="text-xs font-medium text-gray-700"><%- contributor.name -%></span>
+                                        </span>
+                                        <% } %>
+                                    <% }); %>
                                 </div>
                             </div>
                             <% } %>
@@ -1271,6 +1314,43 @@
                                 });
                             });
                         });
+                    } catch(e) {}
+
+                    // Validation badge: lazily load the validation summary on first click.
+                    try {
+                        var validationBadge = document.getElementById('validation-badge');
+                        var validationPanel = document.getElementById('validation-summary-panel');
+                        if (validationBadge && validationPanel) {
+                            var validationLoaded = false;
+                            var validationChevron = document.getElementById('validation-badge-chevron');
+                            validationBadge.addEventListener('click', function() {
+                                var isHidden = validationPanel.classList.toggle('hidden');
+                                var expanded = !isHidden;
+                                validationBadge.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+                                if (validationChevron) {
+                                    validationChevron.style.transform = expanded ? 'rotate(180deg)' : '';
+                                }
+                                if (expanded && !validationLoaded) {
+                                    validationLoaded = true;
+                                    var file = validationBadge.dataset.file;
+                                    var content = document.getElementById('validation-summary-content');
+                                    fetch('/blog/post/' + encodeURIComponent(file) + '/validation-summary')
+                                        .then(function(resp) {
+                                            if (!resp.ok) { throw new Error('Not available'); }
+                                            return resp.text();
+                                        })
+                                        .then(function(html) {
+                                            if (content) { content.innerHTML = html; }
+                                        })
+                                        .catch(function() {
+                                            validationLoaded = false;
+                                            if (content) {
+                                                content.innerHTML = '<div class="text-sm text-gray-500">Validation summary is not available for this post.</div>';
+                                            }
+                                        });
+                                }
+                            });
+                        }
                     } catch(e) {}
                 })();
             </script>

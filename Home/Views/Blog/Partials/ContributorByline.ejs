@@ -1,0 +1,42 @@
+<%
+  /*
+   * Renders a blog post byline as an overlapping avatar stack + "By X & N others".
+   * Avatars are non-anchors so this is safe to nest inside a card-level <a>.
+   *
+   * Locals:
+   *   contributors  - BlogPostContributor[] (author first, then git contributors)
+   *   date          - optional formatted date string to append after the names
+   *   avatarSize    - optional tailwind size classes (default "h-8 w-8")
+   *   maxAvatars    - optional max avatars to show (default 4)
+   *   textClass     - optional extra classes for the byline text
+   */
+  const _contributors = (typeof contributors !== 'undefined' && contributors) ? contributors : [];
+  const _avatarSize = (typeof avatarSize !== 'undefined' && avatarSize) ? avatarSize : 'h-8 w-8';
+  const _maxAvatars = (typeof maxAvatars !== 'undefined' && maxAvatars) ? maxAvatars : 4;
+  const _date = (typeof date !== 'undefined') ? date : null;
+  const _textClass = (typeof textClass !== 'undefined' && textClass) ? textClass : 'text-gray-500';
+
+  const _shown = _contributors.slice(0, _maxAvatars);
+  const _displayName = function (c) { return c.username ? ('@' + c.username) : c.name; };
+  let _byline = '';
+  if (_contributors.length === 1) {
+    _byline = 'By ' + _displayName(_contributors[0]);
+  } else if (_contributors.length === 2) {
+    _byline = 'By ' + _displayName(_contributors[0]) + ' & ' + _displayName(_contributors[1]);
+  } else if (_contributors.length > 2) {
+    _byline = 'By ' + _displayName(_contributors[0]) + ' & ' + (_contributors.length - 1) + ' others';
+  }
+%>
+<% if (_contributors.length > 0) { %>
+<div class="flex items-center gap-3">
+  <div class="flex -space-x-2 shrink-0">
+    <% _shown.forEach(function (c) { %>
+      <img loading="lazy" decoding="async" src="<%- c.profileImageUrl -%>" alt="<%- c.name -%>" title="<%- c.name -%>" class="<%- _avatarSize -%> rounded-full ring-2 ring-white shadow-sm bg-gray-100 object-cover">
+    <% }); %>
+  </div>
+  <div class="text-[11px] leading-4 <%- _textClass -%>">
+    <span class="font-medium"><%- _byline -%></span>
+    <% if (_date) { %><br/><span class="text-gray-400"><%- _date -%></span><% } %>
+  </div>
+</div>
+<% } %>
