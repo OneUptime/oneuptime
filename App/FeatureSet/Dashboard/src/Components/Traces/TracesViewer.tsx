@@ -74,6 +74,16 @@ import TraceRecordingRuleDefinition, {
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
 
+/*
+ * Synthetic "Span Type" facet. It is not a real Span column — selecting its
+ * single "Root spans" value drives the same `rootOnly` state as the toolbar
+ * toggle (so the two stay in sync), rather than adding a normal filter chip.
+ * Kept distinct from the backend `isRootSpan` key so it never collides with
+ * generic column-chip query building.
+ */
+const SPAN_TYPE_FACET_KEY: string = "spanType";
+const SPAN_TYPE_ROOT_VALUE: string = "root";
+
 async function postApi(
   path: string,
   data: JSONObject,
@@ -1400,6 +1410,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         "kubernetesClusterId",
         "statusCode",
         "kind",
+        // Backs the "Span Type" facet (root vs non-root counts).
+        "isRootSpan",
         ...Array.from(ATTRIBUTE_FACET_KEYS),
       ],
     };
@@ -1458,6 +1470,23 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           },
         );
       }
+
+      /*
+       * Span Type facet: collapse the backend's root/non-root buckets into a
+       * single "Root spans" choice whose count is the exact number of root
+       * spans in the window. Selecting it drives the same `rootOnly` state as
+       * the toolbar toggle (see SPAN_TYPE_FACET_KEY handling); leaving it
+       * unselected shows all spans (the default).
+       */
+      const rootSpanBucket: FacetValue | undefined = facetsRaw[
+        "isRootSpan"
+      ]?.find((f: FacetValue): boolean => {
+        return f.value === "true" || f.value === "1";
+      });
+      mappedFacets[SPAN_TYPE_FACET_KEY] = [
+        { value: SPAN_TYPE_ROOT_VALUE, count: rootSpanBucket?.count ?? 0 },
+      ];
+      delete mappedFacets["isRootSpan"];
       setFacetData(mappedFacets);
     } else {
       setFacetData({});
@@ -1607,6 +1636,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         valueColorMap: statusColorMap,
         priority: 6,
       },
+      /*
+       * Span Type: a single "Root spans" choice mirroring the toolbar toggle.
+       * Selecting it scopes to root spans (trace entry points); leaving it
+       * unselected shows all spans. Count is the exact number of root spans.
+       */
+      {
+        key: SPAN_TYPE_FACET_KEY,
+        title: "Span Type",
+        valueDisplayMap: { [SPAN_TYPE_ROOT_VALUE]: "Root spans" },
+        priority: 6.5,
+      },
       {
         key: "kind",
         title: "Span Kind",
@@ -1672,6 +1712,16 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     useCallback(
       (facetKey: string, value: string) => {
         /*
+         * Span Type is a synthetic facet that mirrors the toolbar toggle:
+         * selecting "Root spans" sets rootOnly instead of adding a filter
+         * chip, so both surfaces share one source of truth.
+         */
+        if (facetKey === SPAN_TYPE_FACET_KEY) {
+          setRootOnly(value === SPAN_TYPE_ROOT_VALUE);
+          setPage(1);
+          return;
+        }
+        /*
          * Attribute-backed facets (Service Instance / Host Name) filter via
          * the attributes map — store their chips under the same
          * `attributes.<key>` scheme as typed `@key:value` filters so query
@@ -1713,6 +1763,15 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
   const handleRemoveFilter: (facetKey: string, value: string) => void =
     useCallback((facetKey: string, value: string) => {
+      /*
+       * Removing the synthetic Span Type chip clears the root-only scope back
+       * to the default (all spans) — it lives in rootOnly, not activeFilters.
+       */
+      if (facetKey === SPAN_TYPE_FACET_KEY) {
+        setRootOnly(false);
+        setPage(1);
+        return;
+      }
       setActiveFilters((prev: Array<ActiveFilter>): Array<ActiveFilter> => {
         return prev.filter((f: ActiveFilter): boolean => {
           return !(f.facetKey === facetKey && f.value === value);
@@ -1781,13 +1840,32 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         });
       }
     }
-    return [...base, ...activeFilters.map(resolveDisplay)];
+    /*
+     * Surface the root-only scope as a (removable) chip so the Span Type facet
+     * row shows selected and the active-filter bar reflects it. It lives in
+     * `rootOnly`, not `activeFilters`, so it's injected here for display only —
+     * removing it routes to handleRemoveFilter, which clears rootOnly. Shown
+     * only when active; the default (all spans) is the no-chip state, matching
+     * every other facet.
+     */
+    const spanTypeChip: Array<ActiveFilter> = rootOnly
+      ? [
+          {
+            facetKey: SPAN_TYPE_FACET_KEY,
+            value: SPAN_TYPE_ROOT_VALUE,
+            displayKey: "Span Type",
+            displayValue: "Root spans",
+          },
+        ]
+      : [];
+    return [...base, ...activeFilters.map(resolveDisplay), ...spanTypeChip];
   }, [
     props.primaryEntityId,
     props.attributeFilters,
     props.attributeFilterDisplayKeys,
     activeFilters,
     facetConfigs,
+    rootOnly,
   ]);
 
   /*

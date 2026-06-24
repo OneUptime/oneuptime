@@ -568,6 +568,94 @@ export class TraceAggregationService {
     return { serviceCounts, statusCounts };
   }
 
+  /*
+   * Exact root-span vs non-root-span counts over the full window, backing the
+   * "Span Type" sidebar facet. Like getResourceFacetCounts this rides the
+   * proj_hist_by_minute aggregate projection (isRootSpan is a projection key),
+   * so it reads a few pre-aggregated minute rows in single-digit ms rather than
+   * scanning raw spans — same toStartOfMinute()/optimize_use_projections
+   * requirements apply.
+   *
+   * rootOnly is deliberately forced OFF here: a facet must not filter by its
+   * own dimension, or the unselected bucket would always read 0 and the user
+   * could never see how many root vs non-root spans exist (the exact confusion
+   * the facet is meant to resolve). Every OTHER active filter (service /
+   * status / ...) still applies, so the counts narrow with the rest of the
+   * sidebar.
+   */
+  @CaptureSpan()
+  public static async getRootSpanCounts(request: MultiFacetRequest): Promise<{
+    rootCount: number;
+    nonRootCount: number;
+  }> {
+    const statement: Statement = new Statement();
+    statement.append(
+      `SELECT isRootSpan, count() AS cnt FROM ${TraceAggregationService.TABLE_NAME}`,
+    );
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND toStartOfMinute(startTime) >= toStartOfMinute(${{
+        type: TableColumnType.Date,
+        value: request.startTime,
+      }}) AND toStartOfMinute(startTime) <= toStartOfMinute(${{
+        type: TableColumnType.Date,
+        value: request.endTime,
+      }})`,
+    );
+
+    // Force rootOnly off so both buckets survive (see method comment).
+    TraceAggregationService.appendCommonFilters(statement, {
+      ...request,
+      rootOnly: false,
+    });
+
+    statement.append(" GROUP BY isRootSpan");
+
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+        additionalSettings: { optimize_use_projections: 1 },
+      }),
+    );
+
+    let rootCount: number = 0;
+    let nonRootCount: number = 0;
+
+    const dbResult: Results = await SpanService.executeQuery(statement);
+
+    let rows: Array<JSONObject> = [];
+    try {
+      const response: DbJSONResponse = await dbResult.json<{
+        data?: Array<JSONObject>;
+      }>();
+      rows = response.data || [];
+    } catch {
+      // 'break' mode can truncate JSON on timeout — degrade to zero counts.
+      logger.warn(
+        "Root span count query returned unparseable response, returning zero counts",
+      );
+      return { rootCount, nonRootCount };
+    }
+
+    for (const row of rows) {
+      const cnt: number = Number(row["cnt"] || 0);
+      const raw: unknown = row["isRootSpan"];
+      // ClickHouse Bool may serialize as true/false, 1/0, or "1"/"true".
+      const isRoot: boolean =
+        raw === true || raw === 1 || raw === "1" || raw === "true";
+      if (isRoot) {
+        rootCount += cnt;
+      } else {
+        nonRootCount += cnt;
+      }
+    }
+
+    return { rootCount, nonRootCount };
+  }
+
   private static mapStatusCodeToSeries(code: number): string {
     if (code === 1) {
       return "ok";

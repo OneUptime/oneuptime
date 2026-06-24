@@ -45,6 +45,10 @@ import StatusPageSubscriberService from "./StatusPageSubscriberService";
 import StatusPageSubscriber from "../../Models/DatabaseModels/StatusPageSubscriber";
 import MailService from "./MailService";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
+import StatusPageSubscriberNotificationTemplateService from "./StatusPageSubscriberNotificationTemplateService";
+import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
+import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
+import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import { StatusPageApiRoute } from "../../ServiceRoute";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
@@ -866,6 +870,26 @@ export class Service extends DatabaseService<StatusPage> {
       statusPageId: statuspage.id!,
       historyDays: statuspage.reportDataInDays || 14,
     });
+
+    /*
+     * Look up a custom report email template for this status page (if any).
+     * When present (and a custom SMTP is configured, mirroring the gating used
+     * for other subscriber notifications), the subscriber receives the custom
+     * template instead of the built-in StatusPageSubscriberReport.hbs. The
+     * custom body is rendered through Handlebars on the notification side
+     * (templateType omitted => MailService compiles the body string with the
+     * same `report` vars, helpers and partials), so it supports loops/
+     * conditionals such as {{#each report.resources}}.
+     */
+    const customReportEmailTemplate: StatusPageSubscriberNotificationTemplate | null =
+      await StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+        {
+          statusPageId: statuspage.id!,
+          eventType:
+            StatusPageSubscriberNotificationEventType.SubscriberReport,
+          notificationMethod: StatusPageSubscriberNotificationMethod.Email,
+        },
+      );
 
     type SendEmailFunction = (
       email: Email,

@@ -856,7 +856,10 @@ router.post(
       const sampledKeys: Array<string> = facetKeys.filter(
         (key: string): boolean => {
           return (
-            !ResourceFacetResolver.isResourceFacet(key) && key !== "statusCode"
+            !ResourceFacetResolver.isResourceFacet(key) &&
+            key !== "statusCode" &&
+            // isRootSpan is counted exactly off the projection below, not sampled.
+            key !== "isRootSpan"
           );
         },
       );
@@ -911,6 +914,24 @@ router.post(
             return b.count - a.count;
           })
           .slice(0, limit);
+      }
+
+      /*
+       * Span-type facet: exact root vs non-root counts off the projection,
+       * computed ignoring rootOnly so both buckets survive (see
+       * getRootSpanCounts). Backs the "Span Type" sidebar choice.
+       */
+      if (facetKeys.includes("isRootSpan")) {
+        try {
+          const rootSpanCounts: { rootCount: number; nonRootCount: number } =
+            await TraceAggregationService.getRootSpanCounts(multiRequest);
+          facets["isRootSpan"] = [
+            { value: "true", count: rootSpanCounts.rootCount },
+            { value: "false", count: rootSpanCounts.nonRootCount },
+          ];
+        } catch {
+          facets["isRootSpan"] = [];
+        }
       }
 
       /*
