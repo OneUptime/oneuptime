@@ -399,6 +399,9 @@ export default class MonitorTemplateUtil {
           failureCause: externalStatusPageResponse?.failureCause,
           overallStatus: externalStatusPageResponse?.overallStatus,
           activeIncidentCount: externalStatusPageResponse?.activeIncidentCount,
+          provider: externalStatusPageResponse?.provider,
+          componentGroup: externalStatusPageResponse?.componentGroupName,
+          componentName: externalStatusPageResponse?.componentName,
         } as JSONObject;
 
         // Add component statuses
@@ -410,6 +413,7 @@ export default class MonitorTemplateUtil {
                   name: component.name,
                   status: component.status,
                   description: component.description,
+                  groupName: component.groupName,
                 };
               },
             );
