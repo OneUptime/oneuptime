@@ -89,6 +89,10 @@ import ProxmoxMonitorStepForm from "./ProxmoxMonitor/ProxmoxMonitorStepForm";
 import MonitorStepProxmoxMonitor, {
   MonitorStepProxmoxMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
+import IoTMonitorStepForm from "./IoTMonitor/IoTMonitorStepForm";
+import MonitorStepIoTMonitor, {
+  MonitorStepIoTMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepIoTMonitor";
 import DockerSwarmMonitorStepForm from "./DockerSwarmMonitor/DockerSwarmMonitorStepForm";
 import MonitorStepDockerSwarmMonitor, {
   MonitorStepDockerSwarmMonitorUtil,
@@ -1348,6 +1352,33 @@ return {
             }
             onChange={(value: MonitorStepProxmoxMonitor) => {
               monitorStep.setProxmoxMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onMonitorCriteriaChange={(criteria: MonitorCriteria) => {
+              monitorStep.setMonitorCriteria(criteria);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onlineMonitorStatusId={props.onlineMonitorStatusId}
+            offlineMonitorStatusId={props.offlineMonitorStatusId}
+            defaultIncidentSeverityId={props.defaultIncidentSeverityId}
+            defaultAlertSeverityId={props.defaultAlertSeverityId}
+            monitorName={props.monitorName}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.IoTDevice && (
+        <Card
+          title="IoT Monitor Configuration"
+          description="Configure your IoT fleet monitoring using templates, curated metrics, or the advanced query builder."
+        >
+          <IoTMonitorStepForm
+            monitorStepIoTMonitor={
+              monitorStep.data?.iotMonitor ||
+              MonitorStepIoTMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepIoTMonitor) => {
+              monitorStep.setIoTMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
             onMonitorCriteriaChange={(criteria: MonitorCriteria) => {

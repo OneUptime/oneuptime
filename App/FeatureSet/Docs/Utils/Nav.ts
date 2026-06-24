@@ -544,6 +544,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/docker-host",
       },
       {
+        title: "IoT Devices",
+        url: "/docs/telemetry/iot-devices",
+      },
+      {
         title: "Podman Agent",
         url: "/docs/telemetry/podman-host",
       },

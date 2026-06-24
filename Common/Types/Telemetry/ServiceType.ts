@@ -18,6 +18,7 @@ enum ServiceType {
   ProxmoxCluster = "ProxmoxCluster",
   CephCluster = "CephCluster",
   DockerSwarmCluster = "DockerSwarmCluster",
+  IoTDevice = "IoTDevice",
   ServerlessFunction = "ServerlessFunction",
   CloudResource = "CloudResource",
   RealUserMonitor = "RealUserMonitor",

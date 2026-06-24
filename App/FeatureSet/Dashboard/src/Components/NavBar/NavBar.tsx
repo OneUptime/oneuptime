@@ -232,6 +232,20 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: resourcesCategory,
     },
     {
+      title: t("navbar.items.iotTitle", "IoT"),
+      description: t(
+        "navbar.items.iotDescription",
+        "Monitor IoT device fleets — battery, connectivity, temperature and availability.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.IOT_FLEETS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.IOT_FLEETS],
+      icon: IconProp.IoT,
+      iconColor: "blue",
+      category: resourcesCategory,
+    },
+    {
       title: t("navbar.items.cephTitle", "Ceph"),
       description: t(
         "navbar.items.cephDescription",

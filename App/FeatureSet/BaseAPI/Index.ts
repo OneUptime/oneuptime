@@ -110,6 +110,7 @@ import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
 import ProxmoxResourceAPI from "Common/Server/API/ProxmoxResourceAPI";
+import IoTDeviceAPI from "Common/Server/API/IoTDeviceAPI";
 import DockerSwarmResourceAPI from "Common/Server/API/DockerSwarmResourceAPI";
 import CephResourceAPI from "Common/Server/API/CephResourceAPI";
 import KubernetesContainer from "Common/Models/DatabaseModels/KubernetesContainer";
@@ -312,6 +313,9 @@ import KubernetesClusterLabelRuleService, {
 import ProxmoxClusterOwnerRuleService, {
   Service as ProxmoxClusterOwnerRuleServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerRuleService";
+import IoTFleetOwnerRuleService, {
+  Service as IoTFleetOwnerRuleServiceType,
+} from "Common/Server/Services/IoTFleetOwnerRuleService";
 import DockerSwarmClusterOwnerRuleService, {
   Service as DockerSwarmClusterOwnerRuleServiceType,
 } from "Common/Server/Services/DockerSwarmClusterOwnerRuleService";
@@ -319,6 +323,9 @@ import DockerSwarmClusterOwnerRuleService, {
 import ProxmoxClusterLabelRuleService, {
   Service as ProxmoxClusterLabelRuleServiceType,
 } from "Common/Server/Services/ProxmoxClusterLabelRuleService";
+import IoTFleetLabelRuleService, {
+  Service as IoTFleetLabelRuleServiceType,
+} from "Common/Server/Services/IoTFleetLabelRuleService";
 import DockerSwarmClusterLabelRuleService, {
   Service as DockerSwarmClusterLabelRuleServiceType,
 } from "Common/Server/Services/DockerSwarmClusterLabelRuleService";
@@ -548,6 +555,9 @@ import PodmanResourceService, {
 import ProxmoxClusterService, {
   Service as ProxmoxClusterServiceType,
 } from "Common/Server/Services/ProxmoxClusterService";
+import IoTFleetService, {
+  Service as IoTFleetServiceType,
+} from "Common/Server/Services/IoTFleetService";
 import DockerSwarmClusterService, {
   Service as DockerSwarmClusterServiceType,
 } from "Common/Server/Services/DockerSwarmClusterService";
@@ -557,12 +567,18 @@ import CephClusterService, {
 import ProxmoxClusterOwnerTeamService, {
   Service as ProxmoxClusterOwnerTeamServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerTeamService";
+import IoTFleetOwnerTeamService, {
+  Service as IoTFleetOwnerTeamServiceType,
+} from "Common/Server/Services/IoTFleetOwnerTeamService";
 import DockerSwarmClusterOwnerTeamService, {
   Service as DockerSwarmClusterOwnerTeamServiceType,
 } from "Common/Server/Services/DockerSwarmClusterOwnerTeamService";
 import ProxmoxClusterOwnerUserService, {
   Service as ProxmoxClusterOwnerUserServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerUserService";
+import IoTFleetOwnerUserService, {
+  Service as IoTFleetOwnerUserServiceType,
+} from "Common/Server/Services/IoTFleetOwnerUserService";
 import DockerSwarmClusterOwnerUserService, {
   Service as DockerSwarmClusterOwnerUserServiceType,
 } from "Common/Server/Services/DockerSwarmClusterOwnerUserService";
@@ -939,8 +955,10 @@ import PodmanHostLabelRule from "Common/Models/DatabaseModels/PodmanHostLabelRul
 import KubernetesClusterOwnerRule from "Common/Models/DatabaseModels/KubernetesClusterOwnerRule";
 import KubernetesClusterLabelRule from "Common/Models/DatabaseModels/KubernetesClusterLabelRule";
 import ProxmoxClusterOwnerRule from "Common/Models/DatabaseModels/ProxmoxClusterOwnerRule";
+import IoTFleetOwnerRule from "Common/Models/DatabaseModels/IoTFleetOwnerRule";
 import DockerSwarmClusterOwnerRule from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerRule";
 import ProxmoxClusterLabelRule from "Common/Models/DatabaseModels/ProxmoxClusterLabelRule";
+import IoTFleetLabelRule from "Common/Models/DatabaseModels/IoTFleetLabelRule";
 import DockerSwarmClusterLabelRule from "Common/Models/DatabaseModels/DockerSwarmClusterLabelRule";
 import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerRule";
 import CephClusterLabelRule from "Common/Models/DatabaseModels/CephClusterLabelRule";
@@ -1008,10 +1026,13 @@ import PodmanHostOwnerTeam from "Common/Models/DatabaseModels/PodmanHostOwnerTea
 import PodmanHostOwnerUser from "Common/Models/DatabaseModels/PodmanHostOwnerUser";
 import PodmanResource from "Common/Models/DatabaseModels/PodmanResource";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import ProxmoxClusterOwnerTeam from "Common/Models/DatabaseModels/ProxmoxClusterOwnerTeam";
+import IoTFleetOwnerTeam from "Common/Models/DatabaseModels/IoTFleetOwnerTeam";
 import DockerSwarmClusterOwnerTeam from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerTeam";
 import ProxmoxClusterOwnerUser from "Common/Models/DatabaseModels/ProxmoxClusterOwnerUser";
+import IoTFleetOwnerUser from "Common/Models/DatabaseModels/IoTFleetOwnerUser";
 import DockerSwarmClusterOwnerUser from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerUser";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CephClusterOwnerTeam from "Common/Models/DatabaseModels/CephClusterOwnerTeam";
@@ -2099,6 +2120,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IoTFleetOwnerRule, IoTFleetOwnerRuleServiceType>(
+        IoTFleetOwnerRule,
+        IoTFleetOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<
         DockerSwarmClusterOwnerRule,
         DockerSwarmClusterOwnerRuleServiceType
@@ -2113,6 +2142,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<ProxmoxClusterLabelRule, ProxmoxClusterLabelRuleServiceType>(
         ProxmoxClusterLabelRule,
         ProxmoxClusterLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IoTFleetLabelRule, IoTFleetLabelRuleServiceType>(
+        IoTFleetLabelRule,
+        IoTFleetLabelRuleService,
       ).getRouter(),
     );
 
@@ -2236,6 +2273,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ProxmoxResourceAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new IoTDeviceAPI().getRouter(),
     );
 
     app.use(
@@ -3329,6 +3371,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IoTFleet, IoTFleetServiceType>(
+        IoTFleet,
+        IoTFleetService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<DockerSwarmCluster, DockerSwarmClusterServiceType>(
         DockerSwarmCluster,
         DockerSwarmClusterService,
@@ -3340,6 +3390,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<ProxmoxClusterOwnerTeam, ProxmoxClusterOwnerTeamServiceType>(
         ProxmoxClusterOwnerTeam,
         ProxmoxClusterOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IoTFleetOwnerTeam, IoTFleetOwnerTeamServiceType>(
+        IoTFleetOwnerTeam,
+        IoTFleetOwnerTeamService,
       ).getRouter(),
     );
 
@@ -3359,6 +3417,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<ProxmoxClusterOwnerUser, ProxmoxClusterOwnerUserServiceType>(
         ProxmoxClusterOwnerUser,
         ProxmoxClusterOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IoTFleetOwnerUser, IoTFleetOwnerUserServiceType>(
+        IoTFleetOwnerUser,
+        IoTFleetOwnerUserService,
       ).getRouter(),
     );
 

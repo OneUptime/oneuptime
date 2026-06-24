@@ -88,6 +88,9 @@ import MonitorStepCephMonitor, {
 import MonitorStepDockerSwarmMonitor, {
   DockerSwarmResourceFilters,
 } from "Common/Types/Monitor/MonitorStepDockerSwarmMonitor";
+import MonitorStepIoTMonitor, {
+  IoTDeviceFilters,
+} from "Common/Types/Monitor/MonitorStepIoTMonitor";
 import {
   getKubernetesMetricByMetricName,
   KubernetesMetricDefinition,
@@ -134,6 +137,7 @@ RunCron(
           MonitorType.DockerSwarm,
           MonitorType.Proxmox,
           MonitorType.Ceph,
+          MonitorType.IoTDevice,
         ]),
         telemetryMonitorNextMonitorAt:
           DatabaseQueryHelper.lessThanEqualToOrNull(
@@ -799,6 +803,14 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
 
   if (monitorType === MonitorType.Ceph) {
     return monitorCeph({
+      monitorStep,
+      monitorId,
+      projectId,
+    });
+  }
+
+  if (monitorType === MonitorType.IoTDevice) {
+    return monitorIoT({
       monitorStep,
       monitorId,
       projectId,
@@ -2250,6 +2262,196 @@ const monitorProxmox: MonitorProxmoxFunction = async (data: {
     startAndEndDate: startAndEndDate,
     metricResult: resultsWithFormulas,
     proxmoxResourceBreakdown: proxmoxResourceBreakdown,
+    seriesBreakdown: seriesBreakdown,
+    monitorId: data.monitorId,
+  };
+};
+
+type MonitorIoTFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<MetricMonitorResponse>;
+
+const monitorIoT: MonitorIoTFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<MetricMonitorResponse> => {
+  const iotMonitorConfig: MonitorStepIoTMonitor | undefined =
+    data.monitorStep.data?.iotMonitor;
+
+  if (!iotMonitorConfig) {
+    throw new BadDataException("IoT monitor config is missing");
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      iotMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    );
+
+  const finalResult: Array<AggregatedResult> = [];
+
+  const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
+    iotMonitorConfig.metricViewConfig.queryConfigs,
+  );
+
+  for (const queryConfig of iotMonitorConfig.metricViewConfig.queryConfigs) {
+    const metricName: string =
+      (queryConfig.metricQueryData.filterData.metricName as string) || "";
+
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: startAndEndDate,
+      name: metricName,
+    };
+
+    // Start with any user-defined attribute filters
+    const attributes: Dictionary<string> = {};
+
+    if (
+      queryConfig.metricQueryData &&
+      queryConfig.metricQueryData.filterData &&
+      queryConfig.metricQueryData.filterData.attributes &&
+      Object.keys(queryConfig.metricQueryData.filterData.attributes).length > 0
+    ) {
+      Object.assign(
+        attributes,
+        queryConfig.metricQueryData.filterData.attributes,
+      );
+    }
+
+    /*
+     * Always scope to the fleet via the `iot.fleet.name` resource
+     * attribute the IoT agent / gateway stamps on every batch.
+     */
+    if (iotMonitorConfig.fleetIdentifier) {
+      attributes["resource.iot.fleet.name"] = iotMonitorConfig.fleetIdentifier;
+    }
+
+    /*
+     * IoT-specific resource filters. Device-level data metrics carry a
+     * `device.id` datapoint label and the agent-stamped `iot.scope` /
+     * `iot.device.type` datapoint attributes (stored unprefixed). The
+     * deviceId filter pins an exact device; deviceType / scope narrow to
+     * a class of devices.
+     */
+    if (iotMonitorConfig.resourceFilters) {
+      const resourceFilters: IoTDeviceFilters =
+        iotMonitorConfig.resourceFilters;
+
+      if (resourceFilters.deviceId) {
+        attributes["device.id"] = resourceFilters.deviceId;
+      }
+
+      if (resourceFilters.deviceType) {
+        attributes["iot.device.type"] = resourceFilters.deviceType;
+      }
+
+      if (resourceFilters.scope) {
+        attributes["iot.scope"] = resourceFilters.scope;
+      }
+    }
+
+    if (Object.keys(attributes).length > 0) {
+      query.attributes = attributes;
+    }
+
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
+
+    let aggregatedResults: AggregatedResult;
+
+    if (groupByAttributeKeys.length > 0) {
+      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      aggregatedResults = aggregatePerSeriesFromRawMetrics({
+        rawMetrics: rawMetricsForAgg,
+        attributeKeys: groupByAttributeKeys,
+        aggregationType,
+      });
+    } else {
+      aggregatedResults = await MetricService.aggregateBy({
+        query: query,
+        aggregationType,
+        aggregateColumnName: "value",
+        aggregationTimestampColumnName: "time",
+        startTimestamp:
+          (startAndEndDate?.startValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
+        endTimestamp:
+          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        groupBy: queryConfig.metricQueryData.groupBy,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    logger.debug("IoT monitor aggregated results", {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
+
+    finalResult.push(aggregatedResults);
+  }
+
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: iotMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: iotMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: iotMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs: iotMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: resultsInDisplayUnit,
+    projectId: data.projectId,
+  });
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    groupByAttributeKeys.length > 0
+      ? buildSeriesBreakdown({
+          queryConfigs: iotMonitorConfig.metricViewConfig.queryConfigs,
+          formulaConfigs:
+            iotMonitorConfig.metricViewConfig.formulaConfigs || [],
+          perQueryResults: resultsInDisplayUnit,
+          attributeKeys: groupByAttributeKeys,
+          projectId: data.projectId,
+        })
+      : undefined;
+
+  return {
+    projectId: data.projectId,
+    metricViewConfig: iotMonitorConfig.metricViewConfig,
+    startAndEndDate: startAndEndDate,
+    metricResult: resultsWithFormulas,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
   };
