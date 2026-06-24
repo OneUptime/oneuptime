@@ -32,10 +32,10 @@
 
 #### 支援的預留位置
 
-| 預留位置 | 說明 | 範例值 |
-|-------------|-------------|---------------|
-| `{{timestamp}}` | 替換為目前的 Unix 時間戳記（秒） | `1719500000` |
-| `{{random}}` | 替換為隨機的唯一字串 | `a3f8b2c1d4e5f6a7b8c9d0e1f2a3b4c5` |
+| 預留位置        | 說明                             | 範例值                             |
+| --------------- | -------------------------------- | ---------------------------------- |
+| `{{timestamp}}` | 替換為目前的 Unix 時間戳記（秒） | `1719500000`                       |
+| `{{random}}`    | 替換為隨機的唯一字串             | `a3f8b2c1d4e5f6a7b8c9d0e1f2a3b4c5` |
 
 #### 範例
 
@@ -75,7 +75,7 @@ https://example.com/health?nocache={{random}}
 
 - **Client Certificate (PEM)** — 要呈現的 PEM 編碼用戶端憑證。
 - **Client Private Key (PEM)** — 相符的 PEM 編碼私密金鑰。
-- **Client Private Key Passphrase** *(選用)* — 僅在私密金鑰已加密時才需要。
+- **Client Private Key Passphrase** _(選用)_ — 僅在私密金鑰已加密時才需要。
 
 這相當於 curl 中 `--cert` 與 `--key` 旗標的 OneUptime 對應功能：
 

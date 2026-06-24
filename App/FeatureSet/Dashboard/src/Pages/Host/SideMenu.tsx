@@ -21,6 +21,15 @@ const HostSideMenu: FunctionComponent = (): ReactElement => {
         },
         {
           link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HOST_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
+        {
+          link: {
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.HOST_DOCUMENTATION] as Route,

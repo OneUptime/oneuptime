@@ -193,7 +193,6 @@ import "./Jobs/EnterpriseLicense/ReportUserCount";
 
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";
-import { RunDatabaseMigrationsOnBoot } from "Common/Server/EnvironmentConfig";
 import JobDictionary from "./Utils/JobDictionary";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Queue, { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
@@ -204,6 +203,7 @@ import {
   DisableQueueWorkers,
   EnableQueueDashboard,
   QueueDashboardSecret,
+  RunDatabaseMigrationsOnBoot,
 } from "Common/Server/EnvironmentConfig";
 import { WORKER_CONCURRENCY } from "./Config";
 import MetricsAPI from "./API/Metrics";
@@ -250,10 +250,12 @@ const WorkersFeatureSet: FeatureSet = {
        * fire-and-forget — a long migration never blocks the listener,
        * probes, queues, or cron scheduling.
        */
-      // Skipped on runtime pods when a dedicated migrate Job owns migrations
-      // (RUN_DATABASE_MIGRATIONS_ON_BOOT=false) — required for PgBouncer
-      // transaction-mode pooling, since the data-migration session advisory
-      // lock would otherwise run on the pooled runtime connection.
+      /*
+       * Skipped on runtime pods when a dedicated migrate Job owns migrations
+       * (RUN_DATABASE_MIGRATIONS_ON_BOOT=false) — required for PgBouncer
+       * transaction-mode pooling, since the data-migration session advisory
+       * lock would otherwise run on the pooled runtime connection.
+       */
       if (RunDatabaseMigrationsOnBoot) {
         RunDatabaseMigrations().catch((err: Error) => {
           logger.error("Error running database migrations", {

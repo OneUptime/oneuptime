@@ -12,6 +12,7 @@ Om GitHub te integreren met uw zelf-gehoste OneUptime-instantie, moet u een GitH
 ### Stap 1: Een GitHub App aanmaken
 
 1. Ga naar GitHub en navigeer naar uw organisatie- of persoonlijke instellingen:
+
    - **Voor organisaties:** Ga naar `https://github.com/organizations/YOUR_ORG/settings/apps`
    - **Voor persoonlijk account:** Ga naar `https://github.com/settings/apps`
 
@@ -32,26 +33,26 @@ Configureer in de sectie "Machtigingen en gebeurtenissen" de volgende machtiging
 
 **Repositorymachtigingen:**
 
-| Machtiging | Toegangsniveau | Doel |
-|------------|--------------|---------|
-| Inhoud | Lezen & Schrijven | Repositorybestanden lezen, branches pushen (vereist voor AI Agent) |
-| Pull requests | Lezen & Schrijven | Pull requests aanmaken en beheren |
-| Issues | Lezen & Schrijven | Issues lezen en becommentariëren |
-| Commit-statussen | Lezen | Build/CI-status controleren |
-| Actions | Lezen | GitHub Actions workflow-uitvoeringen en logboeken lezen |
-| Metadata | Lezen | Basisrepository-metadata (vereist) |
+| Machtiging       | Toegangsniveau    | Doel                                                               |
+| ---------------- | ----------------- | ------------------------------------------------------------------ |
+| Inhoud           | Lezen & Schrijven | Repositorybestanden lezen, branches pushen (vereist voor AI Agent) |
+| Pull requests    | Lezen & Schrijven | Pull requests aanmaken en beheren                                  |
+| Issues           | Lezen & Schrijven | Issues lezen en becommentariëren                                   |
+| Commit-statussen | Lezen             | Build/CI-status controleren                                        |
+| Actions          | Lezen             | GitHub Actions workflow-uitvoeringen en logboeken lezen            |
+| Metadata         | Lezen             | Basisrepository-metadata (vereist)                                 |
 
 **Organisatiemachtigingen (indien gebruikt met organisaties):**
 
-| Machtiging | Toegangsniveau | Doel |
-|------------|--------------|---------|
-| Leden | Lezen | Organisatieleden weergeven |
+| Machtiging | Toegangsniveau | Doel                       |
+| ---------- | -------------- | -------------------------- |
+| Leden      | Lezen          | Organisatieleden weergeven |
 
 **Accountmachtigingen:**
 
-| Machtiging | Toegangsniveau | Doel |
-|------------|--------------|---------|
-| E-mailadressen | Lezen | Gebruikers-e-mail lezen voor meldingen |
+| Machtiging     | Toegangsniveau | Doel                                   |
+| -------------- | -------------- | -------------------------------------- |
+| E-mailadressen | Lezen          | Gebruikers-e-mail lezen voor meldingen |
 
 ### Stap 3: Abonneren op webhookgebeurtenissen
 
@@ -64,6 +65,7 @@ Abonneer u op deze webhookgebeurtenissen om realtime updates te ontvangen:
 ### Stap 4: Installatietoegang instellen
 
 Kies onder "Waar kan deze GitHub App worden geïnstalleerd?":
+
 - **Alleen op dit account** - Voor privé/intern gebruik
 - **Elk account** - Als u wilt dat anderen uw app installeren
 
@@ -113,7 +115,7 @@ Als u Kubernetes met Helm gebruikt, voeg dan deze toe aan uw `values.yaml`-besta
 ```yaml
 gitHubApp:
   id: "YOUR_APP_ID"
-  name: "YOUR_APP_NAME"  # De exacte naam van uw GitHub App
+  name: "YOUR_APP_NAME" # De exacte naam van uw GitHub App
   clientId: "YOUR_CLIENT_ID"
   clientSecret: "YOUR_CLIENT_SECRET"
   privateKey: "<BASE64_ENCODED_PRIVATE_KEY_CONTENT>"
@@ -143,43 +145,49 @@ gitHubApp:
 
 ## Omgevingsvariabelen referentie
 
-| Variabele | Beschrijving | Vereist |
-|----------|-------------|----------|
-| `GITHUB_APP_ID` | Het App-ID van uw GitHub App-instellingen | Ja |
-| `GITHUB_APP_NAME` | De exacte naam van uw GitHub App (gebruikt voor installatie-URL's) | Ja |
-| `GITHUB_APP_CLIENT_ID` | Het Client-ID van uw GitHub App-instellingen | Ja |
-| `GITHUB_APP_CLIENT_SECRET` | Het clientgeheim dat u hebt gegenereerd | Ja |
-| `GITHUB_APP_PRIVATE_KEY` | De inhoud van het privésleutelbestand (.pem) | Ja |
-| `GITHUB_APP_WEBHOOK_SECRET` | Het webhookgeheim voor het verifiëren van webhook-payloads | Nee (maar aanbevolen) |
+| Variabele                   | Beschrijving                                                       | Vereist               |
+| --------------------------- | ------------------------------------------------------------------ | --------------------- |
+| `GITHUB_APP_ID`             | Het App-ID van uw GitHub App-instellingen                          | Ja                    |
+| `GITHUB_APP_NAME`           | De exacte naam van uw GitHub App (gebruikt voor installatie-URL's) | Ja                    |
+| `GITHUB_APP_CLIENT_ID`      | Het Client-ID van uw GitHub App-instellingen                       | Ja                    |
+| `GITHUB_APP_CLIENT_SECRET`  | Het clientgeheim dat u hebt gegenereerd                            | Ja                    |
+| `GITHUB_APP_PRIVATE_KEY`    | De inhoud van het privésleutelbestand (.pem)                       | Ja                    |
+| `GITHUB_APP_WEBHOOK_SECRET` | Het webhookgeheim voor het verifiëren van webhook-payloads         | Nee (maar aanbevolen) |
 
 ## Probleemoplossing
 
 ### Veelgebruikte problemen
 
 **Niet omgeleid terug naar OneUptime na installatie van de GitHub App:**
+
 - Zorg dat de **Installatie-URL** is geconfigureerd in uw GitHub App-instellingen op: `https://your-oneuptime-domain.com/api/github/auth/callback`
 - Ga naar uw GitHub App-instellingen > sectie "Na installatie" en verifieer dat de Installatie-URL correct is ingesteld
 - De optie "Omleiden bij update" moet ook zijn aangevinkt
 - Opmerking: De Installatie-URL verschilt van de Callback-URL — beide moeten verwijzen naar hetzelfde `/api/github/auth/callback`-eindpunt
 
 **Fout "GitHub App is not configured":**
+
 - Zorg dat de omgevingsvariabele `GITHUB_APP_CLIENT_ID` is ingesteld
 - Herstart uw OneUptime-server na het instellen van omgevingsvariabelen
 
 **Fout "Invalid webhook signature":**
+
 - Controleer of uw `GITHUB_APP_WEBHOOK_SECRET` overeenkomt met het geheim dat is geconfigureerd in GitHub
 - Zorg dat de webhook-URL correct en bereikbaar is vanaf het internet
 
 **Fout "Failed to get installation access token":**
+
 - Verifieer dat uw `GITHUB_APP_PRIVATE_KEY` correct is opgemaakt
 - Controleer of de privésleutel de BEGIN/END-markeringen bevat
 - Zorg dat het App-ID correct is
 
 **Kan repositories niet zien na installatie:**
+
 - Verifieer dat de GitHub App toegang heeft tot de repositories die u wilt verbinden
 - Controleer de installatiemachtigingen in GitHub (Instellingen > Applicaties > Geïnstalleerde GitHub Apps)
 
 **Webhookgebeurtenissen worden niet ontvangen:**
+
 - Zorg dat uw webhook-URL openbaar bereikbaar is
 - Controleer de webhook-bezorglogboeken van de GitHub App in uw app-instellingen
 - Verifieer dat het webhookgeheim correct is geconfigureerd

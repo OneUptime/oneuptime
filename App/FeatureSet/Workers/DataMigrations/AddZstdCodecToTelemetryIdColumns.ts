@@ -42,6 +42,10 @@ export default class AddZstdCodecToTelemetryIdColumns extends DataMigrationBase 
     super("AddZstdCodecToTelemetryIdColumns");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     const services: ReadonlyArray<AnalyticsDatabaseService<any>> = [
       LogService,

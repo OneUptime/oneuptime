@@ -10,7 +10,7 @@ Jede Integration bewegt Daten in eine von zwei Richtungen (und viele nutzen beid
 
 ### Eingehend — ein anderes Tool sendet Daten an OneUptime
 
-Verwenden Sie dieses Muster, wenn ein externes System in OneUptime *etwas erstellen oder aktualisieren* muss – üblicherweise einen Vorfall oder Alarm öffnen, wenn es ein Problem erkennt.
+Verwenden Sie dieses Muster, wenn ein externes System in OneUptime _etwas erstellen oder aktualisieren_ muss – üblicherweise einen Vorfall oder Alarm öffnen, wenn es ein Problem erkennt.
 
 1. Bauen Sie einen Workflow, der mit einem **[Webhook-Auslöser](/docs/workflows/triggers#webhook)** beginnt. OneUptime gibt Ihnen eine eindeutige URL.
 2. Im anderen Tool konfigurieren Sie eine Webhook- / Benachrichtigungsaktion, die bei einem Ereignis einen POST an diese URL sendet.
@@ -22,7 +22,7 @@ Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  �
 
 ### Ausgehend — OneUptime sendet Daten an ein anderes Tool
 
-Verwenden Sie dieses Muster, wenn *etwas in OneUptime in einem anderen Tool erscheinen soll* – ein Jira-Ticket öffnen, jemanden in PagerDuty benachrichtigen, in Slack posten.
+Verwenden Sie dieses Muster, wenn _etwas in OneUptime in einem anderen Tool erscheinen soll_ – ein Jira-Ticket öffnen, jemanden in PagerDuty benachrichtigen, in Slack posten.
 
 1. Bauen Sie einen Workflow, der mit einem **[OneUptime-Ereignis-Auslöser](/docs/workflows/triggers#oneuptime-event-triggers)** beginnt – zum Beispiel **Incident → On Create**.
 2. Fügen Sie eine **[API-Komponente](/docs/workflows/components#api)** hinzu, die die REST-API des anderen Tools mit den Vorfallsdetails aufruft.
@@ -34,22 +34,22 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 ## Katalog
 
-| Tool | Richtung | Was es tut |
-| --- | --- | --- |
-| [Zabbix](/docs/integrations/zabbix) | Eingehend | Zabbix-Probleme in OneUptime-Vorfälle umwandeln (und bei Wiederherstellung auflösen). |
-| [Jira](/docs/integrations/jira) | Ausgehend (+ eingehend) | Für jeden Vorfall ein Jira-Issue öffnen; Status zurücksynchronisieren. |
-| [PagerDuty](/docs/integrations/pagerduty) | Ausgehend (+ eingehend) | PagerDuty-Ereignisse aus OneUptime-Vorfällen auslösen und auflösen. |
-| [Opsgenie](/docs/integrations/opsgenie) | Ausgehend (+ eingehend) | Opsgenie-Alarme erstellen und schließen. |
-| [ServiceNow](/docs/integrations/servicenow) | Ausgehend (+ eingehend) | ServiceNow-Vorfälle aus OneUptime öffnen. |
-| [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Eingehend | Alertmanager-Benachrichtigungen in Vorfälle umwandeln. |
-| [Grafana](/docs/integrations/grafana) | Eingehend | Grafana-Alarme in Vorfälle umwandeln. |
-| [Datadog](/docs/integrations/datadog) | Eingehend | Datadog-Monitor-Alarme in Vorfälle umwandeln. |
-| [GitHub](/docs/integrations/github) | Ausgehend | Für einen Vorfall ein GitHub-Issue öffnen. |
-| [GitLab](/docs/integrations/gitlab) | Ausgehend | Für einen Vorfall ein GitLab-Issue öffnen. |
-| [Discord](/docs/integrations/discord) | Ausgehend | Vorfallsaktualisierungen in einen Discord-Kanal posten. |
-| [Telegram](/docs/integrations/telegram) | Ausgehend | Vorfallsaktualisierungen an einen Telegram-Chat senden. |
-| [Slack](/docs/workspace-connections/slack) | Beides | Native Workspace-Verbindung – Kanäle, Alarme und Rufbereitschaft. |
-| [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | Beides | Native Workspace-Verbindung. |
+| Tool                                                                  | Richtung                | Was es tut                                                                            |
+| --------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------- |
+| [Zabbix](/docs/integrations/zabbix)                                   | Eingehend               | Zabbix-Probleme in OneUptime-Vorfälle umwandeln (und bei Wiederherstellung auflösen). |
+| [Jira](/docs/integrations/jira)                                       | Ausgehend (+ eingehend) | Für jeden Vorfall ein Jira-Issue öffnen; Status zurücksynchronisieren.                |
+| [PagerDuty](/docs/integrations/pagerduty)                             | Ausgehend (+ eingehend) | PagerDuty-Ereignisse aus OneUptime-Vorfällen auslösen und auflösen.                   |
+| [Opsgenie](/docs/integrations/opsgenie)                               | Ausgehend (+ eingehend) | Opsgenie-Alarme erstellen und schließen.                                              |
+| [ServiceNow](/docs/integrations/servicenow)                           | Ausgehend (+ eingehend) | ServiceNow-Vorfälle aus OneUptime öffnen.                                             |
+| [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Eingehend               | Alertmanager-Benachrichtigungen in Vorfälle umwandeln.                                |
+| [Grafana](/docs/integrations/grafana)                                 | Eingehend               | Grafana-Alarme in Vorfälle umwandeln.                                                 |
+| [Datadog](/docs/integrations/datadog)                                 | Eingehend               | Datadog-Monitor-Alarme in Vorfälle umwandeln.                                         |
+| [GitHub](/docs/integrations/github)                                   | Ausgehend               | Für einen Vorfall ein GitHub-Issue öffnen.                                            |
+| [GitLab](/docs/integrations/gitlab)                                   | Ausgehend               | Für einen Vorfall ein GitLab-Issue öffnen.                                            |
+| [Discord](/docs/integrations/discord)                                 | Ausgehend               | Vorfallsaktualisierungen in einen Discord-Kanal posten.                               |
+| [Telegram](/docs/integrations/telegram)                               | Ausgehend               | Vorfallsaktualisierungen an einen Telegram-Chat senden.                               |
+| [Slack](/docs/workspace-connections/slack)                            | Beides                  | Native Workspace-Verbindung – Kanäle, Alarme und Rufbereitschaft.                     |
+| [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | Beides                  | Native Workspace-Verbindung.                                                          |
 
 > **Slack und Microsoft Teams** haben eine tiefere, native Verbindung, die über Workflows hinausgeht – automatische Vorfall-Kanäle, bidirektionale Aktionen und Rufbereitschafts-Benachrichtigungen. Nutzen Sie für diese die [Slack](/docs/workspace-connections/slack)- und [Microsoft Teams](/docs/workspace-connections/microsoft-teams)-Workspace-Verbindungen statt eines Workflows.
 
@@ -67,13 +67,13 @@ Geheime Variablen werden in der Benutzeroberfläche nach dem Speichern verborgen
 
 Die meisten ausgehenden Integrationen benötigen einen `Authorization`-Header am API-Block. Die gängigen Formen:
 
-| Schema | Header-Wert | Verwendet von |
-| --- | --- | --- |
-| Bearer-Token | `Bearer {{variable.TOKEN}}` | GitHub, viele moderne APIs |
-| Basic-Auth | `Basic {{variable.BASE64_USER_PASS}}` | Jira, ServiceNow |
-| API-Key-Header | `GenieKey {{variable.OPSGENIE_KEY}}` | Opsgenie |
-| Token im Body | Feld `routing_key` im JSON-Body | PagerDuty Events API |
-| Private-Token-Header | `PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}` | GitLab |
+| Schema               | Header-Wert                                | Verwendet von              |
+| -------------------- | ------------------------------------------ | -------------------------- |
+| Bearer-Token         | `Bearer {{variable.TOKEN}}`                | GitHub, viele moderne APIs |
+| Basic-Auth           | `Basic {{variable.BASE64_USER_PASS}}`      | Jira, ServiceNow           |
+| API-Key-Header       | `GenieKey {{variable.OPSGENIE_KEY}}`       | Opsgenie                   |
+| Token im Body        | Feld `routing_key` im JSON-Body            | PagerDuty Events API       |
+| Private-Token-Header | `PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}` | GitLab                     |
 
 Für Basic-Auth kodieren Sie `username:password` (oder `email:api_token`) einmalig mit Base64, und speichern Sie dann das Ergebnis als Geheimnis. Unter macOS/Linux:
 

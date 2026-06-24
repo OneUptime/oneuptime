@@ -55,6 +55,7 @@ Globale AI Agenten zijn automatisch beschikbaar voor alle projecten, tenzij uitg
 Voor organisaties die AI-agenten binnen hun eigen infrastructuur moeten uitvoeren (bijv. voor beveiligings-, compliance- of netwerktoegansvereisten), ondersteunt OneUptime zelf-gehoste AI-agenten.
 
 Zelf-gehoste AI-agenten:
+
 - Draaien binnen uw privénetwerk
 - Hebben toegang tot interne bronnen en systemen
 - Geven u volledige controle over de omgeving van de agent
@@ -134,15 +135,15 @@ spec:
         app: oneuptime-ai-agent
     spec:
       containers:
-      - name: oneuptime-ai-agent
-        image: oneuptime/ai-agent:release
-        env:
-          - name: AI_AGENT_KEY
-            value: "<ai-agent-key>"
-          - name: AI_AGENT_ID
-            value: "<ai-agent-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-ai-agent
+          image: oneuptime/ai-agent:release
+          env:
+            - name: AI_AGENT_KEY
+              value: "<ai-agent-key>"
+            - name: AI_AGENT_ID
+              value: "<ai-agent-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 Pas de configuratie toe:
@@ -157,12 +158,11 @@ De AI-agent ondersteunt de volgende omgevingsvariabelen:
 
 #### Verplichte variabelen
 
-| Variabele | Beschrijving |
-|----------|-------------|
-| `AI_AGENT_KEY` | De AI-agentsleutel van uw OneUptime-dashboard |
-| `AI_AGENT_ID` | Het AI-agent-ID van uw OneUptime-dashboard |
+| Variabele       | Beschrijving                                                         |
+| --------------- | -------------------------------------------------------------------- |
+| `AI_AGENT_KEY`  | De AI-agentsleutel van uw OneUptime-dashboard                        |
+| `AI_AGENT_ID`   | Het AI-agent-ID van uw OneUptime-dashboard                           |
 | `ONEUPTIME_URL` | De URL van uw OneUptime-instantie (standaard: https://oneuptime.com) |
-
 
 ## Uw AI Agent verifiëren
 

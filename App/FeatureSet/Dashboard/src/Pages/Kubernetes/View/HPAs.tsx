@@ -52,6 +52,7 @@ const KubernetesClusterHPAs: FunctionComponent<
         await KubernetesResourceUtils.fetchInventoryResources({
           kubernetesClusterId: modelId,
           kind: "HorizontalPodAutoscaler",
+          selectFullSpec: true,
           transform: (
             resource: KubernetesResource,
             row: KubernetesResourceModel,

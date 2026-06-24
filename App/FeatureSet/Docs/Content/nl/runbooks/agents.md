@@ -1,6 +1,6 @@
 # Runbook-agents
 
-Een **Runbook-agent** is een klein, zelf-gehost proces dat de Bash- *en* JavaScript-stappen van je runbooks **binnen je eigen infrastructuur** uitvoert. De OneUptime Worker voert je scripts nooit zelf uit — hij zet ze in de wachtrij, en de Runbook-agent die de stapauteur heeft uitgekozen, haalt ze op, voert ze uit en stuurt het resultaat terug.
+Een **Runbook-agent** is een klein, zelf-gehost proces dat de Bash- _en_ JavaScript-stappen van je runbooks **binnen je eigen infrastructuur** uitvoert. De OneUptime Worker voert je scripts nooit zelf uit — hij zet ze in de wachtrij, en de Runbook-agent die de stapauteur heeft uitgekozen, haalt ze op, voert ze uit en stuurt het resultaat terug.
 
 JavaScript draait nog steeds in een `isolated-vm`-sandbox; het verschil is dat die sandbox op jouw agent-host leeft in plaats van op de onze.
 
@@ -11,7 +11,7 @@ Deze pagina legt uit hoe je een agent installeert, Bash- en JavaScript-stappen e
 Eerdere OneUptime-versies draaiden Bash- en JavaScript-stappen op de Worker. JavaScript zat in een sandbox (`isolated-vm`), Bash niet. Beide gaven problemen voor alles buiten een single-tenant self-hosted setup:
 
 - **Vertrouwensgrens.** Wie een runbook kon opstellen, kon code uitvoeren op de Worker, met toegang tot alle environment variables en het filesystem dat de Worker had. De JavaScript-sandbox blokkeerde voor de hand liggende dingen, maar kon een vastberaden gebruiker niet beletten om te onderzoeken wat vanuit ons netwerk bereikbaar was.
-- **Bereik.** De meeste nuttige stappen willen op de infrastructuur van de *klant* opereren ("herstart deze service", "kubectl op ons cluster", "een record opzoeken in onze interne DB") — niet op die van OneUptime.
+- **Bereik.** De meeste nuttige stappen willen op de infrastructuur van de _klant_ opereren ("herstart deze service", "kubectl op ons cluster", "een record opzoeken in onze interne DB") — niet op die van OneUptime.
 
 Runbook-agents draaien dat om. Bash- en JavaScript-stappen draaien niet bij ons. Ze draaien op een host die jij beheert, en jij bepaalt wat die host mag.
 
@@ -32,10 +32,10 @@ De agent heeft alleen **uitgaande HTTPS** naar je OneUptime-instantie nodig. Hij
 
 Ga naar **Runbooks → Settings → Agents** en maak een nieuwe agent aan. Vul in:
 
-| Veld | Opmerkingen |
-| --- | --- |
-| **Naam** | Een sprekende naam — meestal `waar-hij-draait-en-wat-hij-kan`, bv. `prod-eu-west-1`. Dit is wat in het dropdown verschijnt wanneer je een stap schrijft. |
-| **Beschrijving** | Optioneel. Een zin over wat deze host kan bereiken. Je toekomstige zelf zal je dankbaar zijn. |
+| Veld             | Opmerkingen                                                                                                                                              |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Naam**         | Een sprekende naam — meestal `waar-hij-draait-en-wat-hij-kan`, bv. `prod-eu-west-1`. Dit is wat in het dropdown verschijnt wanneer je een stap schrijft. |
+| **Beschrijving** | Optioneel. Een zin over wat deze host kan bereiken. Je toekomstige zelf zal je dankbaar zijn.                                                            |
 
 ### 2. Het installatiecommando kopiëren
 
@@ -81,10 +81,10 @@ Meer dan één agent nodig? Maak ze aan, en richt individuele stappen op de agen
 
 Twee timeouts gelden voor elke Bash- of JavaScript-stap:
 
-| Timeout | Standaard | Wat het regelt |
-| --- | --- | --- |
-| **Claim-timeout** | 2 minuten | Hoe lang de Worker wacht tot de gekozen agent de job claimt. Pakt de agent hem niet op tijd op, dan faalt de stap met `TimedOut` en gaat het runbook verder (of stopt, afhankelijk van **Doorgaan bij fout**). |
-| **Uitvoer-timeout** | 30 seconden | Hoe lang de agent het script laat draaien voordat hij het beëindigt. Per stap configureerbaar. (Bash krijgt `SIGKILL`; het JavaScript-isolate wordt afgebroken.) |
+| Timeout             | Standaard   | Wat het regelt                                                                                                                                                                                                 |
+| ------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Claim-timeout**   | 2 minuten   | Hoe lang de Worker wacht tot de gekozen agent de job claimt. Pakt de agent hem niet op tijd op, dan faalt de stap met `TimedOut` en gaat het runbook verder (of stopt, afhankelijk van **Doorgaan bij fout**). |
+| **Uitvoer-timeout** | 30 seconden | Hoe lang de agent het script laat draaien voordat hij het beëindigt. Per stap configureerbaar. (Bash krijgt `SIGKILL`; het JavaScript-isolate wordt afgebroken.)                                               |
 
 Het totale wachtvenster van de Worker is `claim-timeout + uitvoer-timeout + een paar seconden`. Kies waarden die bij de stap passen.
 
@@ -114,15 +114,15 @@ Elke agent voert standaard één job tegelijk uit. Wil je meer toestaan, zet dan
 
 De agent leest deze bij het opstarten:
 
-| Variabele | Verplicht | Standaard | Opmerkingen |
-| --- | --- | --- | --- |
-| `ONEUPTIME_URL` | ja | — | Basis-URL van je OneUptime-instantie, bv. `https://oneuptime.yourdomain.com`. |
-| `RUNBOOK_AGENT_ID` | ja | — | De UUID die in de installatiemodal van de agent wordt getoond. |
-| `RUNBOOK_AGENT_KEY` | ja | — | Het secret dat in de installatiemodal van de agent wordt getoond. |
-| `RUNBOOK_AGENT_POLL_INTERVAL_MS` | nee | `5000` | Hoe vaak de agent polls voor nieuwe jobs. |
-| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS` | nee | `60000` | Hoe vaak de agent zijn levensteken rapporteert. |
-| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | nee | `10000` | Hoe vaak de agent de lease van een draaiende job vernieuwt. |
-| `RUNBOOK_AGENT_CONCURRENCY` | nee | `1` | Maximaal aantal gelijktijdige jobs op deze agent. |
+| Variabele                                 | Verplicht | Standaard | Opmerkingen                                                                   |
+| ----------------------------------------- | --------- | --------- | ----------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`                           | ja        | —         | Basis-URL van je OneUptime-instantie, bv. `https://oneuptime.yourdomain.com`. |
+| `RUNBOOK_AGENT_ID`                        | ja        | —         | De UUID die in de installatiemodal van de agent wordt getoond.                |
+| `RUNBOOK_AGENT_KEY`                       | ja        | —         | Het secret dat in de installatiemodal van de agent wordt getoond.             |
+| `RUNBOOK_AGENT_POLL_INTERVAL_MS`          | nee       | `5000`    | Hoe vaak de agent polls voor nieuwe jobs.                                     |
+| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS`     | nee       | `60000`   | Hoe vaak de agent zijn levensteken rapporteert.                               |
+| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | nee       | `10000`   | Hoe vaak de agent de lease van een draaiende job vernieuwt.                   |
+| `RUNBOOK_AGENT_CONCURRENCY`               | nee       | `1`       | Maximaal aantal gelijktijdige jobs op deze agent.                             |
 
 ## Een agent-sleutel roteren
 
@@ -135,17 +135,17 @@ Het beheren van agents valt onder de bestaande Runbooks-rechtengroep:
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — agent-records beheren.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (rollen) — toewijzen aan een team om volledige controle, dagelijks gebruik of alleen-lezen toegang te verlenen. `RunbookAdmin` bundelt alle bovenstaande granulaire rechten.
 
-Rechten om een runbook te *triggeren* (en dus Bash- en JavaScript-stappen te laten verspreiden) zijn nog steeds `CreateRunbookExecution` / `EditRunbookExecution`.
+Rechten om een runbook te _triggeren_ (en dus Bash- en JavaScript-stappen te laten verspreiden) zijn nog steeds `CreateRunbookExecution` / `EditRunbookExecution`.
 
 ## Agent-side API
 
 Voor de nieuwsgierigen — de agent gebruikt deze endpoints, gemount onder `/runbook-agent-ingest`. Ze worden geauthenticeerd via de ID + sleutel van de agent in de JSON-body (of de headers `x-agent-id` / `x-agent-key`).
 
-| Endpoint | Doel |
-| --- | --- |
-| `POST /heartbeat` | Levensteken; werkt `lastAlive`, `connectionStatus`, `hostInfo`, `agentVersion` bij. |
-| `POST /claim-next-job` | Atomair de oudste `Pending`-job claimen die op de ID van deze agent gericht is. Geeft `{ job: null }` terug als er niets te doen is. |
-| `POST /job/:jobId/heartbeat` | De lease van de job verversen. Geeft 404 zodra de lease verlopen is of de job terminal is. |
-| `POST /job/:jobId/result` | De eindstand indienen. Genegeerd als de lease al verder is. |
+| Endpoint                     | Doel                                                                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `POST /heartbeat`            | Levensteken; werkt `lastAlive`, `connectionStatus`, `hostInfo`, `agentVersion` bij.                                                  |
+| `POST /claim-next-job`       | Atomair de oudste `Pending`-job claimen die op de ID van deze agent gericht is. Geeft `{ job: null }` terug als er niets te doen is. |
+| `POST /job/:jobId/heartbeat` | De lease van de job verversen. Geeft 404 zodra de lease verlopen is of de job terminal is.                                           |
+| `POST /job/:jobId/result`    | De eindstand indienen. Genegeerd als de lease al verder is.                                                                          |
 
 Je zou deze niet met de hand hoeven aanroepen — de meegeleverde agent doet dat. Ze zijn hier gedocumenteerd zodat je je eigen agent kunt bouwen als je een beperking hebt waar de onze niet bij past.

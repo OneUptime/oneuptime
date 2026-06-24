@@ -10,14 +10,14 @@ Les trois pages éditent le même modèle de règle sous-jacent — elles sont s
 
 ## Anatomie d'une règle
 
-| Champ | Rôle |
-| --- | --- |
-| **Nom** | Libellé court et lisible. Affiché dans les journaux d'audit. |
-| **Description** | Contexte facultatif pour les coéquipiers. |
-| **Activée** | Bouton pour suspendre une règle sans la supprimer. |
-| **Motif de titre** | Regex insensible à la casse comparée au titre de l'entité. Vide = tout titre correspond. |
+| Champ                    | Rôle                                                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------------------------------- |
+| **Nom**                  | Libellé court et lisible. Affiché dans les journaux d'audit.                                            |
+| **Description**          | Contexte facultatif pour les coéquipiers.                                                               |
+| **Activée**              | Bouton pour suspendre une règle sans la supprimer.                                                      |
+| **Motif de titre**       | Regex insensible à la casse comparée au titre de l'entité. Vide = tout titre correspond.                |
 | **Motif de description** | Regex insensible à la casse comparée à la description de l'entité. Vide = toute description correspond. |
-| **Runbooks à lancer** | Un ou plusieurs runbooks à démarrer lorsque la règle se déclenche. |
+| **Runbooks à lancer**    | Un ou plusieurs runbooks à démarrer lorsque la règle se déclenche.                                      |
 
 ## Sémantique de correspondance
 

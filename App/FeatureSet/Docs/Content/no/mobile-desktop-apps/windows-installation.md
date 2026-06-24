@@ -2,7 +2,6 @@
 
 Installer OneUptime som en skrivebordsapplikasjon på Windows for omfattende overvåking og hendelseshåndtering.
 
-
 ## Installasjonsmetoder
 
 ### Metode 1: Microsoft Edge (anbefalt)
@@ -10,17 +9,20 @@ Installer OneUptime som en skrivebordsapplikasjon på Windows for omfattende ove
 Edge gir den beste Windows PWA-integrasjonen med innebygde funksjoner.
 
 1. **Åpne OneUptime i Edge**
+
    - Start Microsoft Edge-nettleseren
    - Naviger til URL-en for OneUptime-instansen din
    - Logg inn på OneUptime-kontoen din
    - Vent til siden er fullstendig lastet
 
 2. **Installer appen**
+
    - Se etter **installikonet** (⊞) i adressefeltet
    - Klikk knappen **"Installer OneUptime"**
    - Eller klikk **menyen med tre punkter** → **Apper** → **Installer dette nettstedet som en app**
 
 3. **Tilpass installasjonen**
+
    - **Appnavn**: Endre om ønskelig (standard: OneUptime)
    - **Start-meny**: Velg om du vil legge til i Start-menyen
    - **Oppgavelinje**: Alternativ for å feste til oppgavelinjen
@@ -36,17 +38,20 @@ Edge gir den beste Windows PWA-integrasjonen med innebygde funksjoner.
 Chrome tilbyr utmerket PWA-støtte med rik skrivebordsintegrasjon.
 
 1. **Åpne OneUptime i Chrome**
+
    - Start Google Chrome
    - Gå til OneUptime-instansen din
    - Sørg for at du er logget inn
    - Vent til siden er fullstendig lastet
 
 2. **Installer via adressefeltet**
+
    - Se etter **installikonet** (⊞) i adressefeltet
    - Klikk **"Installer OneUptime"**
    - Eller bruk menyen: **tre punkter** → **Flere verktøy** → **Opprett snarvei**
 
 3. **Installasjonsalternativer**
+
    - Huk av **"Åpne som vindu"** for app-lignende opplevelse
    - Tilpass appnavnet om ønskelig
    - Klikk **"Installer"** eller **"Opprett"**
@@ -61,6 +66,7 @@ Chrome tilbyr utmerket PWA-støtte med rik skrivebordsintegrasjon.
 Firefox støtter PWA-installasjon med grunnleggende skrivebordsintegrasjon.
 
 1. **Åpne OneUptime i Firefox**
+
    - Start Firefox-nettleseren
    - Naviger til OneUptime-URL-en
    - Fullfør innloggingsprosessen
@@ -70,15 +76,17 @@ Firefox støtter PWA-installasjon med grunnleggende skrivebordsintegrasjon.
    - Eller klikk **meny** → **Installer**
    - Hvis tilgjengelig, klikk tilsvarende **"Legg til på startskjerm"**
 
-
 ### Oppstartkonfigurasjon
+
 1. **Autostart**: Konfigurer OneUptime til å starte med Windows
    - Høyreklikk på oppgavelinjen → Oppgavebehandler → Oppstart
    - Aktiver OneUptime om ønskelig
 2. **Standardstørrelse**: Angi foretrukket vindusstørrelse og -posisjon
 
 ### Varselinnstillinger
+
 1. **Windows-varsler**
+
    - Innstillinger → System → Varsler og handlinger
    - Finn OneUptime og konfigurer varselpreferanser
    - Aktiver bannervarsler for hendelser
@@ -90,12 +98,12 @@ Firefox støtter PWA-installasjon med grunnleggende skrivebordsintegrasjon.
 
 ## Avanserte installasjonsalternativer
 
-
 ## Feilsøking
 
 ### Installasjonsproblemer
 
 **Installeringsknapp vises ikke:**
+
 ```
 Løsninger:
 1. Sørg for at du bruker Edge eller Chrome (anbefalte nettlesere)
@@ -107,6 +115,7 @@ Løsninger:
 ```
 
 **Installasjonen mislykkes eller krasjer:**
+
 ```
 Løsninger:
 1. Kjør nettleseren som administrator
@@ -118,6 +127,7 @@ Løsninger:
 ```
 
 **Appen vises ikke i Start-menyen:**
+
 ```
 Løsninger:
 1. Søk etter "OneUptime" i Windows-søk
@@ -130,6 +140,7 @@ Løsninger:
 ### Varslingsproblemer
 
 **Windows-varsler fungerer ikke:**
+
 ```
 Løsninger:
 1. Windows Innstillinger → System → Varsler og handlinger
@@ -142,12 +153,15 @@ Løsninger:
 ## Avinstallasjon
 
 ### Fullstendig fjerning
+
 1. **Windows Innstillinger-metode**
+
    - Innstillinger → Apper → Apper og funksjoner
    - Søk etter "OneUptime"
    - Klikk og velg "Avinstaller"
 
 2. **Nettlesermetode**
+
    - Åpne Edge/Chrome
    - Gå til edge://apps/ eller chrome://apps/
    - Finn OneUptime
@@ -158,10 +172,10 @@ Løsninger:
    - Velg "Avinstaller"
    - Bekreft fjerning
 
-
 ## Oppdateringer og vedlikehold
 
 ### Automatiske oppdateringer
+
 - OneUptime PWA oppdateres automatisk når den er tilkoblet
 - Ingen manuell intervensjon påkrevd
 - Oppdateringer brukes umiddelbart ved omstart

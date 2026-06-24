@@ -29,12 +29,12 @@ La lista de **Paneles** te permite filtrar por etiqueta, que es la forma más r�
 
 Los paneles funcionan con el control de acceso basado en roles de tu proyecto. Los permisos relevantes:
 
-| Permiso | Qué permite |
-| --- | --- |
-| **Crear Panel** | Crear nuevos paneles. |
-| **Leer Panel** | Ver paneles (en modo privado). |
-| **Editar Panel** | Cambiar widgets, variables y configuración. |
-| **Eliminar Panel** | Eliminar un panel. |
+| Permiso            | Qué permite                                 |
+| ------------------ | ------------------------------------------- |
+| **Crear Panel**    | Crear nuevos paneles.                       |
+| **Leer Panel**     | Ver paneles (en modo privado).              |
+| **Editar Panel**   | Cambiar widgets, variables y configuración. |
+| **Eliminar Panel** | Eliminar un panel.                          |
 
 Hay permisos equivalentes para propietarios de paneles y dominios personalizados, para que puedas otorgar "gestionar propietarios" sin otorgar "editar el panel".
 

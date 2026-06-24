@@ -15,12 +15,12 @@ Ces variables ont la priorité sur les contextes sauvegardés mais sont remplac�
 
 ## Codes de sortie
 
-| Code | Signification |
-|------|--------------|
-| `0` | Succès |
-| `1` | Erreur générale |
-| `2` | Erreur d'authentification (identifiants manquants ou invalides) |
-| `3` | Introuvable (404) |
+| Code | Signification                                                   |
+| ---- | --------------------------------------------------------------- |
+| `0`  | Succès                                                          |
+| `1`  | Erreur générale                                                 |
+| `2`  | Erreur d'authentification (identifiants manquants ou invalides) |
+| `3`  | Introuvable (404)                                               |
 
 Utilisez les codes de sortie dans les scripts pour gérer les erreurs :
 
@@ -80,7 +80,7 @@ done
 name: Check Active Incidents
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: "*/5 * * * *"
 
 jobs:
   health-check:

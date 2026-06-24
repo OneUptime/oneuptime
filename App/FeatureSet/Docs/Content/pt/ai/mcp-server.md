@@ -202,13 +202,13 @@ A configuração acima usa variáveis de entrada com `"password": true` para sol
 
 ## Endpoints Disponíveis
 
-| Endpoint | Método | Descrição |
-|----------|--------|-------------|
-| `/mcp` | GET | Stream de eventos enviados pelo servidor para notificações do servidor para o cliente |
-| `/mcp` | POST | Requisições JSON-RPC para chamadas de ferramentas e outras operações |
-| `/mcp` | DELETE | Limpeza e encerramento de sessão |
-| `/mcp/health` | GET | Endpoint de verificação de saúde |
-| `/mcp/tools` | GET | API REST para listar ferramentas disponíveis |
+| Endpoint      | Método | Descrição                                                                             |
+| ------------- | ------ | ------------------------------------------------------------------------------------- |
+| `/mcp`        | GET    | Stream de eventos enviados pelo servidor para notificações do servidor para o cliente |
+| `/mcp`        | POST   | Requisições JSON-RPC para chamadas de ferramentas e outras operações                  |
+| `/mcp`        | DELETE | Limpeza e encerramento de sessão                                                      |
+| `/mcp/health` | GET    | Endpoint de verificação de saúde                                                      |
+| `/mcp/tools`  | GET    | API REST para listar ferramentas disponíveis                                          |
 
 ## Autenticação
 
@@ -319,12 +319,15 @@ Estas consultas funcionam sem autenticação, usando apenas as ferramentas públ
 ## Permissões de Chave de API
 
 ### Acesso Somente Leitura
+
 Para apenas visualizar dados, adicione permissões de leitura para sua chave de API.
 
 ### Acesso Completo
+
 Para acesso total para criar, atualizar e excluir recursos, certifique-se de que sua chave de API tem permissões de Administrador do Projeto.
 
 ### Melhores Práticas
+
 - Use Permissões Específicas: Conceda apenas as permissões mínimas necessárias
 - Rotacione Chaves de API: Rotacione regularmente suas chaves de API
 - Monitore o Uso: Acompanhe o uso da chave de API no OneUptime
@@ -333,24 +336,30 @@ Para acesso total para criar, atualizar e excluir recursos, certifique-se de que
 ## Solução de Problemas
 
 ### Erros de Permissão
+
 Certifique-se de que sua chave de API tem as permissões necessárias:
+
 - Acesso de leitura para listar recursos
 - Acesso de escrita para criar/atualizar recursos
 - Acesso de exclusão se você quiser remover recursos
 
 ### Problemas de Conexão
+
 1. Verifique se a URL do OneUptime está correta
 2. Verifique se sua chave de API é válida
 3. Certifique-se de que sua instância do OneUptime está acessível
 4. Teste o endpoint de saúde
 
 ### Chave de API Inválida
+
 - Verifique a chave de API nas configurações do seu OneUptime
 - Verifique se há espaços extras ou caracteres
 - Certifique-se de que a chave não expirou
 
 ### Erros de Sessão
+
 Se você receber erros relacionados a sessões:
+
 - O servidor MCP usa o cabeçalho `mcp-session-id` para rastrear sessões
 - Certifique-se de que seu cliente lida adequadamente com o ID de sessão retornado pelo servidor
 - As sessões são limpas automaticamente quando as conexões fecham

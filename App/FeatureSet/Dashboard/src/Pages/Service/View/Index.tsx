@@ -41,6 +41,9 @@ import ResourceOverview, {
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
+import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
+import OneUptimeDate from "Common/Types/Date";
 import {
   fetchSpanMetrics,
   formatCompact,
@@ -82,6 +85,8 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const [service, setService] = useState<Service | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string>("");
   const [spanMetrics, setSpanMetrics] = useState<SpanMetrics | null>(null);
   const [runtimeCharts, setRuntimeCharts] = useState<Array<ProbedRuntimeChart>>(
@@ -104,8 +109,10 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   ): Promise<void> => {
     if (showLoader) {
       setIsLoading(true);
+      setError("");
+    } else {
+      setIsRefreshing(true);
     }
-    setError("");
     try {
       const item: Service | null = await ModelAPI.getItem({
         modelType: Service,
@@ -129,16 +136,28 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       });
 
       if (!item) {
-        setError("Service not found.");
+        if (showLoader) {
+          setError("Service not found.");
+        }
         setIsLoading(false);
+        setIsRefreshing(false);
         return;
       }
 
       setService(item);
+      setLastRefreshedAt(OneUptimeDate.getCurrentDate());
       setIsLoading(false);
+      setIsRefreshing(false);
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      /*
+       * Keep stale data visible on a background refresh; only the initial
+       * load surfaces a page-level error.
+       */
+      if (showLoader) {
+        setError(API.getFriendlyMessage(err));
+      }
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -195,6 +214,15 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       ignore = true;
     };
   }, [service, timeRange]);
+
+  const { autoRefreshInterval, setAutoRefreshInterval } = useAutoRefresh({
+    storageKey: "service-overview-auto-refresh-interval",
+    onRefresh: (): void => {
+      loadModel(false).catch(() => {
+        // loadModel surfaces its own errors; a refresh tick stays silent.
+      });
+    },
+  });
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -449,11 +477,22 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         tilesLoading={metricsLoading && !m}
         charts={charts}
         controls={
-          <TelemetryTimeRangePicker
-            value={timeRange}
-            onChange={(value: RangeStartAndEndDateTime): void => {
-              setTimeRange(value);
+          <AutoRefreshControl
+            autoRefreshInterval={autoRefreshInterval}
+            onAutoRefreshIntervalChange={setAutoRefreshInterval}
+            onManualRefresh={(): void => {
+              loadModel(false).catch(() => {});
             }}
+            isRefreshing={isRefreshing}
+            lastRefreshedAt={lastRefreshedAt}
+            timeRangePicker={
+              <TelemetryTimeRangePicker
+                value={timeRange}
+                onChange={(value: RangeStartAndEndDateTime): void => {
+                  setTimeRange(value);
+                }}
+              />
+            }
           />
         }
         quickLinks={quickLinks}

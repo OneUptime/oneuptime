@@ -62,11 +62,11 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 
 不同的 Kubernetes 發行版有不同的限制 — 最明顯的是工作負載是否能掛載 `hostPath` 磁碟區。為了讓您不必閱讀安全性文件，此 chart 公開了一個頂層選項：`preset`。
 
-| Preset | 適用於 | 記錄收集 | 備註 |
-| --- | --- | --- | --- |
-| `standard`（預設） | 自我管理、**EC2 上的 EKS**、**GKE Standard**、**AKS**、minikube、kind、k3s | DaemonSet 透過 hostPath 讀取 `/var/log/pods` | 負擔最低。這些平台上可使用 hostPath。 |
-| `gke-autopilot` | **GKE Autopilot** | Kubernetes API tailer（Deployment） | Autopilot 上封鎖 hostPath。設定一個強化的安全性內容（security context），以通過 Autopilot 的 Pod Security Standards。 |
-| `eks-fargate` | **EKS Fargate** | Kubernetes API tailer（Deployment） | 與 `gke-autopilot` 相同。Fargate 封鎖 hostPath 和 DaemonSet。 |
+| Preset             | 適用於                                                                     | 記錄收集                                     | 備註                                                                                                                  |
+| ------------------ | -------------------------------------------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `standard`（預設） | 自我管理、**EC2 上的 EKS**、**GKE Standard**、**AKS**、minikube、kind、k3s | DaemonSet 透過 hostPath 讀取 `/var/log/pods` | 負擔最低。這些平台上可使用 hostPath。                                                                                 |
+| `gke-autopilot`    | **GKE Autopilot**                                                          | Kubernetes API tailer（Deployment）          | Autopilot 上封鎖 hostPath。設定一個強化的安全性內容（security context），以通過 Autopilot 的 Pod Security Standards。 |
+| `eks-fargate`      | **EKS Fargate**                                                            | Kubernetes API tailer（Deployment）          | 與 `gke-autopilot` 相同。Fargate 封鎖 hostPath 和 DaemonSet。                                                         |
 
 如果您不確定，請將 `preset` 保留為未設定 — 您會取得 `standard` 預設值。如果您的叢集因 Pod Security 政策錯誤（提及 `hostPath`）而拒絕安裝，請改用 `gke-autopilot`（或在 EKS Fargate 上使用 `eks-fargate`）並重新安裝。
 
@@ -146,21 +146,21 @@ eBPF **預設為開啟**。在以下情況下，您應該停用它（`--set ebpf
 
 OBI 從擷取到的流量中提取數個訊號家族（signal family）。所有訊號都預設為開啟；每一個都可以使用 `--set ebpf.features.<key>=false` 獨立停用：
 
-| 訊號 | 預設 | 它新增了什麼 |
-| --- | --- | --- |
-| `ebpf.features.httpMetrics` | 開啟 | 每個服務的 HTTP/gRPC RED 指標 — 請求速率、延遲長條圖、錯誤計數。 |
-| `ebpf.features.spanMetrics` | 開啟 | 以 span 屬性為鍵的指標：依路由/操作細分的請求大小、回應大小、持續時間。 |
-| `ebpf.features.serviceGraph` | 開啟 | 服務對服務的邊緣指標（呼叫端 → 被呼叫端的請求速率 + 延遲）。為服務地圖提供動力。 |
-| `ebpf.features.hostMetrics` | 開啟 | 每個受檢測程序的 CPU 和記憶體 — 對於基本的容量問題，省去執行另一個獨立 profiler 的麻煩。 |
-| `ebpf.features.networkMetrics` | 開啟 | 帶有 k8s 中繼資料的 pod 對 pod TCP/UDP 流量位元組與封包計數器。呈現每一對有通訊的 pod，包括那些執行 OBI 無法解析之協定的 pod。 |
-| `ebpf.features.networkInterZoneMetrics` | 關閉 | 網路指標的跨區域（inter-zone）變體。會使基數（cardinality）加倍；只有當您實際使用基於區域的排程時才值得啟用。 |
-| `ebpf.features.tcpStats` | 開啟 | 節點層級的 TCP 統計資料：RTT 長條圖、失敗連線計數、重傳次數。 |
+| 訊號                                    | 預設 | 它新增了什麼                                                                                                                   |
+| --------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `ebpf.features.httpMetrics`             | 開啟 | 每個服務的 HTTP/gRPC RED 指標 — 請求速率、延遲長條圖、錯誤計數。                                                               |
+| `ebpf.features.spanMetrics`             | 開啟 | 以 span 屬性為鍵的指標：依路由/操作細分的請求大小、回應大小、持續時間。                                                        |
+| `ebpf.features.serviceGraph`            | 開啟 | 服務對服務的邊緣指標（呼叫端 → 被呼叫端的請求速率 + 延遲）。為服務地圖提供動力。                                               |
+| `ebpf.features.hostMetrics`             | 開啟 | 每個受檢測程序的 CPU 和記憶體 — 對於基本的容量問題，省去執行另一個獨立 profiler 的麻煩。                                       |
+| `ebpf.features.networkMetrics`          | 開啟 | 帶有 k8s 中繼資料的 pod 對 pod TCP/UDP 流量位元組與封包計數器。呈現每一對有通訊的 pod，包括那些執行 OBI 無法解析之協定的 pod。 |
+| `ebpf.features.networkInterZoneMetrics` | 關閉 | 網路指標的跨區域（inter-zone）變體。會使基數（cardinality）加倍；只有當您實際使用基於區域的排程時才值得啟用。                  |
+| `ebpf.features.tcpStats`                | 開啟 | 節點層級的 TCP 統計資料：RTT 長條圖、失敗連線計數、重傳次數。                                                                  |
 
 OBI 也預設會跨服務邊界傳播追蹤內容（trace context）。當 pod A 向 pod B 發出 HTTP/gRPC 請求時，OBI 會在出站請求中注入一個 W3C `traceparent` 標頭 — 因此 pod B 端產生的 span 會連結到與 pod A 出站相同的追蹤中。兩個應用程式都不需要變更 SDK。
 
-| 選項 | 預設 | 描述 |
-| --- | --- | --- |
-| `ebpf.contextPropagation` | 開啟 | 將 W3C `traceparent` 注入出站流量（HTTP 標頭 + 自訂 TCP 選項）。設定為 `false` 以將每個服務的 span 保留為本地。 |
+| 選項                       | 預設 | 描述                                                                                                                |
+| -------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------- |
+| `ebpf.contextPropagation`  | 開啟 | 將 W3C `traceparent` 注入出站流量（HTTP 標頭 + 自訂 TCP 選項）。設定為 `false` 以將每個服務的 span 保留為本地。     |
 | `ebpf.trackRequestHeaders` | 開啟 | 核心端的請求標頭追蹤，使傳播也能在純 HTTP 伺服器（非 Go、非 TLS）上運作。僅在 `contextPropagation` 為 true 時生效。 |
 
 ### 記錄 ↔ 追蹤關聯（選擇加入）
@@ -178,22 +178,22 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --set ebpf.logToTraceCorrelation=true
 ```
 
-| 選項 | 預設 | 描述 |
-| --- | --- | --- |
-| `ebpf.logToTraceCorrelation` | `false` | 啟用 OBI 記錄增強器和 filelog pipeline 的 trace_id 提升。預設關閉 — 請參閱下方的相容性警告。 |
-| `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | 記錄增強器的程序選擇器。每個項目都是一個 OBI [GlobAttributes](https://opentelemetry.io/docs/zero-code/obi/configure/options/#service-discovery) 選擇器 — 欄位包括 `exe_path`、`languages`、`k8s_pod_labels`、`k8s_pod_annotations`、`open_ports`、`cmd_args`。當您要將記錄增強範圍限定在工作負載的子集合時，請縮小此範圍。 |
+| 選項                         | 預設                             | 描述                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ebpf.logToTraceCorrelation` | `false`                          | 啟用 OBI 記錄增強器和 filelog pipeline 的 trace_id 提升。預設關閉 — 請參閱下方的相容性警告。                                                                                                                                                                                                                               |
+| `ebpf.logEnricher.services`  | `[{service: [{exe_path: "*"}]}]` | 記錄增強器的程序選擇器。每個項目都是一個 OBI [GlobAttributes](https://opentelemetry.io/docs/zero-code/obi/configure/options/#service-discovery) 選擇器 — 欄位包括 `exe_path`、`languages`、`k8s_pod_labels`、`k8s_pod_annotations`、`open_ports`、`cmd_args`。當您要將記錄增強範圍限定在工作負載的子集合時，請縮小此範圍。 |
 
 #### 為什麼它預設關閉 — APM agent 相容性
 
 記錄增強器會**在程序內（in-process）**重寫應用程式的 stdout 緩衝區：當一個被比對到的程序呼叫 `write()` 時，OBI 的 eBPF probe 會將原始的緩衝區位元組歸零（在下游被過濾掉），並透過一條獨立路徑重新發出一個經過增強的副本。該程序內緩衝區重寫與透過 `LD_PRELOAD` 注入自身並包裝 libc `write()` 的 APM agent 不相容：
 
-| APM agent | 函式庫 | 兩者同時存在時的影響 |
-| --- | --- | --- |
+| APM agent          | 函式庫               | 兩者同時存在時的影響                                                                                                                                            |
+| ------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Dynatrace OneAgent | `liboneagentproc.so` | 應用程式 SIGSEGV（exit 139）。Dynatrace watchdog 存活探測（liveness probe）失敗（它自己對 PID 檔案的 `write()` 停滯超過 10 秒門檻），且 OneAgent 進入重啟迴圈。 |
-| New Relic | `libnewrelic*.so` | 相同類別的當機。 |
-| AppDynamics | `libappdynamics*.so` | 相同類別的當機。 |
-| Datadog | `libdd*.so` | 相同類別的當機。 |
-| Instana | `libinstana*.so` | 相同類別的當機。 |
+| New Relic          | `libnewrelic*.so`    | 相同類別的當機。                                                                                                                                                |
+| AppDynamics        | `libappdynamics*.so` | 相同類別的當機。                                                                                                                                                |
+| Datadog            | `libdd*.so`          | 相同類別的當機。                                                                                                                                                |
+| Instana            | `libinstana*.so`     | 相同類別的當機。                                                                                                                                                |
 
 **.NET 工作負載最為脆弱** — Dynatrace 的 .NET agent 一律透過 `LD_PRELOAD` 注入，且 Microsoft.Extensions.Logging 主控台 sink 是無緩衝的，因此每一行記錄都會跨越這條競爭的 `write()` 路徑。Python 和 Go 工作負載通常不受影響，因為它們的 I/O 模型不在同一條程式碼路徑上。
 
@@ -231,15 +231,15 @@ ebpf:
 
 ### 調校
 
-| 選項 | 預設 | 描述 |
-| --- | --- | --- |
-| `ebpf.enabled` | `true` | 主開關。設定為 `false` 以完全略過 eBPF DaemonSet。 |
-| `ebpf.image.tag` | `v0.9.0` | OBI 映像檔標籤。OBI 處於 pre-1.0；請釘選到一個已知良好的版本，並在升版時重新測試。 |
-| `ebpf.autoTargetExe` | `*` | 要檢測的可執行檔的 glob。如果您想要限定自動檢測的範圍，請縮小此範圍（例如 `*/python,*/java`）。 |
-| `ebpf.excludeExePaths` | （shell、kubelet、runc、containerd、otelcol、OBI 自身） | 要略過的以逗號分隔的 glob。 |
-| `ebpf.logLevel` | `info` | `debug`、`info`、`warn` 或 `error`。在進行疑難排解時設定為 `debug`。 |
-| `ebpf.printTraces` | `false` | 在 OTLP 匯出之外，另將 span 列印到 OBI 的 stdout — 對於在安裝期間驗證擷取很有用。 |
-| `ebpf.resources.*` | requests `100m / 256Mi`，limits `1000m / 1Gi` | 對於高流量叢集請調高。 |
+| 選項                   | 預設                                                    | 描述                                                                                            |
+| ---------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `ebpf.enabled`         | `true`                                                  | 主開關。設定為 `false` 以完全略過 eBPF DaemonSet。                                              |
+| `ebpf.image.tag`       | `v0.9.0`                                                | OBI 映像檔標籤。OBI 處於 pre-1.0；請釘選到一個已知良好的版本，並在升版時重新測試。              |
+| `ebpf.autoTargetExe`   | `*`                                                     | 要檢測的可執行檔的 glob。如果您想要限定自動檢測的範圍，請縮小此範圍（例如 `*/python,*/java`）。 |
+| `ebpf.excludeExePaths` | （shell、kubelet、runc、containerd、otelcol、OBI 自身） | 要略過的以逗號分隔的 glob。                                                                     |
+| `ebpf.logLevel`        | `info`                                                  | `debug`、`info`、`warn` 或 `error`。在進行疑難排解時設定為 `debug`。                            |
+| `ebpf.printTraces`     | `false`                                                 | 在 OTLP 匯出之外，另將 span 列印到 OBI 的 stdout — 對於在安裝期間驗證擷取很有用。               |
+| `ebpf.resources.*`     | requests `100m / 256Mi`，limits `1000m / 1Gi`           | 對於高流量叢集請調高。                                                                          |
 
 若要檢查 OBI 是否正在執行並看到流量：
 
@@ -263,55 +263,55 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 
 調校：
 
-| 選項 | 預設 | 描述 |
-| --- | --- | --- |
-| `profiling.enabled` | `false` | 主開關。預設關閉；為持續性 CPU 火焰圖選擇加入。 |
-| `profiling.image.tag` | `0.152.0` | `otel/opentelemetry-collector-ebpf-profiler` 映像檔標籤。此 profiler 處於 pre-1.0；請釘選到一個已知良好的版本。 |
-| `profiling.samplesPerSecond` | `19` | 以 Hz 為單位的取樣頻率。上游預設值；避免意外與常見的計時器頻率產生混疊（aliasing）。 |
-| `profiling.offCpuThreshold` | `0` | (0–1] 會啟用 off-CPU 分析 — 診斷鎖定爭用（lock contention）和阻塞式 I/O。預設關閉，因為它會增加 tracepoint 負擔。 |
-| `profiling.tracers` | `""`*（所有執行階段）* | 要載入的語言追蹤器（tracer）的以逗號分隔清單。 |
-| `profiling.obiProcessContext` | `true` | 將取樣與 OBI 的追蹤內容關聯，以進行追蹤 ↔ profile 連結。 |
+| 選項                          | 預設                   | 描述                                                                                                              |
+| ----------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `profiling.enabled`           | `false`                | 主開關。預設關閉；為持續性 CPU 火焰圖選擇加入。                                                                   |
+| `profiling.image.tag`         | `0.152.0`              | `otel/opentelemetry-collector-ebpf-profiler` 映像檔標籤。此 profiler 處於 pre-1.0；請釘選到一個已知良好的版本。   |
+| `profiling.samplesPerSecond`  | `19`                   | 以 Hz 為單位的取樣頻率。上游預設值；避免意外與常見的計時器頻率產生混疊（aliasing）。                              |
+| `profiling.offCpuThreshold`   | `0`                    | (0–1] 會啟用 off-CPU 分析 — 診斷鎖定爭用（lock contention）和阻塞式 I/O。預設關閉，因為它會增加 tracepoint 負擔。 |
+| `profiling.tracers`           | `""`_（所有執行階段）_ | 要載入的語言追蹤器（tracer）的以逗號分隔清單。                                                                    |
+| `profiling.obiProcessContext` | `true`                 | 將取樣與 OBI 的追蹤內容關聯，以進行追蹤 ↔ profile 連結。                                                         |
 
 ## 其他資料收集（主機指標、飽和度、cAdvisor、KSM、稽核記錄、CSI、CoreDNS）
 
 此 chart 也可以收集：
 
-| `<key>.enabled` | 預設 | 它新增了什麼 |
-| --- | --- | --- |
-| `hostMetrics` | 開啟 | 來自 `/proc` 和 `/sys` 的每個節點 OS 指標 — 磁碟 I/O 佇列深度、檔案系統 inode 使用率、NIC 錯誤計數器、分頁統計資料、平均負載。位於記錄收集器 DaemonSet 內部（沒有額外的 pod）。 |
-| `kubeletstats.utilizationMetrics` | 開啟 | 飽和度指標 — 以 request 和 limit 百分比表示的容器與 pod CPU/記憶體。八個衍生的指標家族，為「CPU/Memory vs Request」和「CPU/Memory vs Limit」監視器提供動力。與既有的 `kubeletstats` 接收器使用相同的抓取（scrape），沒有額外的 pod。當 pod 未設定 request/limit 時一律為 0。 |
-| `kubeletstats.volumeMetrics` | 開啟 | 每個 PVC 的磁碟使用量（`k8s.volume.available`、`k8s.volume.capacity`）。為「PVC Low Disk Space」監視器提供動力。每個 pod 的每個 PVC 一條序列 — 對大多數叢集而言是有界的，對擁有數千個 PVC 的有狀態工作負載則較重。 |
-| `cadvisor` | 開啟 | 從每個節點的 DaemonSet pod 抓取 kubelet 的 `/metrics/cadvisor` 端點，以取得 `kubeletstats` 不會轉譯的容器指標：CFS 節流（`container_cpu_cfs_throttled_seconds_total`、`container_cpu_cfs_periods_total`）和 OOM kill 事件（`container_oom_events_total`）。一個 relabel 允許清單（allowlist）會在接收器處捨棄其他所有內容，使基數保持有界。 |
-| `kubeStateMetrics` | 關閉 | 從 kube-state-metrics 拉取叢集狀態指標：pod 階段（Pending / Terminating）、pod 排程狀態（排程失敗的 pod）、容器等待原因（CrashLoopBackOff、ImagePullBackOff），以及資源配額使用量。`mode: bundled`（預設）會為您部署一個小型的 KSM Deployment；`mode: external` 則透過 `endpoint` 抓取既有的 KSM。預設關閉，因為 bundled 模式會在 chart 的佔用空間中增加一個 Deployment。 |
-| `auditLogs` | 關閉 | 從主機追蹤 `/var/log/kubernetes/audit.log`。擷取每一個 Kubernetes API 請求 — 誰對哪個資源做了什麼。僅限自我管理叢集 — 受管理的 K8s（EKS、GKE、AKS、DOKS）會將稽核記錄路由至雲端供應商的 sink。 |
-| `csi` | 關閉 | 自動探索標記為 `app=csi-driver`（或 `app.kubernetes.io/component=csi-driver`）的 pod，並抓取它們的 Prometheus `metrics` 連接埠 — 磁碟區 attach/detach 延遲、佈建失敗、IOPS。 |
-| `coreDns` | 關閉 | 在 `:9153/metrics` 上抓取叢集的 CoreDNS 服務。呈現查詢速率、延遲、快取命中率、錯誤計數 — 常見的 P99 延遲元兇。 |
+| `<key>.enabled`                   | 預設 | 它新增了什麼                                                                                                                                                                                                                                                                                                                                                              |
+| --------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hostMetrics`                     | 開啟 | 來自 `/proc` 和 `/sys` 的每個節點 OS 指標 — 磁碟 I/O 佇列深度、檔案系統 inode 使用率、NIC 錯誤計數器、分頁統計資料、平均負載。位於記錄收集器 DaemonSet 內部（沒有額外的 pod）。                                                                                                                                                                                           |
+| `kubeletstats.utilizationMetrics` | 開啟 | 飽和度指標 — 以 request 和 limit 百分比表示的容器與 pod CPU/記憶體。八個衍生的指標家族，為「CPU/Memory vs Request」和「CPU/Memory vs Limit」監視器提供動力。與既有的 `kubeletstats` 接收器使用相同的抓取（scrape），沒有額外的 pod。當 pod 未設定 request/limit 時一律為 0。                                                                                              |
+| `kubeletstats.volumeMetrics`      | 開啟 | 每個 PVC 的磁碟使用量（`k8s.volume.available`、`k8s.volume.capacity`）。為「PVC Low Disk Space」監視器提供動力。每個 pod 的每個 PVC 一條序列 — 對大多數叢集而言是有界的，對擁有數千個 PVC 的有狀態工作負載則較重。                                                                                                                                                        |
+| `cadvisor`                        | 開啟 | 從每個節點的 DaemonSet pod 抓取 kubelet 的 `/metrics/cadvisor` 端點，以取得 `kubeletstats` 不會轉譯的容器指標：CFS 節流（`container_cpu_cfs_throttled_seconds_total`、`container_cpu_cfs_periods_total`）和 OOM kill 事件（`container_oom_events_total`）。一個 relabel 允許清單（allowlist）會在接收器處捨棄其他所有內容，使基數保持有界。                               |
+| `kubeStateMetrics`                | 關閉 | 從 kube-state-metrics 拉取叢集狀態指標：pod 階段（Pending / Terminating）、pod 排程狀態（排程失敗的 pod）、容器等待原因（CrashLoopBackOff、ImagePullBackOff），以及資源配額使用量。`mode: bundled`（預設）會為您部署一個小型的 KSM Deployment；`mode: external` 則透過 `endpoint` 抓取既有的 KSM。預設關閉，因為 bundled 模式會在 chart 的佔用空間中增加一個 Deployment。 |
+| `auditLogs`                       | 關閉 | 從主機追蹤 `/var/log/kubernetes/audit.log`。擷取每一個 Kubernetes API 請求 — 誰對哪個資源做了什麼。僅限自我管理叢集 — 受管理的 K8s（EKS、GKE、AKS、DOKS）會將稽核記錄路由至雲端供應商的 sink。                                                                                                                                                                            |
+| `csi`                             | 關閉 | 自動探索標記為 `app=csi-driver`（或 `app.kubernetes.io/component=csi-driver`）的 pod，並抓取它們的 Prometheus `metrics` 連接埠 — 磁碟區 attach/detach 延遲、佈建失敗、IOPS。                                                                                                                                                                                              |
+| `coreDns`                         | 關閉 | 在 `:9153/metrics` 上抓取叢集的 CoreDNS 服務。呈現查詢速率、延遲、快取命中率、錯誤計數 — 常見的 P99 延遲元兇。                                                                                                                                                                                                                                                            |
 
 ## 常用選項
 
-| 選項 | 預設 | 描述 |
-| --- | --- | --- |
-| `preset` | （空白 — 視為 `standard`） | 請參閱上方的表格。 |
-| `oneuptime.url` | *(必填)* | 您的 OneUptime 實例的 URL。 |
-| `oneuptime.apiKey` | *(必填)* | 專案 API 金鑰（Settings → API Keys）。 |
-| `oneuptime.labels` | `{}` | 要附加到此 agent 每一筆記錄的專案標籤。每個 `<key>: <value>` 都會成為一個 `oneuptime.label.<key>=<value>` 資源屬性。請參閱上方的自動標記章節。 |
-| `clusterName` | *(必填)* | 此叢集的唯一名稱。會在每一筆記錄上標記為 `k8s.cluster.name`。 |
-| `namespaceFilters.include` | `[]` | 如果有設定，則只監控這些命名空間。 |
-| `namespaceFilters.exclude` | `["kube-system"]` | 要略過的命名空間。 |
-| `logs.enabled` | `true` | 開啟或關閉記錄收集。 |
-| `logs.mode` | （從 `preset` 衍生） | `daemonset`、`api` 或 `disabled`。覆寫 preset。 |
-| `logs.api.replicas` | `1` | 記錄 tailer Deployment 複本的數量（僅在 API 模式中）。 |
-| `ebpf.enabled` | `true` | 透過 OpenTelemetry eBPF Instrumentation 從每個 pod 自動擷取 HTTP/gRPC 追蹤。請參閱上方章節。 |
-| `profiling.enabled` | `false` | 透過 OpenTelemetry eBPF Profiler 的持續性 CPU 火焰圖。預設關閉；為更多遙測資料選擇加入。請參閱上方章節。 |
-| `hostMetrics.enabled` | `true` | 每個節點的 OS 指標。 |
-| `kubeletstats.utilizationMetrics.enabled` | `true` | 容器與 pod 的 CPU/記憶體飽和度（request 和 limit 的 %）。無額外抓取 — 從 kubeletstats 資料衍生而來。 |
-| `kubeletstats.volumeMetrics.enabled` | `true` | 每個 PVC 的磁碟使用量（`k8s.volume.available`、`k8s.volume.capacity`）。 |
-| `cadvisor.enabled` | `true` | 抓取此節點的 kubelet `/metrics/cadvisor`，以取得 CFS 節流 + OOM kill 計數器。允許清單限定為 3 個指標。 |
-| `kubeStateMetrics.enabled` | `false` | 從 kube-state-metrics 拉取 pod 階段、pod 排程狀態、容器等待原因（CrashLoopBackOff / ImagePullBackOff）和 ResourceQuota 使用量。bundled 與 external 的差異請參閱 `kubeStateMetrics.mode`。 |
-| `auditLogs.enabled` | `false` | Kubernetes 稽核記錄收集（自我管理叢集）。 |
-| `csi.enabled` | `false` | CSI 驅動程式 Prometheus 指標。 |
-| `coreDns.enabled` | `false` | CoreDNS Prometheus 指標。 |
-| `controlPlane.enabled` | `false` | 抓取 etcd / api-server / scheduler / controller-manager。僅限自我管理叢集 — 受管理的方案（EKS/GKE/AKS）通常不會公開這些端點。 |
+| 選項                                      | 預設                       | 描述                                                                                                                                                                                      |
+| ----------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `preset`                                  | （空白 — 視為 `standard`） | 請參閱上方的表格。                                                                                                                                                                        |
+| `oneuptime.url`                           | _(必填)_                   | 您的 OneUptime 實例的 URL。                                                                                                                                                               |
+| `oneuptime.apiKey`                        | _(必填)_                   | 專案 API 金鑰（Settings → API Keys）。                                                                                                                                                    |
+| `oneuptime.labels`                        | `{}`                       | 要附加到此 agent 每一筆記錄的專案標籤。每個 `<key>: <value>` 都會成為一個 `oneuptime.label.<key>=<value>` 資源屬性。請參閱上方的自動標記章節。                                            |
+| `clusterName`                             | _(必填)_                   | 此叢集的唯一名稱。會在每一筆記錄上標記為 `k8s.cluster.name`。                                                                                                                             |
+| `namespaceFilters.include`                | `[]`                       | 如果有設定，則只監控這些命名空間。                                                                                                                                                        |
+| `namespaceFilters.exclude`                | `["kube-system"]`          | 要略過的命名空間。                                                                                                                                                                        |
+| `logs.enabled`                            | `true`                     | 開啟或關閉記錄收集。                                                                                                                                                                      |
+| `logs.mode`                               | （從 `preset` 衍生）       | `daemonset`、`api` 或 `disabled`。覆寫 preset。                                                                                                                                           |
+| `logs.api.replicas`                       | `1`                        | 記錄 tailer Deployment 複本的數量（僅在 API 模式中）。                                                                                                                                    |
+| `ebpf.enabled`                            | `true`                     | 透過 OpenTelemetry eBPF Instrumentation 從每個 pod 自動擷取 HTTP/gRPC 追蹤。請參閱上方章節。                                                                                              |
+| `profiling.enabled`                       | `false`                    | 透過 OpenTelemetry eBPF Profiler 的持續性 CPU 火焰圖。預設關閉；為更多遙測資料選擇加入。請參閱上方章節。                                                                                  |
+| `hostMetrics.enabled`                     | `true`                     | 每個節點的 OS 指標。                                                                                                                                                                      |
+| `kubeletstats.utilizationMetrics.enabled` | `true`                     | 容器與 pod 的 CPU/記憶體飽和度（request 和 limit 的 %）。無額外抓取 — 從 kubeletstats 資料衍生而來。                                                                                      |
+| `kubeletstats.volumeMetrics.enabled`      | `true`                     | 每個 PVC 的磁碟使用量（`k8s.volume.available`、`k8s.volume.capacity`）。                                                                                                                  |
+| `cadvisor.enabled`                        | `true`                     | 抓取此節點的 kubelet `/metrics/cadvisor`，以取得 CFS 節流 + OOM kill 計數器。允許清單限定為 3 個指標。                                                                                    |
+| `kubeStateMetrics.enabled`                | `false`                    | 從 kube-state-metrics 拉取 pod 階段、pod 排程狀態、容器等待原因（CrashLoopBackOff / ImagePullBackOff）和 ResourceQuota 使用量。bundled 與 external 的差異請參閱 `kubeStateMetrics.mode`。 |
+| `auditLogs.enabled`                       | `false`                    | Kubernetes 稽核記錄收集（自我管理叢集）。                                                                                                                                                 |
+| `csi.enabled`                             | `false`                    | CSI 驅動程式 Prometheus 指標。                                                                                                                                                            |
+| `coreDns.enabled`                         | `false`                    | CoreDNS Prometheus 指標。                                                                                                                                                                 |
+| `controlPlane.enabled`                    | `false`                    | 抓取 etcd / api-server / scheduler / controller-manager。僅限自我管理叢集 — 受管理的方案（EKS/GKE/AKS）通常不會公開這些端點。                                                             |
 
 如需完整清單，請參閱 [chart 的 `values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml)。
 

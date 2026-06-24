@@ -98,10 +98,10 @@ provider "oneuptime" {
 
 ### Opções de Configuração
 
-| Argumento | Variável de Ambiente | Descrição | Obrigatório |
-|----------|---------------------|-------------|----------|
-| `oneuptime_url` | `ONEUPTIME_URL` | URL do OneUptime | Sim |
-| `api_key` | `ONEUPTIME_API_KEY` | Chave de API do OneUptime | Sim |
+| Argumento       | Variável de Ambiente | Descrição                 | Obrigatório |
+| --------------- | -------------------- | ------------------------- | ----------- |
+| `oneuptime_url` | `ONEUPTIME_URL`      | URL do OneUptime          | Sim         |
+| `api_key`       | `ONEUPTIME_API_KEY`  | Chave de API do OneUptime | Sim         |
 
 ## Início Rápido
 
@@ -192,11 +192,11 @@ terraform {
 
 **Crítico**: Os clientes auto-hospedados devem fixar a versão do provedor para corresponder à instalação do OneUptime:
 
-| Versão do OneUptime | Versão do Provedor | Configuração |
-|-------------------|------------------|---------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| 7.2.x | 7.2.x | `version = "~> 7.2.0"` |
+| Versão do OneUptime | Versão do Provedor | Configuração           |
+| ------------------- | ------------------ | ---------------------- |
+| 7.0.x               | 7.0.x              | `version = "~> 7.0.0"` |
+| 7.1.x               | 7.1.x              | `version = "~> 7.1.0"` |
+| 7.2.x               | 7.2.x              | `version = "~> 7.2.0"` |
 
 Exemplo para OneUptime 7.0.123:
 
@@ -216,24 +216,30 @@ terraform {
 O provedor Terraform do OneUptime suporta os seguintes recursos:
 
 ### Recursos Principais
+
 - `oneuptime_team` - Gerenciar equipes
 
 ### Monitoramento
+
 - `oneuptime_monitor` - Criar e gerenciar monitores
 - `oneuptime_probe` - Gerenciar probes de monitoramento
 
 ### Gerenciamento de Plantão
+
 - `oneuptime_on_call_duty_policy` - Configurar escalas de plantão
 
 ### Páginas de Status
+
 - `oneuptime_status_page` - Criar páginas de status
 
 ### Catálogo de Serviços
+
 - `oneuptime_service_catalog` - Gerenciar entradas do catálogo de serviços
 - `oneuptime_service` - Definir serviços
 - `oneuptime_service_dependency` - Mapear dependências de serviços
 
 ### Fontes de Dados
+
 Nota: As fontes de dados não estão disponíveis atualmente no provedor, pois nenhuma fonte de dados está definida no esquema do provedor.
 
 ## Melhores Práticas
@@ -241,10 +247,12 @@ Nota: As fontes de dados não estão disponíveis atualmente no provedor, pois n
 ### 1. Gerenciamento de Versões
 
 **Para Clientes de Nuvem:**
+
 - Use versionamento semântico com `~>` para obter atualizações compatíveis
 - Revise o changelog antes de atualizações de versão principal
 
 **Para Clientes Auto-Hospedados:**
+
 - Sempre fixe na versão exata correspondente à sua instalação
 - Atualize a versão do provedor ao atualizar o OneUptime
 - Teste em ambiente não produtivo primeiro
@@ -379,15 +387,19 @@ terraform apply
 ### Problemas Comuns
 
 1. **Incompatibilidade de Versão (Auto-Hospedado)**
+
    ```
    Error: API version incompatible
    ```
+
    **Solução**: Certifique-se de que a versão do provedor corresponde à instalação do OneUptime
 
 2. **Problemas de Autenticação**
+
    ```
    Error: Invalid API key
    ```
+
    **Solução**: Verifique a chave de API e as permissões
 
 3. **Recurso Não Encontrado**

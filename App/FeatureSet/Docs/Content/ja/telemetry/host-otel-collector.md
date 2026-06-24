@@ -9,14 +9,14 @@
 - [`journaldreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/journaldreceiver) による **systemd ジャーナル**（Linux）
 - tail した `log stream` の出力をラップする [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor) による **Apple Unified Log**（macOS）
 - [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver) による **Windows イベントログ**
-- [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) による **Windows サービスのステータス**（ホストの **Services** タブを支えます）
+- [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) による **Windows サービスのステータス**（ホストの **Services** タブを支えます） — _アップストリームのビルド済みコレクターには含まれていません。ビルド済みの **OneUptime Host Collector** か、カスタムビルドを使用してください（下記の「Windows サービス（メトリクス）」を参照）_
 
-> **OneUptime Infrastructure Agent はどうなのか？** そのエージェントは、基本的なメトリクスと *Server / VM Monitor* 機能（ステータス、プロセス、アラート）に特化した、独立した軽量の Go デーモンです。ここで説明している OpenTelemetry Collector はそれとは独立しており、ログ（ファイルログ、journald、Windows イベントログ）やより充実したホストメトリクスを標準的な OTLP として取り込みたい場合に適したツールです。両者は同じホスト上で互いに干渉することなく実行できます。
+> **OneUptime Infrastructure Agent はどうなのか？** そのエージェントは、基本的なメトリクスと _Server / VM Monitor_ 機能（ステータス、プロセス、アラート）に特化した、独立した軽量の Go デーモンです。ここで説明している OpenTelemetry Collector はそれとは独立しており、ログ（ファイルログ、journald、Windows イベントログ）やより充実したホストメトリクスを標準的な OTLP として取り込みたい場合に適したツールです。両者は同じホスト上で互いに干渉することなく実行できます。
 
 ## 前提条件
 
-- **OneUptime Telemetry Ingestion Token** — *Project Settings → Telemetry Ingestion Keys* から作成し、`x-oneuptime-token` の値をコピーします。
-- **OpenTelemetry Collector Contrib** ディストリビューション（`otelcol-contrib`）。デフォルトの `otelcol` ビルドには `windowseventlogreceiver`、`journaldreceiver`、`hostmetrics` の追加機能などのレシーバーは**含まれていません** — 必ず `contrib` ディストリビューションを使用してください。
+- **OneUptime Telemetry Ingestion Token** — _Project Settings → Telemetry Ingestion Keys_ から作成し、`x-oneuptime-token` の値をコピーします。
+- **OpenTelemetry Collector Contrib** ディストリビューション（`otelcol-contrib`）。デフォルトの `otelcol` ビルドには `windowseventlogreceiver`、`journaldreceiver`、`hostmetrics` の追加機能などのレシーバーは**含まれていません** — 必ず `contrib` ディストリビューションを使用してください。あらかじめ知っておくべき例外が 1 つあります。Windows の **Services** タブを支える alpha の `windowsservicereceiver` は、アップストリームのビルド済み `contrib` バイナリには**同梱されていません** — それを含むビルド済みの **OneUptime Host Collector** を使用するか、ご自身でビルドしてください。下記の「Windows サービス（メトリクス）」を参照してください。
 - コレクターをサービスとしてインストールし、（該当する場合は）権限が必要なログソースを読み取るための、ホスト上の Root / Administrator 権限。
 
 ## ステップ 1 — OpenTelemetry Collector のインストール
@@ -27,7 +27,7 @@
 
 ```bash
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
-VERSION=0.107.0                      # pick the latest release tag
+VERSION=0.154.0                      # pick the latest release tag
 
 curl -L -o otelcol-contrib.deb \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.deb"
@@ -41,7 +41,7 @@ Debian パッケージは、バイナリを `/usr/bin/otelcol-contrib` に、デ
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-VERSION=0.107.0
+VERSION=0.154.0
 
 sudo rpm -ivh \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.rpm"
@@ -53,7 +53,7 @@ sudo rpm -ivh \
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/arm64/arm64/')
-VERSION=0.107.0
+VERSION=0.154.0
 
 curl -L -o otelcol-contrib.tar.gz \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_darwin_${ARCH}.tar.gz"
@@ -68,25 +68,30 @@ sudo mkdir -p /etc/otelcol-contrib
 
 ### Windows
 
-[リリースページ](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) から最新の `otelcol-contrib_*_windows_amd64.zip`（または `arm64`）をダウンロードします。**管理者権限の** PowerShell プロンプトから実行します。
+Windows では、**OneUptime Host Collector** をインストールします — これは `windows_service` レシーバー（ホストの **Services** タブを支え、アップストリームの `otelcol-contrib` ビルドには*含まれていません*）を同梱した、OneUptime のビルド済みコレクターです。**管理者権限の** PowerShell プロンプトから実行します。
 
 ```powershell
-$dest = "C:\Program Files\otelcol-contrib"
+$dest = "C:\Program Files\OneUptimeHostCollector"
+$zip  = "$env:TEMP\oneuptime-host-collector.zip"
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-Expand-Archive -Path "$env:USERPROFILE\Downloads\otelcol-contrib_*_windows_amd64.zip" -DestinationPath $dest
+# amd64; use the _arm64.zip asset on ARM
+Invoke-WebRequest -Uri "https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-host-collector_windows_amd64.zip" -OutFile $zip
+Expand-Archive -Path $zip -DestinationPath $dest -Force
 ```
 
-ステップ 2 で `C:\Program Files\otelcol-contrib\config.yaml` を作成し、ステップ 3 で Windows サービスを登録します。
+ステップ 2 で `C:\Program Files\OneUptimeHostCollector\config.yaml` を作成し、ステップ 3 で Windows サービスを登録します。
+
+> アップストリームの `otelcol-contrib` を使いたいですか？ 代わりに [OpenTelemetry リリースページ](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) から `otelcol-contrib_*_windows_amd64.zip` をダウンロードしてください — 以下の手順は同じように動作しますが、`windows_service` を必要とするホストの **Services** タブ**だけは例外**です（アップストリームのビルドには含まれていません。「Windows サービス（メトリクス）」を参照）。
 
 ## ステップ 2 — コレクターの設定
 
 設定ファイルは以下の場所に置かれます。
 
-| OS | パス |
-|---|---|
-| Linux | `/etc/otelcol-contrib/config.yaml` |
-| macOS | `/etc/otelcol-contrib/config.yaml` |
-| Windows | `C:\Program Files\otelcol-contrib\config.yaml` |
+| OS      | パス                                                  |
+| ------- | ----------------------------------------------------- |
+| Linux   | `/etc/otelcol-contrib/config.yaml`                    |
+| macOS   | `/etc/otelcol-contrib/config.yaml`                    |
+| Windows | `C:\Program Files\OneUptimeHostCollector\config.yaml` |
 
 どの設定も同じ形をしています — 必要なレシーバーを選び、`batch` プロセッサと `resource` プロセッサを追加し、OTLP HTTP 経由で OneUptime にエクスポートします。以下の例では、OS ごとに完全でコピー＆ペースト可能な設定を示し、その後に各レシーバーブロックを順に説明するので、自由に組み合わせられます。
 
@@ -218,7 +223,7 @@ receivers:
       - type: json_parser
         timestamp:
           parse_from: attributes.timestamp
-          layout: '%Y-%m-%d %H:%M:%S.%f%j'
+          layout: "%Y-%m-%d %H:%M:%S.%f%j"
 ```
 
 （Unified Log が不要な場合はこれをスキップしてください — Mac のフリートは、ホストメトリクスといくつかのファイルログだけで問題なく動作することがよくあります。）
@@ -245,23 +250,25 @@ receivers:
 大量のイベントが発生する `Security` チャンネルを特定のイベント ID に絞り込むには次のようにします。
 
 ```yaml
-  windowseventlog/security:
-    channel: Security
-    start_at: end
-    query: "*[System[(EventID=4625 or EventID=4740)]]"
+windowseventlog/security:
+  channel: Security
+  start_at: end
+  query: "*[System[(EventID=4625 or EventID=4740)]]"
 ```
 
-カスタムまたはアプリケーション固有のチャンネル（*Event Viewer → Applications and Services Logs* 配下に表示されるもの）を読み取るには、その正確な表示名を使用します。
+カスタムまたはアプリケーション固有のチャンネル（_Event Viewer → Applications and Services Logs_ 配下に表示されるもの）を読み取るには、その正確な表示名を使用します。
 
 ```yaml
-  windowseventlog/iis:
-    channel: Microsoft-IIS-Logging/Logs
-    start_at: end
+windowseventlog/iis:
+  channel: Microsoft-IIS-Logging/Logs
+  start_at: end
 ```
 
 ### Windows サービス（メトリクス）
 
-[`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) を介して、Windows サービスの実行状態と起動タイプを報告します。これが OneUptime のホスト上の **Services** タブを構成するものです。これは*メトリクス*レシーバーなので、（ログではなく）メトリクスパイプラインに属します。
+ホストの **Services** タブは [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)（設定タイプ `windows_service`）によって支えられており、Windows サービスの実行状態と起動タイプをメトリクスとして報告します。
+
+**OneUptime Host Collector（ステップ 1 でインストール、Windows のデフォルト）には、このレシーバーがすでに含まれています。** `config.yaml` でこれを有効にし、メトリクスパイプラインに追加します。
 
 ```yaml
 receivers:
@@ -273,9 +280,46 @@ receivers:
     # include_services: [Spooler, W3SVC, MSSQLSERVER]
     # Or collect everything except a few:
     # exclude_services: [TrustedInstaller]
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics, windows_service]
 ```
 
-このレシーバーは、サービスごとに 1 つの `windows.service.status` ゲージを出力します — 整数値は Win32 サービス状態です（`4` = 実行中、`1` = 停止）— `name` と `startup_mode` の属性が付きます。これは **Windows 専用**であり（Linux や macOS で有効にするとコレクターは起動に失敗します）、現在は **alpha** なので、最近の `otelcol-contrib` リリースに固定してください。サービスを `LocalSystem`（`sc.exe create` のデフォルト）として実行すると、すべてのサービスを読み取れます。
+このレシーバーは、サービスごとに 1 つの `windows.service.status` ゲージを出力します — 整数値は Win32 サービス状態です（`4` = 実行中、`1` = 停止）— `name` と `startup_mode` の属性が付きます。コレクターを `LocalSystem`（`sc.exe` のデフォルト）として実行すると、すべてのサービスを読み取れます。開けないサービスはスキップされます。このレシーバーは **alpha** であり、**Windows 専用**です。既知の問題として、コレクターをクラッシュさせかねないスクレイプエラーや、1 つのサービスでの `access denied` が他のサービスに影響する問題があります。これらに遭遇した場合は `include_services` で対象を限定してください。
+
+#### 代わりにアップストリームのコレクターを使う場合は？
+
+アップストリームのビルド済み `otelcol-contrib` バイナリには `windowsservicereceiver` が**含まれていません** — `windows_service` を追加すると起動時に `'receivers' unknown type: "windows_service"` で失敗し、**バージョンをアップグレードしても解決しません**（いずれのリリース済み `otelcol-contrib` ビルドにも含まれていないためです）。OneUptime Host Collector に切り替える（ステップ 1）か、[OpenTelemetry Collector Builder（`ocb`）](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder) でご自身でビルドしてください — `builder-config.yaml` を作成します（すべてのバージョンを同じコレクターリリースに揃えてください）。
+
+```yaml
+dist:
+  name: otelcol-oneuptime
+  description: OpenTelemetry Collector with the Windows service receiver
+  output_path: ./otelcol-oneuptime
+  otelcol_version: 0.154.0
+
+receivers:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.154.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.154.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowsservicereceiver v0.154.0
+
+processors:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.154.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor v0.154.0
+  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.154.0
+
+exporters:
+  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.154.0
+```
+
+```powershell
+go install go.opentelemetry.io/collector/cmd/builder@v0.154.0
+builder --config builder-config.yaml
+```
+
+その後、生成された `otelcol-oneuptime.exe` を実行し、上記のように `windows_service` を有効にします。
 
 ### 完全な例 — Linux ホスト
 
@@ -388,7 +432,7 @@ service:
 
 ### 完全な例 — Windows ホスト
 
-`C:\Program Files\otelcol-contrib\config.yaml`:
+`C:\Program Files\OneUptimeHostCollector\config.yaml`:
 
 ```yaml
 receivers:
@@ -400,7 +444,8 @@ receivers:
       disk:
       filesystem:
       network:
-      # 'load' is not supported on Windows — omit it or the scraper errors.
+      # On Windows the 'load' scraper only emulates an average from the
+      # Processor Queue Length counter (it starts at 0) — omitted here.
       paging:
       processes:
 
@@ -416,6 +461,7 @@ receivers:
     channel: Security
     start_at: end
 
+  # Powers the Services tab. Included in the OneUptime Host Collector (Step 1).
   windows_service:
     collection_interval: 30s
 
@@ -502,15 +548,15 @@ sudo launchctl list | grep otelcol-contrib
 **管理者権限の** PowerShell プロンプトから実行します。
 
 ```powershell
-sc.exe create "otelcol-contrib" `
-  binPath= "\"C:\Program Files\otelcol-contrib\otelcol-contrib.exe\" --config=\"C:\Program Files\otelcol-contrib\config.yaml\"" `
+sc.exe create "OneUptimeHostCollector" `
+  binPath= "\"C:\Program Files\OneUptimeHostCollector\oneuptime-host-collector.exe\" --config=\"C:\Program Files\OneUptimeHostCollector\config.yaml\"" `
   start= auto `
-  DisplayName= "OpenTelemetry Collector"
+  DisplayName= "OneUptime Host Collector"
 
-sc.exe description "otelcol-contrib" "Collects host telemetry and forwards it to OneUptime over OTLP."
+sc.exe description "OneUptimeHostCollector" "Collects host telemetry and forwards it to OneUptime over OTLP."
 
-sc.exe start "otelcol-contrib"
-sc.exe query "otelcol-contrib"
+sc.exe start "OneUptimeHostCollector"
+sc.exe query "OneUptimeHostCollector"
 ```
 
 サービスはデフォルトで `LocalSystem` の下で実行され、これは `Security` の Windows イベントログチャンネルを読み取るために必要な権限を持っています。
@@ -551,10 +597,10 @@ OpenTelemetry Collector は、標準の `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY
 - **OneUptime にテレメトリが表示されない**
   - 詳細な出力を得るために、設定に `service.telemetry.logs.level: debug` を追加してコレクターを再起動します。
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f`（Linux）または `tail -f /var/log/otelcol-contrib.err.log`（macOS）。
-  - **Windows:** *Event Viewer → Windows Logs → Application* でソース `otelcol-contrib` を確認します。
+  - **Windows:** _Event Viewer → Windows Logs → Application_ でソース `otelcol-contrib` を確認します。
   - ホストが `https://oneuptime.com/otlp`（またはセルフホストのエンドポイント）に到達できることを確認します。同じマシンから `curl -v https://oneuptime.com/otlp` を実行します。
-- **エクスポーターから HTTP 401 が返る** — 取り込みトークンが無効か失効しています。*Project Settings → Telemetry Ingestion Keys* から新しいものを生成してください。
-- **`Security` の Windows イベントログでアクセス拒否が返る** — サービスが十分な権限で実行されていません。`LocalSystem`（`sc.exe create` のデフォルト）の下で再作成するか、サービスアカウントに *Manage auditing and security log*（監査とセキュリティログの管理）ユーザー権利を付与してください。
+- **エクスポーターから HTTP 401 が返る** — 取り込みトークンが無効か失効しています。_Project Settings → Telemetry Ingestion Keys_ から新しいものを生成してください。
+- **`Security` の Windows イベントログでアクセス拒否が返る** — サービスが十分な権限で実行されていません。`LocalSystem`（`sc.exe create` のデフォルト）の下で再作成するか、サービスアカウントに _Manage auditing and security log_（監査とセキュリティログの管理）ユーザー権利を付与してください。
 - **`journald` レシーバーが起動に失敗する** — `journalctl` がコレクターの `PATH` 上にあること、および `/var/log/journal` が存在することを確認してください（存在しない場合は `sudo systemd-tmpfiles --create --prefix /var/log/journal` を実行）。
 - **大量データ / コスト** — レシーバーを絞り込むか（特定の Windows チャンネル、特定の systemd ユニット、特定のログファイル）、Windows イベントログレシーバーに `query:` フィルターを追加するか、エクスポート前に低重要度のイベントを破棄する `filter` プロセッサを追加します。
 

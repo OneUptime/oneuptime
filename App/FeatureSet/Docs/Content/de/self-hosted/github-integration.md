@@ -12,6 +12,7 @@ Um GitHub mit Ihrer selbst gehosteten OneUptime-Instanz zu integrieren, müssen 
 ### Schritt 1: GitHub App erstellen
 
 1. Gehen Sie zu GitHub und navigieren Sie zu Ihren Organisations- oder persönlichen Einstellungen:
+
    - **Für Organisationen:** Gehen Sie zu `https://github.com/organizations/YOUR_ORG/settings/apps`
    - **Für persönliches Konto:** Gehen Sie zu `https://github.com/settings/apps`
 
@@ -32,14 +33,14 @@ Im Abschnitt „Berechtigungen & Ereignisse" konfigurieren Sie die folgenden Ber
 
 **Repository-Berechtigungen:**
 
-| Berechtigung | Zugriffsebene | Zweck |
-|------------|--------------|---------|
-| Contents | Lesen & Schreiben | Repository-Dateien lesen, Branches pushen (für KI-Agent erforderlich) |
-| Pull requests | Lesen & Schreiben | Pull Requests erstellen und verwalten |
-| Issues | Lesen & Schreiben | Issues lesen und kommentieren |
-| Commit statuses | Lesen | Build-/CI-Status prüfen |
-| Actions | Lesen | GitHub Actions Workflow-Läufe und Logs lesen |
-| Metadata | Lesen | Grundlegende Repository-Metadaten (erforderlich) |
+| Berechtigung    | Zugriffsebene     | Zweck                                                                 |
+| --------------- | ----------------- | --------------------------------------------------------------------- |
+| Contents        | Lesen & Schreiben | Repository-Dateien lesen, Branches pushen (für KI-Agent erforderlich) |
+| Pull requests   | Lesen & Schreiben | Pull Requests erstellen und verwalten                                 |
+| Issues          | Lesen & Schreiben | Issues lesen und kommentieren                                         |
+| Commit statuses | Lesen             | Build-/CI-Status prüfen                                               |
+| Actions         | Lesen             | GitHub Actions Workflow-Läufe und Logs lesen                          |
+| Metadata        | Lesen             | Grundlegende Repository-Metadaten (erforderlich)                      |
 
 ### Schritt 3: Webhook-Ereignisse abonnieren
 
@@ -72,7 +73,7 @@ Fügen Sie dies zu Ihrer `values.yaml`-Datei hinzu:
 ```yaml
 gitHubApp:
   id: "YOUR_APP_ID"
-  name: "YOUR_APP_NAME"  # Der genaue Name Ihrer GitHub App
+  name: "YOUR_APP_NAME" # Der genaue Name Ihrer GitHub App
   clientId: "YOUR_CLIENT_ID"
   clientSecret: "YOUR_CLIENT_SECRET"
   privateKey: "<BASE64_ENCODED_PRIVATE_KEY_CONTENT>"
@@ -83,13 +84,13 @@ gitHubApp:
 
 ## Umgebungsvariablen-Referenz
 
-| Variable | Beschreibung | Erforderlich |
-|----------|-------------|----------|
-| `GITHUB_APP_ID` | Die App-ID aus Ihren GitHub App-Einstellungen | Ja |
-| `GITHUB_APP_NAME` | Der genaue Name Ihrer GitHub App | Ja |
-| `GITHUB_APP_CLIENT_ID` | Die Client-ID aus Ihren GitHub App-Einstellungen | Ja |
-| `GITHUB_APP_CLIENT_SECRET` | Das von Ihnen generierte Client-Secret | Ja |
-| `GITHUB_APP_PRIVATE_KEY` | Der Inhalt des privaten Schlüssels (.pem-Datei) | Ja |
+| Variable                    | Beschreibung                                              | Erforderlich     |
+| --------------------------- | --------------------------------------------------------- | ---------------- |
+| `GITHUB_APP_ID`             | Die App-ID aus Ihren GitHub App-Einstellungen             | Ja               |
+| `GITHUB_APP_NAME`           | Der genaue Name Ihrer GitHub App                          | Ja               |
+| `GITHUB_APP_CLIENT_ID`      | Die Client-ID aus Ihren GitHub App-Einstellungen          | Ja               |
+| `GITHUB_APP_CLIENT_SECRET`  | Das von Ihnen generierte Client-Secret                    | Ja               |
+| `GITHUB_APP_PRIVATE_KEY`    | Der Inhalt des privaten Schlüssels (.pem-Datei)           | Ja               |
 | `GITHUB_APP_WEBHOOK_SECRET` | Das Webhook-Secret zur Verifizierung von Webhook-Payloads | Nein (empfohlen) |
 
 ## Fehlerbehebung
@@ -97,9 +98,11 @@ gitHubApp:
 ### Häufige Probleme
 
 **Keine Weiterleitung zurück zu OneUptime nach der Installation der GitHub App:**
+
 - Stellen Sie sicher, dass die **Setup URL** in Ihren GitHub App-Einstellungen konfiguriert ist auf: `https://your-oneuptime-domain.com/api/github/auth/callback`
 
 **Fehler „GitHub App is not configured":**
+
 - Stellen Sie sicher, dass die Umgebungsvariable `GITHUB_APP_CLIENT_ID` gesetzt ist
 - Starten Sie Ihren OneUptime-Server nach dem Setzen der Umgebungsvariablen neu
 

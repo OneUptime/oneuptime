@@ -9,18 +9,21 @@ Installez OneUptime comme application de bureau native sur macOS pour une survei
 Safari offre une excellente intégration PWA avec les fonctionnalités natives de macOS.
 
 1. **Ouvrir OneUptime dans Safari**
+
    - Lancez le navigateur Safari
    - Accédez à l'URL de votre instance OneUptime
    - Connectez-vous à votre compte OneUptime
    - Attendez le chargement complet de la page
 
 2. **Installer la PWA**
+
    - Cliquez sur **Fichier** dans la barre de menus
    - Sélectionnez **« Ajouter au Dock »** (macOS Sonoma+)
    - Ou recherchez l'**icône d'installation** dans la barre d'adresse
    - Alternativement : **Fichier** → **« Ajouter à l'écran d'accueil »** (macOS plus ancien)
 
 3. **Personnaliser l'installation**
+
    - **Nom de l'application** : Modifiez si souhaité (par défaut : OneUptime)
    - **Dock** : Choisissez d'ajouter au Dock
    - **Launchpad** : Ajoutez au Launchpad pour un accès facile
@@ -35,17 +38,20 @@ Safari offre une excellente intégration PWA avec les fonctionnalités natives d
 Chrome offre une robuste prise en charge PWA avec une excellente intégration au bureau.
 
 1. **Ouvrir OneUptime dans Chrome**
+
    - Lancez Google Chrome
    - Accédez à votre instance OneUptime
    - Assurez-vous d'être connecté
    - Autorisez le chargement complet de la page
 
 2. **Installer via le menu**
+
    - Recherchez l'**icône d'installation** (⊞) dans la barre d'adresse
    - Cliquez sur **« Installer OneUptime »**
    - Ou utilisez le **menu Chrome** → **Plus d'outils** → **Créer un raccourci**
 
 3. **Options d'installation**
+
    - Cochez **« Ouvrir comme fenêtre »** pour une expérience d'application native
    - Personnalisez le nom de l'application si nécessaire
    - Cliquez sur **« Installer »** ou **« Créer »**
@@ -60,6 +66,7 @@ Chrome offre une robuste prise en charge PWA avec une excellente intégration au
 Edge offre une solide prise en charge PWA avec une bonne intégration macOS.
 
 1. **Ouvrir OneUptime dans Edge**
+
    - Lancez Microsoft Edge
    - Accédez à l'URL OneUptime
    - Complétez le processus de connexion
@@ -73,13 +80,16 @@ Edge offre une solide prise en charge PWA avec une bonne intégration macOS.
 ### Options de personnalisation
 
 ### Dock et Launchpad
+
 1. **Position dans le Dock** : Faites glisser OneUptime vers la position préférée dans le Dock
 2. **Taille dans le Dock** : Redimensionnez l'icône dans les préférences du Dock
 3. **Organisation Launchpad** : Créez un dossier d'applications de surveillance
 4. **Notifications de badge** : Affiche le nombre d'incidents sur l'icône du Dock
 
 ### Barre de menus et notifications
+
 1. **Centre de notifications**
+
    - Préférences système → Notifications → OneUptime
    - Configurez les styles d'alerte et la livraison
    - Définissez les niveaux de priorité pour les différents types d'incidents
@@ -94,6 +104,7 @@ Edge offre une solide prise en charge PWA avec une bonne intégration macOS.
 ### Problèmes d'installation
 
 **« Ajouter au Dock » non disponible dans Safari :**
+
 ```
 Solutions :
 1. Assurez-vous d'être sous macOS Sonoma (14.0) ou version ultérieure
@@ -104,6 +115,7 @@ Solutions :
 ```
 
 **La PWA ne s'installe pas ou plante :**
+
 ```
 Solutions :
 1. Vérifiez la compatibilité de la version macOS
@@ -115,6 +127,7 @@ Solutions :
 ```
 
 **L'application n'apparaît pas dans les Applications :**
+
 ```
 Solutions :
 1. Vérifiez Launchpad pour l'icône OneUptime
@@ -127,6 +140,7 @@ Solutions :
 ### Problèmes de notification
 
 **Les notifications macOS ne fonctionnent pas :**
+
 ```
 Solutions :
 1. Préférences système → Notifications → OneUptime
@@ -140,12 +154,15 @@ Solutions :
 ## Désinstallation
 
 ### Suppression complète
+
 1. **Méthode du dossier Applications**
+
    - Ouvrez le dossier Applications
    - Trouvez OneUptime
    - Faites glisser vers la corbeille ou clic droit → Mettre à la corbeille
 
 2. **Méthode du Dock**
+
    - Clic droit sur OneUptime dans le Dock
    - Sélectionnez « Options » → « Supprimer du Dock »
    - Puis supprimez du dossier Applications
@@ -172,20 +189,24 @@ rm -rf ~/Library/Application\ Support/Microsoft\ Edge/Default/Web\ Applications
 ## Mises à jour et maintenance
 
 ### Mises à jour automatiques
+
 - La PWA OneUptime se met à jour automatiquement lorsqu'elle est en ligne
 - Aucune mise à jour de l'App Store requise
 - Nouvelles fonctionnalités disponibles immédiatement
 - Mises à jour critiques appliquées instantanément
 
 ### Programme de maintenance
+
 Maintenance régulière pour des performances optimales :
 
 **Hebdomadaire :**
+
 - Redémarrez l'application OneUptime
 - Videz le cache du navigateur si vous rencontrez des problèmes
 - Vérifiez les mises à jour macOS
 
 **Mensuel :**
+
 - Vérifiez l'utilisation du stockage et nettoyez si nécessaire
 - Mettez à jour les navigateurs s'ils ne se mettent pas à jour automatiquement
 - Vérifiez que les paramètres de notification fonctionnent toujours
@@ -193,7 +214,9 @@ Maintenance régulière pour des performances optimales :
 ## Intégration avec les fonctionnalités macOS
 
 ### Intégration de l'application Raccourcis
+
 Créez des raccourcis personnalisés pour OneUptime :
+
 1. Ouvrez l'application **Raccourcis**
 2. Créez un **Nouveau raccourci**
 3. Ajoutez l'action **« Ouvrir l'application »**
@@ -201,6 +224,7 @@ Créez des raccourcis personnalisés pour OneUptime :
 5. Ajoutez à Siri pour l'activation vocale
 
 ### Intégration Terminal
+
 Gérez OneUptime via Terminal :
 
 ```bash
@@ -220,12 +244,14 @@ oneuptime_status() {
 ## Sécurité et confidentialité
 
 ### Fonctionnalités de sécurité macOS
+
 1. **Gatekeeper** : Assurez-vous que les installations PWA proviennent de sources fiables
 2. **Protection de l'intégrité du système** : Protège les fichiers système
 3. **FileVault** : Chiffrez le disque pour la protection des données
 4. **Keychain** : Stockage sécurisé des identifiants
 
 ### Bonnes pratiques
+
 1. **Mises à jour régulières** : Maintenez macOS et les navigateurs à jour
 2. **Authentification forte** : Utilisez Touch ID/Face ID lorsque disponible
 3. **Sécurité réseau** : Utilisez un VPN pour l'accès à la surveillance à distance

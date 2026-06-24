@@ -8,6 +8,10 @@ export default class AddDurationColumnToSpanTable extends DataMigrationBase {
     super("AddDurationColumnToSpanTable");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     const hasDurationColumn: boolean =
       await SpanService.doesColumnExistInDatabase("durationUnixNano");

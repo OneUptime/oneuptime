@@ -62,11 +62,11 @@ Every record this agent ships — logs, metrics, traces, eBPF auto-instrumented 
 
 Different Kubernetes distributions have different constraints — most notably, whether workloads can mount `hostPath` volumes. Rather than make you read security docs, the chart exposes a single top-level option: `preset`.
 
-| Preset | Use for | Log collection | Notes |
-| --- | --- | --- | --- |
-| `standard` (default) | Self-managed, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | DaemonSet reading `/var/log/pods` via hostPath | Lowest overhead. hostPath is available on these platforms. |
-| `gke-autopilot` | **GKE Autopilot** | Kubernetes API tailer (Deployment) | hostPath is blocked on Autopilot. Sets a hardened security context that passes Autopilot's Pod Security Standards. |
-| `eks-fargate` | **EKS Fargate** | Kubernetes API tailer (Deployment) | Same as `gke-autopilot`. Fargate blocks hostPath and DaemonSets. |
+| Preset               | Use for                                                                      | Log collection                                 | Notes                                                                                                              |
+| -------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `standard` (default) | Self-managed, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | DaemonSet reading `/var/log/pods` via hostPath | Lowest overhead. hostPath is available on these platforms.                                                         |
+| `gke-autopilot`      | **GKE Autopilot**                                                            | Kubernetes API tailer (Deployment)             | hostPath is blocked on Autopilot. Sets a hardened security context that passes Autopilot's Pod Security Standards. |
+| `eks-fargate`        | **EKS Fargate**                                                              | Kubernetes API tailer (Deployment)             | Same as `gke-autopilot`. Fargate blocks hostPath and DaemonSets.                                                   |
 
 If you aren't sure, leave `preset` unset — you get `standard` defaults. If your cluster rejects the install with a Pod Security policy error mentioning `hostPath`, switch to `gke-autopilot` (or `eks-fargate` on EKS Fargate) and re-install.
 
@@ -146,22 +146,22 @@ eBPF is **enabled by default**. You should disable it (`--set ebpf.enabled=false
 
 OBI extracts several signal families from the captured traffic. All are on by default; each can be disabled independently with `--set ebpf.features.<key>=false`:
 
-| Signal | Default | What it adds |
-| --- | --- | --- |
-| `ebpf.features.httpMetrics` | on | HTTP/gRPC RED metrics — request rate, latency histograms, error counts — per service. |
-| `ebpf.features.spanMetrics` | on | Span-attribute-keyed metrics: request size, response size, duration broken down per route/operation. |
-| `ebpf.features.serviceGraph` | on | Service-to-service edge metrics (caller → callee request rate + latency). Powers the service map. |
-| `ebpf.features.hostMetrics` | on | CPU and memory per instrumented process — saves running a separate profiler for basic capacity questions. |
-| `ebpf.features.networkMetrics` | on | Pod-to-pod TCP/UDP flow byte and packet counters with k8s metadata. Surfaces every pair of pods that talk, including ones running protocols OBI can't parse. |
-| `ebpf.features.networkInterZoneMetrics` | off | Inter-zone variant of network metrics. Doubles cardinality; only worth enabling if you actually use zone-based scheduling. |
-| `ebpf.features.tcpStats` | on | Node-level TCP statistics: RTT histograms, failed-connection counts, retransmits. |
+| Signal                                  | Default | What it adds                                                                                                                                                 |
+| --------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ebpf.features.httpMetrics`             | on      | HTTP/gRPC RED metrics — request rate, latency histograms, error counts — per service.                                                                        |
+| `ebpf.features.spanMetrics`             | on      | Span-attribute-keyed metrics: request size, response size, duration broken down per route/operation.                                                         |
+| `ebpf.features.serviceGraph`            | on      | Service-to-service edge metrics (caller → callee request rate + latency). Powers the service map.                                                            |
+| `ebpf.features.hostMetrics`             | on      | CPU and memory per instrumented process — saves running a separate profiler for basic capacity questions.                                                    |
+| `ebpf.features.networkMetrics`          | on      | Pod-to-pod TCP/UDP flow byte and packet counters with k8s metadata. Surfaces every pair of pods that talk, including ones running protocols OBI can't parse. |
+| `ebpf.features.networkInterZoneMetrics` | off     | Inter-zone variant of network metrics. Doubles cardinality; only worth enabling if you actually use zone-based scheduling.                                   |
+| `ebpf.features.tcpStats`                | on      | Node-level TCP statistics: RTT histograms, failed-connection counts, retransmits.                                                                            |
 
 OBI also propagates trace context across service boundaries by default. When pod A makes an HTTP/gRPC request to pod B, OBI injects a W3C `traceparent` header into the outbound request — so the resulting span on pod B's side links into the same trace as pod A's outbound. No SDK changes needed in either app.
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `ebpf.contextPropagation` | on | Inject W3C `traceparent` into outbound traffic (HTTP headers + custom TCP option). Set to `false` to keep each service's spans local. |
-| `ebpf.trackRequestHeaders` | on | Kernel-side request-header tracking so propagation also works on plain HTTP servers (non-Go, non-TLS). Only takes effect when `contextPropagation` is true. |
+| Option                     | Default | Description                                                                                                                                                 |
+| -------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ebpf.contextPropagation`  | on      | Inject W3C `traceparent` into outbound traffic (HTTP headers + custom TCP option). Set to `false` to keep each service's spans local.                       |
+| `ebpf.trackRequestHeaders` | on      | Kernel-side request-header tracking so propagation also works on plain HTTP servers (non-Go, non-TLS). Only takes effect when `contextPropagation` is true. |
 
 ### Log ↔ trace correlation (opt-in)
 
@@ -178,22 +178,22 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --set ebpf.logToTraceCorrelation=true
 ```
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `ebpf.logToTraceCorrelation` | `false` | Enable the OBI log enricher and the filelog pipeline's trace_id lift. Off by default — see the compatibility warning below. |
-| `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | Process selector for the log enricher. Each entry is an OBI [GlobAttributes](https://opentelemetry.io/docs/zero-code/obi/configure/options/#service-discovery) selector — fields include `exe_path`, `languages`, `k8s_pod_labels`, `k8s_pod_annotations`, `open_ports`, `cmd_args`. Narrow this when scoping log enrichment to a subset of workloads. |
+| Option                       | Default                          | Description                                                                                                                                                                                                                                                                                                                                            |
+| ---------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ebpf.logToTraceCorrelation` | `false`                          | Enable the OBI log enricher and the filelog pipeline's trace_id lift. Off by default — see the compatibility warning below.                                                                                                                                                                                                                            |
+| `ebpf.logEnricher.services`  | `[{service: [{exe_path: "*"}]}]` | Process selector for the log enricher. Each entry is an OBI [GlobAttributes](https://opentelemetry.io/docs/zero-code/obi/configure/options/#service-discovery) selector — fields include `exe_path`, `languages`, `k8s_pod_labels`, `k8s_pod_annotations`, `open_ports`, `cmd_args`. Narrow this when scoping log enrichment to a subset of workloads. |
 
 #### Why it's off by default — APM agent compatibility
 
 The log enricher rewrites the application's stdout buffer **in-process**: when a matched process calls `write()`, OBI's eBPF probe zeroes the original buffer bytes (filtered out downstream) and re-emits an enriched copy through a separate path. That in-process buffer rewrite is incompatible with APM agents that inject themselves via `LD_PRELOAD` and wrap libc `write()`:
 
-| APM agent | Library | Effect when both are present |
-| --- | --- | --- |
+| APM agent          | Library              | Effect when both are present                                                                                                                                                      |
+| ------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Dynatrace OneAgent | `liboneagentproc.so` | Application SIGSEGV (exit 139). Dynatrace watchdog liveness probe fails (its own `write()` to the PID file stalls past the 10s threshold) and the OneAgent enters a restart loop. |
-| New Relic | `libnewrelic*.so` | Same class of crash. |
-| AppDynamics | `libappdynamics*.so` | Same class of crash. |
-| Datadog | `libdd*.so` | Same class of crash. |
-| Instana | `libinstana*.so` | Same class of crash. |
+| New Relic          | `libnewrelic*.so`    | Same class of crash.                                                                                                                                                              |
+| AppDynamics        | `libappdynamics*.so` | Same class of crash.                                                                                                                                                              |
+| Datadog            | `libdd*.so`          | Same class of crash.                                                                                                                                                              |
+| Instana            | `libinstana*.so`     | Same class of crash.                                                                                                                                                              |
 
 **.NET workloads are the most exposed** — Dynatrace's .NET agent always injects via `LD_PRELOAD`, and the Microsoft.Extensions.Logging console sink is unbuffered, so every log line crosses the racing `write()` path. Python and Go workloads are usually unaffected because their I/O models don't sit on the same code path.
 
@@ -231,15 +231,15 @@ ebpf:
 
 ### Tuning
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `ebpf.enabled` | `true` | Master switch. Set to `false` to skip the eBPF DaemonSet entirely. |
-| `ebpf.image.tag` | `v0.9.0` | OBI image tag. OBI is pre-1.0; pin to a known-good version and re-test on bumps. |
-| `ebpf.autoTargetExe` | `*` | Glob of executables to instrument. Narrow this (e.g. `*/python,*/java`) if you want to scope auto-instrumentation. |
-| `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI itself) | Comma-separated globs to skip. |
-| `ebpf.logLevel` | `info` | `debug`, `info`, `warn`, or `error`. Set to `debug` while troubleshooting. |
-| `ebpf.printTraces` | `false` | Print spans to OBI's stdout in addition to OTLP export — useful for verifying capture during install. |
-| `ebpf.resources.*` | `100m / 256Mi` requests, `1000m / 1Gi` limits | Bump for high-traffic clusters. |
+| Option                 | Default                                                  | Description                                                                                                        |
+| ---------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `ebpf.enabled`         | `true`                                                   | Master switch. Set to `false` to skip the eBPF DaemonSet entirely.                                                 |
+| `ebpf.image.tag`       | `v0.9.0`                                                 | OBI image tag. OBI is pre-1.0; pin to a known-good version and re-test on bumps.                                   |
+| `ebpf.autoTargetExe`   | `*`                                                      | Glob of executables to instrument. Narrow this (e.g. `*/python,*/java`) if you want to scope auto-instrumentation. |
+| `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI itself) | Comma-separated globs to skip.                                                                                     |
+| `ebpf.logLevel`        | `info`                                                   | `debug`, `info`, `warn`, or `error`. Set to `debug` while troubleshooting.                                         |
+| `ebpf.printTraces`     | `false`                                                  | Print spans to OBI's stdout in addition to OTLP export — useful for verifying capture during install.              |
+| `ebpf.resources.*`     | `100m / 256Mi` requests, `1000m / 1Gi` limits            | Bump for high-traffic clusters.                                                                                    |
 
 To check that OBI is running and seeing traffic:
 
@@ -263,55 +263,55 @@ Requirements:
 
 Tuning:
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `profiling.enabled` | `false` | Master switch. Off by default; opt in for continuous CPU flame graphs. |
-| `profiling.image.tag` | `0.152.0` | `otel/opentelemetry-collector-ebpf-profiler` image tag. The profiler is pre-1.0; pin to a known-good version. |
-| `profiling.samplesPerSecond` | `19` | Sampling frequency in Hz. Upstream default; avoids accidentally aliasing with common timer frequencies. |
-| `profiling.offCpuThreshold` | `0` | (0–1] enables off-CPU profiling — diagnoses lock contention and blocking I/O. Off by default because it adds tracepoint overhead. |
-| `profiling.tracers` | `""` *(all runtimes)* | Comma-separated list of language tracers to load. |
-| `profiling.obiProcessContext` | `true` | Correlate samples with OBI's trace context for trace ↔ profile linking. |
+| Option                        | Default               | Description                                                                                                                       |
+| ----------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `profiling.enabled`           | `false`               | Master switch. Off by default; opt in for continuous CPU flame graphs.                                                            |
+| `profiling.image.tag`         | `0.152.0`             | `otel/opentelemetry-collector-ebpf-profiler` image tag. The profiler is pre-1.0; pin to a known-good version.                     |
+| `profiling.samplesPerSecond`  | `19`                  | Sampling frequency in Hz. Upstream default; avoids accidentally aliasing with common timer frequencies.                           |
+| `profiling.offCpuThreshold`   | `0`                   | (0–1] enables off-CPU profiling — diagnoses lock contention and blocking I/O. Off by default because it adds tracepoint overhead. |
+| `profiling.tracers`           | `""` _(all runtimes)_ | Comma-separated list of language tracers to load.                                                                                 |
+| `profiling.obiProcessContext` | `true`                | Correlate samples with OBI's trace context for trace ↔ profile linking.                                                          |
 
 ## Other data collection (host metrics, saturation, cAdvisor, KSM, audit logs, CSI, CoreDNS)
 
 The chart can also collect:
 
-| `<key>.enabled` | Default | What it adds |
-| --- | --- | --- |
-| `hostMetrics` | on | Per-node OS metrics from `/proc` and `/sys` — disk I/O queue depth, filesystem inode usage, NIC error counters, paging stats, load average. Lives inside the log-collector DaemonSet (no extra pods). |
-| `kubeletstats.utilizationMetrics` | on | Saturation metrics — container & pod CPU/memory expressed as a percentage of request and limit. Eight derived metric families that power the "CPU/Memory vs Request" and "CPU/Memory vs Limit" monitors. Same scrape as the existing `kubeletstats` receiver, no extra pods. Always 0 when a pod has no request/limit set. |
-| `kubeletstats.volumeMetrics` | on | Per-PVC disk usage (`k8s.volume.available`, `k8s.volume.capacity`). Powers the "PVC Low Disk Space" monitor. One series per PVC per pod — bounded for most clusters, heavier on stateful workloads with thousands of PVCs. |
-| `cadvisor` | on | Scrapes the kubelet's `/metrics/cadvisor` endpoint from each node's DaemonSet pod for the container metrics that `kubeletstats` doesn't translate: CFS throttling (`container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total`) and OOM kill events (`container_oom_events_total`). A relabel allowlist drops everything else at the receiver so cardinality stays bounded. |
-| `kubeStateMetrics` | off | Pulls cluster-state metrics from kube-state-metrics: pod phases (Pending / Terminating), pod scheduling status (pods that fail to schedule), container waiting reasons (CrashLoopBackOff, ImagePullBackOff), and resource quota usage. `mode: bundled` (default) deploys a small KSM Deployment for you; `mode: external` scrapes an existing KSM via `endpoint`. Off by default because the bundled mode adds a Deployment to the chart's footprint. |
-| `auditLogs` | off | Tail `/var/log/kubernetes/audit.log` from the host. Captures every Kubernetes API request — who did what to which resource. Self-managed clusters only — managed K8s (EKS, GKE, AKS, DOKS) route audit logs to the cloud provider's sink. |
-| `csi` | off | Auto-discovers pods labeled `app=csi-driver` (or `app.kubernetes.io/component=csi-driver`) and scrapes their Prometheus `metrics` port — volume attach/detach latency, provisioning failures, IOPS. |
-| `coreDns` | off | Scrapes the cluster CoreDNS service on `:9153/metrics`. Surfaces query rate, latency, cache hit rate, error counts — common P99 latency culprits. |
+| `<key>.enabled`                   | Default | What it adds                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| --------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hostMetrics`                     | on      | Per-node OS metrics from `/proc` and `/sys` — disk I/O queue depth, filesystem inode usage, NIC error counters, paging stats, load average. Lives inside the log-collector DaemonSet (no extra pods).                                                                                                                                                                                                                                                 |
+| `kubeletstats.utilizationMetrics` | on      | Saturation metrics — container & pod CPU/memory expressed as a percentage of request and limit. Eight derived metric families that power the "CPU/Memory vs Request" and "CPU/Memory vs Limit" monitors. Same scrape as the existing `kubeletstats` receiver, no extra pods. Always 0 when a pod has no request/limit set.                                                                                                                            |
+| `kubeletstats.volumeMetrics`      | on      | Per-PVC disk usage (`k8s.volume.available`, `k8s.volume.capacity`). Powers the "PVC Low Disk Space" monitor. One series per PVC per pod — bounded for most clusters, heavier on stateful workloads with thousands of PVCs.                                                                                                                                                                                                                            |
+| `cadvisor`                        | on      | Scrapes the kubelet's `/metrics/cadvisor` endpoint from each node's DaemonSet pod for the container metrics that `kubeletstats` doesn't translate: CFS throttling (`container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total`) and OOM kill events (`container_oom_events_total`). A relabel allowlist drops everything else at the receiver so cardinality stays bounded.                                                        |
+| `kubeStateMetrics`                | off     | Pulls cluster-state metrics from kube-state-metrics: pod phases (Pending / Terminating), pod scheduling status (pods that fail to schedule), container waiting reasons (CrashLoopBackOff, ImagePullBackOff), and resource quota usage. `mode: bundled` (default) deploys a small KSM Deployment for you; `mode: external` scrapes an existing KSM via `endpoint`. Off by default because the bundled mode adds a Deployment to the chart's footprint. |
+| `auditLogs`                       | off     | Tail `/var/log/kubernetes/audit.log` from the host. Captures every Kubernetes API request — who did what to which resource. Self-managed clusters only — managed K8s (EKS, GKE, AKS, DOKS) route audit logs to the cloud provider's sink.                                                                                                                                                                                                             |
+| `csi`                             | off     | Auto-discovers pods labeled `app=csi-driver` (or `app.kubernetes.io/component=csi-driver`) and scrapes their Prometheus `metrics` port — volume attach/detach latency, provisioning failures, IOPS.                                                                                                                                                                                                                                                   |
+| `coreDns`                         | off     | Scrapes the cluster CoreDNS service on `:9153/metrics`. Surfaces query rate, latency, cache hit rate, error counts — common P99 latency culprits.                                                                                                                                                                                                                                                                                                     |
 
 ## Common options
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `preset` | (empty — treated as `standard`) | See the table above. |
-| `oneuptime.url` | *(required)* | URL of your OneUptime instance. |
-| `oneuptime.apiKey` | *(required)* | Project API key (Settings → API Keys). |
-| `oneuptime.labels` | `{}` | Project Labels to attach to every record from this agent. Each `<key>: <value>` becomes an `oneuptime.label.<key>=<value>` resource attribute. See the auto-tag section above. |
-| `clusterName` | *(required)* | Unique name for this cluster. Stamped as `k8s.cluster.name` on every record. |
-| `namespaceFilters.include` | `[]` | If set, only these namespaces are monitored. |
-| `namespaceFilters.exclude` | `["kube-system"]` | Namespaces to skip. |
-| `logs.enabled` | `true` | Turn log collection on or off. |
-| `logs.mode` | (derived from `preset`) | `daemonset`, `api`, or `disabled`. Overrides the preset. |
-| `logs.api.replicas` | `1` | Number of log-tailer Deployment replicas (only in API mode). |
-| `ebpf.enabled` | `true` | Auto-capture HTTP/gRPC traces from every pod via OpenTelemetry eBPF Instrumentation. See section above. |
-| `profiling.enabled` | `false` | Continuous CPU flame graphs via the OpenTelemetry eBPF Profiler. Off by default; opt in for more telemetry. See section above. |
-| `hostMetrics.enabled` | `true` | Per-node OS metrics. |
-| `kubeletstats.utilizationMetrics.enabled` | `true` | Container & pod CPU/memory saturation (% of request and limit). No extra scrape — derived from kubeletstats data. |
-| `kubeletstats.volumeMetrics.enabled` | `true` | Per-PVC disk usage (`k8s.volume.available`, `k8s.volume.capacity`). |
-| `cadvisor.enabled` | `true` | Scrape this node's kubelet `/metrics/cadvisor` for CFS throttling + OOM kill counters. Allowlisted to 3 metrics. |
-| `kubeStateMetrics.enabled` | `false` | Pull pod phases, pod scheduling status, container waiting reasons (CrashLoopBackOff / ImagePullBackOff), and ResourceQuota usage from kube-state-metrics. See `kubeStateMetrics.mode` for bundled vs external. |
-| `auditLogs.enabled` | `false` | Kubernetes audit log collection (self-managed clusters). |
-| `csi.enabled` | `false` | CSI driver Prometheus metrics. |
-| `coreDns.enabled` | `false` | CoreDNS Prometheus metrics. |
-| `controlPlane.enabled` | `false` | Scrape etcd / api-server / scheduler / controller-manager. Self-managed clusters only — managed offerings (EKS/GKE/AKS) typically do not expose these endpoints. |
+| Option                                    | Default                         | Description                                                                                                                                                                                                    |
+| ----------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `preset`                                  | (empty — treated as `standard`) | See the table above.                                                                                                                                                                                           |
+| `oneuptime.url`                           | _(required)_                    | URL of your OneUptime instance.                                                                                                                                                                                |
+| `oneuptime.apiKey`                        | _(required)_                    | Project API key (Settings → API Keys).                                                                                                                                                                         |
+| `oneuptime.labels`                        | `{}`                            | Project Labels to attach to every record from this agent. Each `<key>: <value>` becomes an `oneuptime.label.<key>=<value>` resource attribute. See the auto-tag section above.                                 |
+| `clusterName`                             | _(required)_                    | Unique name for this cluster. Stamped as `k8s.cluster.name` on every record.                                                                                                                                   |
+| `namespaceFilters.include`                | `[]`                            | If set, only these namespaces are monitored.                                                                                                                                                                   |
+| `namespaceFilters.exclude`                | `["kube-system"]`               | Namespaces to skip.                                                                                                                                                                                            |
+| `logs.enabled`                            | `true`                          | Turn log collection on or off.                                                                                                                                                                                 |
+| `logs.mode`                               | (derived from `preset`)         | `daemonset`, `api`, or `disabled`. Overrides the preset.                                                                                                                                                       |
+| `logs.api.replicas`                       | `1`                             | Number of log-tailer Deployment replicas (only in API mode).                                                                                                                                                   |
+| `ebpf.enabled`                            | `true`                          | Auto-capture HTTP/gRPC traces from every pod via OpenTelemetry eBPF Instrumentation. See section above.                                                                                                        |
+| `profiling.enabled`                       | `false`                         | Continuous CPU flame graphs via the OpenTelemetry eBPF Profiler. Off by default; opt in for more telemetry. See section above.                                                                                 |
+| `hostMetrics.enabled`                     | `true`                          | Per-node OS metrics.                                                                                                                                                                                           |
+| `kubeletstats.utilizationMetrics.enabled` | `true`                          | Container & pod CPU/memory saturation (% of request and limit). No extra scrape — derived from kubeletstats data.                                                                                              |
+| `kubeletstats.volumeMetrics.enabled`      | `true`                          | Per-PVC disk usage (`k8s.volume.available`, `k8s.volume.capacity`).                                                                                                                                            |
+| `cadvisor.enabled`                        | `true`                          | Scrape this node's kubelet `/metrics/cadvisor` for CFS throttling + OOM kill counters. Allowlisted to 3 metrics.                                                                                               |
+| `kubeStateMetrics.enabled`                | `false`                         | Pull pod phases, pod scheduling status, container waiting reasons (CrashLoopBackOff / ImagePullBackOff), and ResourceQuota usage from kube-state-metrics. See `kubeStateMetrics.mode` for bundled vs external. |
+| `auditLogs.enabled`                       | `false`                         | Kubernetes audit log collection (self-managed clusters).                                                                                                                                                       |
+| `csi.enabled`                             | `false`                         | CSI driver Prometheus metrics.                                                                                                                                                                                 |
+| `coreDns.enabled`                         | `false`                         | CoreDNS Prometheus metrics.                                                                                                                                                                                    |
+| `controlPlane.enabled`                    | `false`                         | Scrape etcd / api-server / scheduler / controller-manager. Self-managed clusters only — managed offerings (EKS/GKE/AKS) typically do not expose these endpoints.                                               |
 
 See the [chart's `values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) for the full list.
 

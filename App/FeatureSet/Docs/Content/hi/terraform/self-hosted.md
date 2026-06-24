@@ -11,6 +11,7 @@
 ## Resource Structure
 
 सभी OneUptime Terraform resources एक simplified structure follow करते हैं:
+
 - `name` (आवश्यक) - Resource नाम
 - `description` (वैकल्पिक) - Resource विवरण
 - `data` (वैकल्पिक) - JSON के रूप में Complex configuration
@@ -29,24 +30,30 @@
 ## अपना OneUptime Version खोजना
 
 ### Method 1: Dashboard
+
 1. अपने OneUptime dashboard में login करें
 2. **Settings** → **About** पर जाएं
 3. version number देखें (जैसे "7.0.123")
 
 ### Method 2: API Endpoint
+
 ```bash
 curl https://your-oneuptime-instance.com/api/status
 ```
 
 ### Method 3: Docker Images
+
 यदि आप Docker के साथ OneUptime चला रहे हैं:
+
 ```bash
 docker images | grep oneuptime
 # tag देखें, जैसे oneuptime/dashboard:7.0.123
 ```
 
 ### Method 4: Helm Chart
+
 यदि आप Helm उपयोग कर रहे हैं:
+
 ```bash
 helm list -n oneuptime
 # chart version जांचें
@@ -87,7 +94,7 @@ terraform {
     }
   }
   required_version = ">= 1.0"
-  
+
   # वैकल्पिक: team collaboration के लिए remote state उपयोग करें
   backend "s3" {
     bucket = "your-terraform-state-bucket"
@@ -216,6 +223,7 @@ export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
 ### 2. Least Privilege API Keys
 
 Minimal required permissions के साथ API keys बनाएं:
+
 - Monitor management
 - Alert policy management
 - Team management (यदि आवश्यक हो)
@@ -229,6 +237,7 @@ Error: connection refused
 ```
 
 **Solutions**:
+
 1. जांचें कि OneUptime instance चल रहा है
 2. API URL correct है verify करें
 3. firewall/network connectivity जांचें
@@ -241,6 +250,7 @@ Error: API version incompatible
 ```
 
 **Solutions**:
+
 1. OneUptime version जांचें: `curl https://your-instance/api/status`
 2. provider version को match करने के लिए update करें
 3. `terraform init -upgrade` चलाएं

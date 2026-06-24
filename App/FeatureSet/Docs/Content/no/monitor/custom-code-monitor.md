@@ -9,15 +9,14 @@ Følgende eksempel viser hvordan du bruker en egendefinert kode-monitor:
 ```javascript
 // Du kan bruke axios-modulen.
 
-await axios.get('https://api.example.com/');
+await axios.get("https://api.example.com/");
 
 // Axios-dokumentasjon her: https://axios-http.com/docs/intro
 
 return {
-    data: 'Hello World' // returner hvilke data du vil her. 
+  data: "Hello World", // returner hvilke data du vil her.
 };
 ```
-
 
 ### Bruke Monitor Secrets
 
@@ -46,9 +45,8 @@ let numberSecret = {{monitorSecrets.NumberSecret}};
 let booleanSecret = {{monitorSecrets.BooleanSecret}};
 
 // du kan til og med bruke console.log for å se om hemmeligheten hentes korrekt
-console.log(stringSecret); 
+console.log(stringSecret);
 ```
-
 
 ### Egendefinerte metrikker
 
@@ -65,30 +63,32 @@ oneuptime.captureMetric(name, value, attributes);
 #### Eksempel
 
 ```javascript
-const response = await axios.get('https://api.example.com/health');
+const response = await axios.get("https://api.example.com/health");
 
 // Fang opp en enkel metrikk
-oneuptime.captureMetric('api.response.time', response.data.latency);
+oneuptime.captureMetric("api.response.time", response.data.latency);
 
 // Fang opp en metrikk med attributter
-oneuptime.captureMetric('api.queue.depth', response.data.queueDepth, {
-    region: 'us-east-1',
-    environment: 'production'
+oneuptime.captureMetric("api.queue.depth", response.data.queueDepth, {
+  region: "us-east-1",
+  environment: "production",
 });
 
 return {
-    data: response.data
+  data: response.data,
 };
 ```
 
 Når de er fanget opp, vises disse metrikkene i Metric Explorer under navn som `custom.monitor.api.response.time`. Du kan legge dem til i dashbordgrafer, sette opp varsler og filtrere etter monitor, probe eller egendefinerte attributter du oppga.
 
 **Begrensninger:**
+
 - Maksimalt 100 metrikker per skriptkjøring.
 - Metrikknavn er begrenset til 200 tegn.
 - Verdier må være numeriske.
 
 ### Tilgjengelige moduler i skriptet
+
 - `axios`: Du kan bruke denne modulen til å sende HTTP-forespørsler. Det er en løftebasert HTTP-klient for nettleseren og Node.js.
 - `crypto`: Du kan bruke denne modulen til å utføre kryptografiske operasjoner. Det er en innebygd Node.js-modul som gir kryptografisk funksjonalitet, inkludert et sett med innpakninger for OpenSSL sine hash-, HMAC-, siffer-, desiffer-, signer- og verifiserfunksjoner.
 - `console.log`: Du kan bruke denne modulen til å logge data til konsollen. Dette er nyttig for feilsøkingsformål.

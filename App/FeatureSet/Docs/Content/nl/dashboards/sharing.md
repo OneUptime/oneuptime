@@ -82,9 +82,12 @@ Branding geldt alleen wanneer het dashboard publiek wordt bekeken. Interne kijke
 Je kunt een publiek dashboard in je eigen site embedden met een iframe:
 
 ```html
-<iframe src="https://dashboard.acme.com/view"
-        width="100%" height="800"
-        frameborder="0"></iframe>
+<iframe
+  src="https://dashboard.acme.com/view"
+  width="100%"
+  height="800"
+  frameborder="0"
+></iframe>
 ```
 
 Als het dashboard een master-wachtwoord heeft, zien bezoekers de wachtwoordprompt binnenin de iframe.

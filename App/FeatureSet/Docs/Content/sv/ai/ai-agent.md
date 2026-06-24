@@ -55,6 +55,7 @@ Globala AI-agenter är automatiskt tillgängliga för alla projekt om de inte ä
 För organisationer som behöver köra AI-agenter inom sin egen infrastruktur (t.ex. för säkerhet, regelefterlevnad eller nätverksåtkomstkrav) stöder OneUptime egeninstallerade AI-agenter.
 
 Egeninstallerade AI-agenter:
+
 - Körs inom ditt privata nätverk
 - Kan komma åt interna resurser och system
 - Ger dig full kontroll över agentens miljö
@@ -134,15 +135,15 @@ spec:
         app: oneuptime-ai-agent
     spec:
       containers:
-      - name: oneuptime-ai-agent
-        image: oneuptime/ai-agent:release
-        env:
-          - name: AI_AGENT_KEY
-            value: "<ai-agent-key>"
-          - name: AI_AGENT_ID
-            value: "<ai-agent-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-ai-agent
+          image: oneuptime/ai-agent:release
+          env:
+            - name: AI_AGENT_KEY
+              value: "<ai-agent-key>"
+            - name: AI_AGENT_ID
+              value: "<ai-agent-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 Tillämpa konfigurationen:
@@ -157,12 +158,11 @@ AI-agenten stöder följande miljövariabler:
 
 #### Obligatoriska variabler
 
-| Variabel | Beskrivning |
-|----------|-------------|
-| `AI_AGENT_KEY` | AI-agentnyckeln från din OneUptime-instrumentpanel |
-| `AI_AGENT_ID` | AI-agentens ID från din OneUptime-instrumentpanel |
+| Variabel        | Beskrivning                                                         |
+| --------------- | ------------------------------------------------------------------- |
+| `AI_AGENT_KEY`  | AI-agentnyckeln från din OneUptime-instrumentpanel                  |
+| `AI_AGENT_ID`   | AI-agentens ID från din OneUptime-instrumentpanel                   |
 | `ONEUPTIME_URL` | URL:en till din OneUptime-instans (standard: https://oneuptime.com) |
-
 
 ## Verifiera din AI-agent
 

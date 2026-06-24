@@ -5,20 +5,25 @@ OneUptime Terraform Provider 讓您能以基礎設施即程式碼（Infrastructu
 ## 📚 文件章節
 
 ### [快速入門](./quick-start.md)
+
 快速設定指南，讓您在幾分鐘內開始使用 OneUptime Terraform Provider。
 
 ### [完整 Provider 指南](./README.md)
+
 涵蓋安裝、設定、資源與最佳實務的完整文件。
 
 ### [自架設定](./self-hosted.md)
+
 **對自架客戶至關重要**：版本鎖定、相容性與部署策略。
 
 ### [範例](./examples.md)
+
 常見 OneUptime Terraform 設定的真實範例與模式。
 
 ## 🚀 快速連結
 
 ### 適用於 OneUptime Cloud 客戶
+
 ```hcl
 terraform {
   required_providers {
@@ -36,6 +41,7 @@ provider "oneuptime" {
 ```
 
 ### 適用於自架客戶
+
 ```hcl
 terraform {
   required_providers {

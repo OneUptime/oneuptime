@@ -4,7 +4,7 @@
 
 यह इंटीग्रेशन **आउटबाउंड** है: OneUptime [GitHub REST API](https://docs.github.com/en/rest/issues/issues) को कॉल करता है। यह **Incident → On Create** trigger और **API component** के साथ OneUptime **[वर्कफ़्लो](/docs/workflows/index)** का उपयोग करता है।
 
-> **गहरा GitHub connection ढूंढ रहे हैं?** OneUptime के पास code repositories जोड़ने के लिए एक native **GitHub App** integration भी है (AI agent और code features द्वारा इस्तेमाल)। यह environment variables से configure होता है, workflows से नहीं — [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) देखें। यह पेज विशेष रूप से *incidents से issues file करने* के बारे में है।
+> **गहरा GitHub connection ढूंढ रहे हैं?** OneUptime के पास code repositories जोड़ने के लिए एक native **GitHub App** integration भी है (AI agent और code features द्वारा इस्तेमाल)। यह environment variables से configure होता है, workflows से नहीं — [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) देखें। यह पेज विशेष रूप से _incidents से issues file करने_ के बारे में है।
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -14,10 +14,12 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 - एक GitHub repository जहाँ आप issues file करना चाहते हैं।
 - एक token जो issues बना सके:
+
   - **Fine-grained PAT** उस repo के लिए scoped, **Issues: Read and write** के साथ, या
   - `repo` scope के साथ एक **classic PAT**।
 
   [github.com/settings/tokens](https://github.com/settings/tokens) पर एक बनाएँ।
+
 - एक OneUptime project जहाँ आप वर्कफ़्लो बना सकते हैं।
 
 ## चरण 1 — token store करें
@@ -30,6 +32,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 1. **Workflows → Create Workflow** खोलें, इसे `Incidents → GitHub Issues` नाम दें, और **Builder** खोलें।
 2. **On Create** पर सेट एक **Incident** trigger जोड़ें। इसे `Incident` नाम दें।
 3. trigger से connected एक **API** ब्लॉक जोड़ें:
+
    - **Method**: `POST`
    - **URL**: `https://api.github.com/repos/your-org/your-repo/issues`
    - **Headers**:

@@ -25,15 +25,15 @@ Only the connection target and the password secret change — the app keeps usin
 the `postgres` user and the `oneuptimedb` database, so no application config
 changes are required beyond flipping the Helm switch.
 
-| | Standalone (`postgresql.enabled: true`) | Operator (`postgresOperator.cnpg.enabled: true`) |
-|---|---|---|
-| Workload | `StatefulSet/<release>-postgresql` (1 replica) | `Cluster/<release>-postgresql-cnpg` (N instances) |
-| App connects to (`DATABASE_HOST`) | `<release>-postgresql` | `<release>-postgresql-cnpg-rw` (read-write / primary) |
-| Read-only endpoint | — | `<release>-postgresql-cnpg-ro` (replicas) |
-| Port | `5432` | `5432` |
-| User (`DATABASE_USERNAME`) | `postgres` | `postgres` |
-| Database (`DATABASE_NAME`) | `oneuptimedb` | `oneuptimedb` |
-| Password secret | `<release>-postgresql` → key `postgres-password` | `<release>-postgresql-cnpg-superuser` → key `password` |
+|                                   | Standalone (`postgresql.enabled: true`)          | Operator (`postgresOperator.cnpg.enabled: true`)       |
+| --------------------------------- | ------------------------------------------------ | ------------------------------------------------------ |
+| Workload                          | `StatefulSet/<release>-postgresql` (1 replica)   | `Cluster/<release>-postgresql-cnpg` (N instances)      |
+| App connects to (`DATABASE_HOST`) | `<release>-postgresql`                           | `<release>-postgresql-cnpg-rw` (read-write / primary)  |
+| Read-only endpoint                | —                                                | `<release>-postgresql-cnpg-ro` (replicas)              |
+| Port                              | `5432`                                           | `5432`                                                 |
+| User (`DATABASE_USERNAME`)        | `postgres`                                       | `postgres`                                             |
+| Database (`DATABASE_NAME`)        | `oneuptimedb`                                    | `oneuptimedb`                                          |
+| Password secret                   | `<release>-postgresql` → key `postgres-password` | `<release>-postgresql-cnpg-superuser` → key `password` |
 
 Replace `<release>` with your Helm release name (e.g. `oneuptime`) and run every
 command in the release's namespace (add `-n <namespace>` if it isn't `default`).
@@ -56,7 +56,7 @@ survives the cutover and rollback stays possible until you delete it.
 2. **Install the CloudNativePG CRDs first.** The CRDs ship as templates in the
    bundled subchart, so the very first `helm upgrade` with the operator enabled
    fails on a cluster that doesn't already have them (`no matches for kind
-   "Cluster" in version "postgresql.cnpg.io/v1"`). This is a one-time,
+"Cluster" in version "postgresql.cnpg.io/v1"`). This is a one-time,
    cluster-scoped step — follow **"First install with the operator enabled
    (CRDs must exist first)"** in [Postgres.md](./Postgres.md) before you flip the
    switch.
@@ -127,10 +127,10 @@ kind: Cluster
 metadata:
   name: <release>-postgresql-cnpg
 spec:
-  instances: 1                                         # scale up AFTER recovery is healthy
-  imageName: ghcr.io/cloudnative-pg/postgresql:17.4    # match or upgrade your major version
+  instances: 1 # scale up AFTER recovery is healthy
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.4 # match or upgrade your major version
   storage:
-    size: 25Gi                                         # >= your current data size
+    size: 25Gi # >= your current data size
   enableSuperuserAccess: true
   superuserSecret:
     name: <release>-postgresql-cnpg-superuser
@@ -146,11 +146,11 @@ spec:
   externalClusters:
     - name: old-standalone
       connectionParameters:
-        host: <release>-postgresql                     # the existing standalone service
+        host: <release>-postgresql # the existing standalone service
         user: postgres
         dbname: oneuptimedb
       password:
-        name: <release>-postgresql                     # existing standalone secret
+        name: <release>-postgresql # existing standalone secret
         key: postgres-password
 ```
 
@@ -178,8 +178,8 @@ postgresql:
 postgresOperator:
   cnpg:
     enabled: true
-    instances: 3                                       # 1 primary + 2 hot standbys
-    imageName: ghcr.io/cloudnative-pg/postgresql:17.4  # same image as the import
+    instances: 3 # 1 primary + 2 hot standbys
+    imageName: ghcr.io/cloudnative-pg/postgresql:17.4 # same image as the import
     database: oneuptimedb
     persistence:
       size: 25Gi
@@ -201,13 +201,13 @@ both ends. Use `bootstrap.pg_basebackup` instead of `initdb.import` in the same
 one-off `Cluster` from Option A, pointing at the same `externalClusters` entry:
 
 ```yaml
-  bootstrap:
-    pg_basebackup:
-      source: old-standalone
+bootstrap:
+  pg_basebackup:
+    source: old-standalone
 ```
 
 **Caveat — replication access.** The standalone's `pg_hba.conf` uses
-`host all all ...`, which does **not** match *replication* connections, so
+`host all all ...`, which does **not** match _replication_ connections, so
 `pg_basebackup` is rejected by default. On the source first, add a replication
 rule via `postgresql.primary.hbaConfiguration` and `helm upgrade` the standalone:
 
@@ -272,7 +272,7 @@ kubectl run pg-restore --rm -it --restart=Never --image=postgres:17 -- bash -lc 
 ```
 
 > Copy the dump file to where the restore runs first (`kubectl cp`, or stream it
-> *into* a pod with `kubectl exec -i ... 'cat > file'`, which is reliable —
+> _into_ a pod with `kubectl exec -i ... 'cat > file'`, which is reliable —
 > checksum it to confirm). `pg_restore` of a custom-format dump needs a
 > **seekable file on disk**; it cannot read one from a stdin pipe.
 
@@ -290,14 +290,14 @@ the objects already present and run idempotently.
 
 ### Two pitfalls that silently corrupt a manual migration
 
-* **Never pipe `pg_dump` through `kubectl exec` stdout** (`kubectl exec ...
-  pg_dump -Fc > local.dump`). Large binary stdout gets its tail **silently
+- **Never pipe `pg_dump` through `kubectl exec` stdout** (`kubectl exec ...
+pg_dump -Fc > local.dump`). Large binary stdout gets its tail **silently
   truncated** — the archive looks fine to `pg_restore --list` (the TOC is at the
   front) but fails partway through restore with `could not read from input file:
-  end of file`. Always `pg_dump -Fc -f <file>` to a file inside the pod, reading
+end of file`. Always `pg_dump -Fc -f <file>` to a file inside the pod, reading
   the source over a normal libpq TCP connection, and verify with
   `pg_restore -f /dev/null <file>` before restoring.
-* **`pg_restore` needs a seekable file** for a custom-format dump — it can't read
+- **`pg_restore` needs a seekable file** for a custom-format dump — it can't read
   one from a stdin pipe (same EOF error). Always restore from a file on disk.
 
 ---
@@ -361,8 +361,8 @@ production writes if you can.)
 
 ## See also
 
-* [Postgres.md](./Postgres.md) — operator day-2 operations: CRD bootstrap,
+- [Postgres.md](./Postgres.md) — operator day-2 operations: CRD bootstrap,
   replication/failover, synchronous commits, read scaling, and volume-snapshot
   backups.
-* OneUptime Helm chart [README](../Public/oneuptime/README.md) — `postgresOperator`
+- OneUptime Helm chart [README](../Public/oneuptime/README.md) — `postgresOperator`
   configuration reference.

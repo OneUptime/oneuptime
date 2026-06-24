@@ -87,8 +87,9 @@ export interface TelemetryIngestJobData {
   /*
    * Redis key for the raw request body, written out-of-band by
    * TelemetryBodyStore before the job is enqueued. The worker
-   * fetches the raw buffer via TelemetryBodyStore.readAndDeleteBody
-   * and decodes (gunzip + protobuf or JSON) per `bodyFormat` /
+   * fetches the raw buffer via TelemetryBodyStore.readBody (and
+   * deletes it via deleteBody only after the job succeeds) and
+   * decodes (gunzip + protobuf or JSON) per `bodyFormat` /
    * `bodyEncoding`. Every OTel-type job carries
    * `bodyKey` + `bodyFormat` + `productType` — raw HTTP bodies are
    * stored as-is, while producers that hand us an already-parsed

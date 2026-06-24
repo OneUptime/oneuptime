@@ -44,7 +44,6 @@ Fluentd 支持数百种数据源，您可以将来自任何数据源的日志摄
 
 ![查看服务](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
 ## 配置
 
 您可以使用以下配置将遥测数据发送到 OneUptime HTTP 源。您可以将此配置添加到 Fluentd 配置文件中。配置文件通常位于 `/etc/fluentd/fluent.conf` 或 `/etc/td-agent/td-agent.conf`。
@@ -54,25 +53,24 @@ Fluentd 支持数百种数据源，您可以将来自任何数据源的日志摄
 ```yaml
 # 匹配所有模式
 <match **>
-  @type http
+@type http
 
-  endpoint https://oneuptime.com/fluentd/logs
-  open_timeout 2
+endpoint https://oneuptime.com/fluentd/logs
+open_timeout 2
 
-  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
+headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
-  content_type application/json
-  json_array true
+content_type application/json
+json_array true
 
-  <format>
-    @type json
-  </format>
-  <buffer>
-    flush_interval 10s
-  </buffer>
+<format>
+@type json
+</format>
+<buffer>
+flush_interval 10s
+</buffer>
 </match>
 ```
-
 
 以下是完整配置文件的示例：
 
@@ -84,28 +82,28 @@ Fluentd 支持数百种数据源，您可以将来自任何数据源的日志摄
 ## 内置 TCP 输入
 ## @see https://docs.fluentd.org/input/forward
 <source>
-  @type forward
-  port 24224
-  bind 0.0.0.0
+@type forward
+port 24224
+bind 0.0.0.0
 </source>
 
 <match **>
-  @type http
+@type http
 
-  endpoint https://oneuptime.com/fluentd/logs
-  open_timeout 2
+endpoint https://oneuptime.com/fluentd/logs
+open_timeout 2
 
-  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
+headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
-  content_type application/json
-  json_array true
+content_type application/json
+json_array true
 
-  <format>
-    @type json
-  </format>
-  <buffer>
-    flush_interval 10s
-  </buffer>
+<format>
+@type json
+</format>
+<buffer>
+flush_interval 10s
+</buffer>
 </match>
 ```
 

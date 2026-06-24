@@ -29,16 +29,16 @@ Voer de hostnaam of het IP-adres in van de doelhost (bijv. `example.com` of `192
 
 Voer het te bewaken poortnummer in (1-65535). Veelgebruikte voorbeelden:
 
-| Poort | Dienst |
-|------|---------|
-| 22 | SSH |
-| 25 | SMTP |
-| 80 | HTTP |
-| 443 | HTTPS |
-| 3306 | MySQL |
-| 5432 | PostgreSQL |
-| 6379 | Redis |
-| 27017 | MongoDB |
+| Poort | Dienst     |
+| ----- | ---------- |
+| 22    | SSH        |
+| 25    | SMTP       |
+| 80    | HTTP       |
+| 443   | HTTPS      |
+| 3306  | MySQL      |
+| 5432  | PostgreSQL |
+| 6379  | Redis      |
+| 27017 | MongoDB    |
 
 ## Monitoringcriteria
 
@@ -46,11 +46,11 @@ U kunt criteria configureren om te bepalen wanneer uw poort als online, gedegrad
 
 ### Beschikbare controletypen
 
-| Controletype | Beschrijving |
-|------------|-------------|
-| Is online | Of de poort open is en verbindingen accepteert |
+| Controletype        | Beschrijving                                                 |
+| ------------------- | ------------------------------------------------------------ |
+| Is online           | Of de poort open is en verbindingen accepteert               |
 | Responstijd (in ms) | Tijd om een verbinding tot stand te brengen in milliseconden |
-| Is verzoek time-out | Of de verbindingspoging een time-out heeft |
+| Is verzoek time-out | Of de verbindingspoging een time-out heeft                   |
 
 ### Filtertypen
 

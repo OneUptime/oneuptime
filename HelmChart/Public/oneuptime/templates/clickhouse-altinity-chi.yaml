@@ -68,7 +68,10 @@ spec:
         {{- end }}
     {{- end }}
     clusters:
-      - name: oneuptime
+      # The cluster name MUST match CLICKHOUSE_CLUSTER_NAME wired to the app in
+      # _helpers.tpl (oneuptime.env.runtime) — the analytics schema issues
+      # ON CLUSTER '<name>' DDL and Distributed('<name>', …) against it.
+      - name: {{ $altinity.cluster.name | default "oneuptime" }}
         layout:
           shardsCount: {{ $altinity.cluster.shardsCount | default 1 }}
           replicasCount: {{ $altinity.cluster.replicasCount | default 1 }}

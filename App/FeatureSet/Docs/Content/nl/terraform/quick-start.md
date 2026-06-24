@@ -11,6 +11,7 @@ Deze gids helpt u binnen enkele minuten aan de slag te gaan met de OneUptime Ter
 ## Stap 1: API-sleutel aanmaken
 
 ### Voor OneUptime Cloud
+
 1. Ga naar [OneUptime Cloud](https://oneuptime.com) en log in
 2. Navigeer naar **Instellingen** → **API-sleutels**
 3. Klik op **API-sleutel aanmaken**
@@ -19,6 +20,7 @@ Deze gids helpt u binnen enkele minuten aan de slag te gaan met de OneUptime Ter
 6. Kopieer de gegenereerde API-sleutel
 
 ### Voor zelf-gehoste OneUptime
+
 1. Ga naar uw OneUptime-instantie
 2. Navigeer naar **Instellingen** → **API-sleutels**
 3. Klik op **API-sleutel aanmaken**
@@ -37,7 +39,7 @@ terraform {
       source  = "oneuptime/oneuptime"
       # Voor cloudklanten
       version = "~> 7.0"
-      
+
       # Voor zelf-gehoste klanten - zet vast op uw exacte versie
       # version = "= 7.0.123"  # Vervang door uw OneUptime-versie
     }
@@ -48,10 +50,10 @@ terraform {
 provider "oneuptime" {
   # Voor cloudklanten
   oneuptime_url = "https://oneuptime.com"
-  
+
   # Voor zelf-gehoste klanten - gebruik de URL van uw instantie
   # oneuptime_url = "https://oneuptime.yourcompany.com"
-  
+
   api_key = var.oneuptime_api_key
 }
 
@@ -164,25 +166,33 @@ provider "oneuptime" {
 ## Probleemoplossing voor snelstart
 
 ### Probleem: Provider niet gevonden
+
 ```
 Error: Failed to query available provider packages
 ```
+
 **Oplossing**: Voer `terraform init` uit om de provider te downloaden
 
 ### Probleem: Authenticatie mislukt
+
 ```
 Error: Invalid API key
 ```
+
 **Oplossing**:
+
 1. Verifieer uw API-sleutel in het OneUptime-dashboard
 2. Controleer of de API-sleutel voldoende machtigingen heeft
 3. Zorg dat `oneuptime_url` correct is voor uw instantie
 
 ### Probleem: Versie-mismatch (zelf-gehost)
+
 ```
 Error: API version incompatible
 ```
+
 **Oplossing**:
+
 1. Controleer uw OneUptime-versie in het dashboard
 2. Werk de providerversie bij zodat deze exact overeenkomt
 3. Voer `terraform init -upgrade` uit

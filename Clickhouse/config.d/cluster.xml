@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<!--
+  Cluster + embedded-Keeper drop-in for the bundled single-node ClickHouse.
+
+  OneUptime's analytics schema is ALWAYS sharded + replicated (Distributed tables
+  over local ReplicatedMergeTree). A single node is a "cluster of one": one shard,
+  one replica, with ClickHouse Keeper running EMBEDDED in this same server process
+  (no extra container). This drop-in is merged into the server config from
+  /etc/clickhouse-server/config.d/.
+
+  Multi-node HA/sharding is provided by the Altinity operator path (Helm), which
+  manages its own Keeper ensemble + macros and does NOT use this file.
+-->
+<clickhouse>
+    <!-- Embedded ClickHouse Keeper: coordinates ReplicatedMergeTree on this node.
+         Its data lives on the persisted /var/lib/clickhouse volume. -->
+    <keeper_server>
+        <tcp_port>9181</tcp_port>
+        <server_id>1</server_id>
+        <log_storage_path>/var/lib/clickhouse/coordination/log</log_storage_path>
+        <snapshot_storage_path>/var/lib/clickhouse/coordination/snapshots</snapshot_storage_path>
+        <coordination_settings>
+            <operation_timeout_ms>10000</operation_timeout_ms>
+            <session_timeout_ms>30000</session_timeout_ms>
+            <raft_logs_level>warning</raft_logs_level>
+        </coordination_settings>
+        <raft_configuration>
+            <server>
+                <id>1</id>
+                <hostname>localhost</hostname>
+                <port>9234</port>
+            </server>
+        </raft_configuration>
+    </keeper_server>
+
+    <!-- Point this server at its own embedded Keeper for replication metadata. -->
+    <zookeeper>
+        <node>
+            <host>localhost</host>
+            <port>9181</port>
+        </node>
+    </zookeeper>
+
+    <!-- Replication macros. {shard}/{replica} fill the argument-less
+         Replicated*MergeTree engines (server default_replica_path is
+         /clickhouse/tables/{uuid}/{shard}, default_replica_name is {replica}).
+         Single node => one shard, one replica. -->
+    <macros>
+        <shard>01</shard>
+        <replica>replica-1</replica>
+        <cluster>oneuptime</cluster>
+    </macros>
+
+    <!-- The cluster the app issues `ON CLUSTER 'oneuptime'` and
+         `Distributed('oneuptime', …)` against. internal_replication=true so the
+         Distributed table writes to one replica per shard and ReplicatedMergeTree
+         fans it out. -->
+    <remote_servers>
+        <oneuptime>
+            <shard>
+                <internal_replication>true</internal_replication>
+                <replica>
+                    <host>localhost</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+        </oneuptime>
+    </remote_servers>
+</clickhouse>

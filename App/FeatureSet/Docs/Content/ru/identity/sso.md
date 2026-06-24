@@ -14,10 +14,12 @@ OneUptime поддерживает единый вход (SSO) на основе
 ## Настройка SSO
 
 1. **Перейдите в настройки проекта**
+
    - Откройте ваш проект OneUptime
    - Перейдите в **Project Settings** > **Authentication** > **SSO**
 
 2. **Создайте конфигурацию SSO**
+
    - Нажмите **Create SSO**
    - Введите **Name** для конфигурации SSO (например, "Keycloak SAML" или "Okta SAML")
    - Введите **Sign On URL** от вашего поставщика удостоверений
@@ -152,12 +154,12 @@ Microsoft Entra ID — облачная служба управления удо
 1. На странице конфигурации SAML нажмите **Edit** в **Attributes & Claims**
 2. Убедитесь, что настроены следующие утверждения:
 
-| Имя утверждения | Значение |
-|-----------|-------|
-| `Unique User Identifier (Name ID)` | `user.userprincipalname` или `user.mail` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | `user.mail` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname` | `user.givenname` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname` | `user.surname` |
+| Имя утверждения                                                      | Значение                                 |
+| -------------------------------------------------------------------- | ---------------------------------------- |
+| `Unique User Identifier (Name ID)`                                   | `user.userprincipalname` или `user.mail` |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | `user.mail`                              |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`    | `user.givenname`                         |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname`      | `user.surname`                           |
 
 3. Установите **Name identifier format** на `Email address`
 4. Нажмите **Save**
@@ -239,11 +241,11 @@ Okta — широко используемая платформа удостов
 2. Нажмите **Edit** в разделе **SAML Settings** и нажмите **Next**, чтобы перейти к параметрам SAML
 3. В разделе **Attribute Statements** добавьте:
 
-| Имя | Значение |
-|------|-------|
-| `email` | `user.email` |
+| Имя         | Значение         |
+| ----------- | ---------------- |
+| `email`     | `user.email`     |
 | `firstName` | `user.firstName` |
-| `lastName` | `user.lastName` |
+| `lastName`  | `user.lastName`  |
 
 4. Нажмите **Next**, затем **Finish**
 

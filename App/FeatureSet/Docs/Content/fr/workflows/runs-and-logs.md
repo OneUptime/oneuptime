@@ -4,21 +4,21 @@ Chaque fois qu'un workflow s'exécute, OneUptime enregistre un compte rendu de c
 
 ## Où les trouver
 
-| Page | Ce que vous voyez |
-| --- | --- |
-| **Workflows → Runs & Logs** | Toutes les exécutions de tous les workflows du projet. Filtrez par workflow, statut et période. |
-| **Workflow → Onglet Logs** | Seulement les exécutions de ce workflow. |
-| **Une exécution individuelle** | Une seule exécution, avec la sortie de chaque bloc. |
+| Page                           | Ce que vous voyez                                                                               |
+| ------------------------------ | ----------------------------------------------------------------------------------------------- |
+| **Workflows → Runs & Logs**    | Toutes les exécutions de tous les workflows du projet. Filtrez par workflow, statut et période. |
+| **Workflow → Onglet Logs**     | Seulement les exécutions de ce workflow.                                                        |
+| **Une exécution individuelle** | Une seule exécution, avec la sortie de chaque bloc.                                             |
 
 ## Statuts d'exécution
 
-| Statut | Signification |
-| --- | --- |
-| **Scheduled** | Le déclencheur s'est activé et l'exécution est sur le point de démarrer. Cela ne prend généralement qu'une fraction de seconde. |
-| **Running** | Le workflow est en cours. Les blocs longs maintiennent une exécution dans cet état. |
-| **Success** | Tous les blocs qui se sont exécutés ont terminé sans erreur. (Prendre intentionnellement une branche **error** compte toujours comme un succès — le workflow lui-même n'a pas échoué.) |
-| **Error** | Un bloc a échoué et aucun chemin **error** n'était connecté pour le gérer. L'exécution s'est arrêtée là. |
-| **Timeout** | L'exécution a duré plus longtemps que la durée autorisée. Voir [Configuration et sécurité](/docs/workflows/configuration). |
+| Statut        | Signification                                                                                                                                                                          |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Scheduled** | Le déclencheur s'est activé et l'exécution est sur le point de démarrer. Cela ne prend généralement qu'une fraction de seconde.                                                        |
+| **Running**   | Le workflow est en cours. Les blocs longs maintiennent une exécution dans cet état.                                                                                                    |
+| **Success**   | Tous les blocs qui se sont exécutés ont terminé sans erreur. (Prendre intentionnellement une branche **error** compte toujours comme un succès — le workflow lui-même n'a pas échoué.) |
+| **Error**     | Un bloc a échoué et aucun chemin **error** n'était connecté pour le gérer. L'exécution s'est arrêtée là.                                                                               |
+| **Timeout**   | L'exécution a duré plus longtemps que la durée autorisée. Voir [Configuration et sécurité](/docs/workflows/configuration).                                                             |
 
 ## Lire une exécution
 

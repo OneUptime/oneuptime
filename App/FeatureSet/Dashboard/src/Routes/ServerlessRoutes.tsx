@@ -17,6 +17,7 @@ import ServerlessFunctionDocumentation from "../Pages/Serverless/View/Documentat
 import ServerlessFunctionDelete from "../Pages/Serverless/View/Delete";
 import ServerlessLabelRules from "../Pages/Serverless/Settings/LabelRules";
 import ServerlessOwnerRules from "../Pages/Serverless/Settings/OwnerRules";
+import ServerlessArchived from "../Pages/Serverless/Archived";
 
 const ServerlessRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -56,6 +57,15 @@ const ServerlessRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.SERVERLESS_SETTINGS_OWNER_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={ServerlessRoutePath[PageMap.SERVERLESS_ARCHIVED] || ""}
+          element={
+            <ServerlessArchived
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVERLESS_ARCHIVED] as Route}
             />
           }
         />

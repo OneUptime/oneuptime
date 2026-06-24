@@ -28,18 +28,18 @@ Selezionare uno o più servizi da cui monitorare i profili. I servizi devono inv
 
 ### Filtri Profilo
 
-| Filtro | Descrizione | Obbligatorio |
-|--------|-------------|----------|
-| Tipi di Profilo | Filtrare per nomi di tipo di profilo (ad es. CPU, memory, goroutines) | No |
-| Attributi | Coppie chiave-valore per filtrare su attributi personalizzati del profilo | No |
-| Finestra Temporale | Quanto indietro cercare nei profili (in secondi, predefinito: 60) | No |
+| Filtro             | Descrizione                                                               | Obbligatorio |
+| ------------------ | ------------------------------------------------------------------------- | ------------ |
+| Tipi di Profilo    | Filtrare per nomi di tipo di profilo (ad es. CPU, memory, goroutines)     | No           |
+| Attributi          | Coppie chiave-valore per filtrare su attributi personalizzati del profilo | No           |
+| Finestra Temporale | Quanto indietro cercare nei profili (in secondi, predefinito: 60)         | No           |
 
 ## Criteri di Monitoraggio
 
 ### Tipi di Controllo Disponibili
 
-| Tipo di Controllo | Descrizione |
-|------------|-------------|
+| Tipo di Controllo | Descrizione                                                               |
+| ----------------- | ------------------------------------------------------------------------- |
 | Conteggio Profilo | Il numero di profili che corrispondono ai filtri nella finestra temporale |
 
 ### Tipi di Filtro

@@ -12,9 +12,9 @@
 
 =======================================================
 
--   Backup your database.
+- Backup your database.
 
--   Run this script:
+- Run this script:
 
 ```
 # Deploy to production

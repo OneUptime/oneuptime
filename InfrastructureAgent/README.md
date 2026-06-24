@@ -11,7 +11,8 @@ curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install
 ### Configure the agent
 
 Configure the agent as a system service
-- You can change the host to your own host if you're self hosting the OneUptime platform. 
+
+- You can change the host to your own host if you're self hosting the OneUptime platform.
 - You can find the secret key on OneUptime Dashboard. Click on "View Monitor" and go to "Settings" tab.
 
 ```bash
@@ -51,6 +52,7 @@ oneuptime-infrastructure-agent logs
 ```
 
 You can also use the following options:
+
 - Show specific number of lines: `oneuptime-infrastructure-agent logs -n 50`
 - Follow logs in real-time: `oneuptime-infrastructure-agent logs -f`
 

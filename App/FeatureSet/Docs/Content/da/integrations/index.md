@@ -10,7 +10,7 @@ Enhver integration bevæger data i én af to retninger (og mange bruger begge).
 
 ### Indgående — et andet værktøj sender data til OneUptime
 
-Brug dette, når et eksternt system har brug for at *oprette eller opdatere noget i OneUptime* — typisk åbne en hændelse eller en alarm, når det opdager et problem.
+Brug dette, når et eksternt system har brug for at _oprette eller opdatere noget i OneUptime_ — typisk åbne en hændelse eller en alarm, når det opdager et problem.
 
 1. Byg et workflow, der starter med en **[Webhook-trigger](/docs/workflows/triggers#webhook)**. OneUptime giver dig en unik URL.
 2. I det andet værktøj konfigurerer du en webhook/notifikationshandling, der POSTer til den URL, når noget sker.
@@ -22,7 +22,7 @@ Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  �
 
 ### Udgående — OneUptime sender data til et andet værktøj
 
-Brug dette, når *noget i OneUptime skal vises i et andet værktøj* — åbn en Jira-ticket, kontakt nogen i PagerDuty, post til Slack.
+Brug dette, når _noget i OneUptime skal vises i et andet værktøj_ — åbn en Jira-ticket, kontakt nogen i PagerDuty, post til Slack.
 
 1. Byg et workflow, der starter med en **[OneUptime event-trigger](/docs/workflows/triggers#oneuptime-event-triggers)** — for eksempel **Incident → On Create**.
 2. Tilføj en **[API-komponent](/docs/workflows/components#api)**, der kalder det andet værktøjs REST API med hændelsens detaljer.
@@ -34,22 +34,22 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 ## Katalog
 
-| Værktøj | Retning | Hvad det gør |
-| --- | --- | --- |
-| [Zabbix](/docs/integrations/zabbix) | Indgående | Gør Zabbix-problemer til OneUptime-hændelser (og løser dem ved genopretning). |
-| [Jira](/docs/integrations/jira) | Udgående (+ indgående) | Åbn en Jira-sag for hver hændelse; synkronisér status tilbage. |
-| [PagerDuty](/docs/integrations/pagerduty) | Udgående (+ indgående) | Udløs og løs PagerDuty-events fra OneUptime-hændelser. |
-| [Opsgenie](/docs/integrations/opsgenie) | Udgående (+ indgående) | Opret og luk Opsgenie-alarmer. |
-| [ServiceNow](/docs/integrations/servicenow) | Udgående (+ indgående) | Åbn ServiceNow-hændelser fra OneUptime. |
-| [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Indgående | Konvertér Alertmanager-notifikationer til hændelser. |
-| [Grafana](/docs/integrations/grafana) | Indgående | Konvertér Grafana-alarmer til hændelser. |
-| [Datadog](/docs/integrations/datadog) | Indgående | Konvertér Datadog-monitoralarmer til hændelser. |
-| [GitHub](/docs/integrations/github) | Udgående | Åbn en GitHub-sag for en hændelse. |
-| [GitLab](/docs/integrations/gitlab) | Udgående | Åbn en GitLab-sag for en hændelse. |
-| [Discord](/docs/integrations/discord) | Udgående | Post hændelsesopdateringer til en Discord-kanal. |
-| [Telegram](/docs/integrations/telegram) | Udgående | Send hændelsesopdateringer til en Telegram-chat. |
-| [Slack](/docs/workspace-connections/slack) | Begge | Indbygget workspace-forbindelse — kanaler, alarmer og vagtplan. |
-| [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | Begge | Indbygget workspace-forbindelse. |
+| Værktøj                                                               | Retning                | Hvad det gør                                                                  |
+| --------------------------------------------------------------------- | ---------------------- | ----------------------------------------------------------------------------- |
+| [Zabbix](/docs/integrations/zabbix)                                   | Indgående              | Gør Zabbix-problemer til OneUptime-hændelser (og løser dem ved genopretning). |
+| [Jira](/docs/integrations/jira)                                       | Udgående (+ indgående) | Åbn en Jira-sag for hver hændelse; synkronisér status tilbage.                |
+| [PagerDuty](/docs/integrations/pagerduty)                             | Udgående (+ indgående) | Udløs og løs PagerDuty-events fra OneUptime-hændelser.                        |
+| [Opsgenie](/docs/integrations/opsgenie)                               | Udgående (+ indgående) | Opret og luk Opsgenie-alarmer.                                                |
+| [ServiceNow](/docs/integrations/servicenow)                           | Udgående (+ indgående) | Åbn ServiceNow-hændelser fra OneUptime.                                       |
+| [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Indgående              | Konvertér Alertmanager-notifikationer til hændelser.                          |
+| [Grafana](/docs/integrations/grafana)                                 | Indgående              | Konvertér Grafana-alarmer til hændelser.                                      |
+| [Datadog](/docs/integrations/datadog)                                 | Indgående              | Konvertér Datadog-monitoralarmer til hændelser.                               |
+| [GitHub](/docs/integrations/github)                                   | Udgående               | Åbn en GitHub-sag for en hændelse.                                            |
+| [GitLab](/docs/integrations/gitlab)                                   | Udgående               | Åbn en GitLab-sag for en hændelse.                                            |
+| [Discord](/docs/integrations/discord)                                 | Udgående               | Post hændelsesopdateringer til en Discord-kanal.                              |
+| [Telegram](/docs/integrations/telegram)                               | Udgående               | Send hændelsesopdateringer til en Telegram-chat.                              |
+| [Slack](/docs/workspace-connections/slack)                            | Begge                  | Indbygget workspace-forbindelse — kanaler, alarmer og vagtplan.               |
+| [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | Begge                  | Indbygget workspace-forbindelse.                                              |
 
 > **Slack og Microsoft Teams** har en dybere, native forbindelse, der rækker ud over workflows — automatiske hændelseskanaler, tovejshandlinger og vagtnotifikationer. Brug [Slack](/docs/workspace-connections/slack)- og [Microsoft Teams](/docs/workspace-connections/microsoft-teams)-workspace-forbindelserne til dem i stedet for at bygge et workflow.
 
@@ -67,13 +67,13 @@ Hemmelige variabler er skjulte i brugergrænsefladen, efter du gemmer, og renses
 
 De fleste udgående integrationer kræver en `Authorization`-header på API-blokken. De almindelige former:
 
-| Skema | Headerværdi | Bruges af |
-| --- | --- | --- |
-| Bearer-token | `Bearer {{variable.TOKEN}}` | GitHub, mange moderne API'er |
-| Basic auth | `Basic {{variable.BASE64_USER_PASS}}` | Jira, ServiceNow |
-| API-nøgleheader | `GenieKey {{variable.OPSGENIE_KEY}}` | Opsgenie |
-| Token i body | `routing_key`-feltet i JSON-bodyen | PagerDuty Events API |
-| Private token-header | `PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}` | GitLab |
+| Skema                | Headerværdi                                | Bruges af                    |
+| -------------------- | ------------------------------------------ | ---------------------------- |
+| Bearer-token         | `Bearer {{variable.TOKEN}}`                | GitHub, mange moderne API'er |
+| Basic auth           | `Basic {{variable.BASE64_USER_PASS}}`      | Jira, ServiceNow             |
+| API-nøgleheader      | `GenieKey {{variable.OPSGENIE_KEY}}`       | Opsgenie                     |
+| Token i body         | `routing_key`-feltet i JSON-bodyen         | PagerDuty Events API         |
+| Private token-header | `PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}` | GitLab                       |
 
 Til Basic auth base64-enkoder du `brugernavn:adgangskode` (eller `email:api_token`) **én gang**, og gemmer derefter resultatet som hemmelighed. På macOS/Linux:
 

@@ -11,6 +11,7 @@
 ## 1단계: API 키 생성
 
 ### OneUptime 클라우드의 경우
+
 1. [OneUptime 클라우드](https://oneuptime.com)로 이동하여 로그인합니다
 2. **설정** → **API 키**로 이동합니다
 3. **API 키 생성**을 클릭합니다
@@ -19,6 +20,7 @@
 6. 생성된 API 키를 복사합니다
 
 ### 자체 호스팅 OneUptime의 경우
+
 1. OneUptime 인스턴스에 액세스합니다
 2. **설정** → **API 키**로 이동합니다
 3. **API 키 생성**을 클릭합니다
@@ -37,7 +39,7 @@ terraform {
       source  = "oneuptime/oneuptime"
       # 클라우드 고객의 경우
       version = "~> 7.0"
-      
+
       # 자체 호스팅 고객의 경우 - 정확한 버전으로 고정
       # version = "= 7.0.123"  # OneUptime 버전으로 교체
     }
@@ -48,10 +50,10 @@ terraform {
 provider "oneuptime" {
   # 클라우드 고객의 경우
   oneuptime_url = "https://oneuptime.com"
-  
+
   # 자체 호스팅 고객의 경우 - 인스턴스 URL 사용
   # oneuptime_url = "https://oneuptime.yourcompany.com"
-  
+
   api_key = var.oneuptime_api_key
 }
 
@@ -164,25 +166,33 @@ provider "oneuptime" {
 ## 빠른 시작 문제 해결
 
 ### 문제: 공급자를 찾을 수 없음
+
 ```
 오류: 사용 가능한 공급자 패키지 쿼리 실패
 ```
+
 **해결책**: 공급자를 다운로드하려면 `terraform init`을 실행합니다
 
 ### 문제: 인증 실패
+
 ```
 오류: 잘못된 API 키
 ```
-**해결책**: 
+
+**해결책**:
+
 1. OneUptime 대시보드에서 API 키를 확인합니다
 2. API 키에 충분한 권한이 있는지 확인합니다
 3. `oneuptime_url`이 인스턴스에 대해 올바른지 확인합니다
 
 ### 문제: 버전 불일치 (자체 호스팅)
+
 ```
 오류: API 버전 비호환
 ```
-**해결책**: 
+
+**해결책**:
+
 1. 대시보드에서 OneUptime 버전을 확인합니다
 2. 정확히 일치하도록 공급자 버전을 업데이트합니다
 3. `terraform init -upgrade`를 실행합니다

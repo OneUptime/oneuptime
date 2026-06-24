@@ -8,17 +8,17 @@ Use-o para ver o que seus usuários realmente experimentam: visualizações de p
 
 ## Pré-requisitos
 
-- Um **Token de Ingestão de Telemetria do OneUptime** — crie um a partir de *Project Settings → Telemetry Ingestion Keys*.
+- Um **Token de Ingestão de Telemetria do OneUptime** — crie um a partir de _Project Settings → Telemetry Ingestion Keys_.
 - O SDK do OpenTelemetry para navegador ou dispositivos móveis.
 
 ## Como o OneUptime identifica uma aplicação RUM
 
-| Atributo | Obrigatório | Finalidade |
-|---|---|---|
-| `service.name` | **sim** | Identidade da aplicação (ex.: `storefront-web`) |
-| `browser.*` | para web | Marca a telemetria como RUM de navegador |
-| `device.*` | para dispositivos móveis | Marca a telemetria como RUM de dispositivos móveis |
-| `telemetry.sdk.language` | não | ex.: `webjs`, `swift`, exibido na visão geral |
+| Atributo                 | Obrigatório              | Finalidade                                         |
+| ------------------------ | ------------------------ | -------------------------------------------------- |
+| `service.name`           | **sim**                  | Identidade da aplicação (ex.: `storefront-web`)    |
+| `browser.*`              | para web                 | Marca a telemetria como RUM de navegador           |
+| `device.*`               | para dispositivos móveis | Marca a telemetria como RUM de dispositivos móveis |
+| `telemetry.sdk.language` | não                      | ex.: `webjs`, `swift`, exibido na visão geral      |
 
 ## Navegador (OpenTelemetry Web)
 

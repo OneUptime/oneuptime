@@ -12,15 +12,15 @@ oneuptime login <api-key> <instance-url>
 
 **Argumenten:**
 
-| Argument | Beschrijving |
-|----------|-------------|
-| `<api-key>` | Uw OneUptime API-sleutel (bijv. `sk-your-api-key`) |
+| Argument         | Beschrijving                                                      |
+| ---------------- | ----------------------------------------------------------------- |
+| `<api-key>`      | Uw OneUptime API-sleutel (bijv. `sk-your-api-key`)                |
 | `<instance-url>` | De URL van uw OneUptime-instantie (bijv. `https://oneuptime.com`) |
 
 **Opties:**
 
-| Optie | Beschrijving |
-|--------|-------------|
+| Optie                   | Beschrijving                                    |
+| ----------------------- | ----------------------------------------------- |
 | `--context-name <name>` | Naam voor deze context (standaard: `"default"`) |
 
 **Voorbeelden:**
@@ -122,6 +122,7 @@ oneuptime whoami
 ```
 
 Dit geeft het volgende weer:
+
 - Instantie-URL
 - Gemaskeerde API-sleutel
 - Naam van de huidige context (alleen weergegeven als een opgeslagen context actief is)

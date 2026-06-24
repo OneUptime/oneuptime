@@ -24,8 +24,9 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 1. Abre **Workflows → Create Workflow**, nómbralo `Incidents → Opsgenie` y abre el **Builder**.
 2. Añade un disparador **Incident** configurado en **On Create**. Renómbralo `Incident`.
 3. Añade un bloque **API** conectado al disparador:
+
    - **Method**: `POST`
-   - **URL**: `https://api.opsgenie.com/v2/alerts`  *(usa `api.eu.opsgenie.com` para la UE)*
+   - **URL**: `https://api.opsgenie.com/v2/alerts` _(usa `api.eu.opsgenie.com` para la UE)_
    - **Headers**:
 
      ```text
@@ -46,6 +47,7 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
      ```
 
    El **`alias`** vincula esta alerta de Opsgenie al incidente de OneUptime para poder cerrarla más adelante por alias. Ten en cuenta que el esquema de autenticación de Opsgenie es la palabra literal `GenieKey` seguida de un espacio y tu clave.
+
 4. **Guarda**, habilita y crea un incidente de prueba. Una respuesta `202 Accepted` en los registros del workflow significa que Opsgenie ha encolado la alerta.
 
 ## Paso 3 — Cerrar al resolver en OneUptime (recomendado)

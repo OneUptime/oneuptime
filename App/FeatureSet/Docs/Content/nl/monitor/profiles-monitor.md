@@ -28,18 +28,18 @@ Selecteer een of meer diensten waarvan profielen worden bewaakt. Diensten moeten
 
 ### Profielfilters
 
-| Filter | Beschrijving | Vereist |
-|--------|-------------|----------|
-| Profieltypen | Filteren op namen van profieltypen (bijv. CPU, geheugen, goroutines) | Nee |
-| Attributen | Sleutel-waardeparen om te filteren op aangepaste profielattributen | Nee |
-| Tijdvenster | Hoe ver terug te zoeken naar profielen (in seconden, standaard: 60) | Nee |
+| Filter       | Beschrijving                                                         | Vereist |
+| ------------ | -------------------------------------------------------------------- | ------- |
+| Profieltypen | Filteren op namen van profieltypen (bijv. CPU, geheugen, goroutines) | Nee     |
+| Attributen   | Sleutel-waardeparen om te filteren op aangepaste profielattributen   | Nee     |
+| Tijdvenster  | Hoe ver terug te zoeken naar profielen (in seconden, standaard: 60)  | Nee     |
 
 ## Monitoringcriteria
 
 ### Beschikbare controletypen
 
-| Controletype | Beschrijving |
-|------------|-------------|
+| Controletype   | Beschrijving                                                       |
+| -------------- | ------------------------------------------------------------------ |
 | Profieltelling | Het aantal profielen dat voldoet aan uw filters in het tijdvenster |
 
 ### Filtertypen

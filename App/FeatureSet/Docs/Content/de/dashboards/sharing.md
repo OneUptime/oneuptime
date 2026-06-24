@@ -82,9 +82,12 @@ Branding wirkt nur, wenn das Dashboard öffentlich angezeigt wird. Interne Betra
 Sie können ein öffentliches Dashboard in Ihre eigene Website mit einem iframe einbetten:
 
 ```html
-<iframe src="https://dashboard.acme.com/view"
-        width="100%" height="800"
-        frameborder="0"></iframe>
+<iframe
+  src="https://dashboard.acme.com/view"
+  width="100%"
+  height="800"
+  frameborder="0"
+></iframe>
 ```
 
 Hat das Dashboard ein Master-Passwort, sehen Besucher die Passwortabfrage innerhalb des iframes.

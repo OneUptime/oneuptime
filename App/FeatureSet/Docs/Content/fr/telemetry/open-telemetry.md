@@ -14,7 +14,6 @@ Une fois que vous avez créé un jeton, cliquez sur « Afficher » pour le visua
 
 ![Afficher le service](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
 ### Étape 2
 
 #### Configurer le service de télémétrie dans votre application.
@@ -35,17 +34,15 @@ Nous utilisons OpenTelemetry pour collecter les journaux d'application. OneUptim
 - [.NET / C#](https://opentelemetry.io/docs/instrumentation/net/)
 - [Swift](https://opentelemetry.io/docs/instrumentation/swift/)
 
-
 **Intégrer avec OneUptime**
 
 Une fois que vous avez configuré le service de télémétrie dans votre application, vous pouvez l'intégrer avec OneUptime en définissant les variables d'environnement suivantes.
 
-| Variable d'environnement | Valeur |
-| --- | --- |
-| OTEL_EXPORTER_OTLP_HEADERS | x-oneuptime-token=VOTRE_JETON_SERVICE_ONEUPTIME |
-| OTEL_EXPORTER_OTLP_ENDPOINT | https://oneuptime.com/otlp |
-| OTEL_SERVICE_NAME | NOM_DE_VOTRE_SERVICE |
-
+| Variable d'environnement    | Valeur                                          |
+| --------------------------- | ----------------------------------------------- |
+| OTEL_EXPORTER_OTLP_HEADERS  | x-oneuptime-token=VOTRE_JETON_SERVICE_ONEUPTIME |
+| OTEL_EXPORTER_OTLP_ENDPOINT | https://oneuptime.com/otlp                      |
+| OTEL_SERVICE_NAME           | NOM_DE_VOTRE_SERVICE                            |
 
 **Exemple**
 
@@ -55,13 +52,11 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=https://oneuptime.com/otlp
 export OTEL_SERVICE_NAME=mon-service
 ```
 
-
 **OneUptime auto-hébergé**
 
 Si vous auto-hébergez OneUptime, cela peut être remplacé par le point d'accès de votre collecteur OpenTelemetry auto-hébergé (ex. : `http(s)://VOTRE-HÔTE-ONEUPTIME/otlp`)
 
 Une fois que vous exécutez votre application, vous devriez voir les journaux dans la page du service de télémétrie OneUptime. Veuillez contacter support@oneuptime.com si vous avez besoin d'aide.
-
 
 #### Utilisation du collecteur OpenTelemetry
 
@@ -80,7 +75,6 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 exporters:
-
   # Exporter via HTTP
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"

@@ -9,15 +9,14 @@ Het volgende voorbeeld toont hoe u een Aangepaste code-monitor gebruikt:
 ```javascript
 // You can use axios module.
 
-await axios.get('https://api.example.com/');
+await axios.get("https://api.example.com/");
 
 // Axios Documentation here: https://axios-http.com/docs/intro
 
 return {
-    data: 'Hello World' // return any data you like here. 
+  data: "Hello World", // return any data you like here.
 };
 ```
-
 
 ### Monitor Secrets gebruiken
 
@@ -46,9 +45,8 @@ let numberSecret = {{monitorSecrets.NumberSecret}};
 let booleanSecret = {{monitorSecrets.BooleanSecret}};
 
 // you can even console log to see if the secrets is being fetched correctly
-console.log(stringSecret); 
+console.log(stringSecret);
 ```
-
 
 ### Aangepaste metrics
 
@@ -65,30 +63,32 @@ oneuptime.captureMetric(name, value, attributes);
 #### Voorbeeld
 
 ```javascript
-const response = await axios.get('https://api.example.com/health');
+const response = await axios.get("https://api.example.com/health");
 
 // Capture a simple metric
-oneuptime.captureMetric('api.response.time', response.data.latency);
+oneuptime.captureMetric("api.response.time", response.data.latency);
 
 // Capture a metric with attributes
-oneuptime.captureMetric('api.queue.depth', response.data.queueDepth, {
-    region: 'us-east-1',
-    environment: 'production'
+oneuptime.captureMetric("api.queue.depth", response.data.queueDepth, {
+  region: "us-east-1",
+  environment: "production",
 });
 
 return {
-    data: response.data
+  data: response.data,
 };
 ```
 
 Na vastlegging verschijnen deze metrics in de Metric Explorer onder namen zoals `custom.monitor.api.response.time`. U kunt ze toevoegen aan dashboardgrafieken, meldingen instellen en filteren op monitor, probe of eventuele aangepaste attributen.
 
 **Limieten:**
+
 - Maximaal 100 metrics per scriptuitvoering.
 - Metrieknamen zijn beperkt tot 200 tekens.
 - Waarden moeten numeriek zijn.
 
 ### Beschikbare modules in het script
+
 - `axios`: U kunt deze module gebruiken om HTTP-verzoeken te doen. Het is een op beloften gebaseerde HTTP-client voor de browser en Node.js.
 - `crypto`: U kunt deze module gebruiken voor cryptografische bewerkingen. Het is een ingebouwde Node.js-module die cryptografische functionaliteit biedt met een set wrappers voor de hash-, HMAC-, cipher-, decipher-, sign- en verify-functies van OpenSSL.
 - `console.log`: U kunt deze module gebruiken om gegevens naar de console te loggen. Dit is nuttig voor foutopsporingsdoeleinden.

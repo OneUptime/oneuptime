@@ -65,12 +65,12 @@ Zoek in het trigger-palet op naam om de gewenste te vinden.
 
 ## Welke trigger moet ik gebruiken?
 
-| Als je wilt... | Kies |
-| --- | --- |
-| Op een knop drukken om de workflow te draaien | **Manual** |
-| Op een herhalend schema draaien | **Schedule** |
-| Een ander systeem data laten doorgeven | **Webhook** |
-| Reageren op iets binnen OneUptime | **OneUptime event** |
+| Als je wilt...                                | Kies                |
+| --------------------------------------------- | ------------------- |
+| Op een knop drukken om de workflow te draaien | **Manual**          |
+| Op een herhalend schema draaien               | **Schedule**        |
+| Een ander systeem data laten doorgeven        | **Webhook**         |
+| Reageren op iets binnen OneUptime             | **OneUptime event** |
 
 Een workflow kan maar één trigger hebben. Als je dezelfde automatisering op twee manieren wilt starten, bouw dan de gedeelde logica in één workflow en roep die aan vanuit twee dunne "wrapper"-workflows met de **Execute Workflow**-component.
 

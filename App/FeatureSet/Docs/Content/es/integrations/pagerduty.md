@@ -12,7 +12,7 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  �
 
 ## Prerrequisitos
 
-- Un servicio de PagerDuty con una integración **Events API v2**. En PagerDuty: **Service → Integrations → Add integration → Events API v2**. Copia la **Integration Key** (también llamada *routing key*).
+- Un servicio de PagerDuty con una integración **Events API v2**. En PagerDuty: **Service → Integrations → Add integration → Events API v2**. Copia la **Integration Key** (también llamada _routing key_).
 - Un proyecto de OneUptime donde puedas crear workflows.
 
 ## Paso 1 — Guardar la routing key
@@ -25,6 +25,7 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  �
 1. Abre **Workflows → Create Workflow**, nómbralo `Incidents → PagerDuty` y abre el **Builder**.
 2. Añade un disparador **Incident** configurado en **On Create**. Renómbralo `Incident`.
 3. Añade un bloque **API** conectado al disparador:
+
    - **Method**: `POST`
    - **URL**: `https://events.pagerduty.com/v2/enqueue`
    - **Headers**: `Content-Type: application/json`
@@ -47,6 +48,7 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  �
      ```
 
    El **`dedup_key`** vincula este incidente de PagerDuty al incidente de OneUptime para poder resolverlo más adelante. Usar el ID del incidente de OneUptime lo mantiene único y predecible.
+
 4. **Guarda**, habilita y crea un incidente de prueba. Una respuesta `202` en los registros del workflow significa que PagerDuty aceptó el evento.
 
 ## Paso 3 — Resolver al resolver en OneUptime (recomendado)

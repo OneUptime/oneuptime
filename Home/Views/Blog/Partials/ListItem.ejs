@@ -30,13 +30,7 @@
       <%- include('./Tags', { blogPost: blogPost }) -%>
     </div>
     <div class="mt-auto pt-6 flex items-center justify-between border-t border-gray-100">
-      <a href="https://github.com/<%- blogPost.authorGitHubUsername -%>" target="_blank" class="flex items-center gap-3 group/author">
-        <img loading="lazy" src="https://avatars.githubusercontent.com/<%- blogPost.authorGitHubUsername -%>?s=64" alt="@<%- blogPost.authorGitHubUsername -%>" class="h-10 w-10 rounded-full ring-2 ring-white shadow-sm group-hover/author:ring-gray-200 transition-all duration-200" width="40" height="40" decoding="async">
-        <div class="text-[11px] leading-4 text-gray-600">
-          <span class="text-gray-500">By</span> @<%- blogPost.authorGitHubUsername -%><br/>
-          <span class="text-gray-400"><%- blogPost.formattedPostDate -%></span>
-        </div>
-      </a>
+      <%- include('./ContributorByline', { contributors: blogPost.contributors, date: blogPost.formattedPostDate, avatarSize: 'h-9 w-9', maxAvatars: 3 }) -%>
       <a href="<%= blogPost.blogUrl %>" class="shrink-0 text-sm font-medium <%= c.cta %> inline-flex items-center gap-1.5 transition-all duration-200 group/cta">Read
         <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 transition-transform duration-200 group-hover/cta:translate-x-0.5"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
       </a>

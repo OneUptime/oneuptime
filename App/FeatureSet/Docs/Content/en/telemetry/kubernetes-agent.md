@@ -11,7 +11,7 @@ This page is the **installation guide**. For configuring Kubernetes monitors and
 - A running Kubernetes cluster (v1.23+)
 - `kubectl` configured to access your cluster
 - `helm` v3 installed
-- A **OneUptime API key** — create one from *Project Settings → API Keys*
+- A **OneUptime API key** — create one from _Project Settings → API Keys_
 
 ## Step 1 — Add the OneUptime Helm Repository
 
@@ -24,11 +24,11 @@ helm repo update
 
 The chart exposes a single top-level option — `preset` — that picks compatible defaults for your Kubernetes distribution. It controls things you would otherwise need to tune by hand: whether to ship logs via a hostPath DaemonSet or via the Kubernetes API, and which security context to apply.
 
-| `preset` | Use for | Log collection |
-|---|---|---|
-| `standard` *(default)* | Self-managed clusters, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | DaemonSet reading `/var/log/pods` via hostPath (lowest overhead) |
-| `gke-autopilot` | **GKE Autopilot** | Kubernetes API log tailer Deployment (no hostPath, no host access) |
-| `eks-fargate` | **EKS Fargate** | Kubernetes API log tailer Deployment (no hostPath, no host access) |
+| `preset`               | Use for                                                                               | Log collection                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `standard` _(default)_ | Self-managed clusters, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | DaemonSet reading `/var/log/pods` via hostPath (lowest overhead)   |
+| `gke-autopilot`        | **GKE Autopilot**                                                                     | Kubernetes API log tailer Deployment (no hostPath, no host access) |
+| `eks-fargate`          | **EKS Fargate**                                                                       | Kubernetes API log tailer Deployment (no hostPath, no host access) |
 
 If you are not sure, start with `standard`. If the install fails with a Pod Security error mentioning `hostPath`, re-run with `preset=gke-autopilot` (or `eks-fargate` on Fargate) and it will work.
 
@@ -208,19 +208,19 @@ kubectl delete namespace oneuptime-agent
 
 ## What Gets Collected
 
-| Category | Data |
-|----------|------|
-| **Node Metrics** | CPU utilization, memory usage, filesystem usage, network I/O |
-| **Pod Metrics** | CPU usage, memory usage, network I/O, restarts |
-| **Container Metrics** | CPU usage, memory usage per container |
-| **Cluster Metrics** | Node conditions, allocatable resources, pod counts |
-| **Kubernetes Events** | Warnings, errors, scheduling events |
-| **Pod Logs** | stdout/stderr logs from all containers (via hostPath DaemonSet on standard clusters, or via the Kubernetes API on Autopilot / Fargate) |
-| **Application Traces** *(via eBPF, on by default)* | HTTP, gRPC, SQL/Redis spans from every pod — no SDK or code changes |
-| **HTTP RED Metrics** *(via eBPF)* | `http.server.request.duration`, request and response body sizes, per service |
-| **Service Graph** *(via eBPF)* | Caller → callee request rate, latency, and error edges — drives the service map view |
-| **Network Flow Metrics** *(via eBPF)* | Pod-to-pod TCP/UDP byte and packet counters with k8s metadata |
-| **TCP Stats** *(via eBPF)* | Node-level RTT, failed-connection, and retransmit counters |
+| Category                                           | Data                                                                                                                                   |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Node Metrics**                                   | CPU utilization, memory usage, filesystem usage, network I/O                                                                           |
+| **Pod Metrics**                                    | CPU usage, memory usage, network I/O, restarts                                                                                         |
+| **Container Metrics**                              | CPU usage, memory usage per container                                                                                                  |
+| **Cluster Metrics**                                | Node conditions, allocatable resources, pod counts                                                                                     |
+| **Kubernetes Events**                              | Warnings, errors, scheduling events                                                                                                    |
+| **Pod Logs**                                       | stdout/stderr logs from all containers (via hostPath DaemonSet on standard clusters, or via the Kubernetes API on Autopilot / Fargate) |
+| **Application Traces** _(via eBPF, on by default)_ | HTTP, gRPC, SQL/Redis spans from every pod — no SDK or code changes                                                                    |
+| **HTTP RED Metrics** _(via eBPF)_                  | `http.server.request.duration`, request and response body sizes, per service                                                           |
+| **Service Graph** _(via eBPF)_                     | Caller → callee request rate, latency, and error edges — drives the service map view                                                   |
+| **Network Flow Metrics** _(via eBPF)_              | Pod-to-pod TCP/UDP byte and packet counters with k8s metadata                                                                          |
+| **TCP Stats** _(via eBPF)_                         | Node-level RTT, failed-connection, and retransmit counters                                                                             |
 
 ## Application Traces & HTTP Metrics via eBPF (on by default)
 
@@ -250,15 +250,15 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 All on by default. Turn any off with `--set ebpf.features.<name>=false`:
 
-| `ebpf.features.*` | Default | What it adds |
-|---|---|---|
-| `httpMetrics` | on | HTTP/gRPC RED metrics (request rate, latency, errors) per service |
-| `spanMetrics` | on | Per-span request/response size and duration |
-| `serviceGraph` | on | Caller → callee edge metrics; drives the service map |
-| `hostMetrics` | on | CPU and memory per instrumented process |
-| `networkMetrics` | on | Pod-to-pod TCP/UDP flow counters |
-| `networkInterZoneMetrics` | off | Inter-zone variant of network metrics (doubles cardinality) |
-| `tcpStats` | on | Node-level TCP RTT, failed-connection, retransmit counters |
+| `ebpf.features.*`         | Default | What it adds                                                      |
+| ------------------------- | ------- | ----------------------------------------------------------------- |
+| `httpMetrics`             | on      | HTTP/gRPC RED metrics (request rate, latency, errors) per service |
+| `spanMetrics`             | on      | Per-span request/response size and duration                       |
+| `serviceGraph`            | on      | Caller → callee edge metrics; drives the service map              |
+| `hostMetrics`             | on      | CPU and memory per instrumented process                           |
+| `networkMetrics`          | on      | Pod-to-pod TCP/UDP flow counters                                  |
+| `networkInterZoneMetrics` | off     | Inter-zone variant of network metrics (doubles cardinality)       |
+| `tcpStats`                | on      | Node-level TCP RTT, failed-connection, retransmit counters        |
 
 Cross-service trace context propagation is also on by default — OBI injects W3C `traceparent` into outbound HTTP/TCP so a request crossing pod A → pod B shows up as a single trace, no SDK changes anywhere. Turn off with `--set ebpf.contextPropagation=false`.
 
@@ -298,7 +298,7 @@ The most common reason — especially after a reinstall — is a **wrong or revo
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   If it returns `401`, the key in your release is wrong or was revoked. Copy a live key from *Project Settings → Telemetry Ingestion Keys* and re-deploy:
+   If it returns `401`, the key in your release is wrong or was revoked. Copy a live key from _Project Settings → Telemetry Ingestion Keys_ and re-deploy:
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

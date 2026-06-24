@@ -1,6 +1,6 @@
 {
-    "select": {
-        "name": true, 
-        // other fields
-    }
+"select": {
+"name": true,
+// other fields
+}
 }

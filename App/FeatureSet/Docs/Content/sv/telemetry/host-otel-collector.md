@@ -9,14 +9,14 @@ Du kan köra **OpenTelemetry Collector** som en tjänst direkt på dina Linux-, 
 - **systemd journal** (Linux) via [`journaldreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/journaldreceiver)
 - **Apple Unified Log** (macOS) via [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor) som omsluter en tailad `log stream`-utdata
 - **Windows Event Logs** via [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver)
-- **Windows-tjänststatus** (driver fliken **Services** på värden) via [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)
+- **Windows-tjänststatus** (driver fliken **Services** på värden) via [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) — _finns inte i den uppströms förbyggda collectorn; använd den förbyggda **OneUptime Host Collector** eller ett anpassat bygge (se "Windows Services (metriker)" nedan)_
 
-> **Hur är det med OneUptime Infrastructure Agent?** Den agenten är en separat, lättviktig Go-daemon som fokuserar på grundläggande metriker och funktionen *Server / VM Monitor* (status, processer, larm). Den OpenTelemetry Collector som beskrivs här är fristående och är rätt verktyg när du vill ha loggar (filloggar, journald, Windows Event Logs) eller rikare värdmetriker inmatade som standard-OTLP. Båda kan köras på samma värd utan att störa varandra.
+> **Hur är det med OneUptime Infrastructure Agent?** Den agenten är en separat, lättviktig Go-daemon som fokuserar på grundläggande metriker och funktionen _Server / VM Monitor_ (status, processer, larm). Den OpenTelemetry Collector som beskrivs här är fristående och är rätt verktyg när du vill ha loggar (filloggar, journald, Windows Event Logs) eller rikare värdmetriker inmatade som standard-OTLP. Båda kan köras på samma värd utan att störa varandra.
 
 ## Förutsättningar
 
-- En **OneUptime Telemetry Ingestion Token** — skapa en från *Project Settings → Telemetry Ingestion Keys* och kopiera värdet för `x-oneuptime-token`.
-- Distributionen **OpenTelemetry Collector Contrib** (`otelcol-contrib`). Standardbygget `otelcol` inkluderar **inte** mottagare som `windowseventlogreceiver`, `journaldreceiver` eller `hostmetrics`-extrafunktioner — se till att använda `contrib`-distributionen.
+- En **OneUptime Telemetry Ingestion Token** — skapa en från _Project Settings → Telemetry Ingestion Keys_ och kopiera värdet för `x-oneuptime-token`.
+- Distributionen **OpenTelemetry Collector Contrib** (`otelcol-contrib`). Standardbygget `otelcol` inkluderar **inte** mottagare som `windowseventlogreceiver`, `journaldreceiver` eller `hostmetrics`-extrafunktioner — se till att använda `contrib`-distributionen. Ett undantag värt att känna till från början: alpha-mottagaren `windowsservicereceiver` (som driver fliken **Services** i Windows) är **inte** medföljande i den uppströms förbyggda `contrib`-binären — använd den förbyggda **OneUptime Host Collector** (som inkluderar den) eller bygg din egen; se "Windows Services (metriker)" nedan.
 - Root / Administrator på värden för att installera collectorn som en tjänst och (där det är tillämpligt) läsa privilegierade loggkällor.
 
 ## Steg 1 — Installera OpenTelemetry Collector
@@ -27,7 +27,7 @@ Välj avsnittet för ditt operativsystem. Alla exempel förutsätter att du inst
 
 ```bash
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
-VERSION=0.107.0                      # pick the latest release tag
+VERSION=0.154.0                      # pick the latest release tag
 
 curl -L -o otelcol-contrib.deb \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.deb"
@@ -41,7 +41,7 @@ Debian-paketet installerar binären på `/usr/bin/otelcol-contrib`, standardkonf
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-VERSION=0.107.0
+VERSION=0.154.0
 
 sudo rpm -ivh \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.rpm"
@@ -53,7 +53,7 @@ Sökvägarna matchar Debian-paketet (`/usr/bin/otelcol-contrib`, `/etc/otelcol-c
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/arm64/arm64/')
-VERSION=0.107.0
+VERSION=0.154.0
 
 curl -L -o otelcol-contrib.tar.gz \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_darwin_${ARCH}.tar.gz"
@@ -68,25 +68,30 @@ Du skapar `/etc/otelcol-contrib/config.yaml` i Steg 2 och en `launchd`-plist i S
 
 ### Windows
 
-Ladda ner den senaste `otelcol-contrib_*_windows_amd64.zip` (eller `arm64`) från [versionssidan](https://github.com/open-telemetry/opentelemetry-collector-releases/releases). Från en **förhöjd** PowerShell-prompt:
+På Windows installerar du **OneUptime Host Collector** — OneUptimes förbyggda collector som inkluderar mottagaren `windows_service` (som driver fliken **Services** på värden och _inte_ finns i det uppströms `otelcol-contrib`-bygget). Från en **förhöjd** PowerShell-prompt:
 
 ```powershell
-$dest = "C:\Program Files\otelcol-contrib"
+$dest = "C:\Program Files\OneUptimeHostCollector"
+$zip  = "$env:TEMP\oneuptime-host-collector.zip"
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-Expand-Archive -Path "$env:USERPROFILE\Downloads\otelcol-contrib_*_windows_amd64.zip" -DestinationPath $dest
+# amd64; use the _arm64.zip asset on ARM
+Invoke-WebRequest -Uri "https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-host-collector_windows_amd64.zip" -OutFile $zip
+Expand-Archive -Path $zip -DestinationPath $dest -Force
 ```
 
-Du skapar `C:\Program Files\otelcol-contrib\config.yaml` i Steg 2 och registrerar en Windows-tjänst i Steg 3.
+Du skapar `C:\Program Files\OneUptimeHostCollector\config.yaml` i Steg 2 och registrerar en Windows-tjänst i Steg 3.
+
+> Föredrar du det uppströms `otelcol-contrib`? Ladda ner `otelcol-contrib_*_windows_amd64.zip` från [OpenTelemetrys versionssida](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) i stället — allt nedan fungerar likadant, **förutom** fliken **Services** på värden, som behöver `windows_service` (finns inte i det uppströms bygget; se "Windows Services (metriker)").
 
 ## Steg 2 — Konfigurera collectorn
 
 Konfigurationsfilen finns på:
 
-| OS | Sökväg |
-|---|---|
-| Linux | `/etc/otelcol-contrib/config.yaml` |
-| macOS | `/etc/otelcol-contrib/config.yaml` |
-| Windows | `C:\Program Files\otelcol-contrib\config.yaml` |
+| OS      | Sökväg                                                |
+| ------- | ----------------------------------------------------- |
+| Linux   | `/etc/otelcol-contrib/config.yaml`                    |
+| macOS   | `/etc/otelcol-contrib/config.yaml`                    |
+| Windows | `C:\Program Files\OneUptimeHostCollector\config.yaml` |
 
 Varje konfiguration följer samma form — välj de mottagare du vill ha, lägg till en `batch`- och `resource`-processor och exportera till OneUptime över OTLP HTTP. Exemplen nedan visar en komplett, kopiera-och-klistra-bar konfiguration per operativsystem och går sedan igenom varje mottagarblock så att du kan blanda och matcha.
 
@@ -218,7 +223,7 @@ receivers:
       - type: json_parser
         timestamp:
           parse_from: attributes.timestamp
-          layout: '%Y-%m-%d %H:%M:%S.%f%j'
+          layout: "%Y-%m-%d %H:%M:%S.%f%j"
 ```
 
 (Om du inte behöver den enhetliga loggen, hoppa över detta — Mac-flottor klarar sig ofta bra med bara värdmetriker + några filloggar.)
@@ -245,23 +250,25 @@ receivers:
 För att begränsa den högvolymsmässiga `Security`-kanalen till specifika händelse-ID:n:
 
 ```yaml
-  windowseventlog/security:
-    channel: Security
-    start_at: end
-    query: "*[System[(EventID=4625 or EventID=4740)]]"
+windowseventlog/security:
+  channel: Security
+  start_at: end
+  query: "*[System[(EventID=4625 or EventID=4740)]]"
 ```
 
-För att läsa en anpassad eller applikationsspecifik kanal (allt du kan se under *Event Viewer → Applications and Services Logs*), använd dess exakta visningsnamn:
+För att läsa en anpassad eller applikationsspecifik kanal (allt du kan se under _Event Viewer → Applications and Services Logs_), använd dess exakta visningsnamn:
 
 ```yaml
-  windowseventlog/iis:
-    channel: Microsoft-IIS-Logging/Logs
-    start_at: end
+windowseventlog/iis:
+  channel: Microsoft-IIS-Logging/Logs
+  start_at: end
 ```
 
 ### Windows Services (metriker)
 
-Rapportera körningstillståndet och starttypen för Windows-tjänster via [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver). Detta är vad som fyller fliken **Services** på värden i OneUptime. Det är en *metrik*-mottagare, så den hör hemma i metrikpipelinen (inte loggar):
+Fliken **Services** på värden drivs av [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) (konfigurationstyp `windows_service`), som rapporterar körningstillståndet och starttypen för Windows-tjänster som metriker.
+
+**OneUptime Host Collector (installerad i Steg 1, standardvalet på Windows) inkluderar redan den här mottagaren.** Aktivera den i din `config.yaml` och lägg till den i metrikpipelinen:
 
 ```yaml
 receivers:
@@ -273,9 +280,46 @@ receivers:
     # include_services: [Spooler, W3SVC, MSSQLSERVER]
     # Or collect everything except a few:
     # exclude_services: [TrustedInstaller]
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics, windows_service]
 ```
 
-Mottagaren avger en `windows.service.status`-gauge per tjänst — heltalet är Win32-tjänstens tillstånd (`4` = körs, `1` = stoppad) — med attributen `name` och `startup_mode`. Den är **endast för Windows** (collectorn misslyckas med att starta om du aktiverar den på Linux eller macOS) och är för närvarande **alpha**, så fäst en nyligen utgiven `otelcol-contrib`-version. Att köra tjänsten som `LocalSystem` (standard med `sc.exe create`) låter den läsa varje tjänst.
+Mottagaren avger en `windows.service.status`-gauge per tjänst — heltalet är Win32-tjänstens tillstånd (`4` = körs, `1` = stoppad) — med attributen `name` och `startup_mode`. Kör collectorn som `LocalSystem` (standard för `sc.exe`) så att den kan läsa varje tjänst; alla den inte kan öppna hoppas över. Mottagaren är **alpha** och **endast för Windows**; kända problem inkluderar ett skrapfel som kan krascha collectorn och en `access denied` på en tjänst som påverkar andra — begränsa till `include_services` om du stöter på dem.
+
+#### Använda den uppströms collectorn i stället?
+
+Den uppströms förbyggda `otelcol-contrib`-binären inkluderar **inte** `windowsservicereceiver` — att lägga till `windows_service` misslyckas vid start med `'receivers' unknown type: "windows_service"`, och **ingen versionsuppgradering åtgärdar detta** (den finns inte i något utgivet `otelcol-contrib`-bygge). Antingen byter du till OneUptime Host Collector (Steg 1), eller så bygger du din egen med [OpenTelemetry Collector Builder (`ocb`)](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder) — skapa `builder-config.yaml` (håll varje version på samma collector-utgåva):
+
+```yaml
+dist:
+  name: otelcol-oneuptime
+  description: OpenTelemetry Collector with the Windows service receiver
+  output_path: ./otelcol-oneuptime
+  otelcol_version: 0.154.0
+
+receivers:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.154.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.154.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowsservicereceiver v0.154.0
+
+processors:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.154.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor v0.154.0
+  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.154.0
+
+exporters:
+  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.154.0
+```
+
+```powershell
+go install go.opentelemetry.io/collector/cmd/builder@v0.154.0
+builder --config builder-config.yaml
+```
+
+Kör sedan den resulterande `otelcol-oneuptime.exe` och aktivera `windows_service` som visas ovan.
 
 ### Komplett exempel — Linux-värd
 
@@ -388,7 +432,7 @@ service:
 
 ### Komplett exempel — Windows-värd
 
-`C:\Program Files\otelcol-contrib\config.yaml`:
+`C:\Program Files\OneUptimeHostCollector\config.yaml`:
 
 ```yaml
 receivers:
@@ -400,7 +444,8 @@ receivers:
       disk:
       filesystem:
       network:
-      # 'load' is not supported on Windows — omit it or the scraper errors.
+      # On Windows the 'load' scraper only emulates an average from the
+      # Processor Queue Length counter (it starts at 0) — omitted here.
       paging:
       processes:
 
@@ -416,6 +461,7 @@ receivers:
     channel: Security
     start_at: end
 
+  # Powers the Services tab. Included in the OneUptime Host Collector (Step 1).
   windows_service:
     collection_interval: 30s
 
@@ -502,15 +548,15 @@ sudo launchctl list | grep otelcol-contrib
 Från en **förhöjd** PowerShell-prompt:
 
 ```powershell
-sc.exe create "otelcol-contrib" `
-  binPath= "\"C:\Program Files\otelcol-contrib\otelcol-contrib.exe\" --config=\"C:\Program Files\otelcol-contrib\config.yaml\"" `
+sc.exe create "OneUptimeHostCollector" `
+  binPath= "\"C:\Program Files\OneUptimeHostCollector\oneuptime-host-collector.exe\" --config=\"C:\Program Files\OneUptimeHostCollector\config.yaml\"" `
   start= auto `
-  DisplayName= "OpenTelemetry Collector"
+  DisplayName= "OneUptime Host Collector"
 
-sc.exe description "otelcol-contrib" "Collects host telemetry and forwards it to OneUptime over OTLP."
+sc.exe description "OneUptimeHostCollector" "Collects host telemetry and forwards it to OneUptime over OTLP."
 
-sc.exe start "otelcol-contrib"
-sc.exe query "otelcol-contrib"
+sc.exe start "OneUptimeHostCollector"
+sc.exe query "OneUptimeHostCollector"
 ```
 
 Tjänsten körs under `LocalSystem` som standard, vilket har de behörigheter som behövs för att läsa Windows Event Log-kanalen `Security`.
@@ -551,10 +597,10 @@ OpenTelemetry Collector respekterar standardmiljövariablerna `HTTPS_PROXY` / `H
 - **Ingen telemetri visas i OneUptime**
   - Lägg till `service.telemetry.logs.level: debug` i konfigurationen och starta om collectorn för utförlig utdata.
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f` (Linux) eller `tail -f /var/log/otelcol-contrib.err.log` (macOS).
-  - **Windows:** titta under *Event Viewer → Windows Logs → Application* efter källan `otelcol-contrib`.
+  - **Windows:** titta under _Event Viewer → Windows Logs → Application_ efter källan `otelcol-contrib`.
   - Bekräfta att värden kan nå `https://oneuptime.com/otlp` (eller din självhostade slutpunkt): `curl -v https://oneuptime.com/otlp` från samma maskin.
-- **HTTP 401 från exportören** — inmatningstoken är ogiltig eller återkallad. Generera en ny från *Project Settings → Telemetry Ingestion Keys*.
-- **Windows Event Log `Security` returnerar access denied** — tjänsten körs inte med tillräckliga behörigheter. Återskapa den under `LocalSystem` (standard med `sc.exe create`) eller ge tjänstkontot användarrättigheten *Manage auditing and security log*.
+- **HTTP 401 från exportören** — inmatningstoken är ogiltig eller återkallad. Generera en ny från _Project Settings → Telemetry Ingestion Keys_.
+- **Windows Event Log `Security` returnerar access denied** — tjänsten körs inte med tillräckliga behörigheter. Återskapa den under `LocalSystem` (standard med `sc.exe create`) eller ge tjänstkontot användarrättigheten _Manage auditing and security log_.
 - **`journald`-mottagaren misslyckas med att starta** — se till att `journalctl` finns i collectorns `PATH` och att `/var/log/journal` existerar (kör `sudo systemd-tmpfiles --create --prefix /var/log/journal` om inte).
 - **Hög volym / kostnad** — begränsa mottagarna (specifika Windows-kanaler, specifika systemd-enheter, specifika loggfiler), lägg till ett `query:`-filter på Windows Event Log-mottagaren eller lägg till en `filter`-processor för att släppa händelser med låg allvarlighetsgrad före export.
 

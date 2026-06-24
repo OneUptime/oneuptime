@@ -21,7 +21,7 @@ Fluentd 支援數百種資料來源，您可以將這些來源中的任何日誌
 - Java
 - PHP
 - Go
-- Rust 
+- Rust
 
 以及更多其他來源。
 
@@ -30,13 +30,13 @@ Fluentd 支援數百種資料來源，您可以將這些來源中的任何日誌
 ## 先決條件
 
 - **步驟 1：在您的系統上安裝 Fluentd** - 您可以依照[此處](https://docs.fluentd.org/installation)提供的說明安裝 Fluentd
-- **步驟 2：註冊 OneUptime 帳號** -  您可以在[此處](https://oneuptime.com)註冊免費帳號。請注意，雖然帳號是免費的，但日誌擷取是付費功能。您可以在[此處](https://oneuptime.com/pricing)找到關於定價的更多詳細資訊。
+- **步驟 2：註冊 OneUptime 帳號** - 您可以在[此處](https://oneuptime.com)註冊免費帳號。請注意，雖然帳號是免費的，但日誌擷取是付費功能。您可以在[此處](https://oneuptime.com/pricing)找到關於定價的更多詳細資訊。
 - **步驟 3：建立 OneUptime 專案** - 擁有帳號後，您可以從 OneUptime 儀表板建立專案。如果您在建立專案時需要任何協助或有任何疑問，請透過 support@oneuptime.com 與我們聯絡
 - **步驟 4：建立遙測擷取權杖** - 建立 OneUptime 帳號後，您可以建立遙測擷取權杖，以從您的應用程式擷取日誌、指標與追蹤。
 
 註冊 OneUptime 並建立專案後。點擊導覽列中的「More」，然後點擊「Project Settings」。
 
-在 Telemetry Ingestion Key 頁面上，點擊「Create Ingestion Key」以建立權杖。 
+在 Telemetry Ingestion Key 頁面上，點擊「Create Ingestion Key」以建立權杖。
 
 ![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
 
@@ -44,35 +44,33 @@ Fluentd 支援數百種資料來源，您可以將這些來源中的任何日誌
 
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
 ## 設定
 
-您可以使用下列設定將遙測資料傳送到 OneUptime HTTP Source。您可以將此設定加入 fluentd 設定檔。該設定檔通常位於 `/etc/fluentd/fluent.conf` 或 `/etc/td-agent/td-agent.conf`。 
+您可以使用下列設定將遙測資料傳送到 OneUptime HTTP Source。您可以將此設定加入 fluentd 設定檔。該設定檔通常位於 `/etc/fluentd/fluent.conf` 或 `/etc/td-agent/td-agent.conf`。
 
 您需要將 `YOUR_SERVICE_TOKEN` 替換為您在上一步建立的權杖。您也需要將 `YOUR_SERVICE_NAME` 替換為您的服務名稱。服務名稱可以是您喜歡的任何名稱。如果該服務在 OneUptime 中不存在，系統將自動建立它。
 
 ```yaml
-# Match all patterns 
+# Match all patterns
 <match **>
-  @type http
+@type http
 
-  endpoint https://oneuptime.com/fluentd/logs
-  open_timeout 2
+endpoint https://oneuptime.com/fluentd/logs
+open_timeout 2
 
-  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
+headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
-  content_type application/json
-  json_array true
+content_type application/json
+json_array true
 
-  <format>
-    @type json
-  </format>
-  <buffer>
-    flush_interval 10s
-  </buffer>
+<format>
+@type json
+</format>
+<buffer>
+flush_interval 10s
+</buffer>
 </match>
 ```
-
 
 完整設定檔的範例如下所示：
 
@@ -84,28 +82,28 @@ Fluentd 支援數百種資料來源，您可以將這些來源中的任何日誌
 ## built-in TCP input
 ## @see https://docs.fluentd.org/input/forward
 <source>
-  @type forward
-  port 24224
-  bind 0.0.0.0
+@type forward
+port 24224
+bind 0.0.0.0
 </source>
 
 <match **>
-  @type http
+@type http
 
-  endpoint https://oneuptime.com/fluentd/logs
-  open_timeout 2
+endpoint https://oneuptime.com/fluentd/logs
+open_timeout 2
 
-  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
+headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
-  content_type application/json
-  json_array true
+content_type application/json
+json_array true
 
-  <format>
-    @type json
-  </format>
-  <buffer>
-    flush_interval 10s
-  </buffer>
+<format>
+@type json
+</format>
+<buffer>
+flush_interval 10s
+</buffer>
 </match>
 ```
 

@@ -9,15 +9,14 @@ El siguiente ejemplo muestra cómo usar un Monitor de código personalizado:
 ```javascript
 // Puedes usar el módulo axios.
 
-await axios.get('https://api.example.com/');
+await axios.get("https://api.example.com/");
 
 // Documentación de Axios aquí: https://axios-http.com/docs/intro
 
 return {
-    data: 'Hello World' // devuelve cualquier dato que desees aquí. 
+  data: "Hello World", // devuelve cualquier dato que desees aquí.
 };
 ```
-
 
 ### Uso de secretos de monitor
 
@@ -29,7 +28,7 @@ Para agregar un secreto, ve al Panel de OneUptime → Configuración del proyect
 
 Puedes seleccionar qué monitores tienen acceso al secreto. En este caso agregamos el secreto `ApiKey` y seleccionamos los monitores que tendrán acceso a él.
 
-**Ten en cuenta**: Los secretos están cifrados y almacenados de forma segura. Si pierdes el secreto, deberás crear uno nuevo. No puedes ver ni actualizar el secreto después de guardarlo. 
+**Ten en cuenta**: Los secretos están cifrados y almacenados de forma segura. Si pierdes el secreto, deberás crear uno nuevo. No puedes ver ni actualizar el secreto después de guardarlo.
 
 #### Usar un secreto
 
@@ -46,9 +45,8 @@ let numberSecret = {{monitorSecrets.NumberSecret}};
 let booleanSecret = {{monitorSecrets.BooleanSecret}};
 
 // incluso puedes usar console.log para verificar si el secreto se está obteniendo correctamente
-console.log(stringSecret); 
+console.log(stringSecret);
 ```
-
 
 ### Métricas personalizadas
 
@@ -65,30 +63,32 @@ oneuptime.captureMetric(name, value, attributes);
 #### Ejemplo
 
 ```javascript
-const response = await axios.get('https://api.example.com/health');
+const response = await axios.get("https://api.example.com/health");
 
 // Capturar una métrica simple
-oneuptime.captureMetric('api.response.time', response.data.latency);
+oneuptime.captureMetric("api.response.time", response.data.latency);
 
 // Capturar una métrica con atributos
-oneuptime.captureMetric('api.queue.depth', response.data.queueDepth, {
-    region: 'us-east-1',
-    environment: 'production'
+oneuptime.captureMetric("api.queue.depth", response.data.queueDepth, {
+  region: "us-east-1",
+  environment: "production",
 });
 
 return {
-    data: response.data
+  data: response.data,
 };
 ```
 
 Una vez capturadas, estas métricas aparecen en el Explorador de métricas con nombres como `custom.monitor.api.response.time`. Puedes agregarlas a los gráficos del panel, configurar alertas y filtrar por monitor, sonda o cualquier atributo personalizado que hayas proporcionado.
 
 **Límites:**
+
 - Máximo 100 métricas por ejecución de script.
 - Los nombres de métricas están limitados a 200 caracteres.
 - Los valores deben ser numéricos.
 
 ### Módulos disponibles en el script
+
 - `axios`: Puedes usar este módulo para realizar solicitudes HTTP. Es un cliente HTTP basado en promesas para el navegador y Node.js.
 - `crypto`: Puedes usar este módulo para realizar operaciones criptográficas. Es un módulo integrado de Node.js que proporciona funcionalidad criptográfica, incluyendo un conjunto de envoltorios para las funciones de hash, HMAC, cifrado, descifrado, firma y verificación de OpenSSL.
 - `console.log`: Puedes usar este módulo para registrar datos en la consola. Esto es útil para fines de depuración.
@@ -99,6 +99,6 @@ Una vez capturadas, estas métricas aparecen en el Explorador de métricas con n
 ### Aspectos a considerar
 
 - Puedes usar `console.log` para registrar datos en la consola. Esto estará disponible en la sección de registros del monitor (Sondas > Ver registros).
-- Puedes devolver los datos desde el script usando la declaración `return`. 
+- Puedes devolver los datos desde el script usando la declaración `return`.
 - Este es un script JavaScript, por lo que puedes usar todas las características de JavaScript en el script.
 - El tiempo de espera del script es de 2 minutos. Si el script tarda más de 2 minutos, será terminado.

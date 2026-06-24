@@ -33,9 +33,9 @@ Este subdomínio será usado exclusivamente para emails de monitor do OneUptime.
 
 Adicione um registro MX à sua configuração de DNS para rotear emails do seu subdomínio de entrada para o SendGrid.
 
-| Tipo | Host/Nome | Prioridade | Valor |
-|------|-----------|----------|-------|
-| MX | inbound | 10 | mx.sendgrid.net |
+| Tipo | Host/Nome | Prioridade | Valor           |
+| ---- | --------- | ---------- | --------------- |
+| MX   | inbound   | 10         | mx.sendgrid.net |
 
 **Exemplo:** Se o seu domínio for `example.com` e você estiver usando `inbound.example.com`:
 
@@ -61,13 +61,13 @@ Para melhor entregabilidade e para evitar que emails sejam marcados como spam:
 3. Clique em **Add Host & URL**
 4. Configure o seguinte:
 
-| Campo | Valor |
-|-------|-------|
-| **Receiving Domain** | Seu subdomínio de entrada (ex.: `inbound.seudominio.com`) |
-| **Destination URL** | `https://seu-dominio-oneuptime.com/incoming-email/sendgrid/YOUR_SECRET` |
-| **Check incoming emails for spam** | Opcional — habilite se desejar |
-| **Send raw, full MIME message** | Deixe desmarcado (não necessário) |
-| **POST the raw, full MIME message** | Deixe desmarcado (não necessário) |
+| Campo                               | Valor                                                                   |
+| ----------------------------------- | ----------------------------------------------------------------------- |
+| **Receiving Domain**                | Seu subdomínio de entrada (ex.: `inbound.seudominio.com`)               |
+| **Destination URL**                 | `https://seu-dominio-oneuptime.com/incoming-email/sendgrid/YOUR_SECRET` |
+| **Check incoming emails for spam**  | Opcional — habilite se desejar                                          |
+| **Send raw, full MIME message**     | Deixe desmarcado (não necessário)                                       |
+| **POST the raw, full MIME message** | Deixe desmarcado (não necessário)                                       |
 
 5. Clique em **Add**
 
@@ -123,35 +123,37 @@ Após a criação, você verá o endereço de email único para este monitor (ex
 
 ## Referência de Variáveis de Ambiente
 
-| Variável | Descrição | Obrigatório | Padrão |
-|----------|-------------|----------|---------|
-| `INBOUND_EMAIL_PROVIDER` | O provedor de email de entrada a ser usado | Sim | - |
-| `INBOUND_EMAIL_DOMAIN` | O subdomínio configurado para emails de entrada | Sim | - |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | Segredo para validar requisições de webhook. Quando definido, acrescente este segredo à URL do webhook: `/incoming-email/sendgrid/YOUR_SECRET` | Não | - |
+| Variável                       | Descrição                                                                                                                                      | Obrigatório | Padrão |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------ |
+| `INBOUND_EMAIL_PROVIDER`       | O provedor de email de entrada a ser usado                                                                                                     | Sim         | -      |
+| `INBOUND_EMAIL_DOMAIN`         | O subdomínio configurado para emails de entrada                                                                                                | Sim         | -      |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | Segredo para validar requisições de webhook. Quando definido, acrescente este segredo à URL do webhook: `/incoming-email/sendgrid/YOUR_SECRET` | Não         | -      |
 
 ## Critérios de Email Suportados
 
 Ao configurar seu Monitor de Email de Entrada, você pode criar critérios baseados em:
 
-| Campo | Descrição | Filtros Disponíveis |
-|-------|-------------|-------------------|
-| **Email Subject** | A linha de assunto do email | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
-| **Email From** | O endereço de email do remetente | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
-| **Email Body** | O corpo em texto simples do email | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
-| **Email To** | O endereço de email do destinatário | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
-| **Email Received** | Tempo desde que o último email foi recebido | Received In Minutes, Not Received In Minutes |
+| Campo              | Descrição                                   | Filtros Disponíveis                                                                        |
+| ------------------ | ------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| **Email Subject**  | A linha de assunto do email                 | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
+| **Email From**     | O endereço de email do remetente            | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
+| **Email Body**     | O corpo em texto simples do email           | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
+| **Email To**       | O endereço de email do destinatário         | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
+| **Email Received** | Tempo desde que o último email foi recebido | Received In Minutes, Not Received In Minutes                                               |
 
 ## Casos de Uso de Exemplo
 
 ### Alertas de Sistema Legado
 
 Muitos sistemas legados só podem enviar alertas por email. Crie um Monitor de Email de Entrada para:
+
 - Criar alertas do OneUptime quando o sistema legado envia emails com `[CRITICAL]`
 - Resolver alertas quando emails com `[RESOLVED]` são recebidos
 
 ### Integração com Serviço de Terceiros
 
 Integre com serviços que enviam notificações por email:
+
 - Ferramentas de monitoramento sem integrações de API
 - Notificações de provedores de nuvem
 - Ferramentas de verificação de segurança
@@ -159,6 +161,7 @@ Integre com serviços que enviam notificações por email:
 ### Heartbeat via Email
 
 Use critérios de "Email Received" para garantir que você receba emails periódicos:
+
 - Criar alerta se nenhum email recebido em 60 minutos
 - Útil para monitorar trabalhos em lote ou tarefas programadas que enviam emails de conclusão
 
@@ -167,12 +170,15 @@ Use critérios de "Email Received" para garantir que você receba emails periód
 ### Emails Não Sendo Recebidos
 
 1. **Verificar propagação de DNS:**
+
    ```bash
    dig MX inbound.seudominio.com
    ```
+
    Deve retornar `mx.sendgrid.net`
 
 2. **Verificar as configurações do SendGrid Inbound Parse:**
+
    - Faça login no Painel do SendGrid
    - Vá para Settings > Inbound Parse
    - Verifique se seu domínio e URL de webhook estão corretos
@@ -184,10 +190,12 @@ Use critérios de "Email Received" para garantir que você receba emails periód
 ### Webhooks Falhando
 
 1. **Certifique-se de que o OneUptime está publicamente acessível:**
+
    - A URL do webhook deve ser acessível pela internet
    - Teste com: `curl -X POST https://seu-dominio-oneuptime.com/incoming-email/sendgrid`
 
 2. **Verificar regras de firewall:**
+
    - Permita tráfego HTTPS de entrada dos intervalos de IP do SendGrid
 
 3. **Verificar certificado SSL:**
@@ -197,10 +205,12 @@ Use critérios de "Email Received" para garantir que você receba emails periód
 ### Monitor Não Criando Alertas
 
 1. **Verificar a configuração de critérios:**
+
    - Verifique se seus critérios de criação de alerta correspondem ao conteúdo do email
    - Teste com strings exatas primeiro antes de usar correspondência de padrões
 
 2. **Verificar o status do monitor:**
+
    - Certifique-se de que o monitor não está desabilitado
    - Verifique se o tipo do monitor é "Incoming Email"
 
@@ -220,9 +230,9 @@ Use critérios de "Email Received" para garantir que você receba emails periód
 
 O OneUptime é projetado para suportar múltiplos provedores de email de entrada. Atualmente suportados:
 
-| Provedor | Status |
-|----------|--------|
-| SendGrid | Suportado |
+| Provedor                | Status    |
+| ----------------------- | --------- |
+| SendGrid                | Suportado |
 | Haraka (Auto-hospedado) | Planejado |
 
 Se você precisar de suporte para um provedor diferente, entre em contato conosco ou envie uma solicitação de recurso.

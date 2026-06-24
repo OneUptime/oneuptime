@@ -28,12 +28,12 @@ Velg én eller flere tjenester det skal overvåkes spor fra. Tjenester må sende
 
 ### Span-filtre
 
-| Filter | Beskrivelse | Påkrevd |
-|--------|-------------|---------|
-| Span Statuses | Filtrer etter span-statuskode (OK, ERROR, UNSET) | Nei |
-| Span Name | Tekstsøk etter spesifikke span-navn (f.eks. operasjons- eller endepunktnavn) | Nei |
-| Attributes | Nøkkel-verdi-par for filtrering på egendefinerte span-attributter | Nei |
-| Time Window | Hvor langt tilbake det skal søkes etter spans (i sekunder, standard: 60) | Nei |
+| Filter        | Beskrivelse                                                                  | Påkrevd |
+| ------------- | ---------------------------------------------------------------------------- | ------- |
+| Span Statuses | Filtrer etter span-statuskode (OK, ERROR, UNSET)                             | Nei     |
+| Span Name     | Tekstsøk etter spesifikke span-navn (f.eks. operasjons- eller endepunktnavn) | Nei     |
+| Attributes    | Nøkkel-verdi-par for filtrering på egendefinerte span-attributter            | Nei     |
+| Time Window   | Hvor langt tilbake det skal søkes etter spans (i sekunder, standard: 60)     | Nei     |
 
 ### Span-statuskoder
 
@@ -45,9 +45,9 @@ Velg én eller flere tjenester det skal overvåkes spor fra. Tjenester må sende
 
 ### Tilgjengelige kontrolltyper
 
-| Kontrolltype | Beskrivelse |
-|-------------|-------------|
-| Span Count | Antall spans som samsvarer med filtrene dine i tidsvinduet |
+| Kontrolltype | Beskrivelse                                                |
+| ------------ | ---------------------------------------------------------- |
+| Span Count   | Antall spans som samsvarer med filtrene dine i tidsvinduet |
 
 ### Filtertyper
 

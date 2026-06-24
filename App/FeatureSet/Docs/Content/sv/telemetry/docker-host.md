@@ -10,7 +10,7 @@ Den här sidan är **installationsguiden**. För att konfigurera Docker-monitore
 
 - Docker Engine 20.10+
 - Åtkomst till `/var/run/docker.sock` på värden
-- En **OneUptime Telemetry Ingestion Token** — skapa en från *Project Settings → Telemetry Ingestion Keys* och kopiera värdet
+- En **OneUptime Telemetry Ingestion Token** — skapa en från _Project Settings → Telemetry Ingestion Keys_ och kopiera värdet
 
 ## Snabbstart (ett kommando)
 
@@ -64,11 +64,11 @@ docker compose up -d
 
 ## Miljövariabler
 
-| Variabel | Obligatorisk | Beskrivning |
-|----------|----------|-------------|
-| `ONEUPTIME_URL` | Ja | URL till din OneUptime-instans (till exempel `https://oneuptime.com` eller din självhostade värd) |
-| `ONEUPTIME_SERVICE_TOKEN` | Ja | Telemetry ingestion-token från *Project Settings → Telemetry Ingestion Keys* |
-| `DOCKER_HOST_NAME` | Nej | Användarvänligt namn för den här värden. Standardvärdet är `docker-host`. Ange det till något stabilt per värd (t.ex. `prod-docker-01`) |
+| Variabel                  | Obligatorisk | Beskrivning                                                                                                                             |
+| ------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`           | Ja           | URL till din OneUptime-instans (till exempel `https://oneuptime.com` eller din självhostade värd)                                       |
+| `ONEUPTIME_SERVICE_TOKEN` | Ja           | Telemetry ingestion-token från _Project Settings → Telemetry Ingestion Keys_                                                            |
+| `DOCKER_HOST_NAME`        | Nej          | Användarvänligt namn för den här värden. Standardvärdet är `docker-host`. Ange det till något stabilt per värd (t.ex. `prod-docker-01`) |
 
 ## Verifiera installationen
 
@@ -117,14 +117,14 @@ docker compose down
 
 ## Vad som samlas in
 
-| Kategori | Data |
-|----------|------|
-| **CPU-mätvärden** | Total användning, användningsprocent, throttling-tid (per container) |
-| **Minnesmätvärden** | Användning, gräns, procent, RSS, cache (per container) |
-| **Nätverksmätvärden** | Mottagna / sända byte och paket (per container) |
-| **Block-I/O-mätvärden** | Lästa / skrivna byte och operationer (per container) |
-| **Containerinformation** | Drifttid, antal omstarter, antal processer |
-| **Containerloggar** | stdout / stderr-loggar från alla containrar |
+| Kategori                 | Data                                                                 |
+| ------------------------ | -------------------------------------------------------------------- |
+| **CPU-mätvärden**        | Total användning, användningsprocent, throttling-tid (per container) |
+| **Minnesmätvärden**      | Användning, gräns, procent, RSS, cache (per container)               |
+| **Nätverksmätvärden**    | Mottagna / sända byte och paket (per container)                      |
+| **Block-I/O-mätvärden**  | Lästa / skrivna byte och operationer (per container)                 |
+| **Containerinformation** | Drifttid, antal omstarter, antal processer                           |
+| **Containerloggar**      | stdout / stderr-loggar från alla containrar                          |
 
 ## Självhostad OneUptime
 

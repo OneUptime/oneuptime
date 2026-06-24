@@ -14,7 +14,6 @@ Depois de criar um token, clique em "View" para visualizá-lo.
 
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
 ### Passo 2
 
 #### Configurar o serviço de telemetria no seu aplicativo.
@@ -35,17 +34,15 @@ Usamos o OpenTelemetry para coletar logs de aplicativos. O OneUptime atualmente 
 - [.NET / C#](https://opentelemetry.io/docs/instrumentation/net/)
 - [Swift](https://opentelemetry.io/docs/instrumentation/swift/)
 
-
 **Integrar com o OneUptime**
 
 Depois de configurar o serviço de telemetria no seu aplicativo, você pode integrar com o OneUptime definindo as seguintes variáveis de ambiente.
 
-| Variável de Ambiente | Valor |
-| --- | --- |
-| OTEL_EXPORTER_OTLP_HEADERS | x-oneuptime-token=YOUR_ONEUPTIME_SERVICE_TOKEN |
-| OTEL_EXPORTER_OTLP_ENDPOINT | https://oneuptime.com/otlp |
-| OTEL_SERVICE_NAME | NAME_OF_YOUR_SERVICE |
-
+| Variável de Ambiente        | Valor                                          |
+| --------------------------- | ---------------------------------------------- |
+| OTEL_EXPORTER_OTLP_HEADERS  | x-oneuptime-token=YOUR_ONEUPTIME_SERVICE_TOKEN |
+| OTEL_EXPORTER_OTLP_ENDPOINT | https://oneuptime.com/otlp                     |
+| OTEL_SERVICE_NAME           | NAME_OF_YOUR_SERVICE                           |
 
 **Exemplo**
 
@@ -55,13 +52,11 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=https://oneuptime.com/otlp
 export OTEL_SERVICE_NAME=my-service
 ```
 
-
 **OneUptime Auto-Hospedado**
 
 Se você estiver auto-hospedando o OneUptime, isso pode ser alterado para o endpoint do coletor OpenTelemetry auto-hospedado (ex.: `http(s)://SEU-HOST-ONEUPTIME/otlp`)
 
 Depois de executar seu aplicativo, você deve ver os logs na página do serviço de telemetria do OneUptime. Entre em contato com support@oneuptime.com se precisar de ajuda.
-
 
 #### Usando o Coletor OpenTelemetry
 
@@ -80,7 +75,6 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 exporters:
-
   # Export over HTTP
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"

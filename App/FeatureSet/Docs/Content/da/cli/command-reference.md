@@ -12,11 +12,11 @@ Autentificer med en OneUptime-instans.
 oneuptime login <api-key> <instance-url> [--context-name <name>]
 ```
 
-| Parameter | Type | Påkrævet | Beskrivelse |
-|-----------|------|----------|-------------|
-| `<api-key>` | argument | Ja | API-nøgle til autentificering |
-| `<instance-url>` | argument | Ja | OneUptime-instans-URL |
-| `--context-name` | indstilling | Nej | Kontekstnavn (standard: `"default"`) |
+| Parameter        | Type        | Påkrævet | Beskrivelse                          |
+| ---------------- | ----------- | -------- | ------------------------------------ |
+| `<api-key>`      | argument    | Ja       | API-nøgle til autentificering        |
+| `<instance-url>` | argument    | Ja       | OneUptime-instans-URL                |
+| `--context-name` | indstilling | Nej      | Kontekstnavn (standard: `"default"`) |
 
 ---
 
@@ -38,9 +38,9 @@ Skift til en navngivet kontekst.
 oneuptime context use <name>
 ```
 
-| Parameter | Type | Påkrævet | Beskrivelse |
-|-----------|------|----------|-------------|
-| `<name>` | argument | Ja | Kontekstnavn der skal aktiveres |
+| Parameter | Type     | Påkrævet | Beskrivelse                     |
+| --------- | -------- | -------- | ------------------------------- |
+| `<name>`  | argument | Ja       | Kontekstnavn der skal aktiveres |
 
 ---
 
@@ -62,9 +62,9 @@ Fjern en gemt kontekst.
 oneuptime context delete <name>
 ```
 
-| Parameter | Type | Påkrævet | Beskrivelse |
-|-----------|------|----------|-------------|
-| `<name>` | argument | Ja | Kontekstnavn der skal slettes |
+| Parameter | Type     | Påkrævet | Beskrivelse                   |
+| --------- | -------- | -------- | ----------------------------- |
+| `<name>`  | argument | Ja       | Kontekstnavn der skal slettes |
 
 ---
 
@@ -80,13 +80,13 @@ List ressourcer med filtrering og paginering.
 oneuptime <resource> list [options]
 ```
 
-| Indstilling | Type | Standard | Beskrivelse |
-|--------|------|---------|-------------|
-| `--query <json>` | streng | Ingen | Filterkriterier som JSON |
-| `--limit <n>` | tal | `10` | Maks. antal resultater |
-| `--skip <n>` | tal | `0` | Resultater der skal springes over |
-| `--sort <json>` | streng | Ingen | Sorteringsrækkefølge som JSON |
-| `-o, --output` | streng | `table` | Outputformat |
+| Indstilling      | Type   | Standard | Beskrivelse                       |
+| ---------------- | ------ | -------- | --------------------------------- |
+| `--query <json>` | streng | Ingen    | Filterkriterier som JSON          |
+| `--limit <n>`    | tal    | `10`     | Maks. antal resultater            |
+| `--skip <n>`     | tal    | `0`      | Resultater der skal springes over |
+| `--sort <json>`  | streng | Ingen    | Sorteringsrækkefølge som JSON     |
+| `-o, --output`   | streng | `table`  | Outputformat                      |
 
 ---
 
@@ -98,10 +98,10 @@ Hent en enkelt ressource efter ID.
 oneuptime <resource> get <id> [-o <format>]
 ```
 
-| Parameter | Type | Påkrævet | Beskrivelse |
-|-----------|------|----------|-------------|
-| `<id>` | argument | Ja | Ressource-ID (UUID) |
-| `-o, --output` | indstilling | Nej | Outputformat |
+| Parameter      | Type        | Påkrævet | Beskrivelse         |
+| -------------- | ----------- | -------- | ------------------- |
+| `<id>`         | argument    | Ja       | Ressource-ID (UUID) |
+| `-o, --output` | indstilling | Nej      | Outputformat        |
 
 ---
 
@@ -113,11 +113,11 @@ Opret en ny ressource.
 oneuptime <resource> create [--data <json> | --file <path>] [-o <format>]
 ```
 
-| Indstilling | Type | Påkrævet | Beskrivelse |
-|--------|------|----------|-------------|
+| Indstilling     | Type   | Påkrævet                      | Beskrivelse            |
+| --------------- | ------ | ----------------------------- | ---------------------- |
 | `--data <json>` | streng | En af `--data` eller `--file` | Ressourcedata som JSON |
-| `--file <path>` | streng | En af `--data` eller `--file` | Sti til JSON-fil |
-| `-o, --output` | streng | Nej | Outputformat |
+| `--file <path>` | streng | En af `--data` eller `--file` | Sti til JSON-fil       |
+| `-o, --output`  | streng | Nej                           | Outputformat           |
 
 ---
 
@@ -129,11 +129,11 @@ Opdater en eksisterende ressource.
 oneuptime <resource> update <id> --data <json> [-o <format>]
 ```
 
-| Parameter | Type | Påkrævet | Beskrivelse |
-|-----------|------|----------|-------------|
-| `<id>` | argument | Ja | Ressource-ID |
-| `--data <json>` | indstilling | Ja | Felter der skal opdateres som JSON |
-| `-o, --output` | indstilling | Nej | Outputformat |
+| Parameter       | Type        | Påkrævet | Beskrivelse                        |
+| --------------- | ----------- | -------- | ---------------------------------- |
+| `<id>`          | argument    | Ja       | Ressource-ID                       |
+| `--data <json>` | indstilling | Ja       | Felter der skal opdateres som JSON |
+| `-o, --output`  | indstilling | Nej      | Outputformat                       |
 
 ---
 
@@ -145,10 +145,10 @@ Slet en ressource.
 oneuptime <resource> delete <id> [--force]
 ```
 
-| Parameter | Type | Påkrævet | Beskrivelse |
-|-----------|------|----------|-------------|
-| `<id>` | argument | Ja | Ressource-ID |
-| `--force` | indstilling | Nej | Spring bekræftelsesprompt over |
+| Parameter | Type        | Påkrævet | Beskrivelse                    |
+| --------- | ----------- | -------- | ------------------------------ |
+| `<id>`    | argument    | Ja       | Ressource-ID                   |
+| `--force` | indstilling | Nej      | Spring bekræftelsesprompt over |
 
 ---
 
@@ -160,9 +160,9 @@ Tæl ressourcer, der matcher et filter.
 oneuptime <resource> count [--query <json>]
 ```
 
-| Indstilling | Type | Standard | Beskrivelse |
-|--------|------|---------|-------------|
-| `--query <json>` | streng | Ingen | Filterkriterier som JSON |
+| Indstilling      | Type   | Standard | Beskrivelse              |
+| ---------------- | ------ | -------- | ------------------------ |
+| `--query <json>` | streng | Ingen    | Filterkriterier som JSON |
 
 ---
 
@@ -198,9 +198,9 @@ List alle tilgængelige ressourcetyper.
 oneuptime resources [--type <type>]
 ```
 
-| Indstilling | Type | Standard | Beskrivelse |
-|--------|------|---------|-------------|
-| `--type <type>` | streng | Ingen | Filtrer efter `database` eller `analytics` |
+| Indstilling     | Type   | Standard | Beskrivelse                                |
+| --------------- | ------ | -------- | ------------------------------------------ |
+| `--type <type>` | streng | Ingen    | Filtrer efter `database` eller `analytics` |
 
 ---
 
@@ -208,27 +208,27 @@ oneuptime resources [--type <type>]
 
 Disse flag er tilgængelige på alle kommandoer:
 
-| Indstilling | Beskrivelse |
-|--------|-------------|
-| `--api-key <key>` | Tilsidesæt API-nøgle |
-| `--url <url>` | Tilsidesæt instans-URL |
-| `--context <name>` | Brug en specifik kontekst |
+| Indstilling             | Beskrivelse                           |
+| ----------------------- | ------------------------------------- |
+| `--api-key <key>`       | Tilsidesæt API-nøgle                  |
+| `--url <url>`           | Tilsidesæt instans-URL                |
+| `--context <name>`      | Brug en specifik kontekst             |
 | `-o, --output <format>` | Outputformat: `json`, `table`, `wide` |
-| `--no-color` | Deaktiver farvet output |
-| `--help` | Vis hjælp |
-| `--version` | Vis version |
+| `--no-color`            | Deaktiver farvet output               |
+| `--help`                | Vis hjælp                             |
+| `--version`             | Vis version                           |
 
 ## API-ruter
 
 Som reference mapper CLI-kommandoer til disse API-endpoints:
 
-| Kommando | Metode | Endpoint |
-|---------|--------|----------|
-| `list` | POST | `/api/<resource>/get-list` |
-| `get` | POST | `/api/<resource>/<id>/get-item` |
-| `create` | POST | `/api/<resource>` |
-| `update` | PUT | `/api/<resource>/<id>/` |
-| `delete` | DELETE | `/api/<resource>/<id>/` |
-| `count` | POST | `/api/<resource>/count` |
+| Kommando | Metode | Endpoint                        |
+| -------- | ------ | ------------------------------- |
+| `list`   | POST   | `/api/<resource>/get-list`      |
+| `get`    | POST   | `/api/<resource>/<id>/get-item` |
+| `create` | POST   | `/api/<resource>`               |
+| `update` | PUT    | `/api/<resource>/<id>/`         |
+| `delete` | DELETE | `/api/<resource>/<id>/`         |
+| `count`  | POST   | `/api/<resource>/count`         |
 
 Alle anmodninger inkluderer `APIKey`-headeren til autentificering.

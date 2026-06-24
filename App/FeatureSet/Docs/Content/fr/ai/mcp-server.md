@@ -202,13 +202,13 @@ La configuration ci-dessus utilise des variables d'entrée avec `"password": tru
 
 ## Points de terminaison disponibles
 
-| Point de terminaison | Méthode | Description |
-|---------------------|---------|-------------|
-| `/mcp` | GET | Flux d'événements envoyés par le serveur pour les notifications du serveur vers le client |
-| `/mcp` | POST | Requêtes JSON-RPC pour les appels d'outils et autres opérations |
-| `/mcp` | DELETE | Nettoyage et fin de session |
-| `/mcp/health` | GET | Point de terminaison de vérification de l'état |
-| `/mcp/tools` | GET | API REST pour lister les outils disponibles |
+| Point de terminaison | Méthode | Description                                                                               |
+| -------------------- | ------- | ----------------------------------------------------------------------------------------- |
+| `/mcp`               | GET     | Flux d'événements envoyés par le serveur pour les notifications du serveur vers le client |
+| `/mcp`               | POST    | Requêtes JSON-RPC pour les appels d'outils et autres opérations                           |
+| `/mcp`               | DELETE  | Nettoyage et fin de session                                                               |
+| `/mcp/health`        | GET     | Point de terminaison de vérification de l'état                                            |
+| `/mcp/tools`         | GET     | API REST pour lister les outils disponibles                                               |
 
 ## Authentification
 
@@ -319,12 +319,15 @@ Ces requêtes fonctionnent sans authentification, en utilisant uniquement les ou
 ## Permissions de la clé API
 
 ### Accès en lecture seule
+
 Pour consulter uniquement les données, ajoutez des permissions de lecture à votre clé API.
 
 ### Accès complet
+
 Pour un accès complet à la création, la mise à jour et la suppression de ressources, assurez-vous que votre clé API dispose des permissions d'administrateur de projet.
 
 ### Bonnes pratiques
+
 - Utilisez des permissions spécifiques : N'accordez que les permissions minimales nécessaires
 - Faites pivoter les clés API : Renouvelez régulièrement vos clés API
 - Surveillez l'utilisation : Suivez l'utilisation des clés API dans OneUptime
@@ -333,24 +336,30 @@ Pour un accès complet à la création, la mise à jour et la suppression de res
 ## Dépannage
 
 ### Erreurs de permission
+
 Assurez-vous que votre clé API dispose des permissions nécessaires :
+
 - Accès en lecture pour lister les ressources
 - Accès en écriture pour créer/mettre à jour les ressources
 - Accès en suppression si vous souhaitez supprimer des ressources
 
 ### Problèmes de connexion
+
 1. Vérifiez que l'URL de votre OneUptime est correcte
 2. Vérifiez que votre clé API est valide
 3. Assurez-vous que votre instance OneUptime est accessible
 4. Testez le point de terminaison de vérification d'état
 
 ### Clé API invalide
+
 - Vérifiez la clé API dans vos paramètres OneUptime
 - Recherchez des espaces ou caractères supplémentaires
 - Assurez-vous que la clé n'a pas expiré
 
 ### Erreurs de session
+
 Si vous recevez des erreurs liées aux sessions :
+
 - Le serveur MCP utilise l'en-tête `mcp-session-id` pour suivre les sessions
 - Assurez-vous que votre client gère correctement l'identifiant de session retourné par le serveur
 - Les sessions sont automatiquement nettoyées lorsque les connexions se ferment

@@ -22,16 +22,16 @@ oneuptime resources --type analytics
 
 Veelgebruikte resources zijn:
 
-| Resource | Opdracht |
-|----------|---------|
-| Incident | `oneuptime incident` |
-| Melding | `oneuptime alert` |
-| Monitor | `oneuptime monitor` |
-| Monitorstatus | `oneuptime monitor-status` |
-| Incidentstatus | `oneuptime incident-state` |
-| Statuspagina | `oneuptime status-page` |
-| Piketbeleid | `oneuptime on-call-policy` |
-| Team | `oneuptime team` |
+| Resource                      | Opdracht                                |
+| ----------------------------- | --------------------------------------- |
+| Incident                      | `oneuptime incident`                    |
+| Melding                       | `oneuptime alert`                       |
+| Monitor                       | `oneuptime monitor`                     |
+| Monitorstatus                 | `oneuptime monitor-status`              |
+| Incidentstatus                | `oneuptime incident-state`              |
+| Statuspagina                  | `oneuptime status-page`                 |
+| Piketbeleid                   | `oneuptime on-call-policy`              |
+| Team                          | `oneuptime team`                        |
 | Gepland onderhoudsgebeurtenis | `oneuptime scheduled-maintenance-event` |
 
 ## Resources weergeven
@@ -44,13 +44,13 @@ oneuptime <resource> list [options]
 
 **Opties:**
 
-| Optie | Beschrijving | Standaard |
-|--------|-------------|---------|
-| `--query <json>` | Filtercriteria als JSON | Geen |
-| `--limit <n>` | Maximum aantal resultaten | `10` |
-| `--skip <n>` | Aantal te overslaan resultaten | `0` |
-| `--sort <json>` | Sorteervolgorde als JSON | Geen |
-| `-o, --output <format>` | Uitvoerformaat | `table` |
+| Optie                   | Beschrijving                   | Standaard |
+| ----------------------- | ------------------------------ | --------- |
+| `--query <json>`        | Filtercriteria als JSON        | Geen      |
+| `--limit <n>`           | Maximum aantal resultaten      | `10`      |
+| `--skip <n>`            | Aantal te overslaan resultaten | `0`       |
+| `--sort <json>`         | Sorteervolgorde als JSON       | Geen      |
+| `-o, --output <format>` | Uitvoerformaat                 | `table`   |
 
 **Voorbeelden:**
 
@@ -81,9 +81,9 @@ oneuptime <resource> get <id>
 
 **Argumenten:**
 
-| Argument | Beschrijving |
-|----------|-------------|
-| `<id>` | Het resource-ID (UUID) |
+| Argument | Beschrijving           |
+| -------- | ---------------------- |
+| `<id>`   | Het resource-ID (UUID) |
 
 **Voorbeelden:**
 
@@ -105,11 +105,11 @@ oneuptime <resource> create [options]
 
 **Opties:**
 
-| Optie | Beschrijving |
-|--------|-------------|
-| `--data <json>` | Resourcegegevens als JSON-object |
-| `--file <path>` | Pad naar een JSON-bestand met resourcegegevens |
-| `-o, --output <format>` | Uitvoerformaat |
+| Optie                   | Beschrijving                                   |
+| ----------------------- | ---------------------------------------------- |
+| `--data <json>`         | Resourcegegevens als JSON-object               |
+| `--file <path>`         | Pad naar een JSON-bestand met resourcegegevens |
+| `-o, --output <format>` | Uitvoerformaat                                 |
 
 U moet `--data` of `--file` opgeven.
 
@@ -136,16 +136,16 @@ oneuptime <resource> update <id> [options]
 
 **Argumenten:**
 
-| Argument | Beschrijving |
-|----------|-------------|
-| `<id>` | Het resource-ID |
+| Argument | Beschrijving    |
+| -------- | --------------- |
+| `<id>`   | Het resource-ID |
 
 **Opties:**
 
-| Optie | Beschrijving |
-|--------|-------------|
-| `--data <json>` | Bij te werken velden als JSON (vereist) |
-| `-o, --output <format>` | Uitvoerformaat |
+| Optie                   | Beschrijving                            |
+| ----------------------- | --------------------------------------- |
+| `--data <json>`         | Bij te werken velden als JSON (vereist) |
+| `-o, --output <format>` | Uitvoerformaat                          |
 
 **Voorbeelden:**
 
@@ -167,14 +167,14 @@ oneuptime <resource> delete <id> [--force]
 
 **Argumenten:**
 
-| Argument | Beschrijving |
-|----------|-------------|
-| `<id>` | Het resource-ID |
+| Argument | Beschrijving    |
+| -------- | --------------- |
+| `<id>`   | Het resource-ID |
 
 **Opties:**
 
-| Optie | Beschrijving |
-|--------|-------------|
+| Optie     | Beschrijving                 |
+| --------- | ---------------------------- |
 | `--force` | Bevestigingsprompt overslaan |
 
 **Voorbeelden:**
@@ -197,8 +197,8 @@ oneuptime <resource> count [options]
 
 **Opties:**
 
-| Optie | Beschrijving |
-|--------|-------------|
+| Optie            | Beschrijving            |
+| ---------------- | ----------------------- |
 | `--query <json>` | Filtercriteria als JSON |
 
 **Voorbeelden:**
@@ -219,12 +219,12 @@ oneuptime monitor count
 Analyticsresources ondersteunen een beperkte set bewerkingen vergeleken met databaseresources:
 
 | Bewerking | Ondersteund |
-|-----------|-----------|
-| `list` | Ja |
-| `create` | Ja |
-| `count` | Ja |
-| `get` | Nee |
-| `update` | Nee |
-| `delete` | Nee |
+| --------- | ----------- |
+| `list`    | Ja          |
+| `create`  | Ja          |
+| `count`   | Ja          |
+| `get`     | Nee         |
+| `update`  | Nee         |
+| `delete`  | Nee         |
 
 Gebruik `oneuptime resources --type analytics` om te zien welke analyticsresources beschikbaar zijn op uw instantie.

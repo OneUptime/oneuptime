@@ -40,34 +40,34 @@ monitor-{secret-key}@{inbound-domain}
 
 आप निम्नलिखित email fields के आधार पर criteria बना सकते हैं:
 
-| Field | विवरण |
-|-------|-------|
-| **Email Subject** | incoming email की subject line |
-| **Email From** | sender का email address |
-| **Email Body** | email body का plain text content |
-| **Email To** | recipient email address |
+| Field              | विवरण                                                  |
+| ------------------ | ------------------------------------------------------ |
+| **Email Subject**  | incoming email की subject line                         |
+| **Email From**     | sender का email address                                |
+| **Email Body**     | email body का plain text content                       |
+| **Email To**       | recipient email address                                |
 | **Email Received** | emails receive होने के time के लिए Time-based criteria |
 
 ## उपलब्ध Filter Types
 
 ### String Filters (Subject, From, Body, To)
 
-| Filter | विवरण | उदाहरण |
-|--------|-------|--------|
-| **Contains** | Field निर्दिष्ट text contain करती है | Subject contains "CRITICAL" |
-| **Not Contains** | Field निर्दिष्ट text contain नहीं करती | Subject not contains "TEST" |
-| **Equals** | Field निर्दिष्ट text से exactly match करती है | From equals "alerts@service.com" |
-| **Not Equals** | Field निर्दिष्ट text से match नहीं करती | Subject not equals "OK" |
-| **Starts With** | Field निर्दिष्ट text से शुरू होती है | Subject starts with "[ALERT]" |
-| **Ends With** | Field निर्दिष्ट text पर खत्म होती है | Subject ends with "- Production" |
-| **Is Empty** | Field empty या blank है | Body is empty |
-| **Is Not Empty** | Field में content है | Subject is not empty |
+| Filter           | विवरण                                         | उदाहरण                           |
+| ---------------- | --------------------------------------------- | -------------------------------- |
+| **Contains**     | Field निर्दिष्ट text contain करती है          | Subject contains "CRITICAL"      |
+| **Not Contains** | Field निर्दिष्ट text contain नहीं करती        | Subject not contains "TEST"      |
+| **Equals**       | Field निर्दिष्ट text से exactly match करती है | From equals "alerts@service.com" |
+| **Not Equals**   | Field निर्दिष्ट text से match नहीं करती       | Subject not equals "OK"          |
+| **Starts With**  | Field निर्दिष्ट text से शुरू होती है          | Subject starts with "[ALERT]"    |
+| **Ends With**    | Field निर्दिष्ट text पर खत्म होती है          | Subject ends with "- Production" |
+| **Is Empty**     | Field empty या blank है                       | Body is empty                    |
+| **Is Not Empty** | Field में content है                          | Subject is not empty             |
 
 ### Time-Based Filters (Email Received)
 
-| Filter | विवरण | उदाहरण |
-|--------|-------|--------|
-| **Received In Minutes** | Email X minutes के भीतर received हुआ था | Email received in 30 minutes |
+| Filter                      | विवरण                                     | उदाहरण                           |
+| --------------------------- | ----------------------------------------- | -------------------------------- |
+| **Received In Minutes**     | Email X minutes के भीतर received हुआ था   | Email received in 30 minutes     |
 | **Not Received In Minutes** | X minutes में कोई email received नहीं हुआ | Email not received in 60 minutes |
 
 ## उदाहरण Configurations
@@ -75,11 +75,13 @@ monitor-{secret-key}@{inbound-domain}
 ### उदाहरण 1: Critical Emails पर Alert बनाएं
 
 **Alert Creation Criteria:**
+
 - Email Subject **Contains** "CRITICAL"
 - OR Email Subject **Contains** "ALERT"
 - OR Email Subject **Contains** "ERROR"
 
 **Alert Resolution Criteria:**
+
 - Email Subject **Contains** "RESOLVED"
 - OR Email Subject **Contains** "OK"
 - OR Email Subject **Contains** "RECOVERED"
@@ -87,21 +89,25 @@ monitor-{secret-key}@{inbound-domain}
 ### उदाहरण 2: Specific Sender Monitor करें
 
 **Alert Creation Criteria:**
+
 - Email From **Equals** "monitoring@legacy-system.com"
 - AND Email Subject **Contains** "Failed"
 
 **Alert Resolution Criteria:**
+
 - Email From **Equals** "monitoring@legacy-system.com"
 - AND Email Subject **Contains** "Success"
 
 ### उदाहरण 3: Heartbeat Monitor (No Email = Alert)
 
 **Alert Creation Criteria:**
+
 - Email Received **Not Received In Minutes** with value `60`
 
 यह alert बनाता है यदि 60 minutes के लिए कोई email received नहीं हुआ - scheduled jobs या batch processes के लिए उपयोगी है जो completion emails भेजनी चाहिए।
 
 **Alert Resolution Criteria:**
+
 - Email Received **Received In Minutes** with value `5`
 
 यह alert resolve करता है जब कोई email received होता है।
@@ -111,6 +117,7 @@ monitor-{secret-key}@{inbound-domain}
 ### Legacy System Integration
 
 कई पुराने systems केवल email-based alerting का समर्थन करते हैं। Incoming Email Monitor का उपयोग करें:
+
 - email alerts को OneUptime incidents में convert करें
 - recovery emails arrive होने पर incidents automatically resolve करें
 - कई legacy systems से alerting centralize करें
@@ -118,6 +125,7 @@ monitor-{secret-key}@{inbound-domain}
 ### Third-Party Service Monitoring
 
 email notifications भेजने वाली services के साथ integrate करें:
+
 - Cloud provider alerts (AWS, GCP, Azure)
 - Security scanning tools
 - Backup completion notifications
@@ -126,6 +134,7 @@ email notifications भेजने वाली services के साथ integ
 ### Scheduled Job Monitoring
 
 batch jobs और scheduled tasks monitor करें:
+
 - यदि completion emails समय पर receive नहीं होते तो alerts बनाएं
 - error notification emails के माध्यम से job failures track करें
 - data pipeline completions monitor करें
@@ -134,13 +143,13 @@ batch jobs और scheduled tasks monitor करें:
 
 incident templates configure करते समय, आप incoming emails से इन variables का उपयोग कर सकते हैं:
 
-| Variable | विवरण |
-|----------|-------|
-| `{{emailSubject}}` | received email का subject |
-| `{{emailFrom}}` | sender का email address |
-| `{{emailTo}}` | recipient email address |
-| `{{emailBody}}` | email का plain text body |
-| `{{emailReceivedAt}}` | email कब received हुआ |
+| Variable              | विवरण                     |
+| --------------------- | ------------------------- |
+| `{{emailSubject}}`    | received email का subject |
+| `{{emailFrom}}`       | sender का email address   |
+| `{{emailTo}}`         | recipient email address   |
+| `{{emailBody}}`       | email का plain text body  |
+| `{{emailReceivedAt}}` | email कब received हुआ     |
 
 ## Self-Hosted Setup
 

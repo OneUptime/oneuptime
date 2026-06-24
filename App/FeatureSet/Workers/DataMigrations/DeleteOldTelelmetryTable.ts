@@ -9,6 +9,10 @@ export default class DeleteOldTelemetryTable extends DataMigrationBase {
     super("DeleteOldTelemetryTable");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     try {
       /*

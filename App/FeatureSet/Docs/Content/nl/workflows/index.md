@@ -24,13 +24,13 @@ Dit alles bouw je visueel op een canvas. Voor de meeste workflows is geen code n
 
 ## Kernbegrippen
 
-| Term | Betekenis |
-| --- | --- |
-| **Workflow** | De hele automatisering — een naam, een canvas en een schakelaar om hem aan of uit te zetten. |
-| **Trigger** | Het eerste blok. Het bepaalt wanneer de workflow draait. Elke workflow heeft precies één trigger. |
-| **Component** | Een actieblok — verstuurt een bericht, doet een verzoek, controleert een voorwaarde. |
-| **Run** | Eén uitvoering van de workflow. Opgeslagen met tijdstippen en de output van elk blok. |
-| **Globale variabele** | Een waarde (zoals een API-sleutel) die je één keer opslaat en in elke workflow hergebruikt. |
+| Term                  | Betekenis                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------- |
+| **Workflow**          | De hele automatisering — een naam, een canvas en een schakelaar om hem aan of uit te zetten.      |
+| **Trigger**           | Het eerste blok. Het bepaalt wanneer de workflow draait. Elke workflow heeft precies één trigger. |
+| **Component**         | Een actieblok — verstuurt een bericht, doet een verzoek, controleert een voorwaarde.              |
+| **Run**               | Eén uitvoering van de workflow. Opgeslagen met tijdstippen en de output van elk blok.             |
+| **Globale variabele** | Een waarde (zoals een API-sleutel) die je één keer opslaat en in elke workflow hergebruikt.       |
 
 ## Waar je workflows in OneUptime vindt
 

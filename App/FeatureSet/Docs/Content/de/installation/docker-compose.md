@@ -3,6 +3,7 @@
 Wenn Sie OneUptime auf Ihrem eigenen Server hosten möchten, können Sie Docker Compose verwenden, um eine Einzelserver-Instanz von OneUptime auf Debian, Ubuntu oder RHEL bereitzustellen. Diese Option gibt Ihnen mehr Kontrolle und Anpassungsmöglichkeiten für Ihre Instanz, erfordert jedoch auch mehr technische Kenntnisse und Ressourcen für die Bereitstellung und Wartung.
 
 #### Systemanforderungen wählen
+
 Je nach Nutzung und Budget können Sie verschiedene Systemanforderungen für Ihren Server wählen. Für optimale Leistung empfehlen wir die Verwendung von OneUptime mit:
 
 - **Empfohlene Systemanforderungen**
@@ -18,7 +19,6 @@ Je nach Nutzung und Budget können Sie verschiedene Systemanforderungen für Ihr
     - 20 GB Festplatte
     - Docker und Docker Compose installiert
 
-
 #### Voraussetzungen für die Einzelserver-Bereitstellung
 
 Installations-Tutorial: [https://youtu.be/j1SWmMW2oL4](https://youtu.be/j1SWmMW2oL4)
@@ -28,7 +28,7 @@ Bevor Sie mit dem Bereitstellungsprozess beginnen, stellen Sie sicher, dass Sie 
 - Einen Server mit Debian, Ubuntu oder einem RHEL-Derivat
 - Docker und Docker Compose auf Ihrem Server installiert
 
-Um OneUptime zu installieren: 
+Um OneUptime zu installieren:
 
 ```
 # Dieses Repository nur mit dem Release-Branch klonen und in das Verzeichnis wechseln.
@@ -43,16 +43,15 @@ cp config.example.env config.env
 npm start
 ```
 
-Wenn Sie npm nicht verwenden möchten oder es nicht installiert haben, führen Sie stattdessen Folgendes aus: 
+Wenn Sie npm nicht verwenden möchten oder es nicht installiert haben, führen Sie stattdessen Folgendes aus:
 
 ```
 # Umgebungsvariablen aus der config.env-Datei lesen und docker compose up ausführen.
 (export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
 
-# Verwenden Sie sudo, falls Sie Berechtigungsprobleme beim Binden von Ports haben. 
+# Verwenden Sie sudo, falls Sie Berechtigungsprobleme beim Binden von Ports haben.
 sudo bash -c "(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)"
 ```
-
 
 ### Zugriff auf OneUptime
 
@@ -73,18 +72,18 @@ Wenn Sie SSL/TLS-Zertifikate verwenden müssen, befolgen Sie diese Schritte:
 
 ## Checkliste für die Produktionsbereitschaft
 
-Idealerweise sollten Sie OneUptime in der Produktion nicht mit docker-compose bereitstellen. Wir empfehlen dringend die Verwendung von Kubernetes. Es gibt ein Helm-Chart für OneUptime [hier](https://artifacthub.io/packages/helm/oneuptime/oneuptime). 
+Idealerweise sollten Sie OneUptime in der Produktion nicht mit docker-compose bereitstellen. Wir empfehlen dringend die Verwendung von Kubernetes. Es gibt ein Helm-Chart für OneUptime [hier](https://artifacthub.io/packages/helm/oneuptime/oneuptime).
 
 Wenn Sie OneUptime trotzdem in der Produktion mit docker-compose bereitstellen möchten, beachten Sie bitte Folgendes:
 
-- **SSL/TLS**: Richten Sie SSL/TLS-Zertifikate ein. OneUptime unterstützt das Einrichten von SSL/TLS-Zertifikaten nicht. Sie müssen SSL/TLS-Zertifikate selbst einrichten. Siehe oben. 
-- **Geheimnisse**: Stellen Sie sicher, dass Sie zufällige Geheimnisse in Ihrer `config.env`-Datei haben. Es gibt einige Standardgeheimnisse in dieser Datei. Bitte ersetzen Sie diese durch zufällige lange Zeichenketten. 
-- **Backups**: Sichern Sie regelmäßig Ihre Datenbanken (Clickhouse, Postgres). Redis wird als Cache verwendet und ist zustandslos und kann sicher ignoriert werden. 
-- **Updates**: Bitte aktualisieren Sie OneUptime regelmäßig. Wir veröffentlichen täglich Updates. Wir empfehlen, die Software mindestens einmal pro Woche zu aktualisieren, wenn Sie sie in der Produktion betreiben. 
+- **SSL/TLS**: Richten Sie SSL/TLS-Zertifikate ein. OneUptime unterstützt das Einrichten von SSL/TLS-Zertifikaten nicht. Sie müssen SSL/TLS-Zertifikate selbst einrichten. Siehe oben.
+- **Geheimnisse**: Stellen Sie sicher, dass Sie zufällige Geheimnisse in Ihrer `config.env`-Datei haben. Es gibt einige Standardgeheimnisse in dieser Datei. Bitte ersetzen Sie diese durch zufällige lange Zeichenketten.
+- **Backups**: Sichern Sie regelmäßig Ihre Datenbanken (Clickhouse, Postgres). Redis wird als Cache verwendet und ist zustandslos und kann sicher ignoriert werden.
+- **Updates**: Bitte aktualisieren Sie OneUptime regelmäßig. Wir veröffentlichen täglich Updates. Wir empfehlen, die Software mindestens einmal pro Woche zu aktualisieren, wenn Sie sie in der Produktion betreiben.
 
 ### OneUptime aktualisieren
 
-Zum Aktualisieren: 
+Zum Aktualisieren:
 
 ```
 git checkout release # Bitte stellen Sie sicher, dass Sie sich im Release-Branch befinden.
@@ -95,7 +94,6 @@ npm run update
 ### Zu beachtende Punkte
 
 - In unserem Docker-Setup verwenden wir einen lokalen Logging-Treiber. OneUptime, insbesondere in den Probe- und Ingest-Containern, generiert eine erhebliche Menge an Logs. Um zu verhindern, dass Ihr Speicher voll wird, ist es entscheidend, den Logging-Speicher in Docker zu begrenzen. Detaillierte Anweisungen hierzu finden Sie in der offiziellen Docker-Dokumentation [hier](https://docs.docker.com/config/containers/logging/local/).
-
 
 ### OneUptime deinstallieren
 

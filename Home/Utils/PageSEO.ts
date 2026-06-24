@@ -270,6 +270,37 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/runbooks": {
+    title: "Runbooks | Automated Incident Response Procedures | OneUptime",
+    description:
+      "Runbooks that combine manual checklists with sandboxed JavaScript, HTTP, and bash steps. Auto-trigger on incidents, alerts, and scheduled maintenance. Open source incident response automation.",
+    canonicalPath: "/product/runbooks",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Runbooks", url: "/product/runbooks" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Runbooks",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Automated incident response runbooks that mix manual checklists with sandboxed JavaScript, HTTP, and bash steps, auto-triggered on incidents, alerts, and scheduled maintenance.",
+      features: [
+        "Manual checklist steps",
+        "Sandboxed JavaScript steps",
+        "HTTP request steps",
+        "Bash script steps",
+        "Auto-trigger on incidents and alerts",
+        "Trigger on scheduled maintenance",
+        "Reusable response procedures",
+        "Open source",
+      ],
+    },
+  },
+
   "/product/ai-agent": {
     title: "AI Agent | Automatic Code Fixes & PRs | OneUptime",
     description:
@@ -545,7 +576,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   "/product/proxmox": {
     title: "Proxmox Monitoring | Nodes, VMs, Storage & Backups | OneUptime",
     description:
-      "Monitor Proxmox VE clusters end to end: node and guest health, storage usage, backup coverage, and replication alerting. One agent per cluster, flat project pricing, 10-minute setup. Open source.",
+      "Monitor Proxmox VE clusters end to end: node and guest health, storage usage, backup coverage, and replication alerting. One agent per cluster, usage-based pricing, 10-minute setup. Open source.",
     canonicalPath: "/product/proxmox",
     twitterCard: "summary_large_image",
     pageType: "product",
@@ -569,7 +600,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "Storage usage and growth tracking",
         "Guest-to-host agent cross-linking",
         "Copy-paste onboarding with token validator",
-        "Flat project pricing, not per-host",
+        "Usage-based pricing, not per-host",
         "OpenTelemetry native",
         "Open source",
       ],
@@ -615,7 +646,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     title:
       "Docker Swarm Monitoring | Nodes, Services, Tasks & Stacks | OneUptime",
     description:
-      "Monitor Docker Swarm clusters end to end: manager and worker node health, services and their task replicas, stacks, overlay networks, secrets, configs, and volumes. One agent on a manager node, flat project pricing, 10-minute setup. Open source.",
+      "Monitor Docker Swarm clusters end to end: manager and worker node health, services and their task replicas, stacks, overlay networks, secrets, configs, and volumes. One agent on a manager node, usage-based pricing, 10-minute setup. Open source.",
     canonicalPath: "/product/docker-swarm",
     twitterCard: "summary_large_image",
     pageType: "product",
@@ -640,7 +671,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "Raft manager quorum & service convergence alerting",
         "Per-container CPU and memory metrics",
         "Container and service logs",
-        "Flat project pricing",
+        "Usage-based pricing",
         "OpenTelemetry native",
         "Open source",
       ],

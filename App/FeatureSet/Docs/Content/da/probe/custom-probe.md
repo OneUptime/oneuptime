@@ -123,15 +123,15 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 ##### Med proxykonfiguration
@@ -153,29 +153,29 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
-          # Proxykonfiguration (valgfrit)
-          - name: HTTP_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: HTTPS_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: NO_PROXY
-            value: "localhost,.internal.example.com"
-          # Til proxy med autentificering:
-          # - name: HTTP_PROXY_URL
-          #   value: "http://username:password@proxy.example.com:8080"
-          # - name: HTTPS_PROXY_URL
-          #   value: "http://username:password@proxy.example.com:8080"
-          # - name: NO_PROXY
-          #   value: "localhost,.internal.example.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
+            # Proxykonfiguration (valgfrit)
+            - name: HTTP_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: HTTPS_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: NO_PROXY
+              value: "localhost,.internal.example.com"
+            # Til proxy med autentificering:
+            # - name: HTTP_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: HTTPS_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: NO_PROXY
+            #   value: "localhost,.internal.example.com"
 ```
 
 Kør derefter følgende kommando:
@@ -191,11 +191,13 @@ Hvis du selvhoster OneUptime, kan du ændre `ONEUPTIME_URL` til din brugerdefine
 Proben understøtter følgende miljøvariabler:
 
 #### Påkrævede variabler
+
 - `PROBE_KEY` – Probe-nøglen fra dit OneUptime-dashboard
 - `PROBE_ID` – Probe-ID'et fra dit OneUptime-dashboard
 - `ONEUPTIME_URL` – URL'en til din OneUptime-instans (standard: https://oneuptime.com)
 
 #### Valgfrie variabler
+
 - `HTTP_PROXY_URL` – HTTP-proxyserver-URL til HTTP-anmodninger
 - `HTTPS_PROXY_URL` – HTTP-proxyserver-URL til HTTPS-anmodninger
 - `NO_PROXY` – Kommaseparerede hosts eller domæner, der bør omgå proxyen
@@ -212,15 +214,18 @@ Proben understøtter følgende miljøvariabler:
 Proben understøtter både HTTP- og HTTPS-proxyservere. Når konfigureret, dirigerer proben al overvågningstrafik gennem de angivne proxyservere. Du kan også angive en kommasepareret `NO_PROXY`-liste for at omgå proxyen til interne hosts eller netværk.
 
 **Proxy-URL-format:**
+
 ```
 http://[username:password@]proxy.server.com:port
 ```
 
 **Eksempler:**
+
 - Grundlæggende proxy: `http://proxy.example.com:8080`
 - Med autentificering: `http://username:password@proxy.example.com:8080`
 
 **Understøttede funktioner:**
+
 - HTTP- og HTTPS-proxyunderstøttelse
 - Proxyautentificering (brugernavn/adgangskode)
 - Automatisk fallback mellem HTTP- og HTTPS-proxyer

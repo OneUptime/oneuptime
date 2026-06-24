@@ -10,7 +10,7 @@ Questa pagina è la **guida all'installazione**. Per configurare i monitor e gli
 
 - Docker Engine 20.10+
 - Accesso a `/var/run/docker.sock` sull'host
-- Un **token di acquisizione della telemetria di OneUptime** — creane uno da *Project Settings → Telemetry Ingestion Keys* e copia il valore
+- Un **token di acquisizione della telemetria di OneUptime** — creane uno da _Project Settings → Telemetry Ingestion Keys_ e copia il valore
 
 ## Avvio rapido (un solo comando)
 
@@ -64,11 +64,11 @@ docker compose up -d
 
 ## Variabili d'ambiente
 
-| Variabile | Obbligatoria | Descrizione |
-|----------|----------|-------------|
-| `ONEUPTIME_URL` | Sì | L'URL della tua istanza OneUptime (ad esempio `https://oneuptime.com` o il tuo host self-hosted) |
-| `ONEUPTIME_SERVICE_TOKEN` | Sì | Token di acquisizione della telemetria da *Project Settings → Telemetry Ingestion Keys* |
-| `DOCKER_HOST_NAME` | No | Nome descrittivo per questo host. Il valore predefinito è `docker-host`. Impostalo su un valore stabile per ciascun host (ad es. `prod-docker-01`) |
+| Variabile                 | Obbligatoria | Descrizione                                                                                                                                        |
+| ------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`           | Sì           | L'URL della tua istanza OneUptime (ad esempio `https://oneuptime.com` o il tuo host self-hosted)                                                   |
+| `ONEUPTIME_SERVICE_TOKEN` | Sì           | Token di acquisizione della telemetria da _Project Settings → Telemetry Ingestion Keys_                                                            |
+| `DOCKER_HOST_NAME`        | No           | Nome descrittivo per questo host. Il valore predefinito è `docker-host`. Impostalo su un valore stabile per ciascun host (ad es. `prod-docker-01`) |
 
 ## Verifica dell'installazione
 
@@ -117,14 +117,14 @@ docker compose down
 
 ## Cosa viene raccolto
 
-| Categoria | Dati |
-|----------|------|
-| **Metriche CPU** | Utilizzo totale, percentuale di utilizzo, tempo di throttling (per container) |
-| **Metriche di memoria** | Utilizzo, limite, percentuale, RSS, cache (per container) |
-| **Metriche di rete** | Byte e pacchetti ricevuti / trasmessi (per container) |
-| **Metriche di I/O a blocchi** | Byte e operazioni di lettura / scrittura (per container) |
-| **Informazioni sul container** | Uptime, conteggio dei riavvii, numero di processi |
-| **Log dei container** | Log stdout / stderr di tutti i container |
+| Categoria                      | Dati                                                                          |
+| ------------------------------ | ----------------------------------------------------------------------------- |
+| **Metriche CPU**               | Utilizzo totale, percentuale di utilizzo, tempo di throttling (per container) |
+| **Metriche di memoria**        | Utilizzo, limite, percentuale, RSS, cache (per container)                     |
+| **Metriche di rete**           | Byte e pacchetti ricevuti / trasmessi (per container)                         |
+| **Metriche di I/O a blocchi**  | Byte e operazioni di lettura / scrittura (per container)                      |
+| **Informazioni sul container** | Uptime, conteggio dei riavvii, numero di processi                             |
+| **Log dei container**          | Log stdout / stderr di tutti i container                                      |
 
 ## OneUptime self-hosted
 

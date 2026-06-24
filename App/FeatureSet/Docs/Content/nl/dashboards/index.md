@@ -23,27 +23,27 @@ Zie [Widgets](/docs/dashboards/widgets) voor de volledige lijst en wat elk laat 
 
 ## Kernbegrippen
 
-| Term | Betekenis |
-| --- | --- |
-| **Dashboard** | De hele pagina — een naam, een grid van widgets, controls voor het tijdsbereik en een lijst variabelen. |
-| **Widget** | Eén tegel op de pagina — een chart, een getal, een lijst, een alinea. |
-| **Variabele** | Een dropdown bovenaan die elke widget tegelijk filtert (cluster, service, klant, omgeving). |
-| **Tijdsbereik** | Het tijdvenster dat elke chart en elk getal gebruikt. Eén keer bovenaan de pagina ingesteld. |
-| **Refresh** | Hoe vaak widgets de data opnieuw bevragen. Uit, elke paar seconden, elke paar minuten. |
-| **Modus** | Ofwel **Edit** (widgets verslepen) of **View** (alleen lezen, zoals bezoekers het zien). |
+| Term            | Betekenis                                                                                               |
+| --------------- | ------------------------------------------------------------------------------------------------------- |
+| **Dashboard**   | De hele pagina — een naam, een grid van widgets, controls voor het tijdsbereik en een lijst variabelen. |
+| **Widget**      | Eén tegel op de pagina — een chart, een getal, een lijst, een alinea.                                   |
+| **Variabele**   | Een dropdown bovenaan die elke widget tegelijk filtert (cluster, service, klant, omgeving).             |
+| **Tijdsbereik** | Het tijdvenster dat elke chart en elk getal gebruikt. Eén keer bovenaan de pagina ingesteld.            |
+| **Refresh**     | Hoe vaak widgets de data opnieuw bevragen. Uit, elke paar seconden, elke paar minuten.                  |
+| **Modus**       | Ofwel **Edit** (widgets verslepen) of **View** (alleen lezen, zoals bezoekers het zien).                |
 
 ## Waar dashboards te vinden
 
 Open **Dashboards** in de linkernavigatie.
 
-| Pagina | Wat je daar doet |
-| --- | --- |
-| **Dashboards** | Je lijst met dashboards. Maak een nieuwe aan, zoek of filter op label. |
-| **Dashboard → View** | Het canvas. Wissel tussen **Edit** en **View** in de header. |
-| **Dashboard → Overview** | Beschrijving, eigenaren en labels. |
-| **Dashboard → Settings** | Publiek delen, wachtwoord, IP-allowlist, custom domain, branding. |
-| **Dashboard → Owners** | Gebruikers en teams met expliciete toegang. |
-| **Dashboard → Delete** | Verwijder het dashboard. |
+| Pagina                   | Wat je daar doet                                                       |
+| ------------------------ | ---------------------------------------------------------------------- |
+| **Dashboards**           | Je lijst met dashboards. Maak een nieuwe aan, zoek of filter op label. |
+| **Dashboard → View**     | Het canvas. Wissel tussen **Edit** en **View** in de header.           |
+| **Dashboard → Overview** | Beschrijving, eigenaren en labels.                                     |
+| **Dashboard → Settings** | Publiek delen, wachtwoord, IP-allowlist, custom domain, branding.      |
+| **Dashboard → Owners**   | Gebruikers en teams met expliciete toegang.                            |
+| **Dashboard → Delete**   | Verwijder het dashboard.                                               |
 
 ## Een dashboard bouwen
 

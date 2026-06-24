@@ -113,6 +113,7 @@ flowchart TB
 ```
 
 ## Was dieses Diagramm zeigt
+
 - Endbenutzer greifen über den Cluster-Ingress (NGINX) auf OneUptime zu, der zur Benutzeroberfläche und API weiterleitet.
 - Core-Dienste lesen/schreiben Zustand in PostgreSQL, Redis und ClickHouse.
 - Probes können innerhalb Ihres Clusters (empfohlen) und/oder anderswo in Ihrem Netzwerk laufen. Sie können überwachen:

@@ -103,12 +103,10 @@
   ],
   "start_url": "/dashboard/",
   "scope": "/dashboard/",
-  "scope_extensions": [
-    {"origin": "*.oneuptime.com"}
-  ],
+  "scope_extensions": [{ "origin": "*.oneuptime.com" }],
   "launch_handler": {
     "client_mode": ["focus-existing"]
-  },  
+  },
   "file_handlers": [],
   "display": "standalone",
   "orientation": "portrait-primary",
@@ -119,7 +117,12 @@
   "related_applications": [],
   "prefer_related_applications": false,
   "dir": "ltr",
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ],
   "edge_side_panel": {
     "preferred_width": 480
   },

@@ -27,20 +27,23 @@
 2. 點選「Add a permission」並選擇「Microsoft Graph」
 
 **新增委派權限 (Delegated Permissions)**（當代表已登入的使用者執行動作時）：
-   - **User.Read** - 在 OAuth 流程中取得已驗證使用者的個人資料資訊（顯示名稱、電子郵件）所必需
-   - **Team.ReadBasic.All** - 在選擇要連線的團隊時，列出使用者所屬團隊所必需
-   - **Channel.ReadBasic.All** - 讀取頻道資訊並列出團隊內頻道以進行通知傳遞所必需
-   - **ChannelMessage.Send** - 將警示與事件通知傳送到 Teams 頻道所必需
+
+- **User.Read** - 在 OAuth 流程中取得已驗證使用者的個人資料資訊（顯示名稱、電子郵件）所必需
+- **Team.ReadBasic.All** - 在選擇要連線的團隊時，列出使用者所屬團隊所必需
+- **Channel.ReadBasic.All** - 讀取頻道資訊並列出團隊內頻道以進行通知傳遞所必需
+- **ChannelMessage.Send** - 將警示與事件通知傳送到 Teams 頻道所必需
 
 **新增應用程式權限 (Application Permissions)**（當以應用程式本身執行動作而無已登入的使用者時）：
-   - **Team.ReadBasic.All** - 在授予管理員同意後，列出組織中所有團隊所必需
-   - **Channel.ReadBasic.All** - 驗證頻道是否存在並擷取頻道詳細資訊所必需
-   - **ChannelMessage.Send** - 以程式化方式將訊息傳送到頻道所必需
+
+- **Team.ReadBasic.All** - 在授予管理員同意後，列出組織中所有團隊所必需
+- **Channel.ReadBasic.All** - 驗證頻道是否存在並擷取頻道詳細資訊所必需
+- **ChannelMessage.Send** - 以程式化方式將訊息傳送到頻道所必需
 
 **注意：** Bot Framework 使用 Teams 應用程式資訊清單中定義的資源特定同意 (Resource-Specific Consent, RSC) 權限來處理訊息傳遞。這些權限為：
-   - **ChannelMessage.Send.Group** - 允許機器人將訊息傳送到團隊頻道
-   - **ChannelMessage.Read.Group** - 允許機器人讀取頻道訊息以進行互動式指令
-   - **Channel.Create.Group** - 允許機器人在需要時建立頻道
+
+- **ChannelMessage.Send.Group** - 允許機器人將訊息傳送到團隊頻道
+- **ChannelMessage.Read.Group** - 允許機器人讀取頻道訊息以進行互動式指令
+- **Channel.Create.Group** - 允許機器人在需要時建立頻道
 
 3. 為您的組織點選「Grant admin consent」
 
@@ -57,6 +60,7 @@
 
 1. 在 Azure Portal 中，導覽至「Azure Bot」並點選「Create」
 2. 填寫機器人建立表單：
+
    - **機器人控制代碼 (Bot handle)：** oneuptime-bot
    - **訂閱：** 您的 Azure 訂閱
    - **資源群組：** 建立一個新的或使用現有的

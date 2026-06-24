@@ -28,18 +28,18 @@ Välj en eller flera tjänster att övervaka profiler från. Tjänster måste sk
 
 ### Profilfilter
 
-| Filter | Beskrivning | Obligatorisk |
-|--------|-------------|--------------|
-| Profiltyper | Filtrera efter profiltypnamn (t.ex. CPU, minne, goroutines) | Nej |
-| Attribut | Nyckel-värdepar för filtrering på anpassade profilattribut | Nej |
-| Tidsfönster | Hur långt bakåt man söker efter profiler (i sekunder, standard: 60) | Nej |
+| Filter      | Beskrivning                                                         | Obligatorisk |
+| ----------- | ------------------------------------------------------------------- | ------------ |
+| Profiltyper | Filtrera efter profiltypnamn (t.ex. CPU, minne, goroutines)         | Nej          |
+| Attribut    | Nyckel-värdepar för filtrering på anpassade profilattribut          | Nej          |
+| Tidsfönster | Hur långt bakåt man söker efter profiler (i sekunder, standard: 60) | Nej          |
 
 ## Övervakningskriterier
 
 ### Tillgängliga kontrolltyper
 
-| Kontrolltyp | Beskrivning |
-|------------|-------------|
+| Kontrolltyp | Beskrivning                                             |
+| ----------- | ------------------------------------------------------- |
 | Profilantal | Antalet profiler som matchar dina filter i tidsfönstret |
 
 ### Filtertyper

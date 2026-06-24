@@ -56,8 +56,8 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 ```javascript
 // Ejemplo en Node.js
-const https = require('https');
-https.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY');
+const https = require("https");
+https.get("https://oneuptime.com/heartbeat/YOUR_SECRET_KEY");
 ```
 
 ```python
@@ -74,12 +74,12 @@ Puedes configurar criterios para determinar cuándo tu servicio se considera en 
 
 ### Tipos de verificación disponibles
 
-| Tipo de verificación | Descripción |
-|------------|-------------|
-| Solicitud entrante | Si se recibió un latido dentro de una ventana de tiempo |
-| Cuerpo de la solicitud | Contenido del cuerpo de la solicitud enviada con el latido |
-| Encabezado de la solicitud | Nombre de un encabezado de solicitud específico |
-| Valor del encabezado de la solicitud | Valor de un encabezado de solicitud específico |
+| Tipo de verificación                 | Descripción                                                |
+| ------------------------------------ | ---------------------------------------------------------- |
+| Solicitud entrante                   | Si se recibió un latido dentro de una ventana de tiempo    |
+| Cuerpo de la solicitud               | Contenido del cuerpo de la solicitud enviada con el latido |
+| Encabezado de la solicitud           | Nombre de un encabezado de solicitud específico            |
+| Valor del encabezado de la solicitud | Valor de un encabezado de solicitud específico             |
 
 ### Tipos de filtro
 

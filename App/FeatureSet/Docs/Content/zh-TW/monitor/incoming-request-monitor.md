@@ -56,8 +56,8 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 ```javascript
 // Node.js example
-const https = require('https');
-https.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY');
+const https = require("https");
+https.get("https://oneuptime.com/heartbeat/YOUR_SECRET_KEY");
 ```
 
 ```python
@@ -74,12 +74,12 @@ requests.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY')
 
 ### 可用的檢查類型
 
-| 檢查類型 | 說明 |
-|------------|-------------|
-| Incoming Request | 是否在某個時間範圍內收到心跳 |
-| Request Body | 隨心跳一同傳送的請求內文內容 |
-| Request Header | 特定請求標頭的名稱 |
-| Request Header Value | 特定請求標頭的值 |
+| 檢查類型             | 說明                         |
+| -------------------- | ---------------------------- |
+| Incoming Request     | 是否在某個時間範圍內收到心跳 |
+| Request Body         | 隨心跳一同傳送的請求內文內容 |
+| Request Header       | 特定請求標頭的名稱           |
+| Request Header Value | 特定請求標頭的值             |
 
 ### 篩選類型
 

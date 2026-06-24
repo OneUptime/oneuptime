@@ -2,23 +2,23 @@
 
 ## Översikt
 
-OneUptime grupperar hanterad molnberäkning i **Molnmiljöer** — AWS ECS / Fargate, Google Cloud Run, Azure Container Apps / Container Instances, AWS Elastic Beanstalk, AWS App Runner och Azure App Service. En miljö skapas per unik kombination av `cloud.platform` + `cloud.account.id` + `cloud.region`, så något i stil med *"AWS ECS · us-east-1 · 123456789012"* är en enda enhet som aggregerar varje arbetsbelastning som körs på den.
+OneUptime grupperar hanterad molnberäkning i **Molnmiljöer** — AWS ECS / Fargate, Google Cloud Run, Azure Container Apps / Container Instances, AWS Elastic Beanstalk, AWS App Runner och Azure App Service. En miljö skapas per unik kombination av `cloud.platform` + `cloud.account.id` + `cloud.region`, så något i stil med _"AWS ECS · us-east-1 · 123456789012"_ är en enda enhet som aggregerar varje arbetsbelastning som körs på den.
 
 Rena virtuella maskiner (EC2, Compute Engine, Azure VM) förblir **Värdar**, och Kubernetes ligger kvar under **Kubernetes**. Den här vyn är specifikt avsedd för hanterad / PaaS-beräkning.
 
 ## Förutsättningar
 
-- En **OneUptime-token för telemetriinmatning** — skapa en från *Project Settings → Telemetry Ingestion Keys*.
+- En **OneUptime-token för telemetriinmatning** — skapa en från _Project Settings → Telemetry Ingestion Keys_.
 - En OpenTelemetry Collector eller SDK som körs i eller bredvid dina arbetsbelastningar.
 
 ## Hur OneUptime identifierar en miljö
 
-| Attribut | Krävs | Syfte |
-|---|---|---|
-| `cloud.platform` | **ja** | Måste vara en plattform för hanterad beräkning (t.ex. `aws_ecs`, `gcp_cloud_run`, `azure_container_apps`) |
-| `cloud.account.id` | nej | Del av miljönyckeln |
-| `cloud.region` | nej | Del av miljönyckeln |
-| `service.instance.id` | nej | Spåras per uppgift/instans under **Instanser** (med live-CPU / minne) |
+| Attribut              | Krävs  | Syfte                                                                                                     |
+| --------------------- | ------ | --------------------------------------------------------------------------------------------------------- |
+| `cloud.platform`      | **ja** | Måste vara en plattform för hanterad beräkning (t.ex. `aws_ecs`, `gcp_cloud_run`, `azure_container_apps`) |
+| `cloud.account.id`    | nej    | Del av miljönyckeln                                                                                       |
+| `cloud.region`        | nej    | Del av miljönyckeln                                                                                       |
+| `service.instance.id` | nej    | Spåras per uppgift/instans under **Instanser** (med live-CPU / minne)                                     |
 
 Dessa fylls normalt i automatiskt av OpenTelemetrys **resursdetektorer**.
 
@@ -29,7 +29,7 @@ Lägg till `resourcedetection`-processorn i OpenTelemetry Collector:
 ```yaml
 processors:
   resourcedetection:
-    detectors: [env, ecs]   # use [gcp] on Cloud Run, [azure] on Azure
+    detectors: [env, ecs] # use [gcp] on Cloud Run, [azure] on Azure
     timeout: 5s
 ```
 

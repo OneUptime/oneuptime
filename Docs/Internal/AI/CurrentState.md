@@ -2,11 +2,11 @@
 
 > Internal doc. Last updated: June 2026. Companion to [Roadmap.md](./Roadmap.md) and [MarketLandscape.md](./MarketLandscape.md).
 >
-> This is an honest inventory of what exists in the codebase today, what works, and what blocks the vision: *"OneUptime continuously improves customer software using the telemetry it collects, automatically identifying issues and opening PRs that fix bugs and prevent incidents."*
+> This is an honest inventory of what exists in the codebase today, what works, and what blocks the vision: _"OneUptime continuously improves customer software using the telemetry it collects, automatically identifying issues and opening PRs that fix bugs and prevent incidents."_
 
 ## TL;DR
 
-We have already built a real, end-to-end **exception → AI agent → GitHub PR** pipeline. That is rare — almost nobody in the market has this shipped, and no open-source product does. But it is a skeleton: one task type, one git provider, one code agent, no verification, no intelligence about *what* to fix, no proactive surface, no feedback loop, and a UX that hides the magic. The foundations (task queue, billing, LLM abstraction, GitHub App, telemetry layer, incident stack, MCP server) are solid and worth keeping. The intelligence and the experience around them are what the overhaul must build.
+We have already built a real, end-to-end **exception → AI agent → GitHub PR** pipeline. That is rare — almost nobody in the market has this shipped, and no open-source product does. But it is a skeleton: one task type, one git provider, one code agent, no verification, no intelligence about _what_ to fix, no proactive surface, no feedback loop, and a UX that hides the magic. The foundations (task queue, billing, LLM abstraction, GitHub App, telemetry layer, incident stack, MCP server) are solid and worth keeping. The intelligence and the experience around them are what the overhaul must build.
 
 ---
 
@@ -98,7 +98,7 @@ What a user sees today: `AI Agent Tasks` list (status tabs, logs tab, PRs tab), 
 **The experience hides the product:**
 
 - Exception pages don't show "AI is fixing this" or link to tasks/PRs; PRs don't link back to the exception/incident that caused them.
-- Task creation is invisible (users can't see *why* a task appeared) and there's no manual trigger/cancel/retry UI.
+- Task creation is invisible (users can't see _why_ a task appeared) and there's no manual trigger/cancel/retry UI.
 - No notifications ("PR #1247 opened for the exception you were paged about").
 - No analytics: fix success rate, merge rate, cost trends, time saved.
 - Marketing site (`Home/.../ai-agent.ejs`) promises "Stop debugging. Start merging fixes," a chat interface, and root-cause analysis — most of which the product doesn't deliver yet. The gap between pitch and product is a churn risk.
@@ -117,10 +117,10 @@ What a user sees today: `AI Agent Tasks` list (status tabs, logs tab, PRs tab), 
 
 ## 9. What we should keep, fix, and replace
 
-| Verdict | Component |
-|---|---|
-| **Keep** | Task queue + status machine, LlmProvider/LlmLog/AIService billing stack, GitHub App auth, telemetry schema + fingerprinting, incident stack, MCP server skeleton, KEDA/Helm deployment story |
-| **Fix / extend** | Webhook handler (PR-state sync), `ServiceCodeRepository` governance enforcement, exception→task auto-triggering with gating, dashboard cross-linking, `IncidentAIContextBuilder` lifecycle hooks, workflow triggers from analytics models |
+| Verdict                 | Component                                                                                                                                                                                                                                                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Keep**                | Task queue + status machine, LlmProvider/LlmLog/AIService billing stack, GitHub App auth, telemetry schema + fingerprinting, incident stack, MCP server skeleton, KEDA/Helm deployment story                                                                                                                                               |
+| **Fix / extend**        | Webhook handler (PR-state sync), `ServiceCodeRepository` governance enforcement, exception→task auto-triggering with gating, dashboard cross-linking, `IncidentAIContextBuilder` lifecycle hooks, workflow triggers from analytics models                                                                                                  |
 | **Replace / build new** | Single-shot OpenCode shell-out → proper agent harness with plan/verify/iterate loops and pluggable backends; absent context engine (RCA evidence bundles, deploy markers, anomaly baselines); absent proactive surface (findings feed, Slack-first investigation); absent feedback loop (PR outcome → exception recurrence → agent memory) |
 
 The detailed plan for these is in [Roadmap.md](./Roadmap.md).

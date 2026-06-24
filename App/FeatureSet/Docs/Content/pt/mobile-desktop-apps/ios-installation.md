@@ -56,24 +56,29 @@ Sua conta do OneUptime e as escalas de plantão são armazenadas no servidor e n
 ## Solução de Problemas
 
 **A App Store informa que o aplicativo "Não Está Disponível na Sua Região":**
+
 - O aplicativo é publicado na App Store global. Se ele não aparecer na sua região, entre em contato com o [suporte](mailto:support@oneuptime.com).
 
 **"Erro de Rede" ao fazer login:**
+
 - Verifique se o **URL do Servidor** está correto e acessível a partir do seu dispositivo.
 - Se você está em uma rede corporativa ou VPN, certifique-se de que a instância do OneUptime está acessível.
 - Confirme que o servidor é servido via HTTPS com um certificado válido.
 
 **Não está recebendo notificações push:**
+
 - Abra **Ajustes → Notificações → OneUptime On-Call** e confirme que as notificações estão permitidas.
 - Desative o **Do Not Disturb** (Não perturbar) ou adicione o OneUptime On-Call à lista de permissões do seu modo de Foco ativo.
 - Saia da conta e entre novamente para atualizar o token de push registrado no servidor.
 - Usuários auto-hospedados: confirme que as notificações push estão configuradas na sua instância do OneUptime (consulte o guia de [Notificações Push](/docs/self-hosted/push-notifications) para auto-hospedagem).
 
 **Face ID / Touch ID não funcionam:**
+
 - Certifique-se de que a biometria está cadastrada em **Ajustes → Face ID e Código** ou **Ajustes → Touch ID e Código**.
 - Reabilite o desbloqueio biométrico pela tela de **Configurações** dentro do aplicativo OneUptime On-Call.
 
 **O aplicativo trava ao iniciar:**
+
 - Atualize para a versão mais recente pela App Store.
 - Reinicie seu dispositivo.
 - Se o problema persistir, exclua e reinstale o aplicativo, depois faça login novamente.

@@ -28,12 +28,12 @@ Vælg én eller flere tjenester, der skal overvåges logs fra. Tjenester skal se
 
 ### Log-filtre
 
-| Filter | Beskrivelse | Påkrævet |
-|--------|-------------|----------|
-| Alvorlighedsniveauer | Filtrer efter log-alvorlighed (ERROR, WARN, INFO, DEBUG osv.) | Nej |
-| Indhold | Tekstsøgning inden for log-beskedens krop | Nej |
-| Attributter | Nøgle-værdi-par til at filtrere på brugerdefinerede log-attributter | Nej |
-| Tidsvindue | Hvor langt tilbage der søges efter logs (i sekunder, standard: 60) | Nej |
+| Filter               | Beskrivelse                                                         | Påkrævet |
+| -------------------- | ------------------------------------------------------------------- | -------- |
+| Alvorlighedsniveauer | Filtrer efter log-alvorlighed (ERROR, WARN, INFO, DEBUG osv.)       | Nej      |
+| Indhold              | Tekstsøgning inden for log-beskedens krop                           | Nej      |
+| Attributter          | Nøgle-værdi-par til at filtrere på brugerdefinerede log-attributter | Nej      |
+| Tidsvindue           | Hvor langt tilbage der søges efter logs (i sekunder, standard: 60)  | Nej      |
 
 ### Alvorlighedsniveauer
 
@@ -51,9 +51,9 @@ Filtrer logs efter et eller flere alvorlighedsniveauer:
 
 ### Tilgængelige kontroltyper
 
-| Kontroltype | Beskrivelse |
-|------------|-------------|
-| Log-antal | Antallet af logs, der matcher dine filtre i tidsvinduet |
+| Kontroltype | Beskrivelse                                             |
+| ----------- | ------------------------------------------------------- |
+| Log-antal   | Antallet af logs, der matcher dine filtre i tidsvinduet |
 
 ### Filtertyper
 

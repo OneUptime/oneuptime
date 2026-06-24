@@ -11,8 +11,9 @@
 ## 리소스 구조
 
 모든 OneUptime Terraform 리소스는 단순화된 구조를 따릅니다:
+
 - `name` (필수) - 리소스 이름
-- `description` (선택 사항) - 리소스 설명  
+- `description` (선택 사항) - 리소스 설명
 - `data` (선택 사항) - JSON으로 된 복잡한 구성
 
 ## 중요: 버전 호환성
@@ -29,31 +30,39 @@
 ## OneUptime 버전 찾기
 
 ### 방법 1: 대시보드
+
 1. OneUptime 대시보드에 로그인합니다
 2. **설정** → **정보**로 이동합니다
 3. 버전 번호를 찾습니다 (예: "7.0.123")
 
 ### 방법 2: API 엔드포인트
+
 ```bash
 curl https://your-oneuptime-instance.com/api/status
 ```
 
 ### 방법 3: Docker 이미지
+
 Docker로 OneUptime을 실행하는 경우:
+
 ```bash
 docker images | grep oneuptime
 # 태그를 찾습니다 (예: oneuptime/dashboard:7.0.123)
 ```
 
 ### 방법 4: Helm 차트
+
 Helm을 사용하는 경우:
+
 ```bash
 helm list -n oneuptime
 # 차트 버전 확인
 ```
 
 ### 방법 5: 환경 변수
+
 구성 파일에서 버전 변수를 확인합니다:
+
 ```bash
 grep -r "APP_VERSION\|IMAGE_TAG" /path/to/your/oneuptime/config
 ```
@@ -112,7 +121,7 @@ terraform {
     }
   }
   required_version = ">= 1.0"
-  
+
   # 선택 사항: 팀 협업을 위한 원격 상태 사용
   backend "s3" {
     bucket = "your-terraform-state-bucket"
@@ -163,13 +172,13 @@ resource "oneuptime_team" "infrastructure" {
 resource "oneuptime_monitor" "database" {
   name       = "${var.environment}-database"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "port"
   hostname     = "db.internal.yourcompany.com"
   port         = 5432
   interval     = "2m"
   timeout      = "10s"
-  
+
   tags = {
     team        = "infrastructure"
     service     = "database"
@@ -193,7 +202,7 @@ environment = "development"
 
 ```hcl
 # staging.tfvars
-oneuptime_url = "https://oneuptime-staging.yourcompany.com"  
+oneuptime_url = "https://oneuptime-staging.yourcompany.com"
 environment = "staging"
 ```
 
@@ -258,6 +267,7 @@ terraform apply
 ### 방화벽 규칙
 
 Terraform 실행기가 다음에 액세스할 수 있는지 확인합니다:
+
 - OneUptime API 엔드포인트 (일반적으로 포트 443/HTTPS)
 - 모니터링되는 내부 리소스
 
@@ -287,6 +297,7 @@ export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
 ### 2. 최소 권한 API 키
 
 최소 필요 권한으로 API 키를 생성합니다:
+
 - 모니터 관리
 - 알림 정책 관리
 - 팀 관리 (필요한 경우)
@@ -298,7 +309,7 @@ export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
 provider "oneuptime" {
   oneuptime_url = "https://oneuptime.yourcompany.com"
   api_key       = var.oneuptime_api_key
-  
+
   # 지원되는 경우 추가 보안 옵션
   verify_ssl = true
   timeout    = "30s"
@@ -313,10 +324,10 @@ Terraform 자동화에 대한 모니터를 생성합니다:
 resource "oneuptime_monitor" "terraform_runner" {
   name       = "Terraform 실행기 상태"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "heartbeat"
   interval     = "15m"
-  
+
   tags = {
     automation = "terraform"
     criticality = "medium"
@@ -333,6 +344,7 @@ resource "oneuptime_monitor" "terraform_runner" {
 ```
 
 **해결책**:
+
 1. OneUptime 인스턴스가 실행 중인지 확인합니다
 2. API URL이 올바른지 확인합니다
 3. 방화벽/네트워크 연결을 확인합니다
@@ -345,6 +357,7 @@ resource "oneuptime_monitor" "terraform_runner" {
 ```
 
 **해결책**:
+
 1. OneUptime 버전 확인: `curl https://your-instance/api/status`
 2. 공급자 버전을 일치하도록 업데이트합니다
 3. `terraform init -upgrade`를 실행합니다
@@ -389,7 +402,7 @@ tar -czf terraform-config-$(date +%Y%m%d).tar.gz *.tf *.tfvars
 ```bash
 # 환경 생성
 terraform workspace new dev
-terraform workspace new staging  
+terraform workspace new staging
 terraform workspace new prod
 
 # 환경 간 전환

@@ -8,20 +8,20 @@ Detta fungerar för AWS Lambda, Google Cloud Functions, Azure Functions, Cloudfl
 
 ## Förutsättningar
 
-- En **OneUptime Telemetry Ingestion Token** — skapa en från *Project Settings → Telemetry Ingestion Keys* och kopiera värdet för `x-oneuptime-token`.
+- En **OneUptime Telemetry Ingestion Token** — skapa en från _Project Settings → Telemetry Ingestion Keys_ och kopiera värdet för `x-oneuptime-token`.
 - OpenTelemetry SDK (eller ett lager för automatisk instrumentering) för din funktions språk.
 
 ## Hur OneUptime identifierar en funktion
 
 OneUptime nycklar varje funktion på resursattributet `faas.name`:
 
-| Attribut | Obligatoriskt | Syfte |
-|---|---|---|
-| `faas.name` | **ja** | Funktionsidentitet (t.ex. `checkout-handler`) |
-| `faas.version` | nej | Visas i översikten |
-| `faas.instance` | nej | Spåras per instans under fliken **Instances** |
-| `cloud.platform` | nej | `aws_lambda`, `gcp_cloud_functions`, `azure_functions`, ... |
-| `cloud.provider` / `cloud.region` / `cloud.account.id` | nej | Visas i översikten |
+| Attribut                                               | Obligatoriskt | Syfte                                                       |
+| ------------------------------------------------------ | ------------- | ----------------------------------------------------------- |
+| `faas.name`                                            | **ja**        | Funktionsidentitet (t.ex. `checkout-handler`)               |
+| `faas.version`                                         | nej           | Visas i översikten                                          |
+| `faas.instance`                                        | nej           | Spåras per instans under fliken **Instances**               |
+| `cloud.platform`                                       | nej           | `aws_lambda`, `gcp_cloud_functions`, `azure_functions`, ... |
+| `cloud.provider` / `cloud.region` / `cloud.account.id` | nej           | Visas i översikten                                          |
 
 > En funktion som även sätter `service.name` visas fortfarande under **Services** också. Vyn **Serverless Functions** är den FaaS-fokuserade linsen, avgränsad av `faas.name`.
 
@@ -57,4 +57,4 @@ När funktionen sänder en span, logg eller ett mätvärde visas den under **Ser
 - **Instances** — en liveräkning av de `faas.instance`-värden som setts.
 - Fullständiga flikar för **Logs**, **Traces** och **Metrics** avgränsade till denna funktion.
 
-Du kan även automatiskt tillämpa etiketter och ägare via *Serverless → Settings → Label Rules / Owner Rules*.
+Du kan även automatiskt tillämpa etiketter och ägare via _Serverless → Settings → Label Rules / Owner Rules_.

@@ -33,6 +33,10 @@ export default class AddExponentialHistogramAndSummaryColumnsToMetric extends Da
     super("AddExponentialHistogramAndSummaryColumnsToMetric");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     const allColumns: Array<AnalyticsTableColumn> = new Metric().tableColumns;
 

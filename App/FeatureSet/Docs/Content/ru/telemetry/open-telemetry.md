@@ -1,4 +1,4 @@
-# Интеграция OpenTelemetry (журналы, метрики и трассировки) с OneUptime. 
+# Интеграция OpenTelemetry (журналы, метрики и трассировки) с OneUptime.
 
 ### Шаг 1 — Создание токена приёма телеметрии.
 
@@ -6,7 +6,7 @@
 
 После регистрации в OneUptime и создания проекта нажмите «Ещё» в панели навигации и выберите «Настройки проекта».
 
-На странице ключей приёма телеметрии нажмите «Создать ключ приёма» для создания токена. 
+На странице ключей приёма телеметрии нажмите «Создать ключ приёма» для создания токена.
 
 ![Создание сервиса](/docs/static/images/TelemetryIngestionKeys.png)
 
@@ -14,8 +14,7 @@
 
 ![Просмотр сервиса](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
-### Шаг 2 
+### Шаг 2
 
 #### Настройка телеметрического сервиса в вашем приложении.
 
@@ -35,17 +34,15 @@
 - [.NET / C#](https://opentelemetry.io/docs/instrumentation/net/)
 - [Swift](https://opentelemetry.io/docs/instrumentation/swift/)
 
-
 **Интеграция с OneUptime**
 
 После настройки телеметрического сервиса в вашем приложении выполните интеграцию с OneUptime, установив следующие переменные среды.
 
-| Переменная среды | Значение |
-| --- | --- |
-| OTEL_EXPORTER_OTLP_HEADERS | x-oneuptime-token=YOUR_ONEUPTIME_SERVICE_TOKEN |
-| OTEL_EXPORTER_OTLP_ENDPOINT | https://oneuptime.com/otlp |
-| OTEL_SERVICE_NAME | NAME_OF_YOUR_SERVICE |
-
+| Переменная среды            | Значение                                       |
+| --------------------------- | ---------------------------------------------- |
+| OTEL_EXPORTER_OTLP_HEADERS  | x-oneuptime-token=YOUR_ONEUPTIME_SERVICE_TOKEN |
+| OTEL_EXPORTER_OTLP_ENDPOINT | https://oneuptime.com/otlp                     |
+| OTEL_SERVICE_NAME           | NAME_OF_YOUR_SERVICE                           |
 
 **Пример**
 
@@ -55,17 +52,15 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=https://oneuptime.com/otlp
 export OTEL_SERVICE_NAME=my-service
 ```
 
-
 **Самостоятельный хостинг OneUptime**
 
 При самостоятельном хостинге значение можно изменить на вашу конечную точку коллектора OpenTelemetry (например: `http(s)://YOUR-ONEUPTIME-HOST/otlp`)
 
 После запуска приложения журналы должны появиться на странице телеметрического сервиса OneUptime. При необходимости помощи обращайтесь по адресу support@oneuptime.com
 
-
 #### Использование коллектора OpenTelemetry
 
-Вместо прямой отправки телеметрических данных из приложения можно использовать коллектор OpenTelemetry. 
+Вместо прямой отправки телеметрических данных из приложения можно использовать коллектор OpenTelemetry.
 При использовании коллектора OpenTelemetry настройте экспортёр OneUptime в конфигурационном файле коллектора.
 
 Пример конфигурации коллектора OpenTelemetry:
@@ -80,7 +75,6 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 exporters:
-
   # Экспорт через HTTP
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"

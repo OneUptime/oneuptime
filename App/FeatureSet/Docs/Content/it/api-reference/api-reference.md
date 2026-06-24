@@ -6,7 +6,6 @@ OneUptime fornisce un'API REST completa che ti consente di integrare le funziona
 
 La nostra API è organizzata attorno ai principi REST e utilizza codici di risposta HTTP, autenticazione e verbi standard. Tutti gli endpoint API restituiscono risposte JSON.
 
-
 ### Autenticazione
 
 Tutte le richieste API richiedono l'autenticazione tramite chiavi API. Puoi generare chiavi API dalla tua dashboard OneUptime in Impostazioni > Chiavi API.

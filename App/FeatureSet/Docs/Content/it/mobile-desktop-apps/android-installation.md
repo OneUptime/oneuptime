@@ -54,9 +54,11 @@ Le notifiche push vengono recapitate tramite Firebase Cloud Messaging (FCM) tram
 ## Aggiornamenti
 
 **Google Play:**
+
 - Gli aggiornamenti si installano automaticamente. Per attivarne uno manualmente, apri **Play Store → Profilo → Gestisci app e dispositivo → Aggiornamenti disponibili → OneUptime On-Call → Aggiorna**.
 
 **Sideload APK:**
+
 - Scarica nuovamente l'ultimo APK dal link delle GitHub Releases sopra e installalo sopra l'app esistente — i tuoi dati, l'URL del server e l'accesso vengono preservati.
 
 ## Disinstallazione
@@ -70,11 +72,13 @@ Il tuo account OneUptime e i turni di reperibilità sono memorizzati lato server
 ## Risoluzione dei problemi
 
 **"Errore di rete" durante l'accesso:**
+
 - Verifica che l'**URL del server** sia corretto e raggiungibile dal tuo dispositivo.
 - Se sei su una rete aziendale o VPN, assicurati che l'istanza OneUptime sia accessibile.
 - Verifica che il server sia servito tramite HTTPS con un certificato valido.
 
 **Non si ricevono notifiche push:**
+
 - Verifica che le notifiche siano attive in **Impostazioni → App → OneUptime On-Call → Notifiche**.
 - Disattiva l'ottimizzazione della batteria per OneUptime On-Call (vedi Notifiche push sopra).
 - Assicurati che Do Not Disturb sia disattivato, o che OneUptime On-Call sia nell'elenco delle eccezioni.
@@ -82,14 +86,17 @@ Il tuo account OneUptime e i turni di reperibilità sono memorizzati lato server
 - Utenti self-hosted: verifica che le notifiche push siano configurate sulla tua istanza OneUptime (consulta la guida self-hosted [Push Notifications](/docs/self-hosted/push-notifications)).
 
 **Lo sblocco biometrico non funziona:**
+
 - Registra un'impronta digitale in **Impostazioni → Sicurezza → Impronta digitale**.
 - Riattiva lo sblocco biometrico dalla schermata **Impostazioni** all'interno dell'app OneUptime On-Call.
 
 **Installazione APK bloccata:**
+
 - Devi concedere al browser il permesso di installare app sconosciute (vedi Opzione 2 sopra).
 - Alcuni operatori o profili aziendali del dispositivo bloccano completamente il sideloading; in tal caso, utilizza la versione di Google Play.
 
 **L'app si blocca all'avvio:**
+
 - Aggiorna all'ultima versione da Google Play o all'ultimo APK.
 - Riavvia il dispositivo.
 - Se il problema persiste, disinstalla e reinstalla, quindi accedi nuovamente.

@@ -10,14 +10,14 @@ Alle drei Seiten bearbeiten dasselbe zugrunde liegende Regelmodell — sie sind 
 
 ## Aufbau einer Regel
 
-| Feld | Zweck |
-| --- | --- |
-| **Name** | Kurzer, menschenlesbarer Name. Wird in Audit-Logs angezeigt. |
-| **Beschreibung** | Optionaler Kontext für Teamkollegen. |
-| **Aktiviert** | Umschalter, um eine Regel zu pausieren, ohne sie zu löschen. |
-| **Titelmuster** | Case-insensitiver Regex, der gegen den Titel der Entität geprüft wird. Leer = jeder Titel passt. |
-| **Beschreibungsmuster** | Case-insensitiver Regex, der gegen die Beschreibung der Entität geprüft wird. Leer = jede Beschreibung passt. |
-| **Zu startende Runbooks** | Ein oder mehrere Runbooks, die gestartet werden, wenn die Regel feuert. |
+| Feld                      | Zweck                                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Name**                  | Kurzer, menschenlesbarer Name. Wird in Audit-Logs angezeigt.                                                  |
+| **Beschreibung**          | Optionaler Kontext für Teamkollegen.                                                                          |
+| **Aktiviert**             | Umschalter, um eine Regel zu pausieren, ohne sie zu löschen.                                                  |
+| **Titelmuster**           | Case-insensitiver Regex, der gegen den Titel der Entität geprüft wird. Leer = jeder Titel passt.              |
+| **Beschreibungsmuster**   | Case-insensitiver Regex, der gegen die Beschreibung der Entität geprüft wird. Leer = jede Beschreibung passt. |
+| **Zu startende Runbooks** | Ein oder mehrere Runbooks, die gestartet werden, wenn die Regel feuert.                                       |
 
 ## Matching-Semantik
 

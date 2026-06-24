@@ -397,6 +397,9 @@ import { MoveRequireSsoForLoginToGlobalConfig1782300000000 } from "./17823000000
 import { MigrationName1782310000000 } from "./1782310000000-MigrationName";
 import { RemoveIsTestedFromGlobalSsoAndOidc1782400000000 } from "./1782400000000-RemoveIsTestedFromGlobalSsoAndOidc";
 import { OptimizeTelemetryExceptionWritePath1782500000000 } from "./1782500000000-OptimizeTelemetryExceptionWritePath";
+import { AddArchiveToResources1782600000000 } from "./1782600000000-AddArchiveToResources";
+import { RemoveDeprecatedEnableSubscribersFromStatusPage1782700000000 } from "./1782700000000-RemoveDeprecatedEnableSubscribersFromStatusPage";
+import { WidenDockerResourceImageColumns1782800000000 } from "./1782800000000-WidenDockerResourceImageColumns";
 
 export default [
   InitialMigration,
@@ -798,4 +801,7 @@ export default [
   MigrationName1782310000000,
   RemoveIsTestedFromGlobalSsoAndOidc1782400000000,
   OptimizeTelemetryExceptionWritePath1782500000000,
+  AddArchiveToResources1782600000000,
+  RemoveDeprecatedEnableSubscribersFromStatusPage1782700000000,
+  WidenDockerResourceImageColumns1782800000000,
 ];

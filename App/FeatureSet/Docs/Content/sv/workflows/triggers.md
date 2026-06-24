@@ -65,12 +65,12 @@ Sök i utlösarpaletten på namn för att hitta den du vill ha.
 
 ## Vilken utlösare ska jag använda?
 
-| Om du vill… | Välj |
-| --- | --- |
-| Klicka på en knapp för att köra arbetsflödet | **Manuell** |
-| Köra på ett återkommande schema | **Schemalagd** |
-| Låta ett annat system skicka in data | **Webhook** |
-| Reagera på något inuti OneUptime | **OneUptime-händelse** |
+| Om du vill…                                  | Välj                   |
+| -------------------------------------------- | ---------------------- |
+| Klicka på en knapp för att köra arbetsflödet | **Manuell**            |
+| Köra på ett återkommande schema              | **Schemalagd**         |
+| Låta ett annat system skicka in data         | **Webhook**            |
+| Reagera på något inuti OneUptime             | **OneUptime-händelse** |
 
 Ett arbetsflöde kan bara ha en utlösare. Om du behöver två sätt att starta samma automation, bygg den delade logiken i ett arbetsflöde och anropa det från två tunna "wrapper"-arbetsflöden med komponenten **Execute Workflow**.
 

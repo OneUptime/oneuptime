@@ -11,8 +11,9 @@ This guide is specifically for customers running self-hosted OneUptime instances
 ## Resource Structure
 
 All OneUptime Terraform resources follow a simplified structure:
+
 - `name` (required) - Resource name
-- `description` (optional) - Resource description  
+- `description` (optional) - Resource description
 - `data` (optional) - Complex configuration as JSON
 
 ## Critical: Version Compatibility
@@ -29,31 +30,39 @@ All OneUptime Terraform resources follow a simplified structure:
 ## Finding Your OneUptime Version
 
 ### Method 1: Dashboard
+
 1. Log into your OneUptime dashboard
 2. Go to **Settings** → **About**
 3. Look for the version number (e.g., "7.0.123")
 
 ### Method 2: API Endpoint
+
 ```bash
 curl https://your-oneuptime-instance.com/api/status
 ```
 
 ### Method 3: Docker Images
+
 If you're running OneUptime with Docker:
+
 ```bash
 docker images | grep oneuptime
 # Look for the tag, e.g., oneuptime/dashboard:7.0.123
 ```
 
 ### Method 4: Helm Chart
+
 If you're using Helm:
+
 ```bash
 helm list -n oneuptime
 # Check the chart version
 ```
 
 ### Method 5: Environment Variables
+
 Check your configuration files for version variables:
+
 ```bash
 grep -r "APP_VERSION\|IMAGE_TAG" /path/to/your/oneuptime/config
 ```
@@ -112,7 +121,7 @@ terraform {
     }
   }
   required_version = ">= 1.0"
-  
+
   # Optional: Use remote state for team collaboration
   backend "s3" {
     bucket = "your-terraform-state-bucket"
@@ -161,7 +170,7 @@ resource "oneuptime_team" "infrastructure" {
 
 resource "oneuptime_team" "development" {
   name        = "Development Team"
-  description = "Application development team"  
+  description = "Application development team"
   project_id = oneuptime_project.main.id
 }
 
@@ -169,13 +178,13 @@ resource "oneuptime_team" "development" {
 resource "oneuptime_monitor" "database" {
   name       = "${var.environment}-database"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "port"
   hostname     = "db.internal.yourcompany.com"
   port         = 5432
   interval     = "2m"
   timeout      = "10s"
-  
+
   tags = {
     team        = "infrastructure"
     service     = "database"
@@ -187,14 +196,14 @@ resource "oneuptime_monitor" "database" {
 resource "oneuptime_monitor" "application" {
   name       = "${var.environment}-application"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "website"
   url          = "https://app.yourcompany.com/health"
   interval     = "1m"
   timeout      = "30s"
-  
+
   expected_status_codes = [200]
-  
+
   tags = {
     team        = "development"
     service     = "application"
@@ -208,11 +217,11 @@ resource "oneuptime_on_call_policy" "infrastructure_oncall" {
   name       = "Infrastructure On-Call"
   project_id = oneuptime_project.main.id
   team_id    = oneuptime_team.infrastructure.id
-  
+
   schedules {
     name     = "24x7 Infrastructure"
     timezone = "America/New_York"
-    
+
     layers {
       name          = "Primary"
       users         = ["infra1@yourcompany.com", "infra2@yourcompany.com"]
@@ -228,17 +237,17 @@ resource "oneuptime_on_call_policy" "infrastructure_oncall" {
 resource "oneuptime_alert_policy" "critical_infrastructure" {
   name       = "Critical Infrastructure Alerts"
   project_id = oneuptime_project.main.id
-  
+
   conditions {
     monitor_id = oneuptime_monitor.database.id
     threshold  = "down"
   }
-  
+
   actions {
     type = "email"
     recipients = ["infrastructure@yourcompany.com"]
   }
-  
+
   actions {
     type             = "oncall_escalation"
     oncall_policy_id = oneuptime_on_call_policy.infrastructure_oncall.id
@@ -249,14 +258,14 @@ resource "oneuptime_alert_policy" "critical_infrastructure" {
 resource "oneuptime_status_page" "internal" {
   name       = "Internal Services Status"
   project_id = oneuptime_project.main.id
-  
+
   domain = "status.internal.yourcompany.com"
-  
+
   components {
     name       = "Database"
     monitor_id = oneuptime_monitor.database.id
   }
-  
+
   components {
     name       = "Application"
     monitor_id = oneuptime_monitor.application.id
@@ -289,7 +298,7 @@ environment = "development"
 
 ```hcl
 # staging.tfvars
-oneuptime_url = "https://oneuptime-staging.yourcompany.com"  
+oneuptime_url = "https://oneuptime-staging.yourcompany.com"
 environment = "staging"
 ```
 
@@ -354,6 +363,7 @@ terraform apply
 ### Firewall Rules
 
 Ensure your Terraform runner can access:
+
 - OneUptime API endpoint (usually port 443/HTTPS)
 - Any internal resources being monitored
 
@@ -383,6 +393,7 @@ export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
 ### 2. Least Privilege API Keys
 
 Create API keys with minimal required permissions:
+
 - Monitor management
 - Alert policy management
 - Team management (if needed)
@@ -394,7 +405,7 @@ Create API keys with minimal required permissions:
 provider "oneuptime" {
   oneuptime_url = "https://oneuptime.yourcompany.com"
   api_key       = var.oneuptime_api_key
-  
+
   # Additional security options if supported
   verify_ssl = true
   timeout    = "30s"
@@ -409,10 +420,10 @@ Create monitors for your Terraform automation:
 resource "oneuptime_monitor" "terraform_runner" {
   name       = "Terraform Runner Health"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "heartbeat"
   interval     = "15m"
-  
+
   tags = {
     automation = "terraform"
     criticality = "medium"
@@ -429,6 +440,7 @@ Error: connection refused
 ```
 
 **Solutions**:
+
 1. Check OneUptime instance is running
 2. Verify API URL is correct
 3. Check firewall/network connectivity
@@ -441,6 +453,7 @@ Error: API version incompatible
 ```
 
 **Solutions**:
+
 1. Check OneUptime version: `curl https://your-instance/api/status`
 2. Update provider version to match
 3. Run `terraform init -upgrade`
@@ -485,7 +498,7 @@ tar -czf terraform-config-$(date +%Y%m%d).tar.gz *.tf *.tfvars
 ```bash
 # Create environments
 terraform workspace new dev
-terraform workspace new staging  
+terraform workspace new staging
 terraform workspace new prod
 
 # Switch between environments

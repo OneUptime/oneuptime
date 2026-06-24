@@ -82,9 +82,12 @@
 您可以使用 iframe 將公開儀表板嵌入您自己的網站：
 
 ```html
-<iframe src="https://dashboard.acme.com/view"
-        width="100%" height="800"
-        frameborder="0"></iframe>
+<iframe
+  src="https://dashboard.acme.com/view"
+  width="100%"
+  height="800"
+  frameborder="0"
+></iframe>
 ```
 
 如果儀表板設有主密碼，訪客將會在 iframe 內看到密碼提示。

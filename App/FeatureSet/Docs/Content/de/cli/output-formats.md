@@ -20,6 +20,7 @@ oneuptime incident list
 ```
 
 Verhalten des Tabellenformats:
+
 - Wählt bis zu 6 Spalten aus, priorisiert: `_id`, `name`, `title`, `createdAt`, `updatedAt`
 - Kürzt Werte, die länger als 60 Zeichen sind, mit `...`
 - Verwendet farblich hervorgehobene Überschriften (mit `--no-color` deaktivierbar)
@@ -72,9 +73,9 @@ NO_COLOR=1 oneuptime incident list
 
 ## Spezielle Ausgabefälle
 
-| Szenario | Ausgabe |
-|----------|--------|
-| Leeres Ergebnisset | `"No results found."` |
-| Keine Daten zurückgegeben | `"No data returned."` |
+| Szenario                       | Ausgabe                       |
+| ------------------------------ | ----------------------------- |
+| Leeres Ergebnisset             | `"No results found."`         |
+| Keine Daten zurückgegeben      | `"No data returned."`         |
 | Einzelnes Objekt (z. B. `get`) | Schlüssel-Wert-Tabellenformat |
-| `count`-Befehl | Einfacher numerischer Wert |
+| `count`-Befehl                 | Einfacher numerischer Wert    |

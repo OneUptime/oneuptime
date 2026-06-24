@@ -28,20 +28,20 @@ Vælg én eller flere tjenester, der skal overvåges undtagelser fra. Tjenester 
 
 ### Undtagelsesfiltre
 
-| Filter | Beskrivelse | Påkrævet |
-|--------|-------------|----------|
-| Undtagelsestyper | Filtrer efter undtagelsestypenavne (f.eks. `NullPointerException`, `TypeError`) | Nej |
-| Meddelelse | Tekstsøgning inden for undtagelsesmeddelelser | Nej |
-| Inkludér løste | Inkludér undtagelser, der er markeret som løst (standard: falsk) | Nej |
-| Inkludér arkiverede | Inkludér undtagelser, der er arkiveret (standard: falsk) | Nej |
-| Tidsvindue | Hvor langt tilbage der søges efter undtagelser (i sekunder, standard: 60) | Nej |
+| Filter              | Beskrivelse                                                                     | Påkrævet |
+| ------------------- | ------------------------------------------------------------------------------- | -------- |
+| Undtagelsestyper    | Filtrer efter undtagelsestypenavne (f.eks. `NullPointerException`, `TypeError`) | Nej      |
+| Meddelelse          | Tekstsøgning inden for undtagelsesmeddelelser                                   | Nej      |
+| Inkludér løste      | Inkludér undtagelser, der er markeret som løst (standard: falsk)                | Nej      |
+| Inkludér arkiverede | Inkludér undtagelser, der er arkiveret (standard: falsk)                        | Nej      |
+| Tidsvindue          | Hvor langt tilbage der søges efter undtagelser (i sekunder, standard: 60)       | Nej      |
 
 ## Overvågningskriterier
 
 ### Tilgængelige kontroltyper
 
-| Kontroltype | Beskrivelse |
-|------------|-------------|
+| Kontroltype      | Beskrivelse                                                    |
+| ---------------- | -------------------------------------------------------------- |
 | Undtagelsesantal | Antallet af undtagelser, der matcher dine filtre i tidsvinduet |
 
 ### Filtertyper

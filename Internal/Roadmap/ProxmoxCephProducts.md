@@ -11,13 +11,13 @@ commit (e.g. `Pages/Docker/View/` now has Owners/Incidents/Alerts tabs), prefer 
 
 Stamped as OTLP **resource attributes** by our agent collector configs:
 
-| Attribute | Required | Meaning |
-|---|---|---|
-| `proxmox.cluster.name` | yes | Join key. User-configured cluster identifier (defaults to PVE cluster name). Discovery + scoping key, analog of `k8s.cluster.name`. |
-| `proxmox.node.name` | when node-scoped | PVE node hostname. |
+| Attribute                                                                          | Required          | Meaning                                                                                                                                     |
+| ---------------------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `proxmox.cluster.name`                                                             | yes               | Join key. User-configured cluster identifier (defaults to PVE cluster name). Discovery + scoping key, analog of `k8s.cluster.name`.         |
+| `proxmox.node.name`                                                                | when node-scoped  | PVE node hostname.                                                                                                                          |
 | `proxmox.guest.vmid` / `proxmox.guest.name` / `proxmox.guest.type` (`qemu`\|`lxc`) | when guest-scoped | Present when a resource is guest-scoped (PVE 9 OTLP push path; pve-exporter keeps guest identity in datapoint labels like `id="qemu/100"`). |
-| `ceph.cluster.name` | yes | Join key. User-configured (env `CEPH_CLUSTER_NAME`). |
-| `ceph.cluster.fsid` | optional | Ceph cluster fsid when known. |
+| `ceph.cluster.name`                                                                | yes               | Join key. User-configured (env `CEPH_CLUSTER_NAME`).                                                                                        |
+| `ceph.cluster.fsid`                                                                | optional          | Ceph cluster fsid when known.                                                                                                               |
 
 Guest/OSD/pool **identity in metric datapoint labels** (`id`, `ceph_daemon`, `pool`)
 is queried via ClickHouse group-by on pages — same approach as Docker's Containers
@@ -127,20 +127,20 @@ Page sets (clone current `Pages/Docker/` equivalents):
 
 - `Pages/Proxmox/`: `Clusters.tsx`, `Documentation.tsx`, `Layout.tsx`,
   `SideMenu.tsx`, `Utils/DocumentationMarkdown.ts`, `View/{Layout,SideMenu,Overview,
-  Nodes,Guests,Storage,Metrics,Logs,Settings,Delete,Documentation}.tsx`.
+Nodes,Guests,Storage,Metrics,Logs,Settings,Delete,Documentation}.tsx`.
   Nodes/Guests/Storage = ClickHouse metric group-by pages modeled on Docker's
   `View/Containers.tsx` (group `pve_*` series by `id` label: `node/...`, `qemu/...`,
   `lxc/...`, `storage/...`).
 - `Pages/Ceph/`: `Clusters.tsx`, `Documentation.tsx`, `Layout.tsx`, `SideMenu.tsx`,
   `Utils/DocumentationMarkdown.ts`, `View/{Layout,SideMenu,Overview,Osds,Pools,
-  Metrics,Logs,Settings,Delete,Documentation}.tsx`. Overview leads with health
+Metrics,Logs,Settings,Delete,Documentation}.tsx`. Overview leads with health
   status (`ceph_health_status` 0/1/2 → OK/Warning/Error pill) + capacity; Osds/Pools
   group by `ceph_daemon` / `pool` labels.
 - New `Routes/ProxmoxRoutes.tsx`, `Routes/CephRoutes.tsx` (clone `DockerRoutes.tsx`).
 - New `Utils/Breadcrumbs/ProxmoxBreadcrumbs.ts`, `CephBreadcrumbs.ts`.
 - New `Components/Proxmox/DocumentationCard.tsx`, `Components/Ceph/DocumentationCard.tsx`.
 - New `Components/Form/Monitor/ProxmoxMonitor/{ProxmoxMonitorStepForm,
-  ProxmoxMetricPicker,ProxmoxTemplatePicker}.tsx`, same for `CephMonitor/`.
+ProxmoxMetricPicker,ProxmoxTemplatePicker}.tsx`, same for `CephMonitor/`.
 
 **PageMap key contract (F/G/H must use these exact names; H defines them):**
 `PROXMOX_CLUSTERS`, `PROXMOX_DOCUMENTATION`, `PROXMOX_CLUSTER_VIEW`,

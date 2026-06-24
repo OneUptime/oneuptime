@@ -173,7 +173,6 @@ DROP TABLE IF EXISTS MetricItemAggMV1mByHost_backup SETTINGS max_table_size_to_d
 
 > 팁: 다른 모든 메이저 업그레이드와 마찬가지로, 먼저 스테이징 환경에서 테스트하고 프로덕션에서 복사본에 의존하기 전에 텔레메트리가 새 테이블로 흘러 들어가는지 확인하세요.
 
-
 ## OneUptime 9 → 10 업그레이드
 
 수동 조치가 필요한 변경 사항은 없습니다. 표준 업그레이드 절차를 따르기만 하면 됩니다.
@@ -187,7 +186,6 @@ Helm 차트는 더 이상 Kubernetes Ingress 리소스를 프로비저닝하지 
 - 상태 페이지 또는 기본 호스트의 DNS 레코드가 OneUptime ingress gateway 앞에 있는 서비스 또는 로드 밸런서를 여전히 가리키는지 확인합니다.
 - 업그레이드 후 TLS 인증서가 임베디드 게이트웨이를 통해 계속 갱신되고 상태 페이지 도메인이 올바르게 확인되는지 확인합니다.
 
-
 ## OneUptime 7 → 8 업그레이드
 
 Kubernetes에서 실행하는 경우 중요한 변경 사항이 있습니다:
@@ -195,6 +193,5 @@ Kubernetes에서 실행하는 경우 중요한 변경 사항이 있습니다:
 - [Bitnami 라이선스 변경](https://github.com/bitnami/charts/issues/35164)으로 인해 더 이상 Postgres, Redis 및 ClickHouse에 Bitnami 차트를 사용하지 않습니다
 - 이러한 변경 사항은 이전 버전과 호환되지 않습니다. Helm 차트 `values.yaml`의 새 구조를 따라야 합니다.
 - 업그레이드 전에 데이터를 백업합니다 (Postgres, ClickHouse 및 영구 볼륨).
-
 
 > 팁: 먼저 스테이징 환경에서 업그레이드를 테스트합니다. 프로덕션을 업그레이드하기 전에 워크로드가 정상이고 데이터가 온전한지 확인합니다.

@@ -6,13 +6,13 @@ Maak een runbook via **Runbooks → Runbook aanmaken**, open het daarna en ga na
 
 Elke stap heeft:
 
-| Veld | Doel |
-| --- | --- |
-| **Titel** | Kort label dat in de checklist-UI wordt getoond. Verplicht. |
-| **Beschrijving** | Optionele context voor de responder. Markdown-veilige tekst. |
-| **Doorgaan bij fout** | Indien aan stopt een falende stap de run niet — de volgende stap draait gewoon. |
-| **Goedkeuring vereist** | Indien aan pauzeert het runbook na deze stap en wacht tot een gebruiker goedkeurt voordat de volgende stap draait. |
-| **Typespecifieke configuratie** | Script, URL, agent, enz. — zie hieronder. |
+| Veld                            | Doel                                                                                                               |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Titel**                       | Kort label dat in de checklist-UI wordt getoond. Verplicht.                                                        |
+| **Beschrijving**                | Optionele context voor de responder. Markdown-veilige tekst.                                                       |
+| **Doorgaan bij fout**           | Indien aan stopt een falende stap de run niet — de volgende stap draait gewoon.                                    |
+| **Goedkeuring vereist**         | Indien aan pauzeert het runbook na deze stap en wacht tot een gebruiker goedkeurt voordat de volgende stap draait. |
+| **Typespecifieke configuratie** | Script, URL, agent, enz. — zie hieronder.                                                                          |
 
 Stappen draaien **op volgorde**. Herorden ze met de pijltjes omhoog/omlaag in de Steps-editor.
 

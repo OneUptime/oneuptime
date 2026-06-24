@@ -15,15 +15,31 @@ test.describe("navigation bar", () => {
     if (!IS_BILLING_ENABLED) {
       return;
     }
-    await page.getByRole("button", { name: "Products" }).click();
-    await page.getByRole("button", { name: "Products" }).hover();
-    await expect(page.getByRole("button", { name: "Products" })).toHaveText(
-      /Products/,
-    );
-    await expect(page.getByRole("button", { name: "Products" })).toBeVisible();
+    /*
+     * The Products nav entry now opens a searchable command-palette modal
+     * (role="dialog" aria-label="Products") instead of a hover dropdown.
+     */
+    const productsButton: Locator = page.getByRole("button", {
+      name: "Products",
+    });
+    await expect(productsButton).toBeVisible();
+    await expect(productsButton).toHaveText(/Products/);
+    await productsButton.click();
+
+    /*
+     * The products modal opens and renders the catalog of product links.
+     * The dialog wrapper is a zero-box relative container (its panel is
+     * fixed-positioned), so assert on its visible contents to prove it opened.
+     */
+    const productModal: Locator = page.getByRole("dialog", {
+      name: "Products",
+    });
     await expect(
-      page.getByRole("button", { name: "Products" }),
-    ).toBeInViewport();
+      productModal.getByText("Explore the OneUptime platform"),
+    ).toBeVisible();
+    await expect(
+      productModal.getByRole("link", { name: /Monitoring/ }).first(),
+    ).toBeVisible();
   });
 
   test("pricing page", async ({ page }: { page: Page }) => {

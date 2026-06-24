@@ -56,24 +56,29 @@ app को App Store के माध्यम से update किया जा
 ## Troubleshooting
 
 **App Store कहता है कि app "Not Available in Your Region" है:**
+
 - app global App Store पर publish है। यदि यह आपके region में नहीं दिखाई देता है, तो [support](mailto:support@oneuptime.com) से संपर्क करें।
 
 **Sign in करते समय "Network Error":**
+
 - verify करें कि **Server URL** सही है और आपके device से reachable है।
 - यदि आप corporate network या VPN पर हैं, तो सुनिश्चित करें कि OneUptime instance accessible है।
 - पुष्टि करें कि server HTTPS पर valid certificate के साथ serve हो रहा है।
 
 **Push notifications प्राप्त नहीं हो रहे:**
+
 - **Settings → Notifications → OneUptime On-Call** open करें और पुष्टि करें कि notifications allowed हैं।
 - **Do Not Disturb** disable करें या OneUptime On-Call को अपने active Focus mode की allow list में add करें।
 - server के साथ registered push token refresh करने के लिए sign out करें और फिर से sign in करें।
 - Self-hosted users: पुष्टि करें कि push notifications आपके OneUptime instance पर configure हैं (self-hosted [Push Notifications](/docs/self-hosted/push-notifications) guide देखें)।
 
 **Face ID / Touch ID काम नहीं कर रहा:**
+
 - सुनिश्चित करें कि biometrics **Settings → Face ID & Passcode** या **Settings → Touch ID & Passcode** में enrolled हैं।
 - OneUptime On-Call app के अंदर **Settings** screen से biometric unlock को फिर से enable करें।
 
 **App launch पर crash होता है:**
+
 - App Store से latest version पर update करें।
 - अपना device restart करें।
 - यदि समस्या बनी रहती है, तो app को delete करें और फिर से install करें, फिर sign in करें।

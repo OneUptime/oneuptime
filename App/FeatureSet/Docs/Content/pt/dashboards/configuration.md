@@ -29,12 +29,12 @@ A lista de **Painéis** permite filtrar por etiqueta, que é a forma mais rápid
 
 Painéis funcionam com o controle de acesso baseado em papéis do seu projeto. As permissões relevantes:
 
-| Permissão | O que permite |
-| --- | --- |
-| **Criar Painel** | Criar novos painéis. |
-| **Ler Painel** | Visualizar painéis (em modo privado). |
-| **Editar Painel** | Alterar widgets, variáveis e configurações. |
-| **Excluir Painel** | Excluir um painel. |
+| Permissão          | O que permite                               |
+| ------------------ | ------------------------------------------- |
+| **Criar Painel**   | Criar novos painéis.                        |
+| **Ler Painel**     | Visualizar painéis (em modo privado).       |
+| **Editar Painel**  | Alterar widgets, variáveis e configurações. |
+| **Excluir Painel** | Excluir um painel.                          |
 
 Existem permissões correspondentes para donos de painel e domínios personalizados, então você pode conceder "gerenciar donos" sem conceder "editar o painel".
 

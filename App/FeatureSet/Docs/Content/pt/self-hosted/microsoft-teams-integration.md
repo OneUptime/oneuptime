@@ -27,20 +27,23 @@ Para integrar o Microsoft Teams com sua instância auto-hospedada do OneUptime, 
 2. Clique em "Add a permission" e selecione "Microsoft Graph"
 
 **Adicionar Permissões Delegadas** (ao agir em nome de um usuário conectado):
-   - **User.Read** - Necessário para obter as informações do perfil do usuário autenticado (nome de exibição, email) durante o fluxo OAuth
-   - **Team.ReadBasic.All** - Necessário para listar equipes das quais o usuário é membro ao selecionar qual equipe conectar
-   - **Channel.ReadBasic.All** - Necessário para ler informações de canal e listar canais dentro das equipes para entrega de notificações
-   - **ChannelMessage.Send** - Necessário para enviar notificações de alerta e incidente para canais do Teams
+
+- **User.Read** - Necessário para obter as informações do perfil do usuário autenticado (nome de exibição, email) durante o fluxo OAuth
+- **Team.ReadBasic.All** - Necessário para listar equipes das quais o usuário é membro ao selecionar qual equipe conectar
+- **Channel.ReadBasic.All** - Necessário para ler informações de canal e listar canais dentro das equipes para entrega de notificações
+- **ChannelMessage.Send** - Necessário para enviar notificações de alerta e incidente para canais do Teams
 
 **Adicionar Permissões de Aplicativo** (ao agir como o aplicativo em si, sem um usuário conectado):
-   - **Team.ReadBasic.All** - Necessário para listar todas as equipes na organização após o consentimento do administrador ser concedido
-   - **Channel.ReadBasic.All** - Necessário para verificar a existência do canal e recuperar detalhes do canal
-   - **ChannelMessage.Send** - Necessário para enviar mensagens para canais programaticamente
+
+- **Team.ReadBasic.All** - Necessário para listar todas as equipes na organização após o consentimento do administrador ser concedido
+- **Channel.ReadBasic.All** - Necessário para verificar a existência do canal e recuperar detalhes do canal
+- **ChannelMessage.Send** - Necessário para enviar mensagens para canais programaticamente
 
 **Nota:** O Bot Framework lida com a entrega de mensagens usando permissões de Consentimento Específico de Recurso (RSC) definidas no manifesto do aplicativo Teams. Essas permissões são:
-   - **ChannelMessage.Send.Group** - Permite que o bot envie mensagens para canais de equipe
-   - **ChannelMessage.Read.Group** - Permite que o bot leia mensagens de canal para comandos interativos
-   - **Channel.Create.Group** - Permite que o bot crie canais quando necessário
+
+- **ChannelMessage.Send.Group** - Permite que o bot envie mensagens para canais de equipe
+- **ChannelMessage.Read.Group** - Permite que o bot leia mensagens de canal para comandos interativos
+- **Channel.Create.Group** - Permite que o bot crie canais quando necessário
 
 3. Clique em "Grant admin consent" para sua organização
 
@@ -57,6 +60,7 @@ Para integrar o Microsoft Teams com sua instância auto-hospedada do OneUptime, 
 
 1. No Portal Azure, navegue para "Azure Bot" e clique em "Create"
 2. Preencha o formulário de criação do bot:
+
    - **Bot handle:** oneuptime-bot
    - **Subscription:** Sua assinatura Azure
    - **Resource group:** Crie um novo ou use um existente

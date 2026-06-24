@@ -6,7 +6,6 @@ OneUptime leverer en omfattende REST API, der giver dig mulighed for at integrer
 
 Vores API er organiseret omkring REST-principper og bruger standard HTTP-svarkoder, autentificering og verber. Alle API-endpoints returnerer JSON-svar.
 
-
 ### Autentificering
 
 Alle API-anmodninger kræver autentificering ved hjælp af API-nøgler. Du kan generere API-nøgler fra dit OneUptime-dashboard under Indstillinger > API-nøgler.

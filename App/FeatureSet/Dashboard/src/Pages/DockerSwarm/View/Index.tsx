@@ -26,6 +26,8 @@ import {
   routeParamFromExternalId,
   displayNameForResource,
 } from "../Utils/DockerSwarmResourceUtils";
+import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 
 type ClusterHealth = "Healthy" | "Degraded" | "Unhealthy";
 
@@ -63,6 +65,8 @@ const DockerSwarmClusterOverview: FunctionComponent<
 
   const [cluster, setCluster] = useState<DockerSwarmCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string>("");
   const [isInventoryLoading, setIsInventoryLoading] = useState<boolean>(true);
   const [inventoryError, setInventoryError] = useState<string>("");
@@ -208,8 +212,14 @@ const DockerSwarmClusterOverview: FunctionComponent<
     }
   };
 
-  const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
+  const fetchCluster: (showLoader: boolean) => Promise<void> = async (
+    showLoader: boolean,
+  ): Promise<void> => {
+    if (showLoader) {
+      setIsLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
     try {
       const item: DockerSwarmCluster | null = await ModelAPI.getItem({
         modelType: DockerSwarmCluster,
@@ -233,7 +243,9 @@ const DockerSwarmClusterOverview: FunctionComponent<
         },
       });
       setCluster(item);
+      setLastRefreshedAt(OneUptimeDate.getCurrentDate());
       setIsLoading(false);
+      setIsRefreshing(false);
 
       if (item?.name) {
         void loadInventory();
@@ -241,17 +253,31 @@ const DockerSwarmClusterOverview: FunctionComponent<
         setIsInventoryLoading(false);
       }
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      /*
+       * A background refresh keeps the current view; only the initial load
+       * escalates a failure to a full-page error.
+       */
+      if (showLoader) {
+        setError(API.getFriendlyMessage(err));
+      }
       setIsLoading(false);
+      setIsRefreshing(false);
       setIsInventoryLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchCluster().catch((err: Error) => {
+    fetchCluster(true).catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
   }, []);
+
+  const { autoRefreshInterval, setAutoRefreshInterval } = useAutoRefresh({
+    storageKey: "docker-swarm-overview-auto-refresh-interval",
+    onRefresh: (): void => {
+      fetchCluster(false).catch(() => {});
+    },
+  });
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -398,45 +424,58 @@ const DockerSwarmClusterOverview: FunctionComponent<
           />
         </div>
         <div className="relative px-6 py-5">
-          <div className="flex items-start gap-4 min-w-0">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-sky-200 shadow-sm">
-              <Icon
-                icon={IconProp.ServerStack}
-                className="h-6 w-6 text-sky-600"
-              />
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-semibold text-gray-900 truncate">
-                  {displayName}
-                </h1>
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${connectionBadgeClass}`}
-                >
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4 min-w-0">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-sky-200 shadow-sm">
+                <Icon
+                  icon={IconProp.ServerStack}
+                  className="h-6 w-6 text-sky-600"
+                />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-xl font-semibold text-gray-900 truncate">
+                    {displayName}
+                  </h1>
                   <span
-                    className={`h-1.5 w-1.5 rounded-full ${connectionDotClass}`}
-                  />
-                  {connectionLabel}
-                </span>
-                {!isInventoryLoading && !inventoryError && (
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${connectionBadgeClass}`}
                   >
                     <span
-                      className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
+                      className={`h-1.5 w-1.5 rounded-full ${connectionDotClass}`}
                     />
-                    {clusterHealth}
+                    {connectionLabel}
                   </span>
-                )}
-              </div>
-              {cluster.description && (
-                <div className="mt-1 truncate text-sm text-gray-500">
-                  {String(cluster.description)}
+                  {!isInventoryLoading && !inventoryError && (
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
+                      />
+                      {clusterHealth}
+                    </span>
+                  )}
                 </div>
-              )}
-              <div className="mt-1 text-xs text-gray-400">
-                Last seen {lastSeenText}
+                {cluster.description && (
+                  <div className="mt-1 truncate text-sm text-gray-500">
+                    {String(cluster.description)}
+                  </div>
+                )}
+                <div className="mt-1 text-xs text-gray-400">
+                  Last seen {lastSeenText}
+                </div>
               </div>
+            </div>
+            <div className="flex-shrink-0">
+              <AutoRefreshControl
+                autoRefreshInterval={autoRefreshInterval}
+                onAutoRefreshIntervalChange={setAutoRefreshInterval}
+                onManualRefresh={(): void => {
+                  fetchCluster(false).catch(() => {});
+                }}
+                isRefreshing={isRefreshing}
+                lastRefreshedAt={lastRefreshedAt}
+              />
             </div>
           </div>
 

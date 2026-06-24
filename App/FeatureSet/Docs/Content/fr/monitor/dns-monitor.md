@@ -24,34 +24,34 @@ Les moniteurs DNS interrogent les serveurs DNS pour des types d'enregistrements 
 
 ### Paramètres de base
 
-| Champ | Description | Obligatoire |
-|-------|-------------|-------------|
-| Nom de domaine | Le domaine à interroger (ex. : `example.com`) | Oui |
-| Type d'enregistrement | Le type d'enregistrement DNS à interroger | Oui |
-| Serveur DNS | Serveur DNS personnalisé à utiliser (ex. : `8.8.8.8`). Laisser vide pour utiliser le serveur par défaut du système | Non |
+| Champ                 | Description                                                                                                        | Obligatoire |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------- |
+| Nom de domaine        | Le domaine à interroger (ex. : `example.com`)                                                                      | Oui         |
+| Type d'enregistrement | Le type d'enregistrement DNS à interroger                                                                          | Oui         |
+| Serveur DNS           | Serveur DNS personnalisé à utiliser (ex. : `8.8.8.8`). Laisser vide pour utiliser le serveur par défaut du système | Non         |
 
 ### Types d'enregistrements pris en charge
 
-| Type d'enregistrement | Description |
-|-----------------------|-------------|
-| A | Enregistrements d'adresse IPv4 |
-| AAAA | Enregistrements d'adresse IPv6 |
-| CNAME | Enregistrements de nom canonique (alias) |
-| MX | Enregistrements d'échange de messagerie |
-| NS | Enregistrements de serveur de noms |
-| TXT | Enregistrements texte (SPF, DKIM, etc.) |
-| SOA | Enregistrements de début d'autorité |
-| PTR | Enregistrements pointeurs (DNS inversé) |
-| SRV | Enregistrements de localisation de service |
-| CAA | Enregistrements d'autorisation d'autorité de certification |
+| Type d'enregistrement | Description                                                |
+| --------------------- | ---------------------------------------------------------- |
+| A                     | Enregistrements d'adresse IPv4                             |
+| AAAA                  | Enregistrements d'adresse IPv6                             |
+| CNAME                 | Enregistrements de nom canonique (alias)                   |
+| MX                    | Enregistrements d'échange de messagerie                    |
+| NS                    | Enregistrements de serveur de noms                         |
+| TXT                   | Enregistrements texte (SPF, DKIM, etc.)                    |
+| SOA                   | Enregistrements de début d'autorité                        |
+| PTR                   | Enregistrements pointeurs (DNS inversé)                    |
+| SRV                   | Enregistrements de localisation de service                 |
+| CAA                   | Enregistrements d'autorisation d'autorité de certification |
 
 ### Paramètres avancés
 
-| Champ | Description | Par défaut |
-|-------|-------------|------------|
-| Port | Numéro de port DNS | 53 |
-| Délai d'attente (ms) | Durée d'attente d'une réponse | 5000 |
-| Tentatives | Nombre de tentatives en cas d'échec | 3 |
+| Champ                | Description                         | Par défaut |
+| -------------------- | ----------------------------------- | ---------- |
+| Port                 | Numéro de port DNS                  | 53         |
+| Délai d'attente (ms) | Durée d'attente d'une réponse       | 5000       |
+| Tentatives           | Nombre de tentatives en cas d'échec | 3          |
 
 ## Critères de surveillance
 
@@ -59,13 +59,13 @@ Vous pouvez configurer des critères pour déterminer quand votre DNS est consid
 
 ### Types de vérifications disponibles
 
-| Type de vérification | Description |
-|----------------------|-------------|
-| DNS en ligne | Si le serveur DNS répond aux requêtes |
-| Temps de réponse DNS (en ms) | Temps de réponse aux requêtes en millisecondes |
-| Enregistrement DNS existant | Si des enregistrements DNS existent pour la requête |
-| Valeur de l'enregistrement DNS | La valeur retournée par un enregistrement DNS |
-| DNSSEC valide | Si la validation DNSSEC réussit |
+| Type de vérification           | Description                                         |
+| ------------------------------ | --------------------------------------------------- |
+| DNS en ligne                   | Si le serveur DNS répond aux requêtes               |
+| Temps de réponse DNS (en ms)   | Temps de réponse aux requêtes en millisecondes      |
+| Enregistrement DNS existant    | Si des enregistrements DNS existent pour la requête |
+| Valeur de l'enregistrement DNS | La valeur retournée par un enregistrement DNS       |
+| DNSSEC valide                  | Si la validation DNSSEC réussit                     |
 
 ### Types de filtres
 

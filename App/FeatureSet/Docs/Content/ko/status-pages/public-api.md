@@ -12,149 +12,146 @@
 curl -X POST https://oneuptime.com/status-page-api/overview/:statusPageId
 ```
 
-API의 응답은 다음과 같습니다: 
+API의 응답은 다음과 같습니다:
 
 ```json
 {
-
-    "overallStatus": 
-        {   // 모니터 상태 객체
-            // 전체 상태는 상태 페이지의 모든 모니터 및 그룹의 최악 상태입니다. 
-            // 모니터 상태에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
-            // https://oneuptime.com/reference/monitor-status
-            
-        },
-    "scheduledMaintenanceEventsPublicNotes": [
-        // 예정 유지보수 공개 노트에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
-        // https://oneuptime.com/reference/scheduled-maintenance-public-note
-        {
-            // 예정 유지보수 공개 노트 객체
-        }, 
-        {
-            // 예정 유지보수 공개 노트 객체
-        }
-    ],
-    "statusPageHistoryChartBarColorRules": [
-        // 상태 페이지 기록 차트 막대 색상 규칙에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
-        // https://oneuptime.com/reference/status-page-history-chart-bar-color-rule
-        {
-            // 상태 페이지 기록 차트 막대 색상 규칙 객체
-        },
-        {
-            // 상태 페이지 기록 차트 막대 색상 규칙 객체
-        }
-    ],
-    "scheduledMaintenanceEvents": [
-        // 예정 유지보수 이벤트에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
-        // https://oneuptime.com/reference/scheduled-maintenance
-        {
-            // 예정 유지보수 이벤트 객체
-        },
-        {
-            // 예정 유지보수 이벤트 객체
-        }
-    ],
-    "activeAnnouncements": [
-        // 활성 공지에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
-        // https://oneuptime.com/reference/status-page-announcement
-        {
-            // 상태 페이지 공지 객체
-        },
-        {
-            // 상태 페이지 공지 객체
-        }
-    ],
-    "incidentPublicNotes": [
-        // 인시던트 공개 노트에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
-        // https://oneuptime.com/reference/incident-public-note
-        {
-            // 인시던트 공개 노트 객체
-        },
-        {
-            // 인시던트 공개 노트 객체
-        }
-    ],
-    "activeIncidents": [
-        // 활성 인시던트에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
-        // https://oneuptime.com/reference/incident
-        {
-            // 인시던트 객체
-        },
-        {
-            // 인시던트 객체
-        }
-    ],
-    "monitorStatusTimelines": [
-        // 모니터 상태 타임라인에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
-        // https://oneuptime.com/reference/monitor-status-timeline
-        {
-            // 모니터 상태 타임라인 객체
-        },
-        {
-            // 모니터 상태 타임라인 객체
-        }
-    ],
-    "resourceGroups": [
-        // 리소스 그룹에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
-        // https://oneuptime.com/reference/resource-group
-        {
-            // 리소스 그룹 객체
-        },
-        {
-            // 리소스 그룹 객체
-        }
-    ],
-    "monitorStatuses": [
-        // 모니터 상태에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
-        // https://oneuptime.com/reference/monitor-status
-        {
-            // 모니터 상태 객체
-        },
-        {
-            // 모니터 상태 객체
-        }
-
-    ],
-    "statusPageResources": [
-        // 상태 페이지 리소스에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
-        // https://oneuptime.com/reference/status-page-resource
-        {
-            // 상태 페이지 리소스 객체
-        },
-        {
-            // 상태 페이지 리소스 객체
-        }
-    ],
-    "incidentStateTimelines": [
-        // 인시던트 상태 타임라인에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
-        // https://oneuptime.com/reference/incident-state-timeline
-        {
-            // 인시던트 상태 타임라인 객체
-        },
-        {
-            // 인시던트 상태 타임라인 객체
-        }
-    ],
-    "statusPage": {
-       // 상태 페이지에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
-         // https://oneuptime.com/reference/status-page
+  "overallStatus": {
+    // 모니터 상태 객체
+    // 전체 상태는 상태 페이지의 모든 모니터 및 그룹의 최악 상태입니다.
+    // 모니터 상태에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
+    // https://oneuptime.com/reference/monitor-status
+  },
+  "scheduledMaintenanceEventsPublicNotes": [
+    // 예정 유지보수 공개 노트에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
+    // https://oneuptime.com/reference/scheduled-maintenance-public-note
+    {
+      // 예정 유지보수 공개 노트 객체
     },
-    "scheduledMaintenanceStateTimelines": [
-        // 예정 유지보수 상태 타임라인에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
-        // https://oneuptime.com/reference/scheduled-maintenance-state-timeline
-        {
-            // 예정 유지보수 상태 타임라인 객체
-        },
-        {
-            // 예정 유지보수 상태 타임라인 객체
-        }
-    ],
-    "monitorGroupCurrentStatuses": {
-        // 모니터 그룹의 현재 상태. 
-    },
-    "monitorsInGroup": {
-        // 그룹의 모니터.
+    {
+      // 예정 유지보수 공개 노트 객체
     }
+  ],
+  "statusPageHistoryChartBarColorRules": [
+    // 상태 페이지 기록 차트 막대 색상 규칙에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
+    // https://oneuptime.com/reference/status-page-history-chart-bar-color-rule
+    {
+      // 상태 페이지 기록 차트 막대 색상 규칙 객체
+    },
+    {
+      // 상태 페이지 기록 차트 막대 색상 규칙 객체
+    }
+  ],
+  "scheduledMaintenanceEvents": [
+    // 예정 유지보수 이벤트에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
+    // https://oneuptime.com/reference/scheduled-maintenance
+    {
+      // 예정 유지보수 이벤트 객체
+    },
+    {
+      // 예정 유지보수 이벤트 객체
+    }
+  ],
+  "activeAnnouncements": [
+    // 활성 공지에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
+    // https://oneuptime.com/reference/status-page-announcement
+    {
+      // 상태 페이지 공지 객체
+    },
+    {
+      // 상태 페이지 공지 객체
+    }
+  ],
+  "incidentPublicNotes": [
+    // 인시던트 공개 노트에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
+    // https://oneuptime.com/reference/incident-public-note
+    {
+      // 인시던트 공개 노트 객체
+    },
+    {
+      // 인시던트 공개 노트 객체
+    }
+  ],
+  "activeIncidents": [
+    // 활성 인시던트에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
+    // https://oneuptime.com/reference/incident
+    {
+      // 인시던트 객체
+    },
+    {
+      // 인시던트 객체
+    }
+  ],
+  "monitorStatusTimelines": [
+    // 모니터 상태 타임라인에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
+    // https://oneuptime.com/reference/monitor-status-timeline
+    {
+      // 모니터 상태 타임라인 객체
+    },
+    {
+      // 모니터 상태 타임라인 객체
+    }
+  ],
+  "resourceGroups": [
+    // 리소스 그룹에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
+    // https://oneuptime.com/reference/resource-group
+    {
+      // 리소스 그룹 객체
+    },
+    {
+      // 리소스 그룹 객체
+    }
+  ],
+  "monitorStatuses": [
+    // 모니터 상태에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
+    // https://oneuptime.com/reference/monitor-status
+    {
+      // 모니터 상태 객체
+    },
+    {
+      // 모니터 상태 객체
+    }
+  ],
+  "statusPageResources": [
+    // 상태 페이지 리소스에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
+    // https://oneuptime.com/reference/status-page-resource
+    {
+      // 상태 페이지 리소스 객체
+    },
+    {
+      // 상태 페이지 리소스 객체
+    }
+  ],
+  "incidentStateTimelines": [
+    // 인시던트 상태 타임라인에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
+    // https://oneuptime.com/reference/incident-state-timeline
+    {
+      // 인시던트 상태 타임라인 객체
+    },
+    {
+      // 인시던트 상태 타임라인 객체
+    }
+  ],
+  "statusPage": {
+    // 상태 페이지에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
+    // https://oneuptime.com/reference/status-page
+  },
+  "scheduledMaintenanceStateTimelines": [
+    // 예정 유지보수 상태 타임라인에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
+    // https://oneuptime.com/reference/scheduled-maintenance-state-timeline
+    {
+      // 예정 유지보수 상태 타임라인 객체
+    },
+    {
+      // 예정 유지보수 상태 타임라인 객체
+    }
+  ],
+  "monitorGroupCurrentStatuses": {
+    // 모니터 그룹의 현재 상태.
+  },
+  "monitorsInGroup": {
+    // 그룹의 모니터.
+  }
 }
 ```
 
@@ -170,7 +167,7 @@ curl -X POST https://oneuptime.com/status-page-api/uptime/:statusPageId
 
 **요청 본문 (선택 사항):**
 
-startDate와 endDate를 요청 본문으로 전송할 수 있습니다. 
+startDate와 endDate를 요청 본문으로 전송할 수 있습니다.
 
 ```
 {
@@ -183,78 +180,77 @@ startDate와 endDate를 요청 본문으로 전송할 수 있습니다.
 
 **응답 예시:**
 
-API의 예시 응답은 다음과 같습니다: 
+API의 예시 응답은 다음과 같습니다:
 
 ```json
 {
-    "statusPageResourceUptimes": [
+  "statusPageResourceUptimes": [
+    {
+      "statusPageResourceId": {
+        "_type": "ObjectID",
+        "value": "cfffa3c3-fdf3-4cd7-9585-d6d408a14663"
+      },
+      "uptimePercent": 99.98,
+      "statusPageResourceName": "상태 페이지 리소스 이름",
+      "currentStatus": {
+        "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
+        "isPermissionIf": {},
+        "name": "정상 운영",
+        "color": {
+          "_type": "Color",
+          "value": "#2ab57d"
+        },
+        "isOperationalState": true,
+        "priority": 1
+      }
+    }
+  ],
+  "groupUptimes": [
+    {
+      "statusPageGroupId": {
+        "_type": "ObjectID",
+        "value": "df7632c4-c5c0-453c-88bf-9ee3d68d45f2"
+      },
+      "uptimePercent": 99.98,
+      "statusPageResourceUptimes": [
         {
-            "statusPageResourceId": {
-                "_type": "ObjectID",
-                "value": "cfffa3c3-fdf3-4cd7-9585-d6d408a14663"
+          "statusPageResourceId": {
+            "_type": "ObjectID",
+            "value": "8175534f-aa77-456c-ad5b-b8e7b85876aa"
+          },
+          "uptimePercent": 99.98,
+          "statusPageResourceName": "dfg",
+          "currentStatus": {
+            "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
+            "isPermissionIf": {},
+            "name": "정상 운영",
+            "color": {
+              "_type": "Color",
+              "value": "#2ab57d"
             },
-            "uptimePercent": 99.98,
-            "statusPageResourceName": "상태 페이지 리소스 이름",
-            "currentStatus": {
-                "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
-                "isPermissionIf": {},
-                "name": "정상 운영",
-                "color": {
-                    "_type": "Color",
-                    "value": "#2ab57d"
-                },
-                "isOperationalState": true,
-                "priority": 1
-            }
+            "isOperationalState": true,
+            "priority": 1
+          }
         }
-    ],
-    "groupUptimes": [
-        {
-            "statusPageGroupId": {
-                "_type": "ObjectID",
-                "value": "df7632c4-c5c0-453c-88bf-9ee3d68d45f2"
-            },
-            "uptimePercent": 99.98,
-            "statusPageResourceUptimes": [
-                {
-                    "statusPageResourceId": {
-                        "_type": "ObjectID",
-                        "value": "8175534f-aa77-456c-ad5b-b8e7b85876aa"
-                    },
-                    "uptimePercent": 99.98,
-                    "statusPageResourceName": "dfg",
-                    "currentStatus": {
-                        "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
-                        "isPermissionIf": {},
-                        "name": "정상 운영",
-                        "color": {
-                            "_type": "Color",
-                            "value": "#2ab57d"
-                        },
-                        "isOperationalState": true,
-                        "priority": 1
-                    }
-                }
-            ],
-            "statusPageGroupName": "그룹 이름",
-            "currentStatus": {
-                "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
-                "isPermissionIf": {},
-                "name": "정상 운영",
-                "color": {
-                    "_type": "Color",
-                    "value": "#2ab57d"
-                },
-                "isOperationalState": true,
-                "priority": 1
-            }
-        }
-    ],
-    "startDate": "2021-09-01T00:00:00Z",
-    "endDate": "2021-09-30T23:59:59Z"
+      ],
+      "statusPageGroupName": "그룹 이름",
+      "currentStatus": {
+        "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
+        "isPermissionIf": {},
+        "name": "정상 운영",
+        "color": {
+          "_type": "Color",
+          "value": "#2ab57d"
+        },
+        "isOperationalState": true,
+        "priority": 1
+      }
+    }
+  ],
+  "startDate": "2021-09-01T00:00:00Z",
+  "endDate": "2021-09-30T23:59:59Z"
 }
 ```
-
 
 ### 인시던트 API
 
@@ -264,23 +260,22 @@ API의 예시 응답은 다음과 같습니다:
 curl -X POST https://oneuptime.com/status-page-api/incidents/:statusPageId
 ```
 
-API의 응답은 다음과 같습니다: 
+API의 응답은 다음과 같습니다:
 
 ```json
 {
-    "incidents": [
-        // 인시던트에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
-        // https://oneuptime.com/reference/incident
-        {
-            // 인시던트 객체
-        },
-        {
-            // 인시던트 객체
-        }
-    ]
+  "incidents": [
+    // 인시던트에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
+    // https://oneuptime.com/reference/incident
+    {
+      // 인시던트 객체
+    },
+    {
+      // 인시던트 객체
+    }
+  ]
 }
 ```
-
 
 ### 예정 유지보수 API
 
@@ -290,20 +285,20 @@ API의 응답은 다음과 같습니다:
 curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance/:statusPageId
 ```
 
-API의 응답은 다음과 같습니다: 
+API의 응답은 다음과 같습니다:
 
 ```json
 {
-    "scheduledMaintenanceEvents": [
-        // 예정 유지보수 이벤트에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
-        // https://oneuptime.com/reference/scheduled-maintenance
-        {
-            // 예정 유지보수 이벤트 객체
-        },
-        {
-            // 예정 유지보수 이벤트 객체
-        }
-    ]
+  "scheduledMaintenanceEvents": [
+    // 예정 유지보수 이벤트에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
+    // https://oneuptime.com/reference/scheduled-maintenance
+    {
+      // 예정 유지보수 이벤트 객체
+    },
+    {
+      // 예정 유지보수 이벤트 객체
+    }
+  ]
 }
 ```
 
@@ -315,19 +310,19 @@ API의 응답은 다음과 같습니다:
 curl -X POST https://oneuptime.com/status-page-api/announcements/:statusPageId
 ```
 
-API의 응답은 다음과 같습니다: 
+API의 응답은 다음과 같습니다:
 
 ```json
 {
-    "announcements": [
-        // 공지에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
-        // https://oneuptime.com/reference/status-page-announcement
-        {
-            // 공지 객체
-        },
-        {
-            // 공지 객체
-        }
-    ]
+  "announcements": [
+    // 공지에 대한 자세한 내용은 여기에서 찾을 수 있습니다.
+    // https://oneuptime.com/reference/status-page-announcement
+    {
+      // 공지 객체
+    },
+    {
+      // 공지 객체
+    }
+  ]
 }
 ```

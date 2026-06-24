@@ -10,14 +10,14 @@ Met profileergegevens in OneUptime kunt u actieve functies die CPU verbruiken id
 
 OneUptime ondersteunt de volgende profieltypen:
 
-| Profieltype | Beschrijving | Eenheid |
-| --- | --- | --- |
-| cpu | CPU-tijd besteed aan het uitvoeren van code | nanoseconden |
-| wall | Wandkloktijd (inclusief wachten/slapen) | nanoseconden |
-| alloc_objects | Aantal heap-toewijzingen | aantal |
-| alloc_space | Bytes heap-geheugen toegewezen | bytes |
-| goroutine | Aantal actieve goroutines (Go) | aantal |
-| contention | Tijd besteed aan wachten op locks/mutexes | nanoseconden |
+| Profieltype   | Beschrijving                                | Eenheid      |
+| ------------- | ------------------------------------------- | ------------ |
+| cpu           | CPU-tijd besteed aan het uitvoeren van code | nanoseconden |
+| wall          | Wandkloktijd (inclusief wachten/slapen)     | nanoseconden |
+| alloc_objects | Aantal heap-toewijzingen                    | aantal       |
+| alloc_space   | Bytes heap-geheugen toegewezen              | bytes        |
+| goroutine     | Aantal actieve goroutines (Go)              | aantal       |
+| contention    | Tijd besteed aan wachten op locks/mutexes   | nanoseconden |
 
 ## Aan de slag
 
@@ -37,10 +37,10 @@ Zodra u een token hebt aangemaakt, klikt u op "Bekijken" om het token te bekijke
 
 OneUptime accepteert profileergegevens via zowel gRPC als HTTP met het OTLP-profielenprotocol.
 
-| Protocol | Eindpunt |
-| --- | --- |
-| gRPC | `your-oneuptime-host:4317` (standaard gRPC-poort voor OTLP) |
-| HTTP | `https://your-oneuptime-host/otlp/v1/profiles` |
+| Protocol | Eindpunt                                                    |
+| -------- | ----------------------------------------------------------- |
+| gRPC     | `your-oneuptime-host:4317` (standaard gRPC-poort voor OTLP) |
+| HTTP     | `https://your-oneuptime-host/otlp/v1/profiles`              |
 
 **Omgevingsvariabelen**
 

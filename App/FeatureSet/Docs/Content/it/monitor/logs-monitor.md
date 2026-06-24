@@ -28,12 +28,12 @@ Selezionare uno o più servizi da cui monitorare i log. I servizi devono inviare
 
 ### Filtri Log
 
-| Filtro | Descrizione | Obbligatorio |
-|--------|-------------|----------|
-| Livelli di Severità | Filtrare per severità del log (ERROR, WARN, INFO, DEBUG, ecc.) | No |
-| Corpo | Ricerca testuale nel corpo del messaggio di log | No |
-| Attributi | Coppie chiave-valore per filtrare su attributi personalizzati del log | No |
-| Finestra Temporale | Quanto indietro cercare nei log (in secondi, predefinito: 60) | No |
+| Filtro              | Descrizione                                                           | Obbligatorio |
+| ------------------- | --------------------------------------------------------------------- | ------------ |
+| Livelli di Severità | Filtrare per severità del log (ERROR, WARN, INFO, DEBUG, ecc.)        | No           |
+| Corpo               | Ricerca testuale nel corpo del messaggio di log                       | No           |
+| Attributi           | Coppie chiave-valore per filtrare su attributi personalizzati del log | No           |
+| Finestra Temporale  | Quanto indietro cercare nei log (in secondi, predefinito: 60)         | No           |
 
 ### Livelli di Severità
 
@@ -51,9 +51,9 @@ Filtrare i log per uno o più livelli di severità:
 
 ### Tipi di Controllo Disponibili
 
-| Tipo di Controllo | Descrizione |
-|------------|-------------|
-| Conteggio Log | Il numero di log che corrispondono ai filtri nella finestra temporale |
+| Tipo di Controllo | Descrizione                                                           |
+| ----------------- | --------------------------------------------------------------------- |
+| Conteggio Log     | Il numero di log che corrispondono ai filtri nella finestra temporale |
 
 ### Tipi di Filtro
 

@@ -1,6 +1,6 @@
 {
-    "sort": {
-        "name": "ASC", 
-        // other fields
-    }
+"sort": {
+"name": "ASC",
+// other fields
+}
 }

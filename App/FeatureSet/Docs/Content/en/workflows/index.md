@@ -24,13 +24,13 @@ You build all of this visually on a canvas. No coding required for most workflow
 
 ## Key terms
 
-| Term | What it means |
-| --- | --- |
-| **Workflow** | The whole automation — a name, a canvas, and a switch to turn it on or off. |
-| **Trigger** | The first block. It decides when the workflow runs. Every workflow has exactly one trigger. |
-| **Component** | An action block — sends a message, makes a request, checks a condition. |
-| **Run** | One execution of the workflow. Saved with timestamps and the output of every block. |
-| **Global variable** | A value (like an API key) you save once and reuse in any workflow. |
+| Term                | What it means                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------------- |
+| **Workflow**        | The whole automation — a name, a canvas, and a switch to turn it on or off.                 |
+| **Trigger**         | The first block. It decides when the workflow runs. Every workflow has exactly one trigger. |
+| **Component**       | An action block — sends a message, makes a request, checks a condition.                     |
+| **Run**             | One execution of the workflow. Saved with timestamps and the output of every block.         |
+| **Global variable** | A value (like an API key) you save once and reuse in any workflow.                          |
 
 ## Where to find workflows in OneUptime
 

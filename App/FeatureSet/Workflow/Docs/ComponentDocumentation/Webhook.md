@@ -1,13 +1,10 @@
 This trigger lets you start the workflow with the incoming HTTP request.
 
-
 **URL of this trigger:**
-
 
 ```text
 {{serverUrl}}workflow/trigger/{{webhookSecretKey}}
 ```
-
 
 This URL uses a secret key unique to this workflow. You can reset this secret key from the Workflow Settings page if it is compromised.
 

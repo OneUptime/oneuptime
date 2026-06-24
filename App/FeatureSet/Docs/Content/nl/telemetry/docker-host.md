@@ -10,7 +10,7 @@ Deze pagina is de **installatiehandleiding**. Voor het configureren van Docker-m
 
 - Docker Engine 20.10+
 - Toegang tot `/var/run/docker.sock` op de host
-- Een **OneUptime Telemetry Ingestion Token** — maak er een aan via *Project Settings → Telemetry Ingestion Keys* en kopieer de waarde
+- Een **OneUptime Telemetry Ingestion Token** — maak er een aan via _Project Settings → Telemetry Ingestion Keys_ en kopieer de waarde
 
 ## Snelstart (Eén commando)
 
@@ -64,11 +64,11 @@ docker compose up -d
 
 ## Omgevingsvariabelen
 
-| Variabele | Vereist | Beschrijving |
-|----------|----------|-------------|
-| `ONEUPTIME_URL` | Ja | De URL van je OneUptime-instantie (bijvoorbeeld `https://oneuptime.com` of je zelf-gehoste host) |
-| `ONEUPTIME_SERVICE_TOKEN` | Ja | Telemetry ingestion token uit *Project Settings → Telemetry Ingestion Keys* |
-| `DOCKER_HOST_NAME` | Nee | Vriendelijke naam voor deze host. Standaard `docker-host`. Stel hem in op iets stabiels per host (bijv. `prod-docker-01`) |
+| Variabele                 | Vereist | Beschrijving                                                                                                              |
+| ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`           | Ja      | De URL van je OneUptime-instantie (bijvoorbeeld `https://oneuptime.com` of je zelf-gehoste host)                          |
+| `ONEUPTIME_SERVICE_TOKEN` | Ja      | Telemetry ingestion token uit _Project Settings → Telemetry Ingestion Keys_                                               |
+| `DOCKER_HOST_NAME`        | Nee     | Vriendelijke naam voor deze host. Standaard `docker-host`. Stel hem in op iets stabiels per host (bijv. `prod-docker-01`) |
 
 ## De installatie verifiëren
 
@@ -117,14 +117,14 @@ docker compose down
 
 ## Wat wordt er verzameld
 
-| Categorie | Gegevens |
-|----------|------|
-| **CPU-metrics** | Totaal gebruik, gebruikspercentage, throttling-tijd (per container) |
-| **Geheugen-metrics** | Gebruik, limiet, percentage, RSS, cache (per container) |
-| **Netwerk-metrics** | Ontvangen / verzonden bytes en packets (per container) |
-| **Block-I/O-metrics** | Gelezen / geschreven bytes en bewerkingen (per container) |
-| **Containerinformatie** | Uptime, aantal herstarts, aantal processen |
-| **Containerlogs** | stdout- / stderr-logs van alle containers |
+| Categorie               | Gegevens                                                            |
+| ----------------------- | ------------------------------------------------------------------- |
+| **CPU-metrics**         | Totaal gebruik, gebruikspercentage, throttling-tijd (per container) |
+| **Geheugen-metrics**    | Gebruik, limiet, percentage, RSS, cache (per container)             |
+| **Netwerk-metrics**     | Ontvangen / verzonden bytes en packets (per container)              |
+| **Block-I/O-metrics**   | Gelezen / geschreven bytes en bewerkingen (per container)           |
+| **Containerinformatie** | Uptime, aantal herstarts, aantal processen                          |
+| **Containerlogs**       | stdout- / stderr-logs van alle containers                           |
 
 ## Zelf-gehoste OneUptime
 

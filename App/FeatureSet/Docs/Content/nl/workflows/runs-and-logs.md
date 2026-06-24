@@ -4,21 +4,21 @@ Elke keer dat een workflow draait, slaat OneUptime een record op van wat er is g
 
 ## Waar je ze vindt
 
-| Pagina | Wat je ziet |
-| --- | --- |
+| Pagina                      | Wat je ziet                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------ |
 | **Workflows → Runs & Logs** | Elke run van elke workflow in het project. Filter op workflow, status en tijd. |
-| **Workflow → Logs-tabblad** | Alleen de runs van deze ene workflow. |
-| **Eén run** | Eén uitvoering, met de output van elk blok. |
+| **Workflow → Logs-tabblad** | Alleen de runs van deze ene workflow.                                          |
+| **Eén run**                 | Eén uitvoering, met de output van elk blok.                                    |
 
 ## Run-statussen
 
-| Status | Wat het betekent |
-| --- | --- |
-| **Scheduled** | De trigger is afgegaan en de run staat op het punt te starten. Duurt meestal maar een fractie van een seconde. |
-| **Running** | De workflow is bezig. Langdurige blokken houden een run in deze staat. |
-| **Success** | Elk blok dat draaide is zonder fouten afgerond. (Bewust de **error**-tak nemen telt nog steeds als success — de workflow zelf is niet gefaald.) |
-| **Error** | Een blok is gefaald en er was geen **error**-pad verbonden om dat af te handelen. De run is daar gestopt. |
-| **Timeout** | De run duurde langer dan toegestaan. Zie [Configuratie en veiligheid](/docs/workflows/configuration). |
+| Status        | Wat het betekent                                                                                                                                |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Scheduled** | De trigger is afgegaan en de run staat op het punt te starten. Duurt meestal maar een fractie van een seconde.                                  |
+| **Running**   | De workflow is bezig. Langdurige blokken houden een run in deze staat.                                                                          |
+| **Success**   | Elk blok dat draaide is zonder fouten afgerond. (Bewust de **error**-tak nemen telt nog steeds als success — de workflow zelf is niet gefaald.) |
+| **Error**     | Een blok is gefaald en er was geen **error**-pad verbonden om dat af te handelen. De run is daar gestopt.                                       |
+| **Timeout**   | De run duurde langer dan toegestaan. Zie [Configuratie en veiligheid](/docs/workflows/configuration).                                           |
 
 ## Een run lezen
 

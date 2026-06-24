@@ -1,12 +1,12 @@
-Request Headers: 
+Request Headers:
 
 ApiKey: {secret-api-key}
 ProjectID: {project-id}
 
-Request Body: 
+Request Body:
 
 {
-    "select": {
-        // select object  (optional, if left optional it'll only fetch ID). 
-    },
+"select": {
+// select object (optional, if left optional it'll only fetch ID).
+},
 }

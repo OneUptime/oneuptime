@@ -32,16 +32,16 @@ U kunt criteria configureren om te bepalen wanneer uw certificaatstatus als onli
 
 ### Beschikbare controletypen
 
-| Controletype | Beschrijving |
-|------------|-------------|
-| Is online | Of de server bereikbaar is |
-| Is geldig certificaat | Of het certificaat geldig is (niet verlopen, niet zelfondertekend) |
-| Is zelfondertekend certificaat | Of het certificaat zelfondertekend is |
-| Is verlopen certificaat | Of het certificaat verlopen is |
-| Is geen geldig certificaat | Of het certificaat ongeldig is |
-| Verloopt over (uren) | Aantal uren totdat het certificaat verloopt |
-| Verloopt over (dagen) | Aantal dagen totdat het certificaat verloopt |
-| Is verzoek time-out | Of de verbinding een time-out heeft |
+| Controletype                   | Beschrijving                                                       |
+| ------------------------------ | ------------------------------------------------------------------ |
+| Is online                      | Of de server bereikbaar is                                         |
+| Is geldig certificaat          | Of het certificaat geldig is (niet verlopen, niet zelfondertekend) |
+| Is zelfondertekend certificaat | Of het certificaat zelfondertekend is                              |
+| Is verlopen certificaat        | Of het certificaat verlopen is                                     |
+| Is geen geldig certificaat     | Of het certificaat ongeldig is                                     |
+| Verloopt over (uren)           | Aantal uren totdat het certificaat verloopt                        |
+| Verloopt over (dagen)          | Aantal dagen totdat het certificaat verloopt                       |
+| Is verzoek time-out            | Of de verbinding een time-out heeft                                |
 
 ### Filtertypen
 

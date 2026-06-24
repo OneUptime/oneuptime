@@ -27,6 +27,7 @@ import DockerHostDelete from "../Pages/Docker/View/Delete";
 import DockerHostDocumentation from "../Pages/Docker/View/Documentation";
 import DockerSettingsOwnerRules from "../Pages/Docker/Settings/OwnerRules";
 import DockerSettingsLabelRules from "../Pages/Docker/Settings/LabelRules";
+import DockerArchived from "../Pages/Docker/Archived";
 
 const DockerRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -67,6 +68,15 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
             <DockerSettingsLabelRules
               {...props}
               pageRoute={RouteMap[PageMap.DOCKER_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={DockerRoutePath[PageMap.DOCKER_ARCHIVED] || ""}
+          element={
+            <DockerArchived
+              {...props}
+              pageRoute={RouteMap[PageMap.DOCKER_ARCHIVED] as Route}
             />
           }
         />

@@ -9,6 +9,10 @@ export default class AddIsMonotonicToMetric extends DataMigrationBase {
     super("AddIsMonotonicToMetric");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     const column: AnalyticsTableColumn | undefined =
       new Metric().tableColumns.find((column: AnalyticsTableColumn) => {

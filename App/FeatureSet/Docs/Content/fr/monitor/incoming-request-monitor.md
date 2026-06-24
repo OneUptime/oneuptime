@@ -56,8 +56,8 @@ curl -X POST https://oneuptime.com/heartbeat/VOTRE_CLÉ_SECRÈTE \
 
 ```javascript
 // Exemple Node.js
-const https = require('https');
-https.get('https://oneuptime.com/heartbeat/VOTRE_CLÉ_SECRÈTE');
+const https = require("https");
+https.get("https://oneuptime.com/heartbeat/VOTRE_CLÉ_SECRÈTE");
 ```
 
 ```python
@@ -74,12 +74,12 @@ Vous pouvez configurer des critères pour déterminer quand votre service est co
 
 ### Types de vérifications disponibles
 
-| Type de vérification | Description |
-|----------------------|-------------|
-| Requête entrante | Si un signal de vie a été reçu dans une fenêtre temporelle |
-| Corps de la requête | Contenu du corps de la requête envoyé avec le signal de vie |
-| En-tête de la requête | Nom d'un en-tête de requête spécifique |
-| Valeur de l'en-tête de la requête | Valeur d'un en-tête de requête spécifique |
+| Type de vérification              | Description                                                 |
+| --------------------------------- | ----------------------------------------------------------- |
+| Requête entrante                  | Si un signal de vie a été reçu dans une fenêtre temporelle  |
+| Corps de la requête               | Contenu du corps de la requête envoyé avec le signal de vie |
+| En-tête de la requête             | Nom d'un en-tête de requête spécifique                      |
+| Valeur de l'en-tête de la requête | Valeur d'un en-tête de requête spécifique                   |
 
 ### Types de filtres
 

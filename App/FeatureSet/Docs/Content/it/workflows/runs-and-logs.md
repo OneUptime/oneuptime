@@ -4,21 +4,21 @@ Ogni volta che un workflow viene eseguito, OneUptime salva un record di cio che 
 
 ## Dove trovarle
 
-| Pagina | Cosa vedi |
-| --- | --- |
+| Pagina                           | Cosa vedi                                                                                         |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- |
 | **Workflows → Esecuzioni e log** | Ogni esecuzione di ogni workflow del progetto. Filtra per workflow, stato e intervallo temporale. |
-| **Workflow → Scheda Logs** | Solo le esecuzioni di questo specifico workflow. |
-| **Una singola esecuzione** | Una sola esecuzione, con l'output di ogni blocco. |
+| **Workflow → Scheda Logs**       | Solo le esecuzioni di questo specifico workflow.                                                  |
+| **Una singola esecuzione**       | Una sola esecuzione, con l'output di ogni blocco.                                                 |
 
 ## Stati delle esecuzioni
 
-| Stato | Cosa significa |
-| --- | --- |
-| **Scheduled** | Il trigger e scattato e l'esecuzione sta per iniziare. Di solito richiede solo una frazione di secondo. |
-| **Running** | Il workflow e in corso. I blocchi di lunga durata mantengono un'esecuzione in questo stato. |
-| **Success** | Ogni blocco eseguito si e concluso senza errori. (Prendere un ramo **error** intenzionalmente conta comunque come successo — il workflow in se non ha fallito.) |
-| **Error** | Un blocco e fallito e non c'era un percorso **error** collegato per gestirlo. L'esecuzione si e fermata li. |
-| **Timeout** | L'esecuzione ha richiesto piu tempo di quello consentito. Vedi [Configurazione e sicurezza](/docs/workflows/configuration). |
+| Stato         | Cosa significa                                                                                                                                                  |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Scheduled** | Il trigger e scattato e l'esecuzione sta per iniziare. Di solito richiede solo una frazione di secondo.                                                         |
+| **Running**   | Il workflow e in corso. I blocchi di lunga durata mantengono un'esecuzione in questo stato.                                                                     |
+| **Success**   | Ogni blocco eseguito si e concluso senza errori. (Prendere un ramo **error** intenzionalmente conta comunque come successo — il workflow in se non ha fallito.) |
+| **Error**     | Un blocco e fallito e non c'era un percorso **error** collegato per gestirlo. L'esecuzione si e fermata li.                                                     |
+| **Timeout**   | L'esecuzione ha richiesto piu tempo di quello consentito. Vedi [Configurazione e sicurezza](/docs/workflows/configuration).                                     |
 
 ## Leggere un'esecuzione
 

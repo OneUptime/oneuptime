@@ -18,10 +18,12 @@ Le SCIM de projet permet aux fournisseurs d'identité de gérer les membres d'é
 ### Configuration du SCIM de projet
 
 1. **Accéder aux paramètres du projet**
+
    - Accédez à votre projet OneUptime
    - Naviguez vers **Paramètres du projet** > **Équipe** > **SCIM**
 
 2. **Configurer les paramètres SCIM**
+
    - Activez **Provisionnement automatique des utilisateurs** pour ajouter automatiquement les utilisateurs lorsqu'ils sont affectés dans votre IdP
    - Activez **Déprovisionnement automatique des utilisateurs** pour supprimer automatiquement les utilisateurs lorsqu'ils sont désaffectés dans votre IdP
    - Sélectionnez les **Équipes par défaut** auxquelles les nouveaux utilisateurs doivent être ajoutés
@@ -65,10 +67,12 @@ Le SCIM de page de statut permet aux fournisseurs d'identité de gérer les abon
 ### Configuration du SCIM de page de statut
 
 1. **Accéder aux paramètres de la page de statut**
+
    - Accédez à votre page de statut OneUptime
    - Naviguez vers **Paramètres de la page de statut** > **Utilisateurs privés** > **SCIM**
 
 2. **Configurer les paramètres SCIM**
+
    - Activez **Provisionnement automatique des utilisateurs** pour ajouter automatiquement les abonnés lorsqu'ils sont affectés dans votre IdP
    - Activez **Déprovisionnement automatique des utilisateurs** pour supprimer automatiquement les abonnés lorsqu'ils sont désaffectés dans votre IdP
    - Copiez l'**URL de base SCIM** et le **Jeton Bearer** pour la configuration de votre IdP
@@ -151,14 +155,14 @@ Microsoft Entra ID fournit une gestion des identités de niveau entreprise avec 
 2. Cliquez sur **Provisionner les utilisateurs Azure Active Directory**
 3. Configurez les mappages d'attributs suivants :
 
-| Attribut Azure AD | Attribut SCIM OneUptime | Requis |
-|-------------------|-------------------------|--------|
-| `userPrincipalName` | `userName` | Oui |
-| `mail` | `emails[type eq "work"].value` | Recommandé |
-| `displayName` | `displayName` | Recommandé |
-| `givenName` | `name.givenName` | Facultatif |
-| `surname` | `name.familyName` | Facultatif |
-| `Switch([IsSoftDeleted], , "False", "True", "True", "False")` | `active` | Recommandé |
+| Attribut Azure AD                                             | Attribut SCIM OneUptime        | Requis     |
+| ------------------------------------------------------------- | ------------------------------ | ---------- |
+| `userPrincipalName`                                           | `userName`                     | Oui        |
+| `mail`                                                        | `emails[type eq "work"].value` | Recommandé |
+| `displayName`                                                 | `displayName`                  | Recommandé |
+| `givenName`                                                   | `name.givenName`               | Facultatif |
+| `surname`                                                     | `name.familyName`              | Facultatif |
+| `Switch([IsSoftDeleted], , "False", "True", "True", "False")` | `active`                       | Recommandé |
 
 4. Supprimez les mappages non nécessaires pour simplifier le provisionnement
 5. Cliquez sur **Enregistrer**
@@ -173,9 +177,9 @@ Si vous avez activé la **Synchronisation des groupes** dans OneUptime :
 4. Configurez les mappages d'attributs suivants :
 
 | Attribut Azure AD | Attribut SCIM OneUptime |
-|-------------------|-------------------------|
-| `displayName` | `displayName` |
-| `members` | `members` |
+| ----------------- | ----------------------- |
+| `displayName`     | `displayName`           |
+| `members`         | `members`               |
 
 5. Cliquez sur **Enregistrer**
 
@@ -229,11 +233,13 @@ Okta fournit une gestion des identités flexible avec un excellent support SCIM.
 #### Étape 2 : Créer ou configurer l'application Okta
 
 **Si vous avez une application SSO existante :**
+
 1. Connectez-vous à votre Console d'administration Okta
 2. Naviguez vers **Applications** > **Applications**
 3. Recherchez et sélectionnez votre application OneUptime existante
 
 **Si vous créez une nouvelle application :**
+
 1. Connectez-vous à votre Console d'administration Okta
 2. Naviguez vers **Applications** > **Applications**
 3. Cliquez sur **Créer une intégration d'application**
@@ -280,13 +286,13 @@ Okta fournit une gestion des identités flexible avec un excellent support SCIM.
 1. Faites défiler jusqu'à **Mappages d'attributs**
 2. Vérifiez ou configurez les mappages suivants :
 
-| Attribut Okta | Attribut SCIM OneUptime | Direction |
-|---------------|-------------------------|-----------|
-| `userName` | `userName` | Okta vers application |
-| `user.email` | `emails[primary eq true].value` | Okta vers application |
-| `user.firstName` | `name.givenName` | Okta vers application |
-| `user.lastName` | `name.familyName` | Okta vers application |
-| `user.displayName` | `displayName` | Okta vers application |
+| Attribut Okta      | Attribut SCIM OneUptime         | Direction             |
+| ------------------ | ------------------------------- | --------------------- |
+| `userName`         | `userName`                      | Okta vers application |
+| `user.email`       | `emails[primary eq true].value` | Okta vers application |
+| `user.firstName`   | `name.givenName`                | Okta vers application |
+| `user.lastName`    | `name.familyName`               | Okta vers application |
+| `user.displayName` | `displayName`                   | Okta vers application |
 
 3. Supprimez les mappages inutiles
 4. Cliquez sur **Enregistrer** si vous avez effectué des modifications
@@ -337,15 +343,15 @@ L'implémentation SCIM de OneUptime suit la spécification SCIM v2.0 et devrait 
 
 #### Points de terminaison SCIM pris en charge
 
-| Point de terminaison | Méthodes | Description |
-|---------------------|---------|-------------|
-| `/ServiceProviderConfig` | GET | Capacités du serveur SCIM |
-| `/Schemas` | GET | Schémas de ressources disponibles |
-| `/ResourceTypes` | GET | Types de ressources disponibles |
-| `/Users` | GET, POST | Lister et créer des utilisateurs |
-| `/Users/{id}` | GET, PUT, PATCH, DELETE | Gérer des utilisateurs individuels |
-| `/Groups` | GET, POST | Lister et créer des groupes/équipes (SCIM de projet uniquement) |
-| `/Groups/{id}` | GET, PUT, PATCH, DELETE | Gérer des groupes individuels (SCIM de projet uniquement) |
+| Point de terminaison     | Méthodes                | Description                                                     |
+| ------------------------ | ----------------------- | --------------------------------------------------------------- |
+| `/ServiceProviderConfig` | GET                     | Capacités du serveur SCIM                                       |
+| `/Schemas`               | GET                     | Schémas de ressources disponibles                               |
+| `/ResourceTypes`         | GET                     | Types de ressources disponibles                                 |
+| `/Users`                 | GET, POST               | Lister et créer des utilisateurs                                |
+| `/Users/{id}`            | GET, PUT, PATCH, DELETE | Gérer des utilisateurs individuels                              |
+| `/Groups`                | GET, POST               | Lister et créer des groupes/équipes (SCIM de projet uniquement) |
+| `/Groups/{id}`           | GET, PUT, PATCH, DELETE | Gérer des groupes individuels (SCIM de projet uniquement)       |
 
 #### Schéma d'utilisateur SCIM
 
@@ -407,5 +413,6 @@ Lorsque SCIM tente de créer un utilisateur qui existe déjà (correspondance pa
 ### À quelle fréquence la synchronisation du provisionnement se produit-elle ?
 
 Cela dépend de votre fournisseur d'identité :
+
 - **Microsoft Entra ID** : La synchronisation initiale peut prendre jusqu'à 40 minutes ; les synchronisations suivantes ont lieu toutes les 40 minutes
 - **Okta** : Quasi temps réel pour la plupart des opérations, avec des synchronisations complètes périodiques

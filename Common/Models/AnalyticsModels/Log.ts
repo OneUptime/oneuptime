@@ -697,6 +697,16 @@ export default class Log extends AnalyticsBaseModel {
       sortKeys: ["projectId", "time", "primaryEntityId"],
       primaryKeys: ["projectId", "time", "primaryEntityId"],
       partitionKey: "toYYYYMMDD(time)",
+      /*
+       * Shard by (projectId, primaryEntityId, time). traceId is NOT used: it is
+       * Nullable on logs AND most logs have no trace, so a traceId hash would pile
+       * the majority onto one shard. These three columns are always present
+       * (non-nullable), and including the high-entropy `time` means even a single
+       * very-high-volume service spreads evenly across all shards — no hotspot.
+       * (Trace-scoped log reads scatter-gather, which is cheap via the traceId
+       * bloom-filter skip index and rare here.)
+       */
+      shardingKey: "cityHash64(projectId, primaryEntityId, time)",
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",

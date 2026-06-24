@@ -10,7 +10,7 @@ Diese Seite ist die **Installationsanleitung**. Informationen zum Konfigurieren 
 
 - Docker Engine 20.10+
 - Zugriff auf `/var/run/docker.sock` auf dem Host
-- Ein **OneUptime Telemetry Ingestion Token** — erstellen Sie eines unter *Project Settings → Telemetry Ingestion Keys* und kopieren Sie den Wert
+- Ein **OneUptime Telemetry Ingestion Token** — erstellen Sie eines unter _Project Settings → Telemetry Ingestion Keys_ und kopieren Sie den Wert
 
 ## Schnellstart (Ein Befehl)
 
@@ -64,11 +64,11 @@ docker compose up -d
 
 ## Umgebungsvariablen
 
-| Variable | Erforderlich | Beschreibung |
-|----------|----------|-------------|
-| `ONEUPTIME_URL` | Ja | Die URL Ihrer OneUptime-Instanz (zum Beispiel `https://oneuptime.com` oder Ihr selbst gehosteter Host) |
-| `ONEUPTIME_SERVICE_TOKEN` | Ja | Telemetry Ingestion Token aus *Project Settings → Telemetry Ingestion Keys* |
-| `DOCKER_HOST_NAME` | Nein | Sprechender Name für diesen Host. Standardwert ist `docker-host`. Setzen Sie ihn pro Host auf einen stabilen Wert (z. B. `prod-docker-01`) |
+| Variable                  | Erforderlich | Beschreibung                                                                                                                               |
+| ------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ONEUPTIME_URL`           | Ja           | Die URL Ihrer OneUptime-Instanz (zum Beispiel `https://oneuptime.com` oder Ihr selbst gehosteter Host)                                     |
+| `ONEUPTIME_SERVICE_TOKEN` | Ja           | Telemetry Ingestion Token aus _Project Settings → Telemetry Ingestion Keys_                                                                |
+| `DOCKER_HOST_NAME`        | Nein         | Sprechender Name für diesen Host. Standardwert ist `docker-host`. Setzen Sie ihn pro Host auf einen stabilen Wert (z. B. `prod-docker-01`) |
 
 ## Installation überprüfen
 
@@ -117,14 +117,14 @@ docker compose down
 
 ## Was gesammelt wird
 
-| Kategorie | Daten |
-|----------|------|
-| **CPU-Metriken** | Nutzung gesamt, Nutzung in Prozent, Throttling-Zeit (pro Container) |
-| **Arbeitsspeicher-Metriken** | Nutzung, Limit, Prozentsatz, RSS, Cache (pro Container) |
-| **Netzwerk-Metriken** | Empfangene/gesendete Bytes und Pakete (pro Container) |
-| **Block-I/O-Metriken** | Gelesene/geschriebene Bytes und Operationen (pro Container) |
-| **Container-Informationen** | Uptime, Anzahl der Neustarts, Anzahl der Prozesse |
-| **Container-Logs** | stdout-/stderr-Logs von allen Containern |
+| Kategorie                    | Daten                                                               |
+| ---------------------------- | ------------------------------------------------------------------- |
+| **CPU-Metriken**             | Nutzung gesamt, Nutzung in Prozent, Throttling-Zeit (pro Container) |
+| **Arbeitsspeicher-Metriken** | Nutzung, Limit, Prozentsatz, RSS, Cache (pro Container)             |
+| **Netzwerk-Metriken**        | Empfangene/gesendete Bytes und Pakete (pro Container)               |
+| **Block-I/O-Metriken**       | Gelesene/geschriebene Bytes und Operationen (pro Container)         |
+| **Container-Informationen**  | Uptime, Anzahl der Neustarts, Anzahl der Prozesse                   |
+| **Container-Logs**           | stdout-/stderr-Logs von allen Containern                            |
 
 ## Selbst gehostetes OneUptime
 

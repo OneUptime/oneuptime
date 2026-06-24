@@ -31,10 +31,10 @@ Select the Docker host to monitor. Hosts are auto-registered the first time the 
 
 Choose the level at which to monitor resources:
 
-| Scope | Description |
-|-------|-------------|
-| Host | Monitor the entire Docker host, aggregated across all containers |
-| Container | Monitor a specific container by name or image |
+| Scope     | Description                                                      |
+| --------- | ---------------------------------------------------------------- |
+| Host      | Monitor the entire Docker host, aggregated across all containers |
+| Container | Monitor a specific container by name or image                    |
 
 ### Metric Queries
 
@@ -64,61 +64,61 @@ The Docker Agent uses the OpenTelemetry `docker_stats` receiver, which scrapes t
 
 ### CPU
 
-| Metric | Description |
-|--------|-------------|
-| `container.cpu.utilization` | CPU utilization as a percentage of the host CPU |
-| `container.cpu.usage.total` | Cumulative CPU time consumed by the container |
-| `container.cpu.throttling_data.throttled_time` | Time the container was throttled by cgroups |
-| `container.cpu.throttling_data.throttled_periods` | Number of throttling periods |
+| Metric                                            | Description                                     |
+| ------------------------------------------------- | ----------------------------------------------- |
+| `container.cpu.utilization`                       | CPU utilization as a percentage of the host CPU |
+| `container.cpu.usage.total`                       | Cumulative CPU time consumed by the container   |
+| `container.cpu.throttling_data.throttled_time`    | Time the container was throttled by cgroups     |
+| `container.cpu.throttling_data.throttled_periods` | Number of throttling periods                    |
 
 ### Memory
 
-| Metric | Description |
-|--------|-------------|
-| `container.memory.usage.total` | Current memory usage in bytes |
-| `container.memory.usage.limit` | Memory limit in bytes |
-| `container.memory.percent` | Memory usage as a percentage of the limit |
+| Metric                         | Description                               |
+| ------------------------------ | ----------------------------------------- |
+| `container.memory.usage.total` | Current memory usage in bytes             |
+| `container.memory.usage.limit` | Memory limit in bytes                     |
+| `container.memory.percent`     | Memory usage as a percentage of the limit |
 
 ### Network
 
-| Metric | Description |
-|--------|-------------|
-| `container.network.io.usage.rx_bytes` | Total bytes received |
+| Metric                                | Description             |
+| ------------------------------------- | ----------------------- |
+| `container.network.io.usage.rx_bytes` | Total bytes received    |
 | `container.network.io.usage.tx_bytes` | Total bytes transmitted |
 
 ### Block I/O
 
-| Metric | Description |
-|--------|-------------|
-| `container.blockio.io_service_bytes_recursive.read` | Bytes read from block devices |
+| Metric                                               | Description                    |
+| ---------------------------------------------------- | ------------------------------ |
+| `container.blockio.io_service_bytes_recursive.read`  | Bytes read from block devices  |
 | `container.blockio.io_service_bytes_recursive.write` | Bytes written to block devices |
 
 ### Container Info
 
-| Metric | Description |
-|--------|-------------|
-| `container.uptime` | Container uptime in seconds |
-| `container.restarts` | Number of times the container has restarted |
-| `container.pids.count` | Number of processes inside the container |
+| Metric                 | Description                                 |
+| ---------------------- | ------------------------------------------- |
+| `container.uptime`     | Container uptime in seconds                 |
+| `container.restarts`   | Number of times the container has restarted |
+| `container.pids.count` | Number of processes inside the container    |
 
 ## Monitoring Criteria
 
 ### Available Check Types
 
-| Check Type | Description |
-|------------|-------------|
+| Check Type   | Description                                         |
+| ------------ | --------------------------------------------------- |
 | Metric Value | The value of the configured metric query or formula |
 
 ### Aggregation Types
 
-| Aggregation | Description |
-|-------------|-------------|
-| Average | Average value over the time window |
-| Sum | Sum of all values |
-| Maximum Value | Highest value in the time window |
-| Minimum Value | Lowest value in the time window |
-| All Values | All values must match the criteria |
-| Any Value | At least one value must match |
+| Aggregation   | Description                        |
+| ------------- | ---------------------------------- |
+| Average       | Average value over the time window |
+| Sum           | Sum of all values                  |
+| Maximum Value | Highest value in the time window   |
+| Minimum Value | Lowest value in the time window    |
+| All Values    | All values must match the criteria |
+| Any Value     | At least one value must match      |
 
 ### Filter Types
 
@@ -128,13 +128,13 @@ The Docker Agent uses the OpenTelemetry `docker_stats` receiver, which scrapes t
 
 OneUptime provides templates for common Docker monitoring scenarios:
 
-| Template | Description | Threshold | Aggregation |
-|----------|-------------|-----------|-------------|
-| High Container CPU | CPU utilization per container | > 90% | Max (per container) |
-| High Container Memory | Memory usage as percent of limit | > 85% | Max (per container) |
-| High CPU Throttling | CPU throttled periods | > 0 | Max (per container) |
-| Container Restart Loop | Container restart count | > 3 | Sum |
-| Container Down | Container uptime reset to 0 | = 0 | Min |
+| Template               | Description                      | Threshold | Aggregation         |
+| ---------------------- | -------------------------------- | --------- | ------------------- |
+| High Container CPU     | CPU utilization per container    | > 90%     | Max (per container) |
+| High Container Memory  | Memory usage as percent of limit | > 85%     | Max (per container) |
+| High CPU Throttling    | CPU throttled periods            | > 0       | Max (per container) |
+| Container Restart Loop | Container restart count          | > 3       | Sum                 |
+| Container Down         | Container uptime reset to 0      | = 0       | Min                 |
 
 > Note: CPU, memory, and throttling templates use **Max** aggregation grouped by `resource.container.name`. This prevents a single hot container's signal from being diluted by many idle containers on the same host.
 

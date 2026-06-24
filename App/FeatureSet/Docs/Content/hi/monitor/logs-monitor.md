@@ -28,12 +28,12 @@ logs monitor करने के लिए एक या अधिक services �
 
 ### Log Filters
 
-| Filter | विवरण | आवश्यक |
-|--------|-------|--------|
-| Severity Levels | log severity (ERROR, WARN, INFO, DEBUG, आदि) से filter करें | नहीं |
-| Body | log message body में text search | नहीं |
-| Attributes | custom log attributes पर filter के लिए Key-value pairs | नहीं |
-| Time Window | logs के लिए कितना पीछे search करें (seconds में, default: 60) | नहीं |
+| Filter          | विवरण                                                         | आवश्यक |
+| --------------- | ------------------------------------------------------------- | ------ |
+| Severity Levels | log severity (ERROR, WARN, INFO, DEBUG, आदि) से filter करें   | नहीं   |
+| Body            | log message body में text search                              | नहीं   |
+| Attributes      | custom log attributes पर filter के लिए Key-value pairs        | नहीं   |
+| Time Window     | logs के लिए कितना पीछे search करें (seconds में, default: 60) | नहीं   |
 
 ### Severity Levels
 
@@ -51,9 +51,9 @@ logs monitor करने के लिए एक या अधिक services �
 
 ### उपलब्ध Check Types
 
-| Check Type | विवरण |
-|------------|-------|
-| Log Count | time window में आपके filters से match करने वाले logs की संख्या |
+| Check Type | विवरण                                                          |
+| ---------- | -------------------------------------------------------------- |
+| Log Count  | time window में आपके filters से match करने वाले logs की संख्या |
 
 ### Filter Types
 

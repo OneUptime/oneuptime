@@ -6,7 +6,6 @@ OneUptime tillhandahåller ett omfattande REST API som gör det möjligt att int
 
 Vårt API är organiserat kring REST-principer och använder standard HTTP-svarskoder, autentisering och verb. Alla API-slutpunkter returnerar JSON-svar.
 
-
 ### Autentisering
 
 Alla API-förfrågningar kräver autentisering med API-nycklar. Du kan generera API-nycklar från din OneUptime-instrumentpanel under Inställningar > API-nycklar.

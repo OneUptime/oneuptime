@@ -183,17 +183,14 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
     return isApplePlatform ? "⌘K" : "Ctrl K";
   }, []);
 
-  // Filter items by the search query (title + description + category).
+  // Filter items by the search query (title only).
   const filteredItems: MoreMenuItem[] = useMemo(() => {
     const normalizedQuery: string = query.trim().toLowerCase();
     if (!normalizedQuery) {
       return props.items;
     }
     return props.items.filter((item: MoreMenuItem) => {
-      const haystack: string = `${item.title} ${item.description} ${
-        item.category || ""
-      }`.toLowerCase();
-      return haystack.includes(normalizedQuery);
+      return item.title.toLowerCase().includes(normalizedQuery);
     });
   }, [props.items, query]);
 

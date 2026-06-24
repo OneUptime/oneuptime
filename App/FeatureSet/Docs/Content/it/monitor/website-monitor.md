@@ -32,10 +32,10 @@ Quando si monitorano URL dietro CDN o proxy di cache, il monitor potrebbe riceve
 
 #### Segnaposto Supportati
 
-| Segnaposto | Descrizione | Valore Esempio |
-|-------------|-------------|---------------|
-| `{{timestamp}}` | Sostituito con il timestamp Unix corrente (secondi) | `1719500000` |
-| `{{random}}` | Sostituito con una stringa univoca casuale | `a3f8b2c1d4e5f6a7b8c9d0e1f2a3b4c5` |
+| Segnaposto      | Descrizione                                         | Valore Esempio                     |
+| --------------- | --------------------------------------------------- | ---------------------------------- |
+| `{{timestamp}}` | Sostituito con il timestamp Unix corrente (secondi) | `1719500000`                       |
+| `{{random}}`    | Sostituito con una stringa univoca casuale          | `a3f8b2c1d4e5f6a7b8c9d0e1f2a3b4c5` |
 
 #### Esempio
 
@@ -75,7 +75,7 @@ If your endpoint requires mutual TLS authentication, enable **Use client certifi
 
 - **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
 - **Client Private Key (PEM)** — the matching PEM-encoded private key.
-- **Client Private Key Passphrase** *(optional)* — required only if the private key is encrypted.
+- **Client Private Key Passphrase** _(optional)_ — required only if the private key is encrypted.
 
 This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
 

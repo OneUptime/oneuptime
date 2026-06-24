@@ -11,6 +11,7 @@ Ce guide vous aidera à démarrer avec le fournisseur Terraform OneUptime en que
 ## Étape 1 : Créer une clé API
 
 ### Pour OneUptime Cloud
+
 1. Allez sur [OneUptime Cloud](https://oneuptime.com) et connectez-vous
 2. Accédez à **Paramètres** → **Clés API**
 3. Cliquez sur **Créer une clé API**
@@ -19,6 +20,7 @@ Ce guide vous aidera à démarrer avec le fournisseur Terraform OneUptime en que
 6. Copiez la clé API générée
 
 ### Pour OneUptime auto-hébergé
+
 1. Accédez à votre instance OneUptime
 2. Accédez à **Paramètres** → **Clés API**
 3. Cliquez sur **Créer une clé API**
@@ -37,7 +39,7 @@ terraform {
       source  = "oneuptime/oneuptime"
       # Pour les clients cloud
       version = "~> 7.0"
-      
+
       # Pour les clients auto-hébergés - épinglez à votre version exacte
       # version = "= 7.0.123"  # Remplacez par votre version OneUptime
     }
@@ -48,10 +50,10 @@ terraform {
 provider "oneuptime" {
   # Pour les clients cloud
   oneuptime_url = "https://oneuptime.com"
-  
+
   # Pour les clients auto-hébergés - utilisez l'URL de votre instance
   # oneuptime_url = "https://oneuptime.votreentreprise.com"
-  
+
   api_key = var.oneuptime_api_key
 }
 
@@ -164,25 +166,33 @@ provider "oneuptime" {
 ## Dépannage du démarrage rapide
 
 ### Problème : Fournisseur introuvable
+
 ```
 Error: Failed to query available provider packages
 ```
+
 **Solution** : Exécutez `terraform init` pour télécharger le fournisseur
 
 ### Problème : Authentification échouée
+
 ```
 Error: Invalid API key
 ```
+
 **Solution** :
+
 1. Vérifiez votre clé API dans le tableau de bord OneUptime
 2. Vérifiez que la clé API dispose de permissions suffisantes
 3. Assurez-vous que `oneuptime_url` est correct pour votre instance
 
 ### Problème : Incompatibilité de version (auto-hébergé)
+
 ```
 Error: API version incompatible
 ```
+
 **Solution** :
+
 1. Vérifiez votre version OneUptime dans le tableau de bord
 2. Mettez à jour la version du fournisseur pour qu'elle corresponde exactement
 3. Exécutez `terraform init -upgrade`

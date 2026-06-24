@@ -34,22 +34,22 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 ## 目錄
 
-| 工具 | 方向 | 功能說明 |
-| --- | --- | --- |
-| [Zabbix](/docs/integrations/zabbix) | 入站 | 將 Zabbix 問題轉換為 OneUptime 事件（並在復原時解決它們）。 |
-| [Jira](/docs/integrations/jira) | 出站（＋入站） | 為每個事件開立一個 Jira issue；並將狀態同步回來。 |
-| [PagerDuty](/docs/integrations/pagerduty) | 出站（＋入站） | 從 OneUptime 事件觸發並解決 PagerDuty 事件。 |
-| [Opsgenie](/docs/integrations/opsgenie) | 出站（＋入站） | 建立並關閉 Opsgenie 警示。 |
-| [ServiceNow](/docs/integrations/servicenow) | 出站（＋入站） | 從 OneUptime 開立 ServiceNow 事件。 |
-| [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 入站 | 將 Alertmanager 通知轉換為事件。 |
-| [Grafana](/docs/integrations/grafana) | 入站 | 將 Grafana 警示轉換為事件。 |
-| [Datadog](/docs/integrations/datadog) | 入站 | 將 Datadog 監控警示轉換為事件。 |
-| [GitHub](/docs/integrations/github) | 出站 | 為事件開立一個 GitHub issue。 |
-| [GitLab](/docs/integrations/gitlab) | 出站 | 為事件開立一個 GitLab issue。 |
-| [Discord](/docs/integrations/discord) | 出站 | 將事件更新張貼到 Discord 頻道。 |
-| [Telegram](/docs/integrations/telegram) | 出站 | 將事件更新傳送到 Telegram 聊天。 |
-| [Slack](/docs/workspace-connections/slack) | 雙向 | 原生的工作區連線——頻道、警示與待命（on-call）。 |
-| [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | 雙向 | 原生的工作區連線。 |
+| 工具                                                                  | 方向           | 功能說明                                                    |
+| --------------------------------------------------------------------- | -------------- | ----------------------------------------------------------- |
+| [Zabbix](/docs/integrations/zabbix)                                   | 入站           | 將 Zabbix 問題轉換為 OneUptime 事件（並在復原時解決它們）。 |
+| [Jira](/docs/integrations/jira)                                       | 出站（＋入站） | 為每個事件開立一個 Jira issue；並將狀態同步回來。           |
+| [PagerDuty](/docs/integrations/pagerduty)                             | 出站（＋入站） | 從 OneUptime 事件觸發並解決 PagerDuty 事件。                |
+| [Opsgenie](/docs/integrations/opsgenie)                               | 出站（＋入站） | 建立並關閉 Opsgenie 警示。                                  |
+| [ServiceNow](/docs/integrations/servicenow)                           | 出站（＋入站） | 從 OneUptime 開立 ServiceNow 事件。                         |
+| [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 入站           | 將 Alertmanager 通知轉換為事件。                            |
+| [Grafana](/docs/integrations/grafana)                                 | 入站           | 將 Grafana 警示轉換為事件。                                 |
+| [Datadog](/docs/integrations/datadog)                                 | 入站           | 將 Datadog 監控警示轉換為事件。                             |
+| [GitHub](/docs/integrations/github)                                   | 出站           | 為事件開立一個 GitHub issue。                               |
+| [GitLab](/docs/integrations/gitlab)                                   | 出站           | 為事件開立一個 GitLab issue。                               |
+| [Discord](/docs/integrations/discord)                                 | 出站           | 將事件更新張貼到 Discord 頻道。                             |
+| [Telegram](/docs/integrations/telegram)                               | 出站           | 將事件更新傳送到 Telegram 聊天。                            |
+| [Slack](/docs/workspace-connections/slack)                            | 雙向           | 原生的工作區連線——頻道、警示與待命（on-call）。             |
+| [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | 雙向           | 原生的工作區連線。                                          |
 
 > **Slack 與 Microsoft Teams** 擁有更深入的原生連線，超越了工作流程的範圍——自動建立事件頻道、雙向動作以及待命通知。對於這些功能，請使用 [Slack](/docs/workspace-connections/slack) 與 [Microsoft Teams](/docs/workspace-connections/microsoft-teams) 工作區連線，而不是建立一個工作流程。
 
@@ -67,13 +67,13 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 大多數出站整合在 API 區塊上都需要一個 `Authorization` 標頭。常見的形式如下：
 
-| 機制 | 標頭值 | 使用者 |
-| --- | --- | --- |
-| Bearer token | `Bearer {{variable.TOKEN}}` | GitHub、許多現代 API |
-| Basic auth | `Basic {{variable.BASE64_USER_PASS}}` | Jira、ServiceNow |
-| API key 標頭 | `GenieKey {{variable.OPSGENIE_KEY}}` | Opsgenie |
-| Token 放在主體中 | JSON 主體中的 `routing_key` 欄位 | PagerDuty Events API |
-| Private token 標頭 | `PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}` | GitLab |
+| 機制               | 標頭值                                     | 使用者               |
+| ------------------ | ------------------------------------------ | -------------------- |
+| Bearer token       | `Bearer {{variable.TOKEN}}`                | GitHub、許多現代 API |
+| Basic auth         | `Basic {{variable.BASE64_USER_PASS}}`      | Jira、ServiceNow     |
+| API key 標頭       | `GenieKey {{variable.OPSGENIE_KEY}}`       | Opsgenie             |
+| Token 放在主體中   | JSON 主體中的 `routing_key` 欄位           | PagerDuty Events API |
+| Private token 標頭 | `PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}` | GitLab               |
 
 對於 Basic auth，請將 `username:password`（或 `email:api_token`）以 base64 編碼**一次**，然後將結果儲存為祕密。在 macOS/Linux 上：
 

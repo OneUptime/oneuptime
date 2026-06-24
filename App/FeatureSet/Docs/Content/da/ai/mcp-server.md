@@ -202,13 +202,13 @@ Konfigurationen ovenfor bruger inputvariabler med `"password": true` for sikkert
 
 ## Tilgængelige endpoints
 
-| Endpoint | Metode | Beskrivelse |
-|----------|--------|-------------|
-| `/mcp` | GET | Server-sendte hændelsesstrøm til server-til-klient-notifikationer |
-| `/mcp` | POST | JSON-RPC-anmodninger til værktøjskald og andre operationer |
-| `/mcp` | DELETE | Sessionsrydning og -afslutning |
-| `/mcp/health` | GET | Sundhedstjek-endpoint |
-| `/mcp/tools` | GET | REST API til liste over tilgængelige værktøjer |
+| Endpoint      | Metode | Beskrivelse                                                       |
+| ------------- | ------ | ----------------------------------------------------------------- |
+| `/mcp`        | GET    | Server-sendte hændelsesstrøm til server-til-klient-notifikationer |
+| `/mcp`        | POST   | JSON-RPC-anmodninger til værktøjskald og andre operationer        |
+| `/mcp`        | DELETE | Sessionsrydning og -afslutning                                    |
+| `/mcp/health` | GET    | Sundhedstjek-endpoint                                             |
+| `/mcp/tools`  | GET    | REST API til liste over tilgængelige værktøjer                    |
 
 ## Autentificering
 
@@ -319,12 +319,15 @@ Disse forespørgsler fungerer uden autentificering ved kun at bruge de offentlig
 ## API-nøgletilladelser
 
 ### Skrivebeskyttet adgang
+
 Til kun at se data skal du tilføje læsetilladelser til din API-nøgle.
 
 ### Fuld adgang
+
 Til fuld adgang til at oprette, opdatere og slette ressourcer skal du sørge for, at din API-nøgle har Project Admin-tilladelser.
 
 ### Bedste praksis
+
 - Brug specifikke tilladelser: Giv kun de minimum nødvendige tilladelser
 - Roter API-nøgler: Roter regelmæssigt dine API-nøgler
 - Overvåg brugen: Hold styr på API-nøglebrug i OneUptime
@@ -333,24 +336,30 @@ Til fuld adgang til at oprette, opdatere og slette ressourcer skal du sørge for
 ## Fejlfinding
 
 ### Tilladelserfejl
+
 Sørg for, at din API-nøgle har de nødvendige tilladelser:
+
 - Læseadgang til at liste ressourcer
 - Skriveadgang til at oprette/opdatere ressourcer
 - Sletteadgang, hvis du vil fjerne ressourcer
 
 ### Forbindelsesproblemer
+
 1. Bekræft, at din OneUptime URL er korrekt
 2. Kontroller, at din API-nøgle er gyldig
 3. Sørg for, at din OneUptime-instans er tilgængelig
 4. Test health-endpointet
 
 ### Ugyldig API-nøgle
+
 - Bekræft API-nøglen i dine OneUptime-indstillinger
 - Kontroller for ekstra mellemrum eller tegn
 - Sørg for, at nøglen ikke er udløbet
 
 ### Sessionsfejl
+
 Hvis du modtager sessionsrelaterede fejl:
+
 - MCP-serveren bruger `mcp-session-id`-headeren til at spore sessioner
 - Sørg for, at din klient korrekt håndterer sessions-ID'et returneret af serveren
 - Sessioner ryddes automatisk, når forbindelser lukkes

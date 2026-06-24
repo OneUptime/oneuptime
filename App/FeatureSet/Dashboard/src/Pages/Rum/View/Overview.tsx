@@ -18,7 +18,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import OneUptimeDate from "Common/Types/Date";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -33,6 +33,9 @@ import ResourceOverview, {
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
+import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import WebVitalsCard from "../../../Components/TelemetryResource/WebVitalsCard";
 import {
   fetchSpanMetrics,
@@ -68,11 +71,19 @@ const RumApplicationOverview: FunctionComponent<
   const [timeRange, setTimeRange] =
     useState<RangeStartAndEndDateTime>(DEFAULT_RANGE);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string>("");
 
-  const fetchModel: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    setError("");
+  const fetchModel: (showLoader: boolean) => Promise<void> = async (
+    showLoader: boolean,
+  ): Promise<void> => {
+    if (showLoader) {
+      setIsLoading(true);
+      setError("");
+    } else {
+      setIsRefreshing(true);
+    }
     try {
       const item: RumApplication | null = await ModelAPI.getItem({
         modelType: RumApplication,
@@ -91,13 +102,18 @@ const RumApplicationOverview: FunctionComponent<
       });
 
       if (!item?.appIdentifier) {
-        setError("RUM application not found.");
+        if (showLoader) {
+          setError("RUM application not found.");
+        }
         setIsLoading(false);
+        setIsRefreshing(false);
         return;
       }
 
       setRumApplication(item);
+      setLastRefreshedAt(OneUptimeDate.getCurrentDate());
       setIsLoading(false);
+      setIsRefreshing(false);
 
       ModelAPI.count({
         modelType: RumApplicationClient,
@@ -109,13 +125,20 @@ const RumApplicationOverview: FunctionComponent<
           return setClientCount(0);
         });
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      /*
+       * Keep stale data visible on a background refresh; only the initial
+       * load surfaces a page-level error.
+       */
+      if (showLoader) {
+        setError(API.getFriendlyMessage(err));
+      }
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
-    fetchModel().catch((err: Error) => {
+    fetchModel(true).catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
   }, []);
@@ -174,6 +197,13 @@ const RumApplicationOverview: FunctionComponent<
       ignore = true;
     };
   }, [rumApplication, timeRange]);
+
+  const { autoRefreshInterval, setAutoRefreshInterval } = useAutoRefresh({
+    storageKey: "rum-overview-auto-refresh-interval",
+    onRefresh: (): void => {
+      fetchModel(false).catch(() => {});
+    },
+  });
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -317,11 +347,22 @@ const RumApplicationOverview: FunctionComponent<
         tiles={tiles}
         charts={charts}
         controls={
-          <TelemetryTimeRangePicker
-            value={timeRange}
-            onChange={(value: RangeStartAndEndDateTime): void => {
-              setTimeRange(value);
+          <AutoRefreshControl
+            autoRefreshInterval={autoRefreshInterval}
+            onAutoRefreshIntervalChange={setAutoRefreshInterval}
+            onManualRefresh={(): void => {
+              fetchModel(false).catch(() => {});
             }}
+            isRefreshing={isRefreshing}
+            lastRefreshedAt={lastRefreshedAt}
+            timeRangePicker={
+              <TelemetryTimeRangePicker
+                value={timeRange}
+                onChange={(value: RangeStartAndEndDateTime): void => {
+                  setTimeRange(value);
+                }}
+              />
+            }
           />
         }
         quickLinks={quickLinks}
@@ -330,6 +371,15 @@ const RumApplicationOverview: FunctionComponent<
       />
 
       <WebVitalsCard vitals={webVitals} loading={webVitalsLoading} />
+
+      <ArchiveResourceCard<RumApplication>
+        modelType={RumApplication}
+        modelId={modelId}
+        singularName="application"
+        listRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.RUM_APPLICATIONS] as Route,
+        )}
+      />
     </Fragment>
   );
 };

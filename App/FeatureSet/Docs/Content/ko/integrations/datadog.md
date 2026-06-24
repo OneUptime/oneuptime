@@ -31,6 +31,7 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 1. Datadog에서 **Integrations → Webhooks** 로 이동합니다(아직 설치하지 않은 경우 **Webhooks** 통합을 설치합니다).
 2. **webhook을 추가합니다**:
+
    - **Name**: `oneuptime` (이것이 `@webhook-oneuptime` 이 됩니다).
    - **URL**: 워크플로의 webhook URL.
    - **Payload** — Datadog에서 [템플릿 변수](https://docs.datadoghq.com/integrations/webhooks/#usage)를 사용해 JSON 본문을 정의할 수 있습니다:

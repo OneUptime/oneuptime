@@ -29,11 +29,13 @@ OneUptimes webbinstrumentpanel är en Progressive Web App, så du kan installera
 ### Felsökning för skrivbordsappen
 
 **Installationsalternativet visas inte:**
+
 - Säkerställ att du använder en webbläsare som stöds.
 - Bekräfta att din OneUptime-instans levereras via HTTPS.
 - Uppdatera sidan eller töm webbläsarens cache.
 
 **Push-aviseringar fungerar inte:**
+
 - Bevilja behörigheter för aviseringar när webbläsaren ber om det.
 - Kontrollera operativsystemets aviseringsinställningar för webbläsaren.
 - Användare med egen drift: bekräfta att push-aviseringar är konfigurerade på din OneUptime-instans.

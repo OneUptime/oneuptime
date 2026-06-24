@@ -8,12 +8,12 @@ JavaScript-uttrykk som overvåkingskriterium er tilgjengelig for følgende overv
 
 Følgende variabler er tilgjengelige i konteksten til det overvåkede objektet:
 
-| Variabel | Beskrivelse | Type |
-| --- | --- | --- |
-| `responseBody` | Svarlegemsobjektet. Hvis svarkroppen er i HTML/XML, vil dette være av typen streng. Hvis svarkroppen er i JSON, vil dette være i JSON. | `string` eller `JSON` |
-| `responseHeaders` | Svarhodeobjektet. | `Dictionary<string>` |
-| `responseStatusCode` | Svarstatuskoden. | `number` |
-| `responseTimeInMs` | Svartiden i millisekunder. | `number` |
+| Variabel             | Beskrivelse                                                                                                                            | Type                  |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `responseBody`       | Svarlegemsobjektet. Hvis svarkroppen er i HTML/XML, vil dette være av typen streng. Hvis svarkroppen er i JSON, vil dette være i JSON. | `string` eller `JSON` |
+| `responseHeaders`    | Svarhodeobjektet.                                                                                                                      | `Dictionary<string>`  |
+| `responseStatusCode` | Svarstatuskoden.                                                                                                                       | `number`              |
+| `responseTimeInMs`   | Svartiden i millisekunder.                                                                                                             | `number`              |
 
 #### Eksempel
 
@@ -22,12 +22,12 @@ Følgende eksempel viser hvordan du bruker et JavaScript-uttrykk til å overvåk
 ```javascript
 
 /**
- *  
+ *
  * Hvis svarkroppen er i JSON, vil responseBody være et JSON-objekt
  * {
  *    "item": "hello"
  * }
- * 
+ *
  *  **/
 
 "{{responseBody.item}}" === "hello"
@@ -52,14 +52,14 @@ Følgende eksempel viser hvordan du bruker et JavaScript-uttrykk til å overvåk
 // for arrays kan du bruke følgende
 
 /**
- *  
- * Hvis svarkroppen er: 
+ *
+ * Hvis svarkroppen er:
  * {
  *    "item": [{
  *          "name": "hello"
  *      }]
  * }
- * 
+ *
  *  **/
 
 "{{responseBody.items[0].name}}" === "hello"
@@ -69,37 +69,37 @@ Følgende eksempel viser hvordan du bruker et JavaScript-uttrykk til å overvåk
 
 Følgende variabler er tilgjengelige i konteksten til det overvåkede objektet:
 
-| Variabel | Beskrivelse | Type |
-| --- | --- | --- |
-| `requestBody` | Forespørselslegemsobjektet. | `string` eller `JSON` |
-| `requestHeaders` | Forespørselshodeobjektet. | `Dictionary<string>` |
-
+| Variabel         | Beskrivelse                 | Type                  |
+| ---------------- | --------------------------- | --------------------- |
+| `requestBody`    | Forespørselslegemsobjektet. | `string` eller `JSON` |
+| `requestHeaders` | Forespørselshodeobjektet.   | `Dictionary<string>`  |
 
 #### Eksempel
 
 Følgende eksempel viser hvordan du bruker et JavaScript-uttrykk til å overvåke en innkommende forespørsel for en spesifikk streng i forespørselskroppen:
 
 ```javascript
-"{{requestBody.item}}" === "hello"
+"{{requestBody.item}}" === "hello";
 
 // eller du kan bruke forespørselshoder
 
-"{{requestHeaders.contentType}}" === "text/html"
+"{{requestHeaders.contentType}}" === "text/html";
 
 // du kan også bruke regulære uttrykk
 
-"{{requestBody.item}}".match(/hello/)
+"{{requestBody.item}}".match(/hello/);
 
 // du kan kombinere flere uttrykk ved hjelp av logiske operatorer
 
-"{{requestBody.item}}" === "hello" && "{{requestHeaders.contentType}}" === "text/html"
+"{{requestBody.item}}" === "hello" &&
+  "{{requestHeaders.contentType}}" === "text/html";
 
 // du kan bruke følgende for arrays
 
-"{{requestBody.items[0].name}}" === "hello"
+"{{requestBody.items[0].name}}" === "hello";
 ```
 
 ### Ting å vurdere
 
-* Skript har et tidsavbrudd på 1 sekund; det vil returnere `false` hvis skriptet tar lengre enn 1 sekund å kjøre.
-* `{{var}}` erstatter variabelen med verdien, så hvis du vil sammenligne en streng, må du pakke den inn i anførselstegn, f.eks. `"{{responseBody.item}}" === "hello"`, og hvis du vil sammenligne et tall, trenger du ikke pakke det inn i anførselstegn, f.eks. `{{responseStatusCode}} === 200`
+- Skript har et tidsavbrudd på 1 sekund; det vil returnere `false` hvis skriptet tar lengre enn 1 sekund å kjøre.
+- `{{var}}` erstatter variabelen med verdien, så hvis du vil sammenligne en streng, må du pakke den inn i anførselstegn, f.eks. `"{{responseBody.item}}" === "hello"`, og hvis du vil sammenligne et tall, trenger du ikke pakke det inn i anførselstegn, f.eks. `{{responseStatusCode}} === 200`

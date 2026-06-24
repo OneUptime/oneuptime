@@ -40,46 +40,48 @@ Ad esempio: `monitor-abc123def456@inbound.yourdomain.com`
 
 È possibile creare criteri basati sui seguenti campi dell'email:
 
-| Campo | Descrizione |
-|-------|-------------|
-| **Oggetto Email** | La riga dell'oggetto dell'email in entrata |
-| **Email Da** | L'indirizzo email del mittente |
-| **Corpo Email** | Il contenuto testuale del corpo dell'email |
-| **Email A** | L'indirizzo email del destinatario |
+| Campo              | Descrizione                                                   |
+| ------------------ | ------------------------------------------------------------- |
+| **Oggetto Email**  | La riga dell'oggetto dell'email in entrata                    |
+| **Email Da**       | L'indirizzo email del mittente                                |
+| **Corpo Email**    | Il contenuto testuale del corpo dell'email                    |
+| **Email A**        | L'indirizzo email del destinatario                            |
 | **Email Ricevuta** | Criteri basati sul tempo per quando le email vengono ricevute |
 
 ## Tipi di Filtro Disponibili
 
 ### Filtri Stringa (Oggetto, Da, Corpo, A)
 
-| Filtro | Descrizione | Esempio |
-|--------|-------------|---------|
-| **Contiene** | Il campo contiene il testo specificato | Oggetto contiene "CRITICO" |
-| **Non Contiene** | Il campo non contiene il testo specificato | Oggetto non contiene "TEST" |
-| **Uguale a** | Il campo corrisponde esattamente al testo specificato | Da uguale a "avvisi@servizio.com" |
-| **Diverso da** | Il campo non corrisponde al testo specificato | Oggetto diverso da "OK" |
-| **Inizia Con** | Il campo inizia con il testo specificato | Oggetto inizia con "[AVVISO]" |
-| **Termina Con** | Il campo termina con il testo specificato | Oggetto termina con "- Produzione" |
-| **È Vuoto** | Il campo è vuoto | Corpo è vuoto |
-| **Non È Vuoto** | Il campo ha contenuto | Oggetto non è vuoto |
+| Filtro           | Descrizione                                           | Esempio                            |
+| ---------------- | ----------------------------------------------------- | ---------------------------------- |
+| **Contiene**     | Il campo contiene il testo specificato                | Oggetto contiene "CRITICO"         |
+| **Non Contiene** | Il campo non contiene il testo specificato            | Oggetto non contiene "TEST"        |
+| **Uguale a**     | Il campo corrisponde esattamente al testo specificato | Da uguale a "avvisi@servizio.com"  |
+| **Diverso da**   | Il campo non corrisponde al testo specificato         | Oggetto diverso da "OK"            |
+| **Inizia Con**   | Il campo inizia con il testo specificato              | Oggetto inizia con "[AVVISO]"      |
+| **Termina Con**  | Il campo termina con il testo specificato             | Oggetto termina con "- Produzione" |
+| **È Vuoto**      | Il campo è vuoto                                      | Corpo è vuoto                      |
+| **Non È Vuoto**  | Il campo ha contenuto                                 | Oggetto non è vuoto                |
 
 ### Filtri Basati sul Tempo (Email Ricevuta)
 
-| Filtro | Descrizione | Esempio |
-|--------|-------------|---------|
-| **Ricevuta In Minuti** | L'email è stata ricevuta entro X minuti | Email ricevuta in 30 minuti |
-| **Non Ricevuta In Minuti** | Nessuna email ricevuta in X minuti | Email non ricevuta in 60 minuti |
+| Filtro                     | Descrizione                             | Esempio                         |
+| -------------------------- | --------------------------------------- | ------------------------------- |
+| **Ricevuta In Minuti**     | L'email è stata ricevuta entro X minuti | Email ricevuta in 30 minuti     |
+| **Non Ricevuta In Minuti** | Nessuna email ricevuta in X minuti      | Email non ricevuta in 60 minuti |
 
 ## Configurazioni di Esempio
 
 ### Esempio 1: Creazione Avviso per Email Critiche
 
 **Criteri di Creazione Avvisi:**
+
 - Oggetto Email **Contiene** "CRITICO"
 - OPPURE Oggetto Email **Contiene** "AVVISO"
 - OPPURE Oggetto Email **Contiene** "ERRORE"
 
 **Criteri di Risoluzione Avvisi:**
+
 - Oggetto Email **Contiene** "RISOLTO"
 - OPPURE Oggetto Email **Contiene** "OK"
 - OPPURE Oggetto Email **Contiene** "RECUPERATO"
@@ -87,21 +89,25 @@ Ad esempio: `monitor-abc123def456@inbound.yourdomain.com`
 ### Esempio 2: Monitoraggio di un Mittente Specifico
 
 **Criteri di Creazione Avvisi:**
+
 - Email Da **Uguale a** "monitoraggio@sistema-legacy.com"
 - E Oggetto Email **Contiene** "Fallito"
 
 **Criteri di Risoluzione Avvisi:**
+
 - Email Da **Uguale a** "monitoraggio@sistema-legacy.com"
 - E Oggetto Email **Contiene** "Successo"
 
 ### Esempio 3: Monitor Heartbeat (Nessuna Email = Avviso)
 
 **Criteri di Creazione Avvisi:**
+
 - Email Ricevuta **Non Ricevuta In Minuti** con valore `60`
 
 Questo crea un avviso se non viene ricevuta nessuna email per 60 minuti - utile per monitorare processi pianificati o batch che dovrebbero inviare email di completamento.
 
 **Criteri di Risoluzione Avvisi:**
+
 - Email Ricevuta **Ricevuta In Minuti** con valore `5`
 
 Questo risolve l'avviso quando viene ricevuta un'email.
@@ -111,6 +117,7 @@ Questo risolve l'avviso quando viene ricevuta un'email.
 ### Integrazione con Sistemi Legacy
 
 Molti sistemi più vecchi supportano solo avvisi basati su email. Usare il Monitor Email In Entrata per:
+
 - Convertire gli avvisi email in incidenti OneUptime
 - Risolvere automaticamente gli incidenti quando arrivano email di recupero
 - Centralizzare gli avvisi da più sistemi legacy
@@ -118,6 +125,7 @@ Molti sistemi più vecchi supportano solo avvisi basati su email. Usare il Monit
 ### Monitoraggio di Servizi di Terze Parti
 
 Integrazione con servizi che inviano notifiche via email:
+
 - Avvisi del provider cloud (AWS, GCP, Azure)
 - Strumenti di scansione della sicurezza
 - Notifiche di completamento backup
@@ -126,6 +134,7 @@ Integrazione con servizi che inviano notifiche via email:
 ### Monitoraggio di Job Pianificati
 
 Monitorare job batch e attività pianificate:
+
 - Creare avvisi se le email di completamento non vengono ricevute puntualmente
 - Tracciare i fallimenti dei job tramite email di notifica degli errori
 - Monitorare i completamenti delle pipeline dati
@@ -133,6 +142,7 @@ Monitorare job batch e attività pianificate:
 ### Aggregazione di Avvisi Multi-Vendor
 
 Consolidare gli avvisi da più strumenti di monitoraggio:
+
 - Ricevere avvisi da Nagios, Zabbix o altri strumenti tramite email
 - Unificare la gestione degli incidenti in OneUptime
 - Mantenere un'unica fonte di verità per tutti gli avvisi
@@ -141,17 +151,18 @@ Consolidare gli avvisi da più strumenti di monitoraggio:
 
 Quando si configurano i template degli incidenti, è possibile usare queste variabili dalle email in entrata:
 
-| Variabile | Descrizione |
-|----------|-------------|
-| `{{emailSubject}}` | L'oggetto dell'email ricevuta |
-| `{{emailFrom}}` | L'indirizzo email del mittente |
-| `{{emailTo}}` | L'indirizzo email del destinatario |
-| `{{emailBody}}` | Il corpo testuale dell'email |
-| `{{emailReceivedAt}}` | Quando è stata ricevuta l'email |
+| Variabile             | Descrizione                        |
+| --------------------- | ---------------------------------- |
+| `{{emailSubject}}`    | L'oggetto dell'email ricevuta      |
+| `{{emailFrom}}`       | L'indirizzo email del mittente     |
+| `{{emailTo}}`         | L'indirizzo email del destinatario |
+| `{{emailBody}}`       | Il corpo testuale dell'email       |
+| `{{emailReceivedAt}}` | Quando è stata ricevuta l'email    |
 
 ## Visualizzazione Riepilogo Monitor
 
 Il riepilogo del monitor mostra:
+
 - **Ultima Email Ricevuta Alle:** Quando è stata ricevuta l'email più recente
 - **Da:** Il mittente dell'ultima email
 - **Oggetto:** La riga dell'oggetto dell'ultima email

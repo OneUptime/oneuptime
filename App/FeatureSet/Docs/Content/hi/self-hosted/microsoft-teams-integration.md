@@ -27,15 +27,17 @@
 2. "Add a permission" पर क्लिक करें और "Microsoft Graph" चुनें
 
 **Delegated Permissions जोड़ें** (signed-in user की ओर से act करते समय):
-   - **User.Read** - OAuth flow के दौरान authenticated user की profile जानकारी (display name, email) प्राप्त करने के लिए आवश्यक
-   - **Team.ReadBasic.All** - connect करने के लिए team चुनते समय user की member teams list करने के लिए आवश्यक
-   - **Channel.ReadBasic.All** - channel जानकारी पढ़ने और notification delivery के लिए teams में channels list करने के लिए आवश्यक
-   - **ChannelMessage.Send** - Teams channels को alert और incident notifications भेजने के लिए आवश्यक
+
+- **User.Read** - OAuth flow के दौरान authenticated user की profile जानकारी (display name, email) प्राप्त करने के लिए आवश्यक
+- **Team.ReadBasic.All** - connect करने के लिए team चुनते समय user की member teams list करने के लिए आवश्यक
+- **Channel.ReadBasic.All** - channel जानकारी पढ़ने और notification delivery के लिए teams में channels list करने के लिए आवश्यक
+- **ChannelMessage.Send** - Teams channels को alert और incident notifications भेजने के लिए आवश्यक
 
 **Application Permissions जोड़ें** (signed-in user के बिना app के रूप में act करते समय):
-   - **Team.ReadBasic.All** - admin consent grant होने के बाद organization में सभी teams list करने के लिए आवश्यक
-   - **Channel.ReadBasic.All** - channel existence verify करने और channel details retrieve करने के लिए आवश्यक
-   - **ChannelMessage.Send** - channels पर programmatically messages भेजने के लिए आवश्यक
+
+- **Team.ReadBasic.All** - admin consent grant होने के बाद organization में सभी teams list करने के लिए आवश्यक
+- **Channel.ReadBasic.All** - channel existence verify करने और channel details retrieve करने के लिए आवश्यक
+- **ChannelMessage.Send** - channels पर programmatically messages भेजने के लिए आवश्यक
 
 3. अपने organization के लिए "Grant admin consent" पर क्लिक करें
 
@@ -52,6 +54,7 @@
 
 1. Azure Portal में, "Azure Bot" पर जाएं और "Create" पर क्लिक करें
 2. Bot creation form भरें:
+
    - **Bot handle:** oneuptime-bot
    - **Subscription:** आपका Azure subscription
    - **Resource group:** नया बनाएं या existing उपयोग करें

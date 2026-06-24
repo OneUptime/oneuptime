@@ -41,6 +41,8 @@ import ServiceSettingsOwnerRules from "../Pages/Service/Settings/OwnerRules";
 
 import ServiceSettingsLabelRules from "../Pages/Service/Settings/LabelRules";
 
+import ServiceArchived from "../Pages/Service/Archived";
+
 const ServiceRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -75,6 +77,15 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.SERVICE_SETTINGS_LABEL_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={ServiceRoutePath[PageMap.SERVICE_ARCHIVED] || ""}
+          element={
+            <ServiceArchived
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_ARCHIVED] as Route}
             />
           }
         />

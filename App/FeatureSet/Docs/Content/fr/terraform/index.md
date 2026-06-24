@@ -5,20 +5,25 @@ Le fournisseur Terraform OneUptime permet la gestion en tant qu'infrastructure a
 ## Sections de documentation
 
 ### [Démarrage rapide](./quick-start.md)
+
 Guide de configuration rapide pour vous aider à démarrer avec le fournisseur Terraform OneUptime en quelques minutes.
 
 ### [Guide complet du fournisseur](./README.md)
+
 Documentation complète couvrant l'installation, la configuration, les ressources et les meilleures pratiques.
 
 ### [Configuration auto-hébergée](./self-hosted.md)
+
 **Critique pour les clients auto-hébergés** : Épinglage de version, compatibilité et stratégies de déploiement.
 
 ### [Exemples](./examples.md)
+
 Exemples concrets et modèles pour les configurations Terraform OneUptime courantes.
 
 ## Liens rapides
 
 ### Pour les clients cloud OneUptime
+
 ```hcl
 terraform {
   required_providers {
@@ -36,6 +41,7 @@ provider "oneuptime" {
 ```
 
 ### Pour les clients auto-hébergés
+
 ```hcl
 terraform {
   required_providers {

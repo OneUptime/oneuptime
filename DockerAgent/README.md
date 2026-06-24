@@ -45,20 +45,20 @@ docker compose up -d
 
 ## Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL |
-| `ONEUPTIME_SERVICE_TOKEN` | Yes | Telemetry ingestion service token (Settings → API Keys) |
-| `DOCKER_HOST_NAME` | No | Friendly name for this host (default: `docker-host`) |
+| Variable                  | Required | Description                                             |
+| ------------------------- | -------- | ------------------------------------------------------- |
+| `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL                             |
+| `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion service token (Settings → API Keys) |
+| `DOCKER_HOST_NAME`        | No       | Friendly name for this host (default: `docker-host`)    |
 
 ## Image Tags
 
-| Tag | Description |
-|-----|-------------|
-| `oneuptime/docker-agent:release` | Latest stable release (community) |
+| Tag                                         | Description                        |
+| ------------------------------------------- | ---------------------------------- |
+| `oneuptime/docker-agent:release`            | Latest stable release (community)  |
 | `oneuptime/docker-agent:enterprise-release` | Latest stable release (enterprise) |
-| `oneuptime/docker-agent:<version>` | Pinned version, e.g. `10.0.31` |
-| `ghcr.io/oneuptime/docker-agent:release` | Same image mirrored on GHCR |
+| `oneuptime/docker-agent:<version>`          | Pinned version, e.g. `10.0.31`     |
+| `ghcr.io/oneuptime/docker-agent:release`    | Same image mirrored on GHCR        |
 
 ## Collected Metrics
 

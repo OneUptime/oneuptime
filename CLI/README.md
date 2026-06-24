@@ -76,27 +76,27 @@ oneuptime context delete old-context
 
 ### Authentication
 
-| Command | Description |
-|---|---|
+| Command                           | Description                       |
+| --------------------------------- | --------------------------------- |
 | `oneuptime login <api-key> <url>` | Authenticate and create a context |
-| `oneuptime context list` | List all contexts |
-| `oneuptime context use <name>` | Switch active context |
-| `oneuptime context current` | Show current context |
-| `oneuptime context delete <name>` | Remove a context |
-| `oneuptime whoami` | Show current auth info |
+| `oneuptime context list`          | List all contexts                 |
+| `oneuptime context use <name>`    | Switch active context             |
+| `oneuptime context current`       | Show current context              |
+| `oneuptime context delete <name>` | Remove a context                  |
+| `oneuptime whoami`                | Show current auth info            |
 
 ### Resource Operations
 
 Every discovered resource supports these subcommands:
 
-| Subcommand | Description |
-|---|---|
-| `<resource> list [options]` | List resources with filtering and pagination |
-| `<resource> get <id>` | Get a single resource by ID |
-| `<resource> create --data <json>` | Create a new resource |
-| `<resource> update <id> --data <json>` | Update an existing resource |
-| `<resource> delete <id>` | Delete a resource |
-| `<resource> count [--query <json>]` | Count resources |
+| Subcommand                             | Description                                  |
+| -------------------------------------- | -------------------------------------------- |
+| `<resource> list [options]`            | List resources with filtering and pagination |
+| `<resource> get <id>`                  | Get a single resource by ID                  |
+| `<resource> create --data <json>`      | Create a new resource                        |
+| `<resource> update <id> --data <json>` | Update an existing resource                  |
+| `<resource> delete <id>`               | Delete a resource                            |
+| `<resource> count [--query <json>]`    | Count resources                              |
 
 ### List Options
 
@@ -110,19 +110,19 @@ Every discovered resource supports these subcommands:
 
 ### Utility Commands
 
-| Command | Description |
-|---|---|
-| `oneuptime version` | Print CLI version |
-| `oneuptime whoami` | Show current authentication info |
+| Command               | Description                       |
+| --------------------- | --------------------------------- |
+| `oneuptime version`   | Print CLI version                 |
+| `oneuptime whoami`    | Show current authentication info  |
 | `oneuptime resources` | List all available resource types |
 
 ## Output Formats
 
-| Format | Description |
-|---|---|
+| Format  | Description                             |
+| ------- | --------------------------------------- |
 | `table` | Formatted ASCII table (default for TTY) |
-| `json` | Raw JSON (default when piped) |
-| `wide` | Table with all columns shown |
+| `json`  | Raw JSON (default when piped)           |
+| `wide`  | Table with all columns shown            |
 
 ```bash
 # Explicit format
@@ -152,11 +152,11 @@ ONEUPTIME_API_KEY=sk-xxx ONEUPTIME_URL=https://oneuptime.com oneuptime incident 
 
 ## Environment Variables
 
-| Variable | Description |
-|---|---|
+| Variable            | Description                |
+| ------------------- | -------------------------- |
 | `ONEUPTIME_API_KEY` | API key for authentication |
-| `ONEUPTIME_URL` | OneUptime instance URL |
-| `NO_COLOR` | Disable colored output |
+| `ONEUPTIME_URL`     | OneUptime instance URL     |
+| `NO_COLOR`          | Disable colored output     |
 
 ## Configuration File
 
@@ -181,13 +181,13 @@ The CLI stores configuration at `~/.oneuptime/config.json` with `0600` permissio
 
 ## Global Options
 
-| Option | Description |
-|---|---|
-| `--api-key <key>` | Override API key for this command |
-| `--url <url>` | Override instance URL for this command |
-| `--context <name>` | Use a specific context for this command |
-| `-o, --output <format>` | Output format: json, table, wide |
-| `--no-color` | Disable colored output |
+| Option                  | Description                             |
+| ----------------------- | --------------------------------------- |
+| `--api-key <key>`       | Override API key for this command       |
+| `--url <url>`           | Override instance URL for this command  |
+| `--context <name>`      | Use a specific context for this command |
+| `-o, --output <format>` | Output format: json, table, wide        |
+| `--no-color`            | Disable colored output                  |
 
 ## Supported Resources
 

@@ -1209,6 +1209,13 @@ export default class Metric extends AnalyticsBaseModel {
       sortKeys: ["projectId", "name", "primaryEntityId", "time"],
       primaryKeys: ["projectId", "name", "primaryEntityId", "time"],
       partitionKey: "toYYYYMMDD(time)",
+      /*
+       * Shard by the metric series (projectId, name, primaryEntityId): spreads a
+       * big project's many series across shards, and co-locates each series on
+       * one shard so the minute/hour rollup MVs aggregate per-shard cleanly
+       * (the MV GROUP BY starts with these columns).
+       */
+      shardingKey: "cityHash64(projectId, name, primaryEntityId)",
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",

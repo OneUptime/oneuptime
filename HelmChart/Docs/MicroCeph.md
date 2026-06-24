@@ -4,7 +4,7 @@
 
 https://canonical-microceph.readthedocs-hosted.com/en/reef-stable/tutorial/multi-node/
 
-## Ceph Dashboard 
+## Ceph Dashboard
 
 From: https://docs.ceph.com/en/quincy/mgr/dashboard/
 
@@ -20,7 +20,6 @@ ceph dashboard ac-user-create admin -i <file-containing-password> administrator
 ```
 
 You can now access the dashboard at https://<server_ip>:8443/
-
 
 ## High Availability
 

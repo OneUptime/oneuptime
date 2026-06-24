@@ -665,6 +665,8 @@ export default class ProfileSample extends AnalyticsBaseModel {
         "stacktraceHash",
       ],
       partitionKey: "toYYYYMMDD(time)",
+      // Shard by profileId so all samples of a profile co-locate on one shard.
+      shardingKey: "cityHash64(profileId)",
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",

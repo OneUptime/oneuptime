@@ -28,12 +28,12 @@ traces monitor करने के लिए एक या अधिक services
 
 ### Span Filters
 
-| Filter | विवरण | आवश्यक |
-|--------|-------|--------|
-| Span Statuses | span status code (OK, ERROR, UNSET) से filter करें | नहीं |
-| Span Name | specific span names (जैसे operation या endpoint names) के लिए text search | नहीं |
-| Attributes | custom span attributes पर filter के लिए Key-value pairs | नहीं |
-| Time Window | spans के लिए कितना पीछे search करें (seconds में, default: 60) | नहीं |
+| Filter        | विवरण                                                                     | आवश्यक |
+| ------------- | ------------------------------------------------------------------------- | ------ |
+| Span Statuses | span status code (OK, ERROR, UNSET) से filter करें                        | नहीं   |
+| Span Name     | specific span names (जैसे operation या endpoint names) के लिए text search | नहीं   |
+| Attributes    | custom span attributes पर filter के लिए Key-value pairs                   | नहीं   |
+| Time Window   | spans के लिए कितना पीछे search करें (seconds में, default: 60)            | नहीं   |
 
 ### Span Status Codes
 
@@ -45,8 +45,8 @@ traces monitor करने के लिए एक या अधिक services
 
 ### उपलब्ध Check Types
 
-| Check Type | विवरण |
-|------------|-------|
+| Check Type | विवरण                                                           |
+| ---------- | --------------------------------------------------------------- |
 | Span Count | time window में आपके filters से match करने वाले spans की संख्या |
 
 ### Filter Types

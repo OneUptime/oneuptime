@@ -36,6 +36,7 @@ Nu kan du bruge `Basic {{variable.JIRA_AUTH}}` som en auth-header, og tokenet vi
 1. Åbn **Workflows → Create Workflow**, navngiv det `Incidents → Jira`, og åbn **Builder**.
 2. Træk en **Incident**-trigger ud på lærredet og vælg **On Create**-eventet. Omdøb det til `Incident`.
 3. Træk en **API**-blok ud og forbind triggeren til den. Konfigurér:
+
    - **Method**: `POST`
    - **URL**: `https://dit-domæne.atlassian.net/rest/api/3/issue`
    - **Headers**:
@@ -70,6 +71,7 @@ Nu kan du bruge `Basic {{variable.JIRA_AUTH}}` som en auth-header, og tokenet vi
      ```
 
    Erstat `OPS` med din projektnøgle og `Bug` med en sagstype, der findes i det projekt.
+
 4. **Gem.** Lad workflowet være deaktiveret, indtil du har testet det.
 
 ## Trin 3 — Test det
@@ -96,8 +98,9 @@ For at løse OneUptime-hændelsen, når nogen lukker Jira-sagen, tilføj et **in
 
 1. Opret et andet workflow, der starter med en **Webhook**-trigger, og kopiér dens URL.
 2. I Jira, gå til **Project settings → Automation → Create rule**:
-   - **Trigger**: *Issue transitioned* til **Done** (eller *Issue resolved*).
-   - **Action**: *Send web request* → metode `POST`, URL = din workflow webhook-URL, body inkluderer sagsnøglen og OneUptime-hændelsens id, f.eks.:
+
+   - **Trigger**: _Issue transitioned_ til **Done** (eller _Issue resolved_).
+   - **Action**: _Send web request_ → metode `POST`, URL = din workflow webhook-URL, body inkluderer sagsnøglen og OneUptime-hændelsens id, f.eks.:
 
      ```json
      { "issueKey": "{{issue.key}}", "status": "resolved" }
@@ -121,16 +124,20 @@ For at opdage de præcise feltnavne, et projekt forventer, kald Jiras `GET /rest
 ## Fejlfinding
 
 **`401 Unauthorized`.**
+
 - Genkod `email:api_token` og opdater `JIRA_AUTH`-variablen. Et efterfølgende linjeskift er den sædvanlige synder — brug `printf` (ikke `echo`) ved enkodning.
 - Bekræft, at den konto, der ejer API-tokenet, kan oprette sager i projektet.
 
 **`400 Bad Request` med mention af et felt.**
+
 - Sagstypen eller et påkrævet felt er forkert. Tjek projektets **sagstype**-navn og om det har påkrævede brugerdefinerede felter. Brug `createmeta` (ovenfor) for at se, hvad der er obligatorisk.
 
 **`404 Not Found`.**
+
 - Dobbelttjek basis-URL'en og at du rammer `/rest/api/3/issue` (Cloud) eller `/rest/api/2/issue` (Server/Data Center).
 
 **Beskrivelsen vises som én linje / ser mærkelig ud.**
+
 - v3 kræver Atlassian Document Format som vist ovenfor. Hvis du hellere vil sende almindelig tekst, brug slutpunktet `/rest/api/2/issue` med `"description": "{{Incident.description}}"` som en almindelig streng.
 
 ## Læs videre

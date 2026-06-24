@@ -28,12 +28,12 @@ Wählen Sie einen oder mehrere Dienste aus, von denen Logs überwacht werden sol
 
 ### Log-Filter
 
-| Filter | Beschreibung | Erforderlich |
-|--------|-------------|----------|
-| Schweregrade | Nach Log-Schweregrad filtern (ERROR, WARN, INFO, DEBUG usw.) | Nein |
-| Text | Textsuche im Log-Nachrichten-Text | Nein |
-| Attribute | Schlüssel-Wert-Paare zum Filtern nach benutzerdefinierten Log-Attributen | Nein |
-| Zeitfenster | Wie weit zurück nach Logs gesucht wird (in Sekunden, Standard: 60) | Nein |
+| Filter       | Beschreibung                                                             | Erforderlich |
+| ------------ | ------------------------------------------------------------------------ | ------------ |
+| Schweregrade | Nach Log-Schweregrad filtern (ERROR, WARN, INFO, DEBUG usw.)             | Nein         |
+| Text         | Textsuche im Log-Nachrichten-Text                                        | Nein         |
+| Attribute    | Schlüssel-Wert-Paare zum Filtern nach benutzerdefinierten Log-Attributen | Nein         |
+| Zeitfenster  | Wie weit zurück nach Logs gesucht wird (in Sekunden, Standard: 60)       | Nein         |
 
 ### Schweregrade
 
@@ -51,8 +51,8 @@ Logs nach einem oder mehreren Schweregraden filtern:
 
 ### Verfügbare Prüftypen
 
-| Prüftyp | Beschreibung |
-|------------|-------------|
+| Prüftyp    | Beschreibung                                                      |
+| ---------- | ----------------------------------------------------------------- |
 | Log-Anzahl | Die Anzahl der Logs, die Ihren Filtern im Zeitfenster entsprechen |
 
 ### Filtertypen

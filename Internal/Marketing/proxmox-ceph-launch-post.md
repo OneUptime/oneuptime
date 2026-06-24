@@ -96,8 +96,8 @@ so "is my key right, is data arriving" is a command, not a support ticket.
 
 ## Backup coverage: the question your hypervisor can't answer at 2 a.m.
 
-The question every Proxmox operator eventually asks is *"which guests are not
-in any backup job?"* — usually right after discovering the answer the hard way.
+The question every Proxmox operator eventually asks is _"which guests are not
+in any backup job?"_ — usually right after discovering the answer the hard way.
 
 OneUptime answers it on the Proxmox Overview: a **Backup coverage** tile
 ("18 of 20 guests in a backup job") that goes red the moment any guest is
@@ -106,7 +106,7 @@ template (`pve-guest-not-backed-up`) so an uncovered guest pages you instead of
 waiting to be noticed. Among the tools we benchmarked — Datadog, PRTG, Checkmk,
 Zabbix — no SaaS product ships this view.
 
-**The honest boundary:** this is backup *job coverage*, not backup *freshness*.
+**The honest boundary:** this is backup _job coverage_, not backup _freshness_.
 "In a backup job" does not mean "backed up recently and successfully" —
 Proxmox only exposes freshness through its task-log and PBS APIs, which the
 config-only agent doesn't poll (yet — that's on the roadmap). We'd rather tell
@@ -125,7 +125,7 @@ metrics, and neither do PRTG, Zabbix, or Checkmk.
 OneUptime ships a **Replication** card on the cluster Overview — every job with
 guest, source → target, last sync age, duration, and failed-sync count — plus
 an alert template (`pve-replication-failing`) that fires per job the moment
-syncs start failing, and replication charts in Insights. Sync *staleness*
+syncs start failing, and replication charts in Insights. Sync _staleness_
 (amber after 1 h, red after 6 h) is surfaced in the UI; the alert fires on
 failed syncs, which is the signal the data can honestly support today.
 
@@ -175,33 +175,33 @@ sensors, Pulse, Checkmk, Zabbix, the upstream Ceph Dashboard, and ceph-mixin
 
 ### Proxmox
 
-| Capability | Datadog | PRTG | Pulse | Checkmk | Zabbix | OneUptime |
-|---|---|---|---|---|---|---|
-| Single agent covers the whole cluster | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Backup coverage ("which guests have no backup job") | ✗ | ✗ | ✅ | partial | ✗ | ✅ |
-| Storage replication health | ✗ | ✗ | ✗ | ✗ | ✗ | ✅ |
-| HA resource state monitoring | ✅ | ✗ | ✅ | ✗ | ✗ | ✅ |
-| Shipped alert/monitor templates | 4 | channel limits | defaults | rule packs | triggers | 11 |
-| At-a-glance guest wall / honeycomb | ✗ | ✗ | ✅ | ✗ | ✗ | ✅ |
-| Full Ceph product alongside PVE | ✗ (no Ceph metrics) | status channel only | ✗ | ✗ | ✗ | ✅ |
-| Copy-paste token setup + validation endpoint | ✗ | ✗ | ✅ | ✗ | ✗ | ✅ |
-| Pricing | ~$15–23/host/mo | per-sensor | free (self-host) | licensed | free (self-host) | flat project pricing, open source |
+| Capability                                          | Datadog             | PRTG                | Pulse            | Checkmk    | Zabbix           | OneUptime                         |
+| --------------------------------------------------- | ------------------- | ------------------- | ---------------- | ---------- | ---------------- | --------------------------------- |
+| Single agent covers the whole cluster               | ✅                  | ✅                  | ✅               | ✅         | ✅               | ✅                                |
+| Backup coverage ("which guests have no backup job") | ✗                   | ✗                   | ✅               | partial    | ✗                | ✅                                |
+| Storage replication health                          | ✗                   | ✗                   | ✗                | ✗          | ✗                | ✅                                |
+| HA resource state monitoring                        | ✅                  | ✗                   | ✅               | ✗          | ✗                | ✅                                |
+| Shipped alert/monitor templates                     | 4                   | channel limits      | defaults         | rule packs | triggers         | 11                                |
+| At-a-glance guest wall / honeycomb                  | ✗                   | ✗                   | ✅               | ✗          | ✗                | ✅                                |
+| Full Ceph product alongside PVE                     | ✗ (no Ceph metrics) | status channel only | ✗                | ✗          | ✗                | ✅                                |
+| Copy-paste token setup + validation endpoint        | ✗                   | ✗                   | ✅               | ✗          | ✗                | ✅                                |
+| Pricing                                             | ~$15–23/host/mo     | per-sensor          | free (self-host) | licensed   | free (self-host) | flat project pricing, open source |
 
 Pulse is excellent — and self-hosted, Proxmox-only. If you want its best ideas
-*plus* uptime checks, status pages, on-call, incident management, logs, and
+_plus_ uptime checks, status pages, on-call, incident management, logs, and
 APM in one open-source platform, that's exactly the gap this launch fills.
 
 ### Ceph
 
-| Capability | Upstream Dashboard | ceph-mixin | OneUptime |
-|---|---|---|---|
-| Health pill + "why" breakdown | ✅ | 2 rules | ✅ |
-| Works without Grafana/Alertmanager bolt-on | ✗ (embedded Grafana) | ✗ (requires stack) | ✅ |
-| Capacity forecasting in the UI | ✗ | alerts only | ✅ (cluster, pool, storage) |
-| OSD matrix, PG states, pool metrics, mon quorum | ✅ | ✅ | ✅ |
-| Shipped alert templates | — | ~85 rules (many need extra exporters) | ~21, all firable from mgr metrics alone |
-| Multi-cluster fleet view | recent releases only | single dashboard | ✅ |
-| Cluster log viewer | ✅ | n/a | ✅ |
+| Capability                                      | Upstream Dashboard   | ceph-mixin                            | OneUptime                               |
+| ----------------------------------------------- | -------------------- | ------------------------------------- | --------------------------------------- |
+| Health pill + "why" breakdown                   | ✅                   | 2 rules                               | ✅                                      |
+| Works without Grafana/Alertmanager bolt-on      | ✗ (embedded Grafana) | ✗ (requires stack)                    | ✅                                      |
+| Capacity forecasting in the UI                  | ✗                    | alerts only                           | ✅ (cluster, pool, storage)             |
+| OSD matrix, PG states, pool metrics, mon quorum | ✅                   | ✅                                    | ✅                                      |
+| Shipped alert templates                         | —                    | ~85 rules (many need extra exporters) | ~21, all firable from mgr metrics alone |
+| Multi-cluster fleet view                        | recent releases only | single dashboard                      | ✅                                      |
+| Cluster log viewer                              | ✅                   | n/a                                   | ✅                                      |
 
 ## What we deliberately did not ship (yet)
 
@@ -217,7 +217,7 @@ API-agent track rather than faked now:
 - RGW and CephFS deep views (per-daemon perf counters live in the separate
   ceph-exporter since Reef)
 - SMART / device-failure prediction (the mgr exports no SMART data)
-- Forecast-based and replication-staleness *alerting* (today these are UI
+- Forecast-based and replication-staleness _alerting_ (today these are UI
   signals; the alert engine evaluates metrics, not wall-clock math)
 
 If a vendor tells you they alert on something in this list using only exporter
@@ -239,7 +239,7 @@ Ten minutes from now, your cluster can be on a status page.
 
 ---
 
-*Proxmox® is a registered trademark of Proxmox Server Solutions GmbH. Ceph and
+_Proxmox® is a registered trademark of Proxmox Server Solutions GmbH. Ceph and
 the Ceph logo are trademarks of the Ceph Foundation. OneUptime is not
 affiliated with, endorsed by, or sponsored by either project; product names are
-used solely to identify compatibility.*
+used solely to identify compatibility._

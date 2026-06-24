@@ -8,20 +8,20 @@ OneUptime は、`faas.name` リソース属性でタグ付けされた OpenTelem
 
 ## 前提条件
 
-- **OneUptime Telemetry Ingestion Token** — *Project Settings → Telemetry Ingestion Keys* から作成し、`x-oneuptime-token` の値をコピーします。
+- **OneUptime Telemetry Ingestion Token** — _Project Settings → Telemetry Ingestion Keys_ から作成し、`x-oneuptime-token` の値をコピーします。
 - 関数の言語用の OpenTelemetry SDK(または自動インストルメンテーションレイヤー)。
 
 ## OneUptime が関数を識別する方法
 
 OneUptime は各関数を `faas.name` リソース属性をキーとして識別します。
 
-| 属性 | 必須 | 目的 |
-|---|---|---|
-| `faas.name` | **はい** | 関数の識別子(例: `checkout-handler`) |
-| `faas.version` | いいえ | 概要に表示されます |
-| `faas.instance` | いいえ | **Instances** タブでインスタンスごとに追跡されます |
-| `cloud.platform` | いいえ | `aws_lambda`、`gcp_cloud_functions`、`azure_functions`、... |
-| `cloud.provider` / `cloud.region` / `cloud.account.id` | いいえ | 概要に表示されます |
+| 属性                                                   | 必須     | 目的                                                        |
+| ------------------------------------------------------ | -------- | ----------------------------------------------------------- |
+| `faas.name`                                            | **はい** | 関数の識別子(例: `checkout-handler`)                        |
+| `faas.version`                                         | いいえ   | 概要に表示されます                                          |
+| `faas.instance`                                        | いいえ   | **Instances** タブでインスタンスごとに追跡されます          |
+| `cloud.platform`                                       | いいえ   | `aws_lambda`、`gcp_cloud_functions`、`azure_functions`、... |
+| `cloud.provider` / `cloud.region` / `cloud.account.id` | いいえ   | 概要に表示されます                                          |
 
 > `service.name` も設定している関数は、**Services** の下にも引き続き表示されます。**サーバーレス関数**ビューは、`faas.name` でスコープされた FaaS 中心のレンズです。
 
@@ -57,4 +57,4 @@ OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN
 - **Instances** — 観測された `faas.instance` の値のライブカウント。
 - この関数にスコープされた完全な **Logs**、**Traces**、**Metrics** タブ。
 
-*Serverless → Settings → Label Rules / Owner Rules* を介して、ラベルとオーナーを自動適用することもできます。
+_Serverless → Settings → Label Rules / Owner Rules_ を介して、ラベルとオーナーを自動適用することもできます。

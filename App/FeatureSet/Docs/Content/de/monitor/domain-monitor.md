@@ -24,16 +24,16 @@ Domain-Monitore fragen WHOIS-Daten für Ihre Domains ab, um Registrierungsdetail
 
 ### Grundeinstellungen
 
-| Feld | Beschreibung | Erforderlich |
-|-------|-------------|----------|
-| Domainname | Die zu überwachende Domain (z. B. `example.com`) | Ja |
+| Feld       | Beschreibung                                     | Erforderlich |
+| ---------- | ------------------------------------------------ | ------------ |
+| Domainname | Die zu überwachende Domain (z. B. `example.com`) | Ja           |
 
 ### Erweiterte Einstellungen
 
-| Feld | Beschreibung | Standard |
-|-------|-------------|---------|
-| Timeout (ms) | Wartezeit auf eine WHOIS-Antwort | 10000 |
-| Wiederholungsversuche | Anzahl der Wiederholungsversuche bei Fehlschlag | 3 |
+| Feld                  | Beschreibung                                    | Standard |
+| --------------------- | ----------------------------------------------- | -------- |
+| Timeout (ms)          | Wartezeit auf eine WHOIS-Antwort                | 10000    |
+| Wiederholungsversuche | Anzahl der Wiederholungsversuche bei Fehlschlag | 3        |
 
 ## Überwachungskriterien
 
@@ -41,13 +41,13 @@ Sie können Kriterien konfigurieren, um zu bestimmen, wann Ihre Domain als onlin
 
 ### Verfügbare Prüftypen
 
-| Prüftyp | Beschreibung |
-|------------|-------------|
+| Prüftyp                  | Beschreibung                                           |
+| ------------------------ | ------------------------------------------------------ |
 | Domain läuft ab in Tagen | Anzahl der Tage bis zum Ablauf der Domainregistrierung |
-| Domain-Registrar | Der Name des Domain-Registrars |
-| Domain-Nameserver | Nameserver-Hostnamen für die Domain |
-| Domain-Statuscode | WHOIS-Domain-Statuscodes |
-| Domain ist abgelaufen | Ob die Domain abgelaufen ist |
+| Domain-Registrar         | Der Name des Domain-Registrars                         |
+| Domain-Nameserver        | Nameserver-Hostnamen für die Domain                    |
+| Domain-Statuscode        | WHOIS-Domain-Statuscodes                               |
+| Domain ist abgelaufen    | Ob die Domain abgelaufen ist                           |
 
 ### Filtertypen
 

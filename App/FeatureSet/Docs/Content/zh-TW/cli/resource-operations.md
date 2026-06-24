@@ -22,16 +22,16 @@ oneuptime resources --type analytics
 
 常見資源包括：
 
-| 資源 | 命令 |
-|----------|---------|
-| Incident | `oneuptime incident` |
-| Alert | `oneuptime alert` |
-| Monitor | `oneuptime monitor` |
-| Monitor Status | `oneuptime monitor-status` |
-| Incident State | `oneuptime incident-state` |
-| Status Page | `oneuptime status-page` |
-| On-Call Policy | `oneuptime on-call-policy` |
-| Team | `oneuptime team` |
+| 資源                        | 命令                                    |
+| --------------------------- | --------------------------------------- |
+| Incident                    | `oneuptime incident`                    |
+| Alert                       | `oneuptime alert`                       |
+| Monitor                     | `oneuptime monitor`                     |
+| Monitor Status              | `oneuptime monitor-status`              |
+| Incident State              | `oneuptime incident-state`              |
+| Status Page                 | `oneuptime status-page`                 |
+| On-Call Policy              | `oneuptime on-call-policy`              |
+| Team                        | `oneuptime team`                        |
 | Scheduled Maintenance Event | `oneuptime scheduled-maintenance-event` |
 
 ## 列出資源
@@ -44,13 +44,13 @@ oneuptime <resource> list [options]
 
 **選項：**
 
-| 選項 | 說明 | 預設值 |
-|--------|-------------|---------|
-| `--query <json>` | 以 JSON 表示的篩選條件 | None |
-| `--limit <n>` | 結果的最大數量 | `10` |
-| `--skip <n>` | 要略過的結果數量 | `0` |
-| `--sort <json>` | 以 JSON 表示的排序順序 | None |
-| `-o, --output <format>` | 輸出格式 | `table` |
+| 選項                    | 說明                   | 預設值  |
+| ----------------------- | ---------------------- | ------- |
+| `--query <json>`        | 以 JSON 表示的篩選條件 | None    |
+| `--limit <n>`           | 結果的最大數量         | `10`    |
+| `--skip <n>`            | 要略過的結果數量       | `0`     |
+| `--sort <json>`         | 以 JSON 表示的排序順序 | None    |
+| `-o, --output <format>` | 輸出格式               | `table` |
 
 **範例：**
 
@@ -81,8 +81,8 @@ oneuptime <resource> get <id>
 
 **引數：**
 
-| 引數 | 說明 |
-|----------|-------------|
+| 引數   | 說明            |
+| ------ | --------------- |
 | `<id>` | 資源 ID（UUID） |
 
 **範例：**
@@ -105,11 +105,11 @@ oneuptime <resource> create [options]
 
 **選項：**
 
-| 選項 | 說明 |
-|--------|-------------|
-| `--data <json>` | 以 JSON 物件表示的資源資料 |
-| `--file <path>` | 包含資源資料的 JSON 檔案路徑 |
-| `-o, --output <format>` | 輸出格式 |
+| 選項                    | 說明                         |
+| ----------------------- | ---------------------------- |
+| `--data <json>`         | 以 JSON 物件表示的資源資料   |
+| `--file <path>`         | 包含資源資料的 JSON 檔案路徑 |
+| `-o, --output <format>` | 輸出格式                     |
 
 您必須提供 `--data` 或 `--file` 其中之一。
 
@@ -136,16 +136,16 @@ oneuptime <resource> update <id> [options]
 
 **引數：**
 
-| 引數 | 說明 |
-|----------|-------------|
+| 引數   | 說明    |
+| ------ | ------- |
 | `<id>` | 資源 ID |
 
 **選項：**
 
-| 選項 | 說明 |
-|--------|-------------|
-| `--data <json>` | 以 JSON 表示要更新的欄位（必填） |
-| `-o, --output <format>` | 輸出格式 |
+| 選項                    | 說明                             |
+| ----------------------- | -------------------------------- |
+| `--data <json>`         | 以 JSON 表示要更新的欄位（必填） |
+| `-o, --output <format>` | 輸出格式                         |
 
 **範例：**
 
@@ -167,14 +167,14 @@ oneuptime <resource> delete <id> [--force]
 
 **引數：**
 
-| 引數 | 說明 |
-|----------|-------------|
+| 引數   | 說明    |
+| ------ | ------- |
 | `<id>` | 資源 ID |
 
 **選項：**
 
-| 選項 | 說明 |
-|--------|-------------|
+| 選項      | 說明         |
+| --------- | ------------ |
 | `--force` | 略過確認提示 |
 
 **範例：**
@@ -197,8 +197,8 @@ oneuptime <resource> count [options]
 
 **選項：**
 
-| 選項 | 說明 |
-|--------|-------------|
+| 選項             | 說明                   |
+| ---------------- | ---------------------- |
 | `--query <json>` | 以 JSON 表示的篩選條件 |
 
 **範例：**
@@ -218,13 +218,13 @@ oneuptime monitor count
 
 相較於資料庫資源，分析資源支援的操作較為有限：
 
-| 操作 | 是否支援 |
-|-----------|-----------|
-| `list` | 是 |
-| `create` | 是 |
-| `count` | 是 |
-| `get` | 否 |
-| `update` | 否 |
-| `delete` | 否 |
+| 操作     | 是否支援 |
+| -------- | -------- |
+| `list`   | 是       |
+| `create` | 是       |
+| `count`  | 是       |
+| `get`    | 否       |
+| `update` | 否       |
+| `delete` | 否       |
 
 使用 `oneuptime resources --type analytics` 可查看您的實例上有哪些分析資源可供使用。

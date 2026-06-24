@@ -24,19 +24,19 @@ DNSSEC-monitorer validerer hele tillitskjeden fra rotsonen og ned til ditt domen
 
 ### Grunnleggende innstillinger
 
-| Felt | Beskrivelse | Påkrevd |
-|------|-------------|---------|
-| Sone (domenenavn) | Sonen som skal valideres via DNSSEC (f.eks. `example.com`) | Ja |
-| Resolvere | Kommaseparert liste over validerende resolvere som skal spørres (f.eks. `1.1.1.1, 8.8.8.8, 9.9.9.9`) | Ja |
-| Sjekk navneserverkonsistens | Spør hver autoritative navneserver direkte og verifiserer at de returnerer det samme SOA-serienummeret | Nei |
+| Felt                        | Beskrivelse                                                                                            | Påkrevd |
+| --------------------------- | ------------------------------------------------------------------------------------------------------ | ------- |
+| Sone (domenenavn)           | Sonen som skal valideres via DNSSEC (f.eks. `example.com`)                                             | Ja      |
+| Resolvere                   | Kommaseparert liste over validerende resolvere som skal spørres (f.eks. `1.1.1.1, 8.8.8.8, 9.9.9.9`)   | Ja      |
+| Sjekk navneserverkonsistens | Spør hver autoritative navneserver direkte og verifiserer at de returnerer det samme SOA-serienummeret | Nei     |
 
 ### Avanserte innstillinger
 
-| Felt | Beskrivelse | Standard |
-|------|-------------|---------|
-| Varsel om signaturutløp (dager) | Standardterskel for RRSIG-utløpsfilteret | 7 |
-| Tidsavbrudd (ms) | Hvor lenge det ventes på hver DNS-spørring | 10000 |
-| Nye forsøk | Antall nye forsøk ved feil | 3 |
+| Felt                            | Beskrivelse                                | Standard |
+| ------------------------------- | ------------------------------------------ | -------- |
+| Varsel om signaturutløp (dager) | Standardterskel for RRSIG-utløpsfilteret   | 7        |
+| Tidsavbrudd (ms)                | Hvor lenge det ventes på hver DNS-spørring | 10000    |
+| Nye forsøk                      | Antall nye forsøk ved feil                 | 3        |
 
 ## Overvåkingskriterier
 
@@ -44,15 +44,15 @@ Du kan konfigurere kriterier for å bestemme når sonen din anses som tilgjengel
 
 ### Tilgjengelige kontrolltyper
 
-| Kontrolltype | Beskrivelse |
-|-------------|-------------|
-| DNSSEC Chain Is Valid | Hele valideringskjeden (root → TLD → sone) løses opp korrekt |
-| DNSSEC DNSKEY Record Exists | Sonen publiserer minst én DNSKEY-post |
-| DNSSEC DS Record Exists At Parent | Den overordnede sonen publiserer en DS-post som matcher sonens KSK |
-| DNSSEC Signature Expires In Days | Antall dager til den førstkommende RRSIG-signaturen utløper |
-| DNSSEC Resolver Consensus (AD Flag) | Hver forespurte resolver returnerer AD-flagget (Authenticated Data) |
-| DNSSEC Nameservers Are Consistent | Alle autoritative navneservere returnerer det samme SOA-serienummeret |
-| DNSSEC Is Valid | Samlet bestått/ikke bestått på tvers av alle valideringskontroller |
+| Kontrolltype                        | Beskrivelse                                                           |
+| ----------------------------------- | --------------------------------------------------------------------- |
+| DNSSEC Chain Is Valid               | Hele valideringskjeden (root → TLD → sone) løses opp korrekt          |
+| DNSSEC DNSKEY Record Exists         | Sonen publiserer minst én DNSKEY-post                                 |
+| DNSSEC DS Record Exists At Parent   | Den overordnede sonen publiserer en DS-post som matcher sonens KSK    |
+| DNSSEC Signature Expires In Days    | Antall dager til den førstkommende RRSIG-signaturen utløper           |
+| DNSSEC Resolver Consensus (AD Flag) | Hver forespurte resolver returnerer AD-flagget (Authenticated Data)   |
+| DNSSEC Nameservers Are Consistent   | Alle autoritative navneservere returnerer det samme SOA-serienummeret |
+| DNSSEC Is Valid                     | Samlet bestått/ikke bestått på tvers av alle valideringskontroller    |
 
 ### Filtertyper
 

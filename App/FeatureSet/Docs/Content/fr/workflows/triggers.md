@@ -65,12 +65,12 @@ Cherchez dans la palette des déclencheurs par nom pour trouver celui que vous v
 
 ## Quel déclencheur choisir ?
 
-| Si vous voulez… | Choisissez |
-| --- | --- |
-| Cliquer sur un bouton pour exécuter le workflow | **Manual** |
-| Exécuter selon une planification récurrente | **Schedule** |
-| Laisser un autre système pousser des données | **Webhook** |
-| Réagir à quelque chose dans OneUptime | **Événement OneUptime** |
+| Si vous voulez…                                 | Choisissez              |
+| ----------------------------------------------- | ----------------------- |
+| Cliquer sur un bouton pour exécuter le workflow | **Manual**              |
+| Exécuter selon une planification récurrente     | **Schedule**            |
+| Laisser un autre système pousser des données    | **Webhook**             |
+| Réagir à quelque chose dans OneUptime           | **Événement OneUptime** |
 
 Un workflow ne peut avoir qu'un seul déclencheur. Si vous avez besoin de deux manières de démarrer la même automatisation, regroupez la logique partagée dans un workflow et appelez-le depuis deux workflows « enveloppes » légers à l'aide du composant **Execute Workflow**.
 

@@ -55,6 +55,7 @@ Los Agentes de IA globales están disponibles automáticamente para todos los pr
 Para organizaciones que necesitan ejecutar agentes de IA dentro de su propia infraestructura (por ejemplo, por razones de seguridad, cumplimiento o requisitos de acceso a la red), OneUptime admite agentes de IA auto-alojados.
 
 Los agentes de IA auto-alojados:
+
 - Se ejecutan dentro de tu red privada
 - Pueden acceder a recursos y sistemas internos
 - Te dan control total sobre el entorno del agente
@@ -134,15 +135,15 @@ spec:
         app: oneuptime-ai-agent
     spec:
       containers:
-      - name: oneuptime-ai-agent
-        image: oneuptime/ai-agent:release
-        env:
-          - name: AI_AGENT_KEY
-            value: "<ai-agent-key>"
-          - name: AI_AGENT_ID
-            value: "<ai-agent-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-ai-agent
+          image: oneuptime/ai-agent:release
+          env:
+            - name: AI_AGENT_KEY
+              value: "<ai-agent-key>"
+            - name: AI_AGENT_ID
+              value: "<ai-agent-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 Aplica la configuración:
@@ -157,12 +158,11 @@ El agente de IA admite las siguientes variables de entorno:
 
 #### Variables requeridas
 
-| Variable | Descripción |
-|----------|-------------|
-| `AI_AGENT_KEY` | La clave del agente de IA de tu panel de OneUptime |
-| `AI_AGENT_ID` | El ID del agente de IA de tu panel de OneUptime |
+| Variable        | Descripción                                                                 |
+| --------------- | --------------------------------------------------------------------------- |
+| `AI_AGENT_KEY`  | La clave del agente de IA de tu panel de OneUptime                          |
+| `AI_AGENT_ID`   | El ID del agente de IA de tu panel de OneUptime                             |
 | `ONEUPTIME_URL` | La URL de tu instancia de OneUptime (predeterminado: https://oneuptime.com) |
-
 
 ## Verificación de tu Agente de IA
 

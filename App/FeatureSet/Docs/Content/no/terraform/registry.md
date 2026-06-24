@@ -54,6 +54,7 @@ OneUptime Terraform-leverandøren genereres automatisk fra OneUptime API-spesifi
 - Endrede valideringsregler
 
 Bruk av en leverandørversjon som ikke samsvarer med OneUptime-installasjonen kan resultere i:
+
 - API-kompatibilitetsfeil
 - Mislykkede ressursoppretting/-oppdateringer
 - Uventet atferd
@@ -62,16 +63,19 @@ Bruk av en leverandørversjon som ikke samsvarer med OneUptime-installasjonen ka
 ## Finne din OneUptime-versjon
 
 ### Metode 1: Dashbord
+
 1. Logg inn på OneUptime-dashbordet ditt
 2. Gå til **Settings** → **About**
 3. Noter versjonsnummeret (f.eks. "7.0.123")
 
 ### Metode 2: API
+
 ```bash
 curl https://your-oneuptime-instance.com/api/version | jq '.version'
 ```
 
 ### Metode 3: Docker
+
 ```bash
 docker images | grep oneuptime
 # Se etter taggen, f.eks. oneuptime/dashboard:7.0.123
@@ -87,10 +91,10 @@ docker images | grep oneuptime
 ## Versjonkompatibilitetsmatrise
 
 | OneUptime-versjon | Leverandørversjon | Terraform-konfigurasjon |
-|-------------------|-------------------|-------------------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| Siste sky | Siste leverandør | `version = "~> 7.0"` |
+| ----------------- | ----------------- | ----------------------- |
+| 7.0.x             | 7.0.x             | `version = "~> 7.0.0"`  |
+| 7.1.x             | 7.1.x             | `version = "~> 7.1.0"`  |
+| Siste sky         | Siste leverandør  | `version = "~> 7.0"`    |
 
 ## Hurtigstarteksempel
 
@@ -120,11 +124,11 @@ resource "oneuptime_project" "example" {
 resource "oneuptime_monitor" "website" {
   name       = "Nettstedmonitor"
   project_id = oneuptime_project.example.id
-  
+
   monitor_type = "website"
   url          = "https://example.com"
   interval     = "5m"
-  
+
   tags = {
     managed_by = "terraform"
   }

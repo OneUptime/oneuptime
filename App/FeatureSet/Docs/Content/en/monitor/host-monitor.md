@@ -4,9 +4,9 @@ Host monitoring lets you monitor the health and performance of your OpenTelemetr
 
 > **Host Monitor vs. Server / VM Monitor**
 >
-> The **Host Monitor** is a *telemetry-metric* monitor. It evaluates the `system.*` OpenTelemetry metrics that the OneUptime Infrastructure Agent ships to your project's metrics store, and it fires criteria, alerts, and incidents from the telemetry-monitor worker.
+> The **Host Monitor** is a _telemetry-metric_ monitor. It evaluates the `system.*` OpenTelemetry metrics that the OneUptime Infrastructure Agent ships to your project's metrics store, and it fires criteria, alerts, and incidents from the telemetry-monitor worker.
 >
-> The **Server / VM Monitor** is a separate, *agent-push* monitor. It uses the OneUptime Server Agent, which pushes a status payload on a fixed interval and is evaluated against built-in checks (CPU %, memory %, disk %, etc.).
+> The **Server / VM Monitor** is a separate, _agent-push_ monitor. It uses the OneUptime Server Agent, which pushes a status payload on a fixed interval and is evaluated against built-in checks (CPU %, memory %, disk %, etc.).
 >
 > Use the **Host Monitor** when your hosts are already instrumented with OpenTelemetry (the Hosts product). Use the **Server / VM Monitor** for the lightweight agent-push approach. They can coexist on the same machine.
 
@@ -62,43 +62,43 @@ The OneUptime Infrastructure Agent uses the OpenTelemetry `hostmetrics` receiver
 
 ### CPU
 
-| Metric | Description |
-|--------|-------------|
-| `system.cpu.utilization` | Host CPU utilization as a [0, 1] ratio (1.0 = all cores fully busy) |
-| `process.cpu.utilization` | Per-process CPU utilization as a [0, 1] ratio |
+| Metric                    | Description                                                         |
+| ------------------------- | ------------------------------------------------------------------- |
+| `system.cpu.utilization`  | Host CPU utilization as a [0, 1] ratio (1.0 = all cores fully busy) |
+| `process.cpu.utilization` | Per-process CPU utilization as a [0, 1] ratio                       |
 
 ### Memory
 
-| Metric | Description |
-|--------|-------------|
+| Metric                      | Description                                                        |
+| --------------------------- | ------------------------------------------------------------------ |
 | `system.memory.utilization` | Host memory utilization as a [0, 1] ratio of total physical memory |
-| `system.memory.usage` | Host memory usage in bytes |
+| `system.memory.usage`       | Host memory usage in bytes                                         |
 
 ### Disk
 
-| Metric | Description |
-|--------|-------------|
+| Metric                          | Description                                                |
+| ------------------------------- | ---------------------------------------------------------- |
 | `system.filesystem.utilization` | Filesystem utilization as a [0, 1] ratio of total capacity |
-| `system.filesystem.usage` | Filesystem usage in bytes |
+| `system.filesystem.usage`       | Filesystem usage in bytes                                  |
 
 ### Network
 
-| Metric | Description |
-|--------|-------------|
+| Metric              | Description                                                   |
+| ------------------- | ------------------------------------------------------------- |
 | `system.network.io` | Cumulative network bytes transferred (received + transmitted) |
 
 ### Load Average
 
-| Metric | Description |
-|--------|-------------|
-| `system.cpu.load_average.1m` | Host CPU load average over the last 1 minute |
-| `system.cpu.load_average.5m` | Host CPU load average over the last 5 minutes |
+| Metric                        | Description                                    |
+| ----------------------------- | ---------------------------------------------- |
+| `system.cpu.load_average.1m`  | Host CPU load average over the last 1 minute   |
+| `system.cpu.load_average.5m`  | Host CPU load average over the last 5 minutes  |
 | `system.cpu.load_average.15m` | Host CPU load average over the last 15 minutes |
 
 ### Processes
 
-| Metric | Description |
-|--------|-------------|
+| Metric                   | Description                             |
+| ------------------------ | --------------------------------------- |
 | `system.processes.count` | Number of processes running on the host |
 
 > **A note on units.** The OTel host receiver reports the utilization metrics (`system.cpu.utilization`, `system.memory.utilization`, `system.filesystem.utilization`) as a **[0, 1] ratio**, not a percent. When setting a threshold by hand, use `0.8` for 80%. The built-in templates already account for this.
@@ -107,20 +107,20 @@ The OneUptime Infrastructure Agent uses the OpenTelemetry `hostmetrics` receiver
 
 ### Available Check Types
 
-| Check Type | Description |
-|------------|-------------|
+| Check Type   | Description                                         |
+| ------------ | --------------------------------------------------- |
 | Metric Value | The value of the configured metric query or formula |
 
 ### Aggregation Types
 
-| Aggregation | Description |
-|-------------|-------------|
-| Average | Average value over the time window |
-| Sum | Sum of all values |
-| Maximum Value | Highest value in the time window |
-| Minimum Value | Lowest value in the time window |
-| All Values | All values must match the criteria |
-| Any Value | At least one value must match |
+| Aggregation   | Description                        |
+| ------------- | ---------------------------------- |
+| Average       | Average value over the time window |
+| Sum           | Sum of all values                  |
+| Maximum Value | Highest value in the time window   |
+| Minimum Value | Lowest value in the time window    |
+| All Values    | All values must match the criteria |
+| Any Value     | At least one value must match      |
 
 ### Filter Types
 
@@ -130,13 +130,13 @@ The OneUptime Infrastructure Agent uses the OpenTelemetry `hostmetrics` receiver
 
 OneUptime provides templates for common host monitoring scenarios:
 
-| Template | Metric | Threshold | Aggregation |
-|----------|--------|-----------|-------------|
-| High CPU Utilization | `system.cpu.utilization` | > 80% (0.8 ratio) | Avg |
-| High Memory Utilization | `system.memory.utilization` | > 85% (0.85 ratio) | Avg |
-| High Filesystem Usage | `system.filesystem.utilization` | > 90% (0.9 ratio) | Max |
-| High Load Average (1m) | `system.cpu.load_average.1m` | > 4 | Avg |
-| High Process Count | `system.processes.count` | > 2000 | Max |
+| Template                | Metric                          | Threshold          | Aggregation |
+| ----------------------- | ------------------------------- | ------------------ | ----------- |
+| High CPU Utilization    | `system.cpu.utilization`        | > 80% (0.8 ratio)  | Avg         |
+| High Memory Utilization | `system.memory.utilization`     | > 85% (0.85 ratio) | Avg         |
+| High Filesystem Usage   | `system.filesystem.utilization` | > 90% (0.9 ratio)  | Max         |
+| High Load Average (1m)  | `system.cpu.load_average.1m`    | > 4                | Avg         |
+| High Process Count      | `system.processes.count`        | > 2000             | Max         |
 
 ## Setup Requirements
 

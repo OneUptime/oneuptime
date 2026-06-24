@@ -174,7 +174,13 @@ service:
     logs:
       receivers: [filelog]
       processors:
-        [memory_limiter, filter/drop_self_logs, resourcedetection, resource, batch]
+        [
+          memory_limiter,
+          filter/drop_self_logs,
+          resourcedetection,
+          resource,
+          batch,
+        ]
       exporters: [otlphttp]
     # Inventory snapshots travel on a separate logs pipeline so the
     # drop-self-logs filter (which is body-match against runtime

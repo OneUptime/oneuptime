@@ -7,6 +7,8 @@ export enum MarkdownContentType {
   Docs,
   Blog,
   Email,
+  // Compact rendering tuned for small surfaces (e.g. the blog validation modal).
+  BlogValidation,
 }
 
 export default class Markdown {
@@ -73,6 +75,7 @@ export default class Markdown {
   private static blogRenderer: Renderer | null = null;
   private static docsRenderer: Renderer | null = null;
   private static emailRenderer: Renderer | null = null;
+  private static blogValidationRenderer: Renderer | null = null;
 
   @CaptureSpan()
   public static async convertToHTML(
@@ -91,6 +94,10 @@ export default class Markdown {
 
     if (contentType === MarkdownContentType.Email) {
       renderer = this.getEmailRenderer();
+    }
+
+    if (contentType === MarkdownContentType.BlogValidation) {
+      renderer = this.getBlogValidationRenderer();
     }
 
     /*
@@ -128,6 +135,102 @@ export default class Markdown {
     const renderer: Renderer = new Renderer();
 
     this.emailRenderer = renderer;
+
+    return renderer;
+  }
+
+  /*
+   * Compact renderer for small surfaces like the blog validation modal. Smaller,
+   * quieter headings (no oversized doc titles, no permalink anchors), tight
+   * paragraph/list rhythm, and subtle code styling so a long report stays
+   * readable in a constrained, scrollable panel.
+   */
+  private static getBlogValidationRenderer(): Renderer {
+    if (this.blogValidationRenderer !== null) {
+      return this.blogValidationRenderer;
+    }
+
+    const renderer: Renderer = new Renderer();
+
+    renderer.heading = function (text, level) {
+      if (level <= 2) {
+        return `<h3 class="mt-7 mb-3 pt-6 border-t border-gray-100 first:mt-0 first:pt-0 first:border-t-0 text-[0.7rem] font-semibold uppercase tracking-wider text-emerald-700">${text}</h3>`;
+      }
+      if (level === 3) {
+        return `<h4 class="mt-5 mb-1.5 text-sm font-semibold text-gray-900">${text}</h4>`;
+      }
+      return `<h5 class="mt-4 mb-1 text-sm font-semibold text-gray-700">${text}</h5>`;
+    };
+
+    renderer.paragraph = function (text) {
+      return `<p class="my-2.5 text-sm leading-relaxed text-gray-600">${text}</p>`;
+    };
+
+    renderer.list = function (body, ordered, start) {
+      const tag: string = ordered ? "ol" : "ul";
+      const cls: string = ordered
+        ? "list-decimal pl-5 my-2 space-y-1.5 text-sm text-gray-600 marker:text-gray-400"
+        : "list-disc pl-5 my-2 space-y-1.5 text-sm text-gray-600 marker:text-gray-300";
+      const startAttr: string =
+        ordered && start !== 1 ? ` start="${start}"` : "";
+      return `<${tag}${startAttr} class="${cls}">${body}</${tag}>`;
+    };
+    renderer.listitem = function (text) {
+      return `<li class="leading-relaxed pl-1">${text}</li>`;
+    };
+
+    renderer.strong = function (text) {
+      return `<strong class="font-semibold text-gray-800">${text}</strong>`;
+    };
+    renderer.em = function (text) {
+      return `<em class="italic">${text}</em>`;
+    };
+
+    renderer.blockquote = function (quote) {
+      return `<blockquote class="my-3 border-s-2 border-emerald-200 ps-3 text-sm text-gray-600">${quote}</blockquote>`;
+    };
+
+    renderer.hr = function () {
+      return '<hr class="my-5 border-t border-gray-100" />';
+    };
+
+    renderer.codespan = function (code) {
+      const escaped: string = Markdown.escapeHtml(code);
+      return `<code class="rounded bg-gray-100 px-1.5 py-0.5 text-[0.8125rem] text-gray-700 font-mono break-words">${escaped}</code>`;
+    };
+
+    renderer.code = function (code, language) {
+      const escaped: string = Markdown.escapeHtml(code);
+      return `<pre class="my-3 overflow-x-auto rounded-lg bg-gray-50 border border-gray-100 p-3 text-xs leading-relaxed"><code class="language-${language} font-mono text-gray-700">${escaped}</code></pre>`;
+    };
+
+    renderer.table = function (header, body) {
+      return `<div class="my-4 overflow-x-auto rounded-lg border border-gray-100"><table class="min-w-full text-sm text-left">${header}${body}</table></div>`;
+    };
+    renderer.tablerow = function (content) {
+      return `<tr class="border-b border-gray-100 last:border-b-0">${content}</tr>`;
+    };
+    renderer.tablecell = function (content, flags) {
+      const tag: string = flags.header ? "th" : "td";
+      const align: string = flags.align ? ` text-${flags.align}` : "";
+      const headerClass: string = flags.header
+        ? " font-semibold text-gray-900 bg-gray-50"
+        : " text-gray-600";
+      return `<${tag} class="px-3 py-2${align}${headerClass}">${content}</${tag}>`;
+    };
+
+    renderer.link = function (href, _title, text) {
+      if (!href) {
+        return text as string;
+      }
+      const isExternal: boolean = href.startsWith("http");
+      const rel: string = isExternal
+        ? ' target="_blank" rel="noopener noreferrer"'
+        : "";
+      return `<a href="${href}"${rel} class="text-emerald-700 font-medium underline decoration-emerald-200 underline-offset-2 hover:decoration-emerald-400 break-words">${text}</a>`;
+    };
+
+    this.blogValidationRenderer = renderer;
 
     return renderer;
   }

@@ -31,10 +31,10 @@ Välj Docker-värden att övervaka. Värdar registreras automatiskt första gån
 
 Välj nivån att övervaka resurser på:
 
-| Omfång | Beskrivning |
-|--------|-------------|
-| Värd | Övervaka hela Docker-värden, aggregerat för alla containers |
-| Container | Övervaka en specifik container efter namn eller bild |
+| Omfång    | Beskrivning                                                 |
+| --------- | ----------------------------------------------------------- |
+| Värd      | Övervaka hela Docker-värden, aggregerat för alla containers |
+| Container | Övervaka en specifik container efter namn eller bild        |
 
 ### Mätvärdesförfrågningar
 
@@ -64,61 +64,61 @@ Docker Agent använder OpenTelemetry `docker_stats`-mottagaren som läser Docker
 
 ### CPU
 
-| Mätvärde | Beskrivning |
-|---------|-------------|
-| `container.cpu.utilization` | CPU-utnyttjande som procentandel av värd-CPU |
-| `container.cpu.usage.total` | Kumulativ CPU-tid som konsumeras av containern |
-| `container.cpu.throttling_data.throttled_time` | Tid som containern begränsades av cgroups |
-| `container.cpu.throttling_data.throttled_periods` | Antal begränsningsperioder |
+| Mätvärde                                          | Beskrivning                                    |
+| ------------------------------------------------- | ---------------------------------------------- |
+| `container.cpu.utilization`                       | CPU-utnyttjande som procentandel av värd-CPU   |
+| `container.cpu.usage.total`                       | Kumulativ CPU-tid som konsumeras av containern |
+| `container.cpu.throttling_data.throttled_time`    | Tid som containern begränsades av cgroups      |
+| `container.cpu.throttling_data.throttled_periods` | Antal begränsningsperioder                     |
 
 ### Minne
 
-| Mätvärde | Beskrivning |
-|---------|-------------|
-| `container.memory.usage.total` | Aktuell minnesanvändning i bytes |
-| `container.memory.usage.limit` | Minnesgräns i bytes |
-| `container.memory.percent` | Minnesanvändning som procentandel av gränsen |
+| Mätvärde                       | Beskrivning                                  |
+| ------------------------------ | -------------------------------------------- |
+| `container.memory.usage.total` | Aktuell minnesanvändning i bytes             |
+| `container.memory.usage.limit` | Minnesgräns i bytes                          |
+| `container.memory.percent`     | Minnesanvändning som procentandel av gränsen |
 
 ### Nätverk
 
-| Mätvärde | Beskrivning |
-|---------|-------------|
+| Mätvärde                              | Beskrivning           |
+| ------------------------------------- | --------------------- |
 | `container.network.io.usage.rx_bytes` | Totalt mottagna bytes |
 | `container.network.io.usage.tx_bytes` | Totalt skickade bytes |
 
 ### Block-I/O
 
-| Mätvärde | Beskrivning |
-|---------|-------------|
-| `container.blockio.io_service_bytes_recursive.read` | Bytes lästa från blockenheter |
+| Mätvärde                                             | Beskrivning                     |
+| ---------------------------------------------------- | ------------------------------- |
+| `container.blockio.io_service_bytes_recursive.read`  | Bytes lästa från blockenheter   |
 | `container.blockio.io_service_bytes_recursive.write` | Bytes skrivna till blockenheter |
 
 ### Containerinformation
 
-| Mätvärde | Beskrivning |
-|---------|-------------|
-| `container.uptime` | Containerns drifttid i sekunder |
-| `container.restarts` | Antal gånger containern har startats om |
-| `container.pids.count` | Antal processer inuti containern |
+| Mätvärde               | Beskrivning                             |
+| ---------------------- | --------------------------------------- |
+| `container.uptime`     | Containerns drifttid i sekunder         |
+| `container.restarts`   | Antal gånger containern har startats om |
+| `container.pids.count` | Antal processer inuti containern        |
 
 ## Övervakningskriterier
 
 ### Tillgängliga kontrolltyper
 
-| Kontrolltyp | Beskrivning |
-|------------|-------------|
-| Mätvärde | Värdet av den konfigurerade mätvärdesförfrågan eller formeln |
+| Kontrolltyp | Beskrivning                                                  |
+| ----------- | ------------------------------------------------------------ |
+| Mätvärde    | Värdet av den konfigurerade mätvärdesförfrågan eller formeln |
 
 ### Aggregeringstyper
 
-| Aggregering | Beskrivning |
-|-------------|-------------|
-| Medelvärde | Medelvärde under tidsfönstret |
-| Summa | Summan av alla värden |
-| Maxvärde | Högsta värdet i tidsfönstret |
-| Minvärde | Lägsta värdet i tidsfönstret |
-| Alla värden | Alla värden måste matcha kriterierna |
-| Valfritt värde | Minst ett värde måste matcha |
+| Aggregering    | Beskrivning                          |
+| -------------- | ------------------------------------ |
+| Medelvärde     | Medelvärde under tidsfönstret        |
+| Summa          | Summan av alla värden                |
+| Maxvärde       | Högsta värdet i tidsfönstret         |
+| Minvärde       | Lägsta värdet i tidsfönstret         |
+| Alla värden    | Alla värden måste matcha kriterierna |
+| Valfritt värde | Minst ett värde måste matcha         |
 
 ### Filtertyper
 
@@ -128,13 +128,13 @@ Docker Agent använder OpenTelemetry `docker_stats`-mottagaren som läser Docker
 
 OneUptime tillhandahåller mallar för vanliga Docker-övervakningsscenarier:
 
-| Mall | Beskrivning | Tröskel | Aggregering |
-|------|-------------|---------|-------------|
-| Hög container-CPU | CPU-utnyttjande per container | > 90% | Max (per container) |
-| Högt containerminne | Minnesanvändning som procentandel av gränsen | > 85% | Max (per container) |
-| Hög CPU-begränsning | Begränsade CPU-perioder | > 0 | Max (per container) |
-| Containeromstartsloop | Antal containeromstarter | > 3 | Summa |
-| Container nere | Containerns drifttid återställd till 0 | = 0 | Min |
+| Mall                  | Beskrivning                                  | Tröskel | Aggregering         |
+| --------------------- | -------------------------------------------- | ------- | ------------------- |
+| Hög container-CPU     | CPU-utnyttjande per container                | > 90%   | Max (per container) |
+| Högt containerminne   | Minnesanvändning som procentandel av gränsen | > 85%   | Max (per container) |
+| Hög CPU-begränsning   | Begränsade CPU-perioder                      | > 0     | Max (per container) |
+| Containeromstartsloop | Antal containeromstarter                     | > 3     | Summa               |
+| Container nere        | Containerns drifttid återställd till 0       | = 0     | Min                 |
 
 > Observera: CPU-, minnes- och begränsningsmallarna använder **Max**-aggregering grupperad efter `resource.container.name`. Detta förhindrar att en enstaka het containers signal späs ut av många overksamma containers på samma värd.
 

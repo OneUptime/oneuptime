@@ -15,12 +15,12 @@ Disse har prioritet over lagrede kontekster, men overstyres av CLI-flagg.
 
 ## Avslutkoder
 
-| Kode | Betydning |
-|------|-----------|
-| `0` | Vellykket |
-| `1` | Generell feil |
-| `2` | Autentiseringsfeil (manglende eller ugyldig legitimasjon) |
-| `3` | Ikke funnet (404) |
+| Kode | Betydning                                                 |
+| ---- | --------------------------------------------------------- |
+| `0`  | Vellykket                                                 |
+| `1`  | Generell feil                                             |
+| `2`  | Autentiseringsfeil (manglende eller ugyldig legitimasjon) |
+| `3`  | Ikke funnet (404)                                         |
 
 Bruk avslutkoder i skript for å håndtere feil:
 
@@ -80,7 +80,7 @@ done
 name: Check Active Incidents
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: "*/5 * * * *"
 
 jobs:
   health-check:

@@ -20,6 +20,7 @@ oneuptime incident list
 ```
 
 Table format का व्यवहार:
+
 - 6 columns तक चुनता है, प्राथमिकता देता है: `_id`, `name`, `title`, `createdAt`, `updatedAt`
 - 60 characters से अधिक लंबे values को `...` से truncate करता है
 - Color-coded headers उपयोग करता है (`--no-color` से अक्षम करें)
@@ -72,9 +73,9 @@ NO_COLOR=1 oneuptime incident list
 
 ## विशेष Output Cases
 
-| परिदृश्य | Output |
-|---------|--------|
-| खाली result set | `"No results found."` |
-| कोई डेटा returned नहीं | `"No data returned."` |
+| परिदृश्य                   | Output                 |
+| -------------------------- | ---------------------- |
+| खाली result set            | `"No results found."`  |
+| कोई डेटा returned नहीं     | `"No data returned."`  |
 | Single object (जैसे `get`) | Key-value table format |
-| `count` command | Plain numeric value |
+| `count` command            | Plain numeric value    |

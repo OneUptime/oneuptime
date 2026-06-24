@@ -56,8 +56,8 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 ```javascript
 // Node.js-exempel
-const https = require('https');
-https.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY');
+const https = require("https");
+https.get("https://oneuptime.com/heartbeat/YOUR_SECRET_KEY");
 ```
 
 ```python
@@ -74,12 +74,12 @@ Du kan konfigurera kriterier för att avgöra när din tjänst anses vara online
 
 ### Tillgängliga kontrolltyper
 
-| Kontrolltyp | Beskrivning |
-|------------|-------------|
-| Inkommande förfrågan | Om ett hjärtslag togs emot inom ett tidsfönster |
-| Förfrågningsinnehåll | Innehållet i det förfrågningsinnehåll som skickades med hjärtslaget |
-| Förfrågningshuvud | Namnet på ett specifikt förfrågningshuvud |
-| Förfrågningshuvudvärde | Värdet på ett specifikt förfrågningshuvud |
+| Kontrolltyp            | Beskrivning                                                         |
+| ---------------------- | ------------------------------------------------------------------- |
+| Inkommande förfrågan   | Om ett hjärtslag togs emot inom ett tidsfönster                     |
+| Förfrågningsinnehåll   | Innehållet i det förfrågningsinnehåll som skickades med hjärtslaget |
+| Förfrågningshuvud      | Namnet på ett specifikt förfrågningshuvud                           |
+| Förfrågningshuvudvärde | Värdet på ett specifikt förfrågningshuvud                           |
 
 ### Filtertyper
 

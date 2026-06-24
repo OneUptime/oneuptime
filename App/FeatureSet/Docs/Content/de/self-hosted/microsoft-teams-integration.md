@@ -27,13 +27,15 @@ Um Microsoft Teams mit Ihrer selbst gehosteten OneUptime-Instanz zu integrieren,
 2. Klicken Sie auf „Berechtigung hinzufügen" und wählen Sie „Microsoft Graph"
 
 **Delegierte Berechtigungen hinzufügen:**
-   - **User.Read** — Erforderlich, um das Profil des authentifizierten Benutzers abzurufen
-   - **Team.ReadBasic.All** — Erforderlich, um Teams aufzulisten, in denen der Benutzer Mitglied ist
-   - **Channel.ReadBasic.All** — Erforderlich, um Kanalinformationen zu lesen
-   - **ChannelMessage.Send** — Erforderlich, um Benachrichtigungen an Teams-Kanäle zu senden
+
+- **User.Read** — Erforderlich, um das Profil des authentifizierten Benutzers abzurufen
+- **Team.ReadBasic.All** — Erforderlich, um Teams aufzulisten, in denen der Benutzer Mitglied ist
+- **Channel.ReadBasic.All** — Erforderlich, um Kanalinformationen zu lesen
+- **ChannelMessage.Send** — Erforderlich, um Benachrichtigungen an Teams-Kanäle zu senden
 
 **Anwendungsberechtigungen hinzufügen:**
-   - **Team.ReadBasic.All**, **Channel.ReadBasic.All**, **ChannelMessage.Send**
+
+- **Team.ReadBasic.All**, **Channel.ReadBasic.All**, **ChannelMessage.Send**
 
 3. Klicken Sie auf „Administratorzustimmung erteilen" für Ihre Organisation
 
@@ -50,6 +52,7 @@ Um Microsoft Teams mit Ihrer selbst gehosteten OneUptime-Instanz zu integrieren,
 
 1. Navigieren Sie im Azure Portal zu „Azure Bot" und klicken Sie auf „Erstellen"
 2. Füllen Sie das Bot-Erstellungsformular aus:
+
    - **Bot-Handle:** oneuptime-bot
    - Verwenden Sie die App-(Client-)ID und Mandanten-ID aus Ihrer App-Registrierung
 

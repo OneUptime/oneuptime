@@ -10,12 +10,12 @@ Jeder Workflow beginnt mit genau einem **Auslöser** am Anfang. Alles Weitere si
 
 ## Was auf einem Baustein zu sehen ist
 
-| Feld | Funktion |
-| --- | --- |
-| **Titel** | Der auf der Arbeitsfläche angezeigte Name. Benennen Sie ihn um, damit komplexe Workflows leichter lesbar werden. |
-| **Einstellungen** | Was der Baustein braucht, um seine Aufgabe zu erledigen – eine URL, ein Slack-Kanal, ein Nachrichtentext usw. Pflichtfelder sind mit einem Sternchen markiert. |
-| **Eingang** | Der Punkt links, an dem Linien aus früheren Bausteinen ankommen. |
-| **Ausgänge** | Die Punkte rechts, von denen Linien zu den nächsten Bausteinen führen. Viele Bausteine haben getrennte Ausgänge für **Erfolg** und **Fehler**, damit Sie beide Fälle behandeln können. |
+| Feld              | Funktion                                                                                                                                                                               |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Titel**         | Der auf der Arbeitsfläche angezeigte Name. Benennen Sie ihn um, damit komplexe Workflows leichter lesbar werden.                                                                       |
+| **Einstellungen** | Was der Baustein braucht, um seine Aufgabe zu erledigen – eine URL, ein Slack-Kanal, ein Nachrichtentext usw. Pflichtfelder sind mit einem Sternchen markiert.                         |
+| **Eingang**       | Der Punkt links, an dem Linien aus früheren Bausteinen ankommen.                                                                                                                       |
+| **Ausgänge**      | Die Punkte rechts, von denen Linien zu den nächsten Bausteinen führen. Viele Bausteine haben getrennte Ausgänge für **Erfolg** und **Fehler**, damit Sie beide Fälle behandeln können. |
 
 ## Bausteine verbinden
 

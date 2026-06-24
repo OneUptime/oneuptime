@@ -27,12 +27,12 @@ I monitor metriche interrogano e valutano metriche numeriche dai servizi di tele
 
 Definire una o più query metriche. Ogni query include:
 
-| Campo | Descrizione | Obbligatorio |
-|-------|-------------|----------|
-| Nome Metrica | Il nome della metrica da interrogare | Sì |
-| Tipo di Aggregazione | Come aggregare i valori grezzi della metrica (sum, avg, min, max, count) | Sì |
-| Attributi | Filtri chiave-valore per restringere i dati della metrica | No |
-| Aggrega Per | Dimensioni per cui raggruppare la metrica | No |
+| Campo                | Descrizione                                                              | Obbligatorio |
+| -------------------- | ------------------------------------------------------------------------ | ------------ |
+| Nome Metrica         | Il nome della metrica da interrogare                                     | Sì           |
+| Tipo di Aggregazione | Come aggregare i valori grezzi della metrica (sum, avg, min, max, count) | Sì           |
+| Attributi            | Filtri chiave-valore per restringere i dati della metrica                | No           |
+| Aggrega Per          | Dimensioni per cui raggruppare la metrica                                | No           |
 
 A ciascuna query viene assegnato un alias (ad es. `a`, `b`, `c`) da usare nelle formule.
 
@@ -59,22 +59,22 @@ Selezionare la finestra temporale per la valutazione delle metriche:
 
 Scegliere come aggregare i valori delle metriche per la valutazione:
 
-| Strategia | Descrizione |
-|----------|-------------|
-| Media | Valore medio nella finestra temporale |
-| Somma | Somma di tutti i valori |
-| Valore Massimo | Valore più alto nella finestra temporale |
-| Valore Minimo | Valore più basso nella finestra temporale |
-| Tutti i Valori | Tutti i valori devono soddisfare il criterio |
+| Strategia        | Descrizione                                  |
+| ---------------- | -------------------------------------------- |
+| Media            | Valore medio nella finestra temporale        |
+| Somma            | Somma di tutti i valori                      |
+| Valore Massimo   | Valore più alto nella finestra temporale     |
+| Valore Minimo    | Valore più basso nella finestra temporale    |
+| Tutti i Valori   | Tutti i valori devono soddisfare il criterio |
 | Qualsiasi Valore | Almeno un valore deve soddisfare il criterio |
 
 ## Criteri di Monitoraggio
 
 ### Tipi di Controllo Disponibili
 
-| Tipo di Controllo | Descrizione |
-|------------|-------------|
-| Valore Metrica | Il valore aggregato della query metrica o formula configurata |
+| Tipo di Controllo | Descrizione                                                   |
+| ----------------- | ------------------------------------------------------------- |
+| Valore Metrica    | Il valore aggregato della query metrica o formula configurata |
 
 ### Tipi di Filtro
 

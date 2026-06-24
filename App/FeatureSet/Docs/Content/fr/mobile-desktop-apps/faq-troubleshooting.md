@@ -91,37 +91,44 @@ La PWA se met à jour automatiquement chaque fois que vous l'ouvrez en étant en
 ### Problèmes liés à l'application mobile
 
 **L'application ne se connecte pas / « Erreur réseau » :**
+
 - Vérifiez que l'**URL du serveur** est correcte et accessible depuis votre téléphone.
 - Vérifiez que votre téléphone est connecté à Internet.
 - Pour les instances auto-hébergées derrière un VPN, assurez-vous que le VPN est actif.
 
 **Notifications push retardées ou manquantes (Android) :**
+
 - Désactivez l'optimisation de la batterie : **Paramètres → Applications → OneUptime On-Call → Batterie → Sans restriction**.
 - Désactivez l'Économiseur de données pour l'application.
 - Sur les appareils Samsung, désactivez **Maintenance de l'appareil → Batterie → Limites d'utilisation en arrière-plan** pour OneUptime On-Call.
 
 **Notifications push retardées ou manquantes (iOS) :**
+
 - Évitez de forcer la fermeture de l'application — iOS peut interrompre la diffusion en arrière-plan.
 - Désactivez le Mode économie d'énergie lorsque vous êtes d'astreinte.
 - Ajoutez OneUptime On-Call à la liste d'autorisation de tout mode Concentration actif.
 
 **Face ID / Touch ID / empreinte digitale ne fonctionne pas :**
+
 - Assurez-vous que la biométrie est enregistrée dans les paramètres de votre système d'exploitation.
 - Réactivez le déverrouillage biométrique depuis l'écran **Paramètres** à l'intérieur de l'application OneUptime On-Call.
 
 ### Problèmes liés à l'application de bureau (PWA)
 
 **Bouton d'installation manquant :**
+
 - Utilisez un navigateur pris en charge (basé sur Chromium ou Safari sur macOS Sonoma+).
 - Assurez-vous que l'instance OneUptime est servie via HTTPS.
 - Attendez que la page finisse de charger, puis vérifiez la présence de l'icône d'installation dans la barre d'adresse.
 
 **Les notifications de bureau n'apparaissent pas :**
+
 - Autorisez les notifications lorsque le navigateur vous le demande.
 - Vérifiez les paramètres de notification du système d'exploitation (Assistant de concentration Windows, Notifications macOS, démon de notifications Linux).
 - Pour les instances auto-hébergées, assurez-vous que la configuration des [Notifications push](/docs/self-hosted/push-notifications) est terminée.
 
 **L'application n'affiche pas les dernières données :**
+
 - Actualisez avec **Ctrl+R** / **Cmd+R**.
 - Fermez et rouvrez la fenêtre.
 - Vérifiez votre connexion réseau.

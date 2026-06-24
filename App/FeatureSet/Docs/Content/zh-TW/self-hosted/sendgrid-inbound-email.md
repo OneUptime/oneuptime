@@ -33,9 +33,9 @@ OneUptime 的 **收件電子郵件監控器（Incoming Email Monitor）** 可讓
 
 在您的 DNS 設定中新增一筆 MX 記錄，將寄往您收件子網域的電子郵件路由至 SendGrid。
 
-| 類型 | 主機/名稱 | 優先順序 | 值 |
-|------|-----------|----------|-------|
-| MX | inbound | 10 | mx.sendgrid.net |
+| 類型 | 主機/名稱 | 優先順序 | 值              |
+| ---- | --------- | -------- | --------------- |
+| MX   | inbound   | 10       | mx.sendgrid.net |
 
 **範例：** 如果您的網域是 `example.com`，且您使用 `inbound.example.com`：
 
@@ -61,13 +61,13 @@ inbound.example.com.  IN  MX  10  mx.sendgrid.net.
 3. 點選 **Add Host & URL**
 4. 設定下列項目：
 
-| 欄位 | 值 |
-|-------|-------|
-| **Receiving Domain** | 您的收件子網域（例如 `inbound.yourdomain.com`） |
-| **Destination URL** | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
-| **Check incoming emails for spam** | 選用——如有需要可啟用 |
-| **Send raw, full MIME message** | 保持未勾選（非必要） |
-| **POST the raw, full MIME message** | 保持未勾選（非必要） |
+| 欄位                                | 值                                                                      |
+| ----------------------------------- | ----------------------------------------------------------------------- |
+| **Receiving Domain**                | 您的收件子網域（例如 `inbound.yourdomain.com`）                         |
+| **Destination URL**                 | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
+| **Check incoming emails for spam**  | 選用——如有需要可啟用                                                    |
+| **Send raw, full MIME message**     | 保持未勾選（非必要）                                                    |
+| **POST the raw, full MIME message** | 保持未勾選（非必要）                                                    |
 
 5. 點選 **Add**
 
@@ -123,35 +123,37 @@ inboundEmail:
 
 ## 環境變數參考
 
-| 變數 | 說明 | 是否必要 | 預設值 |
-|----------|-------------|----------|---------|
-| `INBOUND_EMAIL_PROVIDER` | 要使用的收件電子郵件供應商 | 是 | - |
-| `INBOUND_EMAIL_DOMAIN` | 為收件電子郵件所設定的子網域 | 是 | - |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | 用於驗證 webhook 請求的密鑰。設定後，請將此密鑰附加到 webhook URL：`/incoming-email/sendgrid/YOUR_SECRET` | 否 | - |
+| 變數                           | 說明                                                                                                      | 是否必要 | 預設值 |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------- | -------- | ------ |
+| `INBOUND_EMAIL_PROVIDER`       | 要使用的收件電子郵件供應商                                                                                | 是       | -      |
+| `INBOUND_EMAIL_DOMAIN`         | 為收件電子郵件所設定的子網域                                                                              | 是       | -      |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | 用於驗證 webhook 請求的密鑰。設定後，請將此密鑰附加到 webhook URL：`/incoming-email/sendgrid/YOUR_SECRET` | 否       | -      |
 
 ## 支援的電子郵件條件
 
 在設定您的收件電子郵件監控器時，您可以根據以下項目建立條件：
 
-| 欄位 | 說明 | 可用篩選條件 |
-|-------|-------------|-------------------|
-| **Email Subject** | 電子郵件的主旨列 | Contains、Not Contains、Equals、Not Equals、Starts With、Ends With、Is Empty、Is Not Empty |
-| **Email From** | 寄件者的電子郵件地址 | Contains、Not Contains、Equals、Not Equals、Starts With、Ends With、Is Empty、Is Not Empty |
-| **Email Body** | 電子郵件的純文字內文 | Contains、Not Contains、Equals、Not Equals、Starts With、Ends With、Is Empty、Is Not Empty |
-| **Email To** | 收件者的電子郵件地址 | Contains、Not Contains、Equals、Not Equals、Starts With、Ends With、Is Empty、Is Not Empty |
-| **Email Received** | 距離上次收到電子郵件的時間 | Received In Minutes、Not Received In Minutes |
+| 欄位               | 說明                       | 可用篩選條件                                                                               |
+| ------------------ | -------------------------- | ------------------------------------------------------------------------------------------ |
+| **Email Subject**  | 電子郵件的主旨列           | Contains、Not Contains、Equals、Not Equals、Starts With、Ends With、Is Empty、Is Not Empty |
+| **Email From**     | 寄件者的電子郵件地址       | Contains、Not Contains、Equals、Not Equals、Starts With、Ends With、Is Empty、Is Not Empty |
+| **Email Body**     | 電子郵件的純文字內文       | Contains、Not Contains、Equals、Not Equals、Starts With、Ends With、Is Empty、Is Not Empty |
+| **Email To**       | 收件者的電子郵件地址       | Contains、Not Contains、Equals、Not Equals、Starts With、Ends With、Is Empty、Is Not Empty |
+| **Email Received** | 距離上次收到電子郵件的時間 | Received In Minutes、Not Received In Minutes                                               |
 
 ## 範例使用情境
 
 ### 舊有系統警示
 
 許多舊有系統只能傳送電子郵件警示。建立一個收件電子郵件監控器以：
+
 - 當舊有系統傳送 `[CRITICAL]` 電子郵件時建立 OneUptime 警示
 - 當收到 `[RESOLVED]` 電子郵件時解除警示
 
 ### 第三方服務整合
 
 與會傳送電子郵件通知的服務整合：
+
 - 沒有 API 整合的監控工具
 - 雲端供應商通知
 - 安全掃描工具
@@ -159,6 +161,7 @@ inboundEmail:
 ### 透過電子郵件的心跳檢測
 
 使用 "Email Received" 條件，以確保您定期收到電子郵件：
+
 - 如果在 60 分鐘內未收到電子郵件，則建立警示
 - 適用於監控會在完成時傳送電子郵件的批次作業或排程任務
 
@@ -167,12 +170,15 @@ inboundEmail:
 ### 未收到電子郵件
 
 1. **檢查 DNS 傳播狀態：**
+
    ```bash
    dig MX inbound.yourdomain.com
    ```
+
    應回傳 `mx.sendgrid.net`
 
 2. **驗證 SendGrid Inbound Parse 設定：**
+
    - 登入 SendGrid Dashboard
    - 前往 Settings > Inbound Parse
    - 確認您的網域與 webhook URL 正確無誤
@@ -184,10 +190,12 @@ inboundEmail:
 ### Webhook 失敗
 
 1. **確保 OneUptime 可公開存取：**
+
    - webhook URL 必須能從網際網路存取
    - 使用以下指令測試：`curl -X POST https://your-oneuptime-domain.com/incoming-email/sendgrid`
 
 2. **檢查防火牆規則：**
+
    - 允許來自 SendGrid IP 範圍的收件 HTTPS 流量
 
 3. **驗證 SSL 憑證：**
@@ -197,10 +205,12 @@ inboundEmail:
 ### 監控器未建立警示
 
 1. **驗證條件設定：**
+
    - 檢查您的警示建立條件是否與電子郵件內容相符
    - 在使用模式比對之前，請先以完全相符的字串進行測試
 
 2. **檢查監控器狀態：**
+
    - 確保監控器未被停用
    - 確認監控器類型為 "Incoming Email"
 
@@ -228,9 +238,9 @@ inboundEmail:
 
 OneUptime 旨在支援多種收件電子郵件供應商。目前支援的有：
 
-| 供應商 | 狀態 |
-|----------|--------|
-| SendGrid | 支援 |
+| 供應商         | 狀態   |
+| -------------- | ------ |
+| SendGrid       | 支援   |
 | Haraka（自架） | 規劃中 |
 
 如果您需要支援其他供應商，請與我們聯絡或提交功能請求。

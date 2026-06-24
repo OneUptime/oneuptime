@@ -65,12 +65,12 @@ Busca por nombre en la paleta de disparadores para encontrar el que quieres.
 
 ## ¿Qué disparador debo usar?
 
-| Si quieres… | Elige |
-| --- | --- |
-| Hacer clic en un botón para ejecutar el workflow | **Manual** |
-| Ejecutar en una programación recurrente | **Programación** |
-| Que otro sistema envíe datos | **Webhook** |
-| Reaccionar a algo dentro de OneUptime | **Evento de OneUptime** |
+| Si quieres…                                      | Elige                   |
+| ------------------------------------------------ | ----------------------- |
+| Hacer clic en un botón para ejecutar el workflow | **Manual**              |
+| Ejecutar en una programación recurrente          | **Programación**        |
+| Que otro sistema envíe datos                     | **Webhook**             |
+| Reaccionar a algo dentro de OneUptime            | **Evento de OneUptime** |
 
 Un workflow solo puede tener un disparador. Si necesitas dos formas de iniciar la misma automatización, construye la lógica compartida en un workflow y llámalo desde dos workflows "envoltorio" delgados usando el componente **Ejecutar Workflow**.
 

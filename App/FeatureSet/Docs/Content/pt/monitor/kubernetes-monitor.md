@@ -32,25 +32,25 @@ Selecione o cluster Kubernetes a monitorizar. Os clusters têm de estar integrad
 
 Escolha o nível ao qual pretende monitorizar os recursos:
 
-| Âmbito | Descrição |
-|-------|-------------|
-| Cluster | Monitorizar o cluster inteiro |
-| Namespace | Monitorizar recursos dentro de um namespace específico |
-| Workload | Monitorizar um deployment, statefulset, daemonset, job ou cronjob específico |
-| Node | Monitorizar um nó específico do cluster |
-| Pod | Monitorizar um pod específico |
+| Âmbito    | Descrição                                                                    |
+| --------- | ---------------------------------------------------------------------------- |
+| Cluster   | Monitorizar o cluster inteiro                                                |
+| Namespace | Monitorizar recursos dentro de um namespace específico                       |
+| Workload  | Monitorizar um deployment, statefulset, daemonset, job ou cronjob específico |
+| Node      | Monitorizar um nó específico do cluster                                      |
+| Pod       | Monitorizar um pod específico                                                |
 
 ### Filtros de recurso
 
 Restrinja o âmbito com filtros opcionais:
 
-| Filtro | Descrição | Âmbitos aplicáveis |
-|--------|-------------|-------------------|
-| Namespace | Namespace do Kubernetes | Namespace, Workload, Pod |
-| Workload Type | deployment, statefulset, daemonset, job, cronjob | Workload |
-| Workload Name | Nome da carga de trabalho | Workload |
-| Node Name | Nome do nó | Node |
-| Pod Name | Nome do pod | Pod |
+| Filtro        | Descrição                                        | Âmbitos aplicáveis       |
+| ------------- | ------------------------------------------------ | ------------------------ |
+| Namespace     | Namespace do Kubernetes                          | Namespace, Workload, Pod |
+| Workload Type | deployment, statefulset, daemonset, job, cronjob | Workload                 |
+| Workload Name | Nome da carga de trabalho                        | Workload                 |
+| Node Name     | Nome do nó                                       | Node                     |
+| Pod Name      | Nome do pod                                      | Pod                      |
 
 ### Consultas de métricas
 
@@ -77,60 +77,60 @@ Selecione a janela temporal para a avaliação das métricas:
 
 ### Métricas de pod
 
-| Métrica | Descrição |
-|--------|-------------|
-| Pod CPU Usage | Consumo de CPU pelos pods |
-| Pod Memory Usage | Consumo de memória pelos pods |
-| Pod Filesystem Usage | Utilização de disco pelos pods |
-| Pod Network Receive/Transmit | Tráfego de rede |
-| Pod Phase | Fase atual do pod (Running, Pending, Failed, etc.) |
+| Métrica                      | Descrição                                          |
+| ---------------------------- | -------------------------------------------------- |
+| Pod CPU Usage                | Consumo de CPU pelos pods                          |
+| Pod Memory Usage             | Consumo de memória pelos pods                      |
+| Pod Filesystem Usage         | Utilização de disco pelos pods                     |
+| Pod Network Receive/Transmit | Tráfego de rede                                    |
+| Pod Phase                    | Fase atual do pod (Running, Pending, Failed, etc.) |
 
 ### Métricas de nó
 
-| Métrica | Descrição |
-|--------|-------------|
-| Node CPU Usage | Utilização de CPU por nó |
-| Node Memory Usage | Utilização de memória por nó |
-| Node Filesystem Usage | Utilização de disco por nó |
-| Node Disk I/O | Operações de leitura/escrita |
-| Node Ready Condition | Indica se o nó está pronto |
+| Métrica               | Descrição                    |
+| --------------------- | ---------------------------- |
+| Node CPU Usage        | Utilização de CPU por nó     |
+| Node Memory Usage     | Utilização de memória por nó |
+| Node Filesystem Usage | Utilização de disco por nó   |
+| Node Disk I/O         | Operações de leitura/escrita |
+| Node Ready Condition  | Indica se o nó está pronto   |
 
 ### Métricas de contentor
 
-| Métrica | Descrição |
-|--------|-------------|
-| Container Restarts | Número de reinícios do contentor |
-| Container CPU/Memory Limits | Limits de recursos |
-| Container CPU/Memory Requests | Requests de recursos |
-| Container Ready Status | Indica se os contentores estão prontos |
+| Métrica                       | Descrição                              |
+| ----------------------------- | -------------------------------------- |
+| Container Restarts            | Número de reinícios do contentor       |
+| Container CPU/Memory Limits   | Limits de recursos                     |
+| Container CPU/Memory Requests | Requests de recursos                   |
+| Container Ready Status        | Indica se os contentores estão prontos |
 
 ### Métricas de carga de trabalho
 
-| Métrica | Descrição |
-|--------|-------------|
-| Deployment Available/Unavailable Replicas | Contagens de réplicas |
-| DaemonSet Misscheduled Nodes | Problemas de agendamento |
-| StatefulSet Ready Replicas | Contagem de réplicas prontas |
-| Job Active/Failed/Succeeded Pods | Estado do job |
+| Métrica                                   | Descrição                    |
+| ----------------------------------------- | ---------------------------- |
+| Deployment Available/Unavailable Replicas | Contagens de réplicas        |
+| DaemonSet Misscheduled Nodes              | Problemas de agendamento     |
+| StatefulSet Ready Replicas                | Contagem de réplicas prontas |
+| Job Active/Failed/Succeeded Pods          | Estado do job                |
 
 ## Critérios de monitorização
 
 ### Tipos de verificação disponíveis
 
-| Tipo de verificação | Descrição |
-|------------|-------------|
-| Metric Value | O valor da consulta de métrica configurada ou da fórmula |
+| Tipo de verificação | Descrição                                                |
+| ------------------- | -------------------------------------------------------- |
+| Metric Value        | O valor da consulta de métrica configurada ou da fórmula |
 
 ### Tipos de agregação
 
-| Agregação | Descrição |
-|-------------|-------------|
-| Average | Valor médio durante a janela temporal |
-| Sum | Soma de todos os valores |
-| Maximum Value | Valor mais alto na janela temporal |
-| Minimum Value | Valor mais baixo na janela temporal |
-| All Values | Todos os valores têm de corresponder aos critérios |
-| Any Value | Pelo menos um valor tem de corresponder |
+| Agregação     | Descrição                                          |
+| ------------- | -------------------------------------------------- |
+| Average       | Valor médio durante a janela temporal              |
+| Sum           | Soma de todos os valores                           |
+| Maximum Value | Valor mais alto na janela temporal                 |
+| Minimum Value | Valor mais baixo na janela temporal                |
+| All Values    | Todos os valores têm de corresponder aos critérios |
+| Any Value     | Pelo menos um valor tem de corresponder            |
 
 ### Tipos de filtro
 
@@ -140,20 +140,20 @@ Selecione a janela temporal para a avaliação das métricas:
 
 O OneUptime fornece modelos para cenários comuns de monitorização Kubernetes:
 
-| Modelo | Descrição | Limiar |
-|----------|-------------|-----------|
-| CrashLoopBackOff Detection | Contagem de reinícios de contentor | > 5 reinícios |
-| Pod Stuck in Pending | Pods na fase Pending | > 0 pods |
-| Node Not Ready | Condição de prontidão do nó | = 0 (not ready) |
-| High Node CPU | Utilização de CPU do nó | > 90% |
-| High Node Memory | Utilização de memória do nó | > 85% |
-| Deployment Replica Mismatch | Réplicas indisponíveis | > 0 réplicas |
-| Job Failures | Pods falhados num job | > 0 falhas |
-| etcd No Leader | Líder do cluster etcd em falta | = 0 (no leader) |
-| API Server Throttling | Pedidos descartados pela API | > 0 pedidos |
-| Scheduler Backlog | Pods pendentes no scheduler | > 0 pods |
-| High Node Disk Usage | Utilização do filesystem do nó | > 90% |
-| DaemonSet Unavailable | Nós com agendamento incorreto | > 0 nós |
+| Modelo                      | Descrição                          | Limiar          |
+| --------------------------- | ---------------------------------- | --------------- |
+| CrashLoopBackOff Detection  | Contagem de reinícios de contentor | > 5 reinícios   |
+| Pod Stuck in Pending        | Pods na fase Pending               | > 0 pods        |
+| Node Not Ready              | Condição de prontidão do nó        | = 0 (not ready) |
+| High Node CPU               | Utilização de CPU do nó            | > 90%           |
+| High Node Memory            | Utilização de memória do nó        | > 85%           |
+| Deployment Replica Mismatch | Réplicas indisponíveis             | > 0 réplicas    |
+| Job Failures                | Pods falhados num job              | > 0 falhas      |
+| etcd No Leader              | Líder do cluster etcd em falta     | = 0 (no leader) |
+| API Server Throttling       | Pedidos descartados pela API       | > 0 pedidos     |
+| Scheduler Backlog           | Pods pendentes no scheduler        | > 0 pods        |
+| High Node Disk Usage        | Utilização do filesystem do nó     | > 90%           |
+| DaemonSet Unavailable       | Nós com agendamento incorreto      | > 0 nós         |
 
 ## Requisitos de configuração
 

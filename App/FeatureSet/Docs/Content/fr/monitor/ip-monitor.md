@@ -31,11 +31,11 @@ Vous pouvez configurer des critères pour déterminer quand votre adresse IP est
 
 ### Types de vérifications disponibles
 
-| Type de vérification | Description |
-|----------------------|-------------|
-| En ligne | Si l'adresse IP est accessible |
-| Temps de réponse (en ms) | Temps de réponse en millisecondes |
-| Délai d'attente de la requête | Si la requête a expiré |
+| Type de vérification          | Description                       |
+| ----------------------------- | --------------------------------- |
+| En ligne                      | Si l'adresse IP est accessible    |
+| Temps de réponse (en ms)      | Temps de réponse en millisecondes |
+| Délai d'attente de la requête | Si la requête a expiré            |
 
 ### Types de filtres
 

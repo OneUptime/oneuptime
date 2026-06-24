@@ -31,6 +31,7 @@ Table API ServiceNow принимает **Basic auth**.
 1. Откройте **Workflows → Create Workflow**, назовите его `Incidents → ServiceNow` и откройте **Builder**.
 2. Добавьте триггер **Incident**, установив **On Create**. Переименуйте его в `Incident`.
 3. Добавьте блок **API**, соединённый с триггером:
+
    - **Method**: `POST`
    - **URL**: `https://your-instance.service-now.com/api/now/table/incident`
    - **Headers**:
@@ -54,6 +55,7 @@ Table API ServiceNow принимает **Basic auth**.
      ```
 
    `correlation_id` сохраняет связь с инцидентом OneUptime — пригодится, если позже добавите шаг разрешения. `urgency`/`impact` в ServiceNow: `1` (высокий), `2` (средний), `3` (низкий).
+
 4. **Сохраните**, включите и создайте тестовый инцидент. Ответ `201 Created` в журналах рабочего процесса вернёт `sys_id` и `number` новой записи (например, `INC0012345`).
 
 ## Шаг 3 — Разрешение при разрешении в OneUptime (опционально)

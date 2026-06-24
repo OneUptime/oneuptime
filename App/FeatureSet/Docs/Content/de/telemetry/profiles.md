@@ -10,14 +10,14 @@ Mit Profiling-Daten in OneUptime können Sie heiße Funktionen identifizieren, d
 
 OneUptime unterstützt die folgenden Profiltypen:
 
-| Profiltyp | Beschreibung | Einheit |
-| --- | --- | --- |
-| cpu | CPU-Zeit für die Codeausführung | Nanosekunden |
-| wall | Wanduhrzeit (einschließlich Warten/Schlafen) | Nanosekunden |
-| alloc_objects | Anzahl der Heap-Allokationen | Anzahl |
-| alloc_space | Bytes des allozierten Heap-Speichers | Bytes |
-| goroutine | Anzahl der aktiven Goroutinen (Go) | Anzahl |
-| contention | Zeit für das Warten auf Sperren/Mutexes | Nanosekunden |
+| Profiltyp     | Beschreibung                                 | Einheit      |
+| ------------- | -------------------------------------------- | ------------ |
+| cpu           | CPU-Zeit für die Codeausführung              | Nanosekunden |
+| wall          | Wanduhrzeit (einschließlich Warten/Schlafen) | Nanosekunden |
+| alloc_objects | Anzahl der Heap-Allokationen                 | Anzahl       |
+| alloc_space   | Bytes des allozierten Heap-Speichers         | Bytes        |
+| goroutine     | Anzahl der aktiven Goroutinen (Go)           | Anzahl       |
+| contention    | Zeit für das Warten auf Sperren/Mutexes      | Nanosekunden |
 
 ## Erste Schritte
 
@@ -31,10 +31,10 @@ Klicken Sie auf der Seite Telemetrie-Ingestion-Schlüssel auf „Ingestion-Schl�
 
 OneUptime akzeptiert Profiling-Daten über gRPC und HTTP mit dem OTLP Profiles-Protokoll.
 
-| Protokoll | Endpunkt |
-| --- | --- |
-| gRPC | `your-oneuptime-host:4317` (OTLP Standard-gRPC-Port) |
-| HTTP | `https://your-oneuptime-host/otlp/v1/profiles` |
+| Protokoll | Endpunkt                                             |
+| --------- | ---------------------------------------------------- |
+| gRPC      | `your-oneuptime-host:4317` (OTLP Standard-gRPC-Port) |
+| HTTP      | `https://your-oneuptime-host/otlp/v1/profiles`       |
 
 **Umgebungsvariablen**
 

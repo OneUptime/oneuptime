@@ -341,8 +341,18 @@ export default class MonitorIncident {
           storageMap,
         });
 
-        if (!criteriaIncident.incidentSeverityId) {
-          // pick the critical criteria.
+        /*
+         * Resolve the incident severity. `criteriaIncident.incidentSeverityId`
+         * can be a truthy-but-EMPTY ObjectID (id === "") — a stored
+         * `{"_type":"ObjectID","value":""}` deserializes to `new ObjectID("")`,
+         * which is an object so `!incidentSeverityId` is false. That empty id
+         * serializes to "" for the `uuid` (not-null) column and lands as NULL,
+         * throwing 23502 inside the probe-ingest worker and retrying forever.
+         * Use `?.toString()` truthiness so an empty/blank ObjectID is treated
+         * the same as "missing" and falls through to the project-default lookup.
+         */
+        if (!criteriaIncident.incidentSeverityId?.toString()) {
+          // pick the critical (first/lowest-order root) severity.
 
           const severity: IncidentSeverity | null =
             await IncidentSeverityService.findOneBy({
@@ -360,15 +370,33 @@ export default class MonitorIncident {
               },
             });
 
-          if (!severity) {
-            throw new BadDataException(
-              "Project does not have incident severity",
+          if (!severity?.id?.toString()) {
+            /*
+             * The project has no incident severity configured. Throwing here
+             * would fail the entire probe/telemetry ingest job, which then
+             * retries forever for a misconfiguration the worker cannot fix.
+             * Skip incident creation gracefully and log instead.
+             */
+            logger.error(
+              `${input.monitor.id?.toString()} - Cannot create incident: project ${input.monitor.projectId?.toString()} has no incident severity configured. Skipping incident creation for criteria "${
+                input.criteriaInstance.data?.name
+              }".`,
             );
-          } else {
-            incident.incidentSeverityId = severity.id!;
+
+            input.evaluationSummary?.events.push({
+              type: "incident-skipped",
+              title: "Incident creation skipped",
+              message:
+                "Skipped creating an incident because the project has no incident severity configured.",
+              relatedCriteriaId: input.criteriaInstance.data?.id,
+              at: OneUptimeDate.getCurrentDate(),
+            });
+            continue;
           }
+
+          incident.incidentSeverityId = severity.id!;
         } else {
-          incident.incidentSeverityId = criteriaIncident.incidentSeverityId!;
+          incident.incidentSeverityId = criteriaIncident.incidentSeverityId;
         }
 
         incident.monitors = [input.monitor];
@@ -882,12 +910,34 @@ export default class MonitorIncident {
       );
     }
 
-    await IncidentStateTimelineService.create({
-      data: incidentStateTimeline,
-      props: {
-        isRoot: true,
-      },
-    });
+    try {
+      await IncidentStateTimelineService.create({
+        data: incidentStateTimeline,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (err) {
+      /*
+       * Idempotent concurrency race: two probe/ingest results for the same monitor
+       * can both decide to auto-resolve the same open incident near-simultaneously.
+       * The loser's IncidentStateTimelineService.onBeforeCreate dedupe check throws
+       * this exact BadDataException (incident is already in the resolved state).
+       * Treat as a no-op at debug level instead of failing the job and logging a
+       * full ERROR stack. Match the exact message so unrelated BadDataExceptions
+       * (e.g. state-order validation) still propagate.
+       */
+      if (
+        err instanceof BadDataException &&
+        err.message === "Incident state cannot be same as previous state."
+      ) {
+        logger.debug(
+          `${input.openIncident.id?.toString()} - Incident already in resolved state; skipping duplicate state timeline (concurrent race).`,
+        );
+      } else {
+        throw err;
+      }
+    }
   }
 
   private static shouldCloseIncident(input: {

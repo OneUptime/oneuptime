@@ -6,23 +6,26 @@ Global SSO 是 **OneUptime Enterprise Edition** 功能，僅在執行 Enterprise
 
 ## Global SSO 與 Project SSO 的差異
 
-| | Project SSO | Global SSO |
-|---|---|---|
-| 設定者 | 專案擁有者／管理員（Project Settings） | 執行個體 master admin（Admin Dashboard） |
-| 範圍 | 單一專案 | 整個執行個體 — 可連接至任何專案 |
-| 登入結果 | 存取該單一專案 | 存取該使用者可觸及的每個專案 |
+|          | Project SSO                            | Global SSO                               |
+| -------- | -------------------------------------- | ---------------------------------------- |
+| 設定者   | 專案擁有者／管理員（Project Settings） | 執行個體 master admin（Admin Dashboard） |
+| 範圍     | 單一專案                               | 整個執行個體 — 可連接至任何專案          |
+| 登入結果 | 存取該單一專案                         | 存取該使用者可觸及的每個專案             |
 
 ## 設定 Global SSO
 
 1. **開啟 Admin Dashboard**
+
    - 以 master admin 身分登入，並開啟 **Admin** > **Settings** > **Global SSO**（用於 SAML）或 **Global OIDC**（用於 OpenID Connect）。
 
 2. **建立提供者**
+
    - 點選 **Create Global SSO**。
    - 若使用 SAML：輸入 **Name**、來自您身分提供者的 **Sign On URL** 與 **Issuer**，並貼上 **Public Certificate**。選擇 **Signature** 與 **Digest** 方法（若不確定，請保留預設值 — `RSA-SHA256` / `SHA256`）。
    - 若使用 OIDC：輸入 **Discovery URL**、**Issuer**、**Client ID**、**Client Secret**、**Scopes**（必須包含 `openid`），以及 **email** / **name** 宣告名稱。
 
 3. **將 OneUptime URL 複製到您的身分提供者**
+
    - 開啟該提供者（點選清單中的該列）以顯示 **Identity Provider URLs** 卡片。
    - 若使用 SAML，請將 **ACS URL (Reply URL)** 與 **Issuer (Entity ID)** 複製到您的 IdP（Okta、Azure AD、OneLogin、JumpCloud 等）。
    - 若使用 OIDC，請將 **Redirect URI** 複製到您 IdP 的允許重新導向清單中。

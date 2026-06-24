@@ -8,20 +8,20 @@ OneUptime автоматически распознаёт **бессерверн
 
 ## Предварительные требования
 
-- **Токен приёма телеметрии OneUptime** — создайте его в разделе *Project Settings → Telemetry Ingestion Keys* и скопируйте значение `x-oneuptime-token`.
+- **Токен приёма телеметрии OneUptime** — создайте его в разделе _Project Settings → Telemetry Ingestion Keys_ и скопируйте значение `x-oneuptime-token`.
 - OpenTelemetry SDK (или слой автоматической инструментации) для языка вашей функции.
 
 ## Как OneUptime идентифицирует функцию
 
 OneUptime определяет каждую функцию по ресурсному атрибуту `faas.name`:
 
-| Атрибут | Обязательный | Назначение |
-|---|---|---|
-| `faas.name` | **да** | Идентичность функции (например, `checkout-handler`) |
-| `faas.version` | нет | Отображается в обзоре |
-| `faas.instance` | нет | Отслеживается по экземплярам на вкладке **Instances** |
-| `cloud.platform` | нет | `aws_lambda`, `gcp_cloud_functions`, `azure_functions`, ... |
-| `cloud.provider` / `cloud.region` / `cloud.account.id` | нет | Отображается в обзоре |
+| Атрибут                                                | Обязательный | Назначение                                                  |
+| ------------------------------------------------------ | ------------ | ----------------------------------------------------------- |
+| `faas.name`                                            | **да**       | Идентичность функции (например, `checkout-handler`)         |
+| `faas.version`                                         | нет          | Отображается в обзоре                                       |
+| `faas.instance`                                        | нет          | Отслеживается по экземплярам на вкладке **Instances**       |
+| `cloud.platform`                                       | нет          | `aws_lambda`, `gcp_cloud_functions`, `azure_functions`, ... |
+| `cloud.provider` / `cloud.region` / `cloud.account.id` | нет          | Отображается в обзоре                                       |
 
 > Функция, которая также задаёт `service.name`, по-прежнему появляется и в разделе **Services**. Представление **Serverless Functions** — это ракурс, ориентированный на FaaS и ограниченный по `faas.name`.
 
@@ -57,4 +57,4 @@ OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN
 - **Instances** — текущее количество увиденных значений `faas.instance`.
 - Полноценные вкладки **Logs**, **Traces** и **Metrics**, ограниченные этой функцией.
 
-Вы также можете автоматически применять метки и владельцев через *Serverless → Settings → Label Rules / Owner Rules*.
+Вы также можете автоматически применять метки и владельцев через _Serverless → Settings → Label Rules / Owner Rules_.

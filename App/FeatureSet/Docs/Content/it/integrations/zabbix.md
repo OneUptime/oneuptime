@@ -30,12 +30,12 @@ Fai questo prima, perché avrai bisogno dell'URL webhook che genera.
 3. Trascina un blocco **Conditions** sul canvas e collega l'output del trigger ad esso. Configura:
    - **Left value**: `{{Zabbix.Request Body.status}}`
    - **Operator**: `==`
-   - **Right value**: `1`  *(Zabbix invia `1` per un problema, `0` per il ripristino)*
+   - **Right value**: `1` _(Zabbix invia `1` per un problema, `0` per il ripristino)_
 4. Trascina un blocco **Create Incident** e collegalo all'output **Yes** del blocco **Conditions**. Compila:
    - **Title**: `Zabbix: {{Zabbix.Request Body.name}}`
    - **Description**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
    - **Severity**: scegli la severità dell'incidente OneUptime che preferisci (potrai raffinarla in seguito aggiungendo altri rami **Conditions** che mappano le severità Zabbix).
-5. Salva. Lascia **Enabled** *disattivato* per ora — lo abiliterai dopo un test.
+5. Salva. Lascia **Enabled** _disattivato_ per ora — lo abiliterai dopo un test.
 
 > **Suggerimento:** Inserire il `event_id` di Zabbix nella descrizione (o in un'etichetta dell'incidente) ti permette di ritrovare l'incidente in seguito se vuoi risolverlo automaticamente al ripristino. Vedi [Risoluzione automatica](#risoluzione-automatica-opzionale).
 
@@ -46,28 +46,28 @@ Fai questo prima, perché avrai bisogno dell'URL webhook che genera.
 1. In Zabbix, vai su **Alerts → Media types** (nelle versioni più vecchie: **Administration → Media types**).
 2. Clicca **Create media type** e imposta **Type** su **Webhook**.
 3. **Name**: `OneUptime`.
-4. Aggiungi questi **Parameters** (clicca *Add* per ciascuno). Questi mappano i [macro](https://www.zabbix.com/documentation/current/en/manual/appendix/macros/supported_by_location) di Zabbix in un payload pulito:
+4. Aggiungi questi **Parameters** (clicca _Add_ per ciascuno). Questi mappano i [macro](https://www.zabbix.com/documentation/current/en/manual/appendix/macros/supported_by_location) di Zabbix in un payload pulito:
 
-   | Name | Value |
-   | --- | --- |
-   | `url` | `{ALERT.SENDTO}` |
-   | `event_id` | `{EVENT.ID}` |
-   | `event_name` | `{EVENT.NAME}` |
-   | `event_value` | `{EVENT.VALUE}` |
+   | Name             | Value              |
+   | ---------------- | ------------------ |
+   | `url`            | `{ALERT.SENDTO}`   |
+   | `event_id`       | `{EVENT.ID}`       |
+   | `event_name`     | `{EVENT.NAME}`     |
+   | `event_value`    | `{EVENT.VALUE}`    |
    | `event_severity` | `{EVENT.SEVERITY}` |
-   | `host` | `{HOST.NAME}` |
-   | `event_date` | `{EVENT.DATE}` |
-   | `event_time` | `{EVENT.TIME}` |
+   | `host`           | `{HOST.NAME}`      |
+   | `event_date`     | `{EVENT.DATE}`     |
+   | `event_time`     | `{EVENT.TIME}`     |
 
 5. Incolla questo nel campo **Script**:
 
    ```javascript
    var params = JSON.parse(value);
    var request = new HttpRequest();
-   request.addHeader('Content-Type: application/json');
+   request.addHeader("Content-Type: application/json");
 
    var payload = {
-     source: 'zabbix',
+     source: "zabbix",
      event_id: params.event_id,
      name: params.event_name,
      host: params.host,
@@ -75,16 +75,18 @@ Fai questo prima, perché avrai bisogno dell'URL webhook che genera.
      // "1" = problem, "0" = recovered. OneUptime reads this in a Conditions block.
      status: params.event_value,
      date: params.event_date,
-     time: params.event_time
+     time: params.event_time,
    };
 
    var response = request.post(params.url, JSON.stringify(payload));
 
    if (request.getStatus() < 200 || request.getStatus() >= 300) {
-     throw 'OneUptime responded with HTTP ' + request.getStatus() + ': ' + response;
+     throw (
+       "OneUptime responded with HTTP " + request.getStatus() + ": " + response
+     );
    }
 
-   return 'OK';
+   return "OK";
    ```
 
 6. Clicca la scheda **Message templates** e aggiungi un template per **Problem** e **Problem recovery** (il corpo può essere vuoto — il payload è costruito nello script). Questo è necessario affinché Zabbix utilizzi il media type per quei tipi di evento.
@@ -92,7 +94,7 @@ Fai questo prima, perché avrai bisogno dell'URL webhook che genera.
 
 ### Passaggio 2: Crea un utente per il webhook
 
-Zabbix invia le notifiche *a un utente*. Creane uno dedicato in modo che l'integrazione sia facile da trovare e disabilitare.
+Zabbix invia le notifiche _a un utente_. Creane uno dedicato in modo che l'integrazione sia facile da trovare e disabilitare.
 
 1. Vai su **Users → Users → Create user**. Chiamalo `OneUptime Webhook`, assegnagli un ruolo che possa ricevere notifiche (es. **User role**), e aggiungilo a un gruppo utenti.
 2. Nella scheda **Media**, clicca **Add**:
@@ -105,7 +107,7 @@ Zabbix invia le notifiche *a un utente*. Creane uno dedicato in modo che l'integ
 
 1. Vai su **Alerts → Actions → Trigger actions → Create action**.
 2. **Name**: `Notify OneUptime`.
-3. **Conditions** (facoltativo): restringi l'ambito — ad esempio, *Trigger severity >= Warning*. Lascia vuoto per inviare tutto.
+3. **Conditions** (facoltativo): restringi l'ambito — ad esempio, _Trigger severity >= Warning_. Lascia vuoto per inviare tutto.
 4. Nella scheda **Operations**, aggiungi un'operazione che invia a **User: OneUptime Webhook** tramite il media type **OneUptime**.
 5. Per risolvere gli incidenti al ripristino in seguito, compila anche le **Recovery operations** con lo stesso utente/media.
 6. Clicca **Add** per salvare e assicurati che l'azione sia **Enabled**.
@@ -121,12 +123,12 @@ Se non arriva nulla, vedi [Risoluzione dei problemi](#risoluzione-dei-problemi).
 
 ## Risoluzione automatica (opzionale)
 
-Il workflow principale sopra *apre* gli incidenti. Per *chiuderli* anche quando Zabbix si ripristina:
+Il workflow principale sopra _apre_ gli incidenti. Per _chiuderli_ anche quando Zabbix si ripristina:
 
 1. Assicurati che la tua azione Zabbix abbia le **Recovery operations** configurate (Passaggio 3 sopra) in modo che vengano inviati anche gli eventi di ripristino. Al ripristino, `status` arriva come `0`.
 2. Nel workflow, aggiungi un secondo ramo **Conditions**: left `{{Zabbix.Request Body.status}}`, operatore `==`, right `0`.
 3. Dal suo output **Yes**, aggiungi un blocco **Find Incident** che cerca l'incidente aperto creato in precedenza — cerca per il `event_id` Zabbix che hai salvato nella descrizione o in un'etichetta.
-4. Collegalo a un blocco **Update Incident** e sposta l'incidente nel tuo stato *risolto*.
+4. Collegalo a un blocco **Update Incident** e sposta l'incidente nel tuo stato _risolto_.
 
 Poiché la risoluzione dipende da come modelli gli stati degli incidenti nel tuo progetto, mantieni il percorso di **creazione** come base affidabile e aggiungi il percorso di risoluzione una volta confermato che gli eventi fluiscono correttamente. Vedi [Componenti → Componenti per i dati di OneUptime](/docs/workflows/components#oneuptime-data-components).
 
@@ -137,19 +139,23 @@ Le severità Zabbix (`Not classified`, `Information`, `Warning`, `Average`, `Hig
 ## Risoluzione dei problemi
 
 **Il workflow non viene mai eseguito.**
+
 - Conferma che l'interruttore **Enabled** del workflow sia attivo.
 - Dal server Zabbix, verifica che possa raggiungere l'URL: `curl -i -X POST <workflow-url> -d '{}' -H 'Content-Type: application/json'`. Dovresti ricevere una risposta rapida.
 - Controlla **Reports → Action log** in Zabbix per gli errori di consegna.
 
 **Zabbix riporta un errore dello script.**
+
 - Apri il media type e usa **Test** per inviare un payload di esempio. Zabbix mostra l'output dello script o l'errore generato.
 - Una risposta non-2xx da OneUptime viene segnalata dal `throw` nello script — verifica che l'URL del workflow sia corretto.
 
 **L'incidente viene creato ma i campi sono vuoti.**
+
 - Apri la scheda **Logs** del workflow e ispeziona l'output del trigger. Conferma che i nomi dei campi sotto **Request Body** corrispondano a quelli che stai referenziando (`name`, `host`, `severity`, `status`, `event_id`).
 - Un campo mancante viene risolto come stringa vuota anziché come errore — vedi [Variabili → Insidie](/docs/workflows/variables#gotchas).
 
 **Tutto si attiva due volte.**
+
 - Probabilmente hai sia un'operazione per il problema che un passaggio di escalation che inviano allo stesso media. Controlla i passaggi **Operations** dell'azione.
 
 ## Note sulla sicurezza

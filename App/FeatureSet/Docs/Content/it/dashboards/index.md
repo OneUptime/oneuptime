@@ -23,27 +23,27 @@ Vedi [Widget](/docs/dashboards/widgets) per l'elenco completo e cosa mostra cias
 
 ## Termini chiave
 
-| Termine | Cosa significa |
-| --- | --- |
-| **Dashboard** | L'intera pagina — un nome, una griglia di widget, controlli per l'intervallo temporale e un elenco di variabili. |
-| **Widget** | Un tassello sulla pagina — un grafico, un numero, un elenco, un paragrafo. |
-| **Variabile** | Un menu a tendina in cima che filtra tutti i widget contemporaneamente (cluster, servizio, cliente, ambiente). |
-| **Intervallo temporale** | La finestra temporale che ogni grafico e numero utilizza. Impostala una volta in cima alla pagina. |
-| **Refresh** | Con quale frequenza i widget rieseguono la query sui dati. Off, ogni pochi secondi, ogni pochi minuti. |
-| **Modalita** | **Edit** (trascina i widget) o **View** (sola lettura, come la vedono i visitatori). |
+| Termine                  | Cosa significa                                                                                                   |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| **Dashboard**            | L'intera pagina — un nome, una griglia di widget, controlli per l'intervallo temporale e un elenco di variabili. |
+| **Widget**               | Un tassello sulla pagina — un grafico, un numero, un elenco, un paragrafo.                                       |
+| **Variabile**            | Un menu a tendina in cima che filtra tutti i widget contemporaneamente (cluster, servizio, cliente, ambiente).   |
+| **Intervallo temporale** | La finestra temporale che ogni grafico e numero utilizza. Impostala una volta in cima alla pagina.               |
+| **Refresh**              | Con quale frequenza i widget rieseguono la query sui dati. Off, ogni pochi secondi, ogni pochi minuti.           |
+| **Modalita**             | **Edit** (trascina i widget) o **View** (sola lettura, come la vedono i visitatori).                             |
 
 ## Dove trovare le dashboard
 
 Apri **Dashboards** nel menu di navigazione a sinistra.
 
-| Pagina | Cosa ci fai |
-| --- | --- |
-| **Dashboards** | Il tuo elenco di dashboard. Crea una nuova dashboard, cerca o filtra per etichetta. |
-| **Dashboard → View** | Il canvas. Cambia tra **Edit** e **View** nell'intestazione. |
-| **Dashboard → Overview** | Descrizione, proprietari ed etichette. |
-| **Dashboard → Settings** | Condivisione pubblica, password, allowlist IP, dominio personalizzato, branding. |
-| **Dashboard → Owners** | Utenti e team con accesso esplicito. |
-| **Dashboard → Delete** | Rimuovi la dashboard. |
+| Pagina                   | Cosa ci fai                                                                         |
+| ------------------------ | ----------------------------------------------------------------------------------- |
+| **Dashboards**           | Il tuo elenco di dashboard. Crea una nuova dashboard, cerca o filtra per etichetta. |
+| **Dashboard → View**     | Il canvas. Cambia tra **Edit** e **View** nell'intestazione.                        |
+| **Dashboard → Overview** | Descrizione, proprietari ed etichette.                                              |
+| **Dashboard → Settings** | Condivisione pubblica, password, allowlist IP, dominio personalizzato, branding.    |
+| **Dashboard → Owners**   | Utenti e team con accesso esplicito.                                                |
+| **Dashboard → Delete**   | Rimuovi la dashboard.                                                               |
 
 ## Costruire una dashboard
 

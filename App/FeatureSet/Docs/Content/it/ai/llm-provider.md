@@ -22,11 +22,11 @@ Se preferisci usare le tue chiavi API o un provider specifico, puoi comunque con
 
 OneUptime supporta attualmente i seguenti provider LLM:
 
-| Provider | Descrizione | Chiave API Richiesta | URL Base Richiesto |
-|----------|-------------|------------------|-------------------|
-| **OpenAI** | GPT-4, GPT-4o, GPT-3.5 Turbo e altri modelli OpenAI | Sì | No (usa il predefinito) |
-| **Anthropic** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku e altri modelli Claude | Sì | No (usa il predefinito) |
-| **Ollama** | Modelli open-source self-hosted come Llama 2, Mistral, CodeLlama, ecc. | No | Sì |
+| Provider      | Descrizione                                                            | Chiave API Richiesta | URL Base Richiesto      |
+| ------------- | ---------------------------------------------------------------------- | -------------------- | ----------------------- |
+| **OpenAI**    | GPT-4, GPT-4o, GPT-3.5 Turbo e altri modelli OpenAI                    | Sì                   | No (usa il predefinito) |
+| **Anthropic** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku e altri modelli Claude  | Sì                   | No (usa il predefinito) |
+| **Ollama**    | Modelli open-source self-hosted come Llama 2, Mistral, CodeLlama, ecc. | No                   | Sì                      |
 
 ## Configurazione di un Provider LLM
 
@@ -61,6 +61,7 @@ Compila i seguenti campi:
    - `gpt-3.5-turbo` - Veloce ed economico
 
 **Esempio di Configurazione:**
+
 ```
 Nome: OpenAI Produzione
 Tipo LLM: OpenAI
@@ -80,6 +81,7 @@ Nome del Modello: gpt-4o
    - `claude-3-5-sonnet-20241022` - Ultimo modello Sonnet
 
 **Esempio di Configurazione:**
+
 ```
 Nome: Anthropic Produzione
 Tipo LLM: Anthropic
@@ -99,6 +101,7 @@ Ollama ti consente di eseguire LLM open-source localmente o sulla tua infrastrut
 6. Inserisci il nome del modello scaricato
 
 **Esempio di Configurazione:**
+
 ```
 Nome: Ollama Locale
 Tipo LLM: Ollama
@@ -107,6 +110,7 @@ Nome del Modello: llama2
 ```
 
 **Modelli Ollama Popolari:**
+
 - `llama2` - Modello Llama 2 di Meta
 - `llama3` - Modello Llama 3 di Meta
 - `mistral` - Modello di Mistral AI

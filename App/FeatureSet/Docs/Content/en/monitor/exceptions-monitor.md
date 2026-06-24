@@ -28,20 +28,20 @@ Select one or more services to monitor exceptions from. Services must be sending
 
 ### Exception Filters
 
-| Filter | Description | Required |
-|--------|-------------|----------|
-| Exception Types | Filter by exception type names (e.g., `NullPointerException`, `TypeError`) | No |
-| Message | Text search within exception messages | No |
-| Include Resolved | Include exceptions that have been marked as resolved (default: false) | No |
-| Include Archived | Include exceptions that have been archived (default: false) | No |
-| Time Window | How far back to search for exceptions (in seconds, default: 60) | No |
+| Filter           | Description                                                                | Required |
+| ---------------- | -------------------------------------------------------------------------- | -------- |
+| Exception Types  | Filter by exception type names (e.g., `NullPointerException`, `TypeError`) | No       |
+| Message          | Text search within exception messages                                      | No       |
+| Include Resolved | Include exceptions that have been marked as resolved (default: false)      | No       |
+| Include Archived | Include exceptions that have been archived (default: false)                | No       |
+| Time Window      | How far back to search for exceptions (in seconds, default: 60)            | No       |
 
 ## Monitoring Criteria
 
 ### Available Check Types
 
-| Check Type | Description |
-|------------|-------------|
+| Check Type      | Description                                                       |
+| --------------- | ----------------------------------------------------------------- |
 | Exception Count | The number of exceptions matching your filters in the time window |
 
 ### Filter Types

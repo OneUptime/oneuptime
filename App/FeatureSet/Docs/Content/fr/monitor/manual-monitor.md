@@ -39,10 +39,10 @@ Vous pouvez créer des incidents et des alertes contre des moniteurs manuels com
 
 ## Quand utiliser les moniteurs manuels
 
-| Cas d'utilisation | Description |
-|-------------------|-------------|
-| Services tiers | Suivre le statut de services externes dont vous dépendez mais que vous ne pouvez pas surveiller directement |
-| Infrastructure physique | Représenter du matériel ou des systèmes physiques sans surveillance réseau |
-| Processus métier | Suivre des processus non techniques qui affectent le statut du service |
-| Statut piloté par API | Permettre à des outils externes de mettre à jour le statut du moniteur via l'API OneUptime |
-| Espaces réservés de page de statut | Afficher des composants sur votre page de statut qui sont gérés en dehors de OneUptime |
+| Cas d'utilisation                  | Description                                                                                                 |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Services tiers                     | Suivre le statut de services externes dont vous dépendez mais que vous ne pouvez pas surveiller directement |
+| Infrastructure physique            | Représenter du matériel ou des systèmes physiques sans surveillance réseau                                  |
+| Processus métier                   | Suivre des processus non techniques qui affectent le statut du service                                      |
+| Statut piloté par API              | Permettre à des outils externes de mettre à jour le statut du moniteur via l'API OneUptime                  |
+| Espaces réservés de page de statut | Afficher des composants sur votre page de statut qui sont gérés en dehors de OneUptime                      |

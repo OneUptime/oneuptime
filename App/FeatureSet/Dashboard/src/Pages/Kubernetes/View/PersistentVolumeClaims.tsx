@@ -52,6 +52,7 @@ const KubernetesClusterPVCs: FunctionComponent<
         await KubernetesResourceUtils.fetchInventoryResources({
           kubernetesClusterId: modelId,
           kind: "PersistentVolumeClaim",
+          selectFullSpec: true,
           transform: (
             resource: KubernetesResource,
             row: KubernetesResourceModel,

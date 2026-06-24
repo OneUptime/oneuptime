@@ -3,6 +3,7 @@
 Si vous préférez héberger OneUptime sur votre propre serveur, vous pouvez utiliser Docker Compose pour déployer une instance mono-serveur de OneUptime sur Debian, Ubuntu ou RHEL. Cette option vous donne plus de contrôle et de personnalisation sur votre instance, mais elle nécessite également plus de compétences techniques et de ressources pour le déploiement et la maintenance.
 
 #### Choisir la configuration système requise
+
 Selon votre utilisation et votre budget, vous pouvez choisir parmi différentes configurations système pour votre serveur. Pour des performances optimales, nous suggérons d'utiliser OneUptime avec :
 
 - **Configuration système recommandée**
@@ -17,7 +18,6 @@ Selon votre utilisation et votre budget, vous pouvez choisir parmi différentes 
     - 4 cœurs
     - 20 Go de disque
     - Docker et Docker Compose installés
-
 
 #### Prérequis pour le déploiement mono-serveur
 
@@ -52,7 +52,6 @@ Si vous n'aimez pas utiliser npm ou ne l'avez pas installé, exécutez plutôt c
 # Utilisez sudo si vous avez des problèmes de permission lors de la liaison de ports.
 sudo bash -c "(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)"
 ```
-
 
 ### Accès à OneUptime
 
@@ -95,7 +94,6 @@ npm run update
 ### Points à considérer
 
 - Dans notre configuration Docker, nous utilisons un pilote de journalisation local. OneUptime, en particulier dans les conteneurs de sonde et d'ingestion, génère une quantité substantielle de journaux. Pour éviter que votre stockage ne soit plein, il est crucial de limiter le stockage de journalisation dans Docker. Pour des instructions détaillées sur la façon de procéder, veuillez consulter la documentation officielle de Docker [ici](https://docs.docker.com/config/containers/logging/local/).
-
 
 ### Désinstallation de OneUptime
 

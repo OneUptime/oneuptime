@@ -12,11 +12,11 @@ Authenticate with a OneUptime instance.
 oneuptime login <api-key> <instance-url> [--context-name <name>]
 ```
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `<api-key>` | argument | Yes | API key for authentication |
-| `<instance-url>` | argument | Yes | OneUptime instance URL |
-| `--context-name` | option | No | Context name (default: `"default"`) |
+| Parameter        | Type     | Required | Description                         |
+| ---------------- | -------- | -------- | ----------------------------------- |
+| `<api-key>`      | argument | Yes      | API key for authentication          |
+| `<instance-url>` | argument | Yes      | OneUptime instance URL              |
+| `--context-name` | option   | No       | Context name (default: `"default"`) |
 
 ---
 
@@ -38,9 +38,9 @@ Switch to a named context.
 oneuptime context use <name>
 ```
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `<name>` | argument | Yes | Context name to activate |
+| Parameter | Type     | Required | Description              |
+| --------- | -------- | -------- | ------------------------ |
+| `<name>`  | argument | Yes      | Context name to activate |
 
 ---
 
@@ -62,9 +62,9 @@ Remove a saved context.
 oneuptime context delete <name>
 ```
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `<name>` | argument | Yes | Context name to delete |
+| Parameter | Type     | Required | Description            |
+| --------- | -------- | -------- | ---------------------- |
+| `<name>`  | argument | Yes      | Context name to delete |
 
 ---
 
@@ -80,13 +80,13 @@ List resources with filtering and pagination.
 oneuptime <resource> list [options]
 ```
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--query <json>` | string | None | Filter criteria as JSON |
-| `--limit <n>` | number | `10` | Maximum results |
-| `--skip <n>` | number | `0` | Results to skip |
-| `--sort <json>` | string | None | Sort order as JSON |
-| `-o, --output` | string | `table` | Output format |
+| Option           | Type   | Default | Description             |
+| ---------------- | ------ | ------- | ----------------------- |
+| `--query <json>` | string | None    | Filter criteria as JSON |
+| `--limit <n>`    | number | `10`    | Maximum results         |
+| `--skip <n>`     | number | `0`     | Results to skip         |
+| `--sort <json>`  | string | None    | Sort order as JSON      |
+| `-o, --output`   | string | `table` | Output format           |
 
 ---
 
@@ -98,10 +98,10 @@ Get a single resource by ID.
 oneuptime <resource> get <id> [-o <format>]
 ```
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `<id>` | argument | Yes | Resource ID (UUID) |
-| `-o, --output` | option | No | Output format |
+| Parameter      | Type     | Required | Description        |
+| -------------- | -------- | -------- | ------------------ |
+| `<id>`         | argument | Yes      | Resource ID (UUID) |
+| `-o, --output` | option   | No       | Output format      |
 
 ---
 
@@ -113,11 +113,11 @@ Create a new resource.
 oneuptime <resource> create [--data <json> | --file <path>] [-o <format>]
 ```
 
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
+| Option          | Type   | Required                    | Description           |
+| --------------- | ------ | --------------------------- | --------------------- |
 | `--data <json>` | string | One of `--data` or `--file` | Resource data as JSON |
-| `--file <path>` | string | One of `--data` or `--file` | Path to JSON file |
-| `-o, --output` | string | No | Output format |
+| `--file <path>` | string | One of `--data` or `--file` | Path to JSON file     |
+| `-o, --output`  | string | No                          | Output format         |
 
 ---
 
@@ -129,11 +129,11 @@ Update an existing resource.
 oneuptime <resource> update <id> --data <json> [-o <format>]
 ```
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `<id>` | argument | Yes | Resource ID |
-| `--data <json>` | option | Yes | Fields to update as JSON |
-| `-o, --output` | option | No | Output format |
+| Parameter       | Type     | Required | Description              |
+| --------------- | -------- | -------- | ------------------------ |
+| `<id>`          | argument | Yes      | Resource ID              |
+| `--data <json>` | option   | Yes      | Fields to update as JSON |
+| `-o, --output`  | option   | No       | Output format            |
 
 ---
 
@@ -145,10 +145,10 @@ Delete a resource.
 oneuptime <resource> delete <id> [--force]
 ```
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `<id>` | argument | Yes | Resource ID |
-| `--force` | option | No | Skip confirmation prompt |
+| Parameter | Type     | Required | Description              |
+| --------- | -------- | -------- | ------------------------ |
+| `<id>`    | argument | Yes      | Resource ID              |
+| `--force` | option   | No       | Skip confirmation prompt |
 
 ---
 
@@ -160,9 +160,9 @@ Count resources matching a filter.
 oneuptime <resource> count [--query <json>]
 ```
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--query <json>` | string | None | Filter criteria as JSON |
+| Option           | Type   | Default | Description             |
+| ---------------- | ------ | ------- | ----------------------- |
+| `--query <json>` | string | None    | Filter criteria as JSON |
 
 ---
 
@@ -198,9 +198,9 @@ List all available resource types.
 oneuptime resources [--type <type>]
 ```
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--type <type>` | string | None | Filter by `database` or `analytics` |
+| Option          | Type   | Default | Description                         |
+| --------------- | ------ | ------- | ----------------------------------- |
+| `--type <type>` | string | None    | Filter by `database` or `analytics` |
 
 ---
 
@@ -208,27 +208,27 @@ oneuptime resources [--type <type>]
 
 These flags are available on all commands:
 
-| Option | Description |
-|--------|-------------|
-| `--api-key <key>` | Override API key |
-| `--url <url>` | Override instance URL |
-| `--context <name>` | Use a specific context |
+| Option                  | Description                            |
+| ----------------------- | -------------------------------------- |
+| `--api-key <key>`       | Override API key                       |
+| `--url <url>`           | Override instance URL                  |
+| `--context <name>`      | Use a specific context                 |
 | `-o, --output <format>` | Output format: `json`, `table`, `wide` |
-| `--no-color` | Disable colored output |
-| `--help` | Show help |
-| `--version` | Show version |
+| `--no-color`            | Disable colored output                 |
+| `--help`                | Show help                              |
+| `--version`             | Show version                           |
 
 ## API Routes
 
 For reference, the CLI maps commands to these API endpoints:
 
-| Command | Method | Endpoint |
-|---------|--------|----------|
-| `list` | POST | `/api/<resource>/get-list` |
-| `get` | POST | `/api/<resource>/<id>/get-item` |
-| `create` | POST | `/api/<resource>` |
-| `update` | PUT | `/api/<resource>/<id>/` |
-| `delete` | DELETE | `/api/<resource>/<id>/` |
-| `count` | POST | `/api/<resource>/count` |
+| Command  | Method | Endpoint                        |
+| -------- | ------ | ------------------------------- |
+| `list`   | POST   | `/api/<resource>/get-list`      |
+| `get`    | POST   | `/api/<resource>/<id>/get-item` |
+| `create` | POST   | `/api/<resource>`               |
+| `update` | PUT    | `/api/<resource>/<id>/`         |
+| `delete` | DELETE | `/api/<resource>/<id>/`         |
+| `count`  | POST   | `/api/<resource>/count`         |
 
 All requests include the `APIKey` header for authentication.

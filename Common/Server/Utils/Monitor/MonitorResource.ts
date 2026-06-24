@@ -316,16 +316,26 @@ export default class MonitorResourceUtil {
            * the monitor to flap between Online and Offline every minute.
            */
           if (!serverMonitorResponse.onlyCheckRequestReceivedAt) {
-            await MonitorService.updateOneById({
+            /*
+             * Heartbeat write: single-statement UPDATE, no hooks and no
+             * `version` bump. This DELIBERATELY drops the per-update workflow
+             * trigger and audit-log entry that Monitor's @EnableWorkflow /
+             * @EnableAuditLog fire on every changed update — the old
+             * `ignoreHooks: true` did NOT suppress those (they are gated on
+             * the model flag, not on ignoreHooks), so a heartbeat used to
+             * spam an on-update workflow + an audit row every ingest. A
+             * liveness ping should do neither. onUpdateSuccess is inert here
+             * regardless (gated on status/interval/steps/name/etc., none of
+             * which are written). Also skips the pre-SELECT that would reload
+             * the large serverMonitorResponse jsonb row. See
+             * ServiceService.updateLastSeen.
+             */
+            await MonitorService.updateColumnsByIdWithoutHooks({
               id: monitor.id!,
               data: {
                 serverMonitorRequestReceivedAt:
                   serverMonitorResponse.requestReceivedAt!,
                 serverMonitorResponse,
-              },
-              props: {
-                isRoot: true,
-                ignoreHooks: true,
               },
             });
 
@@ -344,7 +354,15 @@ export default class MonitorResourceUtil {
             `${dataToProcess.monitorId.toString()} - Incoming request received at ${incomingMonitorRequest.incomingRequestReceivedAt}`,
           );
 
-          await MonitorService.updateOneById({
+          /*
+           * Heartbeat write: single-statement UPDATE, no hooks and no
+           * `version` bump. As with the server-monitor branch above, this
+           * deliberately drops the per-update workflow trigger + audit-log
+           * entry Monitor would otherwise fire on every heartbeat, and skips
+           * the pre-SELECT of the large incomingMonitorRequest jsonb row. See
+           * ServiceService.updateLastSeen.
+           */
+          await MonitorService.updateColumnsByIdWithoutHooks({
             id: monitor.id!,
             data: {
               incomingRequestMonitorHeartbeatCheckedAt:
@@ -353,10 +371,6 @@ export default class MonitorResourceUtil {
                 JSON.stringify(incomingMonitorRequest),
               ) as IncomingMonitorRequest,
             } as any,
-            props: {
-              isRoot: true,
-              ignoreHooks: true,
-            },
           });
 
           logger.debug(
@@ -388,9 +402,18 @@ export default class MonitorResourceUtil {
         `${dataToProcess.monitorId.toString()} - Monitor metrics saved`,
       );
 
-      const monitorSteps: MonitorSteps = monitor.monitorSteps!;
+      /*
+       * `monitorSteps` is optional on the model. When a monitor has none
+       * configured, `monitor.monitorSteps` is undefined and the previous
+       * non-null assertion (`!`) was a lie — `monitorSteps.data` then threw
+       * "Cannot read properties of null (reading 'data')" inside the probe
+       * ingest worker. Guard the value itself and take the existing
+       * "no monitoring steps" early return.
+       */
+      const monitorSteps: MonitorSteps | undefined = monitor.monitorSteps;
 
       if (
+        !monitorSteps ||
         !monitorSteps.data?.monitorStepsInstanceArray ||
         monitorSteps.data?.monitorStepsInstanceArray.length === 0
       ) {
@@ -842,15 +865,36 @@ export default class MonitorResourceUtil {
           monitorStatusTimeline.rootCause =
             "No monitoring criteria met. Change to default status. ";
 
-          await MonitorStatusTimelineService.create({
-            data: monitorStatusTimeline,
-            props: {
-              isRoot: true,
-            },
-          });
-          logger.debug(
-            `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`,
-          );
+          try {
+            await MonitorStatusTimelineService.create({
+              data: monitorStatusTimeline,
+              props: {
+                isRoot: true,
+              },
+            });
+            logger.debug(
+              `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`,
+            );
+          } catch (err) {
+            /*
+             * Idempotent concurrency race (see MonitorStatusTimeline.ts): a
+             * concurrent result already moved the monitor to this default status,
+             * so onBeforeCreate's dedupe check throws this exact BadDataException.
+             * Treat as a no-op at debug level rather than failing the job. Match the
+             * exact message so unrelated BadDataExceptions still propagate.
+             */
+            if (
+              err instanceof BadDataException &&
+              err.message ===
+                "Monitor Status cannot be same as previous status."
+            ) {
+              logger.debug(
+                `${dataToProcess.monitorId.toString()} - Monitor status already at default; skipping duplicate status timeline (concurrent race).`,
+              );
+            } else {
+              throw err;
+            }
+          }
 
           const defaultStatusName: string | null = await getMonitorStatusName(
             monitorSteps.data.defaultMonitorStatusId,

@@ -21,9 +21,9 @@ FluentBit understøtter hundredvis af datakilder, og du kan indsamle logs og tel
 - Java
 - PHP
 - Go
-- Rust 
+- Rust
 
-og mange flere. 
+og mange flere.
 
 Du kan finde den fulde liste over understøttede kilder [her](https://docs.fluentbit.io/manual)
 
@@ -36,7 +36,7 @@ Du kan finde den fulde liste over understøttede kilder [her](https://docs.fluen
 
 Når du har tilmeldt dig OneUptime og oprettet et projekt, skal du klikke på "Mere" i navigationslinjen og klikke på "Projektindstillinger".
 
-På siden Telemetry Ingestion Key skal du klikke på "Opret indtagelsesnøgle" for at oprette et token. 
+På siden Telemetry Ingestion Key skal du klikke på "Opret indtagelsesnøgle" for at oprette et token.
 
 ![Opret tjeneste](/docs/static/images/TelemetryIngestionKeys.png)
 
@@ -44,29 +44,24 @@ Når du har oprettet et token, skal du klikke på "Vis" for at se tokenet.
 
 ![Vis tjeneste](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
 ## Konfiguration
 
 Du kan bruge følgende konfiguration til at sende telemetridataene til OneUptime OpenTelemetry HTTP Collector. Du kan tilføje denne konfiguration til fluentbit-konfigurationsfilen. Konfigurationsfilen er normalt placeret på `/etc/fluent-bit/fluent-bit.yaml`. Her er, hvordan et outputs-afsnit i konfigurationsfilen ville se ud:
 
-
 ```yaml
-
-
 outputs:
   - name: stdout
-    match: '*'
+    match: "*"
   - name: opentelemetry
-    match: '*'
-    host: 'oneuptime.com'
+    match: "*"
+    host: "oneuptime.com"
     port: 443
-    metrics_uri: '/otlp/v1/metrics'
-    logs_uri: '/otlp/v1/logs'
-    traces_uri: '/otlp/v1/traces'
+    metrics_uri: "/otlp/v1/metrics"
+    logs_uri: "/otlp/v1/logs"
+    traces_uri: "/otlp/v1/traces"
     tls: On
     header:
       - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
-
 ```
 
 Sørg for, at du har opentelemetry_envelope i dit input-afsnit. Her er et eksempel på, hvordan input-afsnittet ville se ud:
@@ -74,18 +69,18 @@ Sørg for, at du har opentelemetry_envelope i dit input-afsnit. Her er et eksemp
 ```yaml
 pipeline:
   inputs:
-      # Dine inputs
+    # Dine inputs
 
-      processors:
-        logs:
-          - name: opentelemetry_envelope
+    processors:
+      logs:
+        - name: opentelemetry_envelope
 
-          - name: content_modifier
-            context: otel_resource_attributes
-            action: upsert
-            key: service.name
-            # Erstat YOUR_SERVICE_NAME med navnet på din tjeneste
-            value: YOUR_SERVICE_NAME
+        - name: content_modifier
+          context: otel_resource_attributes
+          action: upsert
+          key: service.name
+          # Erstat YOUR_SERVICE_NAME med navnet på din tjeneste
+          value: YOUR_SERVICE_NAME
 ```
 
 Her er den komplette eksempelkonfigurationsfil:
@@ -113,19 +108,18 @@ pipeline:
 
   outputs:
     - name: stdout
-      match: '*'
+      match: "*"
     - name: opentelemetry
-      match: '*'
-      host: 'oneuptime.com'
+      match: "*"
+      host: "oneuptime.com"
       port: 443
-      metrics_uri: '/otlp/v1/metrics'
-      logs_uri: '/otlp/v1/logs'
-      traces_uri: '/otlp/v1/traces'
+      metrics_uri: "/otlp/v1/metrics"
+      logs_uri: "/otlp/v1/logs"
+      traces_uri: "/otlp/v1/traces"
       tls: On
       header:
         - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
 ```
-
 
 **Hvis du selvhoster OneUptime**: Hvis du selvhoster OneUptime, kan du erstatte `host` med hosten på din OneUptime-instans. Hvis du hoster på en HTTP-server og ikke HTTPS, kan du erstatte `port` med porten på din OneUptime-instans (sandsynligvis port 80).
 
@@ -134,14 +128,14 @@ I dette tilfælde ville konfigurationen se sådan ud:
 ```yaml
 outputs:
   - name: stdout
-    match: '*'
+    match: "*"
   - name: opentelemetry
-    match: '*'
-    host: 'your-oneuptime-instance.com'
+    match: "*"
+    host: "your-oneuptime-instance.com"
     port: 80
-    metrics_uri: '/otlp/v1/metrics'
-    logs_uri: '/otlp/v1/logs'
-    traces_uri: '/otlp/v1/traces'
+    metrics_uri: "/otlp/v1/metrics"
+    logs_uri: "/otlp/v1/logs"
+    traces_uri: "/otlp/v1/traces"
     header:
       - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
 ```

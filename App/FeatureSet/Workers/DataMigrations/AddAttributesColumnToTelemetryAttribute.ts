@@ -5,6 +5,10 @@ export default class AddAttributesColumnToTelemetryAttribute extends DataMigrati
     super("AddAttributesColumnToTelemetryAttribute");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     // Telemetry attributes table has been deprecated; nothing to migrate.
     return;

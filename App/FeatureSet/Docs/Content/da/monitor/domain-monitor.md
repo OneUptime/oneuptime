@@ -24,16 +24,16 @@ Domænemonitoer forespørger WHOIS-data for dine domæner for at spore registrer
 
 ### Grundlæggende indstillinger
 
-| Felt | Beskrivelse | Påkrævet |
-|-------|-------------|----------|
-| Domænenavn | Det domæne der skal overvåges (f.eks. `example.com`) | Ja |
+| Felt       | Beskrivelse                                          | Påkrævet |
+| ---------- | ---------------------------------------------------- | -------- |
+| Domænenavn | Det domæne der skal overvåges (f.eks. `example.com`) | Ja       |
 
 ### Avancerede indstillinger
 
-| Felt | Beskrivelse | Standard |
-|-------|-------------|---------|
-| Timeout (ms) | Tid at vente på et WHOIS-svar | 10000 |
-| Genforsøg | Antal genforsøg ved fejl | 3 |
+| Felt         | Beskrivelse                   | Standard |
+| ------------ | ----------------------------- | -------- |
+| Timeout (ms) | Tid at vente på et WHOIS-svar | 10000    |
+| Genforsøg    | Antal genforsøg ved fejl      | 3        |
 
 ## Overvågningskriterier
 
@@ -41,13 +41,13 @@ Du kan konfigurere kriterier til at afgøre, hvornår dit domæne betragtes som 
 
 ### Tilgængelige kontroltyper
 
-| Kontroltype | Beskrivelse |
-|------------|-------------|
+| Kontroltype            | Beskrivelse                                     |
+| ---------------------- | ----------------------------------------------- |
 | Domæne udløber om dage | Antal dage, indtil domæneregistreringen udløber |
-| Domæneregistrar | Domæneregistrarens navn |
-| Domænenavneserver | Navneserver-hostnavne for domænet |
-| Domænestatuskode | WHOIS-domænestatuskoder |
-| Domæne er udløbet | Om domænet er udløbet |
+| Domæneregistrar        | Domæneregistrarens navn                         |
+| Domænenavneserver      | Navneserver-hostnavne for domænet               |
+| Domænestatuskode       | WHOIS-domænestatuskoder                         |
+| Domæne er udløbet      | Om domænet er udløbet                           |
 
 ### Filtertyper
 

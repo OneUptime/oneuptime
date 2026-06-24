@@ -20,16 +20,16 @@ This will automatically install Playwright browsers and dependencies via the `pr
 
 The tests use environment variables for configuration. Set the following variables before running tests in config.env:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `HOST` | The hostname to test against | `localhost` |
-| `HTTP_PROTOCOL` | Protocol to use (`http` or `https`) | `http` |
-| `BILLING_ENABLED` | Enable billing-related tests | `false` |
-| `E2E_TEST_IS_USER_REGISTERED` | Whether a test user is already registered | `false` |
-| `E2E_TEST_REGISTERED_USER_EMAIL` | Email of the registered test user | - |
-| `E2E_TEST_REGISTERED_USER_PASSWORD` | Password of the registered test user | - |
-| `E2E_TEST_STATUS_PAGE_URL` | URL of a status page to test | - |
-| `E2E_TESTS_FAILED_WEBHOOK_URL` | Webhook URL to call on test failure | - |
+| Variable                            | Description                               | Default     |
+| ----------------------------------- | ----------------------------------------- | ----------- |
+| `HOST`                              | The hostname to test against              | `localhost` |
+| `HTTP_PROTOCOL`                     | Protocol to use (`http` or `https`)       | `http`      |
+| `BILLING_ENABLED`                   | Enable billing-related tests              | `false`     |
+| `E2E_TEST_IS_USER_REGISTERED`       | Whether a test user is already registered | `false`     |
+| `E2E_TEST_REGISTERED_USER_EMAIL`    | Email of the registered test user         | -           |
+| `E2E_TEST_REGISTERED_USER_PASSWORD` | Password of the registered test user      | -           |
+| `E2E_TEST_STATUS_PAGE_URL`          | URL of a status page to test              | -           |
+| `E2E_TESTS_FAILED_WEBHOOK_URL`      | Webhook URL to call on test failure       | -           |
 
 ### Example
 
@@ -141,6 +141,7 @@ npx playwright test --headed --slow-mo=1000
 ## CI/CD
 
 For CI environments, the `CI` environment variable is automatically detected:
+
 - `test.only` usage will fail the build
 - Parallel test execution is disabled (workers: 1)
 

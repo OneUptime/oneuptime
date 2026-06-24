@@ -44,7 +44,6 @@ Une fois que vous avez créé un jeton, cliquez sur « Afficher » pour le visua
 
 ![Afficher le service](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
 ## Configuration
 
 Vous pouvez utiliser la configuration suivante pour envoyer les données de télémétrie à la source HTTP OneUptime. Vous pouvez ajouter cette configuration au fichier de configuration de fluentd. Le fichier de configuration se trouve généralement à `/etc/fluentd/fluent.conf` ou `/etc/td-agent/td-agent.conf`.
@@ -52,27 +51,26 @@ Vous pouvez utiliser la configuration suivante pour envoyer les données de tél
 Vous devez remplacer `YOUR_SERVICE_TOKEN` par le jeton que vous avez créé à l'étape précédente. Vous devez également remplacer `YOUR_SERVICE_NAME` par le nom de votre service. Le nom du service peut être n'importe quel nom que vous souhaitez. Si le service n'existe pas dans OneUptime, il sera créé automatiquement.
 
 ```yaml
-# Correspondre à tous les motifs 
+# Correspondre à tous les motifs
 <match **>
-  @type http
+@type http
 
-  endpoint https://oneuptime.com/fluentd/logs
-  open_timeout 2
+endpoint https://oneuptime.com/fluentd/logs
+open_timeout 2
 
-  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
+headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
-  content_type application/json
-  json_array true
+content_type application/json
+json_array true
 
-  <format>
-    @type json
-  </format>
-  <buffer>
-    flush_interval 10s
-  </buffer>
+<format>
+@type json
+</format>
+<buffer>
+flush_interval 10s
+</buffer>
 </match>
 ```
-
 
 Un exemple de fichier de configuration complet est présenté ci-dessous :
 
@@ -84,28 +82,28 @@ Un exemple de fichier de configuration complet est présenté ci-dessous :
 ## Entrée TCP intégrée
 ## @see https://docs.fluentd.org/input/forward
 <source>
-  @type forward
-  port 24224
-  bind 0.0.0.0
+@type forward
+port 24224
+bind 0.0.0.0
 </source>
 
 <match **>
-  @type http
+@type http
 
-  endpoint https://oneuptime.com/fluentd/logs
-  open_timeout 2
+endpoint https://oneuptime.com/fluentd/logs
+open_timeout 2
 
-  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
+headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
-  content_type application/json
-  json_array true
+content_type application/json
+json_array true
 
-  <format>
-    @type json
-  </format>
-  <buffer>
-    flush_interval 10s
-  </buffer>
+<format>
+@type json
+</format>
+<buffer>
+flush_interval 10s
+</buffer>
 </match>
 ```
 

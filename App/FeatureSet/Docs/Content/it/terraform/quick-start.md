@@ -11,6 +11,7 @@ Questa guida aiuterà a iniziare con il Provider Terraform OneUptime in pochi mi
 ## Fase 1: Creare la Chiave API
 
 ### Per OneUptime Cloud
+
 1. Accedere a [OneUptime Cloud](https://oneuptime.com) ed effettuare il login
 2. Navigare a **Impostazioni** → **Chiavi API**
 3. Fare clic su **Crea Chiave API**
@@ -19,6 +20,7 @@ Questa guida aiuterà a iniziare con il Provider Terraform OneUptime in pochi mi
 6. Copiare la chiave API generata
 
 ### Per OneUptime Self-Hosted
+
 1. Accedere alla propria istanza OneUptime
 2. Navigare a **Impostazioni** → **Chiavi API**
 3. Fare clic su **Crea Chiave API**
@@ -37,7 +39,7 @@ terraform {
       source  = "oneuptime/oneuptime"
       # Per i clienti Cloud
       version = "~> 7.0"
-      
+
       # Per i clienti Self-Hosted - bloccare alla versione esatta
       # version = "= 7.0.123"  # Sostituire con la propria versione OneUptime
     }
@@ -48,10 +50,10 @@ terraform {
 provider "oneuptime" {
   # Per i clienti Cloud
   oneuptime_url = "https://oneuptime.com"
-  
+
   # Per i clienti Self-Hosted - usare l'URL della propria istanza
   # oneuptime_url = "https://oneuptime.vostracompany.com"
-  
+
   api_key = var.oneuptime_api_key
 }
 
@@ -164,25 +166,33 @@ provider "oneuptime" {
 ## Risoluzione Rapida dei Problemi
 
 ### Problema: Provider non trovato
+
 ```
 Error: Failed to query available provider packages
 ```
+
 **Soluzione**: Eseguire `terraform init` per scaricare il provider
 
 ### Problema: Autenticazione fallita
+
 ```
 Error: Invalid API key
 ```
-**Soluzione**: 
+
+**Soluzione**:
+
 1. Verificare la chiave API nel dashboard OneUptime
 2. Controllare che la chiave API abbia permessi sufficienti
 3. Assicurarsi che `oneuptime_url` sia corretto per la propria istanza
 
 ### Problema: Mancata corrispondenza di versione (Self-Hosted)
+
 ```
 Error: API version incompatible
 ```
-**Soluzione**: 
+
+**Soluzione**:
+
 1. Controllare la versione OneUptime nel dashboard
 2. Aggiornare la versione del provider per corrispondere esattamente
 3. Eseguire `terraform init -upgrade`

@@ -11,6 +11,10 @@ export default class AddAttributeColumnToSpanAndLog extends DataMigrationBase {
     super("AddAttributeColumnToSpanAndLog");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     await this.addAttributesColumnToLog();
     await this.addAttributesColumnToSpan();

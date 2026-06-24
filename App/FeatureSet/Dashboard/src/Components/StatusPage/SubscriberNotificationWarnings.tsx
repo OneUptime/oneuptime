@@ -19,7 +19,6 @@ interface StatusPageVisibilitySettings {
   showAnnouncementsOnStatusPage?: boolean | undefined;
   showScheduledMaintenanceEventsOnStatusPage?: boolean | undefined;
   showEpisodesOnStatusPage?: boolean | undefined;
-  enableSubscribers?: boolean | undefined;
 }
 
 interface WarningItem {
@@ -47,7 +46,6 @@ const SubscriberNotificationWarnings: FunctionComponent<ComponentProps> = (
           showAnnouncementsOnStatusPage: true,
           showScheduledMaintenanceEventsOnStatusPage: true,
           showEpisodesOnStatusPage: true,
-          enableSubscribers: true,
         },
       });
 
@@ -59,7 +57,6 @@ const SubscriberNotificationWarnings: FunctionComponent<ComponentProps> = (
           showScheduledMaintenanceEventsOnStatusPage:
             statusPage.showScheduledMaintenanceEventsOnStatusPage,
           showEpisodesOnStatusPage: statusPage.showEpisodesOnStatusPage,
-          enableSubscribers: statusPage.enableSubscribers,
         };
         setSettings(newSettings);
       }
@@ -72,17 +69,6 @@ const SubscriberNotificationWarnings: FunctionComponent<ComponentProps> = (
 
   if (isLoading || !settings) {
     return <Fragment />;
-  }
-
-  // If subscribers are globally disabled, show a single clear message
-  if (!settings.enableSubscribers) {
-    return (
-      <Alert
-        type={AlertType.WARNING}
-        strongTitle="Subscribers Disabled"
-        title="Subscribers are disabled for this status page. No notifications will be sent to any subscriber. Enable subscribers in Status Page Settings to start sending notifications."
-      />
-    );
   }
 
   const warnings: Array<WarningItem> = [];

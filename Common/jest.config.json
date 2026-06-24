@@ -1,69 +1,50 @@
 {
-    "preset": "ts-jest",
-    "testPathIgnorePatterns": [
-        "node_modules",
-        "dist"
-    ],
-    "verbose": true,
-    "globals": {
-        "ts-jest": {
-            "tsconfig": "tsconfig.json",
-            "babelConfig": false
-        }
-    },
-    "modulePathIgnorePatterns": [
-        "<rootDir>/build/dist"
-    ],
-    "moduleNameMapper": {
-        "Common/(.*)": "<rootDir>/$1",
-        "\\.(css|less|scss|sass)$": "<rootDir>/Tests/__mocks__/styleMock.js",
-        "^uuid$": "<rootDir>/Tests/__mocks__/uuid.js",
-        "^locter$": "<rootDir>/Tests/__mocks__/locter.js",
-        "^yaml$": "<rootDir>/Tests/__mocks__/yaml.js",
-        "^otpauth$": "<rootDir>/Tests/__mocks__/otpauth.js",
-        "^@simplewebauthn/server$": "<rootDir>/Tests/__mocks__/simplewebauthn.js",
-        "^botbuilder$": "<rootDir>/Tests/__mocks__/botbuilder.js",
-        "^botbuilder-core$": "<rootDir>/Tests/__mocks__/botbuilder.js",
-        "^botbuilder-stdlib$": "<rootDir>/Tests/__mocks__/botbuilder-stdlib.js",
-        "^botframework-connector$": "<rootDir>/Tests/__mocks__/botbuilder.js",
-        "^@azure/(.*)$": "<rootDir>/Tests/__mocks__/azure.js",
-        "^react-markdown$": "<rootDir>/Tests/__mocks__/react-markdown.js",
-        "^remark-gfm$": "<rootDir>/Tests/__mocks__/remark-gfm.js",
-        "^react-syntax-highlighter$": "<rootDir>/Tests/__mocks__/react-syntax-highlighter.js",
-        "^react-syntax-highlighter/dist/esm/.*$": "<rootDir>/Tests/__mocks__/react-syntax-highlighter.js",
-        "^mermaid$": "<rootDir>/Tests/__mocks__/mermaid.js"
-    },
-    "moduleFileExtensions": [
-        "ts",
-        "tsx",
-        "js",
-        "json"
-    ],
-    "transform": {
-        ".(ts|tsx)": "ts-jest"
-    },
-    "transformIgnorePatterns": [
-        "node_modules/(?!(uuid|locter|yaml|@azure)/)"
-    ],
-    "testEnvironment": "<rootDir>/Tests/Utils/TimezoneEnvironment.js",
-    "setupFilesAfterEnv": [
-        "<rootDir>/Tests/jest.setup.ts"
-    ],
-    "collectCoverage": false,
-    "coverageReporters": [
-        "text",
-        "lcov"
-    ],
-    "testRegex": "./Tests/(.*)\\.test\\.(ts|tsx)$",
-    "collectCoverageFrom": [
-        "./**/*.{ts,tsx}"
-    ],
-    "coverageThreshold": {
-        "global": {
-            "lines": 0,
-            "functions": 0,
-            "branches": 0,
-            "statements": 0
-        }
+  "preset": "ts-jest",
+  "testPathIgnorePatterns": ["node_modules", "dist"],
+  "verbose": true,
+  "globals": {
+    "ts-jest": {
+      "tsconfig": "tsconfig.json",
+      "babelConfig": false
     }
+  },
+  "modulePathIgnorePatterns": ["<rootDir>/build/dist"],
+  "moduleNameMapper": {
+    "Common/(.*)": "<rootDir>/$1",
+    "\\.(css|less|scss|sass)$": "<rootDir>/Tests/__mocks__/styleMock.js",
+    "^uuid$": "<rootDir>/Tests/__mocks__/uuid.js",
+    "^locter$": "<rootDir>/Tests/__mocks__/locter.js",
+    "^yaml$": "<rootDir>/Tests/__mocks__/yaml.js",
+    "^otpauth$": "<rootDir>/Tests/__mocks__/otpauth.js",
+    "^@simplewebauthn/server$": "<rootDir>/Tests/__mocks__/simplewebauthn.js",
+    "^botbuilder$": "<rootDir>/Tests/__mocks__/botbuilder.js",
+    "^botbuilder-core$": "<rootDir>/Tests/__mocks__/botbuilder.js",
+    "^botbuilder-stdlib$": "<rootDir>/Tests/__mocks__/botbuilder-stdlib.js",
+    "^botframework-connector$": "<rootDir>/Tests/__mocks__/botbuilder.js",
+    "^@azure/(.*)$": "<rootDir>/Tests/__mocks__/azure.js",
+    "^react-markdown$": "<rootDir>/Tests/__mocks__/react-markdown.js",
+    "^remark-gfm$": "<rootDir>/Tests/__mocks__/remark-gfm.js",
+    "^react-syntax-highlighter$": "<rootDir>/Tests/__mocks__/react-syntax-highlighter.js",
+    "^react-syntax-highlighter/dist/esm/.*$": "<rootDir>/Tests/__mocks__/react-syntax-highlighter.js",
+    "^mermaid$": "<rootDir>/Tests/__mocks__/mermaid.js"
+  },
+  "moduleFileExtensions": ["ts", "tsx", "js", "json"],
+  "transform": {
+    ".(ts|tsx)": "ts-jest"
+  },
+  "transformIgnorePatterns": ["node_modules/(?!(uuid|locter|yaml|@azure)/)"],
+  "testEnvironment": "<rootDir>/Tests/Utils/TimezoneEnvironment.js",
+  "setupFilesAfterEnv": ["<rootDir>/Tests/jest.setup.ts"],
+  "collectCoverage": false,
+  "coverageReporters": ["text", "lcov"],
+  "testRegex": "./Tests/(.*)\\.test\\.(ts|tsx)$",
+  "collectCoverageFrom": ["./**/*.{ts,tsx}"],
+  "coverageThreshold": {
+    "global": {
+      "lines": 0,
+      "functions": 0,
+      "branches": 0,
+      "statements": 0
+    }
+  }
 }

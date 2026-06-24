@@ -18,10 +18,12 @@ O SCIM de Projeto permite que provedores de identidade gerenciem membros de equi
 ### Configurando o SCIM de Projeto
 
 1. **Navegar para as Configurações do Projeto**
+
    - Vá para o seu projeto do OneUptime
    - Navegue para **Project Settings** > **Team** > **SCIM**
 
 2. **Configurar as Definições SCIM**
+
    - Habilite **Auto Provision Users** para adicionar automaticamente usuários quando eles são atribuídos no seu IdP
    - Habilite **Auto Deprovision Users** para remover automaticamente usuários quando eles são desatribuídos no seu IdP
    - Selecione as **Default Teams** às quais os novos usuários devem ser adicionados
@@ -65,10 +67,12 @@ O SCIM de Página de Status permite que provedores de identidade gerenciem assin
 ### Configurando o SCIM de Página de Status
 
 1. **Navegar para as Configurações da Página de Status**
+
    - Vá para a sua página de status do OneUptime
    - Navegue para **Status Page Settings** > **Private Users** > **SCIM**
 
 2. **Configurar as Definições SCIM**
+
    - Habilite **Auto Provision Users** para adicionar automaticamente assinantes quando eles são atribuídos no seu IdP
    - Habilite **Auto Deprovision Users** para remover automaticamente assinantes quando eles são desatribuídos no seu IdP
    - Copie a **SCIM Base URL** e o **Bearer Token** para a configuração do seu IdP
@@ -151,14 +155,14 @@ O Microsoft Entra ID fornece gerenciamento de identidade empresarial com recurso
 2. Clique em **Provision Azure Active Directory Users**
 3. Configure os seguintes mapeamentos de atributos:
 
-| Atributo do Azure AD | Atributo SCIM do OneUptime | Obrigatório |
-|-------------------|-------------------------|----------|
-| `userPrincipalName` | `userName` | Sim |
-| `mail` | `emails[type eq "work"].value` | Recomendado |
-| `displayName` | `displayName` | Recomendado |
-| `givenName` | `name.givenName` | Opcional |
-| `surname` | `name.familyName` | Opcional |
-| `Switch([IsSoftDeleted], , "False", "True", "True", "False")` | `active` | Recomendado |
+| Atributo do Azure AD                                          | Atributo SCIM do OneUptime     | Obrigatório |
+| ------------------------------------------------------------- | ------------------------------ | ----------- |
+| `userPrincipalName`                                           | `userName`                     | Sim         |
+| `mail`                                                        | `emails[type eq "work"].value` | Recomendado |
+| `displayName`                                                 | `displayName`                  | Recomendado |
+| `givenName`                                                   | `name.givenName`               | Opcional    |
+| `surname`                                                     | `name.familyName`              | Opcional    |
+| `Switch([IsSoftDeleted], , "False", "True", "True", "False")` | `active`                       | Recomendado |
 
 4. Remova quaisquer mapeamentos desnecessários para simplificar o provisionamento
 5. Clique em **Save**
@@ -173,9 +177,9 @@ Se você habilitou **Push Groups** no OneUptime:
 4. Configure os seguintes mapeamentos de atributos:
 
 | Atributo do Azure AD | Atributo SCIM do OneUptime |
-|-------------------|-------------------------|
-| `displayName` | `displayName` |
-| `members` | `members` |
+| -------------------- | -------------------------- |
+| `displayName`        | `displayName`              |
+| `members`            | `members`                  |
 
 5. Clique em **Save**
 
@@ -229,11 +233,13 @@ O Okta fornece gerenciamento de identidade flexível com excelente suporte a SCI
 #### Passo 2: Criar ou Configurar o Aplicativo Okta
 
 **Se você tiver um aplicativo SSO existente:**
+
 1. Faça login no Console de Administração do Okta
 2. Navegue para **Applications** > **Applications**
 3. Encontre e selecione seu aplicativo OneUptime existente
 
 **Se estiver criando um novo aplicativo:**
+
 1. Faça login no Console de Administração do Okta
 2. Navegue para **Applications** > **Applications**
 3. Clique em **Create App Integration**
@@ -284,13 +290,13 @@ O Okta fornece gerenciamento de identidade flexível com excelente suporte a SCI
 1. Role para baixo até **Attribute Mappings**
 2. Verifique ou configure os seguintes mapeamentos:
 
-| Atributo do Okta | Atributo SCIM do OneUptime | Direção |
-|---------------|-------------------------|-----------|
-| `userName` | `userName` | Okta para Aplicativo |
-| `user.email` | `emails[primary eq true].value` | Okta para Aplicativo |
-| `user.firstName` | `name.givenName` | Okta para Aplicativo |
-| `user.lastName` | `name.familyName` | Okta para Aplicativo |
-| `user.displayName` | `displayName` | Okta para Aplicativo |
+| Atributo do Okta   | Atributo SCIM do OneUptime      | Direção              |
+| ------------------ | ------------------------------- | -------------------- |
+| `userName`         | `userName`                      | Okta para Aplicativo |
+| `user.email`       | `emails[primary eq true].value` | Okta para Aplicativo |
+| `user.firstName`   | `name.givenName`                | Okta para Aplicativo |
+| `user.lastName`    | `name.familyName`               | Okta para Aplicativo |
+| `user.displayName` | `displayName`                   | Okta para Aplicativo |
 
 3. Remova quaisquer mapeamentos desnecessários
 4. Clique em **Save** se fizer alterações
@@ -341,15 +347,15 @@ A implementação SCIM do OneUptime segue a especificação SCIM v2.0 e deve fun
 
 #### Endpoints SCIM Suportados
 
-| Endpoint | Métodos | Descrição |
-|----------|---------|-------------|
-| `/ServiceProviderConfig` | GET | Capacidades do servidor SCIM |
-| `/Schemas` | GET | Esquemas de recursos disponíveis |
-| `/ResourceTypes` | GET | Tipos de recursos disponíveis |
-| `/Users` | GET, POST | Listar e criar usuários |
-| `/Users/{id}` | GET, PUT, PATCH, DELETE | Gerenciar usuários individuais |
-| `/Groups` | GET, POST | Listar e criar grupos/equipes (somente SCIM de Projeto) |
-| `/Groups/{id}` | GET, PUT, PATCH, DELETE | Gerenciar grupos individuais (somente SCIM de Projeto) |
+| Endpoint                 | Métodos                 | Descrição                                               |
+| ------------------------ | ----------------------- | ------------------------------------------------------- |
+| `/ServiceProviderConfig` | GET                     | Capacidades do servidor SCIM                            |
+| `/Schemas`               | GET                     | Esquemas de recursos disponíveis                        |
+| `/ResourceTypes`         | GET                     | Tipos de recursos disponíveis                           |
+| `/Users`                 | GET, POST               | Listar e criar usuários                                 |
+| `/Users/{id}`            | GET, PUT, PATCH, DELETE | Gerenciar usuários individuais                          |
+| `/Groups`                | GET, POST               | Listar e criar grupos/equipes (somente SCIM de Projeto) |
+| `/Groups/{id}`           | GET, PUT, PATCH, DELETE | Gerenciar grupos individuais (somente SCIM de Projeto)  |
 
 #### Esquema de Usuário SCIM
 
@@ -411,5 +417,6 @@ Quando o SCIM tenta criar um usuário que já existe (correspondendo por email),
 ### Com que frequência ocorre a sincronização de provisionamento?
 
 Isso depende do seu provedor de identidade:
+
 - **Microsoft Entra ID**: A sincronização inicial pode levar até 40 minutos; sincronizações subsequentes a cada 40 minutos
 - **Okta**: Quase em tempo real para a maioria das operações, com sincronizações completas periódicas

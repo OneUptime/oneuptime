@@ -2,23 +2,23 @@
 
 ## Vue d'ensemble
 
-OneUptime regroupe les ressources de calcul cloud managées dans des **environnements cloud** — AWS ECS / Fargate, Google Cloud Run, Azure Container Apps / Container Instances, AWS Elastic Beanstalk, AWS App Runner et Azure App Service. Un environnement est créé par combinaison unique de `cloud.platform` + `cloud.account.id` + `cloud.region`, de sorte qu'un élément comme *« AWS ECS · us-east-1 · 123456789012 »* constitue une entité unique qui agrège chaque charge de travail qui s'y exécute.
+OneUptime regroupe les ressources de calcul cloud managées dans des **environnements cloud** — AWS ECS / Fargate, Google Cloud Run, Azure Container Apps / Container Instances, AWS Elastic Beanstalk, AWS App Runner et Azure App Service. Un environnement est créé par combinaison unique de `cloud.platform` + `cloud.account.id` + `cloud.region`, de sorte qu'un élément comme _« AWS ECS · us-east-1 · 123456789012 »_ constitue une entité unique qui agrège chaque charge de travail qui s'y exécute.
 
 Les machines virtuelles brutes (EC2, Compute Engine, Azure VM) restent des **hôtes**, et Kubernetes reste sous **Kubernetes**. Cette vue est spécifiquement dédiée au calcul managé / PaaS.
 
 ## Prérequis
 
-- Un **jeton d'ingestion de télémétrie OneUptime** — créez-en un depuis *Paramètres du projet → Clés d'ingestion de télémétrie*.
+- Un **jeton d'ingestion de télémétrie OneUptime** — créez-en un depuis _Paramètres du projet → Clés d'ingestion de télémétrie_.
 - Un OpenTelemetry Collector ou un SDK s'exécutant dans ou aux côtés de vos charges de travail.
 
 ## Comment OneUptime identifie un environnement
 
-| Attribut | Requis | Objectif |
-|---|---|---|
-| `cloud.platform` | **oui** | Doit être une plateforme de calcul managé (par ex. `aws_ecs`, `gcp_cloud_run`, `azure_container_apps`) |
-| `cloud.account.id` | non | Fait partie de la clé de l'environnement |
-| `cloud.region` | non | Fait partie de la clé de l'environnement |
-| `service.instance.id` | non | Suivi par tâche/instance sous **Instances** (avec CPU / mémoire en direct) |
+| Attribut              | Requis  | Objectif                                                                                               |
+| --------------------- | ------- | ------------------------------------------------------------------------------------------------------ |
+| `cloud.platform`      | **oui** | Doit être une plateforme de calcul managé (par ex. `aws_ecs`, `gcp_cloud_run`, `azure_container_apps`) |
+| `cloud.account.id`    | non     | Fait partie de la clé de l'environnement                                                               |
+| `cloud.region`        | non     | Fait partie de la clé de l'environnement                                                               |
+| `service.instance.id` | non     | Suivi par tâche/instance sous **Instances** (avec CPU / mémoire en direct)                             |
 
 Ces attributs sont normalement renseignés automatiquement par les **détecteurs de ressources** d'OpenTelemetry.
 
@@ -29,7 +29,7 @@ Dans l'OpenTelemetry Collector, ajoutez le processeur `resourcedetection` :
 ```yaml
 processors:
   resourcedetection:
-    detectors: [env, ecs]   # use [gcp] on Cloud Run, [azure] on Azure
+    detectors: [env, ecs] # use [gcp] on Cloud Run, [azure] on Azure
     timeout: 5s
 ```
 

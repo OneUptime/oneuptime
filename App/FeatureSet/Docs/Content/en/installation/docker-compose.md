@@ -3,6 +3,7 @@
 If you prefer to host OneUptime on your own server, you can use Docker Compose to deploy a single-server instance of OneUptime on Debian, Ubuntu, or RHEL. This option gives you more control and customization over your instance, but it also requires more technical skills and resources to deploy and maintain it.
 
 #### Choose Your System Requirements
+
 Depending on your usage and budget, you can choose from different system requirements for your server. For optimal performance, we suggest using OneUptime with:
 
 - **Recommended System Requirements**
@@ -18,7 +19,6 @@ Depending on your usage and budget, you can choose from different system require
     - 20 GB Disk
     - Docker and Docker Compose installed
 
-
 #### Prerequisites for Single-Server Deployment
 
 Installation tutorial: [https://youtu.be/j1SWmMW2oL4](https://youtu.be/j1SWmMW2oL4)
@@ -28,7 +28,7 @@ Before you start the deployment process, please make sure you have:
 - A server running Debian, Ubuntu, or RHEL derivative
 - Docker and Docker Compose installed on your server
 
-To install OneUptime: 
+To install OneUptime:
 
 ```
 # Clone this repo with just the release branch and cd into it.
@@ -43,16 +43,15 @@ cp config.example.env config.env
 npm start
 ```
 
-If you don't like to use npm or do not have it installed, run this instead: 
+If you don't like to use npm or do not have it installed, run this instead:
 
 ```
 # Read env vars from config.env file and run docker compose up.
 (export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
 
-# Use sudo if you're having permission issues with binding ports. 
+# Use sudo if you're having permission issues with binding ports.
 sudo bash -c "(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)"
 ```
-
 
 ### Accessing OneUptime
 
@@ -73,18 +72,18 @@ If you need to use SSL/TLS certificates, follow these steps:
 
 ## Production Readiness Checklist
 
-Ideally do not deploy OneUptime in production with docker-compose. We highly recommend using Kubernetes. There's a helm chart available for OneUptime [here](https://artifacthub.io/packages/helm/oneuptime/oneuptime). 
+Ideally do not deploy OneUptime in production with docker-compose. We highly recommend using Kubernetes. There's a helm chart available for OneUptime [here](https://artifacthub.io/packages/helm/oneuptime/oneuptime).
 
 If you still want to deploy OneUptime in production with docker-compose, please consider the following:
 
-- **SSL/TLS**: Set up SSL/TLS certificates. OneUptime does not support setting up SSL/TLS certificates. You need to set up SSL/TLS certificates on your own. Please see above. 
-- **Secrets**: Make sure you have random secrets in your `config.env` file. There are some default secrets in that file. Please replace them with random long strings. 
-- **Backups**: Regularly backup your databases (Clickhouse, Postgres). Redis is used as a cache and is stateless and can be safely ignored. 
-- **Updates**: Please regularly update OneUptime. We release updates every day. We recommend you to update the software aleast once a week if you're running in production. 
+- **SSL/TLS**: Set up SSL/TLS certificates. OneUptime does not support setting up SSL/TLS certificates. You need to set up SSL/TLS certificates on your own. Please see above.
+- **Secrets**: Make sure you have random secrets in your `config.env` file. There are some default secrets in that file. Please replace them with random long strings.
+- **Backups**: Regularly backup your databases (Clickhouse, Postgres). Redis is used as a cache and is stateless and can be safely ignored.
+- **Updates**: Please regularly update OneUptime. We release updates every day. We recommend you to update the software aleast once a week if you're running in production.
 
 ### Updating OneUptime
 
-To update: 
+To update:
 
 ```
 git checkout release # Please make sure you're on release branch.
@@ -95,7 +94,6 @@ npm run update
 ### Things to consider
 
 - In our Docker setup, we employ a local logging driver. OneUptime, particularly within the probe and ingest containers, generates a substantial amount of logs. To prevent your storage from becoming full, it's crucial to limit the logging storage in Docker. For detailed instructions on how to do this, please refer to the official Docker documentation [here](https://docs.docker.com/config/containers/logging/local/).
-
 
 ### Uninstalling OneUptime
 

@@ -24,19 +24,19 @@ DNSSEC-monitorer validerer hele tillidskæden fra rodzonen ned til dit domæne. 
 
 ### Grundlæggende indstillinger
 
-| Felt | Beskrivelse | Påkrævet |
-|-------|-------------|----------|
-| Zone (domænenavn) | Zonen, der skal valideres via DNSSEC (f.eks. `example.com`) | Ja |
-| Resolvere | Kommasepareret liste over validerende resolvere, der skal forespørges (f.eks. `1.1.1.1, 8.8.8.8, 9.9.9.9`) | Ja |
-| Kontroller navneserverkonsistens | Forespørger hver autoritativ navneserver direkte og bekræfter, at de returnerer det samme SOA-serienummer | Nej |
+| Felt                             | Beskrivelse                                                                                                | Påkrævet |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------- |
+| Zone (domænenavn)                | Zonen, der skal valideres via DNSSEC (f.eks. `example.com`)                                                | Ja       |
+| Resolvere                        | Kommasepareret liste over validerende resolvere, der skal forespørges (f.eks. `1.1.1.1, 8.8.8.8, 9.9.9.9`) | Ja       |
+| Kontroller navneserverkonsistens | Forespørger hver autoritativ navneserver direkte og bekræfter, at de returnerer det samme SOA-serienummer  | Nej      |
 
 ### Avancerede indstillinger
 
-| Felt | Beskrivelse | Standard |
-|-------|-------------|---------|
-| Advarsel om signaturudløb (dage) | Standardtærskel for RRSIG-udløbsfilteret | 7 |
-| Timeout (ms) | Tid at vente på hver DNS-forespørgsel | 10000 |
-| Genforsøg | Antal genforsøg ved fejl | 3 |
+| Felt                             | Beskrivelse                              | Standard |
+| -------------------------------- | ---------------------------------------- | -------- |
+| Advarsel om signaturudløb (dage) | Standardtærskel for RRSIG-udløbsfilteret | 7        |
+| Timeout (ms)                     | Tid at vente på hver DNS-forespørgsel    | 10000    |
+| Genforsøg                        | Antal genforsøg ved fejl                 | 3        |
 
 ## Overvågningskriterier
 
@@ -44,15 +44,15 @@ Du kan konfigurere kriterier til at afgøre, hvornår din zone betragtes som onl
 
 ### Tilgængelige kontroltyper
 
-| Kontroltype | Beskrivelse |
-|------------|-------------|
-| DNSSEC-kæde er gyldig | Hele valideringskæden (root → TLD → zone) opløses korrekt |
-| DNSSEC DNSKEY-post eksisterer | Zonen udgiver mindst én DNSKEY-post |
-| DNSSEC DS-post eksisterer ved overordnet | Den overordnede zone udgiver en DS-post, der matcher zonens KSK |
-| DNSSEC-signatur udløber om dage | Antal dage indtil den førstkommende RRSIG-signatur udløber |
-| DNSSEC-resolverkonsensus (AD-flag) | Hver forespurgt resolver returnerer AD-flaget (Authenticated Data) |
-| DNSSEC-navneservere er konsistente | Alle autoritative navneservere returnerer det samme SOA-serienummer |
-| DNSSEC er gyldig | Samlet bestået/ikke bestået på tværs af alle valideringskontroller |
+| Kontroltype                              | Beskrivelse                                                         |
+| ---------------------------------------- | ------------------------------------------------------------------- |
+| DNSSEC-kæde er gyldig                    | Hele valideringskæden (root → TLD → zone) opløses korrekt           |
+| DNSSEC DNSKEY-post eksisterer            | Zonen udgiver mindst én DNSKEY-post                                 |
+| DNSSEC DS-post eksisterer ved overordnet | Den overordnede zone udgiver en DS-post, der matcher zonens KSK     |
+| DNSSEC-signatur udløber om dage          | Antal dage indtil den førstkommende RRSIG-signatur udløber          |
+| DNSSEC-resolverkonsensus (AD-flag)       | Hver forespurgt resolver returnerer AD-flaget (Authenticated Data)  |
+| DNSSEC-navneservere er konsistente       | Alle autoritative navneservere returnerer det samme SOA-serienummer |
+| DNSSEC er gyldig                         | Samlet bestået/ikke bestået på tværs af alle valideringskontroller  |
 
 ### Filtertyper
 

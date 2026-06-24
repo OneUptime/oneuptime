@@ -28,6 +28,10 @@ export default class ExtendMetricBaselineHourlyTTL extends DataMigrationBase {
     super("ExtendMetricBaselineHourlyTTL");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     await MetricService.execute(
       `ALTER TABLE MetricBaselineHourly MODIFY TTL day + INTERVAL 90 DAY`,

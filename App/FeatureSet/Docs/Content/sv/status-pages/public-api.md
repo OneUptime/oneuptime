@@ -12,53 +12,51 @@ För att hämta den övergripande statusen för resurserna på statussidan kan d
 curl -X POST https://oneuptime.com/status-page-api/overview/:statusPageId
 ```
 
-Detta är svaret från API:et: 
+Detta är svaret från API:et:
 
 ```json
 {
-
-    "overallStatus": 
-        {   // Monitor Status Object
-            // Overall Status is the worst status of all the monitors and groups on the status page. 
-            // You can find more details on the monitor status here.
-            // https://oneuptime.com/reference/monitor-status
-            
-        },
-    "scheduledMaintenanceEventsPublicNotes": [
-        // You can find more details on the scheduled maintenance public note here.
-        // https://oneuptime.com/reference/scheduled-maintenance-public-note
-        {
-            // Scheduled Maintenance Public Note Object
-        }, 
-        {
-            // Scheduled Maintenance Public Note Object
-        }
-    ],
-    "activeAnnouncements": [
-        // You can find more details on the active announcement here.
-        // https://oneuptime.com/reference/status-page-announcement
-        {
-            // Status Page Announcement Object
-        }
-    ],
-    "activeIncidents": [
-        // You can find more details on the active incident here.
-        // https://oneuptime.com/reference/incident
-        {
-            // Incident Object
-        }
-    ],
-    "statusPageResources": [
-        // You can find more details on the status page resource here.
-        // https://oneuptime.com/reference/status-page-resource
-        {
-            // Status Page Resource Object
-        }
-    ],
-    "statusPage": {
-       // You can find more details on the status page here.
-         // https://oneuptime.com/reference/status-page
+  "overallStatus": {
+    // Monitor Status Object
+    // Overall Status is the worst status of all the monitors and groups on the status page.
+    // You can find more details on the monitor status here.
+    // https://oneuptime.com/reference/monitor-status
+  },
+  "scheduledMaintenanceEventsPublicNotes": [
+    // You can find more details on the scheduled maintenance public note here.
+    // https://oneuptime.com/reference/scheduled-maintenance-public-note
+    {
+      // Scheduled Maintenance Public Note Object
+    },
+    {
+      // Scheduled Maintenance Public Note Object
     }
+  ],
+  "activeAnnouncements": [
+    // You can find more details on the active announcement here.
+    // https://oneuptime.com/reference/status-page-announcement
+    {
+      // Status Page Announcement Object
+    }
+  ],
+  "activeIncidents": [
+    // You can find more details on the active incident here.
+    // https://oneuptime.com/reference/incident
+    {
+      // Incident Object
+    }
+  ],
+  "statusPageResources": [
+    // You can find more details on the status page resource here.
+    // https://oneuptime.com/reference/status-page-resource
+    {
+      // Status Page Resource Object
+    }
+  ],
+  "statusPage": {
+    // You can find more details on the status page here.
+    // https://oneuptime.com/reference/status-page
+  }
 }
 ```
 
@@ -74,7 +72,7 @@ curl -X POST https://oneuptime.com/status-page-api/uptime/:statusPageId
 
 **Förfrågningsinnehåll (valfritt):**
 
-Du kan skicka startDate och endDate som förfrågningsinnehåll. 
+Du kan skicka startDate och endDate som förfrågningsinnehåll.
 
 ```
 {
@@ -85,7 +83,6 @@ Du kan skicka startDate och endDate som förfrågningsinnehåll.
 
 Dessa datum bör inte vara mer än 90 dagar isär. Om du inte anger datum returnerar API:et drifttiden för de senaste 14 dagarna.
 
-
 ### Incident-API
 
 Detta API hämtar alla incidenter som finns på statussidan. För att hämta alla incidenter på statussidan kan du göra en POST-förfrågan till följande slutpunkt:
@@ -94,20 +91,19 @@ Detta API hämtar alla incidenter som finns på statussidan. För att hämta all
 curl -X POST https://oneuptime.com/status-page-api/incidents/:statusPageId
 ```
 
-Detta är svaret från API:et: 
+Detta är svaret från API:et:
 
 ```json
 {
-    "incidents": [
-        // You can find more details on the incident here.
-        // https://oneuptime.com/reference/incident
-        {
-            // Incident Object
-        }
-    ]
+  "incidents": [
+    // You can find more details on the incident here.
+    // https://oneuptime.com/reference/incident
+    {
+      // Incident Object
+    }
+  ]
 }
 ```
-
 
 ### API för planerat underhåll
 
@@ -117,17 +113,17 @@ Detta API hämtar alla planerade underhållshändelser som finns på statussidan
 curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance/:statusPageId
 ```
 
-Detta är svaret från API:et: 
+Detta är svaret från API:et:
 
 ```json
 {
-    "scheduledMaintenanceEvents": [
-        // You can find more details on the scheduled maintenance event here.
-        // https://oneuptime.com/reference/scheduled-maintenance
-        {
-            // Scheduled Maintenance Event Object
-        }
-    ]
+  "scheduledMaintenanceEvents": [
+    // You can find more details on the scheduled maintenance event here.
+    // https://oneuptime.com/reference/scheduled-maintenance
+    {
+      // Scheduled Maintenance Event Object
+    }
+  ]
 }
 ```
 
@@ -139,16 +135,16 @@ Detta API hämtar alla meddelanden som finns på statussidan. För att hämta al
 curl -X POST https://oneuptime.com/status-page-api/announcements/:statusPageId
 ```
 
-Detta är svaret från API:et: 
+Detta är svaret från API:et:
 
 ```json
 {
-    "announcements": [
-        // You can find more details on the announcement here.
-        // https://oneuptime.com/reference/status-page-announcement
-        {
-            // Announcement Object
-        }
-    ]
+  "announcements": [
+    // You can find more details on the announcement here.
+    // https://oneuptime.com/reference/status-page-announcement
+    {
+      // Announcement Object
+    }
+  ]
 }
 ```

@@ -10,12 +10,12 @@ Hvert workflow starter med én **trigger** i begyndelsen. Alt andet er en **komp
 
 ## Hvad der er på en blok
 
-| Felt | Hvad det gør |
-| --- | --- |
-| **Title** | Det navn, der vises på lærredet. Omdøb det for at gøre komplekse workflows lettere at læse. |
-| **Settings** | Det, blokken har brug for til at udføre sit arbejde — en URL, en Slack-kanal, en beskedtekst osv. Påkrævede felter er markeret med en asterisk. |
-| **Input** | Prikken til venstre, hvor linjer kommer ind fra tidligere blokke. |
-| **Outputs** | Prikkerne til højre, hvor linjer går ud til de næste blokke. Mange blokke har separate **success**- og **error**-output, så du kan håndtere begge tilfælde. |
+| Felt         | Hvad det gør                                                                                                                                                |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Title**    | Det navn, der vises på lærredet. Omdøb det for at gøre komplekse workflows lettere at læse.                                                                 |
+| **Settings** | Det, blokken har brug for til at udføre sit arbejde — en URL, en Slack-kanal, en beskedtekst osv. Påkrævede felter er markeret med en asterisk.             |
+| **Input**    | Prikken til venstre, hvor linjer kommer ind fra tidligere blokke.                                                                                           |
+| **Outputs**  | Prikkerne til højre, hvor linjer går ud til de næste blokke. Mange blokke har separate **success**- og **error**-output, så du kan håndtere begge tilfælde. |
 
 ## Forbind blokke
 

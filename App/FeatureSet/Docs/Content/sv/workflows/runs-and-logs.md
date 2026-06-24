@@ -4,21 +4,21 @@ Varje gång ett arbetsflöde körs sparar OneUptime en post över vad som hände
 
 ## Var hittar du dem
 
-| Sida | Vad du ser |
-| --- | --- |
+| Sida                        | Vad du ser                                                                                 |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
 | **Workflows → Runs & Logs** | Varje körning från varje arbetsflöde i projektet. Filtrera på arbetsflöde, status och tid. |
-| **Workflow → Logs-fliken** | Bara körningarna av detta enda arbetsflöde. |
-| **En enskild körning** | En exekvering, med utdata från varje block. |
+| **Workflow → Logs-fliken**  | Bara körningarna av detta enda arbetsflöde.                                                |
+| **En enskild körning**      | En exekvering, med utdata från varje block.                                                |
 
 ## Körningsstatusar
 
-| Status | Betydelse |
-| --- | --- |
-| **Scheduled** | Utlösaren triggades och körningen ska just börja. Tar oftast bara en bråkdel av en sekund. |
-| **Running** | Arbetsflödet pågår. Långkörande block håller en körning i detta läge. |
-| **Success** | Varje block som kördes avslutades utan fel. (Att avsiktligt ta en **error**-gren räknas fortfarande som success — själva arbetsflödet misslyckades inte.) |
-| **Error** | Ett block misslyckades och det fanns ingen **error**-väg kopplad för att hantera det. Körningen stannade där. |
-| **Timeout** | Körningen pågick längre än tillåtet. Se [Konfiguration & säkerhet](/docs/workflows/configuration). |
+| Status        | Betydelse                                                                                                                                                 |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Scheduled** | Utlösaren triggades och körningen ska just börja. Tar oftast bara en bråkdel av en sekund.                                                                |
+| **Running**   | Arbetsflödet pågår. Långkörande block håller en körning i detta läge.                                                                                     |
+| **Success**   | Varje block som kördes avslutades utan fel. (Att avsiktligt ta en **error**-gren räknas fortfarande som success — själva arbetsflödet misslyckades inte.) |
+| **Error**     | Ett block misslyckades och det fanns ingen **error**-väg kopplad för att hantera det. Körningen stannade där.                                             |
+| **Timeout**   | Körningen pågick längre än tillåtet. Se [Konfiguration & säkerhet](/docs/workflows/configuration).                                                        |
 
 ## Läsa en körning
 

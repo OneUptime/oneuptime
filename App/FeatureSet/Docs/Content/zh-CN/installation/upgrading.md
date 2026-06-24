@@ -173,7 +173,6 @@ DROP TABLE IF EXISTS MetricItemAggMV1mByHost_backup SETTINGS max_table_size_to_d
 
 > 提示:与所有主版本升级一样,请先在预发布环境中测试,并确认遥测数据正流入新表,再在生产环境中依赖复制结果。
 
-
 ## 从 OneUptime 9 升级到 10
 
 没有需要手动操作的变更。按照标准升级流程操作即可。
@@ -187,7 +186,6 @@ Helm 图表不再配置 Kubernetes Ingress 资源。OneUptime 内置了一个 in
 - 验证状态页面或主机的所有 DNS 记录是否仍指向 OneUptime ingress 网关前端的 Service 或负载均衡器。
 - 升级后，确认 TLS 证书通过嵌入式网关继续续期，并且状态页面域名可正常解析。
 
-
 ## 从 OneUptime 7 升级到 8
 
 如果您在 Kubernetes 上运行，存在重要的破坏性变更：
@@ -195,6 +193,5 @@ Helm 图表不再配置 Kubernetes Ingress 资源。OneUptime 内置了一个 in
 - 我们不再使用 Bitnami 图表用于 Postgres、Redis 和 ClickHouse，原因是 [Bitnami 许可证变更](https://github.com/bitnami/charts/issues/35164)
 - 这些变更不向后兼容。您必须遵循 Helm 图表 `values.yaml` 中的新结构。
 - 在升级前备份您的数据（Postgres、ClickHouse 和任何持久化卷）。
-
 
 > 提示：先在预发布环境中测试升级。在升级生产环境之前，确认您的工作负载健康且数据完整。

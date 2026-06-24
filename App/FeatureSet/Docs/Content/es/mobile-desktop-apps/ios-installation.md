@@ -56,24 +56,29 @@ Su cuenta de OneUptime y sus turnos de guardia se almacenan en el servidor y no 
 ## Solución de problemas
 
 **La App Store indica que la aplicación "No está disponible en su región":**
+
 - La aplicación se publica en la App Store global. Si no aparece en su región, contacte con [soporte](mailto:support@oneuptime.com).
 
 **"Error de red" al iniciar sesión:**
+
 - Verifique que la **URL del servidor** sea correcta y accesible desde su dispositivo.
 - Si está en una red corporativa o VPN, asegúrese de que la instancia de OneUptime sea accesible.
 - Confirme que el servidor se sirva a través de HTTPS con un certificado válido.
 
 **No se reciben notificaciones push:**
+
 - Abra **Ajustes → Notificaciones → OneUptime On-Call** y confirme que las notificaciones estén permitidas.
 - Desactive **No molestar** o añada OneUptime On-Call a la lista de permitidos de su modo de Concentración activo.
 - Cierre sesión y vuelva a iniciarla para actualizar el token push registrado con el servidor.
 - Usuarios autoalojados: confirme que las notificaciones push estén configuradas en su instancia de OneUptime (consulte la guía de [Notificaciones push](/docs/self-hosted/push-notifications) para instalaciones autoalojadas).
 
 **Face ID / Touch ID no funcionan:**
+
 - Asegúrese de tener datos biométricos registrados en **Ajustes → Face ID y código** o **Ajustes → Touch ID y código**.
 - Vuelva a habilitar el desbloqueo biométrico desde la pantalla **Configuración** dentro de la aplicación OneUptime On-Call.
 
 **La aplicación se bloquea al iniciar:**
+
 - Actualice a la última versión desde la App Store.
 - Reinicie su dispositivo.
 - Si el problema persiste, elimine y reinstale la aplicación, y vuelva a iniciar sesión.

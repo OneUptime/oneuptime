@@ -11,6 +11,7 @@ Deze gids is specifiek bedoeld voor klanten die zelf-gehoste OneUptime-instantie
 ## Resourcestructuur
 
 Alle OneUptime Terraform-resources volgen een vereenvoudigde structuur:
+
 - `name` (vereist) - Resourcenaam
 - `description` (optioneel) - Resourcebeschrijving
 - `data` (optioneel) - Complexe configuratie als JSON
@@ -29,31 +30,39 @@ Alle OneUptime Terraform-resources volgen een vereenvoudigde structuur:
 ## Uw OneUptime-versie vinden
 
 ### Methode 1: Dashboard
+
 1. Log in op uw OneUptime-dashboard
 2. Ga naar **Instellingen** → **Over**
 3. Zoek het versienummer (bijv. "7.0.123")
 
 ### Methode 2: API-eindpunt
+
 ```bash
 curl https://your-oneuptime-instance.com/api/status
 ```
 
 ### Methode 3: Docker-images
+
 Als u OneUptime met Docker uitvoert:
+
 ```bash
 docker images | grep oneuptime
 # Zoek naar de tag, bijv. oneuptime/dashboard:7.0.123
 ```
 
 ### Methode 4: Helm-chart
+
 Als u Helm gebruikt:
+
 ```bash
 helm list -n oneuptime
 # Controleer de chartversie
 ```
 
 ### Methode 5: Omgevingsvariabelen
+
 Controleer uw configuratiebestanden op versievariabelen:
+
 ```bash
 grep -r "APP_VERSION\|IMAGE_TAG" /path/to/your/oneuptime/config
 ```
@@ -112,7 +121,7 @@ terraform {
     }
   }
   required_version = ">= 1.0"
-  
+
   # Optioneel: Gebruik externe status voor teamsamenwerking
   backend "s3" {
     bucket = "your-terraform-state-bucket"
@@ -169,13 +178,13 @@ resource "oneuptime_team" "development" {
 resource "oneuptime_monitor" "database" {
   name       = "${var.environment}-database"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "port"
   hostname     = "db.internal.yourcompany.com"
   port         = 5432
   interval     = "2m"
   timeout      = "10s"
-  
+
   tags = {
     team        = "infrastructure"
     service     = "database"
@@ -187,14 +196,14 @@ resource "oneuptime_monitor" "database" {
 resource "oneuptime_monitor" "application" {
   name       = "${var.environment}-application"
   project_id = oneuptime_project.main.id
-  
+
   monitor_type = "website"
   url          = "https://app.yourcompany.com/health"
   interval     = "1m"
   timeout      = "30s"
-  
+
   expected_status_codes = [200]
-  
+
   tags = {
     team        = "development"
     service     = "application"
@@ -218,7 +227,7 @@ environment = "development"
 
 ```hcl
 # staging.tfvars
-oneuptime_url = "https://oneuptime-staging.yourcompany.com"  
+oneuptime_url = "https://oneuptime-staging.yourcompany.com"
 environment = "staging"
 ```
 
@@ -283,6 +292,7 @@ terraform apply
 ### Firewallregels
 
 Zorg dat uw Terraform-runner toegang heeft tot:
+
 - OneUptime API-eindpunt (doorgaans poort 443/HTTPS)
 - Interne resources die worden bewaakt
 
@@ -312,6 +322,7 @@ export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
 ### 2. Principe van minimale bevoegdheden voor API-sleutels
 
 Maak API-sleutels aan met minimale vereiste machtigingen:
+
 - Monitorbeheer
 - Meldingsbeleidbeheer
 - Teambeheer (indien nodig)
@@ -338,7 +349,7 @@ find backups/ -name "terraform-state-*.tfstate" -mtime +30 -delete
 ```bash
 # Omgevingen aanmaken
 terraform workspace new dev
-terraform workspace new staging  
+terraform workspace new staging
 terraform workspace new prod
 
 # Schakelen tussen omgevingen
@@ -378,6 +389,7 @@ Error: connection refused
 ```
 
 **Oplossingen**:
+
 1. Controleer of de OneUptime-instantie actief is
 2. Verifieer of de API-URL correct is
 3. Controleer firewall-/netwerkconnectiviteit
@@ -390,6 +402,7 @@ Error: API version incompatible
 ```
 
 **Oplossingen**:
+
 1. Controleer de OneUptime-versie: `curl https://your-instance/api/status`
 2. Werk de providerversie bij zodat deze overeenkomt
 3. Voer `terraform init -upgrade` uit

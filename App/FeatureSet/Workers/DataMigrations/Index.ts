@@ -21,6 +21,7 @@ import AddTelemetryServiceColor from "./AddTelemetryServiceColor";
 import AddUnitColumnToMetricsTable from "./AddUnitColumnToMetricsTable";
 import ChangeLogSeverityColumnTypeFromTextToNumber from "./ChangeLogSeverityColumnTypeFromTextToNumber";
 import ChangeMetricColumnTypeToDecimal from "./ChangeMetricColumnTypesToDecimal";
+import ConvertAnalyticsTablesToCluster from "./ConvertAnalyticsTablesToCluster";
 import DataMigrationBase from "./DataMigrationBase";
 import GenerateNewCertsForStatusPage from "./GenerateNewCertsForStatusPage";
 import MigrateDefaultUserNotificationRule from "./MigrateDefaultUserNotificationRule";
@@ -203,6 +204,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * must already be the live V3 generation by the time it runs.
    */
   new RebuildMetricAggTablesMissingPrimaryEntityId(),
+  /*
+   * Cluster conversion. Runs only when CLICKHOUSE_CLUSTER_NAME is set (a no-op
+   * otherwise) and after every legacy ClickHouse migration has been baselined,
+   * so the analytics tables are at their current model schema before being
+   * converted in place to the sharded + replicated (Distributed over local
+   * ReplicatedMergeTree) layout. Must stay last.
+   */
+  new ConvertAnalyticsTablesToCluster(),
 ];
 
 export default DataMigrations;

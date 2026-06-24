@@ -31,11 +31,11 @@ Du kan konfigurere kriterier for å bestemme når IP-adressen anses som tilgjeng
 
 ### Tilgjengelige kontrolltyper
 
-| Kontrolltype | Beskrivelse |
-|-------------|-------------|
-| Is Online | Om IP-adressen er tilgjengelig |
-| Response Time (in ms) | Svartid i millisekunder |
-| Is Request Timeout | Om forespørselen fikk tidsavbrudd |
+| Kontrolltype          | Beskrivelse                       |
+| --------------------- | --------------------------------- |
+| Is Online             | Om IP-adressen er tilgjengelig    |
+| Response Time (in ms) | Svartid i millisekunder           |
+| Is Request Timeout    | Om forespørselen fikk tidsavbrudd |
 
 ### Filtertyper
 

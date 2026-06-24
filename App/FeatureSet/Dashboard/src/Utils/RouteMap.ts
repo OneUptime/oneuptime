@@ -61,6 +61,7 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.SERVICE_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.SERVICE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.SERVICE_ARCHIVED]: `archived`,
 };
 
 export const CodeRepositoryRoutePath: Dictionary<string> = {
@@ -117,6 +118,7 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_DOCUMENTATION]: `documentation`,
   [PageMap.KUBERNETES_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.KUBERNETES_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.KUBERNETES_ARCHIVED]: `archived`,
 };
 
 export const DockerRoutePath: Dictionary<string> = {
@@ -138,6 +140,7 @@ export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_DOCUMENTATION]: `documentation`,
   [PageMap.DOCKER_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.DOCKER_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.DOCKER_ARCHIVED]: `archived`,
 };
 
 export const PodmanRoutePath: Dictionary<string> = {
@@ -159,6 +162,7 @@ export const PodmanRoutePath: Dictionary<string> = {
   [PageMap.PODMAN_DOCUMENTATION]: `documentation`,
   [PageMap.PODMAN_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.PODMAN_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.PODMAN_ARCHIVED]: `archived`,
 };
 
 export const ProxmoxRoutePath: Dictionary<string> = {
@@ -183,6 +187,7 @@ export const ProxmoxRoutePath: Dictionary<string> = {
   [PageMap.PROXMOX_DOCUMENTATION]: `documentation`,
   [PageMap.PROXMOX_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.PROXMOX_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.PROXMOX_ARCHIVED]: `archived`,
 };
 
 export const DockerSwarmRoutePath: Dictionary<string> = {
@@ -212,6 +217,7 @@ export const DockerSwarmRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_SWARM_DOCUMENTATION]: `documentation`,
   [PageMap.DOCKER_SWARM_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.DOCKER_SWARM_ARCHIVED]: `archived`,
 };
 
 export const CephRoutePath: Dictionary<string> = {
@@ -236,6 +242,7 @@ export const CephRoutePath: Dictionary<string> = {
   [PageMap.CEPH_DOCUMENTATION]: `documentation`,
   [PageMap.CEPH_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.CEPH_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.CEPH_ARCHIVED]: `archived`,
 };
 
 export const HostRoutePath: Dictionary<string> = {
@@ -258,6 +265,7 @@ export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_DOCUMENTATION]: `documentation`,
   [PageMap.HOST_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.HOST_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.HOST_ARCHIVED]: `archived`,
 };
 
 export const ServerlessRoutePath: Dictionary<string> = {
@@ -270,6 +278,7 @@ export const ServerlessRoutePath: Dictionary<string> = {
   [PageMap.SERVERLESS_FUNCTION_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.SERVERLESS_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.SERVERLESS_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.SERVERLESS_ARCHIVED]: `archived`,
 };
 
 export const CloudRoutePath: Dictionary<string> = {
@@ -282,6 +291,7 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_RESOURCE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.CLOUD_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.CLOUD_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.CLOUD_ARCHIVED]: `archived`,
 };
 
 export const RumRoutePath: Dictionary<string> = {
@@ -294,6 +304,7 @@ export const RumRoutePath: Dictionary<string> = {
   [PageMap.RUM_APPLICATION_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.RUM_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.RUM_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.RUM_ARCHIVED]: `archived`,
 };
 
 export const WorkflowRoutePath: Dictionary<string> = {
@@ -1897,6 +1908,11 @@ const RouteMap: Dictionary<Route> = {
       ServiceRoutePath[PageMap.SERVICE_SETTINGS_LABEL_RULES]
     }`,
   ),
+  [PageMap.SERVICE_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_ARCHIVED]
+    }`,
+  ),
 
   [PageMap.SERVICE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
@@ -2301,6 +2317,11 @@ const RouteMap: Dictionary<Route> = {
       KubernetesRoutePath[PageMap.KUBERNETES_SETTINGS_LABEL_RULES]
     }`,
   ),
+  [PageMap.KUBERNETES_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_ARCHIVED]
+    }`,
+  ),
 
   // Docker
 
@@ -2419,6 +2440,11 @@ const RouteMap: Dictionary<Route> = {
       DockerRoutePath[PageMap.DOCKER_SETTINGS_LABEL_RULES]
     }`,
   ),
+  [PageMap.DOCKER_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_ARCHIVED]
+    }`,
+  ),
 
   // Podman
 
@@ -2535,6 +2561,11 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PODMAN_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/podman/${
       PodmanRoutePath[PageMap.PODMAN_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+  [PageMap.PODMAN_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_ARCHIVED]
     }`,
   ),
 
@@ -2671,6 +2702,11 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PROXMOX_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/proxmox/${
       ProxmoxRoutePath[PageMap.PROXMOX_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+  [PageMap.PROXMOX_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_ARCHIVED]
     }`,
   ),
 
@@ -2841,6 +2877,11 @@ const RouteMap: Dictionary<Route> = {
       DockerSwarmRoutePath[PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULES]
     }`,
   ),
+  [PageMap.DOCKER_SWARM_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_ARCHIVED]
+    }`,
+  ),
 
   // Ceph
 
@@ -2975,6 +3016,11 @@ const RouteMap: Dictionary<Route> = {
       CephRoutePath[PageMap.CEPH_SETTINGS_LABEL_RULES]
     }`,
   ),
+  [PageMap.CEPH_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_ARCHIVED]
+    }`,
+  ),
 
   // Hosts
 
@@ -3095,6 +3141,11 @@ const RouteMap: Dictionary<Route> = {
       HostRoutePath[PageMap.HOST_SETTINGS_LABEL_RULES]
     }`,
   ),
+  [PageMap.HOST_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_ARCHIVED]
+    }`,
+  ),
 
   // Serverless Functions
   [PageMap.SERVERLESS_ROOT]: new Route(
@@ -3150,6 +3201,11 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVERLESS_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/serverless/${
       ServerlessRoutePath[PageMap.SERVERLESS_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+  [PageMap.SERVERLESS_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_ARCHIVED]
     }`,
   ),
 
@@ -3215,6 +3271,11 @@ const RouteMap: Dictionary<Route> = {
       CloudRoutePath[PageMap.CLOUD_SETTINGS_LABEL_RULES]
     }`,
   ),
+  [PageMap.CLOUD_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ARCHIVED]
+    }`,
+  ),
 
   [PageMap.CLOUD_SETTINGS_OWNER_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
@@ -3274,6 +3335,11 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUM_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+  [PageMap.RUM_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_ARCHIVED]
     }`,
   ),
 

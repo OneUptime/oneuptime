@@ -9,15 +9,14 @@
 ```javascript
 // axiosモジュールを使用できます。
 
-await axios.get('https://api.example.com/');
+await axios.get("https://api.example.com/");
 
 // Axiosのドキュメントはこちら: https://axios-http.com/docs/intro
 
 return {
-    data: 'Hello World' // ここに返したいデータを記述してください。
+  data: "Hello World", // ここに返したいデータを記述してください。
 };
 ```
-
 
 ### モニターシークレットの使用
 
@@ -46,9 +45,8 @@ let numberSecret = {{monitorSecrets.NumberSecret}};
 let booleanSecret = {{monitorSecrets.BooleanSecret}};
 
 // console.logを使用してシークレットが正しく取得されているか確認できます
-console.log(stringSecret); 
+console.log(stringSecret);
 ```
-
 
 ### カスタムメトリクス
 
@@ -65,30 +63,32 @@ oneuptime.captureMetric(name, value, attributes);
 #### 使用例
 
 ```javascript
-const response = await axios.get('https://api.example.com/health');
+const response = await axios.get("https://api.example.com/health");
 
 // シンプルなメトリクスをキャプチャ
-oneuptime.captureMetric('api.response.time', response.data.latency);
+oneuptime.captureMetric("api.response.time", response.data.latency);
 
 // 属性付きでメトリクスをキャプチャ
-oneuptime.captureMetric('api.queue.depth', response.data.queueDepth, {
-    region: 'us-east-1',
-    environment: 'production'
+oneuptime.captureMetric("api.queue.depth", response.data.queueDepth, {
+  region: "us-east-1",
+  environment: "production",
 });
 
 return {
-    data: response.data
+  data: response.data,
 };
 ```
 
 キャプチャされたメトリクスは、`custom.monitor.api.response.time` のような名前でメトリクスエクスプローラーに表示されます。ダッシュボードのチャートに追加したり、アラートを設定したり、モニター、プローブ、または指定したカスタム属性でフィルタリングしたりできます。
 
 **制限事項：**
+
 - スクリプト実行ごとに最大100個のメトリクス。
 - メトリクス名は200文字以内。
 - 値は数値である必要があります。
 
 ### スクリプトで利用可能なモジュール
+
 - `axios`：HTTPリクエストを実行するためのモジュール。ブラウザおよびNode.js向けのPromiseベースのHTTPクライアントです。
 - `crypto`：暗号化処理を実行するためのモジュール。OpenSSLのハッシュ、HMAC、暗号化、復号化、署名、検証関数のラッパーセットを提供するNode.js組み込みモジュールです。
 - `console.log`：コンソールにデータを記録するためのモジュール。デバッグ目的で使用します。

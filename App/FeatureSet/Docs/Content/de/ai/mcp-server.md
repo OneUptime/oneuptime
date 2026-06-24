@@ -202,13 +202,13 @@ Die obige Konfiguration verwendet Eingabevariablen mit `"password": true`, um si
 
 ## Verfügbare Endpunkte
 
-| Endpunkt | Methode | Beschreibung |
-|----------|--------|-------------|
-| `/mcp` | GET | Server-Sent-Events-Stream für Server-zu-Client-Benachrichtigungen |
-| `/mcp` | POST | JSON-RPC-Anfragen für Tool-Aufrufe und andere Vorgänge |
-| `/mcp` | DELETE | Sitzungsbereinigung und -beendigung |
-| `/mcp/health` | GET | Health-Check-Endpunkt |
-| `/mcp/tools` | GET | REST API zum Auflisten verfügbarer Tools |
+| Endpunkt      | Methode | Beschreibung                                                      |
+| ------------- | ------- | ----------------------------------------------------------------- |
+| `/mcp`        | GET     | Server-Sent-Events-Stream für Server-zu-Client-Benachrichtigungen |
+| `/mcp`        | POST    | JSON-RPC-Anfragen für Tool-Aufrufe und andere Vorgänge            |
+| `/mcp`        | DELETE  | Sitzungsbereinigung und -beendigung                               |
+| `/mcp/health` | GET     | Health-Check-Endpunkt                                             |
+| `/mcp/tools`  | GET     | REST API zum Auflisten verfügbarer Tools                          |
 
 ## Authentifizierung
 
@@ -319,12 +319,15 @@ Diese Abfragen funktionieren ohne Authentifizierung und verwenden nur die öffen
 ## API-Schlüssel-Berechtigungen
 
 ### Nur-Lese-Zugriff
+
 Für das reine Anzeigen von Daten fügen Sie Ihrem API-Schlüssel Leseberechtigungen hinzu.
 
 ### Vollzugriff
+
 Für vollständigen Zugriff zum Erstellen, Aktualisieren und Löschen von Ressourcen stellen Sie sicher, dass Ihr API-Schlüssel Project Admin-Berechtigungen hat.
 
 ### Best Practices
+
 - Spezifische Berechtigungen verwenden: Nur die minimal notwendigen Berechtigungen erteilen
 - API-Schlüssel rotieren: Regelmäßig API-Schlüssel rotieren
 - Nutzung überwachen: API-Schlüsselnutzung in OneUptime verfolgen
@@ -333,24 +336,30 @@ Für vollständigen Zugriff zum Erstellen, Aktualisieren und Löschen von Ressou
 ## Fehlerbehebung
 
 ### Berechtigungsfehler
+
 Stellen Sie sicher, dass Ihr API-Schlüssel die erforderlichen Berechtigungen hat:
+
 - Lesezugriff zum Auflisten von Ressourcen
 - Schreibzugriff zum Erstellen/Aktualisieren von Ressourcen
 - Löschzugriff, wenn Sie Ressourcen entfernen möchten
 
 ### Verbindungsprobleme
+
 1. Überprüfen Sie, ob Ihre OneUptime-URL korrekt ist
 2. Prüfen Sie, ob Ihr API-Schlüssel gültig ist
 3. Stellen Sie sicher, dass Ihre OneUptime-Instanz erreichbar ist
 4. Testen Sie den Health-Endpunkt
 
 ### Ungültiger API-Schlüssel
+
 - Überprüfen Sie den API-Schlüssel in Ihren OneUptime-Einstellungen
 - Prüfen Sie auf zusätzliche Leerzeichen oder Zeichen
 - Stellen Sie sicher, dass der Schlüssel nicht abgelaufen ist
 
 ### Sitzungsfehler
+
 Wenn Sie sitzungsbezogene Fehler erhalten:
+
 - Der MCP-Server verwendet den `mcp-session-id`-Header zur Sitzungsverfolgung
 - Stellen Sie sicher, dass Ihr Client die vom Server zurückgegebene Sitzungs-ID korrekt verarbeitet
 - Sitzungen werden automatisch bereinigt, wenn Verbindungen geschlossen werden

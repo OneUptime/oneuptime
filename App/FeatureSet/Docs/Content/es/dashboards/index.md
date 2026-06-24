@@ -23,27 +23,27 @@ Consulta [Widgets](/docs/dashboards/widgets) para ver la lista completa y qué m
 
 ## Términos clave
 
-| Término | Qué significa |
-| --- | --- |
-| **Panel** | La página completa: un nombre, una cuadrícula de widgets, controles de rango de tiempo y una lista de variables. |
-| **Widget** | Una casilla en la página: un gráfico, un número, una lista, un párrafo. |
-| **Variable** | Un menú desplegable en la parte superior que filtra cada widget a la vez (cluster, servicio, cliente, entorno). |
+| Término             | Qué significa                                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Panel**           | La página completa: un nombre, una cuadrícula de widgets, controles de rango de tiempo y una lista de variables.   |
+| **Widget**          | Una casilla en la página: un gráfico, un número, una lista, un párrafo.                                            |
+| **Variable**        | Un menú desplegable en la parte superior que filtra cada widget a la vez (cluster, servicio, cliente, entorno).    |
 | **Rango de tiempo** | La ventana de tiempo que usan todos los gráficos y números. Configúrala una vez en la parte superior de la página. |
-| **Actualización** | Con qué frecuencia los widgets vuelven a consultar los datos. Apagado, cada pocos segundos, cada pocos minutos. |
-| **Modo** | **Edición** (arrastrar widgets) o **Vista** (solo lectura, la forma en que lo ven los visitantes). |
+| **Actualización**   | Con qué frecuencia los widgets vuelven a consultar los datos. Apagado, cada pocos segundos, cada pocos minutos.    |
+| **Modo**            | **Edición** (arrastrar widgets) o **Vista** (solo lectura, la forma en que lo ven los visitantes).                 |
 
 ## Dónde encontrar los paneles
 
 Abre **Paneles** en la navegación lateral.
 
-| Página | Qué haces allí |
-| --- | --- |
-| **Paneles** | Tu lista de paneles. Crea uno nuevo, busca o filtra por etiqueta. |
-| **Panel → Vista** | El lienzo. Alterna entre **Edición** y **Vista** en el encabezado. |
-| **Panel → Resumen** | Descripción, propietarios y etiquetas. |
+| Página                    | Qué haces allí                                                                             |
+| ------------------------- | ------------------------------------------------------------------------------------------ |
+| **Paneles**               | Tu lista de paneles. Crea uno nuevo, busca o filtra por etiqueta.                          |
+| **Panel → Vista**         | El lienzo. Alterna entre **Edición** y **Vista** en el encabezado.                         |
+| **Panel → Resumen**       | Descripción, propietarios y etiquetas.                                                     |
 | **Panel → Configuración** | Compartir públicamente, contraseña, lista de IPs permitidas, dominio personalizado, marca. |
-| **Panel → Propietarios** | Usuarios y equipos con acceso explícito. |
-| **Panel → Eliminar** | Eliminar el panel. |
+| **Panel → Propietarios**  | Usuarios y equipos con acceso explícito.                                                   |
+| **Panel → Eliminar**      | Eliminar el panel.                                                                         |
 
 ## Construir un panel
 

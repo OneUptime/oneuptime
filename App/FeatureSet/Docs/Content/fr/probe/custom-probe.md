@@ -123,15 +123,15 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 ##### Avec configuration du proxy
@@ -153,29 +153,29 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
-          # Configuration du proxy (optionnel)
-          - name: HTTP_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: HTTPS_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: NO_PROXY
-            value: "localhost,.internal.example.com"
-          # Pour un proxy avec authentification, utilisez :
-          # - name: HTTP_PROXY_URL
-          #   value: "http://username:password@proxy.example.com:8080"
-          # - name: HTTPS_PROXY_URL
-          #   value: "http://username:password@proxy.example.com:8080"
-          # - name: NO_PROXY
-          #   value: "localhost,.internal.example.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
+            # Configuration du proxy (optionnel)
+            - name: HTTP_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: HTTPS_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: NO_PROXY
+              value: "localhost,.internal.example.com"
+            # Pour un proxy avec authentification, utilisez :
+            # - name: HTTP_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: HTTPS_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: NO_PROXY
+            #   value: "localhost,.internal.example.com"
 ```
 
 Puis exécutez la commande suivante :
@@ -191,11 +191,13 @@ Si vous auto-hébergez OneUptime, vous pouvez modifier `ONEUPTIME_URL` pour poin
 La sonde prend en charge les variables d'environnement suivantes :
 
 #### Variables obligatoires
+
 - `PROBE_KEY` - La clé de sonde depuis votre tableau de bord OneUptime
 - `PROBE_ID` - L'ID de sonde depuis votre tableau de bord OneUptime
 - `ONEUPTIME_URL` - L'URL de votre instance OneUptime (par défaut : https://oneuptime.com)
 
 #### Variables optionnelles
+
 - `HTTP_PROXY_URL` - URL du serveur proxy HTTP pour les requêtes HTTP
 - `HTTPS_PROXY_URL` - URL du serveur proxy HTTP pour les requêtes HTTPS
 - `NO_PROXY` - Hôtes ou domaines séparés par des virgules qui doivent contourner le proxy
@@ -212,15 +214,18 @@ La sonde prend en charge les variables d'environnement suivantes :
 La sonde prend en charge les serveurs proxy HTTP et HTTPS. Lorsqu'elle est configurée, la sonde achemine tout le trafic de surveillance via les serveurs proxy spécifiés. Vous pouvez également fournir une liste `NO_PROXY` séparée par des virgules pour contourner le proxy pour les hôtes ou réseaux internes.
 
 **Format de l'URL du proxy :**
+
 ```
 http://[username:password@]proxy.server.com:port
 ```
 
 **Exemples :**
+
 - Proxy de base : `http://proxy.example.com:8080`
 - Avec authentification : `http://username:password@proxy.example.com:8080`
 
 **Fonctionnalités prises en charge :**
+
 - Prise en charge des proxys HTTP et HTTPS
 - Authentification par proxy (nom d'utilisateur/mot de passe)
 - Basculement automatique entre les proxys HTTP et HTTPS

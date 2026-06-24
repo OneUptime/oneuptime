@@ -40,46 +40,48 @@ U kunt dit adres kopiëren van de monitordetailpagina en uw externe systemen con
 
 U kunt criteria aanmaken op basis van de volgende e-mailvelden:
 
-| Veld | Beschrijving |
-|-------|-------------|
-| **E-mailonderwerp** | De onderwerpregel van de inkomende e-mail |
-| **E-mail van** | Het e-mailadres van de afzender |
-| **E-maillichaam** | De gewone tekstinhoud van het e-maillichaam |
-| **E-mail naar** | Het e-mailadres van de ontvanger |
+| Veld                 | Beschrijving                                                      |
+| -------------------- | ----------------------------------------------------------------- |
+| **E-mailonderwerp**  | De onderwerpregel van de inkomende e-mail                         |
+| **E-mail van**       | Het e-mailadres van de afzender                                   |
+| **E-maillichaam**    | De gewone tekstinhoud van het e-maillichaam                       |
+| **E-mail naar**      | Het e-mailadres van de ontvanger                                  |
 | **E-mail ontvangen** | Op tijd gebaseerde criteria voor wanneer e-mails worden ontvangen |
 
 ## Beschikbare filtertypen
 
 ### Tekenreeksfilters (Onderwerp, Van, Lichaam, Naar)
 
-| Filter | Beschrijving | Voorbeeld |
-|--------|-------------|---------|
-| **Bevat** | Veld bevat de opgegeven tekst | Onderwerp bevat "KRITIEK" |
-| **Bevat niet** | Veld bevat de opgegeven tekst niet | Onderwerp bevat niet "TEST" |
-| **Gelijk aan** | Veld komt exact overeen met de opgegeven tekst | Van gelijk aan "meldingen@dienst.nl" |
-| **Niet gelijk aan** | Veld komt niet overeen | Onderwerp niet gelijk aan "OK" |
-| **Begint met** | Veld begint met de opgegeven tekst | Onderwerp begint met "[MELDING]" |
-| **Eindigt met** | Veld eindigt met de opgegeven tekst | Onderwerp eindigt met "- Productie" |
-| **Is leeg** | Veld is leeg of blanco | Lichaam is leeg |
-| **Is niet leeg** | Veld heeft inhoud | Onderwerp is niet leeg |
+| Filter              | Beschrijving                                   | Voorbeeld                            |
+| ------------------- | ---------------------------------------------- | ------------------------------------ |
+| **Bevat**           | Veld bevat de opgegeven tekst                  | Onderwerp bevat "KRITIEK"            |
+| **Bevat niet**      | Veld bevat de opgegeven tekst niet             | Onderwerp bevat niet "TEST"          |
+| **Gelijk aan**      | Veld komt exact overeen met de opgegeven tekst | Van gelijk aan "meldingen@dienst.nl" |
+| **Niet gelijk aan** | Veld komt niet overeen                         | Onderwerp niet gelijk aan "OK"       |
+| **Begint met**      | Veld begint met de opgegeven tekst             | Onderwerp begint met "[MELDING]"     |
+| **Eindigt met**     | Veld eindigt met de opgegeven tekst            | Onderwerp eindigt met "- Productie"  |
+| **Is leeg**         | Veld is leeg of blanco                         | Lichaam is leeg                      |
+| **Is niet leeg**    | Veld heeft inhoud                              | Onderwerp is niet leeg               |
 
 ### Op tijd gebaseerde filters (E-mail ontvangen)
 
-| Filter | Beschrijving | Voorbeeld |
-|--------|-------------|---------|
-| **Ontvangen in minuten** | E-mail werd ontvangen binnen X minuten | E-mail ontvangen in 30 minuten |
-| **Niet ontvangen in minuten** | Geen e-mail ontvangen in X minuten | E-mail niet ontvangen in 60 minuten |
+| Filter                        | Beschrijving                           | Voorbeeld                           |
+| ----------------------------- | -------------------------------------- | ----------------------------------- |
+| **Ontvangen in minuten**      | E-mail werd ontvangen binnen X minuten | E-mail ontvangen in 30 minuten      |
+| **Niet ontvangen in minuten** | Geen e-mail ontvangen in X minuten     | E-mail niet ontvangen in 60 minuten |
 
 ## Voorbeeldconfiguraties
 
 ### Voorbeeld 1: Melding aanmaken bij kritieke e-mails
 
 **Criteria voor het aanmaken van meldingen:**
+
 - E-mailonderwerp **bevat** "KRITIEK"
 - OF E-mailonderwerp **bevat** "MELDING"
 - OF E-mailonderwerp **bevat** "FOUT"
 
 **Criteria voor het oplossen van meldingen:**
+
 - E-mailonderwerp **bevat** "OPGELOST"
 - OF E-mailonderwerp **bevat** "OK"
 - OF E-mailonderwerp **bevat** "HERSTELD"
@@ -87,21 +89,25 @@ U kunt criteria aanmaken op basis van de volgende e-mailvelden:
 ### Voorbeeld 2: Specifieke afzender bewaken
 
 **Criteria voor het aanmaken van meldingen:**
+
 - E-mail van **gelijk aan** "monitoring@verouderd-systeem.nl"
 - EN E-mailonderwerp **bevat** "Mislukt"
 
 **Criteria voor het oplossen van meldingen:**
+
 - E-mail van **gelijk aan** "monitoring@verouderd-systeem.nl"
 - EN E-mailonderwerp **bevat** "Geslaagd"
 
 ### Voorbeeld 3: Heartbeat-monitor (geen e-mail = melding)
 
 **Criteria voor het aanmaken van meldingen:**
+
 - E-mail ontvangen **Niet ontvangen in minuten** met waarde `60`
 
 Dit maakt een melding aan als er 60 minuten geen e-mail wordt ontvangen — nuttig voor het bewaken van geplande taken of batchprocessen die voltooiings-e-mails moeten sturen.
 
 **Criteria voor het oplossen van meldingen:**
+
 - E-mail ontvangen **Ontvangen in minuten** met waarde `5`
 
 Dit lost de melding op wanneer een e-mail wordt ontvangen.
@@ -111,6 +117,7 @@ Dit lost de melding op wanneer een e-mail wordt ontvangen.
 ### Integratie met verouderde systemen
 
 Veel oudere systemen ondersteunen alleen e-mailgebaseerde meldingen. Gebruik de Inkomend e-mail-monitor om:
+
 - E-mailmeldingen om te zetten in OneUptime-incidenten
 - Incidenten automatisch op te lossen wanneer herstel-e-mails binnenkomen
 - Meldingen van meerdere verouderde systemen te centraliseren
@@ -118,6 +125,7 @@ Veel oudere systemen ondersteunen alleen e-mailgebaseerde meldingen. Gebruik de 
 ### Bewaken van externe diensten
 
 Integreer met diensten die e-mailmeldingen versturen:
+
 - Cloudprovider-meldingen (AWS, GCP, Azure)
 - Beveiligingsscan-tools
 - Meldingen over voltooiing van back-ups
@@ -126,6 +134,7 @@ Integreer met diensten die e-mailmeldingen versturen:
 ### Bewaken van geplande taken
 
 Batch-taken en geplande processen bewaken:
+
 - Meldingen aanmaken als voltooiings-e-mails niet op tijd worden ontvangen
 - Taakfouten bijhouden via foutmeldings-e-mails
 - Voltooiingen van datapijplijnen bewaken
@@ -133,6 +142,7 @@ Batch-taken en geplande processen bewaken:
 ### Aggregatie van meldingen van meerdere leveranciers
 
 Meldingen van meerdere monitoringtools consolideren:
+
 - Meldingen ontvangen van Nagios, Zabbix of andere tools via e-mail
 - Incidentbeheer in OneUptime centraliseren
 - Één bron van waarheid bijhouden voor alle meldingen
@@ -141,17 +151,18 @@ Meldingen van meerdere monitoringtools consolideren:
 
 Bij het configureren van incidentsjablonen kunt u deze variabelen van inkomende e-mails gebruiken:
 
-| Variabele | Beschrijving |
-|----------|-------------|
-| `{{emailSubject}}` | Het onderwerp van de ontvangen e-mail |
-| `{{emailFrom}}` | Het e-mailadres van de afzender |
-| `{{emailTo}}` | Het e-mailadres van de ontvanger |
-| `{{emailBody}}` | De gewone tekstinhoud van de e-mail |
-| `{{emailReceivedAt}}` | Wanneer de e-mail werd ontvangen |
+| Variabele             | Beschrijving                          |
+| --------------------- | ------------------------------------- |
+| `{{emailSubject}}`    | Het onderwerp van de ontvangen e-mail |
+| `{{emailFrom}}`       | Het e-mailadres van de afzender       |
+| `{{emailTo}}`         | Het e-mailadres van de ontvanger      |
+| `{{emailBody}}`       | De gewone tekstinhoud van de e-mail   |
+| `{{emailReceivedAt}}` | Wanneer de e-mail werd ontvangen      |
 
 ## Monitorsamenvattingsweergave
 
 De monitorsamenvatting toont:
+
 - **Laatste e-mail ontvangen op:** Wanneer de meest recente e-mail werd ontvangen
 - **Van:** De afzender van de laatste e-mail
 - **Onderwerp:** De onderwerpregel van de laatste e-mail

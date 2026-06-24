@@ -24,18 +24,12 @@
         </button>
       </div>
       <nav class="hidden space-x-10 md:flex">
-        <div class="relative" onmouseenter="showProductMenu()" onmouseover="showProductMenu()"
-          onmouseleave="hideProductMenu()">
-          <!-- Item active: "text-gray-900", Item inactive: "text-gray-500" -->
-          <button onclick="showProductMenu()" type="button"
+        <div class="relative">
+          <!-- Opens the searchable products modal (command-palette style). -->
+          <button onclick="openProductModal()" type="button"
             class="text-gray-500 group inline-flex items-center rounded-md bg-white text-base font-medium hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-            aria-expanded="false">
+            aria-haspopup="dialog" aria-expanded="false">
             <span>Products</span>
-            <!--
-                Heroicon name: mini/chevron-down
-  
-                Item active: "text-gray-600", Item inactive: "text-gray-400"
-              -->
             <svg class="text-gray-400 ml-2 h-5 w-5 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path fill-rule="evenodd"
@@ -43,418 +37,6 @@
                 clip-rule="evenodd" />
             </svg>
           </button>
-
-          <!--
-              'Enterprise' flyout menu, show/hide based on flyout menu state.
-  
-              Entering: "transition ease-out duration-200"
-                From: "opacity-0 trangray-y-1"
-                To: "opacity-100 trangray-y-0"
-              Leaving: "transition ease-in duration-150"
-                From: "opacity-100 trangray-y-0"
-                To: "opacity-0 trangray-y-1"
-            -->
-          <div onmouseenter="showProductMenu()" onmouseover="showProductMenu()" onmouseleave="hideProductMenu()"
-            class="absolute z-20 -ml-4 pt-3 w-screen max-w-6xl transform px-2 sm:px-0 lg:left-1/2 lg:ml-0 lg:-translate-x-1/2"
-            id="product-menu" style="visibility: collapse; opacity: 0;">
-            <div class="overflow-hidden rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5">
-              <div class="relative bg-white">
-                <div class="grid grid-cols-12 divide-x divide-gray-100">
-                  <!-- Main Products Section -->
-                  <div class="col-span-9 p-6">
-                    <div class="grid grid-cols-4 gap-x-8 gap-y-1">
-                      <!-- Incident Response Column -->
-                      <div>
-                        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3 ml-2.5">Essentials</h3>
-                        <div class="space-y-1">
-                          <!-- Monitoring - Blue -->
-                          <a href="/product/monitoring" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-blue-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200 group-hover:bg-blue-100 group-hover:ring-blue-300">
-                              <%- include('./Partials/icons/monitoring', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Monitoring</p>
-                              <p class="text-xs text-gray-500">Uptime & synthetic checks</p>
-                            </div>
-                          </a>
-                          <!-- Status Page - Emerald -->
-                          <a href="/product/status-page" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-emerald-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-50 ring-1 ring-emerald-200 group-hover:bg-emerald-100 group-hover:ring-emerald-300">
-                              <%- include('./Partials/icons/status-page', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Status Page</p>
-                              <p class="text-xs text-gray-500">Communicate incidents to users</p>
-                            </div>
-                          </a>
-
-                          <!-- Incidents - Rose -->
-                          <a href="/product/incident-management" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-rose-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 ring-1 ring-rose-200 group-hover:bg-rose-100 group-hover:ring-rose-300">
-                              <%- include('./Partials/icons/incidents', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Incidents</p>
-                              <p class="text-xs text-gray-500">Detect, manage & resolve</p>
-                            </div>
-                          </a>
-
-                          <!-- On-Call - Stone -->
-                          <a href="/product/on-call" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-stone-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-stone-50 ring-1 ring-stone-200 group-hover:bg-stone-100 group-hover:ring-stone-300">
-                              <%- include('./Partials/icons/on-call', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">On-Call & Alerts</p>
-                              <p class="text-xs text-gray-500">Smart routing & escalations</p>
-                            </div>
-                          </a>
-
-                          <!-- Scheduled Maintenance - Teal -->
-                          <a href="/product/scheduled-maintenance" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-teal-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-teal-50 ring-1 ring-teal-200 group-hover:bg-teal-100 group-hover:ring-teal-300">
-                              <%- include('./Partials/icons/scheduled-maintenance', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Scheduled Maintenance</p>
-                              <p class="text-xs text-gray-500">Plan & communicate downtime</p>
-                            </div>
-                          </a>
-                        </div>
-                      </div>
-
-                      <!-- Observability Column -->
-                      <div>
-                        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3 ml-2.5">Observability</h3>
-                        <div class="space-y-1">
-                          
-
-                          <!-- Logs - Amber -->
-                          <a href="/product/logs-management" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-amber-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-amber-50 ring-1 ring-amber-200 group-hover:bg-amber-100 group-hover:ring-amber-300">
-                              <%- include('./Partials/icons/logs', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Logs</p>
-                              <p class="text-xs text-gray-500">Fastest log ingest & search</p>
-                            </div>
-                          </a>
-
-                          <!-- Metrics - Purple -->
-                          <a href="/product/metrics" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-purple-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-purple-50 ring-1 ring-purple-200 group-hover:bg-purple-100 group-hover:ring-purple-300">
-                              <%- include('./Partials/icons/metrics', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Metrics</p>
-                              <p class="text-xs text-gray-500">Application & infra metrics</p>
-                            </div>
-                          </a>
-
-                          <!-- Traces - Yellow -->
-                          <a href="/product/traces" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-yellow-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-yellow-50 ring-1 ring-yellow-200 group-hover:bg-yellow-100 group-hover:ring-yellow-300">
-                              <%- include('./Partials/icons/traces', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Traces</p>
-                              <p class="text-xs text-gray-500">Distributed request tracing</p>
-                            </div>
-                          </a>
-
-                          <!-- Exceptions - Orange -->
-                          <a href="/product/exceptions" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-orange-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200 group-hover:bg-orange-100 group-hover:ring-orange-300">
-                              <%- include('./Partials/icons/exceptions', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Exceptions</p>
-                              <p class="text-xs text-gray-500">Error tracking & debugging</p>
-                            </div>
-                          </a>
-
-                          <!-- Profiles - Rose -->
-                          <a href="/product/profiles" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-rose-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 ring-1 ring-rose-200 group-hover:bg-rose-100 group-hover:ring-rose-300">
-                              <%- include('./Partials/icons/profiles', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Profiles</p>
-                              <p class="text-xs text-gray-500">CPU & memory profiling</p>
-                            </div>
-                          </a>
-
-                          <!-- RUM - Indigo -->
-                          <a href="/product/rum" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-indigo-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200 group-hover:bg-indigo-100 group-hover:ring-indigo-300">
-                              <%- include('./Partials/icons/rum', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">RUM</p>
-                              <p class="text-xs text-gray-500">Real user monitoring</p>
-                            </div>
-                          </a>
-                        </div>
-                      </div>
-
-                      <!-- Resources Column -->
-                      <div>
-                        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3 ml-2.5">Resources</h3>
-                        <div class="space-y-1">
-                          <!-- Services - Indigo -->
-                          <a href="/product/services" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-indigo-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200 group-hover:bg-indigo-100 group-hover:ring-indigo-300">
-                              <%- include('./Partials/icons/services', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Services</p>
-                              <p class="text-xs text-gray-500">Catalog every service you run</p>
-                            </div>
-                          </a>
-
-                          <!-- Kubernetes - Cyan -->
-                          <a href="/product/kubernetes" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-cyan-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-cyan-50 ring-1 ring-cyan-200 group-hover:bg-cyan-100 group-hover:ring-cyan-300">
-                              <%- include('./Partials/icons/kubernetes', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Kubernetes</p>
-                              <p class="text-xs text-gray-500">Cluster & pod observability</p>
-                            </div>
-                          </a>
-
-                          <!-- Docker - Blue -->
-                          <a href="/product/docker" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-blue-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200 group-hover:bg-blue-100 group-hover:ring-blue-300">
-                              <%- include('./Partials/icons/docker', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Docker</p>
-                              <p class="text-xs text-gray-500">Host & container observability</p>
-                            </div>
-                          </a>
-
-                          <!-- Podman - Blue -->
-                          <a href="/product/podman" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-blue-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200 group-hover:bg-blue-100 group-hover:ring-blue-300">
-                              <%- include('./Partials/icons/podman', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Podman</p>
-                              <p class="text-xs text-gray-500">Host & container observability</p>
-                            </div>
-                          </a>
-
-                          <!-- Hosts - Slate -->
-                          <a href="/product/host" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-slate-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-slate-50 ring-1 ring-slate-200 group-hover:bg-slate-100 group-hover:ring-slate-300">
-                              <%- include('./Partials/icons/host', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Hosts</p>
-                              <p class="text-xs text-gray-500">Auto-discovered server metrics</p>
-                            </div>
-                          </a>
-
-                          <!-- Proxmox - Orange -->
-                          <a href="/product/proxmox" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-orange-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200 group-hover:bg-orange-100 group-hover:ring-orange-300">
-                              <%- include('./Partials/icons/proxmox', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Proxmox</p>
-                              <p class="text-xs text-gray-500">VE clusters, VMs & backups</p>
-                            </div>
-                          </a>
-
-                          <!-- Ceph - Red -->
-                          <a href="/product/ceph" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-red-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-red-50 ring-1 ring-red-200 group-hover:bg-red-100 group-hover:ring-red-300">
-                              <%- include('./Partials/icons/ceph', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Ceph</p>
-                              <p class="text-xs text-gray-500">Storage cluster health</p>
-                            </div>
-                          </a>
-
-                          <!-- Docker Swarm - Blue -->
-                          <a href="/product/docker-swarm" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-blue-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200 group-hover:bg-blue-100 group-hover:ring-blue-300">
-                              <%- include('./Partials/icons/docker-swarm', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Docker Swarm</p>
-                              <p class="text-xs text-gray-500">Nodes, services, tasks & stacks</p>
-                            </div>
-                          </a>
-
-                          <!-- Serverless - Fuchsia -->
-                          <a href="/product/serverless" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-fuchsia-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-fuchsia-50 ring-1 ring-fuchsia-200 group-hover:bg-fuchsia-100 group-hover:ring-fuchsia-300">
-                              <%- include('./Partials/icons/serverless', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Serverless</p>
-                              <p class="text-xs text-gray-500">Functions & cold starts</p>
-                            </div>
-                          </a>
-
-                          <!-- Cloud - Sky -->
-                          <a href="/product/cloud" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-sky-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200 group-hover:bg-sky-100 group-hover:ring-sky-300">
-                              <%- include('./Partials/icons/cloud', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Cloud</p>
-                              <p class="text-xs text-gray-500">AWS, GCP & Azure</p>
-                            </div>
-                          </a>
-                        </div>
-                      </div>
-
-                      <!-- Automation & Analytics Column -->
-                      <div>
-                        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3 ml-2.5">Automation & Analytics</h3>
-                        <div class="space-y-1">
-                          <!-- Workflows - Sky -->
-                          <a href="/product/workflows" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-sky-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200 group-hover:bg-sky-100 group-hover:ring-sky-300">
-                              <%- include('./Partials/icons/workflows', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Workflows</p>
-                              <p class="text-xs text-gray-500">No-code automation builder</p>
-                            </div>
-                          </a>
-
-                          <!-- Runbooks - Teal -->
-                          <a href="/product/runbooks" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-teal-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-teal-50 ring-1 ring-teal-200 group-hover:bg-teal-100 group-hover:ring-teal-300">
-                              <%- include('./Partials/icons/runbooks', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Runbooks</p>
-                              <p class="text-xs text-gray-500">Auto-trigger response steps</p>
-                            </div>
-                          </a>
-
-                          <!-- Dashboards - Indigo -->
-                          <a href="/product/dashboards" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-indigo-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200 group-hover:bg-indigo-100 group-hover:ring-indigo-300">
-                              <%- include('./Partials/icons/dashboards', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Dashboards</p>
-                              <p class="text-xs text-gray-500">Custom data visualizations</p>
-                            </div>
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- AI Agent Featured - Full Width -->
-                    <div class="mt-4 pt-4 border-t border-gray-100">
-                      <a href="/product/ai-agent" class="group flex items-center gap-4 rounded-xl p-4 transition-colors bg-gradient-to-r from-violet-50 via-purple-50 to-fuchsia-50 ring-1 ring-violet-200 hover:ring-violet-300">
-                        <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 ring-1 ring-violet-300 group-hover:from-violet-200 group-hover:to-purple-200">
-                          <%- include('./Partials/icons/ai-agent') %>
-                        </div>
-                        <div class="flex-1">
-                          <p class="text-sm font-semibold text-gray-900">AI Agent</p>
-                          <p class="text-xs text-gray-600">Auto-fix issues with AI-powered PRs. Let AI analyze incidents and automatically create pull requests to resolve them.</p>
-                        </div>
-                        <svg class="h-5 w-5 text-violet-400 group-hover:text-violet-600 transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
-                        </svg>
-                      </a>
-                    </div>
-                  </div>
-
-                  <!-- Right Sidebar -->
-                  <div class="col-span-3 bg-gray-50 p-6">
-                    <!-- Resources Section -->
-                    <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Resources</h3>
-                    <div class="space-y-2">
-                      <a href="/docs" class="group flex items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-white">
-                        <svg class="h-5 w-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
-                        </svg>
-                        <span class="text-sm text-gray-700 group-hover:text-gray-900">Documentation</span>
-                      </a>
-                      <a href="/reference" class="group flex items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-white">
-                        <svg class="h-5 w-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"></path>
-                        </svg>
-                        <span class="text-sm text-gray-700 group-hover:text-gray-900">API Reference</span>
-                      </a>
-                      <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group flex items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-white">
-                        <svg class="h-5 w-5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                          <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path>
-                        </svg>
-                        <span class="text-sm text-gray-700 group-hover:text-gray-900">GitHub</span>
-                      </a>
-                      <a href="/blog" class="group flex items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-white">
-                        <svg class="h-5 w-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"></path>
-                        </svg>
-                        <span class="text-sm text-gray-700 group-hover:text-gray-900">Blog & Guides</span>
-                      </a>
-                    </div>
-
-                    <!-- CTA Section -->
-                    <div class="mt-6 pt-6 border-t border-gray-200">
-                      <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Get Started</h3>
-                      <div class="space-y-2">
-                        <a href="/accounts/register" class="flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800">
-                          Start Free Trial
-                          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
-                          </svg>
-                        </a>
-                        <a href="/enterprise/demo" class="flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-gray-700 ring-1 ring-gray-200 transition-colors hover:bg-gray-50">
-                          <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"></path>
-                          </svg>
-                          Request Demo
-                        </a>
-                      </div>
-                    </div>
-
-                    <!-- Contact -->
-                    <div class="mt-4 pt-4 border-t border-gray-200">
-                      <a href="mailto:sales@oneuptime.com" class="group flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"></path>
-                        </svg>
-                        <span>sales@oneuptime.com</span>
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Bottom Bar -->
-              <div class="bg-gray-100 px-6 py-3 flex items-center justify-between">
-                <p class="text-xs text-gray-500">
-                  <span class="font-medium text-gray-700">Open Source</span> &mdash; Self-host or use our cloud. Your data, your choice.
-                </p>
-                <div class="flex items-center gap-4">
-                  <a href="/pricing" class="text-xs font-medium text-gray-600 hover:text-gray-900 flex items-center gap-1">
-                    View Pricing
-                    <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"></path>
-                    </svg>
-                  </a>
-                  <a href="/enterprise/overview" class="text-xs font-medium text-gray-600 hover:text-gray-900 flex items-center gap-1">
-                    Enterprise
-                    <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"></path>
-                    </svg>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- Enterprise Dropdown -->
@@ -1142,10 +724,364 @@
   </div>
 </div>
 
+<!-- ============================================================= -->
+<!-- Products search modal (command-palette, mirrors the in-app    -->
+<!-- NavBarMenuModal). Rendered at header root so its fixed overlay -->
+<!-- is never clipped by a transformed ancestor.                   -->
+<!-- ============================================================= -->
+<div id="product-modal" class="relative z-50 hidden" role="dialog" aria-modal="true" aria-label="Products">
+  <!-- Backdrop -->
+  <div id="product-modal-backdrop"
+    class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm opacity-0 transition-opacity duration-200"></div>
+
+  <!-- Scroll + click-away container -->
+  <div class="fixed inset-0 z-50 overflow-y-auto" onclick="closeProductModal()">
+    <div class="flex min-h-full items-start justify-center p-4 sm:p-6">
+      <div id="product-modal-card"
+        class="relative mt-[6vh] flex w-full max-w-3xl translate-y-2 scale-[0.98] flex-col overflow-hidden rounded-2xl bg-white opacity-0 shadow-2xl ring-1 ring-gray-900/5 transition-all duration-200 ease-out"
+        style="max-height: 82vh;" onclick="event.stopPropagation()">
+
+        <!-- Header -->
+        <div class="border-b border-gray-100 bg-gradient-to-br from-indigo-50/70 via-white to-white px-5 pt-5 pb-4 sm:px-6">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-indigo-500">Products</p>
+              <h2 class="mt-1 text-lg font-semibold text-gray-900">Explore the OneUptime platform</h2>
+              <p class="mt-0.5 hidden text-sm text-gray-500 sm:block">One platform for monitoring, observability &amp; incident response.</p>
+            </div>
+            <button type="button" onclick="closeProductModal()" aria-label="Close"
+              class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-white hover:text-gray-600 hover:shadow-sm">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+          <!-- Search box -->
+          <div class="mt-4 flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 shadow-sm transition focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-100">
+            <svg class="h-5 w-5 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"></path>
+            </svg>
+            <input id="product-modal-search" type="text" role="combobox" aria-expanded="true"
+              aria-controls="product-modal-body" aria-label="Search products" autocomplete="off" autocorrect="off"
+              autocapitalize="off" spellcheck="false" placeholder="Search products…"
+              class="flex-1 border-0 bg-transparent p-0 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0" />
+            <button id="product-modal-clear" type="button" onclick="clearProductSearch()" aria-label="Clear search"
+              style="display:none;"
+              class="h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+            <kbd id="product-modal-kbd"
+              class="hidden flex-shrink-0 items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-xs font-medium text-gray-400 sm:inline-flex">⌘K</kbd>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div id="product-modal-body" role="listbox" aria-label="Products"
+          class="flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
+
+          <!-- Featured: AI Agent (hidden while searching) -->
+          <a id="product-modal-featured" href="/product/ai-agent"
+            class="group mb-5 flex items-center gap-4 rounded-xl border border-violet-200 bg-gradient-to-r from-violet-50 via-purple-50 to-fuchsia-50 p-4 transition-colors hover:border-violet-300">
+            <div class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 ring-1 ring-violet-300">
+              <%- include('./Partials/icons/ai-agent', {iconClass: 'h-5 w-5'}) %>
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-gray-900">AI Agent</p>
+              <p class="mt-0.5 text-xs leading-relaxed text-gray-600 line-clamp-2">Auto-fix issues with AI-powered PRs — analyze incidents and open pull requests automatically.</p>
+            </div>
+            <svg class="h-5 w-5 flex-shrink-0 text-violet-400 transition-colors group-hover:text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
+            </svg>
+          </a>
+
+          <!-- Essentials -->
+          <div class="product-group mb-6">
+            <h3 class="mb-2.5 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500">Essentials</h3>
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <a href="/product/monitoring" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="monitoring uptime synthetic checks">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200">
+                  <%- include('./Partials/icons/monitoring', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Monitoring</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Uptime &amp; synthetic checks</p>
+                </div>
+              </a>
+              <a href="/product/status-page" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="status page communicate incidents to users">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-50 ring-1 ring-emerald-200">
+                  <%- include('./Partials/icons/status-page', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Status Page</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Communicate incidents to users</p>
+                </div>
+              </a>
+              <a href="/product/incident-management" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="incidents detect manage resolve">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 ring-1 ring-rose-200">
+                  <%- include('./Partials/icons/incidents', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Incidents</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Detect, manage &amp; resolve</p>
+                </div>
+              </a>
+              <a href="/product/on-call" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="on-call alerts smart routing escalations">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-stone-100 ring-1 ring-stone-300">
+                  <%- include('./Partials/icons/on-call', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">On-Call &amp; Alerts</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Smart routing &amp; escalations</p>
+                </div>
+              </a>
+              <a href="/product/scheduled-maintenance" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="scheduled maintenance plan communicate downtime">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-teal-50 ring-1 ring-teal-200">
+                  <%- include('./Partials/icons/scheduled-maintenance', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Scheduled Maintenance</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Plan &amp; communicate downtime</p>
+                </div>
+              </a>
+            </div>
+          </div>
+
+          <!-- Observability -->
+          <div class="product-group mb-6">
+            <h3 class="mb-2.5 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500">Observability</h3>
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <a href="/product/logs-management" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="logs fastest log ingest search">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-amber-50 ring-1 ring-amber-200">
+                  <%- include('./Partials/icons/logs', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Logs</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Fastest log ingest &amp; search</p>
+                </div>
+              </a>
+              <a href="/product/metrics" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="metrics application infra metrics">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-purple-50 ring-1 ring-purple-200">
+                  <%- include('./Partials/icons/metrics', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Metrics</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Application &amp; infra metrics</p>
+                </div>
+              </a>
+              <a href="/product/traces" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="traces distributed request tracing">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-yellow-50 ring-1 ring-yellow-200">
+                  <%- include('./Partials/icons/traces', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Traces</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Distributed request tracing</p>
+                </div>
+              </a>
+              <a href="/product/exceptions" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="exceptions error tracking debugging">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
+                  <%- include('./Partials/icons/exceptions', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Exceptions</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Error tracking &amp; debugging</p>
+                </div>
+              </a>
+              <a href="/product/profiles" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="profiles cpu memory profiling">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 ring-1 ring-rose-200">
+                  <%- include('./Partials/icons/profiles', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Profiles</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">CPU &amp; memory profiling</p>
+                </div>
+              </a>
+              <a href="/product/rum" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="rum real user monitoring">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200">
+                  <%- include('./Partials/icons/rum', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">RUM</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Real user monitoring</p>
+                </div>
+              </a>
+            </div>
+          </div>
+
+          <!-- Infrastructure -->
+          <div class="product-group mb-6">
+            <h3 class="mb-2.5 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500">Infrastructure</h3>
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <a href="/product/services" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="services catalog every service you run">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200">
+                  <%- include('./Partials/icons/services', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Services</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Catalog every service you run</p>
+                </div>
+              </a>
+              <a href="/product/kubernetes" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="kubernetes cluster pod observability k8s">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-cyan-50 ring-1 ring-cyan-200">
+                  <%- include('./Partials/icons/kubernetes', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Kubernetes</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Cluster &amp; pod observability</p>
+                </div>
+              </a>
+              <a href="/product/docker" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="docker host container observability">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200">
+                  <%- include('./Partials/icons/docker', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Docker</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Host &amp; container observability</p>
+                </div>
+              </a>
+              <a href="/product/podman" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="podman host container observability">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200">
+                  <%- include('./Partials/icons/podman', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Podman</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Host &amp; container observability</p>
+                </div>
+              </a>
+              <a href="/product/host" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="hosts auto-discovered server metrics">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-slate-50 ring-1 ring-slate-200">
+                  <%- include('./Partials/icons/host', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Hosts</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Auto-discovered server metrics</p>
+                </div>
+              </a>
+              <a href="/product/proxmox" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="proxmox ve clusters vms backups">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
+                  <%- include('./Partials/icons/proxmox', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Proxmox</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">VE clusters, VMs &amp; backups</p>
+                </div>
+              </a>
+              <a href="/product/ceph" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="ceph storage cluster health">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-red-50 ring-1 ring-red-200">
+                  <%- include('./Partials/icons/ceph', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Ceph</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Storage cluster health</p>
+                </div>
+              </a>
+              <a href="/product/docker-swarm" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="docker swarm nodes services tasks stacks">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200">
+                  <%- include('./Partials/icons/docker-swarm', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Docker Swarm</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Nodes, services, tasks &amp; stacks</p>
+                </div>
+              </a>
+              <a href="/product/serverless" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="serverless functions cold starts lambda">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-fuchsia-50 ring-1 ring-fuchsia-200">
+                  <%- include('./Partials/icons/serverless', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Serverless</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Functions &amp; cold starts</p>
+                </div>
+              </a>
+              <a href="/product/cloud" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="cloud aws gcp azure">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200">
+                  <%- include('./Partials/icons/cloud', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Cloud</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">AWS, GCP &amp; Azure</p>
+                </div>
+              </a>
+            </div>
+          </div>
+
+          <!-- Automation & Analytics -->
+          <div class="product-group mb-1">
+            <h3 class="mb-2.5 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500">Automation &amp; Analytics</h3>
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <a href="/product/workflows" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="workflows no-code automation builder">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200">
+                  <%- include('./Partials/icons/workflows', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Workflows</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">No-code automation builder</p>
+                </div>
+              </a>
+              <a href="/product/runbooks" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="runbooks auto-trigger response steps">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-teal-50 ring-1 ring-teal-200">
+                  <%- include('./Partials/icons/runbooks', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Runbooks</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Auto-trigger response steps</p>
+                </div>
+              </a>
+              <a href="/product/dashboards" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="dashboards custom data visualizations">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200">
+                  <%- include('./Partials/icons/dashboards', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Dashboards</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Custom data visualizations</p>
+                </div>
+              </a>
+            </div>
+          </div>
+
+          <!-- Empty state -->
+          <div id="product-modal-empty" style="display:none;" class="flex-col items-center justify-center py-16 text-center">
+            <div class="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 ring-1 ring-gray-100">
+              <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"></path>
+              </svg>
+            </div>
+            <p class="text-sm font-medium text-gray-900">No products found</p>
+            <p id="product-modal-empty-q" class="mt-1 text-xs text-gray-500"></p>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-between gap-4 border-t border-gray-100 bg-gray-50/80 px-5 py-3 sm:px-6">
+          <a href="https://github.com/oneuptime/oneuptime" target="_blank" rel="noopener" class="group flex min-w-0 items-center gap-3">
+            <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gray-900 transition-colors group-hover:bg-gray-700">
+              <svg class="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+            <div class="min-w-0 text-left">
+              <p class="truncate text-sm font-medium text-gray-900">100% Open Source</p>
+              <p class="truncate text-xs text-gray-500">Self-host or use our cloud</p>
+            </div>
+          </a>
+          <div class="hidden flex-shrink-0 items-center gap-2 text-xs text-gray-400 md:flex">
+            <span class="flex items-center gap-1">
+              <kbd class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded border border-gray-200 bg-white px-1 text-[11px] font-medium text-gray-500 shadow-sm">↑</kbd>
+              <kbd class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded border border-gray-200 bg-white px-1 text-[11px] font-medium text-gray-500 shadow-sm">↓</kbd>
+            </span>
+            <kbd class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded border border-gray-200 bg-white px-1 text-[11px] font-medium text-gray-500 shadow-sm">↵</kbd>
+            <kbd class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded border border-gray-200 bg-white px-1 text-[11px] font-medium text-gray-500 shadow-sm">esc</kbd>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <script>
 
-  let productMenuTimer = null;
   let solutionsMenuTimer = null;
   let resourcesMenuTimer = null;
 
@@ -1157,27 +1093,263 @@
     document.getElementById("mobile-menu").style.visibility = "visible";
   }
 
-  function showProductMenu() {
-    if (productMenuTimer) {
-      clearTimeout(productMenuTimer);
-      productMenuTimer = null;
-    }
-    var menu = document.getElementById("product-menu");
-    menu.style.visibility = "visible";
-    menu.style.opacity = "1";
+  // ===== Products search modal (command-palette) =====
+  var productActiveIndex = 0;
+
+  function getVisibleProductCards() {
+    return Array.prototype.slice
+      .call(document.querySelectorAll("#product-modal .product-card"))
+      .filter(function (card) {
+        return card.style.display !== "none";
+      });
   }
 
-  function hideProductMenu() {
-    if (productMenuTimer) {
-      clearTimeout(productMenuTimer);
+  function setProductActive(index) {
+    var cards = getVisibleProductCards();
+    if (cards.length === 0) {
+      productActiveIndex = -1;
+      return;
     }
-    productMenuTimer = setTimeout(() => {
-      var menu = document.getElementById("product-menu");
-      menu.style.opacity = "0";
-      menu.style.visibility = "collapse";
-      productMenuTimer = null;
-    }, 150);
+    if (index < 0) {
+      index = 0;
+    }
+    if (index > cards.length - 1) {
+      index = cards.length - 1;
+    }
+    productActiveIndex = index;
+    cards.forEach(function (card, i) {
+      if (i === index) {
+        card.classList.add("border-indigo-300", "bg-indigo-50", "shadow-sm");
+        card.classList.remove("border-transparent");
+        card.scrollIntoView({ block: "nearest" });
+      } else {
+        card.classList.remove("border-indigo-300", "bg-indigo-50", "shadow-sm");
+        card.classList.add("border-transparent");
+      }
+    });
   }
+
+  function highlightProductMatches(query) {
+    document
+      .querySelectorAll("#product-modal .product-card-title")
+      .forEach(function (el) {
+        var text = el.getAttribute("data-text");
+        if (text === null) {
+          text = el.textContent;
+          el.setAttribute("data-text", text);
+        }
+        if (!query) {
+          el.textContent = text;
+          return;
+        }
+        var idx = text.toLowerCase().indexOf(query);
+        if (idx === -1) {
+          el.textContent = text;
+          return;
+        }
+        el.textContent = "";
+        el.appendChild(document.createTextNode(text.slice(0, idx)));
+        var mark = document.createElement("mark");
+        mark.className = "rounded-sm bg-yellow-100 px-0.5 text-inherit";
+        mark.textContent = text.slice(idx, idx + query.length);
+        el.appendChild(mark);
+        el.appendChild(document.createTextNode(text.slice(idx + query.length)));
+      });
+  }
+
+  function filterProductModal() {
+    var input = document.getElementById("product-modal-search");
+    var query = (input.value || "").trim().toLowerCase();
+    var anyVisible = false;
+
+    document
+      .querySelectorAll("#product-modal .product-card")
+      .forEach(function (card) {
+        var hay = card.getAttribute("data-search") || "";
+        var match = !query || hay.indexOf(query) !== -1;
+        card.style.display = match ? "" : "none";
+        if (match) {
+          anyVisible = true;
+        }
+      });
+
+    document
+      .querySelectorAll("#product-modal .product-group")
+      .forEach(function (group) {
+        var visible =
+          group.querySelectorAll(".product-card").length > 0 &&
+          Array.prototype.slice
+            .call(group.querySelectorAll(".product-card"))
+            .some(function (card) {
+              return card.style.display !== "none";
+            });
+        group.style.display = visible ? "" : "none";
+      });
+
+    // Featured banner only shows while idle (no search query).
+    var featured = document.getElementById("product-modal-featured");
+    if (featured) {
+      featured.style.display = query ? "none" : "";
+    }
+
+    var empty = document.getElementById("product-modal-empty");
+    empty.style.display = anyVisible ? "none" : "flex";
+    document.getElementById("product-modal-empty-q").textContent = query
+      ? "“" + query + "”"
+      : "";
+
+    var clear = document.getElementById("product-modal-clear");
+    clear.style.display = query ? "inline-flex" : "none";
+    document.getElementById("product-modal-kbd").style.display = query
+      ? "none"
+      : "";
+
+    highlightProductMatches(query);
+    setProductActive(0);
+  }
+
+  function clearProductSearch() {
+    var input = document.getElementById("product-modal-search");
+    input.value = "";
+    filterProductModal();
+    input.focus();
+  }
+
+  function openProductModal() {
+    var modal = document.getElementById("product-modal");
+    if (!modal) {
+      return;
+    }
+    var input = document.getElementById("product-modal-search");
+    input.value = "";
+    filterProductModal();
+    modal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+    requestAnimationFrame(function () {
+      var backdrop = document.getElementById("product-modal-backdrop");
+      backdrop.classList.add("opacity-100");
+      backdrop.classList.remove("opacity-0");
+      var card = document.getElementById("product-modal-card");
+      card.classList.add("opacity-100", "translate-y-0", "scale-100");
+      card.classList.remove("opacity-0", "translate-y-2", "scale-[0.98]");
+    });
+    setTimeout(function () {
+      input.focus();
+    }, 60);
+  }
+
+  function closeProductModal() {
+    var modal = document.getElementById("product-modal");
+    if (!modal || modal.classList.contains("hidden")) {
+      return;
+    }
+    var backdrop = document.getElementById("product-modal-backdrop");
+    backdrop.classList.add("opacity-0");
+    backdrop.classList.remove("opacity-100");
+    var card = document.getElementById("product-modal-card");
+    card.classList.add("opacity-0", "translate-y-2", "scale-[0.98]");
+    card.classList.remove("opacity-100", "translate-y-0", "scale-100");
+    document.body.style.overflow = "";
+    setTimeout(function () {
+      modal.classList.add("hidden");
+    }, 200);
+  }
+
+  function moveProductVertical(direction) {
+    var cards = getVisibleProductCards();
+    if (cards.length === 0) {
+      return;
+    }
+    var active = cards[productActiveIndex] || cards[0];
+    var activeRect = active.getBoundingClientRect();
+    var activeCenterX = activeRect.left + activeRect.width / 2;
+
+    var targetTop = null;
+    cards.forEach(function (card) {
+      var top = card.getBoundingClientRect().top;
+      if (direction === "down" && top > activeRect.top + 1) {
+        if (targetTop === null || top < targetTop) {
+          targetTop = top;
+        }
+      }
+      if (direction === "up" && top < activeRect.top - 1) {
+        if (targetTop === null || top > targetTop) {
+          targetTop = top;
+        }
+      }
+    });
+    if (targetTop === null) {
+      return;
+    }
+
+    var bestIndex = productActiveIndex;
+    var bestDistance = Infinity;
+    cards.forEach(function (card, i) {
+      var rect = card.getBoundingClientRect();
+      if (Math.abs(rect.top - targetTop) <= 1) {
+        var centerX = rect.left + rect.width / 2;
+        var distance = Math.abs(centerX - activeCenterX);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestIndex = i;
+        }
+      }
+    });
+    setProductActive(bestIndex);
+  }
+
+  function handleProductKeydown(event) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeProductModal();
+      return;
+    }
+    var cards = getVisibleProductCards();
+    if (cards.length === 0) {
+      return;
+    }
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      setProductActive(productActiveIndex + 1);
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      setProductActive(productActiveIndex - 1);
+    } else if (event.key === "ArrowDown") {
+      event.preventDefault();
+      moveProductVertical("down");
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      moveProductVertical("up");
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      var card = cards[productActiveIndex] || cards[0];
+      if (card && card.href) {
+        window.location.href = card.href;
+      }
+    }
+  }
+
+  (function initProductModal() {
+    var input = document.getElementById("product-modal-search");
+    if (input) {
+      input.addEventListener("input", filterProductModal);
+      input.addEventListener("keydown", handleProductKeydown);
+    }
+    document.addEventListener("keydown", function (event) {
+      var modal = document.getElementById("product-modal");
+      var isOpen = modal && !modal.classList.contains("hidden");
+      if ((event.key === "k" || event.key === "K") && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        if (isOpen) {
+          closeProductModal();
+        } else {
+          openProductModal();
+        }
+      } else if (event.key === "Escape" && isOpen) {
+        closeProductModal();
+      }
+    });
+  })();
 
   function showSolutionsMenu() {
     if (solutionsMenuTimer) {

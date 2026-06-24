@@ -8,17 +8,17 @@ OneUptime clasifica la telemetría entrante como **RUM** cuando incluye atributo
 
 ## Requisitos previos
 
-- Un **token de ingesta de telemetría de OneUptime** — crea uno desde *Configuración del proyecto → Claves de ingesta de telemetría*.
+- Un **token de ingesta de telemetría de OneUptime** — crea uno desde _Configuración del proyecto → Claves de ingesta de telemetría_.
 - El SDK de OpenTelemetry para navegador o móvil.
 
 ## Cómo identifica OneUptime una aplicación RUM
 
-| Atributo | Obligatorio | Propósito |
-|---|---|---|
-| `service.name` | **sí** | Identidad de la aplicación (p. ej. `storefront-web`) |
-| `browser.*` | para web | Marca la telemetría como RUM de navegador |
-| `device.*` | para móvil | Marca la telemetría como RUM de móvil |
-| `telemetry.sdk.language` | no | p. ej. `webjs`, `swift`, se muestra en la descripción general |
+| Atributo                 | Obligatorio | Propósito                                                     |
+| ------------------------ | ----------- | ------------------------------------------------------------- |
+| `service.name`           | **sí**      | Identidad de la aplicación (p. ej. `storefront-web`)          |
+| `browser.*`              | para web    | Marca la telemetría como RUM de navegador                     |
+| `device.*`               | para móvil  | Marca la telemetría como RUM de móvil                         |
+| `telemetry.sdk.language` | no          | p. ej. `webjs`, `swift`, se muestra en la descripción general |
 
 ## Navegador (OpenTelemetry Web)
 

@@ -56,8 +56,8 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 ```javascript
 // Node.js 예시
-const https = require('https');
-https.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY');
+const https = require("https");
+https.get("https://oneuptime.com/heartbeat/YOUR_SECRET_KEY");
 ```
 
 ```python
@@ -74,12 +74,12 @@ requests.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY')
 
 ### 사용 가능한 확인 유형
 
-| 확인 유형 | 설명 |
-|------------|-------------|
-| 수신 요청 | 시간 창 내에 하트비트가 수신되었는지 여부 |
-| 요청 본문 | 하트비트와 함께 전송된 요청 본문의 내용 |
-| 요청 헤더 | 특정 요청 헤더의 이름 |
-| 요청 헤더 값 | 특정 요청 헤더의 값 |
+| 확인 유형    | 설명                                      |
+| ------------ | ----------------------------------------- |
+| 수신 요청    | 시간 창 내에 하트비트가 수신되었는지 여부 |
+| 요청 본문    | 하트비트와 함께 전송된 요청 본문의 내용   |
+| 요청 헤더    | 특정 요청 헤더의 이름                     |
+| 요청 헤더 값 | 특정 요청 헤더의 값                       |
 
 ### 필터 유형
 

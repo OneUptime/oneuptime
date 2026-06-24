@@ -31,6 +31,7 @@ ServiceNow の Table API は **Basic 認証**を受け付けます。
 1. **Workflows → Create Workflow** を開き、`Incidents → ServiceNow` という名前にして **Builder** を開きます。
 2. **Incident** トリガーを **On Create** に設定して追加します。`Incident` にリネームします。
 3. トリガーに接続した **API** ブロックを追加します:
+
    - **Method**: `POST`
    - **URL**: `https://your-instance.service-now.com/api/now/table/incident`
    - **Headers**:
@@ -54,6 +55,7 @@ ServiceNow の Table API は **Basic 認証**を受け付けます。
      ```
 
    `correlation_id` は OneUptime のインシデントへのリンクを保持します — 後で解決ステップを追加する場合に便利です。ServiceNow の `urgency`/`impact` は `1` (高)、`2` (中)、`3` (低) を使います。
+
 4. **Save** して有効化し、テスト用インシデントを作成します。ワークフローのログに `201 Created` レスポンスが表示され、新しいレコードの `sys_id` と `number` (例: `INC0012345`) が返されます。
 
 ## ステップ 3 — OneUptime の解決時に解決する (オプション)

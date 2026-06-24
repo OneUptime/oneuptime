@@ -1,21 +1,20 @@
 services:
-
   # Redis for caching and cluster state
   redis:
     extends:
-        file: ./docker-compose.base.yml
-        service: redis
+      file: ./docker-compose.base.yml
+      service: redis
 
-  llm: 
+  llm:
     extends:
-        file: ./docker-compose.base.yml
-        service: llm
+      file: ./docker-compose.base.yml
+      service: llm
     ports:
-        - '8547:8547'
+      - "8547:8547"
     build:
-        network: host
-        context: ./LLM
-        dockerfile: ./Dockerfile
+      network: host
+      context: ./LLM
+      dockerfile: ./Dockerfile
     deploy:
       resources:
         reservations:

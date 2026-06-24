@@ -31,10 +31,10 @@ Sélectionnez l'hôte Docker à surveiller. Les hôtes sont automatiquement enre
 
 Choisissez le niveau auquel surveiller les ressources :
 
-| Portée | Description |
-|--------|-------------|
-| Hôte | Surveiller l'ensemble de l'hôte Docker, agrégé sur tous les conteneurs |
-| Conteneur | Surveiller un conteneur spécifique par nom ou image |
+| Portée    | Description                                                            |
+| --------- | ---------------------------------------------------------------------- |
+| Hôte      | Surveiller l'ensemble de l'hôte Docker, agrégé sur tous les conteneurs |
+| Conteneur | Surveiller un conteneur spécifique par nom ou image                    |
 
 ### Requêtes de métriques
 
@@ -64,61 +64,61 @@ L'agent Docker utilise le récepteur `docker_stats` d'OpenTelemetry, qui interro
 
 ### CPU
 
-| Métrique | Description |
-|----------|-------------|
-| `container.cpu.utilization` | Utilisation CPU en pourcentage du CPU hôte |
-| `container.cpu.usage.total` | Temps CPU cumulatif consommé par le conteneur |
-| `container.cpu.throttling_data.throttled_time` | Temps pendant lequel le conteneur a été limité par les cgroups |
-| `container.cpu.throttling_data.throttled_periods` | Nombre de périodes de limitation |
+| Métrique                                          | Description                                                    |
+| ------------------------------------------------- | -------------------------------------------------------------- |
+| `container.cpu.utilization`                       | Utilisation CPU en pourcentage du CPU hôte                     |
+| `container.cpu.usage.total`                       | Temps CPU cumulatif consommé par le conteneur                  |
+| `container.cpu.throttling_data.throttled_time`    | Temps pendant lequel le conteneur a été limité par les cgroups |
+| `container.cpu.throttling_data.throttled_periods` | Nombre de périodes de limitation                               |
 
 ### Mémoire
 
-| Métrique | Description |
-|----------|-------------|
-| `container.memory.usage.total` | Utilisation mémoire actuelle en octets |
-| `container.memory.usage.limit` | Limite de mémoire en octets |
-| `container.memory.percent` | Utilisation mémoire en pourcentage de la limite |
+| Métrique                       | Description                                     |
+| ------------------------------ | ----------------------------------------------- |
+| `container.memory.usage.total` | Utilisation mémoire actuelle en octets          |
+| `container.memory.usage.limit` | Limite de mémoire en octets                     |
+| `container.memory.percent`     | Utilisation mémoire en pourcentage de la limite |
 
 ### Réseau
 
-| Métrique | Description |
-|----------|-------------|
-| `container.network.io.usage.rx_bytes` | Total des octets reçus |
+| Métrique                              | Description               |
+| ------------------------------------- | ------------------------- |
+| `container.network.io.usage.rx_bytes` | Total des octets reçus    |
 | `container.network.io.usage.tx_bytes` | Total des octets transmis |
 
 ### E/S de blocs
 
-| Métrique | Description |
-|----------|-------------|
-| `container.blockio.io_service_bytes_recursive.read` | Octets lus depuis les périphériques de blocs |
+| Métrique                                             | Description                                  |
+| ---------------------------------------------------- | -------------------------------------------- |
+| `container.blockio.io_service_bytes_recursive.read`  | Octets lus depuis les périphériques de blocs |
 | `container.blockio.io_service_bytes_recursive.write` | Octets écrits sur les périphériques de blocs |
 
 ### Informations sur le conteneur
 
-| Métrique | Description |
-|----------|-------------|
-| `container.uptime` | Durée de fonctionnement du conteneur en secondes |
-| `container.restarts` | Nombre de fois que le conteneur a redémarré |
-| `container.pids.count` | Nombre de processus à l'intérieur du conteneur |
+| Métrique               | Description                                      |
+| ---------------------- | ------------------------------------------------ |
+| `container.uptime`     | Durée de fonctionnement du conteneur en secondes |
+| `container.restarts`   | Nombre de fois que le conteneur a redémarré      |
+| `container.pids.count` | Nombre de processus à l'intérieur du conteneur   |
 
 ## Critères de surveillance
 
 ### Types de vérifications disponibles
 
-| Type de vérification | Description |
-|----------------------|-------------|
-| Valeur de métrique | La valeur de la requête de métrique ou formule configurée |
+| Type de vérification | Description                                               |
+| -------------------- | --------------------------------------------------------- |
+| Valeur de métrique   | La valeur de la requête de métrique ou formule configurée |
 
 ### Types d'agrégation
 
-| Agrégation | Description |
-|------------|-------------|
-| Moyenne | Valeur moyenne sur la fenêtre temporelle |
-| Somme | Somme de toutes les valeurs |
-| Valeur maximale | Valeur la plus élevée dans la fenêtre temporelle |
-| Valeur minimale | Valeur la plus basse dans la fenêtre temporelle |
-| Toutes les valeurs | Toutes les valeurs doivent correspondre aux critères |
-| N'importe quelle valeur | Au moins une valeur doit correspondre |
+| Agrégation              | Description                                          |
+| ----------------------- | ---------------------------------------------------- |
+| Moyenne                 | Valeur moyenne sur la fenêtre temporelle             |
+| Somme                   | Somme de toutes les valeurs                          |
+| Valeur maximale         | Valeur la plus élevée dans la fenêtre temporelle     |
+| Valeur minimale         | Valeur la plus basse dans la fenêtre temporelle      |
+| Toutes les valeurs      | Toutes les valeurs doivent correspondre aux critères |
+| N'importe quelle valeur | Au moins une valeur doit correspondre                |
 
 ### Types de filtres
 
@@ -128,13 +128,13 @@ L'agent Docker utilise le récepteur `docker_stats` d'OpenTelemetry, qui interro
 
 OneUptime fournit des modèles pour les scénarios courants de surveillance Docker :
 
-| Modèle | Description | Seuil | Agrégation |
-|--------|-------------|-------|------------|
-| CPU de conteneur élevé | Utilisation CPU par conteneur | > 90% | Max (par conteneur) |
-| Mémoire de conteneur élevée | Utilisation mémoire en pourcentage de la limite | > 85% | Max (par conteneur) |
-| Limitation CPU élevée | Périodes de limitation CPU | > 0 | Max (par conteneur) |
-| Boucle de redémarrage de conteneur | Nombre de redémarrages du conteneur | > 3 | Somme |
-| Conteneur hors ligne | Durée de fonctionnement du conteneur réinitialisée à 0 | = 0 | Min |
+| Modèle                             | Description                                            | Seuil | Agrégation          |
+| ---------------------------------- | ------------------------------------------------------ | ----- | ------------------- |
+| CPU de conteneur élevé             | Utilisation CPU par conteneur                          | > 90% | Max (par conteneur) |
+| Mémoire de conteneur élevée        | Utilisation mémoire en pourcentage de la limite        | > 85% | Max (par conteneur) |
+| Limitation CPU élevée              | Périodes de limitation CPU                             | > 0   | Max (par conteneur) |
+| Boucle de redémarrage de conteneur | Nombre de redémarrages du conteneur                    | > 3   | Somme               |
+| Conteneur hors ligne               | Durée de fonctionnement du conteneur réinitialisée à 0 | = 0   | Min                 |
 
 > Remarque : Les modèles CPU, mémoire et limitation utilisent l'agrégation **Max** groupée par `resource.container.name`. Cela évite que le signal d'un conteneur surchargé soit dilué par de nombreux conteneurs inactifs sur le même hôte.
 

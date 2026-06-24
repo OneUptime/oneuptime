@@ -98,10 +98,10 @@ provider "oneuptime" {
 
 ### 配置选项
 
-| 参数 | 环境变量 | 描述 | 是否必填 |
-|------|---------|------|---------|
-| `oneuptime_url` | `ONEUPTIME_URL` | OneUptime URL | 是 |
-| `api_key` | `ONEUPTIME_API_KEY` | OneUptime API 密钥 | 是 |
+| 参数            | 环境变量            | 描述               | 是否必填 |
+| --------------- | ------------------- | ------------------ | -------- |
+| `oneuptime_url` | `ONEUPTIME_URL`     | OneUptime URL      | 是       |
+| `api_key`       | `ONEUPTIME_API_KEY` | OneUptime API 密钥 | 是       |
 
 ## 快速开始
 
@@ -195,11 +195,11 @@ terraform {
 
 **关键**：自托管客户必须将提供商版本固定到与其 OneUptime 安装匹配的版本：
 
-| OneUptime 版本 | 提供商版本 | 配置 |
-|--------------|----------|------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| 7.2.x | 7.2.x | `version = "~> 7.2.0"` |
+| OneUptime 版本 | 提供商版本 | 配置                   |
+| -------------- | ---------- | ---------------------- |
+| 7.0.x          | 7.0.x      | `version = "~> 7.0.0"` |
+| 7.1.x          | 7.1.x      | `version = "~> 7.1.0"` |
+| 7.2.x          | 7.2.x      | `version = "~> 7.2.0"` |
 
 OneUptime 7.0.123 的示例：
 
@@ -219,26 +219,33 @@ terraform {
 OneUptime Terraform 提供商支持以下资源：
 
 ### 核心资源
+
 - `oneuptime_team` - 管理团队
 
 ### 监控
+
 - `oneuptime_monitor` - 创建和管理监控器
 - `oneuptime_probe` - 管理监控探针
 
 ### 值班管理
+
 - `oneuptime_on_call_duty_policy` - 设置值班排班
 
 ### 状态页面
+
 - `oneuptime_status_page` - 创建状态页面
 
 ### 服务目录
+
 - `oneuptime_service_catalog` - 管理服务目录条目
 
 ### 服务目录
+
 - `oneuptime_service` - 定义服务
 - `oneuptime_service_dependency` - 映射服务依赖
 
 ### 数据源
+
 注意：提供商架构中当前未定义数据源，因此目前数据源不可用。
 
 ## 示例
@@ -301,12 +308,12 @@ resource "oneuptime_monitor" "api" {
 resource "oneuptime_monitor" "database" {
   name       = "Database Connection"
   project_id = oneuptime_project.production.id
-  
+
   monitor_type = "port"
   hostname     = "db.mycompany.com"
   port         = 5432
   interval     = "2m"
-  
+
   tags = {
     service     = "database"
     environment = "production"
@@ -319,11 +326,11 @@ resource "oneuptime_on_call_policy" "platform_oncall" {
   name       = "Platform On-Call"
   project_id = oneuptime_project.production.id
   team_id    = oneuptime_team.platform.id
-  
+
   schedules {
     name      = "Business Hours"
     timezone  = "America/New_York"
-    
+
     layers {
       name = "Primary"
       users = ["user1@mycompany.com", "user2@mycompany.com"]
@@ -339,22 +346,22 @@ resource "oneuptime_on_call_policy" "platform_oncall" {
 resource "oneuptime_alert_policy" "critical_alerts" {
   name       = "Critical System Alerts"
   project_id = oneuptime_project.production.id
-  
+
   conditions {
     monitor_id = oneuptime_monitor.api.id
     threshold  = "down"
   }
-  
+
   conditions {
     monitor_id = oneuptime_monitor.database.id
     threshold  = "down"
   }
-  
+
   actions {
     type = "webhook"
     url  = "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
   }
-  
+
   actions {
     type           = "oncall_escalation"
     oncall_policy_id = oneuptime_on_call_policy.platform_oncall.id
@@ -365,14 +372,14 @@ resource "oneuptime_alert_policy" "critical_alerts" {
 resource "oneuptime_status_page" "public" {
   name       = "MyCompany Status"
   project_id = oneuptime_project.production.id
-  
+
   domain = "status.mycompany.com"
-  
+
   components {
     name       = "API"
     monitor_id = oneuptime_monitor.api.id
   }
-  
+
   components {
     name       = "Database"
     monitor_id = oneuptime_monitor.database.id
@@ -407,10 +414,12 @@ provider "oneuptime" {
 ### 1. 版本管理
 
 **对于云端客户：**
+
 - 使用语义版本控制 `~>` 获取兼容更新
 - 在主版本升级前查看更新日志
 
 **对于自托管客户：**
+
 - 始终固定到与您的安装完全匹配的版本
 - 升级 OneUptime 时更新提供商版本
 - 先在非生产环境中测试
@@ -545,15 +554,19 @@ terraform apply
 ### 常见问题
 
 1. **版本不匹配（自托管）**
+
    ```
    Error: API version incompatible
    ```
+
    **解决方案**：确保提供商版本与 OneUptime 安装版本匹配
 
 2. **认证问题**
+
    ```
    Error: Invalid API key
    ```
+
    **解决方案**：验证 API 密钥和权限
 
 3. **资源未找到**

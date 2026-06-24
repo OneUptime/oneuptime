@@ -202,13 +202,13 @@ La configuración anterior usa variables de entrada con `"password": true` para 
 
 ## Puntos de conexión disponibles
 
-| Punto de conexión | Método | Descripción |
-|----------|--------|-------------|
-| `/mcp` | GET | Flujo de eventos enviados por el servidor para notificaciones de servidor a cliente |
-| `/mcp` | POST | Solicitudes JSON-RPC para llamadas a herramientas y otras operaciones |
-| `/mcp` | DELETE | Limpieza y terminación de sesión |
-| `/mcp/health` | GET | Punto de conexión de verificación de salud |
-| `/mcp/tools` | GET | API REST para listar herramientas disponibles |
+| Punto de conexión | Método | Descripción                                                                         |
+| ----------------- | ------ | ----------------------------------------------------------------------------------- |
+| `/mcp`            | GET    | Flujo de eventos enviados por el servidor para notificaciones de servidor a cliente |
+| `/mcp`            | POST   | Solicitudes JSON-RPC para llamadas a herramientas y otras operaciones               |
+| `/mcp`            | DELETE | Limpieza y terminación de sesión                                                    |
+| `/mcp/health`     | GET    | Punto de conexión de verificación de salud                                          |
+| `/mcp/tools`      | GET    | API REST para listar herramientas disponibles                                       |
 
 ## Autenticación
 
@@ -319,12 +319,15 @@ Estas consultas funcionan sin autenticación, usando solo las herramientas públ
 ## Permisos de clave de API
 
 ### Acceso de solo lectura
+
 Para ver datos únicamente, agrega permisos de lectura para tu clave de API.
 
 ### Acceso completo
+
 Para acceso completo para crear, actualizar y eliminar recursos, asegúrate de que tu clave de API tenga permisos de administrador del proyecto.
 
 ### Buenas prácticas
+
 - Usa permisos específicos: Solo otorga los permisos mínimos necesarios
 - Rota las claves de API: Rota regularmente tus claves de API
 - Monitorea el uso: Realiza un seguimiento del uso de claves de API en OneUptime
@@ -333,24 +336,30 @@ Para acceso completo para crear, actualizar y eliminar recursos, asegúrate de q
 ## Solución de problemas
 
 ### Errores de permisos
+
 Asegúrate de que tu clave de API tenga los permisos necesarios:
+
 - Acceso de lectura para listar recursos
 - Acceso de escritura para crear/actualizar recursos
 - Acceso de eliminación si deseas eliminar recursos
 
 ### Problemas de conexión
+
 1. Verifica que la URL de tu instancia de OneUptime sea correcta
 2. Comprueba que tu clave de API sea válida
 3. Asegúrate de que tu instancia de OneUptime sea accesible
 4. Prueba el punto de conexión de salud
 
 ### Clave de API no válida
+
 - Verifica la clave de API en tu configuración de OneUptime
 - Comprueba si hay espacios o caracteres adicionales
 - Asegúrate de que la clave no haya expirado
 
 ### Errores de sesión
+
 Si recibes errores relacionados con la sesión:
+
 - El servidor MCP usa el encabezado `mcp-session-id` para rastrear sesiones
 - Asegúrate de que tu cliente maneje correctamente el ID de sesión devuelto por el servidor
 - Las sesiones se limpian automáticamente cuando se cierran las conexiones

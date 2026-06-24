@@ -24,34 +24,34 @@ DNS-monitors sturen opvragen naar DNS-servers voor specifieke recordtypen en eva
 
 ### Basisinstellingen
 
-| Veld | Beschrijving | Vereist |
-|-------|-------------|----------|
-| Domeinnaam | Het te bevragen domein (bijv. `example.com`) | Ja |
-| Recordtype | Het te bevragen DNS-recordtype | Ja |
-| DNS-server | Aangepaste te gebruiken DNS-server (bijv. `8.8.8.8`). Leeg laten voor systeemstandaard | Nee |
+| Veld       | Beschrijving                                                                           | Vereist |
+| ---------- | -------------------------------------------------------------------------------------- | ------- |
+| Domeinnaam | Het te bevragen domein (bijv. `example.com`)                                           | Ja      |
+| Recordtype | Het te bevragen DNS-recordtype                                                         | Ja      |
+| DNS-server | Aangepaste te gebruiken DNS-server (bijv. `8.8.8.8`). Leeg laten voor systeemstandaard | Nee     |
 
 ### Ondersteunde recordtypen
 
-| Recordtype | Beschrijving |
-|-------------|-------------|
-| A | IPv4-adresrecords |
-| AAAA | IPv6-adresrecords |
-| CNAME | Canonieke naam (alias) records |
-| MX | Mail exchange records |
-| NS | Naamserverrecords |
-| TXT | Tekstrecords (SPF, DKIM, enz.) |
-| SOA | Start of Authority records |
-| PTR | Aanwijzerrecords (omgekeerde DNS) |
-| SRV | Service locator records |
-| CAA | Certificate Authority Authorization records |
+| Recordtype | Beschrijving                                |
+| ---------- | ------------------------------------------- |
+| A          | IPv4-adresrecords                           |
+| AAAA       | IPv6-adresrecords                           |
+| CNAME      | Canonieke naam (alias) records              |
+| MX         | Mail exchange records                       |
+| NS         | Naamserverrecords                           |
+| TXT        | Tekstrecords (SPF, DKIM, enz.)              |
+| SOA        | Start of Authority records                  |
+| PTR        | Aanwijzerrecords (omgekeerde DNS)           |
+| SRV        | Service locator records                     |
+| CAA        | Certificate Authority Authorization records |
 
 ### Geavanceerde instellingen
 
-| Veld | Beschrijving | Standaard |
-|-------|-------------|---------|
-| Poort | DNS-poortnummer | 53 |
-| Time-out (ms) | Hoe lang te wachten op een antwoord | 5000 |
-| Nieuwe pogingen | Aantal nieuwe pogingen bij mislukking | 3 |
+| Veld            | Beschrijving                          | Standaard |
+| --------------- | ------------------------------------- | --------- |
+| Poort           | DNS-poortnummer                       | 53        |
+| Time-out (ms)   | Hoe lang te wachten op een antwoord   | 5000      |
+| Nieuwe pogingen | Aantal nieuwe pogingen bij mislukking | 3         |
 
 ## Monitoringcriteria
 
@@ -59,13 +59,13 @@ U kunt criteria configureren om te bepalen wanneer uw DNS als online, gedegradee
 
 ### Beschikbare controletypen
 
-| Controletype | Beschrijving |
-|------------|-------------|
-| DNS is online | Of de DNS-server reageert op opvragen |
-| DNS-responstijd (in ms) | Opvraagresponstijd in milliseconden |
-| DNS-record bestaat | Of DNS-records bestaan voor de opvraag |
-| DNS-recordwaarde | De waarde die door een DNS-record wordt geretourneerd |
-| DNSSEC is geldig | Of DNSSEC-validatie slaagt |
+| Controletype            | Beschrijving                                          |
+| ----------------------- | ----------------------------------------------------- |
+| DNS is online           | Of de DNS-server reageert op opvragen                 |
+| DNS-responstijd (in ms) | Opvraagresponstijd in milliseconden                   |
+| DNS-record bestaat      | Of DNS-records bestaan voor de opvraag                |
+| DNS-recordwaarde        | De waarde die door een DNS-record wordt geretourneerd |
+| DNSSEC is geldig        | Of DNSSEC-validatie slaagt                            |
 
 ### Filtertypen
 

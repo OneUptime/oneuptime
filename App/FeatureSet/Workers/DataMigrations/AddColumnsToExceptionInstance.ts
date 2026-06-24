@@ -8,6 +8,10 @@ export default class AddColumnsToExceptionInstance extends DataMigrationBase {
     super("AddColumnsToExceptionInstance");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     const columnKeys: string[] = ["release", "environment", "parsedFrames"];
 

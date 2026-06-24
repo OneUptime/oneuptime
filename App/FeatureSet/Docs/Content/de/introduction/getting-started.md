@@ -4,36 +4,29 @@ OneUptime ist eine umfassende Lösung zur Überwachung und Verwaltung Ihrer Onli
 
 OneUptime ersetzt mehrere Tools durch eine integrierte Plattform:
 
-
 ##### Verfügbarkeitsüberwachung
 
 Überwachen Sie die Verfügbarkeit und Antwortzeit Ihrer Online-Dienste von mehreren Standorten weltweit. Erhalten Sie Benachrichtigungen per E-Mail, SMS, Slack oder über andere Kanäle, wenn etwas schiefgeht. Ersetzen Sie Tools wie Pingdom.
-
 
 ##### Statusseiten
 
 Kommunizieren Sie mit Ihren Kunden und Stakeholdern bei Ausfällen oder Wartungsarbeiten. Erstellen Sie eine individuell gebrandete Statusseite, die den aktuellen Status und die Historie Ihrer Dienste anzeigt. Ersetzen Sie Tools wie StatusPage.io.
 
-
 ##### Vorfallmanagement
 
 Verwalten Sie Vorfälle von Anfang bis Ende mit einem kollaborativen Workflow. Erstellen Sie Vorfallberichte, weisen Sie Aufgaben zu, halten Sie Stakeholder auf dem Laufenden und dokumentieren Sie Lösungen. Ersetzen Sie Tools wie Incident.io.
-
 
 ##### Bereitschaft und Warnmeldungen
 
 Planen Sie Bereitschaftsdienste für Ihr Team und definieren Sie Eskalationsrichtlinien. Stellen Sie sicher, dass die richtige Person zur richtigen Zeit benachrichtigt wird, wenn ein Vorfall auftritt. Ersetzen Sie Tools wie PagerDuty.
 
-
 ##### Log-Verwaltung
 
 Sammeln, speichern und analysieren Sie Logs Ihrer Online-Dienste. Durchsuchen, filtern und visualisieren Sie Log-Daten, um Erkenntnisse zu gewinnen und Probleme zu beheben. Ersetzen Sie Tools wie Loggly.
 
-
 ##### Workflows
 
 Integrieren Sie OneUptime in Ihre bestehenden Tools und automatisieren Sie Ihre Arbeitsabläufe. Verbinden Sie sich mit Tools wie Slack, Jira, GitHub und mehr als 5000 weiteren.
-
 
 ##### Application Performance Monitoring
 

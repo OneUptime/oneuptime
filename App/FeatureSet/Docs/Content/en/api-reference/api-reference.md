@@ -6,7 +6,6 @@ OneUptime provides a comprehensive REST API that allows you to integrate monitor
 
 Our API is organized around REST principles and uses standard HTTP response codes, authentication, and verbs. All API endpoints return JSON responses.
 
-
 ### Authentication
 
 All API requests require authentication using API keys. You can generate API keys from your OneUptime dashboard under Settings > API Keys.

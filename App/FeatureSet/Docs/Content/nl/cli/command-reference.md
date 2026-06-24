@@ -12,11 +12,11 @@ Authenticeer bij een OneUptime-instantie.
 oneuptime login <api-key> <instance-url> [--context-name <name>]
 ```
 
-| Parameter | Type | Vereist | Beschrijving |
-|-----------|------|----------|-------------|
-| `<api-key>` | argument | Ja | API-sleutel voor authenticatie |
-| `<instance-url>` | argument | Ja | OneUptime instantie-URL |
-| `--context-name` | optie | Nee | Contextnaam (standaard: `"default"`) |
+| Parameter        | Type     | Vereist | Beschrijving                         |
+| ---------------- | -------- | ------- | ------------------------------------ |
+| `<api-key>`      | argument | Ja      | API-sleutel voor authenticatie       |
+| `<instance-url>` | argument | Ja      | OneUptime instantie-URL              |
+| `--context-name` | optie    | Nee     | Contextnaam (standaard: `"default"`) |
 
 ---
 
@@ -38,9 +38,9 @@ Overschakelen naar een benoemde context.
 oneuptime context use <name>
 ```
 
-| Parameter | Type | Vereist | Beschrijving |
-|-----------|------|----------|-------------|
-| `<name>` | argument | Ja | Te activeren contextnaam |
+| Parameter | Type     | Vereist | Beschrijving             |
+| --------- | -------- | ------- | ------------------------ |
+| `<name>`  | argument | Ja      | Te activeren contextnaam |
 
 ---
 
@@ -62,9 +62,9 @@ Een opgeslagen context verwijderen.
 oneuptime context delete <name>
 ```
 
-| Parameter | Type | Vereist | Beschrijving |
-|-----------|------|----------|-------------|
-| `<name>` | argument | Ja | Te verwijderen contextnaam |
+| Parameter | Type     | Vereist | Beschrijving               |
+| --------- | -------- | ------- | -------------------------- |
+| `<name>`  | argument | Ja      | Te verwijderen contextnaam |
 
 ---
 
@@ -80,13 +80,13 @@ Resources weergeven met filteren en paginering.
 oneuptime <resource> list [options]
 ```
 
-| Optie | Type | Standaard | Beschrijving |
-|--------|------|---------|-------------|
-| `--query <json>` | string | Geen | Filtercriteria als JSON |
-| `--limit <n>` | number | `10` | Maximum aantal resultaten |
-| `--skip <n>` | number | `0` | Te overslaan resultaten |
-| `--sort <json>` | string | Geen | Sorteervolgorde als JSON |
-| `-o, --output` | string | `table` | Uitvoerformaat |
+| Optie            | Type   | Standaard | Beschrijving              |
+| ---------------- | ------ | --------- | ------------------------- |
+| `--query <json>` | string | Geen      | Filtercriteria als JSON   |
+| `--limit <n>`    | number | `10`      | Maximum aantal resultaten |
+| `--skip <n>`     | number | `0`       | Te overslaan resultaten   |
+| `--sort <json>`  | string | Geen      | Sorteervolgorde als JSON  |
+| `-o, --output`   | string | `table`   | Uitvoerformaat            |
 
 ---
 
@@ -98,10 +98,10 @@ Eén resource ophalen op ID.
 oneuptime <resource> get <id> [-o <format>]
 ```
 
-| Parameter | Type | Vereist | Beschrijving |
-|-----------|------|----------|-------------|
-| `<id>` | argument | Ja | Resource-ID (UUID) |
-| `-o, --output` | optie | Nee | Uitvoerformaat |
+| Parameter      | Type     | Vereist | Beschrijving       |
+| -------------- | -------- | ------- | ------------------ |
+| `<id>`         | argument | Ja      | Resource-ID (UUID) |
+| `-o, --output` | optie    | Nee     | Uitvoerformaat     |
 
 ---
 
@@ -113,11 +113,11 @@ Een nieuwe resource aanmaken.
 oneuptime <resource> create [--data <json> | --file <path>] [-o <format>]
 ```
 
-| Optie | Type | Vereist | Beschrijving |
-|--------|------|----------|-------------|
+| Optie           | Type   | Vereist                      | Beschrijving              |
+| --------------- | ------ | ---------------------------- | ------------------------- |
 | `--data <json>` | string | Een van `--data` of `--file` | Resourcegegevens als JSON |
-| `--file <path>` | string | Een van `--data` of `--file` | Pad naar JSON-bestand |
-| `-o, --output` | string | Nee | Uitvoerformaat |
+| `--file <path>` | string | Een van `--data` of `--file` | Pad naar JSON-bestand     |
+| `-o, --output`  | string | Nee                          | Uitvoerformaat            |
 
 ---
 
@@ -129,11 +129,11 @@ Een bestaande resource bijwerken.
 oneuptime <resource> update <id> --data <json> [-o <format>]
 ```
 
-| Parameter | Type | Vereist | Beschrijving |
-|-----------|------|----------|-------------|
-| `<id>` | argument | Ja | Resource-ID |
-| `--data <json>` | optie | Ja | Bij te werken velden als JSON |
-| `-o, --output` | optie | Nee | Uitvoerformaat |
+| Parameter       | Type     | Vereist | Beschrijving                  |
+| --------------- | -------- | ------- | ----------------------------- |
+| `<id>`          | argument | Ja      | Resource-ID                   |
+| `--data <json>` | optie    | Ja      | Bij te werken velden als JSON |
+| `-o, --output`  | optie    | Nee     | Uitvoerformaat                |
 
 ---
 
@@ -145,10 +145,10 @@ Een resource verwijderen.
 oneuptime <resource> delete <id> [--force]
 ```
 
-| Parameter | Type | Vereist | Beschrijving |
-|-----------|------|----------|-------------|
-| `<id>` | argument | Ja | Resource-ID |
-| `--force` | optie | Nee | Bevestigingsprompt overslaan |
+| Parameter | Type     | Vereist | Beschrijving                 |
+| --------- | -------- | ------- | ---------------------------- |
+| `<id>`    | argument | Ja      | Resource-ID                  |
+| `--force` | optie    | Nee     | Bevestigingsprompt overslaan |
 
 ---
 
@@ -160,9 +160,9 @@ Resources tellen die overeenkomen met een filter.
 oneuptime <resource> count [--query <json>]
 ```
 
-| Optie | Type | Standaard | Beschrijving |
-|--------|------|---------|-------------|
-| `--query <json>` | string | Geen | Filtercriteria als JSON |
+| Optie            | Type   | Standaard | Beschrijving            |
+| ---------------- | ------ | --------- | ----------------------- |
+| `--query <json>` | string | Geen      | Filtercriteria als JSON |
 
 ---
 
@@ -198,9 +198,9 @@ Alle beschikbare resourcetypen weergeven.
 oneuptime resources [--type <type>]
 ```
 
-| Optie | Type | Standaard | Beschrijving |
-|--------|------|---------|-------------|
-| `--type <type>` | string | Geen | Filteren op `database` of `analytics` |
+| Optie           | Type   | Standaard | Beschrijving                          |
+| --------------- | ------ | --------- | ------------------------------------- |
+| `--type <type>` | string | Geen      | Filteren op `database` of `analytics` |
 
 ---
 
@@ -208,27 +208,27 @@ oneuptime resources [--type <type>]
 
 Deze vlaggen zijn beschikbaar voor alle opdrachten:
 
-| Optie | Beschrijving |
-|--------|-------------|
-| `--api-key <key>` | API-sleutel overschrijven |
-| `--url <url>` | Instantie-URL overschrijven |
-| `--context <name>` | Een specifieke context gebruiken |
+| Optie                   | Beschrijving                            |
+| ----------------------- | --------------------------------------- |
+| `--api-key <key>`       | API-sleutel overschrijven               |
+| `--url <url>`           | Instantie-URL overschrijven             |
+| `--context <name>`      | Een specifieke context gebruiken        |
 | `-o, --output <format>` | Uitvoerformaat: `json`, `table`, `wide` |
-| `--no-color` | Gekleurde uitvoer uitschakelen |
-| `--help` | Hulp weergeven |
-| `--version` | Versie weergeven |
+| `--no-color`            | Gekleurde uitvoer uitschakelen          |
+| `--help`                | Hulp weergeven                          |
+| `--version`             | Versie weergeven                        |
 
 ## API-routes
 
 Ter referentie: de CLI mapt opdrachten naar deze API-eindpunten:
 
-| Opdracht | Methode | Eindpunt |
-|---------|--------|----------|
-| `list` | POST | `/api/<resource>/get-list` |
-| `get` | POST | `/api/<resource>/<id>/get-item` |
-| `create` | POST | `/api/<resource>` |
-| `update` | PUT | `/api/<resource>/<id>/` |
-| `delete` | DELETE | `/api/<resource>/<id>/` |
-| `count` | POST | `/api/<resource>/count` |
+| Opdracht | Methode | Eindpunt                        |
+| -------- | ------- | ------------------------------- |
+| `list`   | POST    | `/api/<resource>/get-list`      |
+| `get`    | POST    | `/api/<resource>/<id>/get-item` |
+| `create` | POST    | `/api/<resource>`               |
+| `update` | PUT     | `/api/<resource>/<id>/`         |
+| `delete` | DELETE  | `/api/<resource>/<id>/`         |
+| `count`  | POST    | `/api/<resource>/count`         |
 
 Alle verzoeken bevatten de `APIKey`-header voor authenticatie.

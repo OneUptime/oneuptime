@@ -21,6 +21,15 @@ const ServerlessSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.List,
         },
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVERLESS_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
       ],
     },
     {

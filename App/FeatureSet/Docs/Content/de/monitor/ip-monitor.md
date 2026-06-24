@@ -31,11 +31,11 @@ Sie können Kriterien konfigurieren, um zu bestimmen, wann Ihre IP-Adresse als o
 
 ### Verfügbare Prüftypen
 
-| Prüftyp | Beschreibung |
-|------------|-------------|
-| Ist online | Ob die IP-Adresse erreichbar ist |
-| Antwortzeit (in ms) | Antwortzeit in Millisekunden |
-| Anfrage-Timeout | Ob die Anfrage ein Timeout hatte |
+| Prüftyp             | Beschreibung                     |
+| ------------------- | -------------------------------- |
+| Ist online          | Ob die IP-Adresse erreichbar ist |
+| Antwortzeit (in ms) | Antwortzeit in Millisekunden     |
+| Anfrage-Timeout     | Ob die Anfrage ein Timeout hatte |
 
 ### Filtertypen
 

@@ -1243,48 +1243,6 @@ export default class StatusPage extends BaseModel {
   })
   public showScheduledEventLabelsOnStatusPage?: boolean = undefined;
 
-  // This column is Deprectaed.
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.CreateProjectStatusPage,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.StatusPageViewer,
-      Permission.ReadProjectStatusPage,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.EditProjectStatusPage,
-    ],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    title: "Enable Subscribers",
-    description: "Can subscribers subscribe to this Status Page?",
-    defaultValue: true,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: true,
-  })
-  public enableSubscribers?: boolean = undefined;
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

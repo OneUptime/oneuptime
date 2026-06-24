@@ -15,12 +15,12 @@ Queste hanno la precedenza sui contesti salvati, ma vengono sovrascritte dai fla
 
 ## Codici di Uscita
 
-| Codice | Significato |
-|------|---------|
-| `0` | Successo |
-| `1` | Errore generico |
-| `2` | Errore di autenticazione (credenziali mancanti o non valide) |
-| `3` | Non trovato (404) |
+| Codice | Significato                                                  |
+| ------ | ------------------------------------------------------------ |
+| `0`    | Successo                                                     |
+| `1`    | Errore generico                                              |
+| `2`    | Errore di autenticazione (credenziali mancanti o non valide) |
+| `3`    | Non trovato (404)                                            |
 
 Usa i codici di uscita negli script per gestire gli errori:
 
@@ -80,7 +80,7 @@ done
 name: Check Active Incidents
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: "*/5 * * * *"
 
 jobs:
   health-check:

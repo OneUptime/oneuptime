@@ -19,17 +19,17 @@ OAuth 2.0 email servers के साथ authenticate करने का एक
 
 OneUptime में OAuth authentication के साथ SMTP configure करते समय, आपको निम्नलिखित की आवश्यकता होगी:
 
-| Field | विवरण |
-|-------|-------|
-| **Hostname** | SMTP server address |
-| **Port** | SMTP port (आमतौर पर STARTTLS के लिए 587 या implicit TLS के लिए 465) |
-| **Username** | भेजने के लिए email address |
-| **Authentication Type** | "OAuth" चुनें |
+| Field                   | विवरण                                                                                    |
+| ----------------------- | ---------------------------------------------------------------------------------------- |
+| **Hostname**            | SMTP server address                                                                      |
+| **Port**                | SMTP port (आमतौर पर STARTTLS के लिए 587 या implicit TLS के लिए 465)                      |
+| **Username**            | भेजने के लिए email address                                                               |
+| **Authentication Type** | "OAuth" चुनें                                                                            |
 | **OAuth Provider Type** | Microsoft 365 के लिए "Client Credentials", या Google Workspace के लिए "JWT Bearer" चुनें |
-| **Client ID** | आपके OAuth provider से Application/Client ID (Google के लिए: service account email) |
-| **Client Secret** | आपके OAuth provider से Client secret (Google के लिए: private key) |
-| **Token URL** | OAuth token endpoint URL |
-| **Scope** | SMTP access के लिए आवश्यक OAuth scope(s) |
+| **Client ID**           | आपके OAuth provider से Application/Client ID (Google के लिए: service account email)      |
+| **Client Secret**       | आपके OAuth provider से Client secret (Google के लिए: private key)                        |
+| **Token URL**           | OAuth token endpoint URL                                                                 |
+| **Scope**               | SMTP access के लिए आवश्यक OAuth scope(s)                                                 |
 
 ---
 
@@ -48,6 +48,7 @@ Microsoft 365/Exchange Online के साथ OAuth उपयोग करन�
 7. **Register** पर क्लिक करें
 
 Registration के बाद, **Overview** page से निम्नलिखित values नोट करें:
+
 - **Application (client) ID** - यह आपकी Client ID है
 - **Directory (tenant) ID** - आपको Token URL के लिए इसकी आवश्यकता होगी
 
@@ -107,19 +108,19 @@ Add-MailboxPermission -Identity "sender@yourdomain.com" -User <service-principal
 
 OneUptime में, इन settings के साथ एक SMTP configuration बनाएं या संपादित करें:
 
-| Field | Value |
-|-------|-------|
-| Hostname | `smtp.office365.com` |
-| Port | `587` |
-| Username | वह email address जिसे आपने permissions दी हैं (जैसे `sender@yourdomain.com`) |
-| Authentication Type | `OAuth` |
-| OAuth Provider Type | `Client Credentials` |
-| Client ID | चरण 1 से आपका Application (client) ID |
-| Client Secret | चरण 2 से secret value |
-| Token URL | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` |
-| Scope | `https://outlook.office365.com/.default` |
-| From Email | Username के समान |
-| Secure (TLS) | सक्षम |
+| Field               | Value                                                                        |
+| ------------------- | ---------------------------------------------------------------------------- |
+| Hostname            | `smtp.office365.com`                                                         |
+| Port                | `587`                                                                        |
+| Username            | वह email address जिसे आपने permissions दी हैं (जैसे `sender@yourdomain.com`) |
+| Authentication Type | `OAuth`                                                                      |
+| OAuth Provider Type | `Client Credentials`                                                         |
+| Client ID           | चरण 1 से आपका Application (client) ID                                        |
+| Client Secret       | चरण 2 से secret value                                                        |
+| Token URL           | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`            |
+| Scope               | `https://outlook.office365.com/.default`                                     |
+| From Email          | Username के समान                                                             |
+| Secure (TLS)        | सक्षम                                                                        |
 
 `<tenant-id>` को चरण 1 से अपने Directory (tenant) ID से बदलें।
 
@@ -189,19 +190,19 @@ Google Workspace के लिए users की ओर से emails भेजन
 
 OneUptime में, इन settings के साथ एक SMTP configuration बनाएं या संपादित करें:
 
-| Field | Value |
-|-------|-------|
-| Hostname | `smtp.gmail.com` |
-| Port | `587` |
-| Username | भेजने के लिए Google Workspace email address (जैसे `notifications@yourdomain.com`)। इस user को service account द्वारा impersonate किया जाएगा। |
-| Authentication Type | `OAuth` |
-| OAuth Provider Type | `JWT Bearer` |
-| Client ID | आपके service account JSON से `client_email` (जैसे `your-service@your-project.iam.gserviceaccount.com`) |
-| Client Secret | आपके service account JSON से `private_key` (`-----BEGIN PRIVATE KEY-----` और `-----END PRIVATE KEY-----` सहित संपूर्ण key) |
-| Token URL | `https://oauth2.googleapis.com/token` |
-| Scope | `https://mail.google.com/` |
-| From Email | Username के समान |
-| Secure (TLS) | सक्षम |
+| Field               | Value                                                                                                                                        |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hostname            | `smtp.gmail.com`                                                                                                                             |
+| Port                | `587`                                                                                                                                        |
+| Username            | भेजने के लिए Google Workspace email address (जैसे `notifications@yourdomain.com`)। इस user को service account द्वारा impersonate किया जाएगा। |
+| Authentication Type | `OAuth`                                                                                                                                      |
+| OAuth Provider Type | `JWT Bearer`                                                                                                                                 |
+| Client ID           | आपके service account JSON से `client_email` (जैसे `your-service@your-project.iam.gserviceaccount.com`)                                       |
+| Client Secret       | आपके service account JSON से `private_key` (`-----BEGIN PRIVATE KEY-----` और `-----END PRIVATE KEY-----` सहित संपूर्ण key)                   |
+| Token URL           | `https://oauth2.googleapis.com/token`                                                                                                        |
+| Scope               | `https://mail.google.com/`                                                                                                                   |
+| From Email          | Username के समान                                                                                                                             |
+| Secure (TLS)        | सक्षम                                                                                                                                        |
 
 **महत्वपूर्ण:** Google (JWT Bearer) के लिए, Client ID **service account email** (`client_email`) है, numerical `client_id` नहीं। service account emails भेजने के लिए Username field में निर्दिष्ट user को impersonate करेगा।
 
@@ -211,21 +212,21 @@ OneUptime में, इन settings के साथ एक SMTP configuration 
 
 ### Microsoft 365
 
-| समस्या | समाधान |
-|--------|--------|
-| "Authentication unsuccessful" | सत्यापित करें कि service principal Exchange में registered है और mailbox permissions हैं |
-| "AADSTS700016: Application not found" | जांचें कि Client ID सही है और app आपके tenant में मौजूद है |
-| "AADSTS7000215: Invalid client secret" | client secret regenerate करें - यह expired हो सकती है |
-| "The mailbox is not enabled for this operation" | mailbox तक पहुंच grant करने के लिए `Add-MailboxPermission` चलाएं |
+| समस्या                                          | समाधान                                                                                   |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| "Authentication unsuccessful"                   | सत्यापित करें कि service principal Exchange में registered है और mailbox permissions हैं |
+| "AADSTS700016: Application not found"           | जांचें कि Client ID सही है और app आपके tenant में मौजूद है                               |
+| "AADSTS7000215: Invalid client secret"          | client secret regenerate करें - यह expired हो सकती है                                    |
+| "The mailbox is not enabled for this operation" | mailbox तक पहुंच grant करने के लिए `Add-MailboxPermission` चलाएं                         |
 
 ### Google Workspace
 
-| समस्या | समाधान |
-|--------|--------|
-| "invalid_grant" | सुनिश्चित करें कि domain-wide delegation ठीक से configured और propagated है |
-| "unauthorized_client" | सत्यापित करें कि Client ID Google Workspace Admin Console में authorized है |
-| "access_denied" | जांचें कि scope `https://mail.google.com/` authorized है |
-| "Domain policy has disabled third-party Drive apps" | Google Workspace Admin > Security > API Controls में API access सक्षम करें |
+| समस्या                                              | समाधान                                                                      |
+| --------------------------------------------------- | --------------------------------------------------------------------------- |
+| "invalid_grant"                                     | सुनिश्चित करें कि domain-wide delegation ठीक से configured और propagated है |
+| "unauthorized_client"                               | सत्यापित करें कि Client ID Google Workspace Admin Console में authorized है |
+| "access_denied"                                     | जांचें कि scope `https://mail.google.com/` authorized है                    |
+| "Domain policy has disabled third-party Drive apps" | Google Workspace Admin > Security > API Controls में API access सक्षम करें  |
 
 ### सामान्य
 
@@ -248,10 +249,12 @@ OneUptime में, इन settings के साथ एक SMTP configuration 
 ## अतिरिक्त Resources
 
 ### Microsoft 365
+
 - [Authenticate an IMAP, POP or SMTP connection using OAuth](https://learn.microsoft.com/en-us/exchange/client-developer/legacy-protocols/how-to-authenticate-an-imap-pop-smtp-application-by-using-oauth)
 - [Register an application with Microsoft identity platform](https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app)
 
 ### Google Workspace
+
 - [Using OAuth 2.0 for Server to Server Applications](https://developers.google.com/identity/protocols/oauth2/service-account)
 - [Gmail API Documentation](https://developers.google.com/gmail/api)
 - [XOAUTH2 Protocol](https://developers.google.com/gmail/imap/xoauth2-protocol)

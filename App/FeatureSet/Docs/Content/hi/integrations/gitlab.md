@@ -24,8 +24,9 @@ OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/
 1. **Workflows → Create Workflow** खोलें, इसे `Incidents → GitLab Issues` नाम दें, और **Builder** खोलें।
 2. **On Create** पर सेट एक **Incident** trigger जोड़ें। इसे `Incident` नाम दें।
 3. trigger से connected एक **API** ब्लॉक जोड़ें:
+
    - **Method**: `POST`
-   - **URL**: `https://gitlab.com/api/v4/projects/12345678/issues`  *(`12345678` को अपने Project ID से बदलें; self-managed के लिए, अपना host इस्तेमाल करें)*
+   - **URL**: `https://gitlab.com/api/v4/projects/12345678/issues` _(`12345678` को अपने Project ID से बदलें; self-managed के लिए, अपना host इस्तेमाल करें)_
    - **Headers**:
 
      ```text

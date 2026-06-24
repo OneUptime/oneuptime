@@ -10,14 +10,14 @@ Alle drie de pagina's bewerken hetzelfde onderliggende regelmodel — ze zijn al
 
 ## Anatomie van een regel
 
-| Veld | Doel |
-| --- | --- |
-| **Naam** | Kort, leesbaar label. Verschijnt in audit-logs. |
-| **Beschrijving** | Optionele context voor teamleden. |
-| **Ingeschakeld** | Schakelaar om een regel te pauzeren zonder te verwijderen. |
-| **Titelpatroon** | Hoofdletterongevoelige regex die wordt afgespeeld op de titel van de entiteit. Leeg = elke titel matcht. |
+| Veld                    | Doel                                                                                                                   |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Naam**                | Kort, leesbaar label. Verschijnt in audit-logs.                                                                        |
+| **Beschrijving**        | Optionele context voor teamleden.                                                                                      |
+| **Ingeschakeld**        | Schakelaar om een regel te pauzeren zonder te verwijderen.                                                             |
+| **Titelpatroon**        | Hoofdletterongevoelige regex die wordt afgespeeld op de titel van de entiteit. Leeg = elke titel matcht.               |
 | **Beschrijvingpatroon** | Hoofdletterongevoelige regex die wordt afgespeeld op de beschrijving van de entiteit. Leeg = elke beschrijving matcht. |
-| **Te starten runbooks** | Eén of meer runbooks die starten wanneer de regel afgaat. |
+| **Te starten runbooks** | Eén of meer runbooks die starten wanneer de regel afgaat.                                                              |
 
 ## Match-semantiek
 

@@ -1,6 +1,6 @@
 # Anpassad kodmonitor
 
-Anpassad kodmonitor gör det möjligt att skriva anpassade skript för att övervaka dina applikationer. Du kan använda den här funktionen för att övervaka dina applikationer på ett sätt som inte är möjligt med befintliga monitorer. Till exempel kan du ha flerstegade API-förfrågningar. 
+Anpassad kodmonitor gör det möjligt att skriva anpassade skript för att övervaka dina applikationer. Du kan använda den här funktionen för att övervaka dina applikationer på ett sätt som inte är möjligt med befintliga monitorer. Till exempel kan du ha flerstegade API-förfrågningar.
 
 #### Exempel
 
@@ -9,15 +9,14 @@ Följande exempel visar hur du använder en anpassad kodmonitor:
 ```javascript
 // You can use axios module.
 
-await axios.get('https://api.example.com/');
+await axios.get("https://api.example.com/");
 
 // Axios Documentation here: https://axios-http.com/docs/intro
 
 return {
-    data: 'Hello World' // return any data you like here. 
+  data: "Hello World", // return any data you like here.
 };
 ```
-
 
 ### Använda monitorhemligheter
 
@@ -29,7 +28,7 @@ För att lägga till en hemlighet, gå till OneUptime-instrumentpanelen -> Proje
 
 Du kan välja vilka monitorer som har åtkomst till hemligheten. I det här fallet lade vi till `ApiKey`-hemligheten och valde monitorer som ska ha åtkomst till den.
 
-**Observera**: Hemligheter krypteras och lagras säkert. Om du tappar bort hemligheten måste du skapa en ny. Du kan inte visa eller uppdatera hemligheten efter att den har sparats. 
+**Observera**: Hemligheter krypteras och lagras säkert. Om du tappar bort hemligheten måste du skapa en ny. Du kan inte visa eller uppdatera hemligheten efter att den har sparats.
 
 #### Använda en hemlighet
 
@@ -46,9 +45,8 @@ let numberSecret = {{monitorSecrets.NumberSecret}};
 let booleanSecret = {{monitorSecrets.BooleanSecret}};
 
 // you can even console log to see if the secrets is being fetched correctly
-console.log(stringSecret); 
+console.log(stringSecret);
 ```
-
 
 ### Anpassade mätvärden
 
@@ -65,30 +63,32 @@ oneuptime.captureMetric(name, value, attributes);
 #### Exempel
 
 ```javascript
-const response = await axios.get('https://api.example.com/health');
+const response = await axios.get("https://api.example.com/health");
 
 // Capture a simple metric
-oneuptime.captureMetric('api.response.time', response.data.latency);
+oneuptime.captureMetric("api.response.time", response.data.latency);
 
 // Capture a metric with attributes
-oneuptime.captureMetric('api.queue.depth', response.data.queueDepth, {
-    region: 'us-east-1',
-    environment: 'production'
+oneuptime.captureMetric("api.queue.depth", response.data.queueDepth, {
+  region: "us-east-1",
+  environment: "production",
 });
 
 return {
-    data: response.data
+  data: response.data,
 };
 ```
 
 När de väl har registrerats visas dessa mätvärden i Metric Explorer under namn som `custom.monitor.api.response.time`. Du kan lägga till dem i instrumentpaneldiagram, konfigurera varningar och filtrera efter monitor, sond eller anpassade attribut du angett.
 
 **Gränser:**
+
 - Maximalt 100 mätvärden per skriptkörning.
 - Måttnamn är begränsade till 200 tecken.
 - Värden måste vara numeriska.
 
 ### Moduler tillgängliga i skriptet
+
 - `axios`: Du kan använda den här modulen för att göra HTTP-förfrågningar. Det är en promise-baserad HTTP-klient för webbläsaren och Node.js.
 - `crypto`: Du kan använda den här modulen för kryptografiska operationer. Det är en inbyggd Node.js-modul som tillhandahåller kryptografisk funktionalitet.
 - `console.log`: Du kan använda den här modulen för att logga data till konsolen. Detta är användbart för felsökning.
@@ -99,6 +99,6 @@ När de väl har registrerats visas dessa mätvärden i Metric Explorer under na
 ### Saker att tänka på
 
 - Du kan använda `console.log` för att logga data i konsolen. Detta är tillgängligt i loggavsnittet för monitorn (Sonder > Visa loggar).
-- Du kan returnera data från skriptet med `return`-uttrycket. 
+- Du kan returnera data från skriptet med `return`-uttrycket.
 - Detta är ett JavaScript-skript, så du kan använda alla JavaScript-funktioner i skriptet.
 - Timeout för skriptet är 2 minuter. Om skriptet tar mer än 2 minuter avslutas det.

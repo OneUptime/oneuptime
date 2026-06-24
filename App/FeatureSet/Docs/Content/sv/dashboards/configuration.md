@@ -29,12 +29,12 @@ Listan **Dashboards** låter dig filtrera på etikett, vilket är det snabbaste 
 
 Instrumentpaneler fungerar med ditt projekts rollbaserade åtkomstkontroll. De relevanta behörigheterna:
 
-| Behörighet | Vad den tillåter |
-| --- | --- |
-| **Create Dashboard** | Skapa nya instrumentpaneler. |
-| **Read Dashboard** | Visa instrumentpaneler (i privat läge). |
-| **Edit Dashboard** | Ändra widgetar, variabler och inställningar. |
-| **Delete Dashboard** | Radera en instrumentpanel. |
+| Behörighet           | Vad den tillåter                             |
+| -------------------- | -------------------------------------------- |
+| **Create Dashboard** | Skapa nya instrumentpaneler.                 |
+| **Read Dashboard**   | Visa instrumentpaneler (i privat läge).      |
+| **Edit Dashboard**   | Ändra widgetar, variabler och inställningar. |
+| **Delete Dashboard** | Radera en instrumentpanel.                   |
 
 Det finns matchande behörigheter för instrumentpanelägare och anpassade domäner, så att du kan ge "hantera ägare" utan att ge "redigera instrumentpanelen."
 

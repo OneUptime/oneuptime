@@ -56,24 +56,29 @@
 ## 疑難排解
 
 **App Store 顯示應用程式「Not Available in Your Region」（在您的地區無法使用）：**
+
 - 此應用程式發佈於全球 App Store。如果它未在您的地區出現，請聯絡[支援](mailto:support@oneuptime.com)。
 
 **登入時出現「Network Error」（網路錯誤）：**
+
 - 請確認 **Server URL** 正確且可從您的裝置連線。
 - 如果您位於公司網路或 VPN，請確保可存取該 OneUptime 執行個體。
 - 確認伺服器是透過 HTTPS 並使用有效憑證提供服務。
 
 **未收到推播通知：**
+
 - 開啟 **Settings → Notifications → OneUptime On-Call** 並確認已允許通知。
 - 停用 **Do Not Disturb**（勿擾模式），或將 OneUptime On-Call 加入您目前作用中專注模式的允許清單。
 - 登出後再重新登入，以重新整理向伺服器註冊的推播權杖。
 - 自架使用者：請確認您的 OneUptime 執行個體已設定推播通知（請參閱自架的[推播通知](/docs/self-hosted/push-notifications)指南）。
 
 **Face ID / Touch ID 無法運作：**
+
 - 請確保已在 **Settings → Face ID & Passcode** 或 **Settings → Touch ID & Passcode** 中註冊生物辨識。
 - 從 OneUptime On-Call 應用程式內的 **Settings** 畫面重新啟用生物辨識解鎖。
 
 **應用程式啟動時當機：**
+
 - 從 App Store 更新至最新版本。
 - 重新啟動您的裝置。
 - 如果問題仍然存在，請刪除並重新安裝應用程式，然後再次登入。

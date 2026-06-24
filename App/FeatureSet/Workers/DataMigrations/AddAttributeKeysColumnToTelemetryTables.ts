@@ -13,6 +13,10 @@ export default class AddAttributeKeysColumnToTelemetryTables extends DataMigrati
     super("AddAttributeKeysColumnToTelemetryTables");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     await this.addAttributeKeysColumnToLog();
     await this.addAttributeKeysColumnToSpan();

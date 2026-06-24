@@ -10,14 +10,14 @@ As três páginas editam o mesmo modelo de regras por baixo — são só filtrad
 
 ## Anatomia de uma regra
 
-| Campo | Propósito |
-| --- | --- |
-| **Nome** | Rótulo curto e legível. Aparece nos logs de auditoria. |
-| **Descrição** | Contexto opcional para o time. |
-| **Habilitada** | Toggle para suspender uma regra sem apagá-la. |
-| **Title Pattern** | Regex case-insensitive testado contra o título da entidade. Vazio = qualquer título. |
+| Campo                   | Propósito                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------ |
+| **Nome**                | Rótulo curto e legível. Aparece nos logs de auditoria.                                     |
+| **Descrição**           | Contexto opcional para o time.                                                             |
+| **Habilitada**          | Toggle para suspender uma regra sem apagá-la.                                              |
+| **Title Pattern**       | Regex case-insensitive testado contra o título da entidade. Vazio = qualquer título.       |
 | **Description Pattern** | Regex case-insensitive testado contra a descrição da entidade. Vazio = qualquer descrição. |
-| **Runbooks a Iniciar** | Um ou mais runbooks a disparar quando a regra casa. |
+| **Runbooks a Iniciar**  | Um ou mais runbooks a disparar quando a regra casa.                                        |
 
 ## Semântica de match
 

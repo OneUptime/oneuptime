@@ -67,15 +67,15 @@ sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --one
 
 Infrastrukturagenten støtter følgende kommandoer:
 
-| Kommando | Beskrivelse |
-|----------|-------------|
+| Kommando    | Beskrivelse                                                       |
+| ----------- | ----------------------------------------------------------------- |
 | `configure` | Konfigurer agenten med den hemmelige nøkkelen og OneUptime-URL-en |
-| `start` | Start agenttjenesten |
-| `stop` | Stopp agenttjenesten |
-| `restart` | Start agenttjenesten på nytt |
-| `status` | Vis gjeldende tjenestestatus |
-| `logs` | Vis agentlogger (bruk `-n` for linjeantall, `-f` for å følge) |
-| `uninstall` | Avinstaller agenttjenesten |
+| `start`     | Start agenttjenesten                                              |
+| `stop`      | Stopp agenttjenesten                                              |
+| `restart`   | Start agenttjenesten på nytt                                      |
+| `status`    | Vis gjeldende tjenestestatus                                      |
+| `logs`      | Vis agentlogger (bruk `-n` for linjeantall, `-f` for å følge)     |
+| `uninstall` | Avinstaller agenttjenesten                                        |
 
 ## Innsamlede målinger
 
@@ -115,15 +115,15 @@ Du kan konfigurere kriterier for å bestemme når serveren anses som tilgjengeli
 
 ### Tilgjengelige kontrolltyper
 
-| Kontrolltype | Beskrivelse |
-|-------------|-------------|
-| Is Online | Om serveragenten rapporterer (basert på hjerteslag) |
-| CPU Usage Percent | Gjeldende CPU-utnyttelsesprosent |
-| Memory Usage Percent | Gjeldende minneutnyttelsesprosent |
-| Disk Usage Percent | Gjeldende diskutnyttelsesprosent (for en spesifikk disksti) |
-| Server Process Name | Sjekk om en prosess med et spesifikt navn kjører |
-| Server Process Command | Sjekk om en prosess med en spesifikk kommando kjører |
-| Server Process PID | Sjekk om en prosess med en spesifikk PID kjører |
+| Kontrolltype           | Beskrivelse                                                 |
+| ---------------------- | ----------------------------------------------------------- |
+| Is Online              | Om serveragenten rapporterer (basert på hjerteslag)         |
+| CPU Usage Percent      | Gjeldende CPU-utnyttelsesprosent                            |
+| Memory Usage Percent   | Gjeldende minneutnyttelsesprosent                           |
+| Disk Usage Percent     | Gjeldende diskutnyttelsesprosent (for en spesifikk disksti) |
+| Server Process Name    | Sjekk om en prosess med et spesifikt navn kjører            |
+| Server Process Command | Sjekk om en prosess med en spesifikk kommando kjører        |
+| Server Process PID     | Sjekk om en prosess med en spesifikk PID kjører             |
 
 ### Filtertyper
 
@@ -185,6 +185,7 @@ For prosesskontroller:
 ### Høy ressursbruk av agenten
 
 Agenten er designet for å være lettvekts. Hvis du merker høy ressursbruk:
+
 - Start agenten på nytt: `sudo oneuptime-infrastructure-agent restart`
 - Sjekk agentlogger for feil
 

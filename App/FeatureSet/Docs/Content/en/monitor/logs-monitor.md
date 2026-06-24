@@ -28,12 +28,12 @@ Select one or more services to monitor logs from. Services must be sending logs 
 
 ### Log Filters
 
-| Filter | Description | Required |
-|--------|-------------|----------|
-| Severity Levels | Filter by log severity (ERROR, WARN, INFO, DEBUG, etc.) | No |
-| Body | Text search within the log message body | No |
-| Attributes | Key-value pairs to filter on custom log attributes | No |
-| Time Window | How far back to search for logs (in seconds, default: 60) | No |
+| Filter          | Description                                               | Required |
+| --------------- | --------------------------------------------------------- | -------- |
+| Severity Levels | Filter by log severity (ERROR, WARN, INFO, DEBUG, etc.)   | No       |
+| Body            | Text search within the log message body                   | No       |
+| Attributes      | Key-value pairs to filter on custom log attributes        | No       |
+| Time Window     | How far back to search for logs (in seconds, default: 60) | No       |
 
 ### Severity Levels
 
@@ -51,9 +51,9 @@ Filter logs by one or more severity levels:
 
 ### Available Check Types
 
-| Check Type | Description |
-|------------|-------------|
-| Log Count | The number of logs matching your filters in the time window |
+| Check Type | Description                                                 |
+| ---------- | ----------------------------------------------------------- |
+| Log Count  | The number of logs matching your filters in the time window |
 
 ### Filter Types
 

@@ -54,9 +54,11 @@ Push-varsler leveres gjennom Firebase Cloud Messaging (FCM) via Expo Push. For �
 ## Oppdateringer
 
 **Google Play:**
+
 - Oppdateringer installeres automatisk. For å utløse en manuelt, åpne **Play Store → Profil → Administrer apper og enhet → Oppdateringer tilgjengelig → OneUptime On-Call → Oppdater**.
 
 **APK-sideload:**
+
 - Last ned den nyeste APK-en på nytt fra GitHub Releases-lenken over og installer over den eksisterende appen — dataene dine, server-URL og innlogging bevares.
 
 ## Avinstaller
@@ -70,11 +72,13 @@ OneUptime-kontoen din og vaktplanene dine lagres på serversiden og fjernes ikke
 ## Feilsøking
 
 **«Nettverksfeil» ved innlogging:**
+
 - Bekreft at **server-URL** er korrekt og kan nås fra enheten din.
 - Hvis du er på et bedriftsnettverk eller VPN, forsikre deg om at OneUptime-instansen er tilgjengelig.
 - Bekreft at serveren leveres over HTTPS med et gyldig sertifikat.
 
 **Mottar ikke push-varsler:**
+
 - Bekreft at varsler er aktivert under **Innstillinger → Apper → OneUptime On-Call → Varsler**.
 - Deaktiver batterioptimalisering for OneUptime On-Call (se Push-varsler over).
 - Forsikre deg om at Ikke forstyrr er av, eller at OneUptime On-Call er på unntakslisten.
@@ -82,14 +86,17 @@ OneUptime-kontoen din og vaktplanene dine lagres på serversiden og fjernes ikke
 - Selvhostede brukere: bekreft at push-varsler er konfigurert på OneUptime-instansen din (se den selvhostede [Push-varsler](/docs/self-hosted/push-notifications)-veiledningen).
 
 **Biometrisk opplåsing fungerer ikke:**
+
 - Registrer et fingeravtrykk under **Innstillinger → Sikkerhet → Fingeravtrykk**.
 - Aktiver biometrisk opplåsing på nytt fra **Innstillinger**-skjermen inne i OneUptime On-Call-appen.
 
 **APK-installasjon blokkert:**
+
 - Du må gi nettleseren tillatelse til å installere ukjente apper (se Alternativ 2 over).
 - Enkelte operatører eller bedriftsenhetsprofiler blokkerer sideloading helt; bruk i så fall Google Play-versjonen i stedet.
 
 **Appen krasjer ved oppstart:**
+
 - Oppdater til nyeste versjon fra Google Play eller nyeste APK.
 - Start enheten på nytt.
 - Hvis problemet vedvarer, avinstaller og installer på nytt, og logg deretter inn igjen.

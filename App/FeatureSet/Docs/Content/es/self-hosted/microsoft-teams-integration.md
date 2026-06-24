@@ -27,20 +27,23 @@ Para integrar Microsoft Teams con tu instancia auto-alojada de OneUptime, necesi
 2. Haz clic en "Agregar un permiso" y selecciona "Microsoft Graph"
 
 **Agregar permisos delegados** (cuando actúa en nombre de un usuario con sesión iniciada):
-   - **User.Read**: Requerido para obtener la información de perfil del usuario autenticado (nombre para mostrar, correo electrónico) durante el flujo OAuth
-   - **Team.ReadBasic.All**: Requerido para listar los equipos de los que el usuario es miembro al seleccionar qué equipo conectar
-   - **Channel.ReadBasic.All**: Requerido para leer la información del canal y listar los canales dentro de los equipos para la entrega de notificaciones
-   - **ChannelMessage.Send**: Requerido para enviar notificaciones de alertas e incidentes a los canales de Teams
+
+- **User.Read**: Requerido para obtener la información de perfil del usuario autenticado (nombre para mostrar, correo electrónico) durante el flujo OAuth
+- **Team.ReadBasic.All**: Requerido para listar los equipos de los que el usuario es miembro al seleccionar qué equipo conectar
+- **Channel.ReadBasic.All**: Requerido para leer la información del canal y listar los canales dentro de los equipos para la entrega de notificaciones
+- **ChannelMessage.Send**: Requerido para enviar notificaciones de alertas e incidentes a los canales de Teams
 
 **Agregar permisos de aplicación** (cuando actúa como la propia aplicación, sin un usuario con sesión iniciada):
-   - **Team.ReadBasic.All**: Requerido para listar todos los equipos de la organización después de que se conceda el consentimiento de administrador
-   - **Channel.ReadBasic.All**: Requerido para verificar la existencia del canal y recuperar los detalles del canal
-   - **ChannelMessage.Send**: Requerido para enviar mensajes a los canales de forma programática
+
+- **Team.ReadBasic.All**: Requerido para listar todos los equipos de la organización después de que se conceda el consentimiento de administrador
+- **Channel.ReadBasic.All**: Requerido para verificar la existencia del canal y recuperar los detalles del canal
+- **ChannelMessage.Send**: Requerido para enviar mensajes a los canales de forma programática
 
 **Nota:** El framework de Bot maneja la entrega de mensajes usando permisos de Consentimiento específico del recurso (RSC) definidos en el manifiesto de la aplicación de Teams. Estos permisos son:
-   - **ChannelMessage.Send.Group**: Permite que el bot envíe mensajes a los canales del equipo
-   - **ChannelMessage.Read.Group**: Permite que el bot lea mensajes del canal para comandos interactivos
-   - **Channel.Create.Group**: Permite que el bot cree canales cuando sea necesario
+
+- **ChannelMessage.Send.Group**: Permite que el bot envíe mensajes a los canales del equipo
+- **ChannelMessage.Read.Group**: Permite que el bot lea mensajes del canal para comandos interactivos
+- **Channel.Create.Group**: Permite que el bot cree canales cuando sea necesario
 
 3. Haz clic en "Conceder consentimiento de administrador" para tu organización
 
@@ -57,6 +60,7 @@ Para integrar Microsoft Teams con tu instancia auto-alojada de OneUptime, necesi
 
 1. En el Portal de Azure, navega a "Azure Bot" y haz clic en "Crear"
 2. Completa el formulario de creación del bot:
+
    - **Nombre del bot:** oneuptime-bot
    - **Suscripción:** Tu suscripción de Azure
    - **Grupo de recursos:** Crea uno nuevo o usa uno existente

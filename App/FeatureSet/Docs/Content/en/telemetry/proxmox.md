@@ -10,7 +10,7 @@ This page is the **installation guide**. For configuring Proxmox monitors and al
 
 - Docker Engine 20.10+ with the Docker Compose v2 plugin, on any machine that can reach your Proxmox VE API (port 8006)
 - A Proxmox VE API token with the **PVEAuditor** role (read-only)
-- A **OneUptime Telemetry Ingestion Token** — create one from *Project Settings → Telemetry Ingestion Keys* and copy the value
+- A **OneUptime Telemetry Ingestion Token** — create one from _Project Settings → Telemetry Ingestion Keys_ and copy the value
 
 ### Create the Proxmox API Token
 
@@ -27,9 +27,9 @@ The ACL must sit at the root path `/` because **PVEAuditor** needs read access t
 
 **Or via the Proxmox web UI:**
 
-1. In the Proxmox web UI go to *Datacenter → Permissions → API Tokens* and click **Add**.
+1. In the Proxmox web UI go to _Datacenter → Permissions → API Tokens_ and click **Add**.
 2. Pick (or create) a user, give the token an ID like `oneuptime`, and **uncheck Privilege Separation** (or grant the token its own permissions in the next step).
-3. Under *Datacenter → Permissions* add a permission on path `/` for the token with the **PVEAuditor** role.
+3. Under _Datacenter → Permissions_ add a permission on path `/` for the token with the **PVEAuditor** role.
 4. Copy the token id (`user@realm!tokenname`) and the secret — the secret is shown only once.
 
 ### Where to Run the Agent
@@ -75,17 +75,17 @@ PVE_EXPORTER_URL=your-exporter-host:9221
 
 ## Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host) |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion token from *Project Settings → Telemetry Ingestion Keys* |
-| `PROXMOX_CLUSTER_NAME` | Yes | Cluster identifier shown in OneUptime, stamped on every metric as the `proxmox.cluster.name` resource attribute. Keep it stable — changing it later registers a second cluster. Defaults to `proxmox-cluster` |
-| `PVE_HOST` | Yes | Proxmox VE API host (any node of the cluster) the exporter queries, e.g. `192.168.1.10` |
-| `PVE_EXPORTER_URL` | No | Address (`host:port`, no scheme) of prometheus-pve-exporter. Defaults to the bundled exporter (`pve-exporter:9221`) |
-| `PVE_API_TOKEN_ID` | Bundled exporter only | Full Proxmox API token id, e.g. `oneuptime@pve!exporter` |
-| `PVE_API_TOKEN_SECRET` | Bundled exporter only | Proxmox API token secret |
-| `PVE_VERIFY_SSL` | No | Verify the Proxmox API TLS certificate. Defaults to `false` because Proxmox ships self-signed certificates |
-| `COMPOSE_PROFILES` | No | Set to `pve-exporter` to start the bundled exporter container |
+| Variable                            | Required              | Description                                                                                                                                                                                                   |
+| ----------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`                     | Yes                   | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                                                                                                                    |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes                   | Telemetry ingestion token from _Project Settings → Telemetry Ingestion Keys_                                                                                                                                  |
+| `PROXMOX_CLUSTER_NAME`              | Yes                   | Cluster identifier shown in OneUptime, stamped on every metric as the `proxmox.cluster.name` resource attribute. Keep it stable — changing it later registers a second cluster. Defaults to `proxmox-cluster` |
+| `PVE_HOST`                          | Yes                   | Proxmox VE API host (any node of the cluster) the exporter queries, e.g. `192.168.1.10`                                                                                                                       |
+| `PVE_EXPORTER_URL`                  | No                    | Address (`host:port`, no scheme) of prometheus-pve-exporter. Defaults to the bundled exporter (`pve-exporter:9221`)                                                                                           |
+| `PVE_API_TOKEN_ID`                  | Bundled exporter only | Full Proxmox API token id, e.g. `oneuptime@pve!exporter`                                                                                                                                                      |
+| `PVE_API_TOKEN_SECRET`              | Bundled exporter only | Proxmox API token secret                                                                                                                                                                                      |
+| `PVE_VERIFY_SSL`                    | No                    | Verify the Proxmox API TLS certificate. Defaults to `false` because Proxmox ships self-signed certificates                                                                                                    |
+| `COMPOSE_PROFILES`                  | No                    | Set to `pve-exporter` to start the bundled exporter container                                                                                                                                                 |
 
 ## Verify the Installation
 
@@ -109,23 +109,23 @@ Within a minute or so the cluster should appear in the OneUptime dashboard with 
 
 The agent scrapes the exporter every 30 seconds with both the cluster and node collectors enabled — which also covers the exporter's default-on `backup-info` (cluster-level) and `replication` (node-level) collectors. Every series carries an `id` label identifying the resource — `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>`, or `storage/<node>/<storage>`:
 
-| Category | Metrics |
-|----------|---------|
-| **Availability** | `pve_up`, `pve_uptime_seconds` |
-| **Node** | `pve_node_info`, `pve_cpu_usage_ratio`, `pve_cpu_usage_limit`, `pve_memory_usage_bytes`, `pve_memory_size_bytes` |
-| **Guest (VM / LXC)** | `pve_guest_info`, CPU / memory / network series on `qemu/*` and `lxc/*` ids (`pve_network_receive_bytes`, `pve_network_transmit_bytes`) |
-| **Storage** | `pve_disk_usage_bytes`, `pve_disk_size_bytes`, `pve_storage_info` |
-| **HA** | `pve_ha_state` |
-| **Backup coverage** | `pve_not_backed_up_total` (count of guests not covered by any backup job; one cluster-level series, no `id` label), `pve_not_backed_up_info` (one series per uncovered guest, labeled with its `id`). Honest boundary: "covered by a backup job" means the guest is selected by at least one job — whether backups ran recently or succeeded is not exposed by pve-exporter |
-| **Replication** | `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info` — per storage replication job; their `id` label carries the replication **job** id (e.g. `100-0`), not a resource id |
+| Category             | Metrics                                                                                                                                                                                                                                                                                                                                                                     |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Availability**     | `pve_up`, `pve_uptime_seconds`                                                                                                                                                                                                                                                                                                                                              |
+| **Node**             | `pve_node_info`, `pve_cpu_usage_ratio`, `pve_cpu_usage_limit`, `pve_memory_usage_bytes`, `pve_memory_size_bytes`                                                                                                                                                                                                                                                            |
+| **Guest (VM / LXC)** | `pve_guest_info`, CPU / memory / network series on `qemu/*` and `lxc/*` ids (`pve_network_receive_bytes`, `pve_network_transmit_bytes`)                                                                                                                                                                                                                                     |
+| **Storage**          | `pve_disk_usage_bytes`, `pve_disk_size_bytes`, `pve_storage_info`                                                                                                                                                                                                                                                                                                           |
+| **HA**               | `pve_ha_state`                                                                                                                                                                                                                                                                                                                                                              |
+| **Backup coverage**  | `pve_not_backed_up_total` (count of guests not covered by any backup job; one cluster-level series, no `id` label), `pve_not_backed_up_info` (one series per uncovered guest, labeled with its `id`). Honest boundary: "covered by a backup job" means the guest is selected by at least one job — whether backups ran recently or succeeded is not exposed by pve-exporter |
+| **Replication**      | `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info` — per storage replication job; their `id` label carries the replication **job** id (e.g. `100-0`), not a resource id                 |
 
 OneUptime monitor criteria and attribute filters match on equality, not prefix, so the shipped collector config also splits the `id` label into three extra datapoint attributes (the built-in Proxmox alert templates filter on them — keep the `transform/pve-identity` processor in place):
 
-| Attribute | Values | Example for `qemu/100` |
-|-----------|--------|------------------------|
-| `pve.scope` | `node`, `guest`, `storage`, `cluster` (`qemu` and `lxc` both map to `guest`) | `guest` |
-| `pve.type` | `node`, `qemu`, `lxc`, `storage` | `qemu` |
-| `pve.id` | Everything after the first `/` of `id` (`pve1`, `100`, `pve1/local`) | `100` |
+| Attribute   | Values                                                                       | Example for `qemu/100` |
+| ----------- | ---------------------------------------------------------------------------- | ---------------------- |
+| `pve.scope` | `node`, `guest`, `storage`, `cluster` (`qemu` and `lxc` both map to `guest`) | `guest`                |
+| `pve.type`  | `node`, `qemu`, `lxc`, `storage`                                             | `qemu`                 |
+| `pve.id`    | Everything after the first `/` of `id` (`pve1`, `100`, `pve1/local`)         | `100`                  |
 
 The original `id` label is kept untouched.
 
@@ -177,19 +177,19 @@ You lose per-unit filtering (syslog carries everything, not just the eight PVE s
 
 ## Zero-install Alternative — Proxmox VE 9+ Native OpenTelemetry Push
 
-Proxmox VE 9.0 and later ship a built-in **OpenTelemetry metric server** that pushes node, guest, and storage metrics to any OTLP/HTTP endpoint — no agent or exporter to install. Configure it under *Datacenter → Metric Server → Add → OpenTelemetry*:
+Proxmox VE 9.0 and later ship a built-in **OpenTelemetry metric server** that pushes node, guest, and storage metrics to any OTLP/HTTP endpoint — no agent or exporter to install. Configure it under _Datacenter → Metric Server → Add → OpenTelemetry_:
 
-| Field | Value |
-|-------|-------|
-| Server | Your OneUptime host, e.g. `oneuptime.com` (or your self-hosted host) |
-| Port | `443` |
-| Protocol | `https` |
-| Path | `/otlp/v1/metrics` |
-| Headers | `{"x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"}` |
+| Field    | Value                                                                |
+| -------- | -------------------------------------------------------------------- |
+| Server   | Your OneUptime host, e.g. `oneuptime.com` (or your self-hosted host) |
+| Port     | `443`                                                                |
+| Protocol | `https`                                                              |
+| Path     | `/otlp/v1/metrics`                                                   |
+| Headers  | `{"x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"}`            |
 
 Two trade-offs to be aware of:
 
-1. **Cluster discovery.** The agent path is what powers cluster auto-registration in OneUptime, because it stamps the `proxmox.cluster.name` resource attribute on every metric. With the native push, set the metric server's *Resource Attributes* option to `proxmox.cluster.name=my-proxmox-cluster` so the cluster registers itself — without it the metrics ingest into your project but no Proxmox cluster appears.
+1. **Cluster discovery.** The agent path is what powers cluster auto-registration in OneUptime, because it stamps the `proxmox.cluster.name` resource attribute on every metric. With the native push, set the metric server's _Resource Attributes_ option to `proxmox.cluster.name=my-proxmox-cluster` so the cluster registers itself — without it the metrics ingest into your project but no Proxmox cluster appears.
 2. **Different metric names.** The native push emits `proxmox_node_*` / `proxmox_vm_*` / `proxmox_storage_*` series, while the agent emits pve-exporter's `pve_*` series. OneUptime's built-in Proxmox metric catalog and alert templates target the `pve_*` names, so the agent path is recommended; the native push is great as a zero-install way to get raw metrics into [Metrics Explorer](/docs/monitor/metrics-monitor) and custom dashboards.
 
 You can also run both: native push for low-latency raw metrics, agent for discovery, the Proxmox dashboard pages, and alert templates.

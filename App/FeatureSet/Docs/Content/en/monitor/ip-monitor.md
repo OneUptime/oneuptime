@@ -31,11 +31,11 @@ You can configure criteria to determine when your IP address is considered onlin
 
 ### Available Check Types
 
-| Check Type | Description |
-|------------|-------------|
-| Is Online | Whether the IP address is reachable |
-| Response Time (in ms) | Response time in milliseconds |
-| Is Request Timeout | Whether the request timed out |
+| Check Type            | Description                         |
+| --------------------- | ----------------------------------- |
+| Is Online             | Whether the IP address is reachable |
+| Response Time (in ms) | Response time in milliseconds       |
+| Is Request Timeout    | Whether the request timed out       |
 
 ### Filter Types
 

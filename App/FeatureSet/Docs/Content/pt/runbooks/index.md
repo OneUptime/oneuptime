@@ -24,13 +24,13 @@ A resposta a incidentes muitas vezes é a diferença entre um soluço de um minu
 
 Alguns termos aparecem o tempo todo no restante da documentação de runbooks. Vamos deixar claros primeiro:
 
-| Termo | Significado |
-| --- | --- |
-| **Runbook** | O modelo. Um procedimento nomeado e reutilizável com uma lista ordenada de passos e uma flag `isEnabled`. |
-| **Passo** | Um item dentro de um runbook. Tem tipo (Manual / JavaScript / HTTP / Bash), título, descrição e configuração específica do tipo. |
-| **Regra de runbook** | Um padrão que anexa automaticamente um ou mais runbooks a incidentes, alertas ou eventos de manutenção quando o título ou descrição casam com uma regex. |
-| **Execução** | Uma corrida de um runbook. Criada quando uma regra dispara, quando alguém clica "Executar runbook" em um evento, ou quando alguém clica "Executar agora" no próprio runbook. Contém um snapshot dos passos e o status/saída por passo. |
-| **Snapshot** | A cópia congelada dos passos do runbook que mora em cada execução. Permite editar o modelo depois sem reescrever o histórico. |
+| Termo                | Significado                                                                                                                                                                                                                            |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Runbook**          | O modelo. Um procedimento nomeado e reutilizável com uma lista ordenada de passos e uma flag `isEnabled`.                                                                                                                              |
+| **Passo**            | Um item dentro de um runbook. Tem tipo (Manual / JavaScript / HTTP / Bash), título, descrição e configuração específica do tipo.                                                                                                       |
+| **Regra de runbook** | Um padrão que anexa automaticamente um ou mais runbooks a incidentes, alertas ou eventos de manutenção quando o título ou descrição casam com uma regex.                                                                               |
+| **Execução**         | Uma corrida de um runbook. Criada quando uma regra dispara, quando alguém clica "Executar runbook" em um evento, ou quando alguém clica "Executar agora" no próprio runbook. Contém um snapshot dos passos e o status/saída por passo. |
+| **Snapshot**         | A cópia congelada dos passos do runbook que mora em cada execução. Permite editar o modelo depois sem reescrever o histórico.                                                                                                          |
 
 ## O ciclo de vida de um runbook
 
@@ -44,25 +44,25 @@ Alguns termos aparecem o tempo todo no restante da documentação de runbooks. V
 
 Guia rápido de decisão. O detalhamento completo está em [Escrever um runbook](/docs/runbooks/authoring).
 
-| Tipo de passo | Use quando… | Exemplo |
-| --- | --- | --- |
-| **Manual** | Um humano precisa verificar algo, tomar uma decisão ou fazer uma ação que o OneUptime não consegue observar. | "Confirmar tráfego da região secundária no painel do balanceador." |
-| **JavaScript** | Você precisa de um cálculo pequeno e contido — consultar um serviço de configuração, transformar um payload, rodar lógica antes do próximo passo. Roda em sandbox em um [Agente de Runbook](/docs/runbooks/agents) na sua própria infraestrutura. | Calcular o lag de réplica atual e decidir se prossegue. |
-| **Requisição HTTP** | Você está chamando uma API existente — seu endpoint admin, um provedor cloud, PagerDuty, Slack. | `POST` para seu orquestrador de failover. |
-| **Bash** | Você precisa rodar comandos shell na sua própria infraestrutura — reiniciar um serviço, rodar `kubectl`, chamar um script de deploy. Requer um [Agente de Runbook](/docs/runbooks/agents) instalado no seu ambiente. | Reiniciar um serviço, rodar `kubectl rollout restart`, executar um script de recuperação. |
+| Tipo de passo       | Use quando…                                                                                                                                                                                                                                       | Exemplo                                                                                   |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Manual**          | Um humano precisa verificar algo, tomar uma decisão ou fazer uma ação que o OneUptime não consegue observar.                                                                                                                                      | "Confirmar tráfego da região secundária no painel do balanceador."                        |
+| **JavaScript**      | Você precisa de um cálculo pequeno e contido — consultar um serviço de configuração, transformar um payload, rodar lógica antes do próximo passo. Roda em sandbox em um [Agente de Runbook](/docs/runbooks/agents) na sua própria infraestrutura. | Calcular o lag de réplica atual e decidir se prossegue.                                   |
+| **Requisição HTTP** | Você está chamando uma API existente — seu endpoint admin, um provedor cloud, PagerDuty, Slack.                                                                                                                                                   | `POST` para seu orquestrador de failover.                                                 |
+| **Bash**            | Você precisa rodar comandos shell na sua própria infraestrutura — reiniciar um serviço, rodar `kubectl`, chamar um script de deploy. Requer um [Agente de Runbook](/docs/runbooks/agents) instalado no seu ambiente.                              | Reiniciar um serviço, rodar `kubectl rollout restart`, executar um script de recuperação. |
 
 Você pode misturar os quatro num único runbook — a força dos runbooks está em intercalar verificação humana com automação.
 
 ## Onde os runbooks ficam no painel
 
-| Página | O que você faz lá |
-| --- | --- |
-| **Análise & Automação → Runbooks** | Navegar, criar e editar modelos de runbook. |
-| **Aba Passos de um runbook** | Escrever e reordenar a lista de passos. |
-| **Aba Execuções de um runbook** | Ver cada execução desse runbook com filtros de status. |
-| **Botão "Executar agora" de um runbook** | Disparar uma execução ad hoc sem vínculo com nenhum evento. |
-| **Incidentes / Alertas / Manutenção programada → Configurações → Regras de runbook** | Criar as regras de auto-disparo por tipo de entidade. |
-| **Um incidente / alerta / evento de manutenção → aba Runbooks** | Ver as execuções vinculadas a esse evento e clicar **Executar runbook** para uma corrida manual. |
+| Página                                                                               | O que você faz lá                                                                                |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| **Análise & Automação → Runbooks**                                                   | Navegar, criar e editar modelos de runbook.                                                      |
+| **Aba Passos de um runbook**                                                         | Escrever e reordenar a lista de passos.                                                          |
+| **Aba Execuções de um runbook**                                                      | Ver cada execução desse runbook com filtros de status.                                           |
+| **Botão "Executar agora" de um runbook**                                             | Disparar uma execução ad hoc sem vínculo com nenhum evento.                                      |
+| **Incidentes / Alertas / Manutenção programada → Configurações → Regras de runbook** | Criar as regras de auto-disparo por tipo de entidade.                                            |
+| **Um incidente / alerta / evento de manutenção → aba Runbooks**                      | Ver as execuções vinculadas a esse evento e clicar **Executar runbook** para uma corrida manual. |
 
 ## Casos de uso comuns
 
@@ -80,13 +80,13 @@ Suponha que você queira que todo incidente com "db-primary" no título dispare 
 
 **1. Crie o runbook.** Em **Runbooks → Criar Runbook**, dê o nome "Failover DB primary" e adicione estes passos:
 
-| # | Tipo | Título |
-| --- | --- | --- |
-| 1 | JavaScript | Capturar lag de réplica pré-failover |
-| 2 | Manual | Confirmar que a réplica está saudável no painel do DBA |
-| 3 | HTTP | `POST` para o orquestrador de failover |
-| 4 | Manual | Verificar que as escritas estão indo para o novo primary |
-| 5 | HTTP | Postar "tudo certo" no Slack `#db-incidents` |
+| #   | Tipo       | Título                                                   |
+| --- | ---------- | -------------------------------------------------------- |
+| 1   | JavaScript | Capturar lag de réplica pré-failover                     |
+| 2   | Manual     | Confirmar que a réplica está saudável no painel do DBA   |
+| 3   | HTTP       | `POST` para o orquestrador de failover                   |
+| 4   | Manual     | Verificar que as escritas estão indo para o novo primary |
+| 5   | HTTP       | Postar "tudo certo" no Slack `#db-incidents`             |
 
 **2. Adicione uma regra.** Em **Incidentes → Configurações → Regras de runbook**, crie:
 

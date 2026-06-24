@@ -12,6 +12,7 @@
 ### 步驟 1：建立 GitHub App
 
 1. 前往 GitHub 並導覽至您的組織或個人設定：
+
    - **針對組織：** 前往 `https://github.com/organizations/YOUR_ORG/settings/apps`
    - **針對個人帳戶：** 前往 `https://github.com/settings/apps`
 
@@ -32,26 +33,26 @@
 
 **儲存庫權限：**
 
-| 權限 | 存取層級 | 用途 |
-|------------|--------------|---------|
-| Contents | Read & Write | 讀取儲存庫檔案、推送分支（AI Agent 所需） |
-| Pull requests | Read & Write | 建立並管理拉取請求 |
-| Issues | Read & Write | 讀取與回覆問題 |
-| Commit statuses | Read | 檢查建置/CI 狀態 |
-| Actions | Read | 讀取 GitHub Actions 工作流程執行與記錄 |
-| Metadata | Read | 基本儲存庫中繼資料（必要） |
+| 權限            | 存取層級     | 用途                                      |
+| --------------- | ------------ | ----------------------------------------- |
+| Contents        | Read & Write | 讀取儲存庫檔案、推送分支（AI Agent 所需） |
+| Pull requests   | Read & Write | 建立並管理拉取請求                        |
+| Issues          | Read & Write | 讀取與回覆問題                            |
+| Commit statuses | Read         | 檢查建置/CI 狀態                          |
+| Actions         | Read         | 讀取 GitHub Actions 工作流程執行與記錄    |
+| Metadata        | Read         | 基本儲存庫中繼資料（必要）                |
 
 **組織權限（若搭配組織使用）：**
 
-| 權限 | 存取層級 | 用途 |
-|------------|--------------|---------|
-| Members | Read | 列出組織成員 |
+| 權限    | 存取層級 | 用途         |
+| ------- | -------- | ------------ |
+| Members | Read     | 列出組織成員 |
 
 **帳戶權限：**
 
-| 權限 | 存取層級 | 用途 |
-|------------|--------------|---------|
-| Email addresses | Read | 讀取使用者電子郵件以進行通知 |
+| 權限            | 存取層級 | 用途                         |
+| --------------- | -------- | ---------------------------- |
+| Email addresses | Read     | 讀取使用者電子郵件以進行通知 |
 
 ### 步驟 3：訂閱 Webhook 事件
 
@@ -64,6 +65,7 @@
 ### 步驟 4：設定安裝存取權
 
 在「Where can this GitHub App be installed?」下，選擇：
+
 - **Only on this account** - 用於私人/內部使用
 - **Any account** - 若您希望其他人安裝您的 App
 
@@ -113,7 +115,7 @@ GITHUB_APP_WEBHOOK_SECRET=YOUR_WEBHOOK_SECRET
 ```yaml
 gitHubApp:
   id: "YOUR_APP_ID"
-  name: "YOUR_APP_NAME"  # The exact name of your GitHub App
+  name: "YOUR_APP_NAME" # The exact name of your GitHub App
   clientId: "YOUR_CLIENT_ID"
   clientSecret: "YOUR_CLIENT_SECRET"
   privateKey: "<BASE64_ENCODED_PRIVATE_KEY_CONTENT>"
@@ -143,43 +145,49 @@ gitHubApp:
 
 ## 環境變數參考
 
-| 變數 | 說明 | 必要 |
-|----------|-------------|----------|
-| `GITHUB_APP_ID` | 來自您 GitHub App 設定的 App ID | 是 |
-| `GITHUB_APP_NAME` | 您 GitHub App 的確切名稱（用於安裝 URL） | 是 |
-| `GITHUB_APP_CLIENT_ID` | 來自您 GitHub App 設定的 Client ID | 是 |
-| `GITHUB_APP_CLIENT_SECRET` | 您產生的 client secret | 是 |
-| `GITHUB_APP_PRIVATE_KEY` | 私密金鑰（.pem 檔案）的內容 | 是 |
-| `GITHUB_APP_WEBHOOK_SECRET` | 用於驗證 webhook 酬載的 webhook secret | 否（但建議設定） |
+| 變數                        | 說明                                     | 必要             |
+| --------------------------- | ---------------------------------------- | ---------------- |
+| `GITHUB_APP_ID`             | 來自您 GitHub App 設定的 App ID          | 是               |
+| `GITHUB_APP_NAME`           | 您 GitHub App 的確切名稱（用於安裝 URL） | 是               |
+| `GITHUB_APP_CLIENT_ID`      | 來自您 GitHub App 設定的 Client ID       | 是               |
+| `GITHUB_APP_CLIENT_SECRET`  | 您產生的 client secret                   | 是               |
+| `GITHUB_APP_PRIVATE_KEY`    | 私密金鑰（.pem 檔案）的內容              | 是               |
+| `GITHUB_APP_WEBHOOK_SECRET` | 用於驗證 webhook 酬載的 webhook secret   | 否（但建議設定） |
 
 ## 疑難排解
 
 ### 常見問題
 
 **安裝 GitHub App 後未重新導向回 OneUptime：**
+
 - 請確定您 GitHub App 設定中的 **Setup URL** 設定為：`https://your-oneuptime-domain.com/api/github/auth/callback`
 - 前往您的 GitHub App 設定 >「Post installation」區段，並確認 Setup URL 設定正確
 - 也應勾選「Redirect on update」選項
 - 注意：Setup URL 與 Callback URL 不同 - 兩者都應指向相同的 `/api/github/auth/callback` 端點
 
 **「GitHub App is not configured」錯誤：**
+
 - 請確定已設定 `GITHUB_APP_CLIENT_ID` 環境變數
 - 設定環境變數後，請重新啟動您的 OneUptime 伺服器
 
 **「Invalid webhook signature」錯誤：**
+
 - 請驗證您的 `GITHUB_APP_WEBHOOK_SECRET` 與 GitHub 中設定的 secret 相符
 - 請確定 webhook URL 正確且可從網際網路存取
 
 **「Failed to get installation access token」錯誤：**
+
 - 請驗證您的 `GITHUB_APP_PRIVATE_KEY` 格式正確
 - 請檢查私密金鑰是否包含 BEGIN/END 標記
 - 請確定 App ID 正確
 
 **安裝後看不到儲存庫：**
+
 - 請驗證 GitHub App 是否具有您要連接的儲存庫的存取權
 - 請檢查 GitHub 中的安裝權限（Settings > Applications > Installed GitHub Apps）
 
 **未收到 Webhook 事件：**
+
 - 請確定您的 webhook URL 可公開存取
 - 請檢查您 App 設定中的 GitHub App webhook 傳遞記錄
 - 請驗證 webhook secret 是否設定正確

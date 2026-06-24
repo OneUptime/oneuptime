@@ -24,16 +24,16 @@ I monitor di dominio interrogano i dati WHOIS per i tuoi domini per tracciare i 
 
 ### Impostazioni di Base
 
-| Campo | Descrizione | Obbligatorio |
-|-------|-------------|----------|
-| Nome Dominio | Il dominio da monitorare (es. `example.com`) | Sì |
+| Campo        | Descrizione                                  | Obbligatorio |
+| ------------ | -------------------------------------------- | ------------ |
+| Nome Dominio | Il dominio da monitorare (es. `example.com`) | Sì           |
 
 ### Impostazioni Avanzate
 
-| Campo | Descrizione | Predefinito |
-|-------|-------------|---------|
-| Timeout (ms) | Tempo di attesa per una risposta WHOIS | 10000 |
-| Tentativi | Numero di tentativi in caso di fallimento | 3 |
+| Campo        | Descrizione                               | Predefinito |
+| ------------ | ----------------------------------------- | ----------- |
+| Timeout (ms) | Tempo di attesa per una risposta WHOIS    | 10000       |
+| Tentativi    | Numero di tentativi in caso di fallimento | 3           |
 
 ## Criteri di Monitoraggio
 
@@ -41,13 +41,13 @@ Puoi configurare criteri per determinare quando il tuo dominio è considerato on
 
 ### Tipi di Controllo Disponibili
 
-| Tipo di Controllo | Descrizione |
-|------------|-------------|
+| Tipo di Controllo      | Descrizione                                                         |
+| ---------------------- | ------------------------------------------------------------------- |
 | Domain Expires In Days | Numero di giorni fino alla scadenza della registrazione del dominio |
-| Domain Registrar | Il nome del registrar del dominio |
-| Domain Name Server | Hostname dei nameserver per il dominio |
-| Domain Status Code | Codici di stato WHOIS del dominio |
-| Domain Is Expired | Se il dominio è scaduto |
+| Domain Registrar       | Il nome del registrar del dominio                                   |
+| Domain Name Server     | Hostname dei nameserver per il dominio                              |
+| Domain Status Code     | Codici di stato WHOIS del dominio                                   |
+| Domain Is Expired      | Se il dominio è scaduto                                             |
 
 ### Tipi di Filtro
 

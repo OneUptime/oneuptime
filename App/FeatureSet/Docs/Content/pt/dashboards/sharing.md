@@ -82,9 +82,12 @@ A marca só se aplica quando o painel é visualizado publicamente. Visualizadore
 Você pode incorporar um painel público no seu próprio site com um iframe:
 
 ```html
-<iframe src="https://dashboard.acme.com/view"
-        width="100%" height="800"
-        frameborder="0"></iframe>
+<iframe
+  src="https://dashboard.acme.com/view"
+  width="100%"
+  height="800"
+  frameborder="0"
+></iframe>
 ```
 
 Se o painel tem uma senha mestra, os visitantes verão o prompt de senha dentro do iframe.

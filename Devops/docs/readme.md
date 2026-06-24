@@ -4,7 +4,7 @@
 
 **_Step 1 : Files Upload_**
 
--   ssh into the local VN and upload scripts install.sh, backup.sh and restore.sh to `/root/oneuptime_bk_files`.
+- ssh into the local VN and upload scripts install.sh, backup.sh and restore.sh to `/root/oneuptime_bk_files`.
 
 The script install.sh will automatically install the latest kubectl version if non is present, create default backup and kube-config paths, copy the remote server kubernetes config file, create backup service and run the service with a timer.
 
@@ -12,8 +12,8 @@ The script install.sh will automatically install the latest kubectl version if n
 
 The first thing to take note of is passing the right arguments.
 
--   cd into folder containing install scripts `/root/oneuptime_bk_files`.
--   Enter command `bash install.sh -h` to see list of all available commands
+- cd into folder containing install scripts `/root/oneuptime_bk_files`.
+- Enter command `bash install.sh -h` to see list of all available commands
 
 | Argument | Function                                                                        | Default                         |
 | -------- | :------------------------------------------------------------------------------ | :------------------------------ |
@@ -31,9 +31,9 @@ The command will be `bash install.sh -u '' -p '' -n 'oneuptime'`
 
 **_Step 3 : Run backup_**
 
--   Simply hit the enter button, enter the remote server password and any other credentials being requested for.
+- Simply hit the enter button, enter the remote server password and any other credentials being requested for.
 
--   A timer (backup.timer) which runs service (backup.service) has been created to back up the database at 12:00 am and 12:00 pm daily. Useful commands include:
+- A timer (backup.timer) which runs service (backup.service) has been created to back up the database at 12:00 am and 12:00 pm daily. Useful commands include:
 
 `sudo systemctl status backup.service` to check status of the service
 
@@ -49,8 +49,8 @@ The command will be `bash install.sh -u '' -p '' -n 'oneuptime'`
 
 The first thing to take note of is passing the right arguments.
 
--   cd into folder containing backup script.
--   Enter command `bash backup.sh -h` to see list of all available commands
+- cd into folder containing backup script.
+- Enter command `bash backup.sh -h` to see list of all available commands
 
 | Argument | Function                                                    | Default                          |
 | -------- | :---------------------------------------------------------- | :------------------------------- |

@@ -1,0 +1,79 @@
+# OneUptime Host Collector — Windows sample config.
+#
+# 1. Set x-oneuptime-token below (and the endpoint if you self-host OneUptime).
+# 2. Register and start it as a Windows service from an elevated PowerShell:
+#      sc.exe create "OneUptimeHostCollector" `
+#        binPath= "\"C:\Program Files\OneUptimeHostCollector\oneuptime-host-collector.exe\" --config=\"C:\Program Files\OneUptimeHostCollector\config.yaml\"" `
+#        start= auto DisplayName= "OneUptime Host Collector"
+#      sc.exe start "OneUptimeHostCollector"
+#
+# The windows_service receiver below is the whole reason this distribution
+# exists — it is not in the upstream prebuilt collector. It runs as LocalSystem
+# (the sc.exe default) so it can read every service.
+receivers:
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu:
+        metrics:
+          system.cpu.utilization: { enabled: true }
+          system.cpu.logical.count: { enabled: true }
+      memory:
+        metrics:
+          system.memory.utilization: { enabled: true }
+      disk:
+      filesystem:
+        metrics:
+          system.filesystem.utilization: { enabled: true }
+      network:
+      paging:
+      processes:
+      process:
+        mute_process_name_error: true
+        mute_process_exe_error: true
+        mute_process_io_error: true
+
+  windows_service:
+    collection_interval: 30s
+    # Collect every service by default. To cut volume / avoid "access denied"
+    # noise, list only the ones you care about (or exclude a few):
+    # include_services: [Spooler, W3SVC, MSSQLSERVER]
+    # exclude_services: [TrustedInstaller]
+
+  windowseventlog/system:
+    channel: System
+    start_at: end
+  windowseventlog/application:
+    channel: Application
+    start_at: end
+
+processors:
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
+      resource_attributes:
+        host.name: { enabled: true }
+        host.id: { enabled: true }
+        host.arch: { enabled: true }
+        host.ip: { enabled: true }
+        os.type: { enabled: true }
+        os.description: { enabled: true }
+  batch:
+
+exporters:
+  otlphttp/oneuptime:
+    endpoint: https://oneuptime.com/otlp
+    headers:
+      x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics, windows_service]
+      processors: [resourcedetection, batch]
+      exporters: [otlphttp/oneuptime]
+    logs:
+      receivers: [windowseventlog/system, windowseventlog/application]
+      processors: [resourcedetection, batch]
+      exporters: [otlphttp/oneuptime]

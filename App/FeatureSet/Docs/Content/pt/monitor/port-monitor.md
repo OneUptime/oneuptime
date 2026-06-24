@@ -29,16 +29,16 @@ Insira o hostname ou endereço IP do host alvo (ex.: `example.com` ou `192.168.1
 
 Insira o número da porta para monitorar (1–65535). Exemplos comuns:
 
-| Porta | Serviço |
-|------|---------|
-| 22 | SSH |
-| 25 | SMTP |
-| 80 | HTTP |
-| 443 | HTTPS |
-| 3306 | MySQL |
-| 5432 | PostgreSQL |
-| 6379 | Redis |
-| 27017 | MongoDB |
+| Porta | Serviço    |
+| ----- | ---------- |
+| 22    | SSH        |
+| 25    | SMTP       |
+| 80    | HTTP       |
+| 443   | HTTPS      |
+| 3306  | MySQL      |
+| 5432  | PostgreSQL |
+| 6379  | Redis      |
+| 27017 | MongoDB    |
 
 ## Critérios de Monitoramento
 
@@ -46,11 +46,11 @@ Você pode configurar critérios para determinar quando sua porta é considerada
 
 ### Tipos de Verificação Disponíveis
 
-| Tipo de Verificação | Descrição |
-|------------|-------------|
-| Is Online | Se a porta está aberta e aceitando conexões |
+| Tipo de Verificação   | Descrição                                           |
+| --------------------- | --------------------------------------------------- |
+| Is Online             | Se a porta está aberta e aceitando conexões         |
 | Response Time (in ms) | Tempo para estabelecer uma conexão em milissegundos |
-| Is Request Timeout | Se a tentativa de conexão expirou |
+| Is Request Timeout    | Se a tentativa de conexão expirou                   |
 
 ### Tipos de Filtro
 

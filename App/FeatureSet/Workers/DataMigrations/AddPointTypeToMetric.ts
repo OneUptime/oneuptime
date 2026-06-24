@@ -9,6 +9,10 @@ export default class AddPointTypeToMetric extends DataMigrationBase {
     super("AddPointTypeToMetric");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     const column: AnalyticsTableColumn | undefined =
       new Metric().tableColumns.find((column: AnalyticsTableColumn) => {

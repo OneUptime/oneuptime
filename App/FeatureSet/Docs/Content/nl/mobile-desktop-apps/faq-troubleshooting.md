@@ -91,37 +91,44 @@ De PWA werkt automatisch bij wanneer u deze opent terwijl u online bent. Om een 
 ### Problemen met de Mobiele App
 
 **App logt niet in / "Netwerkfout":**
+
 - Bevestig dat de **Server URL** correct is en bereikbaar is vanaf uw telefoon.
 - Controleer of uw telefoon verbonden is met het internet.
 - Voor zelf-gehoste instanties achter een VPN, zorg ervoor dat de VPN actief is.
 
 **Pushmeldingen vertraagd of ontbrekend (Android):**
+
 - Schakel batterijoptimalisatie uit: **Instellingen → Apps → OneUptime On-Call → Batterij → Onbeperkt**.
 - Schakel Databesparing uit voor de app.
 - Op Samsung apparaten schakelt u **Apparaatonderhoud → Batterij → Limieten voor achtergrondgebruik** uit voor OneUptime On-Call.
 
 **Pushmeldingen vertraagd of ontbrekend (iOS):**
+
 - Vermijd het geforceerd afsluiten van de app — iOS kan aflevering op de achtergrond pauzeren.
 - Schakel de Energiebesparingsmodus uit terwijl u dienst hebt.
 - Voeg OneUptime On-Call toe aan de lijst met toegestane apps van elke actieve Focus modus.
 
 **Face ID / Touch ID / vingerafdruk werkt niet:**
+
 - Zorg ervoor dat biometrische gegevens zijn ingeschreven in uw OS-instellingen.
 - Schakel biometrische ontgrendeling opnieuw in vanuit het scherm **Instellingen** binnen de OneUptime On-Call app.
 
 ### Problemen met de Desktop App (PWA)
 
 **Installatieknop ontbreekt:**
+
 - Gebruik een ondersteunde browser (op Chromium gebaseerd of Safari op macOS Sonoma+).
 - Zorg ervoor dat de OneUptime instantie via HTTPS wordt aangeboden.
 - Wacht tot de pagina volledig is geladen en controleer vervolgens de adresbalk op het installatiepictogram.
 
 **Desktopmeldingen verschijnen niet:**
+
 - Sta meldingen toe wanneer de browser daarom vraagt.
 - Controleer de OS-meldingsinstellingen (Windows Focus-assistent, macOS Berichtgeving, Linux meldingsdaemon).
 - Voor zelf-gehoste instanties, zorg ervoor dat de [Pushmeldingen](/docs/self-hosted/push-notifications) configuratie volledig is.
 
 **App toont niet de nieuwste gegevens:**
+
 - Vernieuw met **Ctrl+R** / **Cmd+R**.
 - Sluit en heropen het venster.
 - Controleer uw netwerkverbinding.

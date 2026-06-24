@@ -11,6 +11,7 @@ import React, {
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -31,6 +32,10 @@ const RumApplications: FunctionComponent<
 > = (): ReactElement => {
   const [count, setCount] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
+
+  const { archiveBulkActions } = useBulkArchiveActions<RumApplication>({
+    modelType: RumApplication,
+  });
 
   useEffect(() => {
     ModelAPI.count({
@@ -69,10 +74,16 @@ const RumApplications: FunctionComponent<
         modelType={RumApplication}
         id="rum-applications-table"
         userPreferencesKey="rum-applications-table"
+        query={{
+          isArchived: false,
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        bulkActions={{
+          buttons: [...archiveBulkActions],
+        }}
         showRefreshButton={true}
         showViewIdButton={true}
         name="RUM Applications"

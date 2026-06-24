@@ -24,19 +24,19 @@ DNSSEC-monitors valideren de volledige vertrouwensketen vanaf de rootzone tot aa
 
 ### Basisinstellingen
 
-| Veld | Beschrijving | Vereist |
-|-------|-------------|----------|
-| Zone (domeinnaam) | De zone om via DNSSEC te valideren (bijv. `example.com`) | Ja |
-| Resolvers | Door komma's gescheiden lijst van valideren­de resolvers om te bevragen (bijv. `1.1.1.1, 8.8.8.8, 9.9.9.9`) | Ja |
-| Controleer naamserverconsistentie | Bevraagt elke autoritatieve naamserver rechtstreeks en verifieert dat zij hetzelfde SOA-serienummer retourneren | Nee |
+| Veld                              | Beschrijving                                                                                                    | Vereist |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------- |
+| Zone (domeinnaam)                 | De zone om via DNSSEC te valideren (bijv. `example.com`)                                                        | Ja      |
+| Resolvers                         | Door komma's gescheiden lijst van valideren­de resolvers om te bevragen (bijv. `1.1.1.1, 8.8.8.8, 9.9.9.9`)     | Ja      |
+| Controleer naamserverconsistentie | Bevraagt elke autoritatieve naamserver rechtstreeks en verifieert dat zij hetzelfde SOA-serienummer retourneren | Nee     |
 
 ### Geavanceerde instellingen
 
-| Veld | Beschrijving | Standaard |
-|-------|-------------|---------|
-| Waarschuwing handtekeningverloop (dagen) | Standaarddrempel voor het RRSIG-vervalfilter | 7 |
-| Time-out (ms) | Hoe lang te wachten op elke DNS-opvraag | 10000 |
-| Nieuwe pogingen | Aantal nieuwe pogingen bij mislukking | 3 |
+| Veld                                     | Beschrijving                                 | Standaard |
+| ---------------------------------------- | -------------------------------------------- | --------- |
+| Waarschuwing handtekeningverloop (dagen) | Standaarddrempel voor het RRSIG-vervalfilter | 7         |
+| Time-out (ms)                            | Hoe lang te wachten op elke DNS-opvraag      | 10000     |
+| Nieuwe pogingen                          | Aantal nieuwe pogingen bij mislukking        | 3         |
 
 ## Monitoringcriteria
 
@@ -44,15 +44,15 @@ U kunt criteria configureren om te bepalen wanneer uw zone als online, gedegrade
 
 ### Beschikbare controletypen
 
-| Controletype | Beschrijving |
-|------------|-------------|
-| DNSSEC-keten is geldig | De volledige validatieketen (root → TLD → zone) wordt correct opgelost |
-| DNSSEC DNSKEY-record bestaat | De zone publiceert ten minste één DNSKEY-record |
+| Controletype                                    | Beschrijving                                                                          |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------- |
+| DNSSEC-keten is geldig                          | De volledige validatieketen (root → TLD → zone) wordt correct opgelost                |
+| DNSSEC DNSKEY-record bestaat                    | De zone publiceert ten minste één DNSKEY-record                                       |
 | DNSSEC DS-record bestaat bij bovenliggende zone | De bovenliggende zone publiceert een DS-record dat overeenkomt met de KSK van de zone |
-| DNSSEC handtekening verloopt over dagen | Aantal dagen tot de eerstvolgende RRSIG-handtekening verloopt |
-| DNSSEC-resolverconsensus (AD-vlag) | Elke bevraagde resolver retourneert de AD-vlag (Authenticated Data) |
-| DNSSEC-naamservers zijn consistent | Alle autoritatieve naamservers retourneren hetzelfde SOA-serienummer |
-| DNSSEC is geldig | Aggregaat geslaagd/mislukt over alle validatiecontroles |
+| DNSSEC handtekening verloopt over dagen         | Aantal dagen tot de eerstvolgende RRSIG-handtekening verloopt                         |
+| DNSSEC-resolverconsensus (AD-vlag)              | Elke bevraagde resolver retourneert de AD-vlag (Authenticated Data)                   |
+| DNSSEC-naamservers zijn consistent              | Alle autoritatieve naamservers retourneren hetzelfde SOA-serienummer                  |
+| DNSSEC is geldig                                | Aggregaat geslaagd/mislukt over alle validatiecontroles                               |
 
 ### Filtertypen
 

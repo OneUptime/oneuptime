@@ -1,6 +1,6 @@
 # Runbook-Agents
 
-Ein **Runbook-Agent** ist ein kleiner, selbst gehosteter Prozess, der die Bash- *und* JavaScript-Schritte Ihrer Runbooks **in Ihrer eigenen Infrastruktur** ausführt. Der OneUptime-Worker führt Ihre Skripte nie selbst aus — er stellt sie in eine Warteschlange, und der Runbook-Agent, den der Schrittautor ausgewählt hat, holt sie ab, führt sie aus und meldet das Ergebnis zurück.
+Ein **Runbook-Agent** ist ein kleiner, selbst gehosteter Prozess, der die Bash- _und_ JavaScript-Schritte Ihrer Runbooks **in Ihrer eigenen Infrastruktur** ausführt. Der OneUptime-Worker führt Ihre Skripte nie selbst aus — er stellt sie in eine Warteschlange, und der Runbook-Agent, den der Schrittautor ausgewählt hat, holt sie ab, führt sie aus und meldet das Ergebnis zurück.
 
 JavaScript läuft weiterhin in einer `isolated-vm`-Sandbox; nur dass diese Sandbox auf Ihrem Agent-Host und nicht auf unserem läuft.
 
@@ -11,7 +11,7 @@ Diese Seite erklärt, wie Sie einen Agent installieren, Bash- und JavaScript-Sch
 Frühere OneUptime-Versionen führten Bash- und JavaScript-Schritte auf dem Worker aus. JavaScript war zwar in einer Sandbox (`isolated-vm`), Bash nicht. Beides war für alles jenseits eines Single-Tenant-Self-Hosted-Setups problematisch:
 
 - **Vertrauensgrenze.** Wer ein Runbook verfassen darf, konnte Code auf dem Worker ausführen — mit Zugriff auf alle Umgebungsvariablen und Dateisysteme, die der Worker hat. Die JavaScript-Sandbox blockierte offensichtliche Dinge, konnte aber einen entschlossenen Nutzer nicht daran hindern, zu prüfen, was von unserem Netzwerk aus erreichbar war.
-- **Reichweite.** Die meisten nützlichen Schritte wollen auf der *Kunden*-Infrastruktur arbeiten („Diesen Dienst neu starten", „kubectl auf unserem Cluster", „einen Datensatz in unserer internen DB nachschlagen") — nicht auf OneUptimes.
+- **Reichweite.** Die meisten nützlichen Schritte wollen auf der _Kunden_-Infrastruktur arbeiten („Diesen Dienst neu starten", „kubectl auf unserem Cluster", „einen Datensatz in unserer internen DB nachschlagen") — nicht auf OneUptimes.
 
 Runbook-Agents drehen das um. Bash- und JavaScript-Schritte laufen nicht bei uns. Sie laufen auf einem Host, den Sie kontrollieren, und Sie entscheiden, was dieser Host darf.
 
@@ -32,10 +32,10 @@ Der Agent benötigt nur **ausgehendes HTTPS** zu Ihrer OneUptime-Instanz. Er akz
 
 Gehen Sie zu **Runbooks → Settings → Agents** und erstellen Sie einen neuen Agent. Füllen Sie aus:
 
-| Feld | Hinweise |
-| --- | --- |
-| **Name** | Ein sprechender Name — üblicherweise `wo-er-läuft-und-was-er-kann`, z.B. `prod-eu-west-1`. Das ist der Name, der im Dropdown beim Verfassen eines Schritts erscheint. |
-| **Beschreibung** | Optional. Ein Satz darüber, was dieser Host erreichen kann. Ihr zukünftiges Ich wird es Ihnen danken. |
+| Feld             | Hinweise                                                                                                                                                              |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**         | Ein sprechender Name — üblicherweise `wo-er-läuft-und-was-er-kann`, z.B. `prod-eu-west-1`. Das ist der Name, der im Dropdown beim Verfassen eines Schritts erscheint. |
+| **Beschreibung** | Optional. Ein Satz darüber, was dieser Host erreichen kann. Ihr zukünftiges Ich wird es Ihnen danken.                                                                 |
 
 ### 2. Den Installationsbefehl kopieren
 
@@ -81,10 +81,10 @@ Brauchen Sie mehr als einen Agent? Erstellen Sie sie und richten Sie einzelne Sc
 
 Zwei Timeouts gelten für jeden Bash- oder JavaScript-Schritt:
 
-| Timeout | Standard | Was es steuert |
-| --- | --- | --- |
-| **Claim-Timeout** | 2 Minuten | Wie lange der Worker darauf wartet, dass der ausgewählte Agent den Job beansprucht. Greift der Agent nicht rechtzeitig zu, schlägt der Schritt mit `TimedOut` fehl, und das Runbook macht weiter (oder stoppt, abhängig von **Bei Fehler fortfahren**). |
-| **Ausführungs-Timeout** | 30 Sekunden | Wie lange der Agent das Skript laufen lässt, bevor er es beendet. Pro Schritt konfigurierbar. (Bash bekommt `SIGKILL`; das JavaScript-Isolate wird abgerissen.) |
+| Timeout                 | Standard    | Was es steuert                                                                                                                                                                                                                                          |
+| ----------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Claim-Timeout**       | 2 Minuten   | Wie lange der Worker darauf wartet, dass der ausgewählte Agent den Job beansprucht. Greift der Agent nicht rechtzeitig zu, schlägt der Schritt mit `TimedOut` fehl, und das Runbook macht weiter (oder stoppt, abhängig von **Bei Fehler fortfahren**). |
+| **Ausführungs-Timeout** | 30 Sekunden | Wie lange der Agent das Skript laufen lässt, bevor er es beendet. Pro Schritt konfigurierbar. (Bash bekommt `SIGKILL`; das JavaScript-Isolate wird abgerissen.)                                                                                         |
 
 Das Gesamt-Wartefenster des Workers beträgt `Claim-Timeout + Ausführungs-Timeout + ein paar Sekunden`. Wählen Sie Werte, die zum Schritt passen.
 
@@ -114,15 +114,15 @@ Jeder Agent führt standardmäßig einen Job zur Zeit aus. Um mehr zuzulassen, s
 
 Der Agent liest diese beim Start ein:
 
-| Variable | Erforderlich | Standard | Hinweise |
-| --- | --- | --- | --- |
-| `ONEUPTIME_URL` | ja | — | Basis-URL Ihrer OneUptime-Instanz, z. B. `https://oneuptime.yourdomain.com`. |
-| `RUNBOOK_AGENT_ID` | ja | — | Die UUID, die im Setup-Modal des Agents angezeigt wird. |
-| `RUNBOOK_AGENT_KEY` | ja | — | Das Secret, das im Setup-Modal des Agents angezeigt wird. |
-| `RUNBOOK_AGENT_POLL_INTERVAL_MS` | nein | `5000` | Wie oft der Agent nach neuen Jobs fragt. |
-| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS` | nein | `60000` | Wie oft der Agent seine Lebenszeichen meldet. |
-| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | nein | `10000` | Wie oft der Agent den Lease eines laufenden Jobs erneuert. |
-| `RUNBOOK_AGENT_CONCURRENCY` | nein | `1` | Maximale gleichzeitige Jobs auf diesem Agent. |
+| Variable                                  | Erforderlich | Standard | Hinweise                                                                     |
+| ----------------------------------------- | ------------ | -------- | ---------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`                           | ja           | —        | Basis-URL Ihrer OneUptime-Instanz, z. B. `https://oneuptime.yourdomain.com`. |
+| `RUNBOOK_AGENT_ID`                        | ja           | —        | Die UUID, die im Setup-Modal des Agents angezeigt wird.                      |
+| `RUNBOOK_AGENT_KEY`                       | ja           | —        | Das Secret, das im Setup-Modal des Agents angezeigt wird.                    |
+| `RUNBOOK_AGENT_POLL_INTERVAL_MS`          | nein         | `5000`   | Wie oft der Agent nach neuen Jobs fragt.                                     |
+| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS`     | nein         | `60000`  | Wie oft der Agent seine Lebenszeichen meldet.                                |
+| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | nein         | `10000`  | Wie oft der Agent den Lease eines laufenden Jobs erneuert.                   |
+| `RUNBOOK_AGENT_CONCURRENCY`               | nein         | `1`      | Maximale gleichzeitige Jobs auf diesem Agent.                                |
 
 ## Einen Agent-Schlüssel rotieren
 
@@ -135,17 +135,17 @@ Die Verwaltung von Agents liegt in der bestehenden Runbooks-Berechtigungsgruppe:
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — Agent-Datensätze verwalten.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (Rollen) — einem Team zuweisen, um vollständige Kontrolle, alltägliche Nutzung oder nur Lesezugriff zu gewähren. `RunbookAdmin` bündelt alle obigen Einzel-Berechtigungen.
 
-Berechtigungen, um ein Runbook *auszulösen* (und damit Bash- und JavaScript-Schritte zur Ausführung zu bringen), sind weiterhin `CreateRunbookExecution` / `EditRunbookExecution`.
+Berechtigungen, um ein Runbook _auszulösen_ (und damit Bash- und JavaScript-Schritte zur Ausführung zu bringen), sind weiterhin `CreateRunbookExecution` / `EditRunbookExecution`.
 
 ## Agent-seitiges API
 
 Für die Neugierigen — der Agent verwendet diese Endpoints, gemountet unter `/runbook-agent-ingest`. Sie werden über die ID + den Schlüssel des Agents im JSON-Body (oder die Header `x-agent-id` / `x-agent-key`) authentifiziert.
 
-| Endpoint | Zweck |
-| --- | --- |
-| `POST /heartbeat` | Lebenszeichen; aktualisiert `lastAlive`, `connectionStatus`, `hostInfo`, `agentVersion`. |
-| `POST /claim-next-job` | Atomar den ältesten `Pending`-Job beanspruchen, der auf die ID dieses Agents zielt. Gibt `{ job: null }` zurück, wenn nichts zu tun ist. |
-| `POST /job/:jobId/heartbeat` | Den Lease des Jobs auffrischen. Gibt 404 zurück, sobald der Lease abgelaufen ist oder der Job terminal ist. |
-| `POST /job/:jobId/result` | Das Endergebnis einreichen. Wird ignoriert, wenn der Lease bereits weitergezogen ist. |
+| Endpoint                     | Zweck                                                                                                                                    |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /heartbeat`            | Lebenszeichen; aktualisiert `lastAlive`, `connectionStatus`, `hostInfo`, `agentVersion`.                                                 |
+| `POST /claim-next-job`       | Atomar den ältesten `Pending`-Job beanspruchen, der auf die ID dieses Agents zielt. Gibt `{ job: null }` zurück, wenn nichts zu tun ist. |
+| `POST /job/:jobId/heartbeat` | Den Lease des Jobs auffrischen. Gibt 404 zurück, sobald der Lease abgelaufen ist oder der Job terminal ist.                              |
+| `POST /job/:jobId/result`    | Das Endergebnis einreichen. Wird ignoriert, wenn der Lease bereits weitergezogen ist.                                                    |
 
 Sie sollten diese nicht von Hand aufrufen müssen — der mitgelieferte Agent tut das. Sie sind hier dokumentiert, damit Sie Ihren eigenen Agent bauen können, wenn Sie eine Einschränkung haben, zu der unserer nicht passt.

@@ -24,6 +24,10 @@ export default class AddMetricMinuteAggregateMaterializedView extends DataMigrat
     super("AddMetricMinuteAggregateMaterializedView");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     logger.info(
       "AddMetricMinuteAggregateMaterializedView is a no-op - superseded by the model-declared MV + analytics schema-sync.",

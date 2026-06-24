@@ -6,7 +6,7 @@ De OpenTelemetry Ingest-dienst accepteert nu native Syslog-payloads. U kunt beri
 
 ## Vereisten
 
-- **Telemetrie-ingestietoken** — maak er een aan via *Projectinstellingen → Telemetrie-ingestiesleutels* en kopieer de `x-oneuptime-token`-waarde.
+- **Telemetrie-ingestietoken** — maak er een aan via _Projectinstellingen → Telemetrie-ingestiesleutels_ en kopieer de `x-oneuptime-token`-waarde.
 - **Syslog-forwarder** — elk hulpmiddel dat HTTP POST-verzoeken kan sturen (bijvoorbeeld `curl`, `rsyslog` via `omhttp`, of `syslog-ng` met de HTTP-bestemmingsplugin).
 - **Dienstnaam (optioneel)** — stel de `x-oneuptime-service-name`-header in om inkomende logboeken te groeperen onder een specifieke telemetriedienst. Indien weggelaten valt OneUptime terug op de syslog `APP-NAME`, hostnaam of `Syslog`.
 
@@ -60,6 +60,7 @@ curl \
    sudo apt-get install rsyslog-omhttp
    ```
 2. Voeg de bestemming toe aan `/etc/rsyslog.d/oneuptime.conf`:
+
    ```
    module(load="omhttp")
 
@@ -81,6 +82,7 @@ curl \
      template="OneUptimeJson"
    )
    ```
+
 3. Herstart rsyslog:
    ```bash
    sudo systemctl restart rsyslog

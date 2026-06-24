@@ -28,12 +28,12 @@ Selecteer een of meer diensten waarvan traces worden bewaakt. Diensten moeten tr
 
 ### Span-filters
 
-| Filter | Beschrijving | Vereist |
-|--------|-------------|----------|
-| Span-statussen | Filteren op span-statuscode (OK, ERROR, UNSET) | Nee |
-| Span-naam | Zoek in tekst naar specifieke span-namen (bijv. bewerkings- of eindpuntnamen) | Nee |
-| Attributen | Sleutel-waardeparen om te filteren op aangepaste span-attributen | Nee |
-| Tijdvenster | Hoe ver terug te zoeken naar spans (in seconden, standaard: 60) | Nee |
+| Filter         | Beschrijving                                                                  | Vereist |
+| -------------- | ----------------------------------------------------------------------------- | ------- |
+| Span-statussen | Filteren op span-statuscode (OK, ERROR, UNSET)                                | Nee     |
+| Span-naam      | Zoek in tekst naar specifieke span-namen (bijv. bewerkings- of eindpuntnamen) | Nee     |
+| Attributen     | Sleutel-waardeparen om te filteren op aangepaste span-attributen              | Nee     |
+| Tijdvenster    | Hoe ver terug te zoeken naar spans (in seconden, standaard: 60)               | Nee     |
 
 ### Span-statuscodes
 
@@ -45,8 +45,8 @@ Selecteer een of meer diensten waarvan traces worden bewaakt. Diensten moeten tr
 
 ### Beschikbare controletypen
 
-| Controletype | Beschrijving |
-|------------|-------------|
+| Controletype | Beschrijving                                                   |
+| ------------ | -------------------------------------------------------------- |
 | Span-telling | Het aantal spans dat voldoet aan uw filters in het tijdvenster |
 
 ### Filtertypen

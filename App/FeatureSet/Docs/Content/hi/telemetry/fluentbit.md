@@ -21,9 +21,9 @@ FluentBit सैकड़ों data sources का समर्थन करत
 - Java
 - PHP
 - Go
-- Rust 
+- Rust
 
-और भी बहुत कुछ। 
+और भी बहुत कुछ।
 
 आप supported sources की पूरी list [यहाँ](https://docs.fluentbit.io/manual) पा सकते हैं।
 
@@ -36,7 +36,7 @@ FluentBit सैकड़ों data sources का समर्थन करत
 
 OneUptime sign up करने और project बनाने के बाद। Navigation bar में "More" पर क्लिक करें और "Project Settings" पर क्लिक करें।
 
-Telemetry Ingestion Key page पर, token बनाने के लिए "Create Ingestion Key" पर क्लिक करें। 
+Telemetry Ingestion Key page पर, token बनाने के लिए "Create Ingestion Key" पर क्लिक करें।
 
 ![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
 
@@ -44,29 +44,24 @@ Token बनाने के बाद, token देखने के लिए "
 
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
 ## Configuration
 
 आप OneUptime OpenTelemetry HTTP Collector को telemetry data भेजने के लिए निम्नलिखित configuration उपयोग कर सकते हैं। आप इस configuration को fluentbit configuration फ़ाइल में जोड़ सकते हैं। Configuration फ़ाइल आमतौर पर `/etc/fluent-bit/fluent-bit.yaml` पर located होती है। Configuration फ़ाइल का outputs section इस तरह दिखेगा:
 
-
 ```yaml
-
-
 outputs:
   - name: stdout
-    match: '*'
+    match: "*"
   - name: opentelemetry
-    match: '*'
-    host: 'oneuptime.com'
+    match: "*"
+    host: "oneuptime.com"
     port: 443
-    metrics_uri: '/otlp/v1/metrics'
-    logs_uri: '/otlp/v1/logs'
-    traces_uri: '/otlp/v1/traces'
+    metrics_uri: "/otlp/v1/metrics"
+    logs_uri: "/otlp/v1/logs"
+    traces_uri: "/otlp/v1/traces"
     tls: On
     header:
       - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
-
 ```
 
 कृपया सुनिश्चित करें कि आपके input section में opentelemetry_envelope है। Input section का उदाहरण:
@@ -74,18 +69,18 @@ outputs:
 ```yaml
 pipeline:
   inputs:
-      # आपके inputs
+    # आपके inputs
 
-      processors:
-        logs:
-          - name: opentelemetry_envelope
+    processors:
+      logs:
+        - name: opentelemetry_envelope
 
-          - name: content_modifier
-            context: otel_resource_attributes
-            action: upsert
-            key: service.name
-            # कृपया YOUR_SERVICE_NAME को अपनी service के नाम से बदलें
-            value: YOUR_SERVICE_NAME
+        - name: content_modifier
+          context: otel_resource_attributes
+          action: upsert
+          key: service.name
+          # कृपया YOUR_SERVICE_NAME को अपनी service के नाम से बदलें
+          value: YOUR_SERVICE_NAME
 ```
 
 यहाँ पूरी configuration फ़ाइल का उदाहरण है:
@@ -113,19 +108,18 @@ pipeline:
 
   outputs:
     - name: stdout
-      match: '*'
+      match: "*"
     - name: opentelemetry
-      match: '*'
-      host: 'oneuptime.com'
+      match: "*"
+      host: "oneuptime.com"
       port: 443
-      metrics_uri: '/otlp/v1/metrics'
-      logs_uri: '/otlp/v1/logs'
-      traces_uri: '/otlp/v1/traces'
+      metrics_uri: "/otlp/v1/metrics"
+      logs_uri: "/otlp/v1/logs"
+      traces_uri: "/otlp/v1/traces"
       tls: On
       header:
         - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
 ```
-
 
 **यदि आप OneUptime self-host कर रहे हैं**: यदि आप OneUptime self-host कर रहे हैं तो आप `host` को अपने OneUptime instance के host से बदल सकते हैं। यदि आप https के बजाय http server पर host कर रहे हैं, तो आप `port` को अपने OneUptime instance के port से बदल सकते हैं (likely port 80)।
 
@@ -134,14 +128,14 @@ pipeline:
 ```yaml
 outputs:
   - name: stdout
-    match: '*'
+    match: "*"
   - name: opentelemetry
-    match: '*'
-    host: 'your-oneuptime-instance.com'
+    match: "*"
+    host: "your-oneuptime-instance.com"
     port: 80
-    metrics_uri: '/otlp/v1/metrics'
-    logs_uri: '/otlp/v1/logs'
-    traces_uri: '/otlp/v1/traces'
+    metrics_uri: "/otlp/v1/metrics"
+    logs_uri: "/otlp/v1/logs"
+    traces_uri: "/otlp/v1/traces"
     header:
       - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
 ```

@@ -27,16 +27,16 @@ Only the connection target and the password secret change — the app keeps usin
 the `oneuptime` user and the `oneuptime` database, so no application config
 changes are required beyond flipping the Helm switch.
 
-| | Standalone (`clickhouse.enabled: true`) | Operator (`clickhouseOperator.altinity.enabled: true`) |
-|---|---|---|
-| Workload | `StatefulSet/<release>-clickhouse-shard0` (1 replica) | `ClickHouseInstallation/<release>-clickhouse-altinity` |
-| App connects to (`CLICKHOUSE_HOST`) | `<release>-clickhouse` | `<release>-clickhouse-altinity` |
-| HTTP port (`CLICKHOUSE_PORT`) | `8123` | `8123` |
-| Native TCP port | `9000` | `9000` |
-| User (`CLICKHOUSE_USER`) | `oneuptime` | `oneuptime` |
-| Database (`CLICKHOUSE_DATABASE`) | `oneuptime` | `oneuptime` |
-| Password secret | `<release>-clickhouse` → key `admin-password` | `<release>-clickhouse-altinity` → key `admin-password` |
-| Coordination | — | ClickHouse Keeper `<release>-clickhouse-keeper` |
+|                                     | Standalone (`clickhouse.enabled: true`)               | Operator (`clickhouseOperator.altinity.enabled: true`) |
+| ----------------------------------- | ----------------------------------------------------- | ------------------------------------------------------ |
+| Workload                            | `StatefulSet/<release>-clickhouse-shard0` (1 replica) | `ClickHouseInstallation/<release>-clickhouse-altinity` |
+| App connects to (`CLICKHOUSE_HOST`) | `<release>-clickhouse`                                | `<release>-clickhouse-altinity`                        |
+| HTTP port (`CLICKHOUSE_PORT`)       | `8123`                                                | `8123`                                                 |
+| Native TCP port                     | `9000`                                                | `9000`                                                 |
+| User (`CLICKHOUSE_USER`)            | `oneuptime`                                           | `oneuptime`                                            |
+| Database (`CLICKHOUSE_DATABASE`)    | `oneuptime`                                           | `oneuptime`                                            |
+| Password secret                     | `<release>-clickhouse` → key `admin-password`         | `<release>-clickhouse-altinity` → key `admin-password` |
+| Coordination                        | —                                                     | ClickHouse Keeper `<release>-clickhouse-keeper`        |
 
 Replace `<release>` with your Helm release name (e.g. `oneuptime`) and run every
 command in the release's namespace (add `-n <namespace>` if it isn't `default`).
@@ -57,12 +57,12 @@ ClickHouse in OneUptime holds **telemetry** — logs, metrics, traces, and
 exceptions. This is append-only, time-series data, often very large, and most of
 it ages out under retention/TTL policies anyway.
 
-* **If you do _not_ need to keep history** (e.g. dev/test, or you're fine
+- **If you do _not_ need to keep history** (e.g. dev/test, or you're fine
   starting telemetry fresh), this migration is trivial: just
   [flip the switch](#the-simplest-path-fresh-start-no-data-copy). The app
   recreates an empty schema on the new cluster and starts ingesting. **No data
   copy, no downtime dance.** This is the recommended path when it's acceptable.
-* **If you _must_ retain history**, use [Option A](#option-a--clickhouse-backup-recommended-for-large-datasets)
+- **If you _must_ retain history**, use [Option A](#option-a--clickhouse-backup-recommended-for-large-datasets)
   or [Option B](#option-b--remote-insertselect-over-the-network) below to copy
   the data after cutover. Budget time and scratch space proportional to your
   ClickHouse data size.
@@ -81,10 +81,10 @@ clickhouseOperator:
   altinity:
     enabled: true
     image:
-      tag: "25.3"          # pin a ClickHouse version for production
+      tag: "25.3" # pin a ClickHouse version for production
     cluster:
       shardsCount: 1
-      replicasCount: 2     # 2 = HA (uses the bundled Keeper, on by default)
+      replicasCount: 2 # 2 = HA (uses the bundled Keeper, on by default)
     keeper:
       enabled: true
       replicas: 3
@@ -282,7 +282,7 @@ operator cluster after cutover won't be on the standalone.)
 
 ## See also
 
-* [Clickhouse.md](./Clickhouse.md) — operator day-2 operations: replication,
+- [Clickhouse.md](./Clickhouse.md) — operator day-2 operations: replication,
   sharding, Keeper sizing / bring-your-own ZooKeeper, and backups.
-* OneUptime Helm chart [README](../Public/oneuptime/README.md) —
+- OneUptime Helm chart [README](../Public/oneuptime/README.md) —
   `clickhouseOperator` configuration reference.

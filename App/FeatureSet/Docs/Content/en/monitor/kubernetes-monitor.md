@@ -32,25 +32,25 @@ Select the Kubernetes cluster to monitor. Clusters must be integrated with OneUp
 
 Choose the level at which to monitor resources:
 
-| Scope | Description |
-|-------|-------------|
-| Cluster | Monitor the entire cluster |
-| Namespace | Monitor resources within a specific namespace |
-| Workload | Monitor a specific deployment, statefulset, daemonset, job, or cronjob |
-| Node | Monitor a specific cluster node |
-| Pod | Monitor a specific pod |
+| Scope     | Description                                                            |
+| --------- | ---------------------------------------------------------------------- |
+| Cluster   | Monitor the entire cluster                                             |
+| Namespace | Monitor resources within a specific namespace                          |
+| Workload  | Monitor a specific deployment, statefulset, daemonset, job, or cronjob |
+| Node      | Monitor a specific cluster node                                        |
+| Pod       | Monitor a specific pod                                                 |
 
 ### Resource Filters
 
 Narrow the scope with optional filters:
 
-| Filter | Description | Applicable Scopes |
-|--------|-------------|-------------------|
-| Namespace | Kubernetes namespace | Namespace, Workload, Pod |
-| Workload Type | deployment, statefulset, daemonset, job, cronjob | Workload |
-| Workload Name | Name of the workload | Workload |
-| Node Name | Name of the node | Node |
-| Pod Name | Name of the pod | Pod |
+| Filter        | Description                                      | Applicable Scopes        |
+| ------------- | ------------------------------------------------ | ------------------------ |
+| Namespace     | Kubernetes namespace                             | Namespace, Workload, Pod |
+| Workload Type | deployment, statefulset, daemonset, job, cronjob | Workload                 |
+| Workload Name | Name of the workload                             | Workload                 |
+| Node Name     | Name of the node                                 | Node                     |
+| Pod Name      | Name of the pod                                  | Pod                      |
 
 ### Metric Queries
 
@@ -77,60 +77,60 @@ Select the time window for metric evaluation:
 
 ### Pod Metrics
 
-| Metric | Description |
-|--------|-------------|
-| Pod CPU Usage | CPU consumption by pods |
-| Pod Memory Usage | Memory consumption by pods |
-| Pod Filesystem Usage | Disk usage by pods |
-| Pod Network Receive/Transmit | Network traffic |
-| Pod Phase | Current pod phase (Running, Pending, Failed, etc.) |
+| Metric                       | Description                                        |
+| ---------------------------- | -------------------------------------------------- |
+| Pod CPU Usage                | CPU consumption by pods                            |
+| Pod Memory Usage             | Memory consumption by pods                         |
+| Pod Filesystem Usage         | Disk usage by pods                                 |
+| Pod Network Receive/Transmit | Network traffic                                    |
+| Pod Phase                    | Current pod phase (Running, Pending, Failed, etc.) |
 
 ### Node Metrics
 
-| Metric | Description |
-|--------|-------------|
-| Node CPU Usage | CPU utilization per node |
-| Node Memory Usage | Memory utilization per node |
-| Node Filesystem Usage | Disk usage per node |
-| Node Disk I/O | Read/write operations |
-| Node Ready Condition | Whether the node is ready |
+| Metric                | Description                 |
+| --------------------- | --------------------------- |
+| Node CPU Usage        | CPU utilization per node    |
+| Node Memory Usage     | Memory utilization per node |
+| Node Filesystem Usage | Disk usage per node         |
+| Node Disk I/O         | Read/write operations       |
+| Node Ready Condition  | Whether the node is ready   |
 
 ### Container Metrics
 
-| Metric | Description |
-|--------|-------------|
-| Container Restarts | Number of container restarts |
-| Container CPU/Memory Limits | Resource limits |
-| Container CPU/Memory Requests | Resource requests |
-| Container Ready Status | Whether containers are ready |
+| Metric                        | Description                  |
+| ----------------------------- | ---------------------------- |
+| Container Restarts            | Number of container restarts |
+| Container CPU/Memory Limits   | Resource limits              |
+| Container CPU/Memory Requests | Resource requests            |
+| Container Ready Status        | Whether containers are ready |
 
 ### Workload Metrics
 
-| Metric | Description |
-|--------|-------------|
-| Deployment Available/Unavailable Replicas | Replica counts |
-| DaemonSet Misscheduled Nodes | Scheduling issues |
-| StatefulSet Ready Replicas | Ready replica count |
-| Job Active/Failed/Succeeded Pods | Job status |
+| Metric                                    | Description         |
+| ----------------------------------------- | ------------------- |
+| Deployment Available/Unavailable Replicas | Replica counts      |
+| DaemonSet Misscheduled Nodes              | Scheduling issues   |
+| StatefulSet Ready Replicas                | Ready replica count |
+| Job Active/Failed/Succeeded Pods          | Job status          |
 
 ## Monitoring Criteria
 
 ### Available Check Types
 
-| Check Type | Description |
-|------------|-------------|
+| Check Type   | Description                                         |
+| ------------ | --------------------------------------------------- |
 | Metric Value | The value of the configured metric query or formula |
 
 ### Aggregation Types
 
-| Aggregation | Description |
-|-------------|-------------|
-| Average | Average value over the time window |
-| Sum | Sum of all values |
-| Maximum Value | Highest value in the time window |
-| Minimum Value | Lowest value in the time window |
-| All Values | All values must match the criteria |
-| Any Value | At least one value must match |
+| Aggregation   | Description                        |
+| ------------- | ---------------------------------- |
+| Average       | Average value over the time window |
+| Sum           | Sum of all values                  |
+| Maximum Value | Highest value in the time window   |
+| Minimum Value | Lowest value in the time window    |
+| All Values    | All values must match the criteria |
+| Any Value     | At least one value must match      |
 
 ### Filter Types
 
@@ -140,20 +140,20 @@ Select the time window for metric evaluation:
 
 OneUptime provides templates for common Kubernetes monitoring scenarios:
 
-| Template | Description | Threshold |
-|----------|-------------|-----------|
-| CrashLoopBackOff Detection | Container restart count | > 5 restarts |
-| Pod Stuck in Pending | Pods in Pending phase | > 0 pods |
-| Node Not Ready | Node readiness condition | = 0 (not ready) |
-| High Node CPU | Node CPU utilization | > 90% |
-| High Node Memory | Node memory utilization | > 85% |
-| Deployment Replica Mismatch | Unavailable replicas | > 0 replicas |
-| Job Failures | Failed pods in a job | > 0 failures |
-| etcd No Leader | etcd cluster leader missing | = 0 (no leader) |
-| API Server Throttling | Dropped API requests | > 0 requests |
-| Scheduler Backlog | Pending pods in scheduler | > 0 pods |
-| High Node Disk Usage | Node filesystem usage | > 90% |
-| DaemonSet Unavailable | Misscheduled nodes | > 0 nodes |
+| Template                    | Description                 | Threshold       |
+| --------------------------- | --------------------------- | --------------- |
+| CrashLoopBackOff Detection  | Container restart count     | > 5 restarts    |
+| Pod Stuck in Pending        | Pods in Pending phase       | > 0 pods        |
+| Node Not Ready              | Node readiness condition    | = 0 (not ready) |
+| High Node CPU               | Node CPU utilization        | > 90%           |
+| High Node Memory            | Node memory utilization     | > 85%           |
+| Deployment Replica Mismatch | Unavailable replicas        | > 0 replicas    |
+| Job Failures                | Failed pods in a job        | > 0 failures    |
+| etcd No Leader              | etcd cluster leader missing | = 0 (no leader) |
+| API Server Throttling       | Dropped API requests        | > 0 requests    |
+| Scheduler Backlog           | Pending pods in scheduler   | > 0 pods        |
+| High Node Disk Usage        | Node filesystem usage       | > 90%           |
+| DaemonSet Unavailable       | Misscheduled nodes          | > 0 nodes       |
 
 ## Setup Requirements
 

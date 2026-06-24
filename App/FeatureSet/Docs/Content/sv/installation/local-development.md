@@ -1,9 +1,10 @@
 # Lokal utveckling
 
-För lokal utveckling måste du använda filen docker-compose.dev.yml. 
+För lokal utveckling måste du använda filen docker-compose.dev.yml.
 
-Du måste se till att du har: 
-- Docker och Docker Compose installerade. 
+Du måste se till att du har:
+
+- Docker och Docker Compose installerade.
 - Node.js och NPM installerade.
 
 ```

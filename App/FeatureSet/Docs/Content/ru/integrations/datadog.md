@@ -31,6 +31,7 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 1. В Datadog перейдите в **Integrations → Webhooks** (установите интеграцию **Webhooks**, если ещё не установлена).
 2. **Добавьте webhook**:
+
    - **Name**: `oneuptime` (это станет `@webhook-oneuptime`).
    - **URL**: URL webhook вашего рабочего процесса.
    - **Payload** — Datadog позволяет задать тело JSON с помощью [переменных шаблона](https://docs.datadoghq.com/integrations/webhooks/#usage):

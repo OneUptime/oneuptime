@@ -29,11 +29,13 @@ OneUptimes nettbaserte dashbord er en progressiv nettapp, slik at du kan install
 ### Feilsøking for skrivebord
 
 **Installeringsvalget vises ikke:**
+
 - Forsikre deg om at du bruker en støttet nettleser.
 - Bekreft at OneUptime-instansen din leveres over HTTPS.
 - Last inn siden på nytt eller tøm nettleserens hurtigbuffer.
 
 **Push-varsler fungerer ikke:**
+
 - Gi varslingstillatelser når nettleseren ber om det.
 - Sjekk operativsystemets varslingsinnstillinger for nettleseren.
 - Selvhostede brukere: bekreft at push-varsler er konfigurert på OneUptime-instansen din.

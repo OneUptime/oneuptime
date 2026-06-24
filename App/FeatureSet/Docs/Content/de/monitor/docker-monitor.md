@@ -31,10 +31,10 @@ Wählen Sie den zu überwachenden Docker-Host. Hosts werden beim ersten Mal auto
 
 Wählen Sie die Ebene, auf der Ressourcen überwacht werden sollen:
 
-| Bereich | Beschreibung |
-|-------|-------------|
-| Host | Den gesamten Docker-Host überwachen, aggregiert über alle Container |
-| Container | Einen bestimmten Container nach Name oder Image überwachen |
+| Bereich   | Beschreibung                                                        |
+| --------- | ------------------------------------------------------------------- |
+| Host      | Den gesamten Docker-Host überwachen, aggregiert über alle Container |
+| Container | Einen bestimmten Container nach Name oder Image überwachen          |
 
 ### Metrikabfragen
 
@@ -64,61 +64,61 @@ Der Docker Agent verwendet den OpenTelemetry `docker_stats`-Receiver, der die Do
 
 ### CPU
 
-| Metrik | Beschreibung |
-|--------|-------------|
-| `container.cpu.utilization` | CPU-Auslastung als Prozentsatz der Host-CPU |
-| `container.cpu.usage.total` | Kumulierte vom Container verbrauchte CPU-Zeit |
-| `container.cpu.throttling_data.throttled_time` | Zeit, in der der Container von cgroups gedrosselt wurde |
-| `container.cpu.throttling_data.throttled_periods` | Anzahl der Drosselungsperioden |
+| Metrik                                            | Beschreibung                                            |
+| ------------------------------------------------- | ------------------------------------------------------- |
+| `container.cpu.utilization`                       | CPU-Auslastung als Prozentsatz der Host-CPU             |
+| `container.cpu.usage.total`                       | Kumulierte vom Container verbrauchte CPU-Zeit           |
+| `container.cpu.throttling_data.throttled_time`    | Zeit, in der der Container von cgroups gedrosselt wurde |
+| `container.cpu.throttling_data.throttled_periods` | Anzahl der Drosselungsperioden                          |
 
 ### Arbeitsspeicher
 
-| Metrik | Beschreibung |
-|--------|-------------|
-| `container.memory.usage.total` | Aktuelle Arbeitsspeichernutzung in Bytes |
-| `container.memory.usage.limit` | Arbeitsspeicherlimit in Bytes |
-| `container.memory.percent` | Arbeitsspeichernutzung als Prozentsatz des Limits |
+| Metrik                         | Beschreibung                                      |
+| ------------------------------ | ------------------------------------------------- |
+| `container.memory.usage.total` | Aktuelle Arbeitsspeichernutzung in Bytes          |
+| `container.memory.usage.limit` | Arbeitsspeicherlimit in Bytes                     |
+| `container.memory.percent`     | Arbeitsspeichernutzung als Prozentsatz des Limits |
 
 ### Netzwerk
 
-| Metrik | Beschreibung |
-|--------|-------------|
+| Metrik                                | Beschreibung            |
+| ------------------------------------- | ----------------------- |
 | `container.network.io.usage.rx_bytes` | Gesamt empfangene Bytes |
-| `container.network.io.usage.tx_bytes` | Gesamt gesendete Bytes |
+| `container.network.io.usage.tx_bytes` | Gesamt gesendete Bytes  |
 
 ### Block-I/O
 
-| Metrik | Beschreibung |
-|--------|-------------|
-| `container.blockio.io_service_bytes_recursive.read` | Von Blockgeräten gelesene Bytes |
+| Metrik                                               | Beschreibung                       |
+| ---------------------------------------------------- | ---------------------------------- |
+| `container.blockio.io_service_bytes_recursive.read`  | Von Blockgeräten gelesene Bytes    |
 | `container.blockio.io_service_bytes_recursive.write` | Auf Blockgeräte geschriebene Bytes |
 
 ### Container-Info
 
-| Metrik | Beschreibung |
-|--------|-------------|
-| `container.uptime` | Container-Betriebszeit in Sekunden |
-| `container.restarts` | Anzahl der Container-Neustarts |
-| `container.pids.count` | Anzahl der Prozesse im Container |
+| Metrik                 | Beschreibung                       |
+| ---------------------- | ---------------------------------- |
+| `container.uptime`     | Container-Betriebszeit in Sekunden |
+| `container.restarts`   | Anzahl der Container-Neustarts     |
+| `container.pids.count` | Anzahl der Prozesse im Container   |
 
 ## Überwachungskriterien
 
 ### Verfügbare Prüftypen
 
-| Prüftyp | Beschreibung |
-|------------|-------------|
+| Prüftyp    | Beschreibung                                          |
+| ---------- | ----------------------------------------------------- |
 | Metrikwert | Der Wert der konfigurierten Metrikabfrage oder Formel |
 
 ### Aggregationstypen
 
-| Aggregation | Beschreibung |
-|-------------|-------------|
-| Durchschnitt | Durchschnittswert über das Zeitfenster |
-| Summe | Summe aller Werte |
-| Maximalwert | Höchster Wert im Zeitfenster |
-| Minimalwert | Niedrigster Wert im Zeitfenster |
-| Alle Werte | Alle Werte müssen den Kriterien entsprechen |
-| Beliebiger Wert | Mindestens ein Wert muss übereinstimmen |
+| Aggregation     | Beschreibung                                |
+| --------------- | ------------------------------------------- |
+| Durchschnitt    | Durchschnittswert über das Zeitfenster      |
+| Summe           | Summe aller Werte                           |
+| Maximalwert     | Höchster Wert im Zeitfenster                |
+| Minimalwert     | Niedrigster Wert im Zeitfenster             |
+| Alle Werte      | Alle Werte müssen den Kriterien entsprechen |
+| Beliebiger Wert | Mindestens ein Wert muss übereinstimmen     |
 
 ### Filtertypen
 
@@ -128,13 +128,13 @@ Der Docker Agent verwendet den OpenTelemetry `docker_stats`-Receiver, der die Do
 
 OneUptime stellt Vorlagen für häufige Docker-Überwachungsszenarien bereit:
 
-| Vorlage | Beschreibung | Schwellenwert | Aggregation |
-|----------|-------------|-----------|-------------|
-| Hohe Container-CPU | CPU-Auslastung pro Container | > 90% | Max (pro Container) |
-| Hoher Container-Arbeitsspeicher | Arbeitsspeichernutzung als Prozentsatz des Limits | > 85% | Max (pro Container) |
-| Hohe CPU-Drosselung | Gedrosselte CPU-Perioden | > 0 | Max (pro Container) |
-| Container-Neustart-Schleife | Container-Neustartanzahl | > 3 | Summe |
-| Container ausgefallen | Container-Betriebszeit zurückgesetzt auf 0 | = 0 | Min |
+| Vorlage                         | Beschreibung                                      | Schwellenwert | Aggregation         |
+| ------------------------------- | ------------------------------------------------- | ------------- | ------------------- |
+| Hohe Container-CPU              | CPU-Auslastung pro Container                      | > 90%         | Max (pro Container) |
+| Hoher Container-Arbeitsspeicher | Arbeitsspeichernutzung als Prozentsatz des Limits | > 85%         | Max (pro Container) |
+| Hohe CPU-Drosselung             | Gedrosselte CPU-Perioden                          | > 0           | Max (pro Container) |
+| Container-Neustart-Schleife     | Container-Neustartanzahl                          | > 3           | Summe               |
+| Container ausgefallen           | Container-Betriebszeit zurückgesetzt auf 0        | = 0           | Min                 |
 
 > Hinweis: CPU-, Arbeitsspeicher- und Drosselungsvorlagen verwenden **Max**-Aggregation, gruppiert nach `resource.container.name`. Dies verhindert, dass das Signal eines einzelnen überlasteten Containers durch viele inaktive Container auf demselben Host verwässert wird.
 

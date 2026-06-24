@@ -10,18 +10,15 @@ pipeline:
 
   outputs:
     - name: stdout
-      match: '*'
+      match: "*"
     - name: opentelemetry
-      match: '*'
-      host: 'local.genosyn.com'
+      match: "*"
+      host: "local.genosyn.com"
       port: 443
-      metrics_uri: '/otlp/v1/metrics'
-      logs_uri: '/otlp/v1/logs'
-      traces_uri: '/otlp/v1/traces'
+      metrics_uri: "/otlp/v1/metrics"
+      logs_uri: "/otlp/v1/logs"
+      traces_uri: "/otlp/v1/traces"
       tls: On
-      header: 
+      header:
         - x-oneuptime-token ad29ff90-100f-11f0-a779-39a19251c0cf
         - x-oneuptime-service-name demo-service-1
-
-
- 

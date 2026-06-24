@@ -91,37 +91,44 @@ Mobile push, Expo Push के माध्यम से APNs (iOS) और FCM (A
 ### Mobile App Issues
 
 **App sign in नहीं हो रहा / "Network Error":**
+
 - पुष्टि करें कि **Server URL** सही है और आपके phone से reachable है।
 - check करें कि आपका phone internet से connected है।
 - VPN के पीछे self-hosted instances के लिए, सुनिश्चित करें कि VPN active है।
 
 **Push notifications delayed या missing (Android):**
+
 - Battery optimisation disable करें: **Settings → Apps → OneUptime On-Call → Battery → Unrestricted**।
 - app के लिए Data Saver disable करें।
 - Samsung devices पर, OneUptime On-Call के लिए **Device care → Battery → Background usage limits** बंद करें।
 
 **Push notifications delayed या missing (iOS):**
+
 - app को Force-Quit करने से बचें — iOS background delivery को pause कर सकता है।
 - जब आप on-call हों तो Low Power Mode disable करें।
 - OneUptime On-Call को किसी भी active Focus mode की allow list में add करें।
 
 **Face ID / Touch ID / fingerprint काम नहीं कर रहा:**
+
 - सुनिश्चित करें कि biometrics आपके OS settings में enrolled हैं।
 - OneUptime On-Call app के अंदर **Settings** screen से biometric unlock को फिर से enable करें।
 
 ### Desktop App (PWA) Issues
 
 **Install button गायब है:**
+
 - एक supported browser का उपयोग करें (Chromium-based या macOS Sonoma+ पर Safari)।
 - सुनिश्चित करें कि OneUptime instance HTTPS पर serve हो रहा है।
 - page के पूरी तरह load होने का इंतजार करें, फिर install icon के लिए address bar check करें।
 
 **Desktop notifications दिखाई नहीं दे रहे:**
+
 - जब browser प्रॉम्प्ट करे तो notifications allow करें।
 - OS notification settings check करें (Windows Focus Assist, macOS Notifications, Linux notification daemon)।
 - self-hosted instances के लिए, सुनिश्चित करें कि [Push Notifications](/docs/self-hosted/push-notifications) configuration पूरा है।
 
 **App latest data नहीं दिखा रहा:**
+
 - **Ctrl+R** / **Cmd+R** से refresh करें।
 - window को बंद करें और फिर से open करें।
 - अपना network connection check करें।

@@ -20,6 +20,7 @@ oneuptime incident list
 ```
 
 Comportement du format table :
+
 - Sélectionne jusqu'à 6 colonnes, en priorité : `_id`, `name`, `title`, `createdAt`, `updatedAt`
 - Tronque les valeurs de plus de 60 caractères avec `...`
 - Utilise des en-têtes colorés (désactivez avec `--no-color`)
@@ -72,9 +73,9 @@ NO_COLOR=1 oneuptime incident list
 
 ## Cas de sortie spéciaux
 
-| Scénario | Sortie |
-|----------|--------|
-| Ensemble de résultats vide | `"No results found."` |
-| Aucune donnée retournée | `"No data returned."` |
+| Scénario                      | Sortie                     |
+| ----------------------------- | -------------------------- |
+| Ensemble de résultats vide    | `"No results found."`      |
+| Aucune donnée retournée       | `"No data returned."`      |
 | Objet unique (par ex., `get`) | Format de table clé-valeur |
-| Commande `count` | Valeur numérique simple |
+| Commande `count`              | Valeur numérique simple    |

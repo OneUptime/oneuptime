@@ -28,21 +28,21 @@ Seleziona uno o più servizi da cui monitorare le eccezioni. I servizi devono in
 
 ### Filtri delle Eccezioni
 
-| Filtro | Descrizione | Obbligatorio |
-|--------|-------------|----------|
-| Tipi di Eccezione | Filtra per nomi del tipo di eccezione (es. `NullPointerException`, `TypeError`) | No |
-| Messaggio | Ricerca testuale nei messaggi delle eccezioni | No |
-| Includi Risolte | Includi le eccezioni contrassegnate come risolte (predefinito: false) | No |
-| Includi Archiviate | Includi le eccezioni archiviate (predefinito: false) | No |
-| Finestra Temporale | Quanto indietro cercare le eccezioni (in secondi, predefinito: 60) | No |
+| Filtro             | Descrizione                                                                     | Obbligatorio |
+| ------------------ | ------------------------------------------------------------------------------- | ------------ |
+| Tipi di Eccezione  | Filtra per nomi del tipo di eccezione (es. `NullPointerException`, `TypeError`) | No           |
+| Messaggio          | Ricerca testuale nei messaggi delle eccezioni                                   | No           |
+| Includi Risolte    | Includi le eccezioni contrassegnate come risolte (predefinito: false)           | No           |
+| Includi Archiviate | Includi le eccezioni archiviate (predefinito: false)                            | No           |
+| Finestra Temporale | Quanto indietro cercare le eccezioni (in secondi, predefinito: 60)              | No           |
 
 ## Criteri di Monitoraggio
 
 ### Tipi di Controllo Disponibili
 
-| Tipo di Controllo | Descrizione |
-|------------|-------------|
-| Exception Count | Il numero di eccezioni corrispondenti ai tuoi filtri nella finestra temporale |
+| Tipo di Controllo | Descrizione                                                                   |
+| ----------------- | ----------------------------------------------------------------------------- |
+| Exception Count   | Il numero di eccezioni corrispondenti ai tuoi filtri nella finestra temporale |
 
 ### Tipi di Filtro
 

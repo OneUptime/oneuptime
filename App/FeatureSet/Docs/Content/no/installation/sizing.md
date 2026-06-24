@@ -10,11 +10,11 @@ Hvis du i stedet kjører enkeltserver-installasjonen med Docker Compose, er dime
 
 OneUptime krever tre datalagre i produksjon. De skalerer på helt forskjellige inndata, så dimensjoner dem uavhengig.
 
-| Datalager | Hva det lagrer | Hva som driver størrelsen |
-| --- | --- | --- |
-| **ClickHouse** | All telemetri — logger, metrikker, sporinger, unntak, profiler | Telemetri-**inntaksrate × oppbevaring**. Dette er ~95 % av lagringen din og den dominerende kostnaden. |
-| **PostgreSQL** | Konfigurasjon og tilstand — monitorer, hendelser, varsler, brukere, team, prosjekter, arbeidsflyter, statussider, dashbord | **Antall entiteter og historikk**, ikke telemetrivolum. Vokser sakte. |
-| **Redis** | Cache, arbeidskøer og økter | **Kødybde og aktive økter**. Minnebundet og beskjedent. Ikke en kilde til sannhet. |
+| Datalager      | Hva det lagrer                                                                                                             | Hva som driver størrelsen                                                                              |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **ClickHouse** | All telemetri — logger, metrikker, sporinger, unntak, profiler                                                             | Telemetri-**inntaksrate × oppbevaring**. Dette er ~95 % av lagringen din og den dominerende kostnaden. |
+| **PostgreSQL** | Konfigurasjon og tilstand — monitorer, hendelser, varsler, brukere, team, prosjekter, arbeidsflyter, statussider, dashbord | **Antall entiteter og historikk**, ikke telemetrivolum. Vokser sakte.                                  |
+| **Redis**      | Cache, arbeidskøer og økter                                                                                                | **Kødybde og aktive økter**. Minnebundet og beskjedent. Ikke en kilde til sannhet.                     |
 
 Objektlagring (S3/MinIO) er **ikke** påkrevd for at OneUptime skal kjøre. Den brukes kun valgfritt for database-**sikkerhetskopier** (via CloudNativePG Barman-pluginen for PostgreSQL, eller `clickhouse-backup` for ClickHouse). OneUptime nivådeler ikke telemetri til objektlagring — se avsnittet "Oppbevaring og hvordan det påvirker lagring" nedenfor.
 
@@ -39,16 +39,16 @@ Komprimering avhenger av signalet:
 En flåte på **10 klynger**, hver ~10 noder / ~100 pods ved INFO-nivå-detaljgrad, produserer omtrent **50–150 GB rå logger per klynge over 30 dager** (≈ 1.7–5 GB/dag per klynge). På tvers av flåten, med metrikker og sporinger lagt til og etter komprimering, budsjetter omtrent **5–15 GB/dag komprimert telemetri**.
 
 | Oppbevaring | Enkelt replika | 2 replikaer + 30 % slingringsmonn |
-| --- | --- | --- |
-| 30 days | ~150–450 GB | **~0.4–1.2 TB** |
-| 90 days | ~0.45–1.35 TB | **~1.2–3.5 TB** |
+| ----------- | -------------- | --------------------------------- |
+| 30 days     | ~150–450 GB    | **~0.4–1.2 TB**                   |
+| 90 days     | ~0.45–1.35 TB  | **~1.2–3.5 TB**                   |
 
 Lagring skalerer **lineært med oppbevaring** — et 90-dagers vindu koster ~3× et 30-dagers vindu.
 
 ### RAM og disktype
 
 - **Bruk NVMe/SSD.** Telemetri er skrivetung med rykkvise aggregeringslesinger; ClickHouse på roterende disk vil slite.
-- **Gi ClickHouse rikelig med RAM.** Aggregeringsspørringer er minneintensive. Som en tommelfingerregel, dimensjoner RAM til en meningsfull andel (25–50 %) av ditt *varme* (nylig spurte) komprimerte datasett, med et praktisk gulv på 16 GB for enhver reell produksjonsflåte.
+- **Gi ClickHouse rikelig med RAM.** Aggregeringsspørringer er minneintensive. Som en tommelfingerregel, dimensjoner RAM til en meningsfull andel (25–50 %) av ditt _varme_ (nylig spurte) komprimerte datasett, med et praktisk gulv på 16 GB for enhver reell produksjonsflåte.
 - **Hold metrikk-kardinalitet i sjakk.** Det er den enkeltstående største spaken på både ClickHouse RAM og disk. Håndhev lavkardinalitets-etikettkonvensjoner på innsamlingslaget og overvåk antall aktive serier.
 
 ## PostgreSQL — konfigurasjon og tilstand
@@ -73,12 +73,12 @@ Velg nivået nærmest miljøet ditt som utgangspunkt, og overvåk deretter fakti
 - **Middels / Produksjonsflåte** — ~10 klynger, ~100 noder, 10–30 GB/dag rå telemetri, 30–90-dagers oppbevaring.
 - **Stor / Multi-flåte** — 50+ klynger, 500+ noder, 100+ GB/dag rå telemetri, 90-dagers oppbevaring.
 
-| | Liten / PoC | Middels / Produksjonsflåte | Stor / Multi-flåte |
-| --- | --- | --- | --- |
-| **ClickHouse** | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe, **shardet** |
-| **PostgreSQL** | 2 vCPU / 4 GB / 50 GB SSD | 4 vCPU / 8 GB / 100 GB SSD | 8 vCPU / 16–32 GB / 250 GB SSD (+ PgBouncer) |
-| **Redis** | 1 vCPU / 2 GB | 2 vCPU / 4 GB | 4 vCPU / 8–16 GB |
-| **Oppbevaring antatt** | 30 days | 30–90 days | 90 days |
+|                        | Liten / PoC                  | Middels / Produksjonsflåte   | Stor / Multi-flåte                               |
+| ---------------------- | ---------------------------- | ---------------------------- | ------------------------------------------------ |
+| **ClickHouse**         | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe, **shardet** |
+| **PostgreSQL**         | 2 vCPU / 4 GB / 50 GB SSD    | 4 vCPU / 8 GB / 100 GB SSD   | 8 vCPU / 16–32 GB / 250 GB SSD (+ PgBouncer)     |
+| **Redis**              | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                 |
+| **Oppbevaring antatt** | 30 days                      | 30–90 days                   | 90 days                                          |
 
 Disse dimensjonerer OneUptime-**backend**. OneUptime-innsamlerne som kjører på hver overvåket klynge dimensjoneres separat — se dimensjoneringsnivåene for [Kubernetes Agent](/docs/telemetry/kubernetes-agent).
 

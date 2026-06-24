@@ -14,10 +14,12 @@ La integración SSO proporciona los siguientes beneficios:
 ## Configuración de SSO
 
 1. **Navegar a la configuración del proyecto**
+
    - Ve a tu proyecto de OneUptime
    - Navega a **Configuración del proyecto** > **Autenticación** > **SSO**
 
 2. **Crear la configuración SSO**
+
    - Haz clic en **Crear SSO**
    - Ingresa un **Nombre** para la configuración SSO (por ejemplo, "Keycloak SAML" o "Okta SAML")
    - Ingresa la **URL de inicio de sesión** de tu proveedor de identidad
@@ -152,12 +154,12 @@ Microsoft Entra ID es el servicio de gestión de identidades y accesos en la nub
 1. En la página de configuración SAML, haz clic en **Editar** en **Atributos y notificaciones**
 2. Asegúrate de que las siguientes notificaciones estén configuradas:
 
-| Nombre de la notificación | Valor |
-|-----------|-------|
-| `Unique User Identifier (Name ID)` | `user.userprincipalname` o `user.mail` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | `user.mail` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname` | `user.givenname` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname` | `user.surname` |
+| Nombre de la notificación                                            | Valor                                  |
+| -------------------------------------------------------------------- | -------------------------------------- |
+| `Unique User Identifier (Name ID)`                                   | `user.userprincipalname` o `user.mail` |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | `user.mail`                            |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`    | `user.givenname`                       |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname`      | `user.surname`                         |
 
 3. Establece el **Formato del identificador de nombre** en `Dirección de correo electrónico`
 4. Haz clic en **Guardar**
@@ -239,11 +241,11 @@ Okta es una plataforma de identidad ampliamente utilizada que proporciona sólid
 2. Haz clic en **Editar** en la sección **Configuración de SAML** y haz clic en **Siguiente** para llegar a los ajustes SAML
 3. En la sección **Declaraciones de atributos**, agrega:
 
-| Nombre | Valor |
-|------|-------|
-| `email` | `user.email` |
+| Nombre      | Valor            |
+| ----------- | ---------------- |
+| `email`     | `user.email`     |
 | `firstName` | `user.firstName` |
-| `lastName` | `user.lastName` |
+| `lastName`  | `user.lastName`  |
 
 4. Haz clic en **Siguiente** y luego en **Finalizar**
 

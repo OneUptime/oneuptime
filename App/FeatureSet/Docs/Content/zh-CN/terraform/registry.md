@@ -54,6 +54,7 @@ OneUptime Terraform 提供商是从 OneUptime API 规范自动生成的。每个
 - 更改的验证规则
 
 使用与您的 OneUptime 安装不匹配的提供商版本可能导致：
+
 - API 兼容性错误
 - 资源创建/更新失败
 - 意外行为
@@ -62,16 +63,19 @@ OneUptime Terraform 提供商是从 OneUptime API 规范自动生成的。每个
 ## 查找您的 OneUptime 版本
 
 ### 方法一：控制台
+
 1. 登录您的 OneUptime 控制台
 2. 前往 **设置** → **关于**
 3. 记录版本号（例如"7.0.123"）
 
 ### 方法二：API
+
 ```bash
 curl https://your-oneuptime-instance.com/api/version | jq '.version'
 ```
 
 ### 方法三：Docker
+
 ```bash
 docker images | grep oneuptime
 # 查看标签，例如 oneuptime/dashboard:7.0.123
@@ -86,11 +90,11 @@ docker images | grep oneuptime
 
 ## 版本兼容性矩阵
 
-| OneUptime 版本 | 提供商版本 | Terraform 配置 |
-|--------------|----------|---------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| 最新云端版本 | 最新提供商 | `version = "~> 7.0"` |
+| OneUptime 版本 | 提供商版本 | Terraform 配置         |
+| -------------- | ---------- | ---------------------- |
+| 7.0.x          | 7.0.x      | `version = "~> 7.0.0"` |
+| 7.1.x          | 7.1.x      | `version = "~> 7.1.0"` |
+| 最新云端版本   | 最新提供商 | `version = "~> 7.0"`   |
 
 ## 快速开始示例
 
@@ -120,11 +124,11 @@ resource "oneuptime_project" "example" {
 resource "oneuptime_monitor" "website" {
   name       = "Website Monitor"
   project_id = oneuptime_project.example.id
-  
+
   monitor_type = "website"
   url          = "https://example.com"
   interval     = "5m"
-  
+
   tags = {
     managed_by = "terraform"
   }

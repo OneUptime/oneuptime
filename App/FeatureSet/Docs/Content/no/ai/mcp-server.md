@@ -202,13 +202,13 @@ Konfigurasjonen ovenfor bruker inndatavariabler med `"password": true` for å be
 
 ## Tilgjengelige endepunkter
 
-| Endepunkt | Metode | Beskrivelse |
-|-----------|--------|-------------|
-| `/mcp` | GET | Serversendt hendelsesstrøm for server-til-klient-varsler |
-| `/mcp` | POST | JSON-RPC-forespørsler for verktøykall og andre operasjoner |
-| `/mcp` | DELETE | Øktopprydding og avslutning |
-| `/mcp/health` | GET | Helsekontrollendepunkt |
-| `/mcp/tools` | GET | REST API for å liste tilgjengelige verktøy |
+| Endepunkt     | Metode | Beskrivelse                                                |
+| ------------- | ------ | ---------------------------------------------------------- |
+| `/mcp`        | GET    | Serversendt hendelsesstrøm for server-til-klient-varsler   |
+| `/mcp`        | POST   | JSON-RPC-forespørsler for verktøykall og andre operasjoner |
+| `/mcp`        | DELETE | Øktopprydding og avslutning                                |
+| `/mcp/health` | GET    | Helsekontrollendepunkt                                     |
+| `/mcp/tools`  | GET    | REST API for å liste tilgjengelige verktøy                 |
 
 ## Autentisering
 
@@ -319,12 +319,15 @@ Disse forespørslene fungerer uten autentisering, kun ved bruk av offentlige sta
 ## API-nøkkeltillatelser
 
 ### Skrivebeskyttet tilgang
+
 For kun å se data, legg til lesetillatelser for API-nøkkelen din.
 
 ### Full tilgang
+
 For full tilgang til å opprette, oppdatere og slette ressurser, sørg for at API-nøkkelen din har prosjektadministratortillatelser.
 
 ### Beste praksiser
+
 - Bruk spesifikke tillatelser: Gi kun de minimumstillatelsene som er nødvendige
 - Rullér API-nøkler: Rullér API-nøklene dine regelmessig
 - Overvåk bruk: Hold oversikt over API-nøkkelbruk i OneUptime
@@ -333,24 +336,30 @@ For full tilgang til å opprette, oppdatere og slette ressurser, sørg for at AP
 ## Feilsøking
 
 ### Tillatelsefeil
+
 Sørg for at API-nøkkelen din har de nødvendige tillatelsene:
+
 - Lesetilgang for å liste ressurser
 - Skrivetilgang for å opprette/oppdatere ressurser
 - Slettetilgang hvis du vil fjerne ressurser
 
 ### Tilkoblingsproblemer
+
 1. Verifiser at OneUptime-URL-en er riktig
 2. Sjekk at API-nøkkelen er gyldig
 3. Sørg for at OneUptime-instansen er tilgjengelig
 4. Test helsekontrollendepunktet
 
 ### Ugyldig API-nøkkel
+
 - Verifiser API-nøkkelen i OneUptime-innstillingene dine
 - Sjekk for ekstra mellomrom eller tegn
 - Sørg for at nøkkelen ikke har utløpt
 
 ### Øktfeil
+
 Hvis du mottar øktrelaterte feil:
+
 - MCP-serveren bruker `mcp-session-id`-overskriften til å spore økter
 - Sørg for at klienten din håndterer økt-ID-en som returneres av serveren korrekt
 - Økter ryddes automatisk opp når tilkoblinger lukkes

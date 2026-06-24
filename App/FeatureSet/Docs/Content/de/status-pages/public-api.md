@@ -12,127 +12,124 @@ Um den Gesamtstatus der Ressourcen auf der Status-Seite abzurufen, können Sie e
 curl -X POST https://oneuptime.com/status-page-api/overview/:statusPageId
 ```
 
-Dies ist die Antwort von der API: 
+Dies ist die Antwort von der API:
 
 ```json
 {
-
-    "overallStatus": 
-        {   // Monitor Status Object
-            // Overall Status is the worst status of all the monitors and groups on the status page. 
-            // You can find more details on the monitor status here.
-            // https://oneuptime.com/reference/monitor-status
-            
-        },
-    "scheduledMaintenanceEventsPublicNotes": [
-        // You can find more details on the scheduled maintenance public note here.
-        // https://oneuptime.com/reference/scheduled-maintenance-public-note
-        {
-            // Scheduled Maintenance Public Note Object
-        }, 
-        {
-            // Scheduled Maintenance Public Note Object
-        }
-    ],
-    "statusPageHistoryChartBarColorRules": [
-        {
-            // Status Page History Chart Bar Color Rule Object
-        },
-        {
-            // Status Page History Chart Bar Color Rule Object
-        }
-    ],
-    "scheduledMaintenanceEvents": [
-        {
-            // Scheduled Maintenance Event Object
-        },
-        {
-            // Scheduled Maintenance Event Object
-        }
-    ],
-    "activeAnnouncements": [
-        {
-            // Status Page Announcement Object
-        },
-        {
-            // Status Page Announcement Object
-        }
-    ],
-    "incidentPublicNotes": [
-        {
-            // Incident Public Note Object
-        },
-        {
-            // Incident Public Note Object
-        }
-    ],
-    "activeIncidents": [
-        {
-            // Incident Object
-        },
-        {
-            // Incident Object
-        }
-    ],
-    "monitorStatusTimelines": [
-        {
-            // Monitor Status Timeline Object
-        },
-        {
-            // Monitor Status Timeline Object
-        }
-    ],
-    "resourceGroups": [
-        {
-            // Resource Group Object
-        },
-        {
-            // Resource Group Object
-        }
-    ],
-    "monitorStatuses": [
-        {
-            // Monitor Status Object
-        },
-        {
-            // Monitor Status Object
-        }
-
-    ],
-    "statusPageResources": [
-        {
-            // Status Page Resource Object
-        },
-        {
-            // Status Page Resource Object
-        }
-    ],
-    "incidentStateTimelines": [
-        {
-            // Incident State Timeline Object
-        },
-        {
-            // Incident State Timeline Object
-        }
-    ],
-    "statusPage": {
-       // You can find more details on the status page here.
-         // https://oneuptime.com/reference/status-page
+  "overallStatus": {
+    // Monitor Status Object
+    // Overall Status is the worst status of all the monitors and groups on the status page.
+    // You can find more details on the monitor status here.
+    // https://oneuptime.com/reference/monitor-status
+  },
+  "scheduledMaintenanceEventsPublicNotes": [
+    // You can find more details on the scheduled maintenance public note here.
+    // https://oneuptime.com/reference/scheduled-maintenance-public-note
+    {
+      // Scheduled Maintenance Public Note Object
     },
-    "scheduledMaintenanceStateTimelines": [
-        {
-            // Scheduled Maintenance State Timeline Object
-        },
-        {
-            // Scheduled Maintenance State Timeline Object
-        }
-    ],
-    "monitorGroupCurrentStatuses": {
-        // Aktueller Status der Monitor-Gruppe. 
-    },
-    "monitorsInGroup": {
-        // Monitore in der Gruppe.
+    {
+      // Scheduled Maintenance Public Note Object
     }
+  ],
+  "statusPageHistoryChartBarColorRules": [
+    {
+      // Status Page History Chart Bar Color Rule Object
+    },
+    {
+      // Status Page History Chart Bar Color Rule Object
+    }
+  ],
+  "scheduledMaintenanceEvents": [
+    {
+      // Scheduled Maintenance Event Object
+    },
+    {
+      // Scheduled Maintenance Event Object
+    }
+  ],
+  "activeAnnouncements": [
+    {
+      // Status Page Announcement Object
+    },
+    {
+      // Status Page Announcement Object
+    }
+  ],
+  "incidentPublicNotes": [
+    {
+      // Incident Public Note Object
+    },
+    {
+      // Incident Public Note Object
+    }
+  ],
+  "activeIncidents": [
+    {
+      // Incident Object
+    },
+    {
+      // Incident Object
+    }
+  ],
+  "monitorStatusTimelines": [
+    {
+      // Monitor Status Timeline Object
+    },
+    {
+      // Monitor Status Timeline Object
+    }
+  ],
+  "resourceGroups": [
+    {
+      // Resource Group Object
+    },
+    {
+      // Resource Group Object
+    }
+  ],
+  "monitorStatuses": [
+    {
+      // Monitor Status Object
+    },
+    {
+      // Monitor Status Object
+    }
+  ],
+  "statusPageResources": [
+    {
+      // Status Page Resource Object
+    },
+    {
+      // Status Page Resource Object
+    }
+  ],
+  "incidentStateTimelines": [
+    {
+      // Incident State Timeline Object
+    },
+    {
+      // Incident State Timeline Object
+    }
+  ],
+  "statusPage": {
+    // You can find more details on the status page here.
+    // https://oneuptime.com/reference/status-page
+  },
+  "scheduledMaintenanceStateTimelines": [
+    {
+      // Scheduled Maintenance State Timeline Object
+    },
+    {
+      // Scheduled Maintenance State Timeline Object
+    }
+  ],
+  "monitorGroupCurrentStatuses": {
+    // Aktueller Status der Monitor-Gruppe.
+  },
+  "monitorsInGroup": {
+    // Monitore in der Gruppe.
+  }
 }
 ```
 
@@ -159,7 +156,6 @@ Sie können startDate und endDate als Anfragetext senden.
 
 Diese Datumsangaben dürfen nicht mehr als 90 Tage auseinanderliegen. Wenn Sie keine Datumsangaben angeben, gibt die API die Verfügbarkeit für die letzten 14 Tage zurück.
 
-
 ### Incidents-API
 
 Diese API ruft alle Incidents auf der Status-Seite ab. Um alle Incidents abzurufen, können Sie einen POST-Request an den folgenden Endpunkt senden:
@@ -168,7 +164,6 @@ Diese API ruft alle Incidents auf der Status-Seite ab. Um alle Incidents abzuruf
 curl -X POST https://oneuptime.com/status-page-api/incidents/:statusPageId
 ```
 
-
 ### Geplante Wartungs-API
 
 Diese API ruft alle geplanten Wartungen auf der Status-Seite ab:
@@ -176,7 +171,6 @@ Diese API ruft alle geplanten Wartungen auf der Status-Seite ab:
 ```bash
 curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance/:statusPageId
 ```
-
 
 ### Ankündigungs-API
 

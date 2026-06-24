@@ -65,12 +65,12 @@ Søg i trigger-paletten efter navn for at finde den, du vil have.
 
 ## Hvilken trigger skal jeg bruge?
 
-| Hvis du vil… | Vælg |
-| --- | --- |
-| Klikke på en knap for at køre workflowet | **Manual** |
-| Køre på en gentagen tidsplan | **Schedule** |
-| Lade et andet system skubbe data ind | **Webhook** |
-| Reagere på noget inde i OneUptime | **OneUptime event** |
+| Hvis du vil…                             | Vælg                |
+| ---------------------------------------- | ------------------- |
+| Klikke på en knap for at køre workflowet | **Manual**          |
+| Køre på en gentagen tidsplan             | **Schedule**        |
+| Lade et andet system skubbe data ind     | **Webhook**         |
+| Reagere på noget inde i OneUptime        | **OneUptime event** |
 
 Et workflow kan kun have én trigger. Hvis du har brug for to måder at starte den samme automatisering på, så byg den fælles logik i ét workflow og kald det fra to tynde "wrapper"-workflows ved hjælp af komponenten **Execute Workflow**.
 

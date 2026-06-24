@@ -24,13 +24,13 @@ Construyes todo esto visualmente en un lienzo. La mayoría de los workflows no r
 
 ## Términos clave
 
-| Término | Qué significa |
-| --- | --- |
-| **Workflow** | La automatización completa: un nombre, un lienzo y un interruptor para activarla o desactivarla. |
-| **Disparador** | El primer bloque. Decide cuándo se ejecuta el workflow. Cada workflow tiene exactamente un disparador. |
-| **Componente** | Un bloque de acción: envía un mensaje, realiza una solicitud, comprueba una condición. |
-| **Ejecución** | Una ejecución del workflow. Se guarda con marcas de tiempo y la salida de cada bloque. |
-| **Variable global** | Un valor (como una clave de API) que guardas una vez y reutilizas en cualquier workflow. |
+| Término             | Qué significa                                                                                          |
+| ------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Workflow**        | La automatización completa: un nombre, un lienzo y un interruptor para activarla o desactivarla.       |
+| **Disparador**      | El primer bloque. Decide cuándo se ejecuta el workflow. Cada workflow tiene exactamente un disparador. |
+| **Componente**      | Un bloque de acción: envía un mensaje, realiza una solicitud, comprueba una condición.                 |
+| **Ejecución**       | Una ejecución del workflow. Se guarda con marcas de tiempo y la salida de cada bloque.                 |
+| **Variable global** | Un valor (como una clave de API) que guardas una vez y reutilizas en cualquier workflow.               |
 
 ## Dónde encontrar los workflows en OneUptime
 

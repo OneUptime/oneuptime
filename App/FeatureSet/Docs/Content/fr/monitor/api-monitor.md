@@ -33,10 +33,10 @@ Lors de la surveillance d'API derrière des CDN ou des proxys de mise en cache, 
 
 #### Espaces réservés pris en charge
 
-| Espace réservé | Description | Valeur exemple |
-|----------------|-------------|----------------|
-| `{{timestamp}}` | Remplacé par l'horodatage Unix actuel (secondes) | `1719500000` |
-| `{{random}}` | Remplacé par une chaîne unique aléatoire | `a3f8b2c1d4e5f6a7b8c9d0e1f2a3b4c5` |
+| Espace réservé  | Description                                      | Valeur exemple                     |
+| --------------- | ------------------------------------------------ | ---------------------------------- |
+| `{{timestamp}}` | Remplacé par l'horodatage Unix actuel (secondes) | `1719500000`                       |
+| `{{random}}`    | Remplacé par une chaîne unique aléatoire         | `a3f8b2c1d4e5f6a7b8c9d0e1f2a3b4c5` |
 
 #### Exemple
 
@@ -97,7 +97,7 @@ If your endpoint requires mutual TLS authentication, enable **Use client certifi
 
 - **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
 - **Client Private Key (PEM)** — the matching PEM-encoded private key.
-- **Client Private Key Passphrase** *(optional)* — required only if the private key is encrypted.
+- **Client Private Key Passphrase** _(optional)_ — required only if the private key is encrypted.
 
 This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
 

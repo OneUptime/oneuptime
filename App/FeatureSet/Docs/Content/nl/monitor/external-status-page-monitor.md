@@ -16,12 +16,12 @@ Externe statuspagina-monitors controleren de gezondheid van diensten waarop u ve
 
 OneUptime ondersteunt het bewaken van statuspagina's via de volgende methoden:
 
-| Providertype | Beschrijving |
-|---|---|
-| **Automatisch** (standaard) | Detecteert automatisch het formaat van de statuspagina |
-| **Atlassian Statuspage** | Statuspagina's aangedreven door Atlassian Statuspage (JSON API) |
-| **RSS** | Statuspagina's die een RSS-feed bieden |
-| **Atom** | Statuspagina's die een Atom-feed bieden |
+| Providertype                | Beschrijving                                                    |
+| --------------------------- | --------------------------------------------------------------- |
+| **Automatisch** (standaard) | Detecteert automatisch het formaat van de statuspagina          |
+| **Atlassian Statuspage**    | Statuspagina's aangedreven door Atlassian Statuspage (JSON API) |
+| **RSS**                     | Statuspagina's die een RSS-feed bieden                          |
+| **Atom**                    | Statuspagina's die een Atom-feed bieden                         |
 
 ### Automatische detectie
 
@@ -81,28 +81,28 @@ U kunt criteria configureren om te bepalen wanneer de externe dienst als online,
 
 Hier is een samengestelde lijst van populaire statuspagina-URL's die u kunt bewaken:
 
-| Dienst | URL van statuspagina |
-|---|---|
-| AWS | `https://health.aws.amazon.com/health/status` |
-| Google Cloud Platform | `https://status.cloud.google.com` |
-| Microsoft Azure | `https://status.azure.com` |
-| GitHub | `https://www.githubstatus.com` |
-| Cloudflare | `https://www.cloudflarestatus.com` |
-| Datadog | `https://status.datadoghq.com` |
-| PagerDuty | `https://status.pagerduty.com` |
-| Twilio | `https://status.twilio.com` |
-| Stripe | `https://status.stripe.com` |
-| Slack | `https://status.slack.com` |
-| Atlassian (Jira, Confluence) | `https://status.atlassian.com` |
-| Vercel | `https://www.vercel-status.com` |
-| Netlify | `https://www.netlifystatus.com` |
-| DigitalOcean | `https://status.digitalocean.com` |
-| Heroku | `https://status.heroku.com` |
-| MongoDB Atlas | `https://status.cloud.mongodb.com` |
-| Fastly | `https://status.fastly.com` |
-| New Relic | `https://status.newrelic.com` |
-| Sentry | `https://status.sentry.io` |
-| CircleCI | `https://status.circleci.com` |
+| Dienst                       | URL van statuspagina                          |
+| ---------------------------- | --------------------------------------------- |
+| AWS                          | `https://health.aws.amazon.com/health/status` |
+| Google Cloud Platform        | `https://status.cloud.google.com`             |
+| Microsoft Azure              | `https://status.azure.com`                    |
+| GitHub                       | `https://www.githubstatus.com`                |
+| Cloudflare                   | `https://www.cloudflarestatus.com`            |
+| Datadog                      | `https://status.datadoghq.com`                |
+| PagerDuty                    | `https://status.pagerduty.com`                |
+| Twilio                       | `https://status.twilio.com`                   |
+| Stripe                       | `https://status.stripe.com`                   |
+| Slack                        | `https://status.slack.com`                    |
+| Atlassian (Jira, Confluence) | `https://status.atlassian.com`                |
+| Vercel                       | `https://www.vercel-status.com`               |
+| Netlify                      | `https://www.netlifystatus.com`               |
+| DigitalOcean                 | `https://status.digitalocean.com`             |
+| Heroku                       | `https://status.heroku.com`                   |
+| MongoDB Atlas                | `https://status.cloud.mongodb.com`            |
+| Fastly                       | `https://status.fastly.com`                   |
+| New Relic                    | `https://status.newrelic.com`                 |
+| Sentry                       | `https://status.sentry.io`                    |
+| CircleCI                     | `https://status.circleci.com`                 |
 
 > **Opmerking:** Veel van deze gebruiken Atlassian Statuspage, zodat het **Automatisch** providertype ze automatisch detecteert.
 
@@ -110,14 +110,14 @@ Hier is een samengestelde lijst van populaire statuspagina-URL's die u kunt bewa
 
 Bij het aanmaken van incidenten of meldingen vanuit Externe statuspagina-monitors kunt u de volgende sjabloonvariabelen gebruiken:
 
-| Variabele | Beschrijving |
-|---|---|
-| `{{isOnline}}` | Of de statuspagina online is (true/false) |
-| `{{responseTimeInMs}}` | Responstijd in milliseconden |
-| `{{failureCause}}` | Reden voor mislukking, indien aanwezig |
-| `{{overallStatus}}` | De algehele statusindicatorwaarde |
-| `{{activeIncidentCount}}` | Aantal actieve incidenten |
-| `{{componentStatuses}}` | JSON-array van componentstatussen |
+| Variabele                 | Beschrijving                              |
+| ------------------------- | ----------------------------------------- |
+| `{{isOnline}}`            | Of de statuspagina online is (true/false) |
+| `{{responseTimeInMs}}`    | Responstijd in milliseconden              |
+| `{{failureCause}}`        | Reden voor mislukking, indien aanwezig    |
+| `{{overallStatus}}`       | De algehele statusindicatorwaarde         |
+| `{{activeIncidentCount}}` | Aantal actieve incidenten                 |
+| `{{componentStatuses}}`   | JSON-array van componentstatussen         |
 
 ## Best practices
 

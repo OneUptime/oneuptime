@@ -31,6 +31,7 @@ ServiceNow의 Table API는 **Basic 인증** 을 허용합니다.
 1. **Workflows → Create Workflow** 를 열고, 이름을 `Incidents → ServiceNow` 로 지정하고 **Builder** 를 엽니다.
 2. **Incident** 트리거를 **On Create** 로 설정해 추가합니다. 이름을 `Incident` 로 변경합니다.
 3. 트리거에 연결된 **API** 블록을 추가합니다:
+
    - **Method**: `POST`
    - **URL**: `https://your-instance.service-now.com/api/now/table/incident`
    - **Headers**:
@@ -54,6 +55,7 @@ ServiceNow의 Table API는 **Basic 인증** 을 허용합니다.
      ```
 
    `correlation_id` 는 OneUptime 인시던트로 돌아오는 링크를 유지합니다 — 나중에 해결 단계를 추가할 때 유용합니다. ServiceNow `urgency`/`impact` 는 `1` (높음), `2` (보통), `3` (낮음)을 사용합니다.
+
 4. **Save** 하고, 활성화하고, 테스트 인시던트를 만듭니다. 워크플로 로그에서 `201 Created` 응답이 나오면 새 레코드의 `sys_id` 와 `number` (예: `INC0012345`)가 반환됩니다.
 
 ## 3단계 — OneUptime 해결 시 해결 (선택 사항)

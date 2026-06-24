@@ -31,11 +31,11 @@ U kunt criteria configureren om te bepalen wanneer uw host als online, gedegrade
 
 ### Beschikbare controletypen
 
-| Controletype | Beschrijving |
-|------------|-------------|
-| Is online | Of de host reageert op ping-verzoeken |
+| Controletype        | Beschrijving                                     |
+| ------------------- | ------------------------------------------------ |
+| Is online           | Of de host reageert op ping-verzoeken            |
 | Responstijd (in ms) | Retourtijd van het ping-verzoek in milliseconden |
-| Is verzoek time-out | Of het ping-verzoek een time-out heeft |
+| Is verzoek time-out | Of het ping-verzoek een time-out heeft           |
 
 ### Filtertypen
 

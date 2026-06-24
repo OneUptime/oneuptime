@@ -8,17 +8,17 @@
 
 ## 先決條件
 
-- 一個 **OneUptime Telemetry Ingestion Token**——從 *Project Settings → Telemetry Ingestion Keys* 建立。
+- 一個 **OneUptime Telemetry Ingestion Token**——從 _Project Settings → Telemetry Ingestion Keys_ 建立。
 - OpenTelemetry 瀏覽器或行動裝置 SDK。
 
 ## OneUptime 如何識別 RUM 應用程式
 
-| 屬性 | 是否必要 | 用途 |
-|---|---|---|
-| `service.name` | **是** | 應用程式身分（例如 `storefront-web`） |
-| `browser.*` | 網頁需要 | 將遙測資料標記為瀏覽器 RUM |
-| `device.*` | 行動裝置需要 | 將遙測資料標記為行動裝置 RUM |
-| `telemetry.sdk.language` | 否 | 例如 `webjs`、`swift`，顯示於概觀中 |
+| 屬性                     | 是否必要     | 用途                                  |
+| ------------------------ | ------------ | ------------------------------------- |
+| `service.name`           | **是**       | 應用程式身分（例如 `storefront-web`） |
+| `browser.*`              | 網頁需要     | 將遙測資料標記為瀏覽器 RUM            |
+| `device.*`               | 行動裝置需要 | 將遙測資料標記為行動裝置 RUM          |
+| `telemetry.sdk.language` | 否           | 例如 `webjs`、`swift`，顯示於概觀中   |
 
 ## 瀏覽器（OpenTelemetry Web）
 

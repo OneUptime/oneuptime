@@ -55,6 +55,7 @@ Les Agents IA globaux sont automatiquement disponibles pour tous les projets, sa
 Pour les organisations qui ont besoin d'exécuter des agents IA au sein de leur propre infrastructure (par exemple, pour des exigences de sécurité, de conformité ou d'accès réseau), OneUptime prend en charge les agents IA auto-hébergés.
 
 Les agents IA auto-hébergés :
+
 - S'exécutent dans votre réseau privé
 - Peuvent accéder aux ressources et systèmes internes
 - Vous donnent un contrôle total sur l'environnement de l'agent
@@ -134,15 +135,15 @@ spec:
         app: oneuptime-ai-agent
     spec:
       containers:
-      - name: oneuptime-ai-agent
-        image: oneuptime/ai-agent:release
-        env:
-          - name: AI_AGENT_KEY
-            value: "<ai-agent-key>"
-          - name: AI_AGENT_ID
-            value: "<ai-agent-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-ai-agent
+          image: oneuptime/ai-agent:release
+          env:
+            - name: AI_AGENT_KEY
+              value: "<ai-agent-key>"
+            - name: AI_AGENT_ID
+              value: "<ai-agent-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 Appliquez la configuration :
@@ -157,12 +158,11 @@ L'agent IA prend en charge les variables d'environnement suivantes :
 
 #### Variables requises
 
-| Variable | Description |
-|----------|-------------|
-| `AI_AGENT_KEY` | La clé de l'agent IA depuis votre tableau de bord OneUptime |
-| `AI_AGENT_ID` | L'identifiant de l'agent IA depuis votre tableau de bord OneUptime |
+| Variable        | Description                                                            |
+| --------------- | ---------------------------------------------------------------------- |
+| `AI_AGENT_KEY`  | La clé de l'agent IA depuis votre tableau de bord OneUptime            |
+| `AI_AGENT_ID`   | L'identifiant de l'agent IA depuis votre tableau de bord OneUptime     |
 | `ONEUPTIME_URL` | L'URL de votre instance OneUptime (par défaut : https://oneuptime.com) |
-
 
 ## Vérification de votre Agent IA
 

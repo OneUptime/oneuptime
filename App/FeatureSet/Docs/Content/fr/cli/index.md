@@ -34,27 +34,27 @@ oneuptime resources
 
 ## Documentation
 
-| Guide | Description |
-|-------|-------------|
-| [Authentification](./authentication.md) | Connexion, contextes et gestion des identifiants |
-| [Opérations sur les ressources](./resource-operations.md) | Opérations CRUD sur les moniteurs, incidents, alertes, et plus |
-| [Formats de sortie](./output-formats.md) | Modes de sortie JSON, table et étendu |
-| [Scripts et CI/CD](./scripting.md) | Automatisation, variables d'environnement et utilisation dans les pipelines |
-| [Référence des commandes](./command-reference.md) | Référence complète de toutes les commandes et options |
+| Guide                                                     | Description                                                                 |
+| --------------------------------------------------------- | --------------------------------------------------------------------------- |
+| [Authentification](./authentication.md)                   | Connexion, contextes et gestion des identifiants                            |
+| [Opérations sur les ressources](./resource-operations.md) | Opérations CRUD sur les moniteurs, incidents, alertes, et plus              |
+| [Formats de sortie](./output-formats.md)                  | Modes de sortie JSON, table et étendu                                       |
+| [Scripts et CI/CD](./scripting.md)                        | Automatisation, variables d'environnement et utilisation dans les pipelines |
+| [Référence des commandes](./command-reference.md)         | Référence complète de toutes les commandes et options                       |
 
 ## Options globales
 
 Ces indicateurs peuvent être utilisés avec n'importe quelle commande :
 
-| Indicateur | Description |
-|------------|-------------|
-| `--api-key <key>` | Remplacer la clé API pour cette commande |
-| `--url <url>` | Remplacer l'URL de l'instance pour cette commande |
-| `--context <name>` | Utiliser un contexte nommé spécifique |
-| `-o, --output <format>` | Format de sortie : `json`, `table`, `wide` |
-| `--no-color` | Désactiver la sortie colorée |
-| `--help` | Afficher l'aide de la commande |
-| `--version` | Afficher la version du CLI |
+| Indicateur              | Description                                       |
+| ----------------------- | ------------------------------------------------- |
+| `--api-key <key>`       | Remplacer la clé API pour cette commande          |
+| `--url <url>`           | Remplacer l'URL de l'instance pour cette commande |
+| `--context <name>`      | Utiliser un contexte nommé spécifique             |
+| `-o, --output <format>` | Format de sortie : `json`, `table`, `wide`        |
+| `--no-color`            | Désactiver la sortie colorée                      |
+| `--help`                | Afficher l'aide de la commande                    |
+| `--version`             | Afficher la version du CLI                        |
 
 ## Obtenir de l'aide
 

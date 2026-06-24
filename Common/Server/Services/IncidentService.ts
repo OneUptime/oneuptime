@@ -518,6 +518,24 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * Normalize a blank incident severity to "not provided". A stored empty
+     * ObjectID (`{"_type":"ObjectID","value":""}`) deserializes to a truthy
+     * `new ObjectID("")`, which is NOT `=== undefined` and is a truthy object —
+     * so it slips past the template fallback below AND
+     * DatabaseService.checkRequiredFields, then serializes to "" → NULL on the
+     * not-null `incidentSeverityId` column (Postgres 23502). Treating it as
+     * undefined lets the template fallback fill it in when available, otherwise
+     * the required-field check rejects with a clean "incidentSeverityId is
+     * required" error instead of an opaque database failure.
+     */
+    if (
+      createBy.data.incidentSeverityId &&
+      !createBy.data.incidentSeverityId.toString()
+    ) {
+      delete createBy.data.incidentSeverityId;
+    }
+
     // Determine the initial incident state
     let initialIncidentStateId: ObjectID | undefined = undefined;
 
@@ -608,7 +626,7 @@ export class Service extends DatabaseService<Model> {
 
       if (incidentTemplate) {
         if (
-          createBy.data.incidentSeverityId === undefined &&
+          !createBy.data.incidentSeverityId?.toString() &&
           incidentTemplate.incidentSeverityId
         ) {
           createBy.data.incidentSeverityId =

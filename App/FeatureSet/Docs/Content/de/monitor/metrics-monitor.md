@@ -27,12 +27,12 @@ Metriken-Monitore fragen numerische Metriken aus Ihren Telemetrie-Diensten ab un
 
 Definieren Sie eine oder mehrere Metrikabfragen. Jede Abfrage enthält:
 
-| Feld | Beschreibung | Erforderlich |
-|-------|-------------|----------|
-| Metrikname | Der Name der abzufragenden Metrik | Ja |
-| Aggregationstyp | Wie rohe Metrikwerte aggregiert werden (sum, avg, min, max, count) | Ja |
-| Attribute | Schlüssel-Wert-Filter zum Eingrenzen der Metrikdaten | Nein |
-| Aggregieren nach | Dimensionen, nach denen die Metrik gruppiert werden soll | Nein |
+| Feld             | Beschreibung                                                       | Erforderlich |
+| ---------------- | ------------------------------------------------------------------ | ------------ |
+| Metrikname       | Der Name der abzufragenden Metrik                                  | Ja           |
+| Aggregationstyp  | Wie rohe Metrikwerte aggregiert werden (sum, avg, min, max, count) | Ja           |
+| Attribute        | Schlüssel-Wert-Filter zum Eingrenzen der Metrikdaten               | Nein         |
+| Aggregieren nach | Dimensionen, nach denen die Metrik gruppiert werden soll           | Nein         |
 
 Jeder Abfrage wird ein Alias zugewiesen (z. B. `a`, `b`, `c`) zur Verwendung in Formeln.
 
@@ -59,21 +59,21 @@ Wählen Sie das Zeitfenster für die Metrikauswertung:
 
 Wählen Sie, wie die Metrikwerte zur Auswertung aggregiert werden:
 
-| Strategie | Beschreibung |
-|----------|-------------|
-| Durchschnitt | Durchschnittswert über das Zeitfenster |
-| Summe | Summe aller Werte |
-| Maximalwert | Höchster Wert im Zeitfenster |
-| Minimalwert | Niedrigster Wert im Zeitfenster |
-| Alle Werte | Alle Werte müssen den Kriterien entsprechen |
-| Beliebiger Wert | Mindestens ein Wert muss übereinstimmen |
+| Strategie       | Beschreibung                                |
+| --------------- | ------------------------------------------- |
+| Durchschnitt    | Durchschnittswert über das Zeitfenster      |
+| Summe           | Summe aller Werte                           |
+| Maximalwert     | Höchster Wert im Zeitfenster                |
+| Minimalwert     | Niedrigster Wert im Zeitfenster             |
+| Alle Werte      | Alle Werte müssen den Kriterien entsprechen |
+| Beliebiger Wert | Mindestens ein Wert muss übereinstimmen     |
 
 ## Überwachungskriterien
 
 ### Verfügbare Prüftypen
 
-| Prüftyp | Beschreibung |
-|------------|-------------|
+| Prüftyp    | Beschreibung                                                      |
+| ---------- | ----------------------------------------------------------------- |
 | Metrikwert | Der aggregierte Wert der konfigurierten Metrikabfrage oder Formel |
 
 ### Filtertypen

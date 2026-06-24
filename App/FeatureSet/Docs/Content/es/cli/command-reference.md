@@ -12,11 +12,11 @@ Autenticarse con una instancia de OneUptime.
 oneuptime login <api-key> <instance-url> [--context-name <name>]
 ```
 
-| Parámetro | Tipo | Requerido | Descripción |
-|-----------|------|----------|-------------|
-| `<api-key>` | argumento | Sí | Clave de API para la autenticación |
-| `<instance-url>` | argumento | Sí | URL de la instancia de OneUptime |
-| `--context-name` | opción | No | Nombre del contexto (predeterminado: `"default"`) |
+| Parámetro        | Tipo      | Requerido | Descripción                                       |
+| ---------------- | --------- | --------- | ------------------------------------------------- |
+| `<api-key>`      | argumento | Sí        | Clave de API para la autenticación                |
+| `<instance-url>` | argumento | Sí        | URL de la instancia de OneUptime                  |
+| `--context-name` | opción    | No        | Nombre del contexto (predeterminado: `"default"`) |
 
 ---
 
@@ -38,9 +38,9 @@ Cambiar a un contexto con nombre.
 oneuptime context use <name>
 ```
 
-| Parámetro | Tipo | Requerido | Descripción |
-|-----------|------|----------|-------------|
-| `<name>` | argumento | Sí | Nombre del contexto a activar |
+| Parámetro | Tipo      | Requerido | Descripción                   |
+| --------- | --------- | --------- | ----------------------------- |
+| `<name>`  | argumento | Sí        | Nombre del contexto a activar |
 
 ---
 
@@ -62,9 +62,9 @@ Eliminar un contexto guardado.
 oneuptime context delete <name>
 ```
 
-| Parámetro | Tipo | Requerido | Descripción |
-|-----------|------|----------|-------------|
-| `<name>` | argumento | Sí | Nombre del contexto a eliminar |
+| Parámetro | Tipo      | Requerido | Descripción                    |
+| --------- | --------- | --------- | ------------------------------ |
+| `<name>`  | argumento | Sí        | Nombre del contexto a eliminar |
 
 ---
 
@@ -80,13 +80,13 @@ Listar recursos con filtrado y paginación.
 oneuptime <resource> list [options]
 ```
 
-| Opción | Tipo | Predeterminado | Descripción |
-|--------|------|---------|-------------|
-| `--query <json>` | cadena | Ninguno | Criterios de filtro en formato JSON |
-| `--limit <n>` | número | `10` | Número máximo de resultados |
-| `--skip <n>` | número | `0` | Resultados a omitir |
-| `--sort <json>` | cadena | Ninguno | Orden de clasificación en formato JSON |
-| `-o, --output` | cadena | `table` | Formato de salida |
+| Opción           | Tipo   | Predeterminado | Descripción                            |
+| ---------------- | ------ | -------------- | -------------------------------------- |
+| `--query <json>` | cadena | Ninguno        | Criterios de filtro en formato JSON    |
+| `--limit <n>`    | número | `10`           | Número máximo de resultados            |
+| `--skip <n>`     | número | `0`            | Resultados a omitir                    |
+| `--sort <json>`  | cadena | Ninguno        | Orden de clasificación en formato JSON |
+| `-o, --output`   | cadena | `table`        | Formato de salida                      |
 
 ---
 
@@ -98,10 +98,10 @@ Obtener un solo recurso por ID.
 oneuptime <resource> get <id> [-o <format>]
 ```
 
-| Parámetro | Tipo | Requerido | Descripción |
-|-----------|------|----------|-------------|
-| `<id>` | argumento | Sí | ID del recurso (UUID) |
-| `-o, --output` | opción | No | Formato de salida |
+| Parámetro      | Tipo      | Requerido | Descripción           |
+| -------------- | --------- | --------- | --------------------- |
+| `<id>`         | argumento | Sí        | ID del recurso (UUID) |
+| `-o, --output` | opción    | No        | Formato de salida     |
 
 ---
 
@@ -113,11 +113,11 @@ Crear un nuevo recurso.
 oneuptime <resource> create [--data <json> | --file <path>] [-o <format>]
 ```
 
-| Opción | Tipo | Requerido | Descripción |
-|--------|------|----------|-------------|
+| Opción          | Tipo   | Requerido                  | Descripción                       |
+| --------------- | ------ | -------------------------- | --------------------------------- |
 | `--data <json>` | cadena | Uno de `--data` o `--file` | Datos del recurso en formato JSON |
-| `--file <path>` | cadena | Uno de `--data` o `--file` | Ruta al archivo JSON |
-| `-o, --output` | cadena | No | Formato de salida |
+| `--file <path>` | cadena | Uno de `--data` o `--file` | Ruta al archivo JSON              |
+| `-o, --output`  | cadena | No                         | Formato de salida                 |
 
 ---
 
@@ -129,11 +129,11 @@ Actualizar un recurso existente.
 oneuptime <resource> update <id> --data <json> [-o <format>]
 ```
 
-| Parámetro | Tipo | Requerido | Descripción |
-|-----------|------|----------|-------------|
-| `<id>` | argumento | Sí | ID del recurso |
-| `--data <json>` | opción | Sí | Campos a actualizar en formato JSON |
-| `-o, --output` | opción | No | Formato de salida |
+| Parámetro       | Tipo      | Requerido | Descripción                         |
+| --------------- | --------- | --------- | ----------------------------------- |
+| `<id>`          | argumento | Sí        | ID del recurso                      |
+| `--data <json>` | opción    | Sí        | Campos a actualizar en formato JSON |
+| `-o, --output`  | opción    | No        | Formato de salida                   |
 
 ---
 
@@ -145,10 +145,10 @@ Eliminar un recurso.
 oneuptime <resource> delete <id> [--force]
 ```
 
-| Parámetro | Tipo | Requerido | Descripción |
-|-----------|------|----------|-------------|
-| `<id>` | argumento | Sí | ID del recurso |
-| `--force` | opción | No | Omitir la solicitud de confirmación |
+| Parámetro | Tipo      | Requerido | Descripción                         |
+| --------- | --------- | --------- | ----------------------------------- |
+| `<id>`    | argumento | Sí        | ID del recurso                      |
+| `--force` | opción    | No        | Omitir la solicitud de confirmación |
 
 ---
 
@@ -160,9 +160,9 @@ Contar recursos que coincidan con un filtro.
 oneuptime <resource> count [--query <json>]
 ```
 
-| Opción | Tipo | Predeterminado | Descripción |
-|--------|------|---------|-------------|
-| `--query <json>` | cadena | Ninguno | Criterios de filtro en formato JSON |
+| Opción           | Tipo   | Predeterminado | Descripción                         |
+| ---------------- | ------ | -------------- | ----------------------------------- |
+| `--query <json>` | cadena | Ninguno        | Criterios de filtro en formato JSON |
 
 ---
 
@@ -198,9 +198,9 @@ Listar todos los tipos de recursos disponibles.
 oneuptime resources [--type <type>]
 ```
 
-| Opción | Tipo | Predeterminado | Descripción |
-|--------|------|---------|-------------|
-| `--type <type>` | cadena | Ninguno | Filtrar por `database` o `analytics` |
+| Opción          | Tipo   | Predeterminado | Descripción                          |
+| --------------- | ------ | -------------- | ------------------------------------ |
+| `--type <type>` | cadena | Ninguno        | Filtrar por `database` o `analytics` |
 
 ---
 
@@ -208,27 +208,27 @@ oneuptime resources [--type <type>]
 
 Estos indicadores están disponibles en todos los comandos:
 
-| Opción | Descripción |
-|--------|-------------|
-| `--api-key <key>` | Reemplazar la clave de API |
-| `--url <url>` | Reemplazar la URL de la instancia |
-| `--context <name>` | Usar un contexto específico |
+| Opción                  | Descripción                                |
+| ----------------------- | ------------------------------------------ |
+| `--api-key <key>`       | Reemplazar la clave de API                 |
+| `--url <url>`           | Reemplazar la URL de la instancia          |
+| `--context <name>`      | Usar un contexto específico                |
 | `-o, --output <format>` | Formato de salida: `json`, `table`, `wide` |
-| `--no-color` | Deshabilitar la salida con colores |
-| `--help` | Mostrar ayuda |
-| `--version` | Mostrar versión |
+| `--no-color`            | Deshabilitar la salida con colores         |
+| `--help`                | Mostrar ayuda                              |
+| `--version`             | Mostrar versión                            |
 
 ## Rutas de la API
 
 Como referencia, la CLI asigna los comandos a estos puntos de conexión de la API:
 
-| Comando | Método | Punto de conexión |
-|---------|--------|----------|
-| `list` | POST | `/api/<resource>/get-list` |
-| `get` | POST | `/api/<resource>/<id>/get-item` |
-| `create` | POST | `/api/<resource>` |
-| `update` | PUT | `/api/<resource>/<id>/` |
-| `delete` | DELETE | `/api/<resource>/<id>/` |
-| `count` | POST | `/api/<resource>/count` |
+| Comando  | Método | Punto de conexión               |
+| -------- | ------ | ------------------------------- |
+| `list`   | POST   | `/api/<resource>/get-list`      |
+| `get`    | POST   | `/api/<resource>/<id>/get-item` |
+| `create` | POST   | `/api/<resource>`               |
+| `update` | PUT    | `/api/<resource>/<id>/`         |
+| `delete` | DELETE | `/api/<resource>/<id>/`         |
+| `count`  | POST   | `/api/<resource>/count`         |
 
 Todas las solicitudes incluyen el encabezado `APIKey` para la autenticación.

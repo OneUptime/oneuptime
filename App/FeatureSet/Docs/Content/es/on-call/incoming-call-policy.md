@@ -178,11 +178,11 @@ flowchart TD
     end
 ```
 
-| Orden | Escalar después de | Destino |
-|-------|----------------|--------|
-| 1 | 30 segundos | Horario de guardia primario |
-| 2 | 30 segundos | Horario de guardia secundario |
-| 3 | 30 segundos | Jefe del equipo de ingeniería |
+| Orden | Escalar después de | Destino                       |
+| ----- | ------------------ | ----------------------------- |
+| 1     | 30 segundos        | Horario de guardia primario   |
+| 2     | 30 segundos        | Horario de guardia secundario |
+| 3     | 30 segundos        | Jefe del equipo de ingeniería |
 
 ## Paso 7: Configurar mensajes de voz (opcional)
 
@@ -199,23 +199,23 @@ Personaliza los mensajes que escuchan los llamantes:
 
 ### Ajustes de la política
 
-| Ajuste | Descripción | Predeterminado |
-|---------|-------------|---------|
-| Mensaje de bienvenida | Mensaje TTS reproducido cuando se responde la llamada | "Por favor espere mientras le conectamos con el ingeniero de guardia." |
-| Mensaje sin respuesta | Mensaje cuando fallan todas las reglas de escalada | "Nadie está disponible. Por favor intente de nuevo más tarde." |
-| Mensaje sin nadie disponible | Mensaje cuando nadie está de guardia | "Lo sentimos, pero actualmente no hay ningún ingeniero de guardia disponible." |
-| Repetir política si nadie responde | Reiniciar desde la primera regla si todas fallan | Deshabilitado |
-| Veces de repetición de la política | Número máximo de intentos de repetición | 1 |
+| Ajuste                             | Descripción                                           | Predeterminado                                                                 |
+| ---------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Mensaje de bienvenida              | Mensaje TTS reproducido cuando se responde la llamada | "Por favor espere mientras le conectamos con el ingeniero de guardia."         |
+| Mensaje sin respuesta              | Mensaje cuando fallan todas las reglas de escalada    | "Nadie está disponible. Por favor intente de nuevo más tarde."                 |
+| Mensaje sin nadie disponible       | Mensaje cuando nadie está de guardia                  | "Lo sentimos, pero actualmente no hay ningún ingeniero de guardia disponible." |
+| Repetir política si nadie responde | Reiniciar desde la primera regla si todas fallan      | Deshabilitado                                                                  |
+| Veces de repetición de la política | Número máximo de intentos de repetición               | 1                                                                              |
 
 ### Ajustes de la regla de escalada
 
-| Ajuste | Descripción |
-|---------|-------------|
-| Orden | Orden de prioridad (1 = prioridad más alta) |
+| Ajuste                      | Descripción                                                               |
+| --------------------------- | ------------------------------------------------------------------------- |
+| Orden                       | Orden de prioridad (1 = prioridad más alta)                               |
 | Escalar después de segundos | Tiempo de espera antes de probar la siguiente regla (predeterminado: 30s) |
-| Horario de guardia | Enrutar a quien esté actualmente de guardia |
-| Equipos | Enrutar a todos los miembros de los equipos seleccionados |
-| Usuarios | Enrutar a usuarios específicos |
+| Horario de guardia          | Enrutar a quien esté actualmente de guardia                               |
+| Equipos                     | Enrutar a todos los miembros de los equipos seleccionados                 |
+| Usuarios                    | Enrutar a usuarios específicos                                            |
 
 ## Ver registros de llamadas
 
@@ -226,6 +226,7 @@ Para ver el historial de llamadas entrantes:
 3. Ve a la pestaña **Registros de llamadas**
 
 Los registros muestran:
+
 - Número de teléfono del llamante
 - Estado de la llamada (Completada, Sin respuesta, Fallida, etc.)
 - Quién respondió la llamada

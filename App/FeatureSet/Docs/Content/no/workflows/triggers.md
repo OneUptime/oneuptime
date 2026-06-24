@@ -65,12 +65,12 @@ Søk i triggerpaletten etter navn for å finne den du vil ha.
 
 ## Hvilken trigger bør jeg bruke?
 
-| Hvis du vil… | Velg |
-| --- | --- |
-| Klikke en knapp for å kjøre arbeidsflyten | **Manuell** |
-| Kjøre på en gjentakende tidsplan | **Tidsplan** |
-| La et annet system pushe data inn | **Webhook** |
-| Reagere på noe inne i OneUptime | **OneUptime-hendelse** |
+| Hvis du vil…                              | Velg                   |
+| ----------------------------------------- | ---------------------- |
+| Klikke en knapp for å kjøre arbeidsflyten | **Manuell**            |
+| Kjøre på en gjentakende tidsplan          | **Tidsplan**           |
+| La et annet system pushe data inn         | **Webhook**            |
+| Reagere på noe inne i OneUptime           | **OneUptime-hendelse** |
 
 En arbeidsflyt kan bare ha én trigger. Hvis du trenger to måter å starte samme automatisering på, bygg den delte logikken i én arbeidsflyt og kall den fra to tynne "wrapper"-arbeidsflyter ved å bruke komponenten **Kjør arbeidsflyt**.
 

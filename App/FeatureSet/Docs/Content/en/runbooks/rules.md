@@ -10,14 +10,14 @@ All three pages edit the same underlying rule model — they're just filtered to
 
 ## Anatomy of a rule
 
-| Field | Purpose |
-| --- | --- |
-| **Name** | Short, human label. Shown in audit logs. |
-| **Description** | Optional context for teammates. |
-| **Enabled** | Toggle to suspend a rule without deleting it. |
-| **Title Pattern** | Case-insensitive regex matched against the entity's title. Empty = match any title. |
+| Field                   | Purpose                                                                                         |
+| ----------------------- | ----------------------------------------------------------------------------------------------- |
+| **Name**                | Short, human label. Shown in audit logs.                                                        |
+| **Description**         | Optional context for teammates.                                                                 |
+| **Enabled**             | Toggle to suspend a rule without deleting it.                                                   |
+| **Title Pattern**       | Case-insensitive regex matched against the entity's title. Empty = match any title.             |
 | **Description Pattern** | Case-insensitive regex matched against the entity's description. Empty = match any description. |
-| **Runbooks to Start** | One or more runbooks to launch when the rule fires. |
+| **Runbooks to Start**   | One or more runbooks to launch when the rule fires.                                             |
 
 ## Matching semantics
 

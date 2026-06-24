@@ -82,9 +82,12 @@ Merkevarebygging gjelder bare når dashbordet vises offentlig. Interne seere ser
 Du kan bygge inn et offentlig dashbord på ditt eget nettsted med en iframe:
 
 ```html
-<iframe src="https://dashboard.acme.com/view"
-        width="100%" height="800"
-        frameborder="0"></iframe>
+<iframe
+  src="https://dashboard.acme.com/view"
+  width="100%"
+  height="800"
+  frameborder="0"
+></iframe>
 ```
 
 Hvis dashbordet har et hovedpassord, vil besøkende se passord-prompten inne i iframen.

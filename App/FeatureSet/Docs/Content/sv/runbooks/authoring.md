@@ -6,13 +6,13 @@ Skapa ett runbook under **Runbooks → Skapa runbook**, öppna det och gå till 
 
 Varje steg har:
 
-| Fält | Syfte |
-| --- | --- |
-| **Titel** | Kort etikett som visas i checklist-UI:t. Obligatoriskt. |
-| **Beskrivning** | Valfri kontext för svararen. Markdown-säker text. |
-| **Fortsätt vid fel** | Om på stoppar ett misslyckat steg inte körningen — nästa steg körs ändå. |
-| **Kräver godkännande** | Om på pausar runbooket efter detta steg och väntar tills en användare godkänner innan nästa steg körs. |
-| **Typspecifik konfiguration** | Skript, URL, agent, etc. — se nedan. |
+| Fält                          | Syfte                                                                                                  |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Titel**                     | Kort etikett som visas i checklist-UI:t. Obligatoriskt.                                                |
+| **Beskrivning**               | Valfri kontext för svararen. Markdown-säker text.                                                      |
+| **Fortsätt vid fel**          | Om på stoppar ett misslyckat steg inte körningen — nästa steg körs ändå.                               |
+| **Kräver godkännande**        | Om på pausar runbooket efter detta steg och väntar tills en användare godkänner innan nästa steg körs. |
+| **Typspecifik konfiguration** | Skript, URL, agent, etc. — se nedan.                                                                   |
 
 Steg körs **i ordning**. Omordna dem med upp/ned-pilarna i Steps-editorn.
 

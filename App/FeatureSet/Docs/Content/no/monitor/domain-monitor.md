@@ -24,16 +24,16 @@ Domene-monitorer spør WHOIS-data for domenene dine for å spore registreringsde
 
 ### Grunnleggende innstillinger
 
-| Felt | Beskrivelse | Påkrevd |
-|------|-------------|---------|
-| Domenenavn | Domenet som skal overvåkes (f.eks. `example.com`) | Ja |
+| Felt       | Beskrivelse                                       | Påkrevd |
+| ---------- | ------------------------------------------------- | ------- |
+| Domenenavn | Domenet som skal overvåkes (f.eks. `example.com`) | Ja      |
 
 ### Avanserte innstillinger
 
-| Felt | Beskrivelse | Standard |
-|------|-------------|---------|
-| Tidsavbrudd (ms) | Hvor lenge det ventes på et WHOIS-svar | 10000 |
-| Nye forsøk | Antall nye forsøk ved feil | 3 |
+| Felt             | Beskrivelse                            | Standard |
+| ---------------- | -------------------------------------- | -------- |
+| Tidsavbrudd (ms) | Hvor lenge det ventes på et WHOIS-svar | 10000    |
+| Nye forsøk       | Antall nye forsøk ved feil             | 3        |
 
 ## Overvåkingskriterier
 
@@ -41,13 +41,13 @@ Du kan konfigurere kriterier for å bestemme når domenet anses som tilgjengelig
 
 ### Tilgjengelige kontrolltyper
 
-| Kontrolltype | Beskrivelse |
-|-------------|-------------|
+| Kontrolltype           | Beskrivelse                                   |
+| ---------------------- | --------------------------------------------- |
 | Domain Expires In Days | Antall dager til domeneregistreringen utløper |
-| Domain Registrar | Navnet på domeneregistraren |
-| Domain Name Server | Navneserver-vertsnavn for domenet |
-| Domain Status Code | WHOIS-domenestatuskoder |
-| Domain Is Expired | Om domenet har utløpt |
+| Domain Registrar       | Navnet på domeneregistraren                   |
+| Domain Name Server     | Navneserver-vertsnavn for domenet             |
+| Domain Status Code     | WHOIS-domenestatuskoder                       |
+| Domain Is Expired      | Om domenet har utløpt                         |
 
 ### Filtertyper
 

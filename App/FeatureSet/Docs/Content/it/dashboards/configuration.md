@@ -29,12 +29,12 @@ L'elenco **Dashboards** ti permette di filtrare per etichetta, che e il modo piu
 
 Le dashboard funzionano con il controllo accessi basato sui ruoli del tuo progetto. I permessi rilevanti:
 
-| Permesso | Cosa consente |
-| --- | --- |
-| **Create Dashboard** | Creare nuove dashboard. |
-| **Read Dashboard** | Visualizzare le dashboard (in modalita privata). |
-| **Edit Dashboard** | Modificare widget, variabili e impostazioni. |
-| **Delete Dashboard** | Eliminare una dashboard. |
+| Permesso             | Cosa consente                                    |
+| -------------------- | ------------------------------------------------ |
+| **Create Dashboard** | Creare nuove dashboard.                          |
+| **Read Dashboard**   | Visualizzare le dashboard (in modalita privata). |
+| **Edit Dashboard**   | Modificare widget, variabili e impostazioni.     |
+| **Delete Dashboard** | Eliminare una dashboard.                         |
 
 Esistono permessi corrispondenti per i proprietari della dashboard e i domini personalizzati, cosi puoi concedere "gestire i proprietari" senza concedere "modificare la dashboard."
 

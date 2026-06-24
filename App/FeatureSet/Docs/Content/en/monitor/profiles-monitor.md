@@ -28,18 +28,18 @@ Select one or more services to monitor profiles from. Services must be sending c
 
 ### Profile Filters
 
-| Filter | Description | Required |
-|--------|-------------|----------|
-| Profile Types | Filter by profile type names (e.g., CPU, memory, goroutines) | No |
-| Attributes | Key-value pairs to filter on custom profile attributes | No |
-| Time Window | How far back to search for profiles (in seconds, default: 60) | No |
+| Filter        | Description                                                   | Required |
+| ------------- | ------------------------------------------------------------- | -------- |
+| Profile Types | Filter by profile type names (e.g., CPU, memory, goroutines)  | No       |
+| Attributes    | Key-value pairs to filter on custom profile attributes        | No       |
+| Time Window   | How far back to search for profiles (in seconds, default: 60) | No       |
 
 ## Monitoring Criteria
 
 ### Available Check Types
 
-| Check Type | Description |
-|------------|-------------|
+| Check Type    | Description                                                     |
+| ------------- | --------------------------------------------------------------- |
 | Profile Count | The number of profiles matching your filters in the time window |
 
 ### Filter Types

@@ -113,6 +113,7 @@ flowchart TB
 ```
 
 ## What this shows
+
 - End users access OneUptime through your cluster’s Ingress (NGINX), which routes to the UI and API.
 - Core services read/write state to PostgreSQL, Redis, and ClickHouse.
 - Probes can run inside your cluster (recommended) and/or elsewhere on your network. They can monitor:

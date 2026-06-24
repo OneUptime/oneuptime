@@ -56,24 +56,29 @@ OneUptime-kontoen din og vaktplanene dine lagres på serversiden og fjernes ikke
 ## Feilsøking
 
 **App Store sier at appen er «Ikke tilgjengelig i din region»:**
+
 - Appen er publisert i den globale App Store. Hvis den ikke vises i din region, kontakt [brukerstøtten](mailto:support@oneuptime.com).
 
 **«Nettverksfeil» ved innlogging:**
+
 - Bekreft at **server-URL** er korrekt og kan nås fra enheten din.
 - Hvis du er på et bedriftsnettverk eller VPN, forsikre deg om at OneUptime-instansen er tilgjengelig.
 - Bekreft at serveren leveres over HTTPS med et gyldig sertifikat.
 
 **Mottar ikke push-varsler:**
+
 - Åpne **Innstillinger → Varsler → OneUptime On-Call** og bekreft at varsler er tillatt.
 - Deaktiver **Ikke forstyrr** eller legg OneUptime On-Call til på tillatelseslisten for den aktive Fokus-modusen.
 - Logg ut og logg inn igjen for å fornye push-tokenet som er registrert hos serveren.
 - Selvhostede brukere: bekreft at push-varsler er konfigurert på OneUptime-instansen din (se den selvhostede [Push-varsler](/docs/self-hosted/push-notifications)-veiledningen).
 
 **Face ID / Touch ID fungerer ikke:**
+
 - Forsikre deg om at biometri er registrert i **Innstillinger → Face ID og kode** eller **Innstillinger → Touch ID og kode**.
 - Aktiver biometrisk opplåsing på nytt fra **Innstillinger**-skjermen inne i OneUptime On-Call-appen.
 
 **Appen krasjer ved oppstart:**
+
 - Oppdater til nyeste versjon fra App Store.
 - Start enheten på nytt.
 - Hvis problemet vedvarer, slett og installer appen på nytt, og logg deretter inn igjen.

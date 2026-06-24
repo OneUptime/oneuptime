@@ -11,8 +11,9 @@ Esta guía es específicamente para clientes que ejecutan instancias auto-alojad
 ## Estructura de recursos
 
 Todos los recursos Terraform de OneUptime siguen una estructura simplificada:
+
 - `name` (requerido): Nombre del recurso
-- `description` (opcional): Descripción del recurso  
+- `description` (opcional): Descripción del recurso
 - `data` (opcional): Configuración compleja en formato JSON
 
 ## Crítico: Compatibilidad de versiones
@@ -29,31 +30,39 @@ Todos los recursos Terraform de OneUptime siguen una estructura simplificada:
 ## Encontrar tu versión de OneUptime
 
 ### Método 1: Panel
+
 1. Inicia sesión en tu panel de OneUptime
 2. Ve a **Configuración** → **Acerca de**
 3. Busca el número de versión (por ejemplo, "7.0.123")
 
 ### Método 2: Punto de conexión de API
+
 ```bash
 curl https://your-oneuptime-instance.com/api/status
 ```
 
 ### Método 3: Imágenes Docker
+
 Si ejecutas OneUptime con Docker:
+
 ```bash
 docker images | grep oneuptime
 # Busca la etiqueta, por ejemplo, oneuptime/dashboard:7.0.123
 ```
 
 ### Método 4: Gráfico Helm
+
 Si usas Helm:
+
 ```bash
 helm list -n oneuptime
 # Comprueba la versión del gráfico
 ```
 
 ### Método 5: Variables de entorno
+
 Comprueba tus archivos de configuración para variables de versión:
+
 ```bash
 grep -r "APP_VERSION\|IMAGE_TAG" /path/to/your/oneuptime/config
 ```
@@ -112,7 +121,7 @@ terraform {
     }
   }
   required_version = ">= 1.0"
-  
+
   # Opcional: Usa estado remoto para colaboración en equipo
   backend "s3" {
     bucket = "your-terraform-state-bucket"
@@ -162,13 +171,13 @@ resource "oneuptime_team" "infrastructure" {
 # Monitores de infraestructura
 resource "oneuptime_monitor" "database" {
   name       = "${var.environment}-database"
-  
+
   monitor_type = "port"
   hostname     = "db.internal.yourcompany.com"
   port         = 5432
   interval     = "2m"
   timeout      = "10s"
-  
+
   tags = {
     team        = "infrastructure"
     service     = "database"
@@ -181,11 +190,11 @@ resource "oneuptime_monitor" "database" {
 resource "oneuptime_on_call_policy" "infrastructure_oncall" {
   name       = "Guardia de infraestructura"
   team_id    = oneuptime_team.infrastructure.id
-  
+
   schedules {
     name     = "Infraestructura 24x7"
     timezone = "America/New_York"
-    
+
     layers {
       name          = "Primario"
       users         = ["infra1@yourcompany.com", "infra2@yourcompany.com"]
@@ -200,9 +209,9 @@ resource "oneuptime_on_call_policy" "infrastructure_oncall" {
 # Página de estado interna
 resource "oneuptime_status_page" "internal" {
   name       = "Estado de servicios internos"
-  
+
   domain = "status.internal.yourcompany.com"
-  
+
   components {
     name       = "Base de datos"
     monitor_id = oneuptime_monitor.database.id
@@ -230,7 +239,7 @@ environment = "development"
 
 ```hcl
 # staging.tfvars
-oneuptime_url = "https://oneuptime-staging.yourcompany.com"  
+oneuptime_url = "https://oneuptime-staging.yourcompany.com"
 environment = "staging"
 ```
 
@@ -295,6 +304,7 @@ terraform apply
 ### Reglas de firewall
 
 Asegúrate de que tu ejecutor de Terraform pueda acceder a:
+
 - Punto de conexión de la API de OneUptime (generalmente el puerto 443/HTTPS)
 - Cualquier recurso interno que se esté monitoreando
 
@@ -324,6 +334,7 @@ export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
 ### 2. Claves de API con privilegios mínimos
 
 Crea claves de API con los permisos mínimos requeridos:
+
 - Gestión de monitores
 - Gestión de políticas de alertas
 - Gestión de equipos (si es necesario)
@@ -335,10 +346,10 @@ Crea monitores para tu automatización Terraform:
 ```hcl
 resource "oneuptime_monitor" "terraform_runner" {
   name       = "Estado del ejecutor de Terraform"
-  
+
   monitor_type = "heartbeat"
   interval     = "15m"
-  
+
   tags = {
     automation = "terraform"
     criticality = "medium"
@@ -355,6 +366,7 @@ Error: connection refused
 ```
 
 **Soluciones**:
+
 1. Comprueba que la instancia de OneUptime esté en ejecución
 2. Verifica que la URL de la API sea correcta
 3. Comprueba la conectividad de red/firewall
@@ -367,6 +379,7 @@ Error: API version incompatible
 ```
 
 **Soluciones**:
+
 1. Comprueba la versión de OneUptime: `curl https://your-instance/api/status`
 2. Actualiza la versión del proveedor para que coincida
 3. Ejecuta `terraform init -upgrade`
@@ -411,7 +424,7 @@ tar -czf terraform-config-$(date +%Y%m%d).tar.gz *.tf *.tfvars
 ```bash
 # Crear entornos
 terraform workspace new dev
-terraform workspace new staging  
+terraform workspace new staging
 terraform workspace new prod
 
 # Cambiar entre entornos

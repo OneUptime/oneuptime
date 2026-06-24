@@ -2,23 +2,23 @@
 
 ## Oversigt
 
-OneUptime grupperer administreret cloud-compute i **Cloud-miljøer** — AWS ECS / Fargate, Google Cloud Run, Azure Container Apps / Container Instances, AWS Elastic Beanstalk, AWS App Runner og Azure App Service. Der oprettes ét miljø pr. unik kombination af `cloud.platform` + `cloud.account.id` + `cloud.region`, så noget i stil med *"AWS ECS · us-east-1 · 123456789012"* er en enkelt enhed, der samler alle workloads, der kører på den.
+OneUptime grupperer administreret cloud-compute i **Cloud-miljøer** — AWS ECS / Fargate, Google Cloud Run, Azure Container Apps / Container Instances, AWS Elastic Beanstalk, AWS App Runner og Azure App Service. Der oprettes ét miljø pr. unik kombination af `cloud.platform` + `cloud.account.id` + `cloud.region`, så noget i stil med _"AWS ECS · us-east-1 · 123456789012"_ er en enkelt enhed, der samler alle workloads, der kører på den.
 
 Rene virtuelle maskiner (EC2, Compute Engine, Azure VM) forbliver **Hosts**, og Kubernetes hører fortsat under **Kubernetes**. Denne visning er specifikt til administreret / PaaS-compute.
 
 ## Forudsætninger
 
-- En **OneUptime Telemetry Ingestion Token** — opret en fra *Project Settings → Telemetry Ingestion Keys*.
+- En **OneUptime Telemetry Ingestion Token** — opret en fra _Project Settings → Telemetry Ingestion Keys_.
 - En OpenTelemetry Collector eller SDK, der kører i eller sammen med dine workloads.
 
 ## Sådan identificerer OneUptime et miljø
 
-| Attribut | Påkrævet | Formål |
-|---|---|---|
-| `cloud.platform` | **ja** | Skal være en administreret compute-platform (f.eks. `aws_ecs`, `gcp_cloud_run`, `azure_container_apps`) |
-| `cloud.account.id` | nej | En del af miljønøglen |
-| `cloud.region` | nej | En del af miljønøglen |
-| `service.instance.id` | nej | Spores pr. task/instans under **Instances** (med live CPU / hukommelse) |
+| Attribut              | Påkrævet | Formål                                                                                                  |
+| --------------------- | -------- | ------------------------------------------------------------------------------------------------------- |
+| `cloud.platform`      | **ja**   | Skal være en administreret compute-platform (f.eks. `aws_ecs`, `gcp_cloud_run`, `azure_container_apps`) |
+| `cloud.account.id`    | nej      | En del af miljønøglen                                                                                   |
+| `cloud.region`        | nej      | En del af miljønøglen                                                                                   |
+| `service.instance.id` | nej      | Spores pr. task/instans under **Instances** (med live CPU / hukommelse)                                 |
 
 Disse udfyldes normalt automatisk af OpenTelemetry **resource-detektorerne**.
 
@@ -29,7 +29,7 @@ I OpenTelemetry Collector tilføjes `resourcedetection`-processoren:
 ```yaml
 processors:
   resourcedetection:
-    detectors: [env, ecs]   # use [gcp] on Cloud Run, [azure] on Azure
+    detectors: [env, ecs] # use [gcp] on Cloud Run, [azure] on Azure
     timeout: 5s
 ```
 

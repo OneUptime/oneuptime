@@ -82,9 +82,12 @@ La marca se aplica solo cuando el panel se ve públicamente. Los espectadores in
 Puedes incrustar un panel público en tu propio sitio con un iframe:
 
 ```html
-<iframe src="https://dashboard.acme.com/view"
-        width="100%" height="800"
-        frameborder="0"></iframe>
+<iframe
+  src="https://dashboard.acme.com/view"
+  width="100%"
+  height="800"
+  frameborder="0"
+></iframe>
 ```
 
 Si el panel tiene una contraseña maestra, los visitantes verán la solicitud de contraseña dentro del iframe.

@@ -24,11 +24,11 @@ Telemetry Ingestion Key ページで「Create Ingestion Key」をクリックし
 
 ## OneUptime から必要なもの
 
-| 設定 | 値 |
-| --- | --- |
-| OTLP エンドポイント | `https://oneuptime.com/otlp` |
-| 認証ヘッダー | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
-| サービス名 | サービスが表示される名前。例: `my-service` |
+| 設定                | 値                                                  |
+| ------------------- | --------------------------------------------------- |
+| OTLP エンドポイント | `https://oneuptime.com/otlp`                        |
+| 認証ヘッダー        | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
+| サービス名          | サービスが表示される名前。例: `my-service`          |
 
 > **OneUptime をセルフホストしていますか？** `https://oneuptime.com/otlp` を `https://YOUR-ONEUPTIME-HOST/otlp` に置き換えてください（TLS を終端していない場合は `http://...`）。それ以外はすべて同じままです。
 
@@ -109,7 +109,7 @@ finally
 ```json
 {
   "Serilog": {
-    "Using": [ "Serilog.Sinks.OpenTelemetry" ],
+    "Using": ["Serilog.Sinks.OpenTelemetry"],
     "MinimumLevel": "Information",
     "WriteTo": [
       {

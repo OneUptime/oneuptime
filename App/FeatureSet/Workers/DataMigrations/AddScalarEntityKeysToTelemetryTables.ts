@@ -45,6 +45,10 @@ export default class AddScalarEntityKeysToTelemetryTables extends DataMigrationB
     super("AddScalarEntityKeysToTelemetryTables");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   private static readonly scalarKeyColumns: ReadonlyArray<string> = [
     "serviceEntityKey",
     "hostEntityKey",

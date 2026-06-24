@@ -6,7 +6,7 @@ OpenTelemetry Ingest 服務現在可接受原生 Syslog 酬載。您可以將任
 
 ## 先決條件
 
-- **遙測擷取權杖（Telemetry Ingestion Token）** – 從 *Project Settings → Telemetry Ingestion Keys* 建立一個，並複製 `x-oneuptime-token` 的值。
+- **遙測擷取權杖（Telemetry Ingestion Token）** – 從 _Project Settings → Telemetry Ingestion Keys_ 建立一個，並複製 `x-oneuptime-token` 的值。
 - **Syslog 轉送器** – 任何能夠傳送 HTTP POST 請求的工具（例如 `curl`、透過 `omhttp` 的 `rsyslog`，或搭配 HTTP 目的地外掛的 `syslog-ng`）。
 - **服務名稱（選填）** – 設定 `x-oneuptime-service-name` 標頭，可將傳入的日誌歸入特定的遙測服務。若省略此項，OneUptime 會改用 syslog 的 `APP-NAME`、主機名稱，或 `Syslog`。
 
@@ -60,6 +60,7 @@ curl \
    sudo apt-get install rsyslog-omhttp
    ```
 2. 將目的地附加至 `/etc/rsyslog.d/oneuptime.conf`：
+
    ```
    module(load="omhttp")
 
@@ -81,6 +82,7 @@ curl \
      template="OneUptimeJson"
    )
    ```
+
 3. 重新啟動 rsyslog：
    ```bash
    sudo systemctl restart rsyslog

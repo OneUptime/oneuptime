@@ -10,7 +10,7 @@ Esta página é o **guia de instalação**. Para configurar monitores e alertas 
 
 - Docker Engine 20.10+
 - Acesso a `/var/run/docker.sock` no host
-- Um **OneUptime Telemetry Ingestion Token** — crie um em *Project Settings → Telemetry Ingestion Keys* e copie o valor
+- Um **OneUptime Telemetry Ingestion Token** — crie um em _Project Settings → Telemetry Ingestion Keys_ e copie o valor
 
 ## Início rápido (um comando)
 
@@ -64,11 +64,11 @@ docker compose up -d
 
 ## Variáveis de ambiente
 
-| Variável | Obrigatória | Descrição |
-|----------|----------|-------------|
-| `ONEUPTIME_URL` | Sim | A URL da sua instância OneUptime (por exemplo, `https://oneuptime.com` ou seu host auto-hospedado) |
-| `ONEUPTIME_SERVICE_TOKEN` | Sim | Token de ingestão de telemetria de *Project Settings → Telemetry Ingestion Keys* |
-| `DOCKER_HOST_NAME` | Não | Nome amigável para este host. O padrão é `docker-host`. Defina-o como algo estável por host (por exemplo, `prod-docker-01`) |
+| Variável                  | Obrigatória | Descrição                                                                                                                   |
+| ------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`           | Sim         | A URL da sua instância OneUptime (por exemplo, `https://oneuptime.com` ou seu host auto-hospedado)                          |
+| `ONEUPTIME_SERVICE_TOKEN` | Sim         | Token de ingestão de telemetria de _Project Settings → Telemetry Ingestion Keys_                                            |
+| `DOCKER_HOST_NAME`        | Não         | Nome amigável para este host. O padrão é `docker-host`. Defina-o como algo estável por host (por exemplo, `prod-docker-01`) |
 
 ## Verificar a instalação
 
@@ -117,14 +117,14 @@ docker compose down
 
 ## O que é coletado
 
-| Categoria | Dados |
-|----------|------|
-| **Métricas de CPU** | Uso total, percentual de uso, tempo de throttling (por contêiner) |
-| **Métricas de memória** | Uso, limite, percentual, RSS, cache (por contêiner) |
-| **Métricas de rede** | Bytes e pacotes recebidos / transmitidos (por contêiner) |
-| **Métricas de E/S de bloco** | Bytes e operações de leitura / escrita (por contêiner) |
+| Categoria                    | Dados                                                                   |
+| ---------------------------- | ----------------------------------------------------------------------- |
+| **Métricas de CPU**          | Uso total, percentual de uso, tempo de throttling (por contêiner)       |
+| **Métricas de memória**      | Uso, limite, percentual, RSS, cache (por contêiner)                     |
+| **Métricas de rede**         | Bytes e pacotes recebidos / transmitidos (por contêiner)                |
+| **Métricas de E/S de bloco** | Bytes e operações de leitura / escrita (por contêiner)                  |
 | **Informações do contêiner** | Tempo de atividade, contagem de reinicializações, contagem de processos |
-| **Logs do contêiner** | Logs de stdout / stderr de todos os contêineres |
+| **Logs do contêiner**        | Logs de stdout / stderr de todos os contêineres                         |
 
 ## OneUptime auto-hospedado
 

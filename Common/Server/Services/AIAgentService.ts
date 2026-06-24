@@ -120,13 +120,18 @@ export class Service extends DatabaseService<Model> {
 
     const now: Date = OneUptimeDate.getCurrentDate();
 
-    await this.updateOneById({
+    /*
+     * Heartbeat write: a single-statement UPDATE with no hooks and no
+     * `version` bump. Fires on every AI-agent ingest/alive request, so it
+     * must not head the hot-row Postgres lock convoy the full updateOneById
+     * pipeline causes. A lastAlive-only write never sets connectionStatus,
+     * so the connection-status-change hooks are inert here. See
+     * ServiceService.updateLastSeen.
+     */
+    await this.updateColumnsByIdWithoutHooks({
       id: aiAgentId,
       data: {
         lastAlive: now,
-      },
-      props: {
-        isRoot: true,
       },
     });
   }

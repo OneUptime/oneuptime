@@ -11,6 +11,7 @@
 ## ステップ1：APIキーの作成
 
 ### OneUptime Cloudの場合
+
 1. [OneUptime Cloud](https://oneuptime.com) にアクセスしてログイン
 2. **設定** → **APIキー** に移動
 3. **APIキーの作成** をクリック
@@ -19,6 +20,7 @@
 6. 生成されたAPIキーをコピー
 
 ### セルフホストOneUptimeの場合
+
 1. OneUptimeインスタンスにアクセス
 2. **設定** → **APIキー** に移動
 3. **APIキーの作成** をクリック
@@ -37,7 +39,7 @@ terraform {
       source  = "oneuptime/oneuptime"
       # Cloudのお客様の場合
       version = "~> 7.0"
-      
+
       # セルフホストのお客様の場合 — 正確なバージョンに固定
       # version = "= 7.0.123"  # OneUptimeのバージョンに置き換えてください
     }
@@ -48,10 +50,10 @@ terraform {
 provider "oneuptime" {
   # Cloudのお客様の場合
   oneuptime_url = "https://oneuptime.com"
-  
+
   # セルフホストのお客様の場合 — インスタンスURLを使用
   # oneuptime_url = "https://oneuptime.yourcompany.com"
-  
+
   api_key = var.oneuptime_api_key
 }
 
@@ -164,25 +166,33 @@ provider "oneuptime" {
 ## クイックスタートのトラブルシューティング
 
 ### 問題：プロバイダーが見つからない
+
 ```
 Error: Failed to query available provider packages
 ```
+
 **解決策**：`terraform init` を実行してプロバイダーをダウンロードする
 
 ### 問題：認証が失敗する
+
 ```
 Error: Invalid API key
 ```
-**解決策**： 
+
+**解決策**：
+
 1. OneUptime ダッシュボードでAPIキーを確認する
 2. APIキーに十分な権限があるか確認する
 3. インスタンスの `oneuptime_url` が正しいか確認する
 
 ### 問題：バージョンの不一致（セルフホスト）
+
 ```
 Error: API version incompatible
 ```
-**解決策**： 
+
+**解決策**：
+
 1. ダッシュボードでOneUptimeのバージョンを確認する
 2. プロバイダーのバージョンを完全一致に更新する
 3. `terraform init -upgrade` を実行する

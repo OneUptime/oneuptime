@@ -40,46 +40,48 @@ Sie können diese Adresse von der Monitor-Detailseite kopieren und Ihre externen
 
 Sie können Kriterien basierend auf den folgenden E-Mail-Feldern erstellen:
 
-| Feld | Beschreibung |
-|-------|-------------|
-| **E-Mail-Betreff** | Die Betreffzeile der eingehenden E-Mail |
-| **E-Mail von** | Die E-Mail-Adresse des Absenders |
-| **E-Mail-Text** | Der Nur-Text-Inhalt des E-Mail-Textkörpers |
-| **E-Mail an** | Die Empfänger-E-Mail-Adresse |
+| Feld                | Beschreibung                                  |
+| ------------------- | --------------------------------------------- |
+| **E-Mail-Betreff**  | Die Betreffzeile der eingehenden E-Mail       |
+| **E-Mail von**      | Die E-Mail-Adresse des Absenders              |
+| **E-Mail-Text**     | Der Nur-Text-Inhalt des E-Mail-Textkörpers    |
+| **E-Mail an**       | Die Empfänger-E-Mail-Adresse                  |
 | **E-Mail erhalten** | Zeitbasierte Kriterien für den E-Mail-Eingang |
 
 ## Verfügbare Filtertypen
 
 ### Zeichenketten-Filter (Betreff, Von, Text, An)
 
-| Filter | Beschreibung | Beispiel |
-|--------|-------------|---------|
-| **Enthält** | Feld enthält den angegebenen Text | Betreff enthält "CRITICAL" |
-| **Enthält nicht** | Feld enthält den angegebenen Text nicht | Betreff enthält nicht "TEST" |
-| **Gleich** | Feld stimmt exakt mit dem angegebenen Text überein | Von gleich "alerts@service.com" |
-| **Ungleich** | Feld stimmt nicht mit dem angegebenen Text überein | Betreff ungleich "OK" |
-| **Beginnt mit** | Feld beginnt mit dem angegebenen Text | Betreff beginnt mit "[ALERT]" |
-| **Endet mit** | Feld endet mit dem angegebenen Text | Betreff endet mit "- Production" |
-| **Ist leer** | Feld ist leer oder enthält keine Inhalte | Text ist leer |
-| **Ist nicht leer** | Feld hat Inhalt | Betreff ist nicht leer |
+| Filter             | Beschreibung                                       | Beispiel                         |
+| ------------------ | -------------------------------------------------- | -------------------------------- |
+| **Enthält**        | Feld enthält den angegebenen Text                  | Betreff enthält "CRITICAL"       |
+| **Enthält nicht**  | Feld enthält den angegebenen Text nicht            | Betreff enthält nicht "TEST"     |
+| **Gleich**         | Feld stimmt exakt mit dem angegebenen Text überein | Von gleich "alerts@service.com"  |
+| **Ungleich**       | Feld stimmt nicht mit dem angegebenen Text überein | Betreff ungleich "OK"            |
+| **Beginnt mit**    | Feld beginnt mit dem angegebenen Text              | Betreff beginnt mit "[ALERT]"    |
+| **Endet mit**      | Feld endet mit dem angegebenen Text                | Betreff endet mit "- Production" |
+| **Ist leer**       | Feld ist leer oder enthält keine Inhalte           | Text ist leer                    |
+| **Ist nicht leer** | Feld hat Inhalt                                    | Betreff ist nicht leer           |
 
 ### Zeitbasierte Filter (E-Mail erhalten)
 
-| Filter | Beschreibung | Beispiel |
-|--------|-------------|---------|
-| **Empfangen in Minuten** | E-Mail wurde innerhalb von X Minuten empfangen | E-Mail innerhalb von 30 Minuten empfangen |
-| **Nicht empfangen in Minuten** | Keine E-Mail in X Minuten empfangen | E-Mail nicht innerhalb von 60 Minuten empfangen |
+| Filter                         | Beschreibung                                   | Beispiel                                        |
+| ------------------------------ | ---------------------------------------------- | ----------------------------------------------- |
+| **Empfangen in Minuten**       | E-Mail wurde innerhalb von X Minuten empfangen | E-Mail innerhalb von 30 Minuten empfangen       |
+| **Nicht empfangen in Minuten** | Keine E-Mail in X Minuten empfangen            | E-Mail nicht innerhalb von 60 Minuten empfangen |
 
 ## Beispielkonfigurationen
 
 ### Beispiel 1: Benachrichtigung bei kritischen E-Mails erstellen
 
 **Benachrichtigungs-Erstellungskriterien:**
+
 - E-Mail-Betreff **Enthält** "CRITICAL"
 - ODER E-Mail-Betreff **Enthält** "ALERT"
 - ODER E-Mail-Betreff **Enthält** "ERROR"
 
 **Benachrichtigungs-Auflösungskriterien:**
+
 - E-Mail-Betreff **Enthält** "RESOLVED"
 - ODER E-Mail-Betreff **Enthält** "OK"
 - ODER E-Mail-Betreff **Enthält** "RECOVERED"
@@ -87,6 +89,7 @@ Sie können Kriterien basierend auf den folgenden E-Mail-Feldern erstellen:
 ### Beispiel 3: Heartbeat-Monitor (Keine E-Mail = Benachrichtigung)
 
 **Benachrichtigungs-Erstellungskriterien:**
+
 - E-Mail erhalten **Nicht empfangen in Minuten** mit Wert `60`
 
 Dies erstellt eine Benachrichtigung, wenn 60 Minuten lang keine E-Mail empfangen wird – nützlich für die Überwachung geplanter Jobs oder Batch-Prozesse, die Abschluss-E-Mails senden sollten.
@@ -95,13 +98,13 @@ Dies erstellt eine Benachrichtigung, wenn 60 Minuten lang keine E-Mail empfangen
 
 Bei der Konfiguration von Incident-Vorlagen können Sie diese Variablen aus eingehenden E-Mails verwenden:
 
-| Variable | Beschreibung |
-|----------|-------------|
-| `{{emailSubject}}` | Der Betreff der empfangenen E-Mail |
-| `{{emailFrom}}` | Die E-Mail-Adresse des Absenders |
-| `{{emailTo}}` | Die Empfänger-E-Mail-Adresse |
-| `{{emailBody}}` | Der Nur-Text-Textkörper der E-Mail |
-| `{{emailReceivedAt}}` | Wann die E-Mail empfangen wurde |
+| Variable              | Beschreibung                       |
+| --------------------- | ---------------------------------- |
+| `{{emailSubject}}`    | Der Betreff der empfangenen E-Mail |
+| `{{emailFrom}}`       | Die E-Mail-Adresse des Absenders   |
+| `{{emailTo}}`         | Die Empfänger-E-Mail-Adresse       |
+| `{{emailBody}}`       | Der Nur-Text-Textkörper der E-Mail |
+| `{{emailReceivedAt}}` | Wann die E-Mail empfangen wurde    |
 
 ## Self-Hosted-Einrichtung
 

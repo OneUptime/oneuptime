@@ -8,11 +8,13 @@ Usage: build_docker_images.sh --image <name> --version <version> --dockerfile <p
 
 Builds the image twice — once as community (IS_ENTERPRISE_EDITION=false), once
 as enterprise (IS_ENTERPRISE_EDITION=true) — and pushes each under its own tag
-set. Both variants share a single GHA cache scope so the enterprise pass is
-mostly a cache hit: BuildKit reuses any RUN/COPY layer whose effective inputs
-are unchanged, and downstream RUN steps in our Dockerfiles don't read
+set. The two passes run on the same buildx builder within a single job, so the
+enterprise pass still reuses the community pass's local layer cache where inputs
+are unchanged: downstream RUN steps in our Dockerfiles don't read
 $IS_ENTERPRISE_EDITION, so only the ENV/LABEL metadata differs between the two
-final images.
+final images. No remote (GHA) cache is used — it caused intermittent build
+failures when GitHub evicted a cache blob still referenced by the manifest
+(BlobNotFound on import).
 
 Required flags:
 	--image <name>        Image name without registry prefix (example: mcp)
@@ -109,15 +111,6 @@ fi
 
 SANITIZED_VERSION="${VERSION//+/-}"
 
-# Single GHA cache scope per (image, arch). Community and enterprise share it
-# so the second variant's build is mostly cache hits.
-#
-# Requires ACTIONS_RUNTIME_TOKEN + ACTIONS_CACHE_URL to be exposed to the
-# step running this script. The workflow accomplishes that with
-# `crazy-max/ghaction-github-runtime@v3` immediately after
-# `docker/setup-buildx-action`.
-CACHE_SCOPE="${IMAGE}${ARCH_SUFFIX}"
-
 build_variant() {
 	local variant_prefix="$1"       # "" for community, "enterprise-" for enterprise
 	local enterprise_flag="$2"      # "false" or "true" — baked into ENV IS_ENTERPRISE_EDITION
@@ -134,12 +127,15 @@ build_variant() {
 		tag_args+=(--tag "ghcr.io/oneuptime/${IMAGE}:${tag_suffix}${ARCH_SUFFIX}")
 	done
 
+	# No --cache-from/--cache-to: the GHA remote cache was removed because GitHub
+	# evicts cache blobs (7-day TTL / ~10 GB-per-repo LRU) while leaving the
+	# manifest that references them, producing intermittent BlobNotFound import
+	# failures that fail the whole build. BuildKit's in-builder local cache still
+	# speeds up the enterprise pass within the same job.
 	docker buildx build \
 		--file "$DOCKERFILE" \
 		--platform "$PLATFORMS" \
 		--push \
-		--cache-from "type=gha,scope=${CACHE_SCOPE}" \
-		--cache-to "type=gha,mode=max,scope=${CACHE_SCOPE}" \
 		"${tag_args[@]}" \
 		--build-arg "GIT_SHA=${GIT_SHA}" \
 		--build-arg "APP_VERSION=${VERSION}" \

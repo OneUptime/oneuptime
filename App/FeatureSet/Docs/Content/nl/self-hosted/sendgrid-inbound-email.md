@@ -33,9 +33,9 @@ Dit subdomein wordt uitsluitend gebruikt voor OneUptime monitor-e-mails.
 
 Voeg een MX-record toe aan uw DNS-configuratie om e-mails voor uw inkomend subdomein naar SendGrid te routeren.
 
-| Type | Host/Naam | Prioriteit | Waarde |
-|------|-----------|----------|-------|
-| MX | inbound | 10 | mx.sendgrid.net |
+| Type | Host/Naam | Prioriteit | Waarde          |
+| ---- | --------- | ---------- | --------------- |
+| MX   | inbound   | 10         | mx.sendgrid.net |
 
 **Voorbeeld:** Als uw domein `example.com` is en u `inbound.example.com` gebruikt:
 
@@ -61,13 +61,13 @@ Voor betere bezorgbaarheid en om te voorkomen dat e-mails als spam worden gemark
 3. Klik op **Host & URL toevoegen**
 4. Configureer het volgende:
 
-| Veld | Waarde |
-|-------|-------|
-| **Ontvangsdomein** | Uw inkomend subdomein (bijv. `inbound.yourdomain.com`) |
-| **Doel-URL** | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
-| **Controleer inkomende e-mails op spam** | Optioneel — schakel in indien gewenst |
-| **Stuur onbewerkt, volledig MIME-bericht** | Laat ongevinkt (niet vereist) |
-| **POST het onbewerkte, volledige MIME-bericht** | Laat ongevinkt (niet vereist) |
+| Veld                                            | Waarde                                                                  |
+| ----------------------------------------------- | ----------------------------------------------------------------------- |
+| **Ontvangsdomein**                              | Uw inkomend subdomein (bijv. `inbound.yourdomain.com`)                  |
+| **Doel-URL**                                    | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
+| **Controleer inkomende e-mails op spam**        | Optioneel — schakel in indien gewenst                                   |
+| **Stuur onbewerkt, volledig MIME-bericht**      | Laat ongevinkt (niet vereist)                                           |
+| **POST het onbewerkte, volledige MIME-bericht** | Laat ongevinkt (niet vereist)                                           |
 
 5. Klik op **Toevoegen**
 
@@ -123,35 +123,37 @@ Na aanmaak ziet u het unieke e-mailadres voor deze monitor (bijv. `monitor-abc12
 
 ## Omgevingsvariabelen referentie
 
-| Variabele | Beschrijving | Vereist | Standaard |
-|----------|-------------|----------|---------|
-| `INBOUND_EMAIL_PROVIDER` | De te gebruiken inbound e-mailprovider | Ja | - |
-| `INBOUND_EMAIL_DOMAIN` | Het subdomein geconfigureerd voor inkomende e-mails | Ja | - |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | Geheim voor het valideren van webhookverzoeken. Als ingesteld, voeg dit geheim toe aan de webhook-URL: `/incoming-email/sendgrid/YOUR_SECRET` | Nee | - |
+| Variabele                      | Beschrijving                                                                                                                                  | Vereist | Standaard |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------- |
+| `INBOUND_EMAIL_PROVIDER`       | De te gebruiken inbound e-mailprovider                                                                                                        | Ja      | -         |
+| `INBOUND_EMAIL_DOMAIN`         | Het subdomein geconfigureerd voor inkomende e-mails                                                                                           | Ja      | -         |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | Geheim voor het valideren van webhookverzoeken. Als ingesteld, voeg dit geheim toe aan de webhook-URL: `/incoming-email/sendgrid/YOUR_SECRET` | Nee     | -         |
 
 ## Ondersteunde e-mailcriteria
 
 Bij het configureren van uw Inkomend e-mail-monitor kunt u criteria aanmaken op basis van:
 
-| Veld | Beschrijving | Beschikbare filters |
-|-------|-------------|-------------------|
-| **E-mailonderwerp** | De onderwerpregel van de e-mail | Bevat, Bevat niet, Gelijk aan, Niet gelijk aan, Begint met, Eindigt met, Is leeg, Is niet leeg |
-| **E-mail van** | Het e-mailadres van de afzender | Bevat, Bevat niet, Gelijk aan, Niet gelijk aan, Begint met, Eindigt met, Is leeg, Is niet leeg |
-| **E-maillichaam** | De gewone tekstinhoud van de e-mail | Bevat, Bevat niet, Gelijk aan, Niet gelijk aan, Begint met, Eindigt met, Is leeg, Is niet leeg |
-| **E-mail naar** | Het e-mailadres van de ontvanger | Bevat, Bevat niet, Gelijk aan, Niet gelijk aan, Begint met, Eindigt met, Is leeg, Is niet leeg |
-| **E-mail ontvangen** | Tijd since de laatste e-mail was ontvangen | Ontvangen in minuten, Niet ontvangen in minuten |
+| Veld                 | Beschrijving                               | Beschikbare filters                                                                            |
+| -------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| **E-mailonderwerp**  | De onderwerpregel van de e-mail            | Bevat, Bevat niet, Gelijk aan, Niet gelijk aan, Begint met, Eindigt met, Is leeg, Is niet leeg |
+| **E-mail van**       | Het e-mailadres van de afzender            | Bevat, Bevat niet, Gelijk aan, Niet gelijk aan, Begint met, Eindigt met, Is leeg, Is niet leeg |
+| **E-maillichaam**    | De gewone tekstinhoud van de e-mail        | Bevat, Bevat niet, Gelijk aan, Niet gelijk aan, Begint met, Eindigt met, Is leeg, Is niet leeg |
+| **E-mail naar**      | Het e-mailadres van de ontvanger           | Bevat, Bevat niet, Gelijk aan, Niet gelijk aan, Begint met, Eindigt met, Is leeg, Is niet leeg |
+| **E-mail ontvangen** | Tijd since de laatste e-mail was ontvangen | Ontvangen in minuten, Niet ontvangen in minuten                                                |
 
 ## Voorbeeldgebruiksscenario's
 
 ### Meldingen van verouderde systemen
 
 Veel verouderde systemen kunnen alleen e-mailmeldingen sturen. Maak een Inkomend e-mail-monitor aan om:
+
 - OneUptime-meldingen aan te maken wanneer het verouderde systeem `[KRITIEK]`-e-mails stuurt
 - Meldingen op te lossen wanneer `[OPGELOST]`-e-mails worden ontvangen
 
 ### Integratie met externe diensten
 
 Integreer met diensten die e-mailmeldingen sturen:
+
 - Monitoringtools zonder API-integraties
 - Cloudprovider-meldingen
 - Beveiligingsscan-tools
@@ -159,6 +161,7 @@ Integreer met diensten die e-mailmeldingen sturen:
 ### Heartbeat via e-mail
 
 Gebruik "E-mail ontvangen"-criteria om te zorgen dat u periodieke e-mails ontvangt:
+
 - Melding aanmaken als er 60 minuten geen e-mail wordt ontvangen
 - Nuttig voor het bewaken van batchtaken of geplande taken die voltooiings-e-mails sturen
 
@@ -167,12 +170,15 @@ Gebruik "E-mail ontvangen"-criteria om te zorgen dat u periodieke e-mails ontvan
 ### E-mails worden niet ontvangen
 
 1. **Controleer DNS-doorwerking:**
+
    ```bash
    dig MX inbound.yourdomain.com
    ```
+
    Zou `mx.sendgrid.net` moeten retourneren
 
 2. **Controleer SendGrid Inbound Parse-instellingen:**
+
    - Log in op het SendGrid Dashboard
    - Ga naar Instellingen > Inbound Parse
    - Verifieer dat uw domein en webhook-URL correct zijn
@@ -184,10 +190,12 @@ Gebruik "E-mail ontvangen"-criteria om te zorgen dat u periodieke e-mails ontvan
 ### Webhooks mislukken
 
 1. **Zorg dat OneUptime openbaar toegankelijk is:**
+
    - De webhook-URL moet bereikbaar zijn vanaf het internet
    - Test met: `curl -X POST https://your-oneuptime-domain.com/incoming-email/sendgrid`
 
 2. **Controleer firewallregels:**
+
    - Sta inkomend HTTPS-verkeer toe van de IP-reeksen van SendGrid
 
 3. **Verifieer SSL-certificaat:**
@@ -197,10 +205,12 @@ Gebruik "E-mail ontvangen"-criteria om te zorgen dat u periodieke e-mails ontvan
 ### Monitor maakt geen meldingen aan
 
 1. **Verifieer criteriaconfiguratie:**
+
    - Controleer of uw meldingsaanmaakcriteria overeenkomen met de e-mailinhoud
    - Test eerst met exacte tekenreeksen voordat u patroonmatching gebruikt
 
 2. **Controleer monitorstatus:**
+
    - Zorg dat de monitor niet is uitgeschakeld
    - Verifieer dat het monitortype "Inkomend e-mail" is
 
@@ -220,10 +230,10 @@ Gebruik "E-mail ontvangen"-criteria om te zorgen dat u periodieke e-mails ontvan
 
 OneUptime is ontworpen om meerdere inbound e-mailproviders te ondersteunen. Momenteel ondersteund:
 
-| Provider | Status |
-|----------|--------|
-| SendGrid | Ondersteund |
-| Haraka (Zelf-gehost) | Gepland |
+| Provider             | Status      |
+| -------------------- | ----------- |
+| SendGrid             | Ondersteund |
+| Haraka (Zelf-gehost) | Gepland     |
 
 Als u ondersteuning voor een andere provider nodig heeft, neem dan contact met ons op of dien een functieverzoek in.
 

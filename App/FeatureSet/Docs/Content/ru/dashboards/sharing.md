@@ -82,9 +82,12 @@
 Публичный дашборд можно встроить на ваш сайт через iframe:
 
 ```html
-<iframe src="https://dashboard.acme.com/view"
-        width="100%" height="800"
-        frameborder="0"></iframe>
+<iframe
+  src="https://dashboard.acme.com/view"
+  width="100%"
+  height="800"
+  frameborder="0"
+></iframe>
 ```
 
 Если на дашборде стоит мастер-пароль, посетители увидят запрос пароля прямо внутри iframe.

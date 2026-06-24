@@ -8,17 +8,17 @@ Använd det för att se vad dina användare faktiskt upplever: sidvisningar, fel
 
 ## Förutsättningar
 
-- En **OneUptime Telemetry Ingestion Token** — skapa en från *Project Settings → Telemetry Ingestion Keys*.
+- En **OneUptime Telemetry Ingestion Token** — skapa en från _Project Settings → Telemetry Ingestion Keys_.
 - OpenTelemetry-SDK:n för webbläsare eller mobil.
 
 ## Hur OneUptime identifierar en RUM-applikation
 
-| Attribut | Krävs | Syfte |
-|---|---|---|
-| `service.name` | **ja** | Applikationsidentitet (t.ex. `storefront-web`) |
-| `browser.*` | för webb | Markerar telemetrin som webbläsar-RUM |
-| `device.*` | för mobil | Markerar telemetrin som mobil-RUM |
-| `telemetry.sdk.language` | nej | t.ex. `webjs`, `swift`, visas i översikten |
+| Attribut                 | Krävs     | Syfte                                          |
+| ------------------------ | --------- | ---------------------------------------------- |
+| `service.name`           | **ja**    | Applikationsidentitet (t.ex. `storefront-web`) |
+| `browser.*`              | för webb  | Markerar telemetrin som webbläsar-RUM          |
+| `device.*`               | för mobil | Markerar telemetrin som mobil-RUM              |
+| `telemetry.sdk.language` | nej       | t.ex. `webjs`, `swift`, visas i översikten     |
 
 ## Webbläsare (OpenTelemetry Web)
 

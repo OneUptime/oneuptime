@@ -12,6 +12,7 @@ import DockerSwarmClusters from "../Pages/DockerSwarm/Clusters";
 import DockerSwarmDocumentation from "../Pages/DockerSwarm/Documentation";
 import DockerSwarmSettingsOwnerRules from "../Pages/DockerSwarm/Settings/OwnerRules";
 import DockerSwarmSettingsLabelRules from "../Pages/DockerSwarm/Settings/LabelRules";
+import DockerSwarmArchived from "../Pages/DockerSwarm/Archived";
 import DockerSwarmClusterOverview from "../Pages/DockerSwarm/View/Index";
 import DockerSwarmClusterNodes from "../Pages/DockerSwarm/View/Nodes";
 import DockerSwarmClusterNodeDetail from "../Pages/DockerSwarm/View/NodeDetail";
@@ -85,6 +86,15 @@ const DockerSwarmRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={DockerSwarmRoutePath[PageMap.DOCKER_SWARM_ARCHIVED] || ""}
+          element={
+            <DockerSwarmArchived
+              {...props}
+              pageRoute={RouteMap[PageMap.DOCKER_SWARM_ARCHIVED] as Route}
             />
           }
         />

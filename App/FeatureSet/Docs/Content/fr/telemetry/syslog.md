@@ -6,7 +6,7 @@ Le service d'ingestion OpenTelemetry accepte désormais les charges utiles Syslo
 
 ## Prérequis
 
-- **Jeton d'ingestion de télémétrie** — créez-en un depuis *Paramètres du projet → Clés d'ingestion de télémétrie* et copiez la valeur `x-oneuptime-token`.
+- **Jeton d'ingestion de télémétrie** — créez-en un depuis _Paramètres du projet → Clés d'ingestion de télémétrie_ et copiez la valeur `x-oneuptime-token`.
 - **Redirecteur Syslog** — tout outil capable d'envoyer des requêtes HTTP POST (par exemple `curl`, `rsyslog` via `omhttp`, ou `syslog-ng` avec le plugin de destination HTTP).
 - **Nom du service (optionnel)** — définissez l'en-tête `x-oneuptime-service-name` pour regrouper les journaux entrants sous un service de télémétrie spécifique. Lorsqu'il est omis, OneUptime utilise par défaut l'`APP-NAME` syslog, le nom d'hôte ou `Syslog`.
 
@@ -60,6 +60,7 @@ curl \
    sudo apt-get install rsyslog-omhttp
    ```
 2. Ajoutez la destination à `/etc/rsyslog.d/oneuptime.conf` :
+
    ```
    module(load="omhttp")
 
@@ -81,6 +82,7 @@ curl \
      template="OneUptimeJson"
    )
    ```
+
 3. Redémarrez rsyslog :
    ```bash
    sudo systemctl restart rsyslog

@@ -54,6 +54,7 @@ OneUptime Terraform provider OneUptime API specification से automatically ge
 - Changed validation rules
 
 आपके OneUptime installation से match न करने वाले provider version का उपयोग करने पर हो सकता है:
+
 - API compatibility errors
 - Failed resource creation/updates
 - Unexpected behavior
@@ -62,16 +63,19 @@ OneUptime Terraform provider OneUptime API specification से automatically ge
 ## अपना OneUptime Version खोजना
 
 ### Method 1: Dashboard
+
 1. अपने OneUptime dashboard में login करें
 2. **Settings** → **About** पर जाएं
 3. version number नोट करें (जैसे "7.0.123")
 
 ### Method 2: API
+
 ```bash
 curl https://your-oneuptime-instance.com/api/version | jq '.version'
 ```
 
 ### Method 3: Docker
+
 ```bash
 docker images | grep oneuptime
 # tag देखें, जैसे oneuptime/dashboard:7.0.123
@@ -86,11 +90,11 @@ docker images | grep oneuptime
 
 ## Version Compatibility Matrix
 
-| OneUptime Version | Provider Version | Terraform Config |
-|-------------------|------------------|------------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| Latest Cloud | Latest Provider | `version = "~> 7.0"` |
+| OneUptime Version | Provider Version | Terraform Config       |
+| ----------------- | ---------------- | ---------------------- |
+| 7.0.x             | 7.0.x            | `version = "~> 7.0.0"` |
+| 7.1.x             | 7.1.x            | `version = "~> 7.1.0"` |
+| Latest Cloud      | Latest Provider  | `version = "~> 7.0"`   |
 
 ## Installation Steps
 

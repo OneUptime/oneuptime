@@ -14,10 +14,12 @@ A integração SSO oferece os seguintes benefícios:
 ## Configurando o SSO
 
 1. **Navegar para as Configurações do Projeto**
+
    - Vá para o seu projeto do OneUptime
    - Navegue para **Project Settings** > **Authentication** > **SSO**
 
 2. **Criar Configuração SSO**
+
    - Clique em **Create SSO**
    - Insira um **Nome** para a configuração SSO (ex.: "Keycloak SAML" ou "Okta SAML")
    - Insira a **Sign On URL** do seu provedor de identidade
@@ -152,12 +154,12 @@ O Microsoft Entra ID é o serviço de gerenciamento de identidade e acesso basea
 1. Na página de configuração SAML, clique em **Edit** em **Attributes & Claims**
 2. Certifique-se de que as seguintes declarações estão configuradas:
 
-| Nome da Declaração | Valor |
-|-----------|-------|
-| `Unique User Identifier (Name ID)` | `user.userprincipalname` ou `user.mail` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | `user.mail` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname` | `user.givenname` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname` | `user.surname` |
+| Nome da Declaração                                                   | Valor                                   |
+| -------------------------------------------------------------------- | --------------------------------------- |
+| `Unique User Identifier (Name ID)`                                   | `user.userprincipalname` ou `user.mail` |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | `user.mail`                             |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`    | `user.givenname`                        |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname`      | `user.surname`                          |
 
 3. Defina o **Name identifier format** como `Email address`
 4. Clique em **Save**
@@ -239,11 +241,11 @@ O Okta é uma plataforma de identidade amplamente utilizada que fornece capacida
 2. Clique em **Edit** na seção **SAML Settings** e clique em **Next** para chegar às configurações SAML
 3. Na seção **Attribute Statements**, adicione:
 
-| Nome | Valor |
-|------|-------|
-| `email` | `user.email` |
+| Nome        | Valor            |
+| ----------- | ---------------- |
+| `email`     | `user.email`     |
 | `firstName` | `user.firstName` |
-| `lastName` | `user.lastName` |
+| `lastName`  | `user.lastName`  |
 
 4. Clique em **Next** e depois em **Finish**
 

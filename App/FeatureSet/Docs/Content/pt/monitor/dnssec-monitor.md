@@ -24,19 +24,19 @@ Os monitores DNSSEC validam toda a cadeia de confiança desde a zona raiz até o
 
 ### Configurações Básicas
 
-| Campo | Descrição | Obrigatório |
-|-------|-------------|----------|
-| Zone (Domain Name) | A zona a ser validada via DNSSEC (ex.: `example.com`) | Sim |
-| Resolvers | Lista separada por vírgulas de resolvers validadores a consultar (ex.: `1.1.1.1, 8.8.8.8, 9.9.9.9`) | Sim |
-| Check Nameserver Consistency | Consultar cada nameserver autoritativo diretamente e verificar se eles retornam o mesmo número de série SOA | Não |
+| Campo                        | Descrição                                                                                                   | Obrigatório |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------- |
+| Zone (Domain Name)           | A zona a ser validada via DNSSEC (ex.: `example.com`)                                                       | Sim         |
+| Resolvers                    | Lista separada por vírgulas de resolvers validadores a consultar (ex.: `1.1.1.1, 8.8.8.8, 9.9.9.9`)         | Sim         |
+| Check Nameserver Consistency | Consultar cada nameserver autoritativo diretamente e verificar se eles retornam o mesmo número de série SOA | Não         |
 
 ### Configurações Avançadas
 
-| Campo | Descrição | Padrão |
-|-------|-------------|---------|
-| Signature Expiry Warning (days) | Limite padrão para o filtro de expiração RRSIG | 7 |
-| Timeout (ms) | Tempo de espera para cada consulta DNS | 10000 |
-| Retries | Número de tentativas de repetição em caso de falha | 3 |
+| Campo                           | Descrição                                          | Padrão |
+| ------------------------------- | -------------------------------------------------- | ------ |
+| Signature Expiry Warning (days) | Limite padrão para o filtro de expiração RRSIG     | 7      |
+| Timeout (ms)                    | Tempo de espera para cada consulta DNS             | 10000  |
+| Retries                         | Número de tentativas de repetição em caso de falha | 3      |
 
 ## Critérios de Monitoramento
 
@@ -44,15 +44,15 @@ Você pode configurar critérios para determinar quando sua zona é considerada 
 
 ### Tipos de Verificação Disponíveis
 
-| Tipo de Verificação | Descrição |
-|------------|-------------|
-| DNSSEC Chain Is Valid | Toda a cadeia de validação (raiz → TLD → zona) é resolvida corretamente |
-| DNSSEC DNSKEY Record Exists | A zona publica pelo menos um registro DNSKEY |
-| DNSSEC DS Record Exists At Parent | A zona pai publica um registro DS correspondente à KSK da zona |
-| DNSSEC Signature Expires In Days | Dias até que a próxima assinatura RRSIG expire |
-| DNSSEC Resolver Consensus (AD Flag) | Cada resolver consultado retorna o flag AD (Authenticated Data) |
-| DNSSEC Nameservers Are Consistent | Todos os nameservers autoritativos retornam o mesmo número de série SOA |
-| DNSSEC Is Valid | Resultado agregado de aprovação/falha em todas as verificações de validação |
+| Tipo de Verificação                 | Descrição                                                                   |
+| ----------------------------------- | --------------------------------------------------------------------------- |
+| DNSSEC Chain Is Valid               | Toda a cadeia de validação (raiz → TLD → zona) é resolvida corretamente     |
+| DNSSEC DNSKEY Record Exists         | A zona publica pelo menos um registro DNSKEY                                |
+| DNSSEC DS Record Exists At Parent   | A zona pai publica um registro DS correspondente à KSK da zona              |
+| DNSSEC Signature Expires In Days    | Dias até que a próxima assinatura RRSIG expire                              |
+| DNSSEC Resolver Consensus (AD Flag) | Cada resolver consultado retorna o flag AD (Authenticated Data)             |
+| DNSSEC Nameservers Are Consistent   | Todos os nameservers autoritativos retornam o mesmo número de série SOA     |
+| DNSSEC Is Valid                     | Resultado agregado de aprovação/falha em todas as verificações de validação |
 
 ### Tipos de Filtro
 

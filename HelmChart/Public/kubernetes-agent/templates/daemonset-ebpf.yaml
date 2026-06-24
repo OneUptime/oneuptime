@@ -20,8 +20,23 @@ spec:
     spec:
       serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
       hostPID: true
+      {{- with .Values.ebpf.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ebpf.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      # Defaults to `operator: Exists` (tolerate every taint) so the DaemonSet
+      # covers all nodes. Override ebpf.tolerations with a narrower list to keep
+      # the agent OFF tainted nodes — e.g. a DB-only db-pool — otherwise the
+      # blanket toleration lets it co-locate with (and instrument) the databases.
       tolerations:
-        - operator: Exists
+        {{- toYaml .Values.ebpf.tolerations | nindent 8 }}
+      {{- if .Values.ebpf.priorityClassName }}
+      priorityClassName: {{ .Values.ebpf.priorityClassName | quote }}
+      {{- end }}
       containers:
         - name: ebpf-instrument
           image: "{{ .Values.ebpf.image.repository }}:{{ .Values.ebpf.image.tag }}"

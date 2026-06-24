@@ -7,7 +7,6 @@
 В следующем примере показано, как использовать синтетический монитор:
 
 ```javascript
-
 // Объекты, доступные в контексте скрипта:
 
 // - axios: модуль Axios для HTTP-запросов
@@ -17,15 +16,15 @@
 
 // Эти объекты можно использовать для взаимодействия с браузером и HTTP-запросов.
 
-await page.goto('https://playwright.dev/');
+await page.goto("https://playwright.dev/");
 
 // Документация Playwright: https://playwright.dev/docs/intro
 
 // Переменные для использования в контексте отслеживаемого объекта:
 
-console.log(browserType) // Выводит тип браузера в текущем контексте — Chromium, Firefox, Webkit
+console.log(browserType); // Выводит тип браузера в текущем контексте — Chromium, Firefox, Webkit
 
-console.log(screenSizeType) // Выводит тип размера экрана — Mobile, Tablet, Desktop
+console.log(screenSizeType); // Выводит тип размера экрана — Mobile, Tablet, Desktop
 
 // Объект page принадлежит конкретному контексту браузера и используется для взаимодействия с ним.
 
@@ -33,7 +32,7 @@ console.log(screenSizeType) // Выводит тип размера экрана
 // Скриншоты, сохранённые таким образом, сохраняются даже при исключении скрипта —
 // это удобно для отладки неудачных выполнений.
 
-screenshots['screenshot-name'] = await page.screenshot(); // можно сохранять несколько скриншотов с разными именами.
+screenshots["screenshot-name"] = await page.screenshot(); // можно сохранять несколько скриншотов с разными именами.
 
 // Для возврата значения используйте оператор return с полем data.
 
@@ -43,9 +42,8 @@ screenshots['screenshot-name'] = await page.screenshot(); // можно сохр
 // Доступ к контексту браузера можно получить через page.context() при необходимости
 // (например, для создания новой страницы или работы с всплывающими окнами).
 
-
 return {
-    data: 'Hello World'
+  data: "Hello World",
 };
 ```
 
@@ -58,25 +56,23 @@ return {
 В контексте скрипта доступен предварительно объявленный объект `screenshots`. Скриншоты можно присваивать ему в любой точке скрипта — они сохраняются **даже при исключении скрипта** (включая ошибки утверждений, тайм-ауты или неожиданные ошибки), что позволяет видеть состояние страницы в момент сбоя. Снятые скриншоты отображаются на панели управления OneUptime для конкретного выполнения монитора.
 
 ```javascript
-
 // Снимайте скриншоты через побочный канал `screenshots` — они сохраняются при успехе и при сбое.
 
-await page.goto('https://app.example.com/login');
-screenshots['login-page'] = await page.screenshot();
+await page.goto("https://app.example.com/login");
+screenshots["login-page"] = await page.screenshot();
 
-await page.fill('#email', 'user@example.com');
-await page.fill('#password', 'wrong');
-await page.click('button[type=submit]');
+await page.fill("#email", "user@example.com");
+await page.fill("#password", "wrong");
+await page.click("button[type=submit]");
 
 // Если следующее утверждение выдаст исключение, скриншот 'login-page' выше всё равно будет сохранён.
-await page.waitForSelector('.dashboard', { timeout: 5000 });
+await page.waitForSelector(".dashboard", { timeout: 5000 });
 
-screenshots['dashboard'] = await page.screenshot();
+screenshots["dashboard"] = await page.screenshot();
 
 return {
-    data: 'Login succeeded'
+  data: "Login succeeded",
 };
-
 ```
 
 #### Возврат скриншотов (устаревший метод)
@@ -86,14 +82,13 @@ return {
 ```javascript
 // Устаревший метод — скриншоты сохраняются только при успешном возврате.
 const screenshots = {};
-screenshots['screenshot-name'] = await page.screenshot();
+screenshots["screenshot-name"] = await page.screenshot();
 
 return {
-    data: 'Hello World',
-    screenshots: screenshots
+  data: "Hello World",
+  screenshots: screenshots,
 };
 ```
-
 
 ### Использование секретов монитора
 
@@ -122,7 +117,7 @@ let numberSecret = {{monitorSecrets.NumberSecret}};
 let booleanSecret = {{monitorSecrets.BooleanSecret}};
 
 // для проверки, что секрет получен корректно, можно использовать console.log
-console.log(stringSecret); 
+console.log(stringSecret);
 ```
 
 ### Пользовательские метрики
@@ -140,32 +135,34 @@ oneuptime.captureMetric(name, value, attributes);
 #### Пример
 
 ```javascript
-await page.goto('https://app.example.com');
+await page.goto("https://app.example.com");
 
 const startTime = Date.now();
-await page.waitForSelector('#dashboard-loaded');
+await page.waitForSelector("#dashboard-loaded");
 const loadTime = Date.now() - startTime;
 
 // Запись времени загрузки страницы как пользовательской метрики
-oneuptime.captureMetric('dashboard.load.time', loadTime, {
-    page: 'dashboard'
+oneuptime.captureMetric("dashboard.load.time", loadTime, {
+  page: "dashboard",
 });
 
-screenshots['dashboard'] = await page.screenshot();
+screenshots["dashboard"] = await page.screenshot();
 
 return {
-    data: { loadTime }
+  data: { loadTime },
 };
 ```
 
 После записи метрики отображаются в обозревателе метрик под именами вида `custom.monitor.dashboard.load.time`. Их можно добавлять на графики панелей управления, настраивать оповещения и фильтровать по монитору, зонду, типу браузера, размеру экрана или любым пользовательским атрибутам.
 
 **Ограничения:**
+
 - Не более 100 метрик за одно выполнение скрипта.
 - Длина имени метрики — не более 200 символов.
 - Значения должны быть числовыми.
 
 ### Доступные в скрипте модули
+
 - `page`: объект Playwright Page для взаимодействия с браузером. Поддерживает нажатие кнопок, заполнение форм и создание скриншотов. Доступ к контексту браузера через `page.context()`.
 - `screenshots`: предварительно объявленный объект для сохранения скриншотов (например, `screenshots['login-page'] = await page.screenshot()`). Скриншоты сохраняются даже при последующем исключении скрипта.
 - `axios`: модуль для HTTP-запросов. Основанный на промисах HTTP-клиент для браузера и Node.js.

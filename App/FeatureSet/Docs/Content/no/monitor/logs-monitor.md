@@ -28,12 +28,12 @@ Velg én eller flere tjenester det skal overvåkes logger fra. Tjenester må sen
 
 ### Loggfiltre
 
-| Filter | Beskrivelse | Påkrevd |
-|--------|-------------|---------|
-| Severity Levels | Filtrer etter loggalvorlighet (ERROR, WARN, INFO, DEBUG, osv.) | Nei |
-| Body | Tekstsøk i loggmeldingens kropp | Nei |
-| Attributes | Nøkkel-verdi-par for filtrering på egendefinerte loggattributter | Nei |
-| Time Window | Hvor langt tilbake det skal søkes etter logger (i sekunder, standard: 60) | Nei |
+| Filter          | Beskrivelse                                                               | Påkrevd |
+| --------------- | ------------------------------------------------------------------------- | ------- |
+| Severity Levels | Filtrer etter loggalvorlighet (ERROR, WARN, INFO, DEBUG, osv.)            | Nei     |
+| Body            | Tekstsøk i loggmeldingens kropp                                           | Nei     |
+| Attributes      | Nøkkel-verdi-par for filtrering på egendefinerte loggattributter          | Nei     |
+| Time Window     | Hvor langt tilbake det skal søkes etter logger (i sekunder, standard: 60) | Nei     |
 
 ### Alvorlighetsnivåer
 
@@ -51,9 +51,9 @@ Filtrer logger etter ett eller flere alvorlighetsnivåer:
 
 ### Tilgjengelige kontrolltyper
 
-| Kontrolltype | Beskrivelse |
-|-------------|-------------|
-| Log Count | Antall logger som samsvarer med filtrene dine i tidsvinduet |
+| Kontrolltype | Beskrivelse                                                 |
+| ------------ | ----------------------------------------------------------- |
+| Log Count    | Antall logger som samsvarer med filtrene dine i tidsvinduet |
 
 ### Filtertyper
 

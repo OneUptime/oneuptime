@@ -27,15 +27,17 @@ För att integrera Microsoft Teams med din egeninstallerade OneUptime-instans be
 2. Klicka på "Add a permission" och välj "Microsoft Graph"
 
 **Lägg till delegerade behörigheter** (när du agerar för en inloggad användares räkning):
-   - **User.Read** – Krävs för att hämta den autentiserade användarens profilinformation under OAuth-flödet
-   - **Team.ReadBasic.All** – Krävs för att lista team som användaren är medlem i vid val av vilket team att ansluta
-   - **Channel.ReadBasic.All** – Krävs för att läsa kanalinformation och lista kanaler inom team
-   - **ChannelMessage.Send** – Krävs för att skicka varnings- och incidentaviseringar till Teams-kanaler
+
+- **User.Read** – Krävs för att hämta den autentiserade användarens profilinformation under OAuth-flödet
+- **Team.ReadBasic.All** – Krävs för att lista team som användaren är medlem i vid val av vilket team att ansluta
+- **Channel.ReadBasic.All** – Krävs för att läsa kanalinformation och lista kanaler inom team
+- **ChannelMessage.Send** – Krävs för att skicka varnings- och incidentaviseringar till Teams-kanaler
 
 **Lägg till programbehörigheter** (när appen agerar utan en inloggad användare):
-   - **Team.ReadBasic.All** – Krävs för att lista alla team i organisationen efter administratörsmedgivande
-   - **Channel.ReadBasic.All** – Krävs för att verifiera kanalexistens och hämta kanaldetaljer
-   - **ChannelMessage.Send** – Krävs för att skicka meddelanden till kanaler programmatiskt
+
+- **Team.ReadBasic.All** – Krävs för att lista alla team i organisationen efter administratörsmedgivande
+- **Channel.ReadBasic.All** – Krävs för att verifiera kanalexistens och hämta kanaldetaljer
+- **ChannelMessage.Send** – Krävs för att skicka meddelanden till kanaler programmatiskt
 
 3. Klicka på "Grant admin consent" för din organisation
 
@@ -52,6 +54,7 @@ För att integrera Microsoft Teams med din egeninstallerade OneUptime-instans be
 
 1. I Azure-portalen, navigera till "Azure Bot" och klicka på "Create"
 2. Fyll i botformuläret:
+
    - **Bot handle:** oneuptime-bot
    - **Prenumeration:** Din Azure-prenumeration
    - **Resursgrupp:** Skapa en ny eller använd en befintlig

@@ -22,11 +22,11 @@ Si prefieres usar tus propias claves de API o un proveedor específico, aún pue
 
 OneUptime actualmente admite los siguientes proveedores LLM:
 
-| Proveedor | Descripción | Clave de API requerida | URL base requerida |
-|----------|-------------|------------------|-------------------|
-| **OpenAI** | GPT-4, GPT-4o, GPT-3.5 Turbo y otros modelos de OpenAI | Sí | No (usa la predeterminada) |
-| **Anthropic** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku y otros modelos Claude | Sí | No (usa la predeterminada) |
-| **Ollama** | Modelos de código abierto auto-alojados como Llama 2, Mistral, CodeLlama, etc. | No | Sí |
+| Proveedor     | Descripción                                                                    | Clave de API requerida | URL base requerida         |
+| ------------- | ------------------------------------------------------------------------------ | ---------------------- | -------------------------- |
+| **OpenAI**    | GPT-4, GPT-4o, GPT-3.5 Turbo y otros modelos de OpenAI                         | Sí                     | No (usa la predeterminada) |
+| **Anthropic** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku y otros modelos Claude          | Sí                     | No (usa la predeterminada) |
+| **Ollama**    | Modelos de código abierto auto-alojados como Llama 2, Mistral, CodeLlama, etc. | No                     | Sí                         |
 
 ## Configuración de un proveedor LLM
 
@@ -61,6 +61,7 @@ Completa los siguientes campos:
    - `gpt-3.5-turbo` - Rápido y económico
 
 **Ejemplo de configuración:**
+
 ```
 Nombre: OpenAI de producción
 Tipo de LLM: OpenAI
@@ -80,6 +81,7 @@ Nombre del modelo: gpt-4o
    - `claude-3-5-sonnet-20241022` - Último modelo Sonnet
 
 **Ejemplo de configuración:**
+
 ```
 Nombre: Anthropic de producción
 Tipo de LLM: Anthropic
@@ -99,6 +101,7 @@ Ollama te permite ejecutar LLMs de código abierto localmente o en tu propia inf
 6. Ingresa el nombre del modelo que descargaste
 
 **Ejemplo de configuración:**
+
 ```
 Nombre: Ollama local
 Tipo de LLM: Ollama
@@ -107,6 +110,7 @@ Nombre del modelo: llama2
 ```
 
 **Modelos populares de Ollama:**
+
 - `llama2` - Modelo Llama 2 de Meta
 - `llama3` - Modelo Llama 3 de Meta
 - `mistral` - Modelo de Mistral AI

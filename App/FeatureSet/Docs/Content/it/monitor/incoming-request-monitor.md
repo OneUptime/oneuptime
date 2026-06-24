@@ -56,8 +56,8 @@ curl -X POST https://oneuptime.com/heartbeat/VOSTRA_CHIAVE_SEGRETA \
 
 ```javascript
 // Esempio Node.js
-const https = require('https');
-https.get('https://oneuptime.com/heartbeat/VOSTRA_CHIAVE_SEGRETA');
+const https = require("https");
+https.get("https://oneuptime.com/heartbeat/VOSTRA_CHIAVE_SEGRETA");
 ```
 
 ```python
@@ -74,12 +74,12 @@ Sostituire `https://oneuptime.com` con l'URL della propria istanza OneUptime se 
 
 ### Tipi di Controllo Disponibili
 
-| Tipo di Controllo | Descrizione |
-|------------|-------------|
-| Richiesta In Entrata | Se un heartbeat è stato ricevuto entro una finestra temporale |
-| Corpo Richiesta | Contenuto del corpo della richiesta inviata con l'heartbeat |
-| Intestazione Richiesta | Nome di un'intestazione di richiesta specifica |
-| Valore Intestazione Richiesta | Valore di un'intestazione di richiesta specifica |
+| Tipo di Controllo             | Descrizione                                                   |
+| ----------------------------- | ------------------------------------------------------------- |
+| Richiesta In Entrata          | Se un heartbeat è stato ricevuto entro una finestra temporale |
+| Corpo Richiesta               | Contenuto del corpo della richiesta inviata con l'heartbeat   |
+| Intestazione Richiesta        | Nome di un'intestazione di richiesta specifica                |
+| Valore Intestazione Richiesta | Valore di un'intestazione di richiesta specifica              |
 
 ### Tipi di Filtro
 

@@ -12,6 +12,7 @@ For at integrere GitHub med din selvhostede OneUptime-instans skal du oprette en
 ### Trin 1: Opret en GitHub App
 
 1. Gå til GitHub og naviger til dine organisations- eller personlige indstillinger:
+
    - **Til organisationer:** Gå til `https://github.com/organizations/YOUR_ORG/settings/apps`
    - **Til personlig konto:** Gå til `https://github.com/settings/apps`
 
@@ -32,26 +33,26 @@ I afsnittet "Tilladelser og hændelser" skal du konfigurere følgende tilladelse
 
 **Repository-tilladelser:**
 
-| Tilladelse | Adgangsniveau | Formål |
-|------------|--------------|---------|
-| Indhold | Læs og skriv | Læs repository-filer, push grene (kræves til AI Agent) |
-| Pull requests | Læs og skriv | Opret og administrer pull requests |
-| Issues | Læs og skriv | Læs og kommenter på issues |
-| Commit-statusser | Læs | Kontroller build/CI-status |
-| Actions | Læs | Læs GitHub Actions-workflow-kørsler og logs |
-| Metadata | Læs | Grundlæggende repository-metadata (påkrævet) |
+| Tilladelse       | Adgangsniveau | Formål                                                 |
+| ---------------- | ------------- | ------------------------------------------------------ |
+| Indhold          | Læs og skriv  | Læs repository-filer, push grene (kræves til AI Agent) |
+| Pull requests    | Læs og skriv  | Opret og administrer pull requests                     |
+| Issues           | Læs og skriv  | Læs og kommenter på issues                             |
+| Commit-statusser | Læs           | Kontroller build/CI-status                             |
+| Actions          | Læs           | Læs GitHub Actions-workflow-kørsler og logs            |
+| Metadata         | Læs           | Grundlæggende repository-metadata (påkrævet)           |
 
 **Organisations-tilladelser (hvis du bruger med organisationer):**
 
-| Tilladelse | Adgangsniveau | Formål |
-|------------|--------------|---------|
-| Medlemmer | Læs | List organisationsmedlemmer |
+| Tilladelse | Adgangsniveau | Formål                      |
+| ---------- | ------------- | --------------------------- |
+| Medlemmer  | Læs           | List organisationsmedlemmer |
 
 **Kontotilladelser:**
 
-| Tilladelse | Adgangsniveau | Formål |
-|------------|--------------|---------|
-| E-mailadresser | Læs | Læs bruger-e-mail til notifikationer |
+| Tilladelse     | Adgangsniveau | Formål                               |
+| -------------- | ------------- | ------------------------------------ |
+| E-mailadresser | Læs           | Læs bruger-e-mail til notifikationer |
 
 ### Trin 3: Abonnér på webhook-hændelser
 
@@ -64,6 +65,7 @@ Hændelser til OneUptime til at modtage realtidsopdateringer; abonnér på disse
 ### Trin 4: Angiv installationsadgang
 
 Under "Hvor kan denne GitHub App installeres?", vælg:
+
 - **Kun på denne konto** – Til privat/intern brug
 - **Enhver konto** – Hvis du vil have andre til at installere din app
 
@@ -113,7 +115,7 @@ Hvis du bruger Kubernetes med Helm, skal du tilføje disse til din `values.yaml`
 ```yaml
 gitHubApp:
   id: "YOUR_APP_ID"
-  name: "YOUR_APP_NAME"  # Det nøjagtige navn på din GitHub App
+  name: "YOUR_APP_NAME" # Det nøjagtige navn på din GitHub App
   clientId: "YOUR_CLIENT_ID"
   clientSecret: "YOUR_CLIENT_SECRET"
   privateKey: "<BASE64_ENCODED_PRIVATE_KEY_CONTENT>"
@@ -143,43 +145,49 @@ gitHubApp:
 
 ## Miljøvariabelreference
 
-| Variabel | Beskrivelse | Påkrævet |
-|----------|-------------|----------|
-| `GITHUB_APP_ID` | App-ID'et fra dine GitHub App-indstillinger | Ja |
-| `GITHUB_APP_NAME` | Det nøjagtige navn på din GitHub App (bruges til installations-URL'er) | Ja |
-| `GITHUB_APP_CLIENT_ID` | Klient-ID'et fra dine GitHub App-indstillinger | Ja |
-| `GITHUB_APP_CLIENT_SECRET` | Den klienthemmelighed, du genererede | Ja |
-| `GITHUB_APP_PRIVATE_KEY` | Indholdet af den private nøglefil (.pem-fil) | Ja |
-| `GITHUB_APP_WEBHOOK_SECRET` | Webhook-hemmelighed til verifikation af webhook-nyttelaster | Nej (men anbefalet) |
+| Variabel                    | Beskrivelse                                                            | Påkrævet            |
+| --------------------------- | ---------------------------------------------------------------------- | ------------------- |
+| `GITHUB_APP_ID`             | App-ID'et fra dine GitHub App-indstillinger                            | Ja                  |
+| `GITHUB_APP_NAME`           | Det nøjagtige navn på din GitHub App (bruges til installations-URL'er) | Ja                  |
+| `GITHUB_APP_CLIENT_ID`      | Klient-ID'et fra dine GitHub App-indstillinger                         | Ja                  |
+| `GITHUB_APP_CLIENT_SECRET`  | Den klienthemmelighed, du genererede                                   | Ja                  |
+| `GITHUB_APP_PRIVATE_KEY`    | Indholdet af den private nøglefil (.pem-fil)                           | Ja                  |
+| `GITHUB_APP_WEBHOOK_SECRET` | Webhook-hemmelighed til verifikation af webhook-nyttelaster            | Nej (men anbefalet) |
 
 ## Fejlfinding
 
 ### Almindelige problemer
 
 **Omdirigeres ikke tilbage til OneUptime efter installation af GitHub App:**
+
 - Sørg for, at **Opsætnings-URL** er konfigureret i dine GitHub App-indstillinger til: `https://your-oneuptime-domain.com/api/github/auth/callback`
 - Gå til dine GitHub App-indstillinger > afsnittet "Post-installation" og bekræft, at Opsætnings-URL er korrekt indstillet
 - Muligheden "Omdirigér ved opdatering" bør også være markeret
 - Bemærk: Opsætnings-URL'en er forskellig fra Callback URL'en – begge skal pege på det samme `/api/github/auth/callback`-endpoint
 
 **Fejlen "GitHub App er ikke konfigureret":**
+
 - Sørg for, at `GITHUB_APP_CLIENT_ID`-miljøvariablen er indstillet
 - Genstart din OneUptime-server efter indstilling af miljøvariabler
 
 **Fejlen "Ugyldig webhook-signatur":**
+
 - Bekræft, at din `GITHUB_APP_WEBHOOK_SECRET` matcher hemmeligheden konfigureret i GitHub
 - Sørg for, at webhook-URL'en er korrekt og tilgængelig fra internettet
 
 **Fejlen "Kunne ikke hente installations-adgangstoken":**
+
 - Bekræft, at din `GITHUB_APP_PRIVATE_KEY` er korrekt formateret
 - Kontroller, at den private nøgle inkluderer BEGIN/END-markererne
 - Sørg for, at App-ID'et er korrekt
 
 **Kan ikke se repositories efter installation:**
+
 - Bekræft, at GitHub App har adgang til de repositories, du vil forbinde
 - Kontroller installationstilladelserne i GitHub (Indstillinger > Applikationer > Installerede GitHub Apps)
 
 **Webhook-hændelser modtages ikke:**
+
 - Sørg for, at din webhook-URL er offentligt tilgængeligt
 - Kontroller GitHub App-webhook-leveringslogge i dine app-indstillinger
 - Bekræft, at webhook-hemmeligheden er korrekt konfigureret

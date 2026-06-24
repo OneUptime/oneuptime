@@ -8,17 +8,17 @@ Use it to see what your users actually experience: page views, errors, latency, 
 
 ## Prerequisites
 
-- A **OneUptime Telemetry Ingestion Token** — create one from *Project Settings → Telemetry Ingestion Keys*.
+- A **OneUptime Telemetry Ingestion Token** — create one from _Project Settings → Telemetry Ingestion Keys_.
 - The OpenTelemetry browser or mobile SDK.
 
 ## How OneUptime identifies a RUM application
 
-| Attribute | Required | Purpose |
-|---|---|---|
-| `service.name` | **yes** | Application identity (e.g. `storefront-web`) |
-| `browser.*` | for web | Marks the telemetry as browser RUM |
-| `device.*` | for mobile | Marks the telemetry as mobile RUM |
-| `telemetry.sdk.language` | no | e.g. `webjs`, `swift`, shown on the overview |
+| Attribute                | Required   | Purpose                                      |
+| ------------------------ | ---------- | -------------------------------------------- |
+| `service.name`           | **yes**    | Application identity (e.g. `storefront-web`) |
+| `browser.*`              | for web    | Marks the telemetry as browser RUM           |
+| `device.*`               | for mobile | Marks the telemetry as mobile RUM            |
+| `telemetry.sdk.language` | no         | e.g. `webjs`, `swift`, shown on the overview |
 
 ## Browser (OpenTelemetry Web)
 

@@ -22,6 +22,7 @@ import React, {
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -49,6 +50,10 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
       ownerTeamModelType: PodmanHostOwnerTeam,
       resourceIdField: "podmanHostId",
     });
+
+  const { archiveBulkActions } = useBulkArchiveActions<PodmanHost>({
+    modelType: PodmanHost,
+  });
 
   const podmanExtraFacets: Array<ResourceFacet> = [
     {
@@ -134,7 +139,7 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         topContent={filterBar}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
-        query={mergeFiltersIntoQuery(undefined)}
+        query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<PodmanHost>) => {
           onResourcesFetched(data);
         }}
@@ -143,7 +148,11 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isCreateable={true}
         showRefreshButton={true}
         bulkActions={{
-          buttons: [...labelBulkActions, ...ownerBulkActions],
+          buttons: [
+            ...labelBulkActions,
+            ...ownerBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         name="Podman Hosts"
         isViewable={true}

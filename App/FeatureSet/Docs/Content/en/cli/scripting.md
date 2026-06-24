@@ -15,12 +15,12 @@ These take precedence over saved contexts but are overridden by CLI flags.
 
 ## Exit Codes
 
-| Code | Meaning |
-|------|---------|
-| `0` | Success |
-| `1` | General error |
-| `2` | Authentication error (missing or invalid credentials) |
-| `3` | Not found (404) |
+| Code | Meaning                                               |
+| ---- | ----------------------------------------------------- |
+| `0`  | Success                                               |
+| `1`  | General error                                         |
+| `2`  | Authentication error (missing or invalid credentials) |
+| `3`  | Not found (404)                                       |
 
 Use exit codes in scripts to handle errors:
 
@@ -80,7 +80,7 @@ done
 name: Check Active Incidents
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: "*/5 * * * *"
 
 jobs:
   health-check:

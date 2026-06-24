@@ -27,6 +27,7 @@ import PodmanHostDelete from "../Pages/Podman/View/Delete";
 import PodmanHostDocumentation from "../Pages/Podman/View/Documentation";
 import PodmanSettingsOwnerRules from "../Pages/Podman/Settings/OwnerRules";
 import PodmanSettingsLabelRules from "../Pages/Podman/Settings/LabelRules";
+import PodmanArchived from "../Pages/Podman/Archived";
 
 const PodmanRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -67,6 +68,15 @@ const PodmanRoutes: FunctionComponent<ComponentProps> = (
             <PodmanSettingsLabelRules
               {...props}
               pageRoute={RouteMap[PageMap.PODMAN_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={PodmanRoutePath[PageMap.PODMAN_ARCHIVED] || ""}
+          element={
+            <PodmanArchived
+              {...props}
+              pageRoute={RouteMap[PageMap.PODMAN_ARCHIVED] as Route}
             />
           }
         />

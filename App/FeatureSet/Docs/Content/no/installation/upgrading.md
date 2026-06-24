@@ -173,7 +173,6 @@ DROP TABLE IF EXISTS MetricItemAggMV1mByHost_backup SETTINGS max_table_size_to_d
 
 > Tips: som ved enhver større oppgradering, test først i et staging-miljø og bekreft at telemetri strømmer inn i de nye tabellene før du stoler på kopien i produksjon.
 
-
 ## Oppgradering fra OneUptime 9 → 10
 
 Ingen endringer som krever manuelle tiltak. Følg bare den vanlige oppgraderingsprosessen.
@@ -187,7 +186,6 @@ Helm-diagrammet klargjør ikke lenger en Kubernetes Ingress-ressurs. OneUptime l
 - Verifiser at eventuelle DNS-poster for statussider eller primære verter fortsatt peker til tjenesten eller lastbalansereren som er foran OneUptime ingress gateway.
 - Etter oppgraderingen, bekreft at TLS-sertifikater fortsetter å fornyes via den innebygde gateway og at statussidedomener løses opp korrekt.
 
-
 ## Oppgradering fra OneUptime 7 → 8
 
 Hvis du kjører på Kubernetes, er det viktige endringer som bryter bakoverkompatibilitet:
@@ -195,6 +193,5 @@ Hvis du kjører på Kubernetes, er det viktige endringer som bryter bakoverkompa
 - Vi bruker ikke lenger Bitnami-diagrammer for Postgres, Redis og ClickHouse på grunn av [Bitnami-lisensendringer](https://github.com/bitnami/charts/issues/35164)
 - Disse endringene er ikke bakoverkompatible. Du må følge den nye strukturen i Helm-diagrammets `values.yaml`.
 - Sikkerhetskopier dataene dine (Postgres, ClickHouse og eventuelle vedvarende volumer) før oppgradering.
-
 
 > Tips: Test oppgraderingen i et stagingmiljø først. Bekreft at arbeidsbelastningene er sunne og at dataene er intakte før du oppgraderer produksjon.

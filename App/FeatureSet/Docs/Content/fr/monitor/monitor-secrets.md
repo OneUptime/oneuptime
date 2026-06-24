@@ -21,13 +21,11 @@ Vous pouvez utiliser des secrets dans les types de surveillance suivants :
 - Moniteur synthétique, Moniteur de code personnalisé (dans le code)
 - Moniteur SNMP (dans la chaîne de communauté, la clé d'authentification SNMPv3 et la clé de confidentialité)
 
-
 ![Utiliser un secret](/docs/static/images/UsingMonitorSecret.png)
 
 Pour utiliser un secret, ajoutez `{{monitorSecrets.NOM_DU_SECRET}}` dans le champ où vous souhaitez utiliser le secret. Par exemple, dans ce cas nous avons ajouté `{{monitorSecrets.ApiKey}}` dans le champ En-tête de requête.
 
 Les secrets sont injectés sur la sonde avant l'exécution des scripts de moniteur synthétique ou de code personnalisé, donc les références telles que `{{monitorSecrets.ApiKey}}` se résolvent vers la valeur déchiffrée dans le script en cours d'exécution.
-
 
 ### Permissions des secrets de moniteur
 

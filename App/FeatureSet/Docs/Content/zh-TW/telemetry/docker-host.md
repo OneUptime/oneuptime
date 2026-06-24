@@ -10,7 +10,7 @@ OneUptime Docker Agent 是一個預先建置的容器映像檔，內含經過調
 
 - Docker Engine 20.10+
 - 可存取主機上的 `/var/run/docker.sock`
-- 一組 **OneUptime Telemetry Ingestion Token** — 從 *Project Settings → Telemetry Ingestion Keys* 建立一組，並複製其值
+- 一組 **OneUptime Telemetry Ingestion Token** — 從 _Project Settings → Telemetry Ingestion Keys_ 建立一組，並複製其值
 
 ## 快速開始（單一指令）
 
@@ -64,11 +64,11 @@ docker compose up -d
 
 ## 環境變數
 
-| 變數 | 必填 | 說明 |
-|----------|----------|-------------|
-| `ONEUPTIME_URL` | 是 | 您的 OneUptime 執行個體 URL（例如 `https://oneuptime.com` 或您的自架主機） |
-| `ONEUPTIME_SERVICE_TOKEN` | 是 | 來自 *Project Settings → Telemetry Ingestion Keys* 的遙測擷取權杖 |
-| `DOCKER_HOST_NAME` | 否 | 此主機的易記名稱。預設為 `docker-host`。請為每台主機設定一個穩定的名稱（例如 `prod-docker-01`） |
+| 變數                      | 必填 | 說明                                                                                            |
+| ------------------------- | ---- | ----------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`           | 是   | 您的 OneUptime 執行個體 URL（例如 `https://oneuptime.com` 或您的自架主機）                      |
+| `ONEUPTIME_SERVICE_TOKEN` | 是   | 來自 _Project Settings → Telemetry Ingestion Keys_ 的遙測擷取權杖                               |
+| `DOCKER_HOST_NAME`        | 否   | 此主機的易記名稱。預設為 `docker-host`。請為每台主機設定一個穩定的名稱（例如 `prod-docker-01`） |
 
 ## 驗證安裝
 
@@ -117,14 +117,14 @@ docker compose down
 
 ## 收集哪些資料
 
-| 類別 | 資料 |
-|----------|------|
-| **CPU 指標** | 使用量總計、使用率百分比、節流時間（每個容器） |
-| **記憶體指標** | 使用量、限制、百分比、RSS、快取（每個容器） |
-| **網路指標** | 接收 / 傳送的位元組與封包（每個容器） |
-| **區塊 I/O 指標** | 讀取 / 寫入的位元組與操作數（每個容器） |
-| **容器資訊** | 執行時間、重新啟動次數、處理程序數量 |
-| **容器日誌** | 來自所有容器的 stdout / stderr 日誌 |
+| 類別              | 資料                                           |
+| ----------------- | ---------------------------------------------- |
+| **CPU 指標**      | 使用量總計、使用率百分比、節流時間（每個容器） |
+| **記憶體指標**    | 使用量、限制、百分比、RSS、快取（每個容器）    |
+| **網路指標**      | 接收 / 傳送的位元組與封包（每個容器）          |
+| **區塊 I/O 指標** | 讀取 / 寫入的位元組與操作數（每個容器）        |
+| **容器資訊**      | 執行時間、重新啟動次數、處理程序數量           |
+| **容器日誌**      | 來自所有容器的 stdout / stderr 日誌            |
 
 ## 自架 OneUptime
 

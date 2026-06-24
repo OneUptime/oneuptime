@@ -123,15 +123,15 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 ##### С настройкой прокси
@@ -153,29 +153,29 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
-          # Настройка прокси (необязательно)
-          - name: HTTP_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: HTTPS_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: NO_PROXY
-            value: "localhost,.internal.example.com"
-          # Для прокси с аутентификацией:
-          # - name: HTTP_PROXY_URL
-          #   value: "http://username:password@proxy.example.com:8080"
-          # - name: HTTPS_PROXY_URL
-          #   value: "http://username:password@proxy.example.com:8080"
-          # - name: NO_PROXY
-          #   value: "localhost,.internal.example.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
+            # Настройка прокси (необязательно)
+            - name: HTTP_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: HTTPS_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: NO_PROXY
+              value: "localhost,.internal.example.com"
+            # Для прокси с аутентификацией:
+            # - name: HTTP_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: HTTPS_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: NO_PROXY
+            #   value: "localhost,.internal.example.com"
 ```
 
 Затем выполните команду:
@@ -191,11 +191,13 @@ kubectl apply -f oneuptime-probe.yaml
 Зонд поддерживает следующие переменные среды:
 
 #### Обязательные переменные
+
 - `PROBE_KEY` — ключ зонда из вашей панели управления OneUptime
 - `PROBE_ID` — идентификатор зонда из вашей панели управления OneUptime
 - `ONEUPTIME_URL` — URL вашего экземпляра OneUptime (по умолчанию: https://oneuptime.com)
 
 #### Необязательные переменные
+
 - `HTTP_PROXY_URL` — URL HTTP-прокси сервера для HTTP-запросов
 - `HTTPS_PROXY_URL` — URL HTTP-прокси сервера для HTTPS-запросов
 - `NO_PROXY` — хосты или домены, разделённые запятыми, которые должны обходить прокси
@@ -212,15 +214,18 @@ kubectl apply -f oneuptime-probe.yaml
 Зонд поддерживает как HTTP, так и HTTPS прокси-серверы. При настройке весь трафик мониторинга будет проходить через указанные прокси. Также можно указать список `NO_PROXY` через запятую для обхода прокси для внутренних хостов или сетей.
 
 **Формат URL прокси:**
+
 ```
 http://[username:password@]proxy.server.com:port
 ```
 
 **Примеры:**
+
 - Базовый прокси: `http://proxy.example.com:8080`
 - С аутентификацией: `http://username:password@proxy.example.com:8080`
 
 **Поддерживаемые функции:**
+
 - HTTP и HTTPS прокси
 - Аутентификация прокси (имя пользователя/пароль)
 - Автоматическое переключение между HTTP и HTTPS прокси

@@ -1,9 +1,10 @@
 # Local Development
 
-For local development you need to use docker-compose.dev.yml file. 
+For local development you need to use docker-compose.dev.yml file.
 
-You need to make sure you have: 
-- Docker and Docker compose installed. 
+You need to make sure you have:
+
+- Docker and Docker compose installed.
 - Node.js and NPM installed.
 
 ```

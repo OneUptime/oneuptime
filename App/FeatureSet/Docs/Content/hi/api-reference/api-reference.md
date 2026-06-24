@@ -6,7 +6,6 @@ OneUptime एक व्यापक REST API प्रदान करता ह
 
 हमारा API REST सिद्धांतों के इर्द-गिर्द व्यवस्थित है और standard HTTP response codes, authentication और verbs का उपयोग करता है। सभी API endpoints JSON responses लौटाते हैं।
 
-
 ### Authentication
 
 सभी API requests को API keys का उपयोग करके authentication की आवश्यकता होती है। आप Settings > API Keys के अंतर्गत अपने OneUptime dashboard से API keys generate कर सकते हैं।

@@ -11,6 +11,10 @@ import TelemetryRetentionConfigForm from "Common/UI/Components/Telemetry/Telemet
 import TelemetryRetentionConfigSummary from "Common/UI/Components/Telemetry/TelemetryRetentionConfigSummary";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const KubernetesClusterSettings: FunctionComponent<
@@ -155,6 +159,14 @@ const KubernetesClusterSettings: FunctionComponent<
           ],
           modelId: modelId,
         }}
+      />
+      <ArchiveResourceCard<KubernetesCluster>
+        modelType={KubernetesCluster}
+        modelId={modelId}
+        singularName="cluster"
+        listRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.KUBERNETES_CLUSTERS] as Route,
+        )}
       />
     </Fragment>
   );

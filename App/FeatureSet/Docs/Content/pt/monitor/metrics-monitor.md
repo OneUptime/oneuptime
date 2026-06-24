@@ -27,12 +27,12 @@ Os monitores de métricas consultam e avaliam métricas numéricas dos seus serv
 
 Defina uma ou mais consultas de métricas. Cada consulta inclui:
 
-| Campo | Descrição | Obrigatório |
-|-------|-------------|----------|
-| Metric Name | O nome da métrica a consultar | Sim |
-| Aggregation Type | Como agregar valores brutos de métricas (sum, avg, min, max, count) | Sim |
-| Attributes | Filtros chave-valor para restringir os dados de métricas | Não |
-| Aggregate By | Dimensões para agrupar a métrica | Não |
+| Campo            | Descrição                                                           | Obrigatório |
+| ---------------- | ------------------------------------------------------------------- | ----------- |
+| Metric Name      | O nome da métrica a consultar                                       | Sim         |
+| Aggregation Type | Como agregar valores brutos de métricas (sum, avg, min, max, count) | Sim         |
+| Attributes       | Filtros chave-valor para restringir os dados de métricas            | Não         |
+| Aggregate By     | Dimensões para agrupar a métrica                                    | Não         |
 
 Cada consulta recebe um alias (ex.: `a`, `b`, `c`) para uso em fórmulas.
 
@@ -59,22 +59,22 @@ Selecione a janela de tempo para avaliação de métricas:
 
 Escolha como agregar os valores de métricas para avaliação:
 
-| Estratégia | Descrição |
-|----------|-------------|
-| Average | Valor médio ao longo da janela de tempo |
-| Sum | Soma de todos os valores |
-| Maximum Value | Maior valor na janela de tempo |
-| Minimum Value | Menor valor na janela de tempo |
-| All Values | Todos os valores devem corresponder aos critérios |
-| Any Value | Pelo menos um valor deve corresponder |
+| Estratégia    | Descrição                                         |
+| ------------- | ------------------------------------------------- |
+| Average       | Valor médio ao longo da janela de tempo           |
+| Sum           | Soma de todos os valores                          |
+| Maximum Value | Maior valor na janela de tempo                    |
+| Minimum Value | Menor valor na janela de tempo                    |
+| All Values    | Todos os valores devem corresponder aos critérios |
+| Any Value     | Pelo menos um valor deve corresponder             |
 
 ## Critérios de Monitoramento
 
 ### Tipos de Verificação Disponíveis
 
-| Tipo de Verificação | Descrição |
-|------------|-------------|
-| Metric Value | O valor agregado da consulta de métrica ou fórmula configurada |
+| Tipo de Verificação | Descrição                                                      |
+| ------------------- | -------------------------------------------------------------- |
+| Metric Value        | O valor agregado da consulta de métrica ou fórmula configurada |
 
 ### Tipos de Filtro
 

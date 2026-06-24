@@ -123,15 +123,15 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 ##### Proxy Configuration के साथ
@@ -153,22 +153,22 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
-          # Proxy configuration (वैकल्पिक)
-          - name: HTTP_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: HTTPS_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: NO_PROXY
-            value: "localhost,.internal.example.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
+            # Proxy configuration (वैकल्पिक)
+            - name: HTTP_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: HTTPS_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: NO_PROXY
+              value: "localhost,.internal.example.com"
 ```
 
 फिर निम्नलिखित command चलाएं:
@@ -184,11 +184,13 @@ kubectl apply -f oneuptime-probe.yaml
 Probe निम्नलिखित environment variables का समर्थन करता है:
 
 #### आवश्यक Variables
+
 - `PROBE_KEY` - आपके OneUptime dashboard से probe key
 - `PROBE_ID` - आपके OneUptime dashboard से probe ID
 - `ONEUPTIME_URL` - आपके OneUptime instance का URL (default: https://oneuptime.com)
 
 #### वैकल्पिक Variables
+
 - `HTTP_PROXY_URL` - HTTP requests के लिए HTTP proxy server URL
 - `HTTPS_PROXY_URL` - HTTPS requests के लिए HTTP proxy server URL
 - `NO_PROXY` - वे hosts या domains जिन्हें proxy bypass करना चाहिए (comma-separated)
@@ -205,15 +207,18 @@ Probe निम्नलिखित environment variables का समर्�
 Probe HTTP और HTTPS proxy servers दोनों का समर्थन करता है। Configure होने पर, probe specified proxy servers के माध्यम से सभी monitoring traffic route करेगा। आप internal hosts या networks के लिए proxy bypass करने के लिए comma-separated `NO_PROXY` list भी provide कर सकते हैं।
 
 **Proxy URL Format:**
+
 ```
 http://[username:password@]proxy.server.com:port
 ```
 
 **उदाहरण:**
+
 - Basic proxy: `http://proxy.example.com:8080`
 - Authentication के साथ: `http://username:password@proxy.example.com:8080`
 
 **समर्थित Features:**
+
 - HTTP और HTTPS proxy support
 - Proxy authentication (username/password)
 - HTTP और HTTPS proxies के बीच automatic fallback

@@ -3,6 +3,7 @@
 進行本機開發時，你需要使用 docker-compose.dev.yml 檔案。
 
 你需要確認你已經具備：
+
 - 已安裝 Docker 與 Docker compose。
 - 已安裝 Node.js 與 NPM。
 

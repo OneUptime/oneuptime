@@ -10,12 +10,12 @@ Varje arbetsflöde börjar med en **utlösare** i början. Allt annat är en **k
 
 ## Vad som finns på ett block
 
-| Fält | Funktion |
-| --- | --- |
-| **Title** | Namnet som visas på arbetsytan. Byt namn för att göra komplexa arbetsflöden lättare att läsa. |
-| **Settings** | Vad blocket behöver för att göra sitt jobb — en URL, en Slack-kanal, en meddelandetext osv. Obligatoriska fält är märkta med en asterisk. |
-| **Input** | Punkten till vänster där linjer kommer in från tidigare block. |
-| **Outputs** | Punkterna till höger där linjer går ut till nästa block. Många block har separata utgångar för **success** och **error** så att du kan hantera båda fallen. |
+| Fält         | Funktion                                                                                                                                                    |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Title**    | Namnet som visas på arbetsytan. Byt namn för att göra komplexa arbetsflöden lättare att läsa.                                                               |
+| **Settings** | Vad blocket behöver för att göra sitt jobb — en URL, en Slack-kanal, en meddelandetext osv. Obligatoriska fält är märkta med en asterisk.                   |
+| **Input**    | Punkten till vänster där linjer kommer in från tidigare block.                                                                                              |
+| **Outputs**  | Punkterna till höger där linjer går ut till nästa block. Många block har separata utgångar för **success** och **error** så att du kan hantera båda fallen. |
 
 ## Koppla ihop block
 

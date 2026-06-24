@@ -27,12 +27,12 @@ Metrikk-monitorer spør og evaluerer numeriske metrikker fra telemetritjenestene
 
 Definer én eller flere metrikk-spørringer. Hver spørring inkluderer:
 
-| Felt | Beskrivelse | Påkrevd |
-|------|-------------|---------|
-| Metric Name | Navnet på metrikken som skal spørres | Ja |
-| Aggregation Type | Hvordan rå metrikkverdier skal aggregeres (sum, avg, min, max, count) | Ja |
-| Attributes | Nøkkel-verdi-filtre for å begrense metrikk-dataene | Nei |
-| Aggregate By | Dimensjoner det skal grupperes etter | Nei |
+| Felt             | Beskrivelse                                                           | Påkrevd |
+| ---------------- | --------------------------------------------------------------------- | ------- |
+| Metric Name      | Navnet på metrikken som skal spørres                                  | Ja      |
+| Aggregation Type | Hvordan rå metrikkverdier skal aggregeres (sum, avg, min, max, count) | Ja      |
+| Attributes       | Nøkkel-verdi-filtre for å begrense metrikk-dataene                    | Nei     |
+| Aggregate By     | Dimensjoner det skal grupperes etter                                  | Nei     |
 
 Hver spørring tildeles et alias (f.eks. `a`, `b`, `c`) for bruk i formler.
 
@@ -59,21 +59,21 @@ Velg tidsvinduet for metrikkevealuering:
 
 Velg hvordan metrikkverdiene skal aggregeres for evaluering:
 
-| Strategi | Beskrivelse |
-|----------|-------------|
-| Average | Gjennomsnittlig verdi over tidsvinduet |
-| Sum | Sum av alle verdier |
-| Maximum Value | Høyeste verdi i tidsvinduet |
-| Minimum Value | Laveste verdi i tidsvinduet |
-| All Values | Alle verdier må samsvare med kriteriene |
-| Any Value | Minst én verdi må samsvare |
+| Strategi      | Beskrivelse                             |
+| ------------- | --------------------------------------- |
+| Average       | Gjennomsnittlig verdi over tidsvinduet  |
+| Sum           | Sum av alle verdier                     |
+| Maximum Value | Høyeste verdi i tidsvinduet             |
+| Minimum Value | Laveste verdi i tidsvinduet             |
+| All Values    | Alle verdier må samsvare med kriteriene |
+| Any Value     | Minst én verdi må samsvare              |
 
 ## Overvåkingskriterier
 
 ### Tilgjengelige kontrolltyper
 
-| Kontrolltype | Beskrivelse |
-|-------------|-------------|
+| Kontrolltype | Beskrivelse                                                                  |
+| ------------ | ---------------------------------------------------------------------------- |
 | Metric Value | Den aggregerte verdien av den konfigurerte metrikk-spørringen eller formelen |
 
 ### Filtertyper

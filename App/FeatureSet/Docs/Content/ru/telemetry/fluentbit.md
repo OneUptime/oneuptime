@@ -21,9 +21,9 @@ FluentBit поддерживает сотни источников данных,
 - Java
 - PHP
 - Go
-- Rust 
+- Rust
 
-и многие другие. 
+и многие другие.
 
 Полный список поддерживаемых источников доступен [здесь](https://docs.fluentbit.io/manual)
 
@@ -44,29 +44,24 @@ FluentBit поддерживает сотни источников данных,
 
 ![Просмотр сервиса](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
 ## Конфигурация
 
 Используйте следующую конфигурацию для отправки телеметрических данных в коллектор OneUptime OpenTelemetry HTTP. Добавьте её в файл конфигурации FluentBit (обычно находится по пути `/etc/fluent-bit/fluent-bit.yaml`). Вот пример раздела outputs конфигурационного файла:
 
-
 ```yaml
-
-
 outputs:
   - name: stdout
-    match: '*'
+    match: "*"
   - name: opentelemetry
-    match: '*'
-    host: 'oneuptime.com'
+    match: "*"
+    host: "oneuptime.com"
     port: 443
-    metrics_uri: '/otlp/v1/metrics'
-    logs_uri: '/otlp/v1/logs'
-    traces_uri: '/otlp/v1/traces'
+    metrics_uri: "/otlp/v1/metrics"
+    logs_uri: "/otlp/v1/logs"
+    traces_uri: "/otlp/v1/traces"
     tls: On
     header:
       - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
-
 ```
 
 Убедитесь, что в разделе inputs присутствует `opentelemetry_envelope`. Пример раздела inputs:
@@ -74,18 +69,18 @@ outputs:
 ```yaml
 pipeline:
   inputs:
-      # Ваши inputs
+    # Ваши inputs
 
-      processors:
-        logs:
-          - name: opentelemetry_envelope
+    processors:
+      logs:
+        - name: opentelemetry_envelope
 
-          - name: content_modifier
-            context: otel_resource_attributes
-            action: upsert
-            key: service.name
-            # Замените YOUR_SERVICE_NAME на название вашего сервиса
-            value: YOUR_SERVICE_NAME
+        - name: content_modifier
+          context: otel_resource_attributes
+          action: upsert
+          key: service.name
+          # Замените YOUR_SERVICE_NAME на название вашего сервиса
+          value: YOUR_SERVICE_NAME
 ```
 
 Пример полного конфигурационного файла:
@@ -113,19 +108,18 @@ pipeline:
 
   outputs:
     - name: stdout
-      match: '*'
+      match: "*"
     - name: opentelemetry
-      match: '*'
-      host: 'oneuptime.com'
+      match: "*"
+      host: "oneuptime.com"
       port: 443
-      metrics_uri: '/otlp/v1/metrics'
-      logs_uri: '/otlp/v1/logs'
-      traces_uri: '/otlp/v1/traces'
+      metrics_uri: "/otlp/v1/metrics"
+      logs_uri: "/otlp/v1/logs"
+      traces_uri: "/otlp/v1/traces"
       tls: On
       header:
         - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
 ```
-
 
 **При самостоятельном хостинге OneUptime**: замените значение `host` на хост вашего экземпляра. Если хостинг на HTTP, а не HTTPS, замените значение `port` соответственно (скорее всего, порт 80).
 
@@ -134,14 +128,14 @@ pipeline:
 ```yaml
 outputs:
   - name: stdout
-    match: '*'
+    match: "*"
   - name: opentelemetry
-    match: '*'
-    host: 'your-oneuptime-instance.com'
+    match: "*"
+    host: "your-oneuptime-instance.com"
     port: 80
-    metrics_uri: '/otlp/v1/metrics'
-    logs_uri: '/otlp/v1/logs'
-    traces_uri: '/otlp/v1/traces'
+    metrics_uri: "/otlp/v1/metrics"
+    logs_uri: "/otlp/v1/logs"
+    traces_uri: "/otlp/v1/traces"
     header:
       - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
 ```

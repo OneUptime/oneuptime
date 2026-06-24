@@ -28,12 +28,12 @@ Sélectionnez un ou plusieurs services depuis lesquels surveiller les journaux. 
 
 ### Filtres de journaux
 
-| Filtre | Description | Obligatoire |
-|--------|-------------|-------------|
-| Niveaux de gravité | Filtrer par gravité du journal (ERROR, WARN, INFO, DEBUG, etc.) | Non |
-| Corps | Recherche textuelle dans le corps du message de journal | Non |
-| Attributs | Paires clé-valeur pour filtrer sur des attributs de journaux personnalisés | Non |
-| Fenêtre temporelle | Jusqu'où chercher les journaux (en secondes, par défaut : 60) | Non |
+| Filtre             | Description                                                                | Obligatoire |
+| ------------------ | -------------------------------------------------------------------------- | ----------- |
+| Niveaux de gravité | Filtrer par gravité du journal (ERROR, WARN, INFO, DEBUG, etc.)            | Non         |
+| Corps              | Recherche textuelle dans le corps du message de journal                    | Non         |
+| Attributs          | Paires clé-valeur pour filtrer sur des attributs de journaux personnalisés | Non         |
+| Fenêtre temporelle | Jusqu'où chercher les journaux (en secondes, par défaut : 60)              | Non         |
 
 ### Niveaux de gravité
 
@@ -51,9 +51,9 @@ Filtrez les journaux par un ou plusieurs niveaux de gravité :
 
 ### Types de vérifications disponibles
 
-| Type de vérification | Description |
-|----------------------|-------------|
-| Nombre de journaux | Le nombre de journaux correspondant à vos filtres dans la fenêtre temporelle |
+| Type de vérification | Description                                                                  |
+| -------------------- | ---------------------------------------------------------------------------- |
+| Nombre de journaux   | Le nombre de journaux correspondant à vos filtres dans la fenêtre temporelle |
 
 ### Types de filtres
 

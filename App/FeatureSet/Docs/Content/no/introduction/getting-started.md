@@ -4,36 +4,29 @@ OneUptime er en omfattende løsning for overvåking og administrasjon av dine ne
 
 OneUptime erstatter flere verktøy med én integrert plattform:
 
-
 ##### Tilgjengelighetsovervåking
 
 Overvåk tilgjengeligheten og responstiden til de nettbaserte tjenestene dine fra flere steder rundt om i verden. Få varsel via e-post, SMS, Slack eller andre kanaler når noe går galt. Erstatter verktøy som Pingdom.
-
 
 ##### Statussider
 
 Kommuniser med kundene og interessentene dine under nedetid eller vedlikehold. Lag en tilpasset statusside med din egen merkevare som viser nåværende status og historikk for tjenestene dine. Erstatter verktøy som StatusPage.io.
 
-
 ##### Hendelseshåndtering
 
 Administrer hendelser fra start til slutt med en samarbeidsbasert arbeidsflyt. Lag hendelsesrapporter, tildel oppgaver, oppdater interessenter og dokumenter løsninger. Erstatter verktøy som Incident.io.
-
 
 ##### Vakt og varsler
 
 Planlegg vaktturer for teamet ditt, og definer eskaleringspolicyer. Sørg for at riktig person blir varslet til riktig tid når en hendelse oppstår. Erstatter verktøy som PagerDuty.
 
-
 ##### Loggadministrasjon
 
 Samle inn, lagre og analyser logger fra de nettbaserte tjenestene dine. Søk, filtrer og visualiser loggdata for å få innsikt og feilsøke problemer. Erstatter verktøy som Loggly.
 
-
 ##### Arbeidsflyter
 
 Integrer OneUptime med dine eksisterende verktøy, og automatiser arbeidsflytene dine. Integrer med verktøy som Slack, Jira, GitHub og 5000+ flere.
-
 
 ##### Application Performance Monitoring
 

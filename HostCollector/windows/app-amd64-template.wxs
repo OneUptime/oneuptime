@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+    <Product
+        Name='OneUptime Host Collector (amd64)'
+        Id='*'
+        UpgradeCode='B2E2C7A0-7A2C-4C6E-9E2A-2D1B6F3A9C01'
+        Language='1033'
+        Codepage='1252'
+        Version='version_placeholder'
+        Manufacturer='HackerBay, Inc.'>
+
+        <Package
+            Id='*'
+            Keywords='Installer'
+            Description="OneUptime Host Collector installer"
+            Comments=''
+            Manufacturer='HackerBay, Inc.'
+            InstallerVersion='200'
+            Languages='1033'
+            Compressed='yes'
+            SummaryCodepage='1252'
+        />
+
+        <Media
+            Id='1'
+            Cabinet='Sample.cab'
+            EmbedCab='yes'
+            DiskPrompt="CD-ROM #1"
+        />
+
+        <Property
+            Id='DiskPrompt'
+            Value="OneUptime Host Collector Installation [1]"
+        />
+
+        <Directory Id='TARGETDIR' Name='SourceDir'>
+            <Directory Id='ProgramFiles64Folder' Name='PFiles'>
+                <Directory Id='OneUptimeHostCollector' Name='OneUptimeHostCollector'>
+                    <Component
+                        Id='MainExecutable'
+                        Guid='B2E2C7A0-83F1-4F22-985B-1A2B3C4D5E61'
+                    >
+                        <File
+                            Id='oneuptime_host_collector'
+                            Name='oneuptime-host-collector.exe'
+                            DiskId='1'
+                            Source='binary_placeholder'
+                            KeyPath='yes'
+                        />
+                    </Component>
+                </Directory>
+            </Directory>
+        </Directory>
+        <Feature Id='Complete' Level='1'>
+            <ComponentRef Id='MainExecutable' />
+        </Feature>
+    </Product>
+</Wix>

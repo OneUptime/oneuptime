@@ -10,12 +10,12 @@ Todo workflow começa com um **gatilho** no início. Tudo o mais é um **compone
 
 ## O que tem em um bloco
 
-| Campo | O que faz |
-| --- | --- |
-| **Título** | O nome mostrado no canvas. Renomeie para tornar workflows complexos mais fáceis de ler. |
-| **Configurações** | O que o bloco precisa para fazer seu trabalho — uma URL, um canal do Slack, um corpo de mensagem etc. Campos obrigatórios são marcados com um asterisco. |
-| **Entrada** | O ponto à esquerda onde as linhas dos blocos anteriores chegam. |
-| **Saídas** | Os pontos à direita de onde as linhas saem para os próximos blocos. Muitos blocos têm saídas separadas de **sucesso** e **erro** para que você possa tratar ambos os casos. |
+| Campo             | O que faz                                                                                                                                                                   |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Título**        | O nome mostrado no canvas. Renomeie para tornar workflows complexos mais fáceis de ler.                                                                                     |
+| **Configurações** | O que o bloco precisa para fazer seu trabalho — uma URL, um canal do Slack, um corpo de mensagem etc. Campos obrigatórios são marcados com um asterisco.                    |
+| **Entrada**       | O ponto à esquerda onde as linhas dos blocos anteriores chegam.                                                                                                             |
+| **Saídas**        | Os pontos à direita de onde as linhas saem para os próximos blocos. Muitos blocos têm saídas separadas de **sucesso** e **erro** para que você possa tratar ambos os casos. |
 
 ## Conectando blocos
 

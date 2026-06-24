@@ -9,6 +9,10 @@ export default class ChangeLogSeverityColumnTypeFromTextToNumber extends DataMig
     super("ChangeLogSeverityColumnTypeFromTextToNumber");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     const logSeverityNumberColumn: AnalyticsTableColumn | undefined =
       new Log().tableColumns.find((column: AnalyticsTableColumn) => {

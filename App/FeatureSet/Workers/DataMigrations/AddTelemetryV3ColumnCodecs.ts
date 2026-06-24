@@ -63,6 +63,10 @@ export default class AddTelemetryV3ColumnCodecs extends DataMigrationBase {
     super("AddTelemetryV3ColumnCodecs");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     const changes: Array<CodecChange> = [
       // LogItemV3

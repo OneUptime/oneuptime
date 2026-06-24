@@ -16,12 +16,12 @@ External Status Page monitors उन services की health जांचते �
 
 OneUptime निम्नलिखित methods के माध्यम से status pages monitoring का समर्थन करता है:
 
-| Provider Type | विवरण |
-|---|---|
-| **Auto** (default) | status page format automatically detect करता है |
+| Provider Type            | विवरण                                                       |
+| ------------------------ | ----------------------------------------------------------- |
+| **Auto** (default)       | status page format automatically detect करता है             |
 | **Atlassian Statuspage** | Atlassian Statuspage (JSON API) द्वारा संचालित Status pages |
-| **RSS** | RSS feed प्रदान करने वाले Status pages |
-| **Atom** | Atom feed प्रदान करने वाले Status pages |
+| **RSS**                  | RSS feed प्रदान करने वाले Status pages                      |
+| **Atom**                 | Atom feed प्रदान करने वाले Status pages                     |
 
 ### Auto-Detection
 
@@ -81,28 +81,28 @@ status page से response के लिए प्रतीक्षा कर�
 
 यहाँ उन लोकप्रिय service status page URLs की एक curated list है जिन्हें आप monitor कर सकते हैं:
 
-| Service | Status Page URL |
-|---|---|
-| AWS | `https://health.aws.amazon.com/health/status` |
-| Google Cloud Platform | `https://status.cloud.google.com` |
-| Microsoft Azure | `https://status.azure.com` |
-| GitHub | `https://www.githubstatus.com` |
-| Cloudflare | `https://www.cloudflarestatus.com` |
-| Datadog | `https://status.datadoghq.com` |
-| PagerDuty | `https://status.pagerduty.com` |
-| Twilio | `https://status.twilio.com` |
-| Stripe | `https://status.stripe.com` |
-| Slack | `https://status.slack.com` |
-| Atlassian (Jira, Confluence) | `https://status.atlassian.com` |
-| Vercel | `https://www.vercel-status.com` |
-| Netlify | `https://www.netlifystatus.com` |
-| DigitalOcean | `https://status.digitalocean.com` |
-| Heroku | `https://status.heroku.com` |
-| MongoDB Atlas | `https://status.cloud.mongodb.com` |
-| Fastly | `https://status.fastly.com` |
-| New Relic | `https://status.newrelic.com` |
-| Sentry | `https://status.sentry.io` |
-| CircleCI | `https://status.circleci.com` |
+| Service                      | Status Page URL                               |
+| ---------------------------- | --------------------------------------------- |
+| AWS                          | `https://health.aws.amazon.com/health/status` |
+| Google Cloud Platform        | `https://status.cloud.google.com`             |
+| Microsoft Azure              | `https://status.azure.com`                    |
+| GitHub                       | `https://www.githubstatus.com`                |
+| Cloudflare                   | `https://www.cloudflarestatus.com`            |
+| Datadog                      | `https://status.datadoghq.com`                |
+| PagerDuty                    | `https://status.pagerduty.com`                |
+| Twilio                       | `https://status.twilio.com`                   |
+| Stripe                       | `https://status.stripe.com`                   |
+| Slack                        | `https://status.slack.com`                    |
+| Atlassian (Jira, Confluence) | `https://status.atlassian.com`                |
+| Vercel                       | `https://www.vercel-status.com`               |
+| Netlify                      | `https://www.netlifystatus.com`               |
+| DigitalOcean                 | `https://status.digitalocean.com`             |
+| Heroku                       | `https://status.heroku.com`                   |
+| MongoDB Atlas                | `https://status.cloud.mongodb.com`            |
+| Fastly                       | `https://status.fastly.com`                   |
+| New Relic                    | `https://status.newrelic.com`                 |
+| Sentry                       | `https://status.sentry.io`                    |
+| CircleCI                     | `https://status.circleci.com`                 |
 
 > **नोट:** इनमें से कई Atlassian Statuspage उपयोग करते हैं, इसलिए **Auto** provider type उन्हें automatically detect कर लेगा।
 
@@ -110,14 +110,14 @@ status page से response के लिए प्रतीक्षा कर�
 
 External Status Page monitors से incidents या alerts बनाते समय, आप निम्नलिखित template variables उपयोग कर सकते हैं:
 
-| Variable | विवरण |
-|---|---|
-| `{{isOnline}}` | status page online है (true/false) |
-| `{{responseTimeInMs}}` | milliseconds में Response time |
-| `{{failureCause}}` | failure का कारण, यदि कोई है |
-| `{{overallStatus}}` | overall status indicator value |
-| `{{activeIncidentCount}}` | active incidents की संख्या |
-| `{{componentStatuses}}` | component statuses का JSON array |
+| Variable                  | विवरण                              |
+| ------------------------- | ---------------------------------- |
+| `{{isOnline}}`            | status page online है (true/false) |
+| `{{responseTimeInMs}}`    | milliseconds में Response time     |
+| `{{failureCause}}`        | failure का कारण, यदि कोई है        |
+| `{{overallStatus}}`       | overall status indicator value     |
+| `{{activeIncidentCount}}` | active incidents की संख्या         |
+| `{{componentStatuses}}`   | component statuses का JSON array   |
 
 ## सर्वोत्तम प्रथाएं
 

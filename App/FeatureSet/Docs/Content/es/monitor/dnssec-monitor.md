@@ -24,19 +24,19 @@ Los monitores DNSSEC validan toda la cadena de confianza desde la zona raíz has
 
 ### Configuración básica
 
-| Campo | Descripción | Requerido |
-|-------|-------------|----------|
-| Zona (Nombre de dominio) | La zona a validar mediante DNSSEC (por ejemplo, `example.com`) | Sí |
-| Resolvers | Lista separada por comas de resolvers validadores a consultar (por ejemplo, `1.1.1.1, 8.8.8.8, 9.9.9.9`) | Sí |
-| Verificar coherencia de servidores de nombres | Consultar directamente cada servidor de nombres autoritativo y verificar que devuelvan el mismo número de serie SOA | No |
+| Campo                                         | Descripción                                                                                                         | Requerido |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | --------- |
+| Zona (Nombre de dominio)                      | La zona a validar mediante DNSSEC (por ejemplo, `example.com`)                                                      | Sí        |
+| Resolvers                                     | Lista separada por comas de resolvers validadores a consultar (por ejemplo, `1.1.1.1, 8.8.8.8, 9.9.9.9`)            | Sí        |
+| Verificar coherencia de servidores de nombres | Consultar directamente cada servidor de nombres autoritativo y verificar que devuelvan el mismo número de serie SOA | No        |
 
 ### Configuración avanzada
 
-| Campo | Descripción | Predeterminado |
-|-------|-------------|---------|
-| Advertencia de expiración de firma (días) | Umbral predeterminado para el filtro de expiración RRSIG | 7 |
-| Tiempo de espera (ms) | Tiempo de espera para cada consulta DNS | 10000 |
-| Reintentos | Número de intentos de reintento en caso de fallo | 3 |
+| Campo                                     | Descripción                                              | Predeterminado |
+| ----------------------------------------- | -------------------------------------------------------- | -------------- |
+| Advertencia de expiración de firma (días) | Umbral predeterminado para el filtro de expiración RRSIG | 7              |
+| Tiempo de espera (ms)                     | Tiempo de espera para cada consulta DNS                  | 10000          |
+| Reintentos                                | Número de intentos de reintento en caso de fallo         | 3              |
 
 ## Criterios de monitoreo
 
@@ -44,15 +44,15 @@ Puedes configurar criterios para determinar cuándo tu zona se considera en lín
 
 ### Tipos de verificación disponibles
 
-| Tipo de verificación | Descripción |
-|------------|-------------|
-| La cadena DNSSEC es válida | Toda la cadena de validación (raíz → TLD → zona) se resuelve correctamente |
-| El registro DNSKEY DNSSEC existe | La zona publica al menos un registro DNSKEY |
-| El registro DS DNSSEC existe en la zona padre | La zona padre publica un registro DS que coincide con la KSK de la zona |
-| La firma DNSSEC expira en días | Días hasta que expire la firma RRSIG más próxima |
-| Consenso de resolvers DNSSEC (indicador AD) | Cada resolver consultado devuelve el indicador AD (Authenticated Data) |
+| Tipo de verificación                            | Descripción                                                                          |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------ |
+| La cadena DNSSEC es válida                      | Toda la cadena de validación (raíz → TLD → zona) se resuelve correctamente           |
+| El registro DNSKEY DNSSEC existe                | La zona publica al menos un registro DNSKEY                                          |
+| El registro DS DNSSEC existe en la zona padre   | La zona padre publica un registro DS que coincide con la KSK de la zona              |
+| La firma DNSSEC expira en días                  | Días hasta que expire la firma RRSIG más próxima                                     |
+| Consenso de resolvers DNSSEC (indicador AD)     | Cada resolver consultado devuelve el indicador AD (Authenticated Data)               |
 | Los servidores de nombres DNSSEC son coherentes | Todos los servidores de nombres autoritativos devuelven el mismo número de serie SOA |
-| DNSSEC es válido | Resultado agregado de aprobado/fallido en todas las verificaciones de validación |
+| DNSSEC es válido                                | Resultado agregado de aprobado/fallido en todas las verificaciones de validación     |
 
 ### Tipos de filtro
 

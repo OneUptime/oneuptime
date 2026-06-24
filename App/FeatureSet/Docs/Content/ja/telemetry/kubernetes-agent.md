@@ -11,7 +11,7 @@ OneUptime Kubernetes エージェントは、OpenTelemetry ベースのコレク
 - 稼働中の Kubernetes クラスター (v1.23 以降)
 - クラスターにアクセスできるように構成された `kubectl`
 - `helm` v3 がインストールされていること
-- **OneUptime API キー** — *Project Settings → API Keys* から作成します
+- **OneUptime API キー** — _Project Settings → API Keys_ から作成します
 
 ## ステップ 1 — OneUptime Helm リポジトリを追加する
 
@@ -24,11 +24,11 @@ helm repo update
 
 このチャートは、単一のトップレベルオプション `preset` を公開しており、これによって Kubernetes ディストリビューションに適合したデフォルト値が選択されます。ログを hostPath DaemonSet 経由で送信するか Kubernetes API 経由で送信するか、どのセキュリティコンテキストを適用するかなど、本来は手動で調整する必要がある設定を制御します。
 
-| `preset` | 用途 | ログ収集 |
-|---|---|---|
-| `standard` *(デフォルト)* | セルフマネージドクラスター、**EKS on EC2**、**GKE Standard**、**AKS**、minikube、kind、k3s | hostPath 経由で `/var/log/pods` を読み取る DaemonSet (オーバーヘッド最小) |
-| `gke-autopilot` | **GKE Autopilot** | Kubernetes API ログテイラー Deployment (hostPath なし、ホストアクセスなし) |
-| `eks-fargate` | **EKS Fargate** | Kubernetes API ログテイラー Deployment (hostPath なし、ホストアクセスなし) |
+| `preset`                  | 用途                                                                                       | ログ収集                                                                   |
+| ------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| `standard` _(デフォルト)_ | セルフマネージドクラスター、**EKS on EC2**、**GKE Standard**、**AKS**、minikube、kind、k3s | hostPath 経由で `/var/log/pods` を読み取る DaemonSet (オーバーヘッド最小)  |
+| `gke-autopilot`           | **GKE Autopilot**                                                                          | Kubernetes API ログテイラー Deployment (hostPath なし、ホストアクセスなし) |
+| `eks-fargate`             | **EKS Fargate**                                                                            | Kubernetes API ログテイラー Deployment (hostPath なし、ホストアクセスなし) |
 
 よく分からない場合は、まず `standard` から始めてください。インストールが `hostPath` に言及した Pod Security エラーで失敗する場合は、`preset=gke-autopilot` (Fargate の場合は `eks-fargate`) で再実行すれば動作します。
 
@@ -208,19 +208,19 @@ kubectl delete namespace oneuptime-agent
 
 ## 収集される内容
 
-| カテゴリ | データ |
-|----------|------|
-| **ノードメトリクス** | CPU 使用率、メモリ使用量、ファイルシステム使用量、ネットワーク I/O |
-| **Pod メトリクス** | CPU 使用量、メモリ使用量、ネットワーク I/O、再起動回数 |
-| **コンテナメトリクス** | コンテナごとの CPU 使用量、メモリ使用量 |
-| **クラスターメトリクス** | ノードの状態、割り当て可能リソース、Pod 数 |
-| **Kubernetes イベント** | 警告、エラー、スケジューリングイベント |
-| **Pod ログ** | すべてのコンテナからの stdout/stderr ログ (標準クラスターでは hostPath DaemonSet 経由、Autopilot / Fargate では Kubernetes API 経由) |
-| **アプリケーショントレース** *(eBPF 経由、デフォルトで有効)* | すべての Pod からの HTTP、gRPC、SQL/Redis スパン — SDK もコード変更も不要 |
-| **HTTP RED メトリクス** *(eBPF 経由)* | `http.server.request.duration`、リクエストおよびレスポンスのボディサイズ (サービスごと) |
-| **サービスグラフ** *(eBPF 経由)* | 呼び出し元 → 呼び出し先のリクエストレート、レイテンシ、エラーのエッジ — サービスマップビューを駆動 |
-| **ネットワークフローメトリクス** *(eBPF 経由)* | k8s メタデータ付きの Pod 間 TCP/UDP のバイトおよびパケットカウンター |
-| **TCP 統計** *(eBPF 経由)* | ノードレベルの RTT、接続失敗、再送信のカウンター |
+| カテゴリ                                                     | データ                                                                                                                               |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **ノードメトリクス**                                         | CPU 使用率、メモリ使用量、ファイルシステム使用量、ネットワーク I/O                                                                   |
+| **Pod メトリクス**                                           | CPU 使用量、メモリ使用量、ネットワーク I/O、再起動回数                                                                               |
+| **コンテナメトリクス**                                       | コンテナごとの CPU 使用量、メモリ使用量                                                                                              |
+| **クラスターメトリクス**                                     | ノードの状態、割り当て可能リソース、Pod 数                                                                                           |
+| **Kubernetes イベント**                                      | 警告、エラー、スケジューリングイベント                                                                                               |
+| **Pod ログ**                                                 | すべてのコンテナからの stdout/stderr ログ (標準クラスターでは hostPath DaemonSet 経由、Autopilot / Fargate では Kubernetes API 経由) |
+| **アプリケーショントレース** _(eBPF 経由、デフォルトで有効)_ | すべての Pod からの HTTP、gRPC、SQL/Redis スパン — SDK もコード変更も不要                                                            |
+| **HTTP RED メトリクス** _(eBPF 経由)_                        | `http.server.request.duration`、リクエストおよびレスポンスのボディサイズ (サービスごと)                                              |
+| **サービスグラフ** _(eBPF 経由)_                             | 呼び出し元 → 呼び出し先のリクエストレート、レイテンシ、エラーのエッジ — サービスマップビューを駆動                                   |
+| **ネットワークフローメトリクス** _(eBPF 経由)_               | k8s メタデータ付きの Pod 間 TCP/UDP のバイトおよびパケットカウンター                                                                 |
+| **TCP 統計** _(eBPF 経由)_                                   | ノードレベルの RTT、接続失敗、再送信のカウンター                                                                                     |
 
 ## eBPF によるアプリケーショントレースと HTTP メトリクス (デフォルトで有効)
 
@@ -250,15 +250,15 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 すべてデフォルトで有効です。`--set ebpf.features.<name>=false` で任意のものを無効にできます。
 
-| `ebpf.features.*` | デフォルト | 追加される内容 |
-|---|---|---|
-| `httpMetrics` | 有効 | サービスごとの HTTP/gRPC RED メトリクス (リクエストレート、レイテンシ、エラー) |
-| `spanMetrics` | 有効 | スパンごとのリクエスト/レスポンスサイズと所要時間 |
-| `serviceGraph` | 有効 | 呼び出し元 → 呼び出し先のエッジメトリクス。サービスマップを駆動 |
-| `hostMetrics` | 有効 | 計装されたプロセスごとの CPU とメモリ |
-| `networkMetrics` | 有効 | Pod 間の TCP/UDP フローカウンター |
-| `networkInterZoneMetrics` | 無効 | ネットワークメトリクスのゾーン間バリアント (カーディナリティが倍増) |
-| `tcpStats` | 有効 | ノードレベルの TCP RTT、接続失敗、再送信のカウンター |
+| `ebpf.features.*`         | デフォルト | 追加される内容                                                                 |
+| ------------------------- | ---------- | ------------------------------------------------------------------------------ |
+| `httpMetrics`             | 有効       | サービスごとの HTTP/gRPC RED メトリクス (リクエストレート、レイテンシ、エラー) |
+| `spanMetrics`             | 有効       | スパンごとのリクエスト/レスポンスサイズと所要時間                              |
+| `serviceGraph`            | 有効       | 呼び出し元 → 呼び出し先のエッジメトリクス。サービスマップを駆動                |
+| `hostMetrics`             | 有効       | 計装されたプロセスごとの CPU とメモリ                                          |
+| `networkMetrics`          | 有効       | Pod 間の TCP/UDP フローカウンター                                              |
+| `networkInterZoneMetrics` | 無効       | ネットワークメトリクスのゾーン間バリアント (カーディナリティが倍増)            |
+| `tcpStats`                | 有効       | ノードレベルの TCP RTT、接続失敗、再送信のカウンター                           |
 
 サービス間のトレースコンテキスト伝播もデフォルトで有効です — OBI は送信される HTTP/TCP に W3C `traceparent` を注入するため、Pod A → Pod B をまたぐリクエストが単一のトレースとして表示されます。どこにも SDK の変更は不要です。`--set ebpf.contextPropagation=false` で無効にできます。
 
@@ -298,7 +298,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   `401` が返される場合、リリース内のキーが誤っているか失効しています。*Project Settings → Telemetry Ingestion Keys* から有効なキーをコピーして再デプロイしてください。
+   `401` が返される場合、リリース内のキーが誤っているか失効しています。_Project Settings → Telemetry Ingestion Keys_ から有効なキーをコピーして再デプロイしてください。
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

@@ -31,11 +31,11 @@ Você pode configurar critérios para determinar quando seu host é considerado 
 
 ### Tipos de Verificação Disponíveis
 
-| Tipo de Verificação | Descrição |
-|------------|-------------|
-| Is Online | Se o host responde a requisições de ping |
+| Tipo de Verificação   | Descrição                                                   |
+| --------------------- | ----------------------------------------------------------- |
+| Is Online             | Se o host responde a requisições de ping                    |
 | Response Time (in ms) | Tempo de ida e volta da requisição de ping em milissegundos |
-| Is Request Timeout | Se a requisição de ping expirou |
+| Is Request Timeout    | Se a requisição de ping expirou                             |
 
 ### Tipos de Filtro
 

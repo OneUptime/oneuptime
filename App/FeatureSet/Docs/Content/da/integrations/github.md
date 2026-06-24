@@ -4,7 +4,7 @@
 
 Denne integration er **udgående**: OneUptime kalder [GitHub REST API](https://docs.github.com/en/rest/issues/issues). Den bruger et OneUptime **[Workflow](/docs/workflows/index)** med en **Incident → On Create**-trigger og en **API-komponent**.
 
-> **Leder du efter den dybere GitHub-forbindelse?** OneUptime har også en native **GitHub App**-integration til at forbinde kode-repositories (brugt af AI-agenten og kodefunktioner). Den konfigureres med miljøvariabler, ikke workflows — se [GitHub-integration (selvhostet)](/docs/self-hosted/github-integration). Denne side handler specifikt om *oprettelse af sager fra hændelser*.
+> **Leder du efter den dybere GitHub-forbindelse?** OneUptime har også en native **GitHub App**-integration til at forbinde kode-repositories (brugt af AI-agenten og kodefunktioner). Den konfigureres med miljøvariabler, ikke workflows — se [GitHub-integration (selvhostet)](/docs/self-hosted/github-integration). Denne side handler specifikt om _oprettelse af sager fra hændelser_.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -14,10 +14,12 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 - Et GitHub-repository, hvor du ønsker sager oprettet.
 - Et token, der kan oprette sager:
+
   - **Finkornede PAT** scoped til det repo med **Issues: Read and write**, eller
   - et **klassisk PAT** med `repo`-scopet.
 
   Opret et på [github.com/settings/tokens](https://github.com/settings/tokens).
+
 - Et OneUptime-projekt, hvor du kan oprette workflows.
 
 ## Trin 1 — Gem tokenet
@@ -30,6 +32,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 1. Åbn **Workflows → Create Workflow**, navngiv det `Incidents → GitHub Issues`, og åbn **Builder**.
 2. Tilføj en **Incident**-trigger sat til **On Create**. Omdøb den til `Incident`.
 3. Tilføj en **API**-blok forbundet til triggeren:
+
    - **Method**: `POST`
    - **URL**: `https://api.github.com/repos/din-org/dit-repo/issues`
    - **Headers**:

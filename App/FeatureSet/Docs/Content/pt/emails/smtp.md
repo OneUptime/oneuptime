@@ -19,17 +19,17 @@ O OAuth 2.0 fornece uma maneira mais segura de autenticar com servidores de emai
 
 Ao configurar o SMTP com autenticação OAuth no OneUptime, você precisará:
 
-| Campo | Descrição |
-|-------|-------------|
-| **Hostname** | Endereço do servidor SMTP |
-| **Port** | Porta SMTP (tipicamente 587 para STARTTLS ou 465 para TLS implícito) |
-| **Username** | O endereço de email para enviar |
-| **Authentication Type** | Selecione "OAuth" |
+| Campo                   | Descrição                                                                                |
+| ----------------------- | ---------------------------------------------------------------------------------------- |
+| **Hostname**            | Endereço do servidor SMTP                                                                |
+| **Port**                | Porta SMTP (tipicamente 587 para STARTTLS ou 465 para TLS implícito)                     |
+| **Username**            | O endereço de email para enviar                                                          |
+| **Authentication Type** | Selecione "OAuth"                                                                        |
 | **OAuth Provider Type** | Selecione "Client Credentials" para Microsoft 365, ou "JWT Bearer" para Google Workspace |
-| **Client ID** | ID da Aplicação/Cliente do seu provedor OAuth (para Google: email da conta de serviço) |
-| **Client Secret** | Segredo do cliente do seu provedor OAuth (para Google: chave privada) |
-| **Token URL** | URL do endpoint de token OAuth |
-| **Scope** | Escopo(s) OAuth necessário(s) para acesso SMTP |
+| **Client ID**           | ID da Aplicação/Cliente do seu provedor OAuth (para Google: email da conta de serviço)   |
+| **Client Secret**       | Segredo do cliente do seu provedor OAuth (para Google: chave privada)                    |
+| **Token URL**           | URL do endpoint de token OAuth                                                           |
+| **Scope**               | Escopo(s) OAuth necessário(s) para acesso SMTP                                           |
 
 ---
 
@@ -48,6 +48,7 @@ Para usar OAuth com Microsoft 365/Exchange Online, você precisa registrar um ap
 7. Clique em **Register**
 
 Após o registro, anote os seguintes valores da página **Overview**:
+
 - **Application (client) ID** - Este é o seu Client ID
 - **Directory (tenant) ID** - Você precisará disso para a Token URL
 
@@ -107,19 +108,19 @@ Add-MailboxPermission -Identity "sender@yourdomain.com" -User <service-principal
 
 No OneUptime, crie ou edite uma configuração SMTP com estas configurações:
 
-| Campo | Valor |
-|-------|-------|
-| Hostname | `smtp.office365.com` |
-| Port | `587` |
-| Username | O endereço de email ao qual você concedeu permissões (ex.: `sender@yourdomain.com`) |
-| Authentication Type | `OAuth` |
-| OAuth Provider Type | `Client Credentials` |
-| Client ID | Seu Application (client) ID do Passo 1 |
-| Client Secret | O valor do segredo do Passo 2 |
-| Token URL | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` |
-| Scope | `https://outlook.office365.com/.default` |
-| From Email | Igual ao Username |
-| Secure (TLS) | Habilitado |
+| Campo               | Valor                                                                               |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| Hostname            | `smtp.office365.com`                                                                |
+| Port                | `587`                                                                               |
+| Username            | O endereço de email ao qual você concedeu permissões (ex.: `sender@yourdomain.com`) |
+| Authentication Type | `OAuth`                                                                             |
+| OAuth Provider Type | `Client Credentials`                                                                |
+| Client ID           | Seu Application (client) ID do Passo 1                                              |
+| Client Secret       | O valor do segredo do Passo 2                                                       |
+| Token URL           | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`                   |
+| Scope               | `https://outlook.office365.com/.default`                                            |
+| From Email          | Igual ao Username                                                                   |
+| Secure (TLS)        | Habilitado                                                                          |
 
 Substitua `<tenant-id>` pelo seu Directory (tenant) ID do Passo 1.
 
@@ -189,19 +190,19 @@ Nota: Pode levar alguns minutos a 24 horas para a delegação se propagar.
 
 No OneUptime, crie ou edite uma configuração SMTP com estas configurações:
 
-| Campo | Valor |
-|-------|-------|
-| Hostname | `smtp.gmail.com` |
-| Port | `587` |
-| Username | O endereço de email do Google Workspace para enviar (ex.: `notifications@yourdomain.com`). Este usuário será representado pela conta de serviço. |
-| Authentication Type | `OAuth` |
-| OAuth Provider Type | `JWT Bearer` |
-| Client ID | O `client_email` do seu JSON de conta de serviço (ex.: `your-service@your-project.iam.gserviceaccount.com`) |
-| Client Secret | A `private_key` do seu JSON de conta de serviço (a chave inteira incluindo `-----BEGIN PRIVATE KEY-----` e `-----END PRIVATE KEY-----`) |
-| Token URL | `https://oauth2.googleapis.com/token` |
-| Scope | `https://mail.google.com/` |
-| From Email | Igual ao Username |
-| Secure (TLS) | Habilitado |
+| Campo               | Valor                                                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Hostname            | `smtp.gmail.com`                                                                                                                                 |
+| Port                | `587`                                                                                                                                            |
+| Username            | O endereço de email do Google Workspace para enviar (ex.: `notifications@yourdomain.com`). Este usuário será representado pela conta de serviço. |
+| Authentication Type | `OAuth`                                                                                                                                          |
+| OAuth Provider Type | `JWT Bearer`                                                                                                                                     |
+| Client ID           | O `client_email` do seu JSON de conta de serviço (ex.: `your-service@your-project.iam.gserviceaccount.com`)                                      |
+| Client Secret       | A `private_key` do seu JSON de conta de serviço (a chave inteira incluindo `-----BEGIN PRIVATE KEY-----` e `-----END PRIVATE KEY-----`)          |
+| Token URL           | `https://oauth2.googleapis.com/token`                                                                                                            |
+| Scope               | `https://mail.google.com/`                                                                                                                       |
+| From Email          | Igual ao Username                                                                                                                                |
+| Secure (TLS)        | Habilitado                                                                                                                                       |
 
 **Importante:** Para Google (JWT Bearer), o Client ID é o **email da conta de serviço** (`client_email`), NÃO o `client_id` numérico. A conta de serviço representará o usuário especificado no campo Username para enviar emails.
 
@@ -211,21 +212,21 @@ No OneUptime, crie ou edite uma configuração SMTP com estas configurações:
 
 ### Microsoft 365
 
-| Problema | Solução |
-|-------|----------|
-| "Authentication unsuccessful" | Verifique se o principal de serviço está registrado no Exchange e tem permissões de caixa de correio |
-| "AADSTS700016: Application not found" | Verifique se o Client ID está correto e se o aplicativo existe no seu tenant |
-| "AADSTS7000215: Invalid client secret" | Regenere o segredo do cliente — ele pode ter expirado |
-| "The mailbox is not enabled for this operation" | Execute `Add-MailboxPermission` para conceder acesso à caixa de correio |
+| Problema                                        | Solução                                                                                              |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| "Authentication unsuccessful"                   | Verifique se o principal de serviço está registrado no Exchange e tem permissões de caixa de correio |
+| "AADSTS700016: Application not found"           | Verifique se o Client ID está correto e se o aplicativo existe no seu tenant                         |
+| "AADSTS7000215: Invalid client secret"          | Regenere o segredo do cliente — ele pode ter expirado                                                |
+| "The mailbox is not enabled for this operation" | Execute `Add-MailboxPermission` para conceder acesso à caixa de correio                              |
 
 ### Google Workspace
 
-| Problema | Solução |
-|-------|----------|
-| "invalid_grant" | Certifique-se de que a delegação em todo o domínio está corretamente configurada e propagada |
-| "unauthorized_client" | Verifique se o Client ID está autorizado no Console de Administração do Google Workspace |
-| "access_denied" | Verifique se o escopo `https://mail.google.com/` está autorizado |
-| "Domain policy has disabled third-party Drive apps" | Habilite o acesso à API em Google Workspace Admin > Security > API Controls |
+| Problema                                            | Solução                                                                                      |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| "invalid_grant"                                     | Certifique-se de que a delegação em todo o domínio está corretamente configurada e propagada |
+| "unauthorized_client"                               | Verifique se o Client ID está autorizado no Console de Administração do Google Workspace     |
+| "access_denied"                                     | Verifique se o escopo `https://mail.google.com/` está autorizado                             |
+| "Domain policy has disabled third-party Drive apps" | Habilite o acesso à API em Google Workspace Admin > Security > API Controls                  |
 
 ### Geral
 
@@ -248,10 +249,12 @@ No OneUptime, crie ou edite uma configuração SMTP com estas configurações:
 ## Recursos Adicionais
 
 ### Microsoft 365
+
 - [Authenticate an IMAP, POP or SMTP connection using OAuth](https://learn.microsoft.com/en-us/exchange/client-developer/legacy-protocols/how-to-authenticate-an-imap-pop-smtp-application-by-using-oauth)
 - [Register an application with Microsoft identity platform](https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app)
 
 ### Google Workspace
+
 - [Using OAuth 2.0 for Server to Server Applications](https://developers.google.com/identity/protocols/oauth2/service-account)
 - [Gmail API Documentation](https://developers.google.com/gmail/api)
 - [XOAUTH2 Protocol](https://developers.google.com/gmail/imap/xoauth2-protocol)

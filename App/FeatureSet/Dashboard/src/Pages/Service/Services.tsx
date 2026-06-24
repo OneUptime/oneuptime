@@ -12,6 +12,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -34,6 +35,10 @@ const ServicesPage: FunctionComponent<
       ownerTeamModelType: ServiceOwnerTeam,
       resourceIdField: "primaryEntityId",
     });
+
+  const { archiveBulkActions } = useBulkArchiveActions<Service>({
+    modelType: Service,
+  });
 
   const {
     getOwnersForResource,
@@ -60,7 +65,7 @@ const ServicesPage: FunctionComponent<
         topContent={filterBar}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
-        query={mergeFiltersIntoQuery(undefined)}
+        query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<Service>) => {
           onResourcesFetched(data);
         }}
@@ -71,7 +76,11 @@ const ServicesPage: FunctionComponent<
         isEditable={false}
         isCreateable={true}
         bulkActions={{
-          buttons: [...labelBulkActions, ...ownerBulkActions],
+          buttons: [
+            ...labelBulkActions,
+            ...ownerBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         name="Services"
         isViewable={true}

@@ -54,9 +54,11 @@ Push-Benachrichtigungen werden über Firebase Cloud Messaging (FCM) via Expo Pus
 ## Updates
 
 **Google Play:**
+
 - Updates werden automatisch installiert. Um ein Update manuell auszulösen, öffnen Sie **Play Store → Profil → Apps und Gerät verwalten → Verfügbare Updates → OneUptime On-Call → Aktualisieren**.
 
 **APK-Sideloading:**
+
 - Laden Sie die neueste APK über den obigen GitHub-Releases-Link erneut herunter und installieren Sie sie über die bestehende App — Ihre Daten, Server-URL und Anmeldung bleiben erhalten.
 
 ## Deinstallation
@@ -70,11 +72,13 @@ Ihr OneUptime-Konto und Ihre Bereitschaftspläne werden serverseitig gespeichert
 ## Fehlerbehebung
 
 **„Netzwerkfehler" bei der Anmeldung:**
+
 - Überprüfen Sie, ob die **Server-URL** korrekt und von Ihrem Gerät aus erreichbar ist.
 - Wenn Sie sich in einem Unternehmensnetzwerk oder über ein VPN verbinden, stellen Sie sicher, dass die OneUptime-Instanz erreichbar ist.
 - Vergewissern Sie sich, dass der Server über HTTPS mit einem gültigen Zertifikat bereitgestellt wird.
 
 **Keine Push-Benachrichtigungen erhalten:**
+
 - Vergewissern Sie sich, dass Benachrichtigungen unter **Einstellungen → Apps → OneUptime On-Call → Benachrichtigungen** aktiviert sind.
 - Deaktivieren Sie die Akkuoptimierung für OneUptime On-Call (siehe Push-Benachrichtigungen oben).
 - Stellen Sie sicher, dass Do Not Disturb (Nicht stören) ausgeschaltet ist oder dass OneUptime On-Call auf der Ausnahmeliste steht.
@@ -82,14 +86,17 @@ Ihr OneUptime-Konto und Ihre Bereitschaftspläne werden serverseitig gespeichert
 - Selbst gehostete Benutzer: Vergewissern Sie sich, dass Push-Benachrichtigungen auf Ihrer OneUptime-Instanz konfiguriert sind (siehe die Anleitung [Push Notifications](/docs/self-hosted/push-notifications) für selbst gehostete Instanzen).
 
 **Biometrische Entsperrung funktioniert nicht:**
+
 - Registrieren Sie einen Fingerabdruck unter **Einstellungen → Sicherheit → Fingerabdruck**.
 - Aktivieren Sie die biometrische Entsperrung erneut im **Einstellungen**-Bildschirm innerhalb der OneUptime On-Call-App.
 
 **APK-Installation blockiert:**
+
 - Sie müssen dem Browser die Berechtigung erteilen, unbekannte Apps zu installieren (siehe Option 2 oben).
 - Einige Mobilfunkanbieter oder Geräteprofile in Unternehmen blockieren das Sideloading vollständig; verwenden Sie in diesem Fall stattdessen die Google-Play-Version.
 
 **Die App stürzt beim Start ab:**
+
 - Aktualisieren Sie auf die neueste Version aus Google Play oder die neueste APK.
 - Starten Sie Ihr Gerät neu.
 - Wenn das Problem weiterhin besteht, deinstallieren Sie die App, installieren Sie sie erneut und melden Sie sich dann wieder an.

@@ -21,13 +21,11 @@ Du kan bruke hemmeligheter i følgende overvåkingstyper:
 - Syntetisk monitor, egendefinert kode-monitor (i koden)
 - SNMP-monitor (i community-streng, SNMPv3-autentiseringsnøkkel og priv-nøkkel)
 
-
 ![Bruke hemmelighet](/docs/static/images/UsingMonitorSecret.png)
 
 For å bruke en hemmelighet, legg til `{{monitorSecrets.SECRET_NAME}}` i feltet der du ønsker å bruke hemmeligheten. For eksempel la vi i dette tilfellet til `{{monitorSecrets.ApiKey}}` i feltet for forespørselshode.
 
 Hemmeligheter injiseres på proben før Syntetiske eller Egendefinerte kode-monitor-skript kjøres, slik at referanser som `{{monitorSecrets.ApiKey}}` løses til den dekrypterte verdien inne i det kjørende skriptet.
-
 
 ### Tillatelser for Monitor Secrets
 

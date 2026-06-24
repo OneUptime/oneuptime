@@ -11,7 +11,7 @@ OneUptime Kubernetes 代理是一个预打包的 Helm chart，可在你的集群
 - 一个正在运行的 Kubernetes 集群（v1.23+）
 - 已配置可访问你集群的 `kubectl`
 - 已安装 `helm` v3
-- 一个 **OneUptime API 密钥**——可从 *Project Settings → API Keys* 创建
+- 一个 **OneUptime API 密钥**——可从 _Project Settings → API Keys_ 创建
 
 ## 步骤 1 — 添加 OneUptime Helm 仓库
 
@@ -24,11 +24,11 @@ helm repo update
 
 该 chart 公开了一个顶层选项——`preset`——它会为你的 Kubernetes 发行版选择兼容的默认值。它控制着那些你本来需要手动调整的事项：是通过 hostPath DaemonSet 发送日志，还是通过 Kubernetes API 发送日志，以及应用哪种安全上下文。
 
-| `preset` | 适用于 | 日志采集 |
-|---|---|---|
-| `standard` *(默认)* | 自管理集群、**EKS on EC2**、**GKE Standard**、**AKS**、minikube、kind、k3s | DaemonSet 通过 hostPath 读取 `/var/log/pods`（开销最低） |
-| `gke-autopilot` | **GKE Autopilot** | Kubernetes API 日志拉取器 Deployment（无 hostPath，无主机访问） |
-| `eks-fargate` | **EKS Fargate** | Kubernetes API 日志拉取器 Deployment（无 hostPath，无主机访问） |
+| `preset`            | 适用于                                                                     | 日志采集                                                        |
+| ------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `standard` _(默认)_ | 自管理集群、**EKS on EC2**、**GKE Standard**、**AKS**、minikube、kind、k3s | DaemonSet 通过 hostPath 读取 `/var/log/pods`（开销最低）        |
+| `gke-autopilot`     | **GKE Autopilot**                                                          | Kubernetes API 日志拉取器 Deployment（无 hostPath，无主机访问） |
+| `eks-fargate`       | **EKS Fargate**                                                            | Kubernetes API 日志拉取器 Deployment（无 hostPath，无主机访问） |
 
 如果你不确定，请从 `standard` 开始。如果安装因提及 `hostPath` 的 Pod Security 错误而失败，请改用 `preset=gke-autopilot`（或在 Fargate 上使用 `eks-fargate`）重新运行，它就能正常工作。
 
@@ -208,19 +208,19 @@ kubectl delete namespace oneuptime-agent
 
 ## 采集了哪些内容
 
-| 类别 | 数据 |
-|----------|------|
-| **节点指标** | CPU 利用率、内存使用、文件系统使用、网络 I/O |
-| **Pod 指标** | CPU 使用、内存使用、网络 I/O、重启次数 |
-| **容器指标** | 每个容器的 CPU 使用、内存使用 |
-| **集群指标** | 节点状况、可分配资源、Pod 数量 |
-| **Kubernetes 事件** | 警告、错误、调度事件 |
-| **Pod 日志** | 来自所有容器的 stdout/stderr 日志（在标准集群上通过 hostPath DaemonSet，或在 Autopilot / Fargate 上通过 Kubernetes API） |
-| **应用追踪** *(通过 eBPF，默认开启)* | 来自每个 Pod 的 HTTP、gRPC、SQL/Redis span——无需 SDK 或代码更改 |
-| **HTTP RED 指标** *(通过 eBPF)* | 每个服务的 `http.server.request.duration`、请求和响应体大小 |
-| **服务图** *(通过 eBPF)* | 调用方 → 被调用方的请求速率、延迟和错误边——驱动服务地图视图 |
-| **网络流量指标** *(通过 eBPF)* | 带 k8s 元数据的 Pod 到 Pod 的 TCP/UDP 字节和数据包计数器 |
-| **TCP 统计** *(通过 eBPF)* | 节点级别的 RTT、连接失败和重传计数器 |
+| 类别                                 | 数据                                                                                                                     |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| **节点指标**                         | CPU 利用率、内存使用、文件系统使用、网络 I/O                                                                             |
+| **Pod 指标**                         | CPU 使用、内存使用、网络 I/O、重启次数                                                                                   |
+| **容器指标**                         | 每个容器的 CPU 使用、内存使用                                                                                            |
+| **集群指标**                         | 节点状况、可分配资源、Pod 数量                                                                                           |
+| **Kubernetes 事件**                  | 警告、错误、调度事件                                                                                                     |
+| **Pod 日志**                         | 来自所有容器的 stdout/stderr 日志（在标准集群上通过 hostPath DaemonSet，或在 Autopilot / Fargate 上通过 Kubernetes API） |
+| **应用追踪** _(通过 eBPF，默认开启)_ | 来自每个 Pod 的 HTTP、gRPC、SQL/Redis span——无需 SDK 或代码更改                                                          |
+| **HTTP RED 指标** _(通过 eBPF)_      | 每个服务的 `http.server.request.duration`、请求和响应体大小                                                              |
+| **服务图** _(通过 eBPF)_             | 调用方 → 被调用方的请求速率、延迟和错误边——驱动服务地图视图                                                              |
+| **网络流量指标** _(通过 eBPF)_       | 带 k8s 元数据的 Pod 到 Pod 的 TCP/UDP 字节和数据包计数器                                                                 |
+| **TCP 统计** _(通过 eBPF)_           | 节点级别的 RTT、连接失败和重传计数器                                                                                     |
 
 ## 通过 eBPF 实现应用追踪与 HTTP 指标（默认开启）
 
@@ -250,15 +250,15 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 全部默认开启。使用 `--set ebpf.features.<name>=false` 关闭其中任意一个：
 
-| `ebpf.features.*` | 默认 | 它增加了什么 |
-|---|---|---|
-| `httpMetrics` | 开 | 每个服务的 HTTP/gRPC RED 指标（请求速率、延迟、错误） |
-| `spanMetrics` | 开 | 每个 span 的请求/响应大小和持续时间 |
-| `serviceGraph` | 开 | 调用方 → 被调用方的边指标；驱动服务地图 |
-| `hostMetrics` | 开 | 每个被埋点进程的 CPU 和内存 |
-| `networkMetrics` | 开 | Pod 到 Pod 的 TCP/UDP 流量计数器 |
-| `networkInterZoneMetrics` | 关 | 网络指标的跨区域变体（使基数翻倍） |
-| `tcpStats` | 开 | 节点级别的 TCP RTT、连接失败、重传计数器 |
+| `ebpf.features.*`         | 默认 | 它增加了什么                                          |
+| ------------------------- | ---- | ----------------------------------------------------- |
+| `httpMetrics`             | 开   | 每个服务的 HTTP/gRPC RED 指标（请求速率、延迟、错误） |
+| `spanMetrics`             | 开   | 每个 span 的请求/响应大小和持续时间                   |
+| `serviceGraph`            | 开   | 调用方 → 被调用方的边指标；驱动服务地图               |
+| `hostMetrics`             | 开   | 每个被埋点进程的 CPU 和内存                           |
+| `networkMetrics`          | 开   | Pod 到 Pod 的 TCP/UDP 流量计数器                      |
+| `networkInterZoneMetrics` | 关   | 网络指标的跨区域变体（使基数翻倍）                    |
+| `tcpStats`                | 开   | 节点级别的 TCP RTT、连接失败、重传计数器              |
 
 跨服务追踪上下文传播也默认开启——OBI 会将 W3C `traceparent` 注入到出站的 HTTP/TCP 中，因此一个从 Pod A → Pod B 跨越的请求会显示为单个追踪，在任何地方都无需更改 SDK。使用 `--set ebpf.contextPropagation=false` 关闭。
 
@@ -298,7 +298,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   如果它返回 `401`，则你发布版本中的密钥是错误的或已被吊销。从 *Project Settings → Telemetry Ingestion Keys* 复制一个有效的密钥并重新部署：
+   如果它返回 `401`，则你发布版本中的密钥是错误的或已被吊销。从 _Project Settings → Telemetry Ingestion Keys_ 复制一个有效的密钥并重新部署：
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

@@ -32,10 +32,10 @@
 
 #### 支持的占位符
 
-| 占位符 | 描述 | 示例值 |
-|--------|------|--------|
-| `{{timestamp}}` | 替换为当前 Unix 时间戳（秒） | `1719500000` |
-| `{{random}}` | 替换为随机唯一字符串 | `a3f8b2c1d4e5f6a7b8c9d0e1f2a3b4c5` |
+| 占位符          | 描述                         | 示例值                             |
+| --------------- | ---------------------------- | ---------------------------------- |
+| `{{timestamp}}` | 替换为当前 Unix 时间戳（秒） | `1719500000`                       |
+| `{{random}}`    | 替换为随机唯一字符串         | `a3f8b2c1d4e5f6a7b8c9d0e1f2a3b4c5` |
 
 #### 示例
 
@@ -75,7 +75,7 @@ If your endpoint requires mutual TLS authentication, enable **Use client certifi
 
 - **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
 - **Client Private Key (PEM)** — the matching PEM-encoded private key.
-- **Client Private Key Passphrase** *(optional)* — required only if the private key is encrypted.
+- **Client Private Key Passphrase** _(optional)_ — required only if the private key is encrypted.
 
 This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
 

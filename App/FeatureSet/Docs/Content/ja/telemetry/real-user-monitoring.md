@@ -8,17 +8,17 @@ OneUptime は、受信したテレメトリがクライアント属性（Web の
 
 ## 前提条件
 
-- **OneUptime テレメトリ取り込みトークン** — *Project Settings → Telemetry Ingestion Keys* から作成します。
+- **OneUptime テレメトリ取り込みトークン** — _Project Settings → Telemetry Ingestion Keys_ から作成します。
 - OpenTelemetry のブラウザまたはモバイル SDK。
 
 ## OneUptime が RUM アプリケーションを識別する仕組み
 
-| 属性 | 必須 | 目的 |
-|---|---|---|
-| `service.name` | **はい** | アプリケーションの識別子（例: `storefront-web`） |
-| `browser.*` | Web の場合 | テレメトリをブラウザ RUM としてマークします |
-| `device.*` | モバイルの場合 | テレメトリをモバイル RUM としてマークします |
-| `telemetry.sdk.language` | いいえ | 例: `webjs`、`swift`。概要に表示されます |
+| 属性                     | 必須           | 目的                                             |
+| ------------------------ | -------------- | ------------------------------------------------ |
+| `service.name`           | **はい**       | アプリケーションの識別子（例: `storefront-web`） |
+| `browser.*`              | Web の場合     | テレメトリをブラウザ RUM としてマークします      |
+| `device.*`               | モバイルの場合 | テレメトリをモバイル RUM としてマークします      |
+| `telemetry.sdk.language` | いいえ         | 例: `webjs`、`swift`。概要に表示されます         |
 
 ## ブラウザ（OpenTelemetry Web）
 

@@ -9,18 +9,21 @@ Installieren Sie OneUptime als native Desktop-Anwendung auf macOS für nahtloses
 Safari bietet exzellente PWA-Integration mit nativen macOS-Funktionen.
 
 1. **OneUptime in Safari öffnen**
+
    - Safari-Browser starten
    - Zur URL Ihrer OneUptime-Instanz navigieren
    - Bei Ihrem OneUptime-Konto anmelden
    - Auf vollständiges Laden der Seite warten
 
 2. **PWA installieren**
+
    - Auf **Ablage** in der Menüleiste klicken
    - **„Zum Dock hinzufügen"** auswählen (macOS Sonoma+)
    - Oder nach dem **Installations-Symbol** in der Adressleiste suchen
    - Alternativ: **Ablage** → **„Zum Home-Bildschirm hinzufügen"** (älteres macOS)
 
 3. **Installation anpassen**
+
    - **App-Name**: Bei Wunsch ändern (Standard: OneUptime)
    - **Dock**: Zum Dock hinzufügen wählen
    - **Launchpad**: Für einfachen Zugriff zum Launchpad hinzufügen
@@ -35,17 +38,20 @@ Safari bietet exzellente PWA-Integration mit nativen macOS-Funktionen.
 Chrome bietet robuste PWA-Unterstützung mit exzellenter Desktop-Integration.
 
 1. **OneUptime in Chrome öffnen**
+
    - Google Chrome starten
    - Zur OneUptime-Instanz gehen
    - Angemeldet sein
    - Vollständiges Laden der Seite abwarten
 
 2. **Über Menü installieren**
+
    - Nach **Installations-Symbol** (⊞) in der Adressleiste suchen
    - Auf **„OneUptime installieren"** klicken
    - Oder **Chrome-Menü** → **Weitere Tools** → **Verknüpfung erstellen** verwenden
 
 3. **Installationsoptionen**
+
    - **„Als Fenster öffnen"** für natives App-Erlebnis aktivieren
    - App-Namen bei Bedarf anpassen
    - Auf **„Installieren"** oder **„Erstellen"** klicken
@@ -60,6 +66,7 @@ Chrome bietet robuste PWA-Unterstützung mit exzellenter Desktop-Integration.
 Edge bietet solide PWA-Unterstützung mit guter macOS-Integration.
 
 1. **OneUptime in Edge öffnen**
+
    - Microsoft Edge starten
    - Zur OneUptime-URL navigieren
    - Anmeldeprozess abschließen
@@ -73,13 +80,16 @@ Edge bietet solide PWA-Unterstützung mit guter macOS-Integration.
 ### Anpassungsoptionen
 
 ### Dock und Launchpad
+
 1. **Dock-Position**: OneUptime an bevorzugte Dock-Position ziehen
 2. **Dock-Größe**: Symbol in den Dock-Einstellungen skalieren
 3. **Launchpad-Organisation**: Monitoring-App-Ordner erstellen
 4. **Badge-Benachrichtigungen**: Incident-Anzahl auf dem Dock-Symbol anzeigen
 
 ### Menüleiste und Benachrichtigungen
+
 1. **Benachrichtigungszentrum**
+
    - Systemeinstellungen → Benachrichtigungen → OneUptime
    - Benachrichtigungsstile und -lieferung konfigurieren
    - Prioritätsstufen für verschiedene Incident-Typen festlegen
@@ -94,6 +104,7 @@ Edge bietet solide PWA-Unterstützung mit guter macOS-Integration.
 ### Installationsprobleme
 
 **„Zum Dock hinzufügen" in Safari nicht verfügbar:**
+
 ```
 Lösungen:
 1. macOS Sonoma (14.0) oder höher sicherstellen
@@ -104,6 +115,7 @@ Lösungen:
 ```
 
 **PWA installiert sich nicht oder stürzt ab:**
+
 ```
 Lösungen:
 1. macOS-Versionskompatibilität prüfen
@@ -115,6 +127,7 @@ Lösungen:
 ```
 
 **App erscheint nicht in Anwendungen:**
+
 ```
 Lösungen:
 1. Launchpad nach OneUptime-Symbol durchsuchen
@@ -127,6 +140,7 @@ Lösungen:
 ### Benachrichtigungsprobleme
 
 **macOS-Benachrichtigungen funktionieren nicht:**
+
 ```
 Lösungen:
 1. Systemeinstellungen → Benachrichtigungen → OneUptime
@@ -140,12 +154,15 @@ Lösungen:
 ## Deinstallation
 
 ### Vollständige Entfernung
+
 1. **Methode über Anwendungsordner**
+
    - Anwendungsordner öffnen
    - OneUptime finden
    - In den Papierkorb ziehen oder rechtsklicken → In Papierkorb legen
 
 2. **Dock-Methode**
+
    - Rechtsklick auf OneUptime im Dock
    - „Optionen" → „Aus Dock entfernen" wählen
    - Dann aus dem Anwendungsordner löschen
@@ -156,6 +173,7 @@ Lösungen:
    - **Safari**: Keine dedizierte Verwaltungsseite
 
 ### Saubere Deinstallation
+
 Alle zugehörigen Daten entfernen:
 
 ```bash
@@ -173,20 +191,24 @@ rm -rf ~/Library/Application\ Support/Microsoft\ Edge/Default/Web\ Applications
 ## Updates und Wartung
 
 ### Automatische Updates
+
 - OneUptime PWA aktualisiert sich automatisch bei Online-Verbindung
 - Keine App-Store-Updates erforderlich
 - Neue Funktionen sofort verfügbar
 - Kritische Updates werden sofort angewendet
 
 ### Wartungsplan
+
 Regelmäßige Wartung für optimale Leistung:
 
 **Wöchentlich:**
+
 - OneUptime-App neu starten
 - Browser-Cache bei Problemen leeren
 - Auf macOS-Updates prüfen
 
 **Monatlich:**
+
 - Speichernutzung prüfen und bei Bedarf bereinigen
 - Browser aktualisieren, falls keine automatischen Updates
 - Prüfen, ob Benachrichtigungseinstellungen noch funktionieren
@@ -194,7 +216,9 @@ Regelmäßige Wartung für optimale Leistung:
 ## Integration mit macOS-Funktionen
 
 ### Kurzbefehle-App-Integration
+
 Benutzerdefinierte Kurzbefehle für OneUptime erstellen:
+
 1. **Kurzbefehle**-App öffnen
 2. **Neuen Kurzbefehl** erstellen
 3. **„App öffnen"**-Aktion hinzufügen
@@ -202,6 +226,7 @@ Benutzerdefinierte Kurzbefehle für OneUptime erstellen:
 5. Siri für Sprachaktivierung hinzufügen
 
 ### Terminal-Integration
+
 OneUptime über Terminal verwalten:
 
 ```bash
@@ -221,12 +246,14 @@ oneuptime_status() {
 ## Sicherheit und Datenschutz
 
 ### macOS-Sicherheitsfunktionen
+
 1. **Gatekeeper**: Sicherstellen, dass PWA-Installationen aus vertrauenswürdigen Quellen stammen
 2. **System Integrity Protection**: Schützt Systemdateien
 3. **FileVault**: Festplatte für Datenschutz verschlüsseln
 4. **Schlüsselbund**: Sichere Anmeldedatenspeicherung
 
 ### Best Practices
+
 1. **Regelmäßige Updates**: macOS und Browser aktuell halten
 2. **Starke Authentifizierung**: Touch ID/Face ID verwenden, wenn verfügbar
 3. **Netzwerksicherheit**: VPN für Remote-Monitoring-Zugriff verwenden

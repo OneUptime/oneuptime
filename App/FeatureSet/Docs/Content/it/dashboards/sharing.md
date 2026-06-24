@@ -82,9 +82,12 @@ Il branding si applica solo quando la dashboard viene visualizzata pubblicamente
 Puoi incorporare una dashboard pubblica nel tuo sito con un iframe:
 
 ```html
-<iframe src="https://dashboard.acme.com/view"
-        width="100%" height="800"
-        frameborder="0"></iframe>
+<iframe
+  src="https://dashboard.acme.com/view"
+  width="100%"
+  height="800"
+  frameborder="0"
+></iframe>
 ```
 
 Se la dashboard ha una password master, i visitatori vedranno il prompt per la password all'interno dell'iframe.

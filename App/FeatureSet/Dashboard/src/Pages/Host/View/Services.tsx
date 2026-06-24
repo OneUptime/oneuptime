@@ -356,7 +356,7 @@ const HostServices: FunctionComponent<
     return <ErrorMessage message="Host not found." />;
   }
 
-  const noItemsMessage: string = `No Windows service metrics in the last ${SERVICE_LOOKBACK_MINUTES} minutes. Add the "windows_service" receiver to your OTel collector and include it in the metrics pipeline to see service status and startup mode here. The Documentation tab has a ready-to-paste config snippet.`;
+  const noItemsMessage: string = `No Windows service metrics in the last ${SERVICE_LOOKBACK_MINUTES} minutes. Service status comes from the "windows_service" receiver, which isn't in the upstream prebuilt collector (alpha, Windows-only). The easiest fix is to run the prebuilt OneUptime Host Collector, which already includes it — see the Documentation tab for the download and setup steps (or build your own with ocb).`;
 
   return (
     <Card

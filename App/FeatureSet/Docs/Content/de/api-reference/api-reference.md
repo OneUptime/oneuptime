@@ -6,7 +6,6 @@ OneUptime bietet eine umfassende REST API, mit der Sie Überwachungs-, Incident-
 
 Unsere API ist nach REST-Prinzipien aufgebaut und verwendet standardmäßige HTTP-Antwortcodes, Authentifizierung und Verben. Alle API-Endpunkte geben JSON-Antworten zurück.
 
-
 ### Authentifizierung
 
 Alle API-Anfragen erfordern eine Authentifizierung über API-Schlüssel. Sie können API-Schlüssel in Ihrem OneUptime-Dashboard unter Einstellungen > API-Schlüssel generieren.

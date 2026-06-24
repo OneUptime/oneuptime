@@ -123,15 +123,15 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 ##### 搭配 Proxy 設定
@@ -153,29 +153,29 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
-          # Proxy configuration (optional)
-          - name: HTTP_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: HTTPS_PROXY_URL
-            value: "http://proxy.example.com:8080"
-          - name: NO_PROXY
-            value: "localhost,.internal.example.com"
-          # For proxy with authentication, use:
-          # - name: HTTP_PROXY_URL
-          #   value: "http://username:password@proxy.example.com:8080"
-          # - name: HTTPS_PROXY_URL
-          #   value: "http://username:password@proxy.example.com:8080"
-          # - name: NO_PROXY
-          #   value: "localhost,.internal.example.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
+            # Proxy configuration (optional)
+            - name: HTTP_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: HTTPS_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: NO_PROXY
+              value: "localhost,.internal.example.com"
+            # For proxy with authentication, use:
+            # - name: HTTP_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: HTTPS_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: NO_PROXY
+            #   value: "localhost,.internal.example.com"
 ```
 
 接著執行以下指令：
@@ -191,11 +191,13 @@ kubectl apply -f oneuptime-probe.yaml
 探針支援以下環境變數：
 
 #### 必要變數
+
 - `PROBE_KEY` - 來自您 OneUptime 儀表板的探針金鑰
 - `PROBE_ID` - 來自您 OneUptime 儀表板的探針 ID
 - `ONEUPTIME_URL` - 您 OneUptime 執行個體的 URL（預設值：https://oneuptime.com）
 
 #### 選用變數
+
 - `HTTP_PROXY_URL` - 用於 HTTP 請求的 HTTP proxy 伺服器 URL
 - `HTTPS_PROXY_URL` - 用於 HTTPS 請求的 HTTP proxy 伺服器 URL
 - `NO_PROXY` - 應略過 proxy 的主機或網域，以逗號分隔
@@ -212,15 +214,18 @@ kubectl apply -f oneuptime-probe.yaml
 探針同時支援 HTTP 與 HTTPS proxy 伺服器。設定完成後，探針會將所有監控流量透過指定的 proxy 伺服器進行路由。您也可以提供以逗號分隔的 `NO_PROXY` 清單，讓內部主機或網路略過 proxy。
 
 **Proxy URL 格式：**
+
 ```
 http://[username:password@]proxy.server.com:port
 ```
 
 **範例：**
+
 - 基本 proxy：`http://proxy.example.com:8080`
 - 搭配驗證：`http://username:password@proxy.example.com:8080`
 
 **支援的功能：**
+
 - HTTP 與 HTTPS proxy 支援
 - Proxy 驗證（使用者名稱／密碼）
 - HTTP 與 HTTPS proxy 之間的自動容錯移轉

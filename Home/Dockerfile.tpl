@@ -77,7 +77,7 @@ EXPOSE 1444
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 # Clone blog repo (dev container runs as root).
-RUN cd /usr/src && git clone --depth 1 https://github.com/oneuptime/blog
+RUN cd /usr/src && git clone https://github.com/oneuptime/blog
 #Run the app
 CMD [ "npm", "run", "dev" ]
 {{ else }}
@@ -93,7 +93,7 @@ RUN chown 1000:1000 /usr/src
 USER node
 # Clone the blog as node so the runtime UpdateBlog `git pull` (runs as node) can
 # write into it — avoids a recursive chown of the blog's ~100k files.
-RUN cd /usr/src && git clone --depth 1 https://github.com/oneuptime/blog
+RUN cd /usr/src && git clone https://github.com/oneuptime/blog
 # Per-build metadata last so the heavy layers above stay cacheable across commits
 # and across the community + enterprise build passes.
 ARG GIT_SHA

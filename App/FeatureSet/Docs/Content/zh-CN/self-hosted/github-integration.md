@@ -12,6 +12,7 @@
 ### 第一步：创建 GitHub App
 
 1. 前往 GitHub 并导航到您的组织或个人设置：
+
    - **对于组织：** 前往 `https://github.com/organizations/YOUR_ORG/settings/apps`
    - **对于个人账号：** 前往 `https://github.com/settings/apps`
 
@@ -32,26 +33,26 @@
 
 **代码仓库权限：**
 
-| 权限 | 访问级别 | 用途 |
-|------|---------|------|
-| Contents | 读写 | 读取仓库文件，推送分支（AI Agent 必需） |
-| Pull requests | 读写 | 创建和管理 Pull Request |
-| Issues | 读写 | 读取 Issue 并发表评论 |
-| Commit statuses | 读取 | 检查构建/CI 状态 |
-| Actions | 读取 | 读取 GitHub Actions 工作流运行和日志 |
-| Metadata | 读取 | 基本仓库元数据（必需） |
+| 权限            | 访问级别 | 用途                                    |
+| --------------- | -------- | --------------------------------------- |
+| Contents        | 读写     | 读取仓库文件，推送分支（AI Agent 必需） |
+| Pull requests   | 读写     | 创建和管理 Pull Request                 |
+| Issues          | 读写     | 读取 Issue 并发表评论                   |
+| Commit statuses | 读取     | 检查构建/CI 状态                        |
+| Actions         | 读取     | 读取 GitHub Actions 工作流运行和日志    |
+| Metadata        | 读取     | 基本仓库元数据（必需）                  |
 
 **组织权限（与组织一起使用时）：**
 
-| 权限 | 访问级别 | 用途 |
-|------|---------|------|
-| Members | 读取 | 列出组织成员 |
+| 权限    | 访问级别 | 用途         |
+| ------- | -------- | ------------ |
+| Members | 读取     | 列出组织成员 |
 
 **账号权限：**
 
-| 权限 | 访问级别 | 用途 |
-|------|---------|------|
-| Email addresses | 读取 | 读取用户电子邮件以发送通知 |
+| 权限            | 访问级别 | 用途                       |
+| --------------- | -------- | -------------------------- |
+| Email addresses | 读取     | 读取用户电子邮件以发送通知 |
 
 ### 第三步：订阅 Webhook 事件
 
@@ -64,6 +65,7 @@ OneUptime 接收实时更新的事件，订阅以下 Webhook 事件：
 ### 第四步：设置安装访问权限
 
 在"此 GitHub App 可以安装在哪里？"下，选择：
+
 - **仅限此账号** - 用于私有/内部使用
 - **任何账号** - 如果您希望其他人安装您的应用
 
@@ -113,7 +115,7 @@ GITHUB_APP_WEBHOOK_SECRET=YOUR_WEBHOOK_SECRET
 ```yaml
 gitHubApp:
   id: "YOUR_APP_ID"
-  name: "YOUR_APP_NAME"  # 您的 GitHub App 的确切名称
+  name: "YOUR_APP_NAME" # 您的 GitHub App 的确切名称
   clientId: "YOUR_CLIENT_ID"
   clientSecret: "YOUR_CLIENT_SECRET"
   privateKey: "<BASE64_ENCODED_PRIVATE_KEY_CONTENT>"
@@ -143,43 +145,49 @@ gitHubApp:
 
 ## 环境变量参考
 
-| 变量 | 描述 | 是否必填 |
-|------|------|---------|
-| `GITHUB_APP_ID` | 来自您 GitHub App 设置的 App ID | 是 |
-| `GITHUB_APP_NAME` | 您的 GitHub App 的确切名称（用于安装 URL） | 是 |
-| `GITHUB_APP_CLIENT_ID` | 来自您 GitHub App 设置的 Client ID | 是 |
-| `GITHUB_APP_CLIENT_SECRET` | 您生成的客户端密钥 | 是 |
-| `GITHUB_APP_PRIVATE_KEY` | 私钥（.pem 文件）的内容 | 是 |
-| `GITHUB_APP_WEBHOOK_SECRET` | 用于验证 Webhook 负载的 Webhook 密钥 | 否（但推荐） |
+| 变量                        | 描述                                       | 是否必填     |
+| --------------------------- | ------------------------------------------ | ------------ |
+| `GITHUB_APP_ID`             | 来自您 GitHub App 设置的 App ID            | 是           |
+| `GITHUB_APP_NAME`           | 您的 GitHub App 的确切名称（用于安装 URL） | 是           |
+| `GITHUB_APP_CLIENT_ID`      | 来自您 GitHub App 设置的 Client ID         | 是           |
+| `GITHUB_APP_CLIENT_SECRET`  | 您生成的客户端密钥                         | 是           |
+| `GITHUB_APP_PRIVATE_KEY`    | 私钥（.pem 文件）的内容                    | 是           |
+| `GITHUB_APP_WEBHOOK_SECRET` | 用于验证 Webhook 负载的 Webhook 密钥       | 否（但推荐） |
 
 ## 故障排查
 
 ### 常见问题
 
 **安装 GitHub App 后未重定向回 OneUptime：**
+
 - 确保在 GitHub App 设置中将 **Setup URL** 配置为：`https://your-oneuptime-domain.com/api/github/auth/callback`
 - 前往您的 GitHub App 设置 > "安装后"部分，验证 Setup URL 是否正确设置
 - 还应勾选"更新时重定向"选项
 - 注意：Setup URL 与 Callback URL 不同——两者都应指向相同的 `/api/github/auth/callback` 端点
 
 **"GitHub App is not configured"错误：**
+
 - 确保设置了 `GITHUB_APP_CLIENT_ID` 环境变量
 - 设置环境变量后重启 OneUptime 服务器
 
 **"Invalid webhook signature"错误：**
+
 - 验证您的 `GITHUB_APP_WEBHOOK_SECRET` 与 GitHub 中配置的密钥是否匹配
 - 确保 Webhook URL 正确且可从互联网访问
 
 **"Failed to get installation access token"错误：**
+
 - 验证您的 `GITHUB_APP_PRIVATE_KEY` 格式是否正确
 - 检查私钥是否包含 BEGIN/END 标记
 - 确保 App ID 正确
 
 **安装后看不到代码仓库：**
+
 - 验证 GitHub App 是否有权访问您要连接的代码仓库
 - 检查 GitHub 中的安装权限（设置 > 应用程序 > 已安装的 GitHub 应用）
 
 **未收到 Webhook 事件：**
+
 - 确保您的 Webhook URL 可公开访问
 - 在应用设置中检查 GitHub App Webhook 传送日志
 - 验证 Webhook 密钥是否正确配置

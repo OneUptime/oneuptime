@@ -24,12 +24,12 @@ Vous construisez tout cela visuellement sur un canevas. Aucune programmation n'e
 
 ## Termes clés
 
-| Terme | Signification |
-| --- | --- |
-| **Workflow** | L'automatisation complète — un nom, un canevas et un interrupteur pour l'activer ou la désactiver. |
-| **Déclencheur** | Le premier bloc. Il décide quand le workflow s'exécute. Chaque workflow possède exactement un déclencheur. |
-| **Composant** | Un bloc d'action — envoie un message, effectue une requête, vérifie une condition. |
-| **Exécution** | Une exécution du workflow. Enregistrée avec les horodatages et la sortie de chaque bloc. |
+| Terme                | Signification                                                                                                    |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Workflow**         | L'automatisation complète — un nom, un canevas et un interrupteur pour l'activer ou la désactiver.               |
+| **Déclencheur**      | Le premier bloc. Il décide quand le workflow s'exécute. Chaque workflow possède exactement un déclencheur.       |
+| **Composant**        | Un bloc d'action — envoie un message, effectue une requête, vérifie une condition.                               |
+| **Exécution**        | Une exécution du workflow. Enregistrée avec les horodatages et la sortie de chaque bloc.                         |
 | **Variable globale** | Une valeur (comme une clé d'API) que vous enregistrez une seule fois et réutilisez dans n'importe quel workflow. |
 
 ## Où trouver les workflows dans OneUptime

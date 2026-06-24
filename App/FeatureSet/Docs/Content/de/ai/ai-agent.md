@@ -55,6 +55,7 @@ Globale KI-Agenten sind automatisch für alle Projekte verfügbar, sofern sie ni
 Für Organisationen, die KI-Agenten innerhalb ihrer eigenen Infrastruktur betreiben müssen (z. B. aus Sicherheits-, Compliance- oder Netzwerkzugangsanforderungen), unterstützt OneUptime selbst gehostete KI-Agenten.
 
 Selbst gehostete KI-Agenten:
+
 - Laufen innerhalb Ihres privaten Netzwerks
 - Können auf interne Ressourcen und Systeme zugreifen
 - Geben Ihnen vollständige Kontrolle über die Umgebung des Agenten
@@ -134,15 +135,15 @@ spec:
         app: oneuptime-ai-agent
     spec:
       containers:
-      - name: oneuptime-ai-agent
-        image: oneuptime/ai-agent:release
-        env:
-          - name: AI_AGENT_KEY
-            value: "<ai-agent-key>"
-          - name: AI_AGENT_ID
-            value: "<ai-agent-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-ai-agent
+          image: oneuptime/ai-agent:release
+          env:
+            - name: AI_AGENT_KEY
+              value: "<ai-agent-key>"
+            - name: AI_AGENT_ID
+              value: "<ai-agent-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 Konfiguration anwenden:
@@ -157,12 +158,11 @@ Der KI-Agent unterstützt die folgenden Umgebungsvariablen:
 
 #### Erforderliche Variablen
 
-| Variable | Beschreibung |
-|----------|-------------|
-| `AI_AGENT_KEY` | Der KI-Agentenschlüssel aus Ihrem OneUptime-Dashboard |
-| `AI_AGENT_ID` | Die KI-Agenten-ID aus Ihrem OneUptime-Dashboard |
+| Variable        | Beschreibung                                                      |
+| --------------- | ----------------------------------------------------------------- |
+| `AI_AGENT_KEY`  | Der KI-Agentenschlüssel aus Ihrem OneUptime-Dashboard             |
+| `AI_AGENT_ID`   | Die KI-Agenten-ID aus Ihrem OneUptime-Dashboard                   |
 | `ONEUPTIME_URL` | Die URL Ihrer OneUptime-Instanz (Standard: https://oneuptime.com) |
-
 
 ## Ihren KI-Agenten verifizieren
 

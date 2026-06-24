@@ -9,6 +9,10 @@ export default class AddUnitColumnToMetricsTable extends DataMigrationBase {
     super("AddUnitColumnToMetricsTable");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     await this.addUnitColumnToMetricsTable();
   }

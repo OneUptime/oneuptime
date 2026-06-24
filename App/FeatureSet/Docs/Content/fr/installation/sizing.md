@@ -10,11 +10,11 @@ Si vous exécutez plutôt l'installation Docker Compose sur un seul serveur, le 
 
 OneUptime nécessite trois magasins de données en production. Ils évoluent selon des entrées complètement différentes, alors dimensionnez-les indépendamment.
 
-| Magasin de données | Ce qu'il stocke | Ce qui détermine sa taille |
-| --- | --- | --- |
-| **ClickHouse** | Toute la télémétrie — logs, métriques, traces, exceptions, profils | **Débit d'ingestion × rétention** de la télémétrie. Cela représente ~95 % de votre stockage et le coût dominant. |
-| **PostgreSQL** | Configuration et état — moniteurs, incidents, alertes, utilisateurs, équipes, projets, workflows, pages de statut, tableaux de bord | **Nombre d'entités et historique**, et non le volume de télémétrie. Croît lentement. |
-| **Redis** | Cache, files de travail et sessions | **Profondeur des files et sessions actives**. Limité par la mémoire et modeste. Pas une source de vérité. |
+| Magasin de données | Ce qu'il stocke                                                                                                                     | Ce qui détermine sa taille                                                                                       |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **ClickHouse**     | Toute la télémétrie — logs, métriques, traces, exceptions, profils                                                                  | **Débit d'ingestion × rétention** de la télémétrie. Cela représente ~95 % de votre stockage et le coût dominant. |
+| **PostgreSQL**     | Configuration et état — moniteurs, incidents, alertes, utilisateurs, équipes, projets, workflows, pages de statut, tableaux de bord | **Nombre d'entités et historique**, et non le volume de télémétrie. Croît lentement.                             |
+| **Redis**          | Cache, files de travail et sessions                                                                                                 | **Profondeur des files et sessions actives**. Limité par la mémoire et modeste. Pas une source de vérité.        |
 
 Le stockage objet (S3/MinIO) **n'est pas** requis pour faire fonctionner OneUptime. Il n'est utilisé que de manière optionnelle pour les **sauvegardes** de base de données (via le plugin Barman de CloudNativePG pour PostgreSQL, ou `clickhouse-backup` pour ClickHouse). OneUptime ne hiérarchise pas la télémétrie vers le stockage objet — voir la section « Rétention et son impact sur le stockage » ci-dessous.
 
@@ -39,16 +39,16 @@ La compression dépend du signal :
 Un parc de **10 clusters**, chacun ~10 nœuds / ~100 pods à un niveau de verbosité INFO, produit environ **50–150 GB de logs bruts par cluster sur 30 jours** (≈ 1.7–5 GB/day par cluster). Sur l'ensemble du parc, en ajoutant les métriques et les traces et après compression, prévoyez environ **5–15 GB/day de télémétrie compressée**.
 
 | Rétention | Réplica unique | 2 réplicas + 30 % de marge |
-| --- | --- | --- |
-| 30 days | ~150–450 GB | **~0.4–1.2 TB** |
-| 90 days | ~0.45–1.35 TB | **~1.2–3.5 TB** |
+| --------- | -------------- | -------------------------- |
+| 30 days   | ~150–450 GB    | **~0.4–1.2 TB**            |
+| 90 days   | ~0.45–1.35 TB  | **~1.2–3.5 TB**            |
 
 Le stockage évolue **linéairement avec la rétention** — une fenêtre de 90 jours coûte ~3× une fenêtre de 30 jours.
 
 ### RAM et type de disque
 
 - **Utilisez du NVMe/SSD.** La télémétrie est intensive en écriture avec des lectures d'agrégation en rafales ; ClickHouse sur disque mécanique aura du mal.
-- **Donnez à ClickHouse une RAM généreuse.** Les requêtes d'agrégation sont gourmandes en mémoire. En règle générale, dimensionnez la RAM à une fraction significative (25–50 %) de votre jeu de données compressé *chaud* (récemment interrogé), avec un plancher pratique de 16 GB pour tout parc de production réel.
+- **Donnez à ClickHouse une RAM généreuse.** Les requêtes d'agrégation sont gourmandes en mémoire. En règle générale, dimensionnez la RAM à une fraction significative (25–50 %) de votre jeu de données compressé _chaud_ (récemment interrogé), avec un plancher pratique de 16 GB pour tout parc de production réel.
 - **Surveillez la cardinalité des métriques.** C'est le levier le plus important à la fois sur la RAM et le disque de ClickHouse. Imposez des conventions d'étiquettes à faible cardinalité à la couche de collecte et surveillez le nombre de séries actives.
 
 ## PostgreSQL — configuration et état
@@ -73,12 +73,12 @@ Choisissez le palier le plus proche de votre environnement comme point de dépar
 - **Moyen / Parc de production** — ~10 clusters, ~100 nœuds, 10–30 GB/day de télémétrie brute, rétention de 30–90 jours.
 - **Grand / Multi-parcs** — 50+ clusters, 500+ nœuds, 100+ GB/day de télémétrie brute, rétention de 90 jours.
 
-| | Petit / PoC | Moyen / Parc de production | Grand / Multi-parcs |
-| --- | --- | --- | --- |
-| **ClickHouse** | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe, **shardé** |
-| **PostgreSQL** | 2 vCPU / 4 GB / 50 GB SSD | 4 vCPU / 8 GB / 100 GB SSD | 8 vCPU / 16–32 GB / 250 GB SSD (+ PgBouncer) |
-| **Redis** | 1 vCPU / 2 GB | 2 vCPU / 4 GB | 4 vCPU / 8–16 GB |
-| **Rétention supposée** | 30 days | 30–90 days | 90 days |
+|                        | Petit / PoC                  | Moyen / Parc de production   | Grand / Multi-parcs                             |
+| ---------------------- | ---------------------------- | ---------------------------- | ----------------------------------------------- |
+| **ClickHouse**         | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe, **shardé** |
+| **PostgreSQL**         | 2 vCPU / 4 GB / 50 GB SSD    | 4 vCPU / 8 GB / 100 GB SSD   | 8 vCPU / 16–32 GB / 250 GB SSD (+ PgBouncer)    |
+| **Redis**              | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                |
+| **Rétention supposée** | 30 days                      | 30–90 days                   | 90 days                                         |
 
 Ces valeurs dimensionnent le **backend** de OneUptime. Les collecteurs OneUptime qui s'exécutent sur chaque cluster surveillé sont dimensionnés séparément — voir les paliers de dimensionnement de l'[Agent Kubernetes](/docs/telemetry/kubernetes-agent).
 

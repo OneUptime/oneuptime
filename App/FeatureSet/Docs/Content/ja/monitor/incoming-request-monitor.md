@@ -56,8 +56,8 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 ```javascript
 // Node.jsの例
-const https = require('https');
-https.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY');
+const https = require("https");
+https.get("https://oneuptime.com/heartbeat/YOUR_SECRET_KEY");
 ```
 
 ```python
@@ -74,12 +74,12 @@ requests.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY')
 
 ### 利用可能なチェックタイプ
 
-| チェックタイプ | 説明 |
-|------------|-------------|
-| 受信リクエスト | 時間ウィンドウ内にハートビートが受信されたか |
-| リクエスト本文 | ハートビートと共に送信されたリクエスト本文の内容 |
-| リクエストヘッダー | 特定のリクエストヘッダーの名前 |
-| リクエストヘッダー値 | 特定のリクエストヘッダーの値 |
+| チェックタイプ       | 説明                                             |
+| -------------------- | ------------------------------------------------ |
+| 受信リクエスト       | 時間ウィンドウ内にハートビートが受信されたか     |
+| リクエスト本文       | ハートビートと共に送信されたリクエスト本文の内容 |
+| リクエストヘッダー   | 特定のリクエストヘッダーの名前                   |
+| リクエストヘッダー値 | 特定のリクエストヘッダーの値                     |
 
 ### フィルタータイプ
 

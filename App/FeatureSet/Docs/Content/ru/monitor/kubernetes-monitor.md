@@ -32,25 +32,25 @@
 
 Выберите уровень, на котором мониторить ресурсы:
 
-| Область | Описание |
-|-------|-------------|
-| Cluster | Мониторинг всего кластера |
-| Namespace | Мониторинг ресурсов внутри определённого пространства имён |
-| Workload | Мониторинг определённого Deployment, StatefulSet, DaemonSet, Job или CronJob |
-| Node | Мониторинг определённого узла кластера |
-| Pod | Мониторинг определённого Pod |
+| Область   | Описание                                                                     |
+| --------- | ---------------------------------------------------------------------------- |
+| Cluster   | Мониторинг всего кластера                                                    |
+| Namespace | Мониторинг ресурсов внутри определённого пространства имён                   |
+| Workload  | Мониторинг определённого Deployment, StatefulSet, DaemonSet, Job или CronJob |
+| Node      | Мониторинг определённого узла кластера                                       |
+| Pod       | Мониторинг определённого Pod                                                 |
 
 ### Фильтры ресурсов
 
 Сузьте область с помощью опциональных фильтров:
 
-| Фильтр | Описание | Применимые области |
-|--------|-------------|-------------------|
-| Namespace | Пространство имён Kubernetes | Namespace, Workload, Pod |
-| Workload Type | deployment, statefulset, daemonset, job, cronjob | Workload |
-| Workload Name | Имя рабочей нагрузки | Workload |
-| Node Name | Имя узла | Node |
-| Pod Name | Имя Pod | Pod |
+| Фильтр        | Описание                                         | Применимые области       |
+| ------------- | ------------------------------------------------ | ------------------------ |
+| Namespace     | Пространство имён Kubernetes                     | Namespace, Workload, Pod |
+| Workload Type | deployment, statefulset, daemonset, job, cronjob | Workload                 |
+| Workload Name | Имя рабочей нагрузки                             | Workload                 |
+| Node Name     | Имя узла                                         | Node                     |
+| Pod Name      | Имя Pod                                          | Pod                      |
 
 ### Запросы метрик
 
@@ -77,60 +77,60 @@
 
 ### Метрики Pod
 
-| Метрика | Описание |
-|--------|-------------|
-| Pod CPU Usage | Потребление CPU подами |
-| Pod Memory Usage | Потребление памяти подами |
-| Pod Filesystem Usage | Использование диска подами |
-| Pod Network Receive/Transmit | Сетевой трафик |
-| Pod Phase | Текущая фаза Pod (Running, Pending, Failed и т.д.) |
+| Метрика                      | Описание                                           |
+| ---------------------------- | -------------------------------------------------- |
+| Pod CPU Usage                | Потребление CPU подами                             |
+| Pod Memory Usage             | Потребление памяти подами                          |
+| Pod Filesystem Usage         | Использование диска подами                         |
+| Pod Network Receive/Transmit | Сетевой трафик                                     |
+| Pod Phase                    | Текущая фаза Pod (Running, Pending, Failed и т.д.) |
 
 ### Метрики узлов
 
-| Метрика | Описание |
-|--------|-------------|
-| Node CPU Usage | Использование CPU на узел |
-| Node Memory Usage | Использование памяти на узел |
-| Node Filesystem Usage | Использование диска на узел |
-| Node Disk I/O | Операции чтения/записи |
-| Node Ready Condition | Готовность узла |
+| Метрика               | Описание                     |
+| --------------------- | ---------------------------- |
+| Node CPU Usage        | Использование CPU на узел    |
+| Node Memory Usage     | Использование памяти на узел |
+| Node Filesystem Usage | Использование диска на узел  |
+| Node Disk I/O         | Операции чтения/записи       |
+| Node Ready Condition  | Готовность узла              |
 
 ### Метрики контейнеров
 
-| Метрика | Описание |
-|--------|-------------|
-| Container Restarts | Количество перезапусков контейнеров |
-| Container CPU/Memory Limits | Лимиты ресурсов |
-| Container CPU/Memory Requests | Запросы ресурсов |
-| Container Ready Status | Готовность контейнеров |
+| Метрика                       | Описание                            |
+| ----------------------------- | ----------------------------------- |
+| Container Restarts            | Количество перезапусков контейнеров |
+| Container CPU/Memory Limits   | Лимиты ресурсов                     |
+| Container CPU/Memory Requests | Запросы ресурсов                    |
+| Container Ready Status        | Готовность контейнеров              |
 
 ### Метрики рабочих нагрузок
 
-| Метрика | Описание |
-|--------|-------------|
-| Deployment Available/Unavailable Replicas | Количество реплик |
-| DaemonSet Misscheduled Nodes | Проблемы планирования |
-| StatefulSet Ready Replicas | Количество готовых реплик |
-| Job Active/Failed/Succeeded Pods | Статус Job |
+| Метрика                                   | Описание                  |
+| ----------------------------------------- | ------------------------- |
+| Deployment Available/Unavailable Replicas | Количество реплик         |
+| DaemonSet Misscheduled Nodes              | Проблемы планирования     |
+| StatefulSet Ready Replicas                | Количество готовых реплик |
+| Job Active/Failed/Succeeded Pods          | Статус Job                |
 
 ## Критерии мониторинга
 
 ### Доступные типы проверок
 
-| Тип проверки | Описание |
-|------------|-------------|
+| Тип проверки | Описание                                          |
+| ------------ | ------------------------------------------------- |
 | Metric Value | Значение настроенного запроса метрики или формулы |
 
 ### Типы агрегации
 
-| Агрегация | Описание |
-|-------------|-------------|
-| Average | Среднее значение за временное окно |
-| Sum | Сумма всех значений |
-| Maximum Value | Наибольшее значение во временном окне |
-| Minimum Value | Наименьшее значение во временном окне |
-| All Values | Все значения должны соответствовать критериям |
-| Any Value | Хотя бы одно значение должно соответствовать |
+| Агрегация     | Описание                                      |
+| ------------- | --------------------------------------------- |
+| Average       | Среднее значение за временное окно            |
+| Sum           | Сумма всех значений                           |
+| Maximum Value | Наибольшее значение во временном окне         |
+| Minimum Value | Наименьшее значение во временном окне         |
+| All Values    | Все значения должны соответствовать критериям |
+| Any Value     | Хотя бы одно значение должно соответствовать  |
 
 ### Типы фильтров
 
@@ -140,20 +140,20 @@
 
 OneUptime предоставляет шаблоны для распространённых сценариев мониторинга Kubernetes:
 
-| Шаблон | Описание | Порог |
-|----------|-------------|-----------|
-| CrashLoopBackOff Detection | Счётчик перезапусков контейнера | > 5 перезапусков |
-| Pod Stuck in Pending | Pod в фазе Pending | > 0 Pod |
-| Node Not Ready | Состояние готовности узла | = 0 (не готов) |
-| High Node CPU | Использование CPU узла | > 90% |
-| High Node Memory | Использование памяти узла | > 85% |
-| Deployment Replica Mismatch | Недоступные реплики | > 0 реплик |
-| Job Failures | Неуспешные Pod в Job | > 0 ошибок |
-| etcd No Leader | Отсутствие лидера в кластере etcd | = 0 (нет лидера) |
-| API Server Throttling | Отклонённые запросы API | > 0 запросов |
-| Scheduler Backlog | Ожидающие Pod в scheduler | > 0 Pod |
-| High Node Disk Usage | Использование файловой системы узла | > 90% |
-| DaemonSet Unavailable | Misscheduled узлы | > 0 узлов |
+| Шаблон                      | Описание                            | Порог            |
+| --------------------------- | ----------------------------------- | ---------------- |
+| CrashLoopBackOff Detection  | Счётчик перезапусков контейнера     | > 5 перезапусков |
+| Pod Stuck in Pending        | Pod в фазе Pending                  | > 0 Pod          |
+| Node Not Ready              | Состояние готовности узла           | = 0 (не готов)   |
+| High Node CPU               | Использование CPU узла              | > 90%            |
+| High Node Memory            | Использование памяти узла           | > 85%            |
+| Deployment Replica Mismatch | Недоступные реплики                 | > 0 реплик       |
+| Job Failures                | Неуспешные Pod в Job                | > 0 ошибок       |
+| etcd No Leader              | Отсутствие лидера в кластере etcd   | = 0 (нет лидера) |
+| API Server Throttling       | Отклонённые запросы API             | > 0 запросов     |
+| Scheduler Backlog           | Ожидающие Pod в scheduler           | > 0 Pod          |
+| High Node Disk Usage        | Использование файловой системы узла | > 90%            |
+| DaemonSet Unavailable       | Misscheduled узлы                   | > 0 узлов        |
 
 ## Требования к настройке
 

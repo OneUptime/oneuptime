@@ -9,15 +9,14 @@
 ```javascript
 // Можно использовать модуль axios.
 
-await axios.get('https://api.example.com/');
+await axios.get("https://api.example.com/");
 
 // Документация Axios: https://axios-http.com/docs/intro
 
 return {
-    data: 'Hello World' // возвращайте любые нужные данные.
+  data: "Hello World", // возвращайте любые нужные данные.
 };
 ```
-
 
 ### Использование секретов монитора
 
@@ -46,9 +45,8 @@ let numberSecret = {{monitorSecrets.NumberSecret}};
 let booleanSecret = {{monitorSecrets.BooleanSecret}};
 
 // для проверки, что секрет получен корректно, можно использовать console.log
-console.log(stringSecret); 
+console.log(stringSecret);
 ```
-
 
 ### Пользовательские метрики
 
@@ -65,30 +63,32 @@ oneuptime.captureMetric(name, value, attributes);
 #### Пример
 
 ```javascript
-const response = await axios.get('https://api.example.com/health');
+const response = await axios.get("https://api.example.com/health");
 
 // Запись простой метрики
-oneuptime.captureMetric('api.response.time', response.data.latency);
+oneuptime.captureMetric("api.response.time", response.data.latency);
 
 // Запись метрики с атрибутами
-oneuptime.captureMetric('api.queue.depth', response.data.queueDepth, {
-    region: 'us-east-1',
-    environment: 'production'
+oneuptime.captureMetric("api.queue.depth", response.data.queueDepth, {
+  region: "us-east-1",
+  environment: "production",
 });
 
 return {
-    data: response.data
+  data: response.data,
 };
 ```
 
 После записи метрики отображаются в обозревателе метрик под именами вида `custom.monitor.api.response.time`. Их можно добавлять на графики панелей управления, настраивать оповещения и фильтровать по монитору, зонду или любым пользовательским атрибутам.
 
 **Ограничения:**
+
 - Не более 100 метрик за одно выполнение скрипта.
 - Длина имени метрики — не более 200 символов.
 - Значения должны быть числовыми.
 
 ### Доступные в скрипте модули
+
 - `axios`: модуль для выполнения HTTP-запросов. Это основанный на промисах HTTP-клиент для браузера и Node.js.
 - `crypto`: модуль для выполнения криптографических операций. Встроенный модуль Node.js, предоставляющий криптографическую функциональность, включая обёртки для хеширования, HMAC, шифрования/расшифровки OpenSSL.
 - `console.log`: модуль для вывода данных в консоль. Полезен для отладки.

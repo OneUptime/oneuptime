@@ -21,7 +21,7 @@ Fluentd unterstützt hunderte von Datenquellen und Sie können Logs aus jeder di
 - Java
 - PHP
 - Go
-- Rust 
+- Rust
 
 und viele mehr.
 
@@ -41,24 +41,24 @@ Sie können die folgende Konfiguration verwenden, um die Telemetriedaten an die 
 Ersetzen Sie `YOUR_SERVICE_TOKEN` durch das in der vorherigen Schritt erstellte Token. Ersetzen Sie auch `YOUR_SERVICE_NAME` durch den Namen Ihres Dienstes. Der Dienstname kann ein beliebiger Name sein. Wenn der Dienst in OneUptime nicht existiert, wird er automatisch erstellt.
 
 ```yaml
-# Alle Muster abgleichen 
+# Alle Muster abgleichen
 <match **>
-  @type http
+@type http
 
-  endpoint https://oneuptime.com/fluentd/logs
-  open_timeout 2
+endpoint https://oneuptime.com/fluentd/logs
+open_timeout 2
 
-  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
+headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
-  content_type application/json
-  json_array true
+content_type application/json
+json_array true
 
-  <format>
-    @type json
-  </format>
-  <buffer>
-    flush_interval 10s
-  </buffer>
+<format>
+@type json
+</format>
+<buffer>
+flush_interval 10s
+</buffer>
 </match>
 ```
 

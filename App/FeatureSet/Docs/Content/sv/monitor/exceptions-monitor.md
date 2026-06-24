@@ -28,20 +28,20 @@ Välj en eller flera tjänster att övervaka undantag från. Tjänster måste sk
 
 ### Undantagsfilter
 
-| Filter | Beskrivning | Obligatorisk |
-|--------|-------------|--------------|
-| Undantagstyper | Filtrera efter undantagstypnamn (t.ex. `NullPointerException`, `TypeError`) | Nej |
-| Meddelande | Textsökning i undantagsmeddelanden | Nej |
-| Inkludera lösta | Inkludera undantag som har markerats som lösta (standard: false) | Nej |
-| Inkludera arkiverade | Inkludera undantag som har arkiverats (standard: false) | Nej |
-| Tidsfönster | Hur långt bakåt man söker efter undantag (i sekunder, standard: 60) | Nej |
+| Filter               | Beskrivning                                                                 | Obligatorisk |
+| -------------------- | --------------------------------------------------------------------------- | ------------ |
+| Undantagstyper       | Filtrera efter undantagstypnamn (t.ex. `NullPointerException`, `TypeError`) | Nej          |
+| Meddelande           | Textsökning i undantagsmeddelanden                                          | Nej          |
+| Inkludera lösta      | Inkludera undantag som har markerats som lösta (standard: false)            | Nej          |
+| Inkludera arkiverade | Inkludera undantag som har arkiverats (standard: false)                     | Nej          |
+| Tidsfönster          | Hur långt bakåt man söker efter undantag (i sekunder, standard: 60)         | Nej          |
 
 ## Övervakningskriterier
 
 ### Tillgängliga kontrolltyper
 
-| Kontrolltyp | Beskrivning |
-|------------|-------------|
+| Kontrolltyp    | Beskrivning                                             |
+| -------------- | ------------------------------------------------------- |
 | Undantagsantal | Antalet undantag som matchar dina filter i tidsfönstret |
 
 ### Filtertyper

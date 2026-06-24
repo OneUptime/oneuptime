@@ -28,20 +28,20 @@ Wählen Sie einen oder mehrere Dienste aus, von denen Ausnahmen überwacht werde
 
 ### Ausnahmenfilter
 
-| Filter | Beschreibung | Erforderlich |
-|--------|-------------|----------|
-| Ausnahmetypen | Nach Ausnahmetypnamen filtern (z. B. `NullPointerException`, `TypeError`) | Nein |
-| Nachricht | Textsuche in Ausnahmemeldungen | Nein |
-| Gelöste einschließen | Gelöste Ausnahmen einschließen (Standard: false) | Nein |
-| Archivierte einschließen | Archivierte Ausnahmen einschließen (Standard: false) | Nein |
-| Zeitfenster | Wie weit zurück nach Ausnahmen gesucht wird (in Sekunden, Standard: 60) | Nein |
+| Filter                   | Beschreibung                                                              | Erforderlich |
+| ------------------------ | ------------------------------------------------------------------------- | ------------ |
+| Ausnahmetypen            | Nach Ausnahmetypnamen filtern (z. B. `NullPointerException`, `TypeError`) | Nein         |
+| Nachricht                | Textsuche in Ausnahmemeldungen                                            | Nein         |
+| Gelöste einschließen     | Gelöste Ausnahmen einschließen (Standard: false)                          | Nein         |
+| Archivierte einschließen | Archivierte Ausnahmen einschließen (Standard: false)                      | Nein         |
+| Zeitfenster              | Wie weit zurück nach Ausnahmen gesucht wird (in Sekunden, Standard: 60)   | Nein         |
 
 ## Überwachungskriterien
 
 ### Verfügbare Prüftypen
 
-| Prüftyp | Beschreibung |
-|------------|-------------|
+| Prüftyp      | Beschreibung                                                           |
+| ------------ | ---------------------------------------------------------------------- |
 | Ausnahmezahl | Die Anzahl der Ausnahmen, die Ihren Filtern im Zeitfenster entsprechen |
 
 ### Filtertypen

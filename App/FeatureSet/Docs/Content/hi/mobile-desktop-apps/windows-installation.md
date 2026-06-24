@@ -2,7 +2,6 @@
 
 व्यापक monitoring और incident management के लिए OneUptime को Windows पर desktop application के रूप में install करें।
 
-
 ## Installation Methods
 
 ### Method 1: Microsoft Edge (अनुशंसित)
@@ -10,17 +9,20 @@
 Edge native features के साथ सबसे अच्छा Windows PWA integration प्रदान करता है।
 
 1. **OneUptime को Edge में खोलें**
+
    - Microsoft Edge browser launch करें
    - अपने OneUptime instance URL पर जाएं
    - अपने OneUptime account में sign in करें
    - page पूरी तरह load होने का इंतज़ार करें
 
 2. **App Install करें**
+
    - address bar में **install icon** (⊞) देखें
    - **"Install OneUptime"** button पर क्लिक करें
    - या **three-dot menu** → **Apps** → **Install this site as an app** पर क्लिक करें
 
 3. **Installation Customize करें**
+
    - **App Name**: यदि चाहें तो modify करें (default: OneUptime)
    - **Start Menu**: Start Menu में add करने का विकल्प
    - **Taskbar**: taskbar पर pin करने का विकल्प
@@ -36,17 +38,20 @@ Edge native features के साथ सबसे अच्छा Windows PWA i
 Chrome rich desktop integration के साथ उत्कृष्ट PWA support प्रदान करता है।
 
 1. **OneUptime को Chrome में खोलें**
+
    - Google Chrome launch करें
    - अपने OneUptime instance पर जाएं
    - सुनिश्चित करें कि signed in हैं
    - page पूरी तरह load होने दें
 
 2. **Address Bar के माध्यम से Install करें**
+
    - address bar में **install icon** (⊞) देखें
    - **"Install OneUptime"** पर क्लिक करें
    - या menu उपयोग करें: **three dots** → **More tools** → **Create shortcut**
 
 3. **Installation Options**
+
    - app-like experience के लिए **"Open as window"** चेक करें
    - यदि चाहें तो app का नाम customize करें
    - **"Install"** या **"Create"** पर क्लिक करें
@@ -61,6 +66,7 @@ Chrome rich desktop integration के साथ उत्कृष्ट PWA su
 Firefox basic desktop integration के साथ PWA installation का समर्थन करता है।
 
 1. **OneUptime को Firefox में खोलें**
+
    - Firefox browser launch करें
    - OneUptime URL पर जाएं
    - sign-in process पूरी करें
@@ -70,15 +76,17 @@ Firefox basic desktop integration के साथ PWA installation का स�
    - या **menu** → **Install** पर क्लिक करें
    - यदि उपलब्ध हो, **"Add to Home Screen"** equivalent पर क्लिक करें
 
-
 ### Startup Configuration
+
 1. **Auto-Start**: OneUptime को Windows के साथ start करने के लिए configure करें
    - taskbar पर right-click करें → Task Manager → Startup
    - यदि चाहें तो OneUptime सक्षम करें
 2. **Default Size**: पसंदीदा window size और position सेट करें
 
 ### Notification Settings
+
 1. **Windows Notifications**
+
    - Settings → System → Notifications & actions
    - OneUptime खोजें और alert preferences configure करें
    - incidents के लिए banner notifications सक्षम करें
@@ -93,6 +101,7 @@ Firefox basic desktop integration के साथ PWA installation का स�
 ### Installation संबंधी समस्याएं
 
 **Install button नहीं दिख रहा:**
+
 ```
 Solutions:
 1. सुनिश्चित करें कि आप Edge या Chrome उपयोग कर रहे हैं (अनुशंसित browsers)
@@ -104,6 +113,7 @@ Solutions:
 ```
 
 **Installation fail या crash होती है:**
+
 ```
 Solutions:
 1. browser को administrator के रूप में चलाएं
@@ -115,6 +125,7 @@ Solutions:
 ```
 
 **App Start Menu में नहीं दिख रहा:**
+
 ```
 Solutions:
 1. Windows search में "OneUptime" खोजें
@@ -127,6 +138,7 @@ Solutions:
 ### Notification संबंधी समस्याएं
 
 **Windows notifications काम नहीं कर रहीं:**
+
 ```
 Solutions:
 1. Windows Settings → System → Notifications & actions
@@ -139,12 +151,15 @@ Solutions:
 ## Uninstallation
 
 ### पूर्ण Removal
+
 1. **Windows Settings Method**
+
    - Settings → Apps → Apps & features
    - "OneUptime" खोजें
    - क्लिक करें और "Uninstall" चुनें
 
 2. **Browser Method**
+
    - Edge/Chrome खोलें
    - edge://apps/ या chrome://apps/ पर जाएं
    - OneUptime खोजें
@@ -155,10 +170,10 @@ Solutions:
    - "Uninstall" चुनें
    - removal confirm करें
 
-
 ## Updates और Maintenance
 
 ### Automatic Updates
+
 - OneUptime PWA online होने पर स्वचालित रूप से update होता है
 - कोई manual intervention आवश्यक नहीं
 - restart पर Updates तुरंत लागू

@@ -14,8 +14,7 @@ Sobald Sie ein Token erstellt haben, klicken Sie auf „Anzeigen", um das Token 
 
 ![Service anzeigen](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
-### Schritt 2 
+### Schritt 2
 
 #### Telemetrie-Dienst in Ihrer Anwendung konfigurieren.
 
@@ -35,17 +34,15 @@ Wir verwenden OpenTelemetry zum Sammeln von Anwendungs-Logs. OneUptime unterstü
 - [.NET / C#](https://opentelemetry.io/docs/instrumentation/net/)
 - [Swift](https://opentelemetry.io/docs/instrumentation/swift/)
 
-
 **Integration mit OneUptime**
 
 Sobald Sie den Telemetrie-Dienst in Ihrer Anwendung konfiguriert haben, können Sie durch Setzen der folgenden Umgebungsvariablen mit OneUptime integrieren.
 
-| Umgebungsvariable | Wert |
-| --- | --- |
-| OTEL_EXPORTER_OTLP_HEADERS | x-oneuptime-token=YOUR_ONEUPTIME_SERVICE_TOKEN |
-| OTEL_EXPORTER_OTLP_ENDPOINT | https://oneuptime.com/otlp |
-| OTEL_SERVICE_NAME | NAME_OF_YOUR_SERVICE |
-
+| Umgebungsvariable           | Wert                                           |
+| --------------------------- | ---------------------------------------------- |
+| OTEL_EXPORTER_OTLP_HEADERS  | x-oneuptime-token=YOUR_ONEUPTIME_SERVICE_TOKEN |
+| OTEL_EXPORTER_OTLP_ENDPOINT | https://oneuptime.com/otlp                     |
+| OTEL_SERVICE_NAME           | NAME_OF_YOUR_SERVICE                           |
 
 **Beispiel**
 
@@ -55,13 +52,11 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=https://oneuptime.com/otlp
 export OTEL_SERVICE_NAME=my-service
 ```
 
-
 **Selbst gehostetes OneUptime**
 
 Wenn Sie OneUptime selbst hosten, kann dies auf Ihren selbst gehosteten OpenTelemetry Collector-Endpunkt geändert werden (z. B.: `http(s)://YOUR-ONEUPTIME-HOST/otlp`)
 
 Sobald Sie Ihre Anwendung ausführen, sollten Sie die Logs auf der OneUptime-Telemetrie-Dienst-Seite sehen. Wenden Sie sich bitte an support@oneuptime.com, wenn Sie Hilfe benötigen.
-
 
 #### OpenTelemetry Collector verwenden
 
@@ -80,7 +75,6 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 exporters:
-
   # Export über HTTP
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"

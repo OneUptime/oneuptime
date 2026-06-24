@@ -28,18 +28,18 @@ Selecciona uno o más servicios desde los que monitorear perfiles. Los servicios
 
 ### Filtros de perfiles
 
-| Filtro | Descripción | Requerido |
-|--------|-------------|----------|
-| Tipos de perfil | Filtra por nombres de tipos de perfil (por ejemplo, CPU, memoria, goroutines) | No |
-| Atributos | Pares clave-valor para filtrar en atributos de perfil personalizados | No |
-| Ventana de tiempo | Hasta qué punto atrás buscar perfiles (en segundos, predeterminado: 60) | No |
+| Filtro            | Descripción                                                                   | Requerido |
+| ----------------- | ----------------------------------------------------------------------------- | --------- |
+| Tipos de perfil   | Filtra por nombres de tipos de perfil (por ejemplo, CPU, memoria, goroutines) | No        |
+| Atributos         | Pares clave-valor para filtrar en atributos de perfil personalizados          | No        |
+| Ventana de tiempo | Hasta qué punto atrás buscar perfiles (en segundos, predeterminado: 60)       | No        |
 
 ## Criterios de monitoreo
 
 ### Tipos de verificación disponibles
 
-| Tipo de verificación | Descripción |
-|------------|-------------|
+| Tipo de verificación | Descripción                                                                 |
+| -------------------- | --------------------------------------------------------------------------- |
 | Recuento de perfiles | El número de perfiles que coinciden con tus filtros en la ventana de tiempo |
 
 ### Tipos de filtro

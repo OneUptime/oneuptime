@@ -113,6 +113,7 @@ flowchart TB
 ```
 
 ## Qué muestra esto
+
 - Los usuarios finales acceden a OneUptime a través del Ingreso de tu clúster (NGINX), que enruta a la UI y la API.
 - Los servicios principales leen/escriben el estado en PostgreSQL, Redis y ClickHouse.
 - Las sondas pueden ejecutarse dentro de tu clúster (recomendado) y/o en otro lugar de tu red. Pueden monitorear:

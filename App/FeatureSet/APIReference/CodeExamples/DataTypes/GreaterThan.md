@@ -1,8 +1,8 @@
 {
-    "query": {
-        "age": {
-            "_type": "GreaterThan",
-            "value": 10
-        }
-    }
+"query": {
+"age": {
+"\_type": "GreaterThan",
+"value": 10
+}
+}
 }

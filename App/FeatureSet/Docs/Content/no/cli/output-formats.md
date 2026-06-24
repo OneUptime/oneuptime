@@ -20,6 +20,7 @@ oneuptime incident list
 ```
 
 Tabelformat-atferd:
+
 - Velger opptil 6 kolonner, prioritert: `_id`, `name`, `title`, `createdAt`, `updatedAt`
 - Avkorter verdier lengre enn 60 tegn med `...`
 - Bruker fargekodede overskrifter (deaktiver med `--no-color`)
@@ -72,9 +73,9 @@ NO_COLOR=1 oneuptime incident list
 
 ## Spesielle utdatatilfeller
 
-| Scenario | Utdata |
-|----------|--------|
-| Tomt resultatsett | `"No results found."` |
-| Ingen data returnert | `"No data returned."` |
+| Scenario                     | Utdata                    |
+| ---------------------------- | ------------------------- |
+| Tomt resultatsett            | `"No results found."`     |
+| Ingen data returnert         | `"No data returned."`     |
 | Enkelt objekt (f.eks. `get`) | Nøkkel-verdi-tabellformat |
-| `count`-kommando | Enkel numerisk verdi |
+| `count`-kommando             | Enkel numerisk verdi      |

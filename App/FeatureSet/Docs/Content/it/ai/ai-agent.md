@@ -55,6 +55,7 @@ Gli Agenti AI Globali sono automaticamente disponibili per tutti i progetti, a m
 Per le organizzazioni che devono eseguire agenti AI all'interno della propria infrastruttura (ad esempio per requisiti di sicurezza, conformità o accesso alla rete), OneUptime supporta agenti AI self-hosted.
 
 Gli agenti AI self-hosted:
+
 - Vengono eseguiti nella tua rete privata
 - Possono accedere a risorse e sistemi interni
 - Ti offrono il pieno controllo sull'ambiente dell'agente
@@ -134,15 +135,15 @@ spec:
         app: oneuptime-ai-agent
     spec:
       containers:
-      - name: oneuptime-ai-agent
-        image: oneuptime/ai-agent:release
-        env:
-          - name: AI_AGENT_KEY
-            value: "<ai-agent-key>"
-          - name: AI_AGENT_ID
-            value: "<ai-agent-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-ai-agent
+          image: oneuptime/ai-agent:release
+          env:
+            - name: AI_AGENT_KEY
+              value: "<ai-agent-key>"
+            - name: AI_AGENT_ID
+              value: "<ai-agent-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 Applica la configurazione:
@@ -157,12 +158,11 @@ L'agente AI supporta le seguenti variabili d'ambiente:
 
 #### Variabili Obbligatorie
 
-| Variabile | Descrizione |
-|----------|-------------|
-| `AI_AGENT_KEY` | La chiave dell'agente AI dalla dashboard di OneUptime |
-| `AI_AGENT_ID` | L'ID dell'agente AI dalla dashboard di OneUptime |
+| Variabile       | Descrizione                                                            |
+| --------------- | ---------------------------------------------------------------------- |
+| `AI_AGENT_KEY`  | La chiave dell'agente AI dalla dashboard di OneUptime                  |
+| `AI_AGENT_ID`   | L'ID dell'agente AI dalla dashboard di OneUptime                       |
 | `ONEUPTIME_URL` | L'URL della tua istanza OneUptime (predefinito: https://oneuptime.com) |
-
 
 ## Verifica del tuo Agente AI
 

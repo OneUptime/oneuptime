@@ -65,11 +65,11 @@ Search the trigger palette by name to find the one you want.
 
 ## Which trigger should I use?
 
-| If you want to… | Pick |
-| --- | --- |
-| Click a button to run the workflow | **Manual** |
-| Run on a repeating schedule | **Schedule** |
-| Have another system push data in | **Webhook** |
+| If you want to…                     | Pick                |
+| ----------------------------------- | ------------------- |
+| Click a button to run the workflow  | **Manual**          |
+| Run on a repeating schedule         | **Schedule**        |
+| Have another system push data in    | **Webhook**         |
 | React to something inside OneUptime | **OneUptime event** |
 
 A workflow can only have one trigger. If you need two ways to start the same automation, build the shared logic in one workflow and call it from two thin "wrapper" workflows using the **Execute Workflow** component.

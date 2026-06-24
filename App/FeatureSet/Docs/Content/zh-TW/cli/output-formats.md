@@ -20,6 +20,7 @@ oneuptime incident list
 ```
 
 Table 格式的行為：
+
 - 最多選取 6 個欄位，並優先採用：`_id`、`name`、`title`、`createdAt`、`updatedAt`
 - 將超過 60 個字元的值以 `...` 截斷
 - 使用以顏色標示的標頭（可透過 `--no-color` 停用）
@@ -72,9 +73,9 @@ NO_COLOR=1 oneuptime incident list
 
 ## 特殊輸出情況
 
-| 情境 | 輸出 |
-|----------|--------|
-| 結果集為空 | `"No results found."` |
-| 未傳回任何資料 | `"No data returned."` |
-| 單一物件（例如 `get`） | 鍵值表格格式 |
-| `count` 指令 | 純數值 |
+| 情境                   | 輸出                  |
+| ---------------------- | --------------------- |
+| 結果集為空             | `"No results found."` |
+| 未傳回任何資料         | `"No data returned."` |
+| 單一物件（例如 `get`） | 鍵值表格格式          |
+| `count` 指令           | 純數值                |

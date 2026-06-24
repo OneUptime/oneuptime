@@ -4,21 +4,21 @@ Hver gang en arbeidsflyt kjører, lagrer OneUptime et register over hva som skje
 
 ## Hvor du finner dem
 
-| Side | Hva du ser |
-| --- | --- |
+| Side                                   | Hva du ser                                                                                |
+| -------------------------------------- | ----------------------------------------------------------------------------------------- |
 | **Arbeidsflyter → Kjøringer & logger** | Hver kjøring fra hver arbeidsflyt i prosjektet. Filtrer etter arbeidsflyt, status og tid. |
-| **Arbeidsflyt → Logger-fanen** | Bare kjøringene av denne ene arbeidsflyten. |
-| **En enkelt kjøring** | Én eksekvering, med utdata fra hver blokk. |
+| **Arbeidsflyt → Logger-fanen**         | Bare kjøringene av denne ene arbeidsflyten.                                               |
+| **En enkelt kjøring**                  | Én eksekvering, med utdata fra hver blokk.                                                |
 
 ## Kjøringsstatuser
 
-| Status | Hva det betyr |
-| --- | --- |
-| **Planlagt** | Triggeren ble utløst og kjøringen er i ferd med å starte. Tar vanligvis bare en brøkdel av et sekund. |
-| **Kjører** | Arbeidsflyten er i gang. Langvarige blokker holder en kjøring i denne tilstanden. |
-| **Suksess** | Hver blokk som kjørte ble ferdig uten feil. (Å ta en **feil**-gren med vilje regnes fortsatt som suksess — selve arbeidsflyten feilet ikke.) |
-| **Feil** | En blokk feilet og det var ingen **feil**-bane koblet til for å håndtere det. Kjøringen stoppet der. |
-| **Tidsavbrudd** | Kjøringen kjørte lenger enn tillatt. Se [Konfigurasjon & sikkerhet](/docs/workflows/configuration). |
+| Status          | Hva det betyr                                                                                                                                |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Planlagt**    | Triggeren ble utløst og kjøringen er i ferd med å starte. Tar vanligvis bare en brøkdel av et sekund.                                        |
+| **Kjører**      | Arbeidsflyten er i gang. Langvarige blokker holder en kjøring i denne tilstanden.                                                            |
+| **Suksess**     | Hver blokk som kjørte ble ferdig uten feil. (Å ta en **feil**-gren med vilje regnes fortsatt som suksess — selve arbeidsflyten feilet ikke.) |
+| **Feil**        | En blokk feilet og det var ingen **feil**-bane koblet til for å håndtere det. Kjøringen stoppet der.                                         |
+| **Tidsavbrudd** | Kjøringen kjørte lenger enn tillatt. Se [Konfigurasjon & sikkerhet](/docs/workflows/configuration).                                          |
 
 ## Lese en kjøring
 

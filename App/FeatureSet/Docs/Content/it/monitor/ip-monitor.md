@@ -31,11 +31,11 @@ Inserire l'indirizzo IPv4 o IPv6 da monitorare (ad es. `192.168.1.1` o `2001:db8
 
 ### Tipi di Controllo Disponibili
 
-| Tipo di Controllo | Descrizione |
-|------------|-------------|
-| È Online | Se l'indirizzo IP è raggiungibile |
-| Tempo di Risposta (in ms) | Tempo di risposta in millisecondi |
-| Richiesta Timeout | Se la richiesta è andata in timeout |
+| Tipo di Controllo         | Descrizione                         |
+| ------------------------- | ----------------------------------- |
+| È Online                  | Se l'indirizzo IP è raggiungibile   |
+| Tempo di Risposta (in ms) | Tempo di risposta in millisecondi   |
+| Richiesta Timeout         | Se la richiesta è andata in timeout |
 
 ### Tipi di Filtro
 

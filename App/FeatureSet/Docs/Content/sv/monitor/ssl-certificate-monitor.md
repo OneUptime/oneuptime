@@ -32,16 +32,16 @@ Du kan konfigurera kriterier för att avgöra när din certifikatstatus anses va
 
 ### Tillgängliga kontrolltyper
 
-| Kontrolltyp | Beskrivning |
-|------------|-------------|
-| Är online | Om servern är nåbar |
-| Är giltigt certifikat | Om certifikatet är giltigt (inte utgånget, inte självsignerat) |
-| Är självsignerat certifikat | Om certifikatet är självsignerat |
-| Är utgånget certifikat | Om certifikatet har löpt ut |
-| Är inte ett giltigt certifikat | Om certifikatet är ogiltigt |
-| Löper ut om timmar | Antal timmar tills certifikatet löper ut |
-| Löper ut om dagar | Antal dagar tills certifikatet löper ut |
-| Är förfrågningstimeout | Om anslutningen fick timeout |
+| Kontrolltyp                    | Beskrivning                                                    |
+| ------------------------------ | -------------------------------------------------------------- |
+| Är online                      | Om servern är nåbar                                            |
+| Är giltigt certifikat          | Om certifikatet är giltigt (inte utgånget, inte självsignerat) |
+| Är självsignerat certifikat    | Om certifikatet är självsignerat                               |
+| Är utgånget certifikat         | Om certifikatet har löpt ut                                    |
+| Är inte ett giltigt certifikat | Om certifikatet är ogiltigt                                    |
+| Löper ut om timmar             | Antal timmar tills certifikatet löper ut                       |
+| Löper ut om dagar              | Antal dagar tills certifikatet löper ut                        |
+| Är förfrågningstimeout         | Om anslutningen fick timeout                                   |
 
 ### Filtertyper
 

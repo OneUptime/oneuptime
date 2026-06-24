@@ -809,6 +809,15 @@ export default class Profile extends AnalyticsBaseModel {
       sortKeys: ["projectId", "startTime", "primaryEntityId", "profileType"],
       primaryKeys: ["projectId", "startTime", "primaryEntityId", "profileType"],
       partitionKey: "toYYYYMMDD(startTime)",
+      /*
+       * Shard by (projectId, primaryEntityId, startTime). All three are
+       * non-nullable. Without startTime, a single heavily-profiled service
+       * would pile all its profiles onto one shard; the high-entropy startTime
+       * spreads them evenly (same reasoning as Log). A profile's samples live in
+       * ProfileSample (sharded by profileId), so co-locating Profile rows by
+       * service buys little — even spread wins here.
+       */
+      shardingKey: "cityHash64(projectId, primaryEntityId, startTime)",
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",

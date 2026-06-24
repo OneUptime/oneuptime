@@ -113,6 +113,7 @@ flowchart TB
 ```
 
 ## Hvad dette viser
+
 - Slutbrugere tilgår OneUptime via din klynges indgang (NGINX), som dirigerer til UI'en og API'en.
 - Kernetjenester læser/skriver tilstand til PostgreSQL, Redis og ClickHouse.
 - Prober kan køre inde i din klynge (anbefalet) og/eller andre steder på dit netværk. De kan overvåge:

@@ -32,16 +32,16 @@ Você pode configurar critérios para determinar quando o status do seu certific
 
 ### Tipos de Verificação Disponíveis
 
-| Tipo de Verificação | Descrição |
-|------------|-------------|
-| Is Online | Se o servidor está acessível |
-| Is Valid Certificate | Se o certificado é válido (não expirado, não autoassinado) |
-| Is Self-Signed Certificate | Se o certificado é autoassinado |
-| Is Expired Certificate | Se o certificado expirou |
-| Is Not A Valid Certificate | Se o certificado é inválido |
-| Expires In Hours | Número de horas até o certificado expirar |
-| Expires In Days | Número de dias até o certificado expirar |
-| Is Request Timeout | Se a conexão expirou |
+| Tipo de Verificação        | Descrição                                                  |
+| -------------------------- | ---------------------------------------------------------- |
+| Is Online                  | Se o servidor está acessível                               |
+| Is Valid Certificate       | Se o certificado é válido (não expirado, não autoassinado) |
+| Is Self-Signed Certificate | Se o certificado é autoassinado                            |
+| Is Expired Certificate     | Se o certificado expirou                                   |
+| Is Not A Valid Certificate | Se o certificado é inválido                                |
+| Expires In Hours           | Número de horas até o certificado expirar                  |
+| Expires In Days            | Número de dias até o certificado expirar                   |
+| Is Request Timeout         | Se a conexão expirou                                       |
 
 ### Tipos de Filtro
 

@@ -1,7 +1,7 @@
 {
-    "query": {
-        "age": {
-            "_type": "IsNull"
-        }
-    }
+"query": {
+"age": {
+"\_type": "IsNull"
+}
+}
 }

@@ -34,27 +34,27 @@ oneuptime resources
 
 ## Documentatie
 
-| Handleiding | Beschrijving |
-|-------|-------------|
-| [Authenticatie](./authentication.md) | Inloggen, contexten en beheer van inloggegevens |
+| Handleiding                                     | Beschrijving                                                  |
+| ----------------------------------------------- | ------------------------------------------------------------- |
+| [Authenticatie](./authentication.md)            | Inloggen, contexten en beheer van inloggegevens               |
 | [Resourcebewerkingen](./resource-operations.md) | CRUD-bewerkingen voor monitors, incidenten, meldingen en meer |
-| [Uitvoerformaten](./output-formats.md) | JSON-, tabel- en brede uitvoermodi |
-| [Scripting en CI/CD](./scripting.md) | Automatisering, omgevingsvariabelen en pipelinegebruik |
-| [Opdrachtenoverzicht](./command-reference.md) | Volledig overzicht van alle opdrachten en opties |
+| [Uitvoerformaten](./output-formats.md)          | JSON-, tabel- en brede uitvoermodi                            |
+| [Scripting en CI/CD](./scripting.md)            | Automatisering, omgevingsvariabelen en pipelinegebruik        |
+| [Opdrachtenoverzicht](./command-reference.md)   | Volledig overzicht van alle opdrachten en opties              |
 
 ## Globale opties
 
 Deze vlaggen kunnen met elke opdracht worden gebruikt:
 
-| Vlag | Beschrijving |
-|------|-------------|
-| `--api-key <key>` | API-sleutel overschrijven voor deze opdracht |
-| `--url <url>` | Instantie-URL overschrijven voor deze opdracht |
-| `--context <name>` | Een specifieke benoemde context gebruiken |
-| `-o, --output <format>` | Uitvoerformaat: `json`, `table`, `wide` |
-| `--no-color` | Gekleurde uitvoer uitschakelen |
-| `--help` | Opdrachthulp weergeven |
-| `--version` | CLI-versie weergeven |
+| Vlag                    | Beschrijving                                   |
+| ----------------------- | ---------------------------------------------- |
+| `--api-key <key>`       | API-sleutel overschrijven voor deze opdracht   |
+| `--url <url>`           | Instantie-URL overschrijven voor deze opdracht |
+| `--context <name>`      | Een specifieke benoemde context gebruiken      |
+| `-o, --output <format>` | Uitvoerformaat: `json`, `table`, `wide`        |
+| `--no-color`            | Gekleurde uitvoer uitschakelen                 |
+| `--help`                | Opdrachthulp weergeven                         |
+| `--version`             | CLI-versie weergeven                           |
 
 ## Hulp krijgen
 

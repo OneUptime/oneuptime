@@ -6,4 +6,3 @@ To ensure you receive on-call notifications, please whitelist the following phon
 - +447427817020 (UK)
 
 By adding these numbers to your whitelist, you can be sure that you won't miss any important notifications.
-

@@ -6,7 +6,7 @@ OpenTelemetry IngestサービスはネイティブのSyslogペイロードを受
 
 ## 前提条件
 
-- **テレメトリー取り込みトークン** — *プロジェクト設定 → テレメトリー取り込みキー* から作成し、`x-oneuptime-token` の値をコピーします。
+- **テレメトリー取り込みトークン** — _プロジェクト設定 → テレメトリー取り込みキー_ から作成し、`x-oneuptime-token` の値をコピーします。
 - **Syslogフォワーダー** — HTTPのPOSTリクエストを送信できる任意のツール（例：`curl`、`omhttp` 経由の `rsyslog`、HTTP宛先プラグインを使った `syslog-ng`）。
 - **サービス名（オプション）** — `x-oneuptime-service-name` ヘッダーを設定して受信ログを特定のテレメトリーサービスにグループ化します。省略するとOneUptimeはsyslogの `APP-NAME`、ホスト名、または `Syslog` にフォールバックします。
 
@@ -60,6 +60,7 @@ curl \
    sudo apt-get install rsyslog-omhttp
    ```
 2. 宛先を `/etc/rsyslog.d/oneuptime.conf` に追加します：
+
    ```
    module(load="omhttp")
 
@@ -81,6 +82,7 @@ curl \
      template="OneUptimeJson"
    )
    ```
+
 3. rsyslogを再起動します：
    ```bash
    sudo systemctl restart rsyslog

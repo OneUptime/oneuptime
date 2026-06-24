@@ -2,7 +2,6 @@
 
 Installera OneUptime som en skrivbordsapplikation på Windows för heltäckande övervakning och incidenthantering.
 
-
 ## Installationsmetoder
 
 ### Metod 1: Microsoft Edge (rekommenderas)
@@ -10,17 +9,20 @@ Installera OneUptime som en skrivbordsapplikation på Windows för heltäckande 
 Edge ger den bästa Windows PWA-integrationen med inbyggda funktioner.
 
 1. **Öppna OneUptime i Edge**
+
    - Starta Microsoft Edge-webbläsaren
    - Navigera till URL:en för din OneUptime-instans
    - Logga in på ditt OneUptime-konto
    - Vänta tills sidan laddas helt
 
 2. **Installera app**
+
    - Leta efter **installationsikonen** (⊞) i adressfältet
    - Klicka på knappen **"Installera OneUptime"**
    - Eller klicka på **tredubbelpunktsmenyn** → **Appar** → **Installera den här webbplatsen som en app**
 
 3. **Anpassa installationen**
+
    - **Appnamn**: Ändra om du vill (standard: OneUptime)
    - **Start-menyn**: Välj om du vill lägga till i Start-menyn
    - **Aktivitetsfältet**: Alternativ för att fästa i aktivitetsfältet
@@ -36,17 +38,20 @@ Edge ger den bästa Windows PWA-integrationen med inbyggda funktioner.
 Chrome erbjuder utmärkt PWA-stöd med rik skrivbordsintegration.
 
 1. **Öppna OneUptime i Chrome**
+
    - Starta Google Chrome
    - Gå till din OneUptime-instans
    - Se till att du är inloggad
    - Låt sidan laddas helt
 
 2. **Installera via adressfältet**
+
    - Leta efter **installationsikonen** (⊞) i adressfältet
    - Klicka på **"Installera OneUptime"**
    - Eller använd menyn: **tre punkter** → **Fler verktyg** → **Skapa genväg**
 
 3. **Installationsalternativ**
+
    - Markera **"Öppna som fönster"** för app-liknande upplevelse
    - Anpassa appnamnet om du vill
    - Klicka på **"Installera"** eller **"Skapa"**
@@ -61,6 +66,7 @@ Chrome erbjuder utmärkt PWA-stöd med rik skrivbordsintegration.
 Firefox stöder PWA-installation med grundläggande skrivbordsintegration.
 
 1. **Öppna OneUptime i Firefox**
+
    - Starta Firefox-webbläsaren
    - Navigera till OneUptime-URL:en
    - Slutför inloggningsprocessen
@@ -70,15 +76,17 @@ Firefox stöder PWA-installation med grundläggande skrivbordsintegration.
    - Eller klicka på **menyn** → **Installera**
    - Om tillgängligt, klicka på motsvarigheten till **"Lägg till på startskärmen"**
 
-
 ### Startkonfiguration
+
 1. **Automatisk start**: Konfigurera OneUptime att starta med Windows
    - Högerklicka på aktivitetsfältet → Aktivitetshanteraren → Start
    - Aktivera OneUptime om du vill
 2. **Standardstorlek**: Ange önskad fönsterstorlek och position
 
 ### Aviseringsinställningar
+
 1. **Windows-aviseringar**
+
    - Inställningar → System → Aviseringar och åtgärder
    - Hitta OneUptime och konfigurera varningsinställningar
    - Aktivera banneraviseringar för incidenter
@@ -90,12 +98,12 @@ Firefox stöder PWA-installation med grundläggande skrivbordsintegration.
 
 ## Avancerade installationsalternativ
 
-
 ## Felsökning
 
 ### Installationsproblem
 
 **Installationsknapp visas inte:**
+
 ```
 Lösningar:
 1. Se till att du använder Edge eller Chrome (rekommenderade webbläsare)
@@ -107,6 +115,7 @@ Lösningar:
 ```
 
 **Installationen misslyckas eller kraschar:**
+
 ```
 Lösningar:
 1. Kör webbläsaren som administratör
@@ -118,6 +127,7 @@ Lösningar:
 ```
 
 **Appen visas inte i Start-menyn:**
+
 ```
 Lösningar:
 1. Sök efter "OneUptime" i Windows-sökning
@@ -130,6 +140,7 @@ Lösningar:
 ### Aviseringsproblem
 
 **Windows-aviseringar fungerar inte:**
+
 ```
 Lösningar:
 1. Windows Inställningar → System → Aviseringar och åtgärder
@@ -142,12 +153,15 @@ Lösningar:
 ## Avinstallation
 
 ### Fullständig borttagning
+
 1. **Windows-inställningsmetod**
+
    - Inställningar → Appar → Appar och funktioner
    - Sök efter "OneUptime"
    - Klicka och välj "Avinstallera"
 
 2. **Webbläsarmetod**
+
    - Öppna Edge/Chrome
    - Gå till edge://apps/ eller chrome://apps/
    - Hitta OneUptime
@@ -158,10 +172,10 @@ Lösningar:
    - Välj "Avinstallera"
    - Bekräfta borttagningen
 
-
 ## Uppdateringar och underhåll
 
 ### Automatiska uppdateringar
+
 - OneUptime PWA uppdateras automatiskt när du är online
 - Ingen manuell åtgärd krävs
 - Uppdateringar tillämpas omedelbart vid omstart

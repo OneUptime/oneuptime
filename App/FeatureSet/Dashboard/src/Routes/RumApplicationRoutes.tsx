@@ -17,6 +17,7 @@ import RumApplicationDocumentation from "../Pages/Rum/View/Documentation";
 import RumApplicationDelete from "../Pages/Rum/View/Delete";
 import RumLabelRules from "../Pages/Rum/Settings/LabelRules";
 import RumOwnerRules from "../Pages/Rum/Settings/OwnerRules";
+import RumArchived from "../Pages/Rum/Archived";
 
 const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -39,6 +40,15 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
             <RumLabelRules
               {...props}
               pageRoute={RouteMap[PageMap.RUM_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RumRoutePath[PageMap.RUM_ARCHIVED] || ""}
+          element={
+            <RumArchived
+              {...props}
+              pageRoute={RouteMap[PageMap.RUM_ARCHIVED] as Route}
             />
           }
         />

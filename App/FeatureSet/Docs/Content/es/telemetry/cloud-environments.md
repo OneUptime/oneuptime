@@ -2,23 +2,23 @@
 
 ## Resumen
 
-OneUptime agrupa el cómputo gestionado en la nube en **Entornos en la nube** — AWS ECS / Fargate, Google Cloud Run, Azure Container Apps / Container Instances, AWS Elastic Beanstalk, AWS App Runner y Azure App Service. Se crea un entorno por cada combinación única de `cloud.platform` + `cloud.account.id` + `cloud.region`, de modo que algo como *"AWS ECS · us-east-1 · 123456789012"* es una única entidad que agrega cada carga de trabajo que se ejecuta en ella.
+OneUptime agrupa el cómputo gestionado en la nube en **Entornos en la nube** — AWS ECS / Fargate, Google Cloud Run, Azure Container Apps / Container Instances, AWS Elastic Beanstalk, AWS App Runner y Azure App Service. Se crea un entorno por cada combinación única de `cloud.platform` + `cloud.account.id` + `cloud.region`, de modo que algo como _"AWS ECS · us-east-1 · 123456789012"_ es una única entidad que agrega cada carga de trabajo que se ejecuta en ella.
 
 Las máquinas virtuales puras (EC2, Compute Engine, Azure VM) siguen siendo **Hosts**, y Kubernetes permanece bajo **Kubernetes**. Esta vista es específicamente para cómputo gestionado / PaaS.
 
 ## Requisitos previos
 
-- Un **Token de ingesta de telemetría de OneUptime** — crea uno desde *Configuración del proyecto → Claves de ingesta de telemetría*.
+- Un **Token de ingesta de telemetría de OneUptime** — crea uno desde _Configuración del proyecto → Claves de ingesta de telemetría_.
 - Un OpenTelemetry Collector o SDK ejecutándose dentro de tus cargas de trabajo o junto a ellas.
 
 ## Cómo identifica OneUptime un entorno
 
-| Atributo | Obligatorio | Propósito |
-|---|---|---|
-| `cloud.platform` | **sí** | Debe ser una plataforma de cómputo gestionado (p. ej. `aws_ecs`, `gcp_cloud_run`, `azure_container_apps`) |
-| `cloud.account.id` | no | Parte de la clave del entorno |
-| `cloud.region` | no | Parte de la clave del entorno |
-| `service.instance.id` | no | Se rastrea por tarea/instancia bajo **Instancias** (con CPU / memoria en vivo) |
+| Atributo              | Obligatorio | Propósito                                                                                                 |
+| --------------------- | ----------- | --------------------------------------------------------------------------------------------------------- |
+| `cloud.platform`      | **sí**      | Debe ser una plataforma de cómputo gestionado (p. ej. `aws_ecs`, `gcp_cloud_run`, `azure_container_apps`) |
+| `cloud.account.id`    | no          | Parte de la clave del entorno                                                                             |
+| `cloud.region`        | no          | Parte de la clave del entorno                                                                             |
+| `service.instance.id` | no          | Se rastrea por tarea/instancia bajo **Instancias** (con CPU / memoria en vivo)                            |
 
 Estos suelen rellenarse automáticamente mediante los **detectores de recursos** de OpenTelemetry.
 
@@ -29,7 +29,7 @@ En el OpenTelemetry Collector, añade el procesador `resourcedetection`:
 ```yaml
 processors:
   resourcedetection:
-    detectors: [env, ecs]   # use [gcp] on Cloud Run, [azure] on Azure
+    detectors: [env, ecs] # use [gcp] on Cloud Run, [azure] on Azure
     timeout: 5s
 ```
 

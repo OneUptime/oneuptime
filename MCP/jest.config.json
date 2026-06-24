@@ -15,18 +15,19 @@
   "moduleNameMapper": {
     "^Common/(.*)$": "<rootDir>/../Common/$1"
   },
-  "transformIgnorePatterns": [
-    "node_modules/(?!(@oneuptime)/)"
-  ],
+  "transformIgnorePatterns": ["node_modules/(?!(@oneuptime)/)"],
   "transform": {
-    "^.+\\.ts$": ["ts-jest", {
-      "tsconfig": {
-        "noUnusedLocals": false,
-        "noUnusedParameters": false,
-        "strict": false,
-        "noPropertyAccessFromIndexSignature": false,
-        "module": "commonjs"
+    "^.+\\.ts$": [
+      "ts-jest",
+      {
+        "tsconfig": {
+          "noUnusedLocals": false,
+          "noUnusedParameters": false,
+          "strict": false,
+          "noPropertyAccessFromIndexSignature": false,
+          "module": "commonjs"
+        }
       }
-    }]
+    ]
   }
 }

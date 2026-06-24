@@ -24,13 +24,13 @@ Você constrói tudo isso visualmente em um canvas. Sem necessidade de código p
 
 ## Termos-chave
 
-| Termo | Significado |
-| --- | --- |
-| **Workflow** | A automação inteira — um nome, um canvas e um interruptor para ligar ou desligar. |
-| **Gatilho** | O primeiro bloco. Ele decide quando o workflow roda. Todo workflow tem exatamente um gatilho. |
-| **Componente** | Um bloco de ação — envia uma mensagem, faz uma requisição, verifica uma condição. |
-| **Execução** | Uma execução do workflow. Salva com timestamps e a saída de cada bloco. |
-| **Variável global** | Um valor (como uma chave de API) que você salva uma vez e reutiliza em qualquer workflow. |
+| Termo               | Significado                                                                                   |
+| ------------------- | --------------------------------------------------------------------------------------------- |
+| **Workflow**        | A automação inteira — um nome, um canvas e um interruptor para ligar ou desligar.             |
+| **Gatilho**         | O primeiro bloco. Ele decide quando o workflow roda. Todo workflow tem exatamente um gatilho. |
+| **Componente**      | Um bloco de ação — envia uma mensagem, faz uma requisição, verifica uma condição.             |
+| **Execução**        | Uma execução do workflow. Salva com timestamps e a saída de cada bloco.                       |
+| **Variável global** | Um valor (como uma chave de API) que você salva uma vez e reutiliza em qualquer workflow.     |
 
 ## Onde encontrar workflows no OneUptime
 

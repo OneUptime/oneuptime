@@ -42,6 +42,10 @@ export default class AddMetricMinuteAggregateByHostMaterializedView extends Data
     super("AddMetricMinuteAggregateByHostMaterializedView");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     /*
      * Only applicable while MetricItemV2 is the live metric table: this

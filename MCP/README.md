@@ -15,14 +15,16 @@ A production-ready Model Context Protocol (MCP) server for OneUptime that provid
 The MCP server automatically generates tools for each OneUptime model with the following operations:
 
 ### Database Models
+
 - `oneuptime_create{ModelName}` - Create a new record
-- `oneuptime_get{ModelName}` - Retrieve a record by ID  
+- `oneuptime_get{ModelName}` - Retrieve a record by ID
 - `oneuptime_list{ModelName}s` - List records with filtering
 - `oneuptime_update{ModelName}` - Update a record
 - `oneuptime_delete{ModelName}` - Delete a record
 - `oneuptime_count{ModelName}s` - Count records
 
-### Analytics Models  
+### Analytics Models
+
 - `oneuptime_create{ModelName}` - Create analytics data
 - `oneuptime_list{ModelName}s` - Query analytics data
 - `oneuptime_count{ModelName}s` - Count analytics records
@@ -49,35 +51,40 @@ ONEUPTIME_URL=https://oneuptime.com
 ## Installation
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Configure environment variables:
+
 ```bash
 cp .env.example .env
 # Edit .env with your OneUptime configuration
 ```
 
 3. Build the server:
+
 ```bash
 npm run build
 ```
 
 4. (Optional) Link for global CLI usage:
+
 ```bash
 npm run link
 ```
 
-
 ## Usage
 
 ### Development
+
 ```bash
 npm run dev
 ```
 
 ### Production
+
 ```bash
 npm start
 ```
@@ -85,20 +92,22 @@ npm start
 ## Example Tool Usage
 
 ### List Incidents
+
 ```json
 {
   "name": "oneuptime_listIncidents",
   "arguments": {
-    "query": {"projectId": "your-project-id"},
+    "query": { "projectId": "your-project-id" },
     "limit": 10
   }
 }
 ```
 
 ### Create Alert
+
 ```json
 {
-  "name": "oneuptime_createAlert", 
+  "name": "oneuptime_createAlert",
   "arguments": {
     "data": {
       "title": "High CPU Usage",
@@ -110,6 +119,7 @@ npm start
 ```
 
 ### Get Monitor by ID
+
 ```json
 {
   "name": "oneuptime_getMonitor",
@@ -120,6 +130,7 @@ npm start
 ```
 
 ### Query Logs
+
 ```json
 {
   "name": "oneuptime_listLogs",
@@ -129,7 +140,7 @@ npm start
       "severity": "error"
     },
     "limit": 50,
-    "sort": {"time": -1}
+    "sort": { "time": -1 }
   }
 }
 ```
@@ -141,6 +152,7 @@ npm start
 This server uses a custom `MCPLogger` class that ensures all log messages are directed to `stderr` instead of `stdout`. This is critical for MCP protocol compliance, as `stdout` is reserved for JSON-RPC messages.
 
 **Fixed Issues:**
+
 - `Failed to parse message` warnings caused by log messages going to stdout
 - Dotenv initialization messages interfering with MCP protocol
 - All informational logging now properly directed to stderr
@@ -160,7 +172,7 @@ If you encounter parsing warnings, ensure no code is writing to stdout directly 
 
 New models are automatically supported! When new models are added to OneUptime:
 
-1. Database models added to `Common/Models/DatabaseModels/Index.ts` 
+1. Database models added to `Common/Models/DatabaseModels/Index.ts`
 2. Analytics models added to `Common/Models/AnalyticsModels/Index.ts`
 
 The MCP server will automatically generate tools for them on the next restart.

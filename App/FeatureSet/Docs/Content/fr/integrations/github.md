@@ -4,7 +4,7 @@ Ouvrez automatiquement un ticket [GitHub](https://github.com) lorsqu'un incident
 
 Cette intégration est **sortante** : OneUptime appelle l'[API REST GitHub](https://docs.github.com/en/rest/issues/issues). Elle utilise un **[Workflow](/docs/workflows/index)** OneUptime avec un déclencheur **Incident → On Create** et un **composant API**.
 
-> **Vous cherchez la connexion GitHub plus approfondie ?** OneUptime dispose également d'une intégration native **GitHub App** pour connecter des dépôts de code (utilisée par l'agent IA et les fonctionnalités de code). Elle se configure avec des variables d'environnement, pas avec des workflows — voir [Intégration GitHub (auto-hébergé)](/docs/self-hosted/github-integration). Cette page concerne spécifiquement la *création de tickets depuis des incidents*.
+> **Vous cherchez la connexion GitHub plus approfondie ?** OneUptime dispose également d'une intégration native **GitHub App** pour connecter des dépôts de code (utilisée par l'agent IA et les fonctionnalités de code). Elle se configure avec des variables d'environnement, pas avec des workflows — voir [Intégration GitHub (auto-hébergé)](/docs/self-hosted/github-integration). Cette page concerne spécifiquement la _création de tickets depuis des incidents_.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -14,10 +14,12 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 - Un dépôt GitHub où vous souhaitez créer des tickets.
 - Un jeton pouvant créer des tickets :
+
   - Un **PAT à granularité fine** limité à ce dépôt avec **Issues : Read and write**, ou
   - un **PAT classique** avec la portée `repo`.
 
   Créez-en un sur [github.com/settings/tokens](https://github.com/settings/tokens).
+
 - Un projet OneUptime où vous pouvez créer des workflows.
 
 ## Étape 1 — Stocker le jeton
@@ -30,6 +32,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 1. Ouvrez **Workflows → Create Workflow**, nommez-le `Incidents → GitHub Issues`, et ouvrez le **Builder**.
 2. Ajoutez un déclencheur **Incident** sur **On Create**. Renommez-le `Incident`.
 3. Ajoutez un bloc **API** connecté au déclencheur :
+
    - **Method** : `POST`
    - **URL** : `https://api.github.com/repos/your-org/your-repo/issues`
    - **Headers** :

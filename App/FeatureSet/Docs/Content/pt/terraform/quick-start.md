@@ -11,6 +11,7 @@ Este guia ajudará você a começar a usar o Provedor Terraform do OneUptime em 
 ## Passo 1: Criar Chave de API
 
 ### Para o OneUptime Cloud
+
 1. Vá para [OneUptime Cloud](https://oneuptime.com) e faça login
 2. Navegue para **Settings** → **API Keys**
 3. Clique em **Create API Key**
@@ -19,6 +20,7 @@ Este guia ajudará você a começar a usar o Provedor Terraform do OneUptime em 
 6. Copie a chave de API gerada
 
 ### Para o OneUptime Auto-Hospedado
+
 1. Acesse sua instância do OneUptime
 2. Navegue para **Settings** → **API Keys**
 3. Clique em **Create API Key**
@@ -37,7 +39,7 @@ terraform {
       source  = "oneuptime/oneuptime"
       # Para clientes Cloud
       version = "~> 7.0"
-      
+
       # Para clientes Auto-Hospedados - fixe na sua versão exata
       # version = "= 7.0.123"  # Substitua pela sua versão do OneUptime
     }
@@ -48,10 +50,10 @@ terraform {
 provider "oneuptime" {
   # Para clientes Cloud
   oneuptime_url = "https://oneuptime.com"
-  
+
   # Para clientes Auto-Hospedados - use a URL da sua instância
   # oneuptime_url = "https://oneuptime.suaempresa.com"
-  
+
   api_key = var.oneuptime_api_key
 }
 
@@ -164,25 +166,33 @@ provider "oneuptime" {
 ## Solução de Problemas do Início Rápido
 
 ### Problema: Provedor não encontrado
+
 ```
 Error: Failed to query available provider packages
 ```
+
 **Solução**: Execute `terraform init` para baixar o provedor
 
 ### Problema: Autenticação falhou
+
 ```
 Error: Invalid API key
 ```
-**Solução**: 
+
+**Solução**:
+
 1. Verifique sua chave de API no painel do OneUptime
 2. Verifique se a chave de API tem permissões suficientes
 3. Certifique-se de que `oneuptime_url` está correto para sua instância
 
 ### Problema: Incompatibilidade de versão (Auto-Hospedado)
+
 ```
 Error: API version incompatible
 ```
-**Solução**: 
+
+**Solução**:
+
 1. Verifique sua versão do OneUptime no painel
 2. Atualize a versão do provedor para corresponder exatamente
 3. Execute `terraform init -upgrade`

@@ -36,6 +36,7 @@ Ora puoi usare `Basic {{variable.JIRA_AUTH}}` come header di autenticazione e il
 1. Apri **Workflows → Create Workflow**, chiamalo `Incidents → Jira` e apri il **Builder**.
 2. Trascina un trigger **Incident** sul canvas e scegli l'evento **On Create**. Rinominalo `Incident`.
 3. Trascina un blocco **API** e collegalo al trigger. Configura:
+
    - **Method**: `POST`
    - **URL**: `https://your-domain.atlassian.net/rest/api/3/issue`
    - **Headers**:
@@ -70,6 +71,7 @@ Ora puoi usare `Basic {{variable.JIRA_AUTH}}` come header di autenticazione e il
      ```
 
    Sostituisci `OPS` con la tua project key e `Bug` con un tipo di ticket che esiste in quel progetto.
+
 4. **Salva.** Lascia il workflow disabilitato finché non lo hai testato.
 
 ## Passaggio 3 — Testalo
@@ -96,8 +98,9 @@ Per risolvere l'incidente OneUptime quando qualcuno chiude il ticket Jira, aggiu
 
 1. Crea un secondo workflow che inizia con un trigger **Webhook** e copia il suo URL.
 2. In Jira, vai su **Project settings → Automation → Create rule**:
-   - **Trigger**: *Issue transitioned* a **Done** (o *Issue resolved*).
-   - **Action**: *Send web request* → metodo `POST`, URL = l'URL webhook del tuo workflow, il corpo include la chiave del ticket e l'id dell'incidente OneUptime, es.:
+
+   - **Trigger**: _Issue transitioned_ a **Done** (o _Issue resolved_).
+   - **Action**: _Send web request_ → metodo `POST`, URL = l'URL webhook del tuo workflow, il corpo include la chiave del ticket e l'id dell'incidente OneUptime, es.:
 
      ```json
      { "issueKey": "{{issue.key}}", "status": "resolved" }
@@ -121,16 +124,20 @@ Per scoprire i nomi esatti dei campi che un progetto si aspetta, chiama l'endpoi
 ## Risoluzione dei problemi
 
 **`401 Unauthorized`.**
+
 - Ricodifica `email:api_token` e aggiorna la variabile `JIRA_AUTH`. Un carattere di nuova riga finale è il colpevole abituale — usa `printf` (non `echo`) durante la codifica.
 - Conferma che l'account proprietario del token API possa creare ticket nel progetto.
 
 **`400 Bad Request` con menzione di un campo.**
+
 - Il tipo di ticket o un campo obbligatorio è errato. Controlla il nome del **tipo di ticket** del progetto e se ha campi personalizzati obbligatori. Usa `createmeta` (sopra) per vedere cosa è obbligatorio.
 
 **`404 Not Found`.**
+
 - Verifica l'URL di base e che stai usando `/rest/api/3/issue` (Cloud) o `/rest/api/2/issue` (Server/Data Center).
 
 **La descrizione appare su una sola riga / ha un aspetto strano.**
+
 - La v3 richiede l'Atlassian Document Format mostrato sopra. Se preferisci inviare testo semplice, usa l'endpoint `/rest/api/2/issue` con `"description": "{{Incident.description}}"` come stringa semplice.
 
 ## Dove leggere poi

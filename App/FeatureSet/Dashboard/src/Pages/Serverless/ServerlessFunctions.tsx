@@ -11,6 +11,7 @@ import React, {
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -31,6 +32,10 @@ const ServerlessFunctions: FunctionComponent<
 > = (): ReactElement => {
   const [count, setCount] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
+
+  const { archiveBulkActions } = useBulkArchiveActions<ServerlessFunction>({
+    modelType: ServerlessFunction,
+  });
 
   useEffect(() => {
     ModelAPI.count({
@@ -69,10 +74,16 @@ const ServerlessFunctions: FunctionComponent<
         modelType={ServerlessFunction}
         id="serverless-functions-table"
         userPreferencesKey="serverless-functions-table"
+        query={{
+          isArchived: false,
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        bulkActions={{
+          buttons: [...archiveBulkActions],
+        }}
         showRefreshButton={true}
         showViewIdButton={true}
         name="Serverless Functions"

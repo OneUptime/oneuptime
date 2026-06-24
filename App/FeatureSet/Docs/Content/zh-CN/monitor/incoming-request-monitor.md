@@ -56,8 +56,8 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 ```javascript
 // Node.js 示例
-const https = require('https');
-https.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY');
+const https = require("https");
+https.get("https://oneuptime.com/heartbeat/YOUR_SECRET_KEY");
 ```
 
 ```python
@@ -74,12 +74,12 @@ requests.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY')
 
 ### 可用检查类型
 
-| 检查类型 | 描述 |
-|---------|------|
-| 传入请求 | 是否在时间窗口内收到心跳 |
-| 请求体 | 与心跳一起发送的请求体内容 |
-| 请求头名称 | 特定请求头的名称 |
-| 请求头值 | 特定请求头的值 |
+| 检查类型   | 描述                       |
+| ---------- | -------------------------- |
+| 传入请求   | 是否在时间窗口内收到心跳   |
+| 请求体     | 与心跳一起发送的请求体内容 |
+| 请求头名称 | 特定请求头的名称           |
+| 请求头值   | 特定请求头的值             |
 
 ### 过滤类型
 

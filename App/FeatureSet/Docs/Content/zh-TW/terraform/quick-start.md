@@ -11,6 +11,7 @@
 ## 步驟 1：建立 API 金鑰
 
 ### 適用於 OneUptime 雲端
+
 1. 前往 [OneUptime Cloud](https://oneuptime.com) 並登入
 2. 導覽至 **Settings** → **API Keys**
 3. 點選 **Create API Key**
@@ -19,6 +20,7 @@
 6. 複製產生的 API 金鑰
 
 ### 適用於自架 OneUptime
+
 1. 存取您的 OneUptime 執行個體
 2. 導覽至 **Settings** → **API Keys**
 3. 點選 **Create API Key**
@@ -37,7 +39,7 @@ terraform {
       source  = "oneuptime/oneuptime"
       # For Cloud customers
       version = "~> 7.0"
-      
+
       # For Self-Hosted customers - pin to your exact version
       # version = "= 7.0.123"  # Replace with your OneUptime version
     }
@@ -48,10 +50,10 @@ terraform {
 provider "oneuptime" {
   # For Cloud customers
   oneuptime_url = "https://oneuptime.com"
-  
+
   # For Self-Hosted customers - use your instance URL
   # oneuptime_url = "https://oneuptime.yourcompany.com"
-  
+
   api_key = var.oneuptime_api_key
 }
 
@@ -164,25 +166,33 @@ provider "oneuptime" {
 ## 快速入門疑難排解
 
 ### 問題：找不到 Provider
+
 ```
 Error: Failed to query available provider packages
 ```
+
 **解決方案**：執行 `terraform init` 以下載 provider
 
 ### 問題：驗證失敗
+
 ```
 Error: Invalid API key
 ```
-**解決方案**： 
+
+**解決方案**：
+
 1. 在 OneUptime 儀表板中驗證您的 API 金鑰
 2. 檢查 API 金鑰是否具有足夠的權限
 3. 確認 `oneuptime_url` 對於您的執行個體是正確的
 
 ### 問題：版本不符（自架）
+
 ```
 Error: API version incompatible
 ```
-**解決方案**： 
+
+**解決方案**：
+
 1. 在儀表板中檢查您的 OneUptime 版本
 2. 將 provider 版本更新為完全相符
 3. 執行 `terraform init -upgrade`

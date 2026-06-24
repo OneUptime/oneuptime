@@ -56,24 +56,29 @@ Your OneUptime account and on-call schedules are stored server-side and are not 
 ## Troubleshooting
 
 **App Store says the app is "Not Available in Your Region":**
+
 - The app is published on the global App Store. If it does not appear in your region, contact [support](mailto:support@oneuptime.com).
 
 **"Network Error" when signing in:**
+
 - Verify that the **Server URL** is correct and reachable from your device.
 - If you are on a corporate network or VPN, make sure the OneUptime instance is accessible.
 - Confirm the server is served over HTTPS with a valid certificate.
 
 **Not receiving push notifications:**
+
 - Open **Settings → Notifications → OneUptime On-Call** and confirm notifications are allowed.
 - Disable **Do Not Disturb** or add OneUptime On-Call to your active Focus mode's allow list.
 - Sign out and sign back in to refresh the push token registered with the server.
 - Self-hosted users: confirm push notifications are configured on your OneUptime instance (see the self-hosted [Push Notifications](/docs/self-hosted/push-notifications) guide).
 
 **Face ID / Touch ID not working:**
+
 - Make sure biometrics are enrolled in **Settings → Face ID & Passcode** or **Settings → Touch ID & Passcode**.
 - Re-enable biometric unlock from the **Settings** screen inside the OneUptime On-Call app.
 
 **App crashes on launch:**
+
 - Update to the latest version from the App Store.
 - Restart your device.
 - If the issue persists, delete and reinstall the app, then sign in again.

@@ -78,9 +78,10 @@ export default class OtelPayloadDecoder {
    *
    * The body is fetched from Redis via TelemetryBodyStore using the
    * `bodyKey` written at enqueue time — see TelemetryQueueService
-   * for the producer side. If the body is missing (the TTL elapsed
-   * before the worker got to it, or another worker already
-   * consumed it) we return an empty object: the downstream
+   * for the producer side. We READ but do NOT delete here; the worker
+   * deletes the body only after the job succeeds (so a transient-failure
+   * retry can re-read it). If the body is missing (the TTL elapsed before
+   * the worker got to it) we return an empty object: the downstream
    * consumer treats an empty `resourceLogs` / `resourceSpans`
    * / `resourceMetrics` as "nothing to ingest" and skips the
    * batch, which is the correct behaviour for a lost body.
@@ -95,11 +96,9 @@ export default class OtelPayloadDecoder {
       throw new Error("OtelPayloadDecoder: bodyKey is required");
     }
 
-    let raw: Buffer | null = await TelemetryBodyStore.readAndDeleteBody(
-      input.bodyKey,
-    );
+    let raw: Buffer | null = await TelemetryBodyStore.readBody(input.bodyKey);
     if (!raw) {
-      // Body expired or already consumed — nothing to decode.
+      // Body expired (TTL) before the worker got to it — nothing to decode.
       return {} as JSONObject;
     }
 

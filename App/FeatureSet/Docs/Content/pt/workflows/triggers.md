@@ -65,12 +65,12 @@ Busque pelo nome na paleta de gatilhos para encontrar o que você quer.
 
 ## Qual gatilho devo usar?
 
-| Se você quer… | Escolha |
-| --- | --- |
-| Clicar em um botão para executar o workflow | **Manual** |
-| Executar em um agendamento recorrente | **Agendado** |
-| Ter outro sistema enviando dados | **Webhook** |
-| Reagir a algo dentro do OneUptime | **Evento do OneUptime** |
+| Se você quer…                               | Escolha                 |
+| ------------------------------------------- | ----------------------- |
+| Clicar em um botão para executar o workflow | **Manual**              |
+| Executar em um agendamento recorrente       | **Agendado**            |
+| Ter outro sistema enviando dados            | **Webhook**             |
+| Reagir a algo dentro do OneUptime           | **Evento do OneUptime** |
 
 Um workflow só pode ter um gatilho. Se você precisar de duas formas de iniciar a mesma automação, coloque a lógica compartilhada em um workflow e chame-a a partir de dois workflows "envoltórios" finos usando o componente **Executar Workflow**.
 

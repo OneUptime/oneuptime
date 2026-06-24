@@ -56,24 +56,29 @@ Uw OneUptime account en wachtdienstroosters worden aan de serverkant opgeslagen 
 ## Probleemoplossing
 
 **De App Store geeft aan dat de app "Niet beschikbaar in uw regio" is:**
+
 - De app is gepubliceerd in de wereldwijde App Store. Als deze niet in uw regio verschijnt, neem dan contact op met [support](mailto:support@oneuptime.com).
 
 **"Netwerkfout" bij het inloggen:**
+
 - Controleer of de **Server URL** correct is en bereikbaar is vanaf uw apparaat.
 - Als u zich op een bedrijfsnetwerk of VPN bevindt, zorg er dan voor dat de OneUptime instantie toegankelijk is.
 - Bevestig dat de server via HTTPS met een geldig certificaat wordt aangeboden.
 
 **Geen pushmeldingen ontvangen:**
+
 - Open **Instellingen → Berichtgeving → OneUptime On-Call** en bevestig dat meldingen zijn toegestaan.
 - Schakel **Niet storen** uit of voeg OneUptime On-Call toe aan de lijst met toegestane apps van uw actieve Focus modus.
 - Log uit en log opnieuw in om het push-token dat bij de server is geregistreerd te vernieuwen.
 - Zelf-gehoste gebruikers: bevestig dat pushmeldingen zijn geconfigureerd op uw OneUptime instantie (zie de zelf-gehoste handleiding [Pushmeldingen](/docs/self-hosted/push-notifications)).
 
 **Face ID / Touch ID werkt niet:**
+
 - Zorg ervoor dat biometrische gegevens zijn ingeschreven in **Instellingen → Face ID en toegangscode** of **Instellingen → Touch ID en toegangscode**.
 - Schakel biometrische ontgrendeling opnieuw in vanuit het scherm **Instellingen** binnen de OneUptime On-Call app.
 
 **App crasht bij het opstarten:**
+
 - Werk bij naar de nieuwste versie via de App Store.
 - Start uw apparaat opnieuw op.
 - Als het probleem aanhoudt, verwijder de app en installeer deze opnieuw, en log dan opnieuw in.

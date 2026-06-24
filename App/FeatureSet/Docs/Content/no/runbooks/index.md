@@ -24,13 +24,13 @@ Hendelseshåndtering er ofte forskjellen mellom et ettminutts hikst og et nedeti
 
 Noen begreper går igjen i resten av runbook-dokumentasjonen. Få oversikten først:
 
-| Begrep | Betydning |
-| --- | --- |
-| **Runbook** | Malen. En navngitt, gjenbrukbar prosedyre med en ordnet liste over trinn og et `isEnabled`-flagg. |
-| **Trinn** | Ett element i et runbook. Har en type (Manuell / JavaScript / HTTP / Bash), en tittel, en beskrivelse og typespesifikk konfigurasjon. |
-| **Runbook-regel** | Et mønster som automatisk knytter ett eller flere runbooks til hendelser, varsler eller planlagt vedlikehold når tittel eller beskrivelse matcher et regex. |
-| **Kjøring** | Én avvikling av et runbook. Opprettes når en regel utløses, når noen klikker "Kjør runbook" på en hendelse, eller når noen klikker "Kjør nå" på selve runbook'et. Inneholder et snapshot av trinnene og status/output per trinn. |
-| **Snapshot** | Den fryste kopien av runbook'ets trinn som lever på hver kjøring. Lar deg redigere malen senere uten å skrive om historikken. |
+| Begrep            | Betydning                                                                                                                                                                                                                        |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Runbook**       | Malen. En navngitt, gjenbrukbar prosedyre med en ordnet liste over trinn og et `isEnabled`-flagg.                                                                                                                                |
+| **Trinn**         | Ett element i et runbook. Har en type (Manuell / JavaScript / HTTP / Bash), en tittel, en beskrivelse og typespesifikk konfigurasjon.                                                                                            |
+| **Runbook-regel** | Et mønster som automatisk knytter ett eller flere runbooks til hendelser, varsler eller planlagt vedlikehold når tittel eller beskrivelse matcher et regex.                                                                      |
+| **Kjøring**       | Én avvikling av et runbook. Opprettes når en regel utløses, når noen klikker "Kjør runbook" på en hendelse, eller når noen klikker "Kjør nå" på selve runbook'et. Inneholder et snapshot av trinnene og status/output per trinn. |
+| **Snapshot**      | Den fryste kopien av runbook'ets trinn som lever på hver kjøring. Lar deg redigere malen senere uten å skrive om historikken.                                                                                                    |
 
 ## Et runbooks livssyklus
 
@@ -44,25 +44,25 @@ Noen begreper går igjen i resten av runbook-dokumentasjonen. Få oversikten fø
 
 En rask beslutningsveiledning. Den lange gjennomgangen står i [Skrive et runbook](/docs/runbooks/authoring).
 
-| Trinntype | Bruk det når… | Eksempel |
-| --- | --- | --- |
-| **Manuell** | Et menneske må verifisere noe, vurdere eller utføre en handling OneUptime ikke kan observere. | "Bekreft trafikk i sekundær region på load balancer-dashbordet." |
-| **JavaScript** | Du trenger en liten, innesluttet beregning — spørre en konfig-tjeneste, transformere en payload, kjøre logikk før neste trinn. Kjører i sandkasse på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur. | Regn ut nåværende replika-etterslep og avgjør om du går videre. |
-| **HTTP-forespørsel** | Du kaller en eksisterende API — ditt eget admin-endepunkt, en skyleverandør, PagerDuty, Slack. | `POST` til failover-orkestratoren din. |
-| **Bash** | Du må kjøre shell-kommandoer på din egen infrastruktur — restarte en tjeneste, kjøre `kubectl`, kalle et deploy-skript. Krever en [Runbook-agent](/docs/runbooks/agents) installert i miljøet ditt. | Restart en tjeneste, `kubectl rollout restart`, kjør et recovery-skript. |
+| Trinntype            | Bruk det når…                                                                                                                                                                                                            | Eksempel                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| **Manuell**          | Et menneske må verifisere noe, vurdere eller utføre en handling OneUptime ikke kan observere.                                                                                                                            | "Bekreft trafikk i sekundær region på load balancer-dashbordet."         |
+| **JavaScript**       | Du trenger en liten, innesluttet beregning — spørre en konfig-tjeneste, transformere en payload, kjøre logikk før neste trinn. Kjører i sandkasse på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur. | Regn ut nåværende replika-etterslep og avgjør om du går videre.          |
+| **HTTP-forespørsel** | Du kaller en eksisterende API — ditt eget admin-endepunkt, en skyleverandør, PagerDuty, Slack.                                                                                                                           | `POST` til failover-orkestratoren din.                                   |
+| **Bash**             | Du må kjøre shell-kommandoer på din egen infrastruktur — restarte en tjeneste, kjøre `kubectl`, kalle et deploy-skript. Krever en [Runbook-agent](/docs/runbooks/agents) installert i miljøet ditt.                      | Restart en tjeneste, `kubectl rollout restart`, kjør et recovery-skript. |
 
 Du kan blande alle fire i ett runbook — runbookens styrke er å flette menneskelig verifikasjon med automatisering.
 
 ## Hvor runbooks bor i dashbordet
 
-| Side | Hva du gjør der |
-| --- | --- |
-| **Analyse & Automatisering → Runbooks** | Bla, opprette og redigere runbook-maler. |
-| **Trinn-fanen på et runbook** | Skrive og omorganisere trinnlisten. |
-| **Kjøringer-fanen på et runbook** | Se hver kjøring av dette runbook'et med statusfiltre. |
-| **"Kjør nå"-knappen på et runbook** | Starte en ad hoc-kjøring som ikke er knyttet til en hendelse. |
-| **Hendelser / Varsler / Planlagt vedlikehold → Innstillinger → Runbook-regler** | Opprette automatiske utløsningsregler per entitetstype. |
-| **En hendelse / varsel / vedlikeholdshendelse → Runbooks-fane** | Se kjøringer knyttet til den hendelsen og klikke **Kjør runbook** for en manuell kjøring. |
+| Side                                                                            | Hva du gjør der                                                                           |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Analyse & Automatisering → Runbooks**                                         | Bla, opprette og redigere runbook-maler.                                                  |
+| **Trinn-fanen på et runbook**                                                   | Skrive og omorganisere trinnlisten.                                                       |
+| **Kjøringer-fanen på et runbook**                                               | Se hver kjøring av dette runbook'et med statusfiltre.                                     |
+| **"Kjør nå"-knappen på et runbook**                                             | Starte en ad hoc-kjøring som ikke er knyttet til en hendelse.                             |
+| **Hendelser / Varsler / Planlagt vedlikehold → Innstillinger → Runbook-regler** | Opprette automatiske utløsningsregler per entitetstype.                                   |
+| **En hendelse / varsel / vedlikeholdshendelse → Runbooks-fane**                 | Se kjøringer knyttet til den hendelsen og klikke **Kjør runbook** for en manuell kjøring. |
 
 ## Vanlige bruksmønstre
 
@@ -80,13 +80,13 @@ Anta at du vil at hver hendelse med "db-primary" i tittelen automatisk skal star
 
 **1. Opprett runbook'et.** Under **Runbooks → Opprett runbook** kaller du det "DB primary failover" og legger til disse trinnene:
 
-| # | Type | Tittel |
-| --- | --- | --- |
-| 1 | JavaScript | Fang replika-etterslep før failover |
-| 2 | Manuelt | Bekreft replikaens helse i DBA-dashbordet |
-| 3 | HTTP | `POST` til failover-orkestrator |
-| 4 | Manuelt | Bekreft at skrivinger går til ny primary |
-| 5 | HTTP | Legg ut "alt klart" i Slack `#db-incidents` |
+| #   | Type       | Tittel                                      |
+| --- | ---------- | ------------------------------------------- |
+| 1   | JavaScript | Fang replika-etterslep før failover         |
+| 2   | Manuelt    | Bekreft replikaens helse i DBA-dashbordet   |
+| 3   | HTTP       | `POST` til failover-orkestrator             |
+| 4   | Manuelt    | Bekreft at skrivinger går til ny primary    |
+| 5   | HTTP       | Legg ut "alt klart" i Slack `#db-incidents` |
 
 **2. Legg til en regel.** Under **Hendelser → Innstillinger → Runbook-regler** oppretter du:
 

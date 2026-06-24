@@ -27,12 +27,12 @@ Metrics-monitors bevragen en evalueren numerieke metrics van uw telemetriedienst
 
 Definieer een of meer metriekopvragen. Elke opvraag bevat:
 
-| Veld | Beschrijving | Vereist |
-|-------|-------------|----------|
-| Metrieknaam | De naam van de te bevragen metriek | Ja |
-| Aggregatietype | Hoe ruwe metriekwaarden te aggregeren (som, gem, min, max, aantal) | Ja |
-| Attributen | Sleutel-waardefilters om de metriekgegevens te verfijnen | Nee |
-| Aggregeren op | Dimensies om de metriek op te groeperen | Nee |
+| Veld           | Beschrijving                                                       | Vereist |
+| -------------- | ------------------------------------------------------------------ | ------- |
+| Metrieknaam    | De naam van de te bevragen metriek                                 | Ja      |
+| Aggregatietype | Hoe ruwe metriekwaarden te aggregeren (som, gem, min, max, aantal) | Ja      |
+| Attributen     | Sleutel-waardefilters om de metriekgegevens te verfijnen           | Nee     |
+| Aggregeren op  | Dimensies om de metriek op te groeperen                            | Nee     |
 
 Elke opvraag krijgt een alias (bijv. `a`, `b`, `c`) voor gebruik in formules.
 
@@ -59,21 +59,21 @@ Selecteer het tijdvenster voor metriekverhoogde evaluatie:
 
 Kies hoe de metriekwaarden voor evaluatie worden geaggregeerd:
 
-| Strategie | Beschrijving |
-|----------|-------------|
-| Gemiddelde | Gemiddelde waarde over het tijdvenster |
-| Som | Som van alle waarden |
-| Maximumwaarde | Hoogste waarde in het tijdvenster |
-| Minimumwaarde | Laagste waarde in het tijdvenster |
-| Alle waarden | Alle waarden moeten voldoen aan de criteria |
-| Elke waarde | Ten minste één waarde moet voldoen |
+| Strategie     | Beschrijving                                |
+| ------------- | ------------------------------------------- |
+| Gemiddelde    | Gemiddelde waarde over het tijdvenster      |
+| Som           | Som van alle waarden                        |
+| Maximumwaarde | Hoogste waarde in het tijdvenster           |
+| Minimumwaarde | Laagste waarde in het tijdvenster           |
+| Alle waarden  | Alle waarden moeten voldoen aan de criteria |
+| Elke waarde   | Ten minste één waarde moet voldoen          |
 
 ## Monitoringcriteria
 
 ### Beschikbare controletypen
 
-| Controletype | Beschrijving |
-|------------|-------------|
+| Controletype  | Beschrijving                                                             |
+| ------------- | ------------------------------------------------------------------------ |
 | Metriekwaarde | De geaggregeerde waarde van de geconfigureerde metriekopvraag of formule |
 
 ### Filtertypen

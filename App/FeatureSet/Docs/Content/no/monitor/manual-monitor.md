@@ -39,10 +39,10 @@ Du kan opprette hendelser og varsler mot manuelle monitorer akkurat som enhver a
 
 ## Når bør du bruke manuelle monitorer?
 
-| Brukstilfelle | Beskrivelse |
-|---------------|-------------|
-| Tredjeparts tjenester | Spore status til eksterne tjenester du er avhengig av, men ikke kan overvåke direkte |
-| Fysisk infrastruktur | Representere maskinvare eller fysiske systemer uten nettverksovervåking |
-| Forretningsprosesser | Spore ikke-tekniske prosesser som påvirker tjenestestatus |
-| API-drevet status | La eksterne verktøy oppdatere monitorstatus via OneUptime API |
-| Statussideplassholdere | Vis komponenter på statussiden din som administreres utenfor OneUptime |
+| Brukstilfelle          | Beskrivelse                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------ |
+| Tredjeparts tjenester  | Spore status til eksterne tjenester du er avhengig av, men ikke kan overvåke direkte |
+| Fysisk infrastruktur   | Representere maskinvare eller fysiske systemer uten nettverksovervåking              |
+| Forretningsprosesser   | Spore ikke-tekniske prosesser som påvirker tjenestestatus                            |
+| API-drevet status      | La eksterne verktøy oppdatere monitorstatus via OneUptime API                        |
+| Statussideplassholdere | Vis komponenter på statussiden din som administreres utenfor OneUptime               |

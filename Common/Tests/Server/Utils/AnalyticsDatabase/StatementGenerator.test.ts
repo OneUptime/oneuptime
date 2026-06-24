@@ -111,12 +111,16 @@ describe("StatementGenerator", () => {
       expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(2, statement);
 
       /* eslint-disable prettier/prettier */
-            expectStatement(statement, SQL`
-                ALTER TABLE ${'oneuptime'}.${'<table-name>'}
+      // Cluster mode: mutation targets the local table and dispatches ON CLUSTER.
+      expectStatement(
+        statement,
+        SQL`
+                ALTER TABLE ${"oneuptime"}.${"<table-name>Local"} ON CLUSTER 'oneuptime'
                 UPDATE <set-statement>
                 WHERE TRUE <where-statement>
-            `);
-            /* eslint-enable prettier/prettier */
+            `,
+      );
+      /* eslint-enable prettier/prettier */
     });
   });
 
@@ -633,6 +637,81 @@ describe("StatementGenerator", () => {
     });
   });
 
+  describe("toCreateStatement", () => {
+    /*
+     * Regression test for the escapeStringLiteral undefined/null guard.
+     * An ArrayText (Array(String)) column whose value array carried
+     * undefined/null members at runtime used to throw
+     * "TypeError: Cannot read properties of undefined (reading 'replace')"
+     * inside escapeStringLiteral while building the INSERT. The member is
+     * now rendered as the empty string literal '' so the statement still
+     * serializes to a valid ClickHouse Array(String).
+     */
+    class ArrayTextModel extends AnalyticsBaseModel {
+      public constructor() {
+        super({
+          tableName: "<array-create-table>",
+          singularName: "<singular>",
+          pluralName: "<plural>",
+          tableColumns: [
+            new AnalyticsTableColumn({
+              key: "_id",
+              title: "<title>",
+              description: "<description>",
+              required: true,
+              type: TableColumnType.ObjectID,
+            }),
+            new AnalyticsTableColumn({
+              key: "entityKeys",
+              title: "<title>",
+              description: "<description>",
+              required: true,
+              defaultValue: [],
+              type: TableColumnType.ArrayText,
+            }),
+          ],
+          crudApiPath: new Route("route"),
+          primaryKeys: ["_id"],
+          sortKeys: ["_id"],
+          partitionKey: "_id",
+          tableEngine: AnalyticsTableEngine.MergeTree,
+        });
+      }
+    }
+
+    let arrayTextGenerator: StatementGenerator<ArrayTextModel>;
+    beforeEach(() => {
+      arrayTextGenerator = new StatementGenerator<ArrayTextModel>({
+        modelType: ArrayTextModel,
+        database: ClickhouseAppInstance,
+      });
+    });
+
+    test("renders undefined/null ArrayText elements as '' instead of throwing", () => {
+      const item: ArrayTextModel = new ArrayTextModel();
+      item.setColumnValue("_id", "210dac24142f1baa");
+      /*
+       * Simulate runtime data where the Array(String) column carries
+       * undefined/null members. The type system models the column as
+       * string[], hence the cast — this is exactly what crashed before
+       * the guard was added.
+       */
+      item.setColumnValue("entityKeys", [
+        "alpha",
+        undefined,
+        null,
+        "beta",
+      ] as unknown as Array<string>);
+
+      let statement: string = "";
+      expect(() => {
+        statement = arrayTextGenerator.toCreateStatement({ item: [item] });
+      }).not.toThrow();
+
+      expect(statement).toContain("['alpha', '', '', 'beta']");
+    });
+  });
+
   describe("toSelectStatement", () => {
     test("should return the contents of a SELECT statement", () => {
       const { statement, columns } = generator.toSelectStatement({
@@ -790,18 +869,19 @@ describe("StatementGenerator", () => {
       expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(2, statement);
 
       /* eslint-disable prettier/prettier */
-            const expectedStatement: Statement = SQL`
-            CREATE TABLE IF NOT EXISTS ${'oneuptime'}.${'<table-name>'}
+      // Cluster mode: the local <table>Local table, Replicated engine, ON CLUSTER.
+      const expectedStatement: Statement = SQL`
+            CREATE TABLE IF NOT EXISTS ${"oneuptime"}.${"<table-name>Local"} ON CLUSTER 'oneuptime'
     (
         <columns-create-statement>
     )
-    ENGINE = MergeTree
+    ENGINE = ReplicatedMergeTree
 PARTITION BY (column_ObjectID)
 
-    PRIMARY KEY (${'column_ObjectID'})
-    ORDER BY (${'column_ObjectID'})
+    PRIMARY KEY (${"column_ObjectID"})
+    ORDER BY (${"column_ObjectID"})
     `;
-            /* eslint-enable prettier/prettier */
+      /* eslint-enable prettier/prettier */
 
       // Normalize whitespace for comparison to avoid formatting issues
       const normalizeWhitespace: (s: string) => string = (

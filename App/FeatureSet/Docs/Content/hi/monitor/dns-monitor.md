@@ -24,34 +24,34 @@ DNS monitors specific record types के लिए DNS servers query करत�
 
 ### Basic Settings
 
-| Field | विवरण | आवश्यक |
-|-------|-------|--------|
-| Domain Name | query करने के लिए domain (जैसे `example.com`) | हाँ |
-| Record Type | query करने के लिए DNS record type | हाँ |
-| DNS Server | उपयोग करने के लिए Custom DNS server (जैसे `8.8.8.8`)। system default के लिए खाली छोड़ें | नहीं |
+| Field       | विवरण                                                                                   | आवश्यक |
+| ----------- | --------------------------------------------------------------------------------------- | ------ |
+| Domain Name | query करने के लिए domain (जैसे `example.com`)                                           | हाँ    |
+| Record Type | query करने के लिए DNS record type                                                       | हाँ    |
+| DNS Server  | उपयोग करने के लिए Custom DNS server (जैसे `8.8.8.8`)। system default के लिए खाली छोड़ें | नहीं   |
 
 ### समर्थित Record Types
 
-| Record Type | विवरण |
-|-------------|-------|
-| A | IPv4 address records |
-| AAAA | IPv6 address records |
-| CNAME | Canonical name (alias) records |
-| MX | Mail exchange records |
-| NS | Nameserver records |
-| TXT | Text records (SPF, DKIM, आदि) |
-| SOA | Start of Authority records |
-| PTR | Pointer records (reverse DNS) |
-| SRV | Service locator records |
-| CAA | Certificate Authority Authorization records |
+| Record Type | विवरण                                       |
+| ----------- | ------------------------------------------- |
+| A           | IPv4 address records                        |
+| AAAA        | IPv6 address records                        |
+| CNAME       | Canonical name (alias) records              |
+| MX          | Mail exchange records                       |
+| NS          | Nameserver records                          |
+| TXT         | Text records (SPF, DKIM, आदि)               |
+| SOA         | Start of Authority records                  |
+| PTR         | Pointer records (reverse DNS)               |
+| SRV         | Service locator records                     |
+| CAA         | Certificate Authority Authorization records |
 
 ### Advanced Settings
 
-| Field | विवरण | Default |
-|-------|-------|---------|
-| Port | DNS port number | 53 |
-| Timeout (ms) | response के लिए कितना इंतज़ार करें | 5000 |
-| Retries | failure पर retry attempts की संख्या | 3 |
+| Field        | विवरण                               | Default |
+| ------------ | ----------------------------------- | ------- |
+| Port         | DNS port number                     | 53      |
+| Timeout (ms) | response के लिए कितना इंतज़ार करें  | 5000    |
+| Retries      | failure पर retry attempts की संख्या | 3       |
 
 ## Monitoring Criteria
 
@@ -59,13 +59,13 @@ DNS monitors specific record types के लिए DNS servers query करत�
 
 ### उपलब्ध Check Types
 
-| Check Type | विवरण |
-|------------|-------|
-| DNS Is Online | DNS server queries का response देता है या नहीं |
-| DNS Response Time (in ms) | milliseconds में query response time |
-| DNS Record Exists | query के लिए DNS records मौजूद हैं या नहीं |
-| DNS Record Value | DNS record द्वारा returned value |
-| DNSSEC Is Valid | DNSSEC validation pass होती है या नहीं |
+| Check Type                | विवरण                                          |
+| ------------------------- | ---------------------------------------------- |
+| DNS Is Online             | DNS server queries का response देता है या नहीं |
+| DNS Response Time (in ms) | milliseconds में query response time           |
+| DNS Record Exists         | query के लिए DNS records मौजूद हैं या नहीं     |
+| DNS Record Value          | DNS record द्वारा returned value               |
+| DNSSEC Is Valid           | DNSSEC validation pass होती है या नहीं         |
 
 ### Filter Types
 

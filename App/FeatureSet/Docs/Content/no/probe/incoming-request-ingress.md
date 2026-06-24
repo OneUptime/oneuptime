@@ -161,17 +161,17 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 
 ## Miljøvariabler
 
-| Variabel | Standard | Beskrivelse |
-|---|---|---|
-| `PROBE_INGRESS_PORT` | _ikke satt_ (deaktivert) | Port innkommende lytter binder til. Enhver verdi `> 0` aktiverer inngang. |
-| `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | Tidsavbrudd (ms) for hvert videresendingsforsøk til OneUptime. Minimum `1000`. |
-| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | Antall nye forsøk før proben gir opp på en videresending. Sett til `0` for å deaktivere nye forsøk. |
+| Variabel                            | Standard                 | Beskrivelse                                                                                         |
+| ----------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------- |
+| `PROBE_INGRESS_PORT`                | _ikke satt_ (deaktivert) | Port innkommende lytter binder til. Enhver verdi `> 0` aktiverer inngang.                           |
+| `PROBE_INGRESS_FORWARD_TIMEOUT_MS`  | `10000`                  | Tidsavbrudd (ms) for hvert videresendingsforsøk til OneUptime. Minimum `1000`.                      |
+| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3`                      | Antall nye forsøk før proben gir opp på en videresending. Sett til `0` for å deaktivere nye forsøk. |
 
 Standard probe-variabler (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL`, proxy-variabler) gjelder alle – se [Egendefinerte prober](/docs/probe/custom-probe) for den fullstendige listen.
 
 ## Sikkerhetshensyn
 
-- **Endepunktet er uautentisert av design** – den hemmelige nøkkelen i URL-stien *er* autentiseringen, akkurat som den er på det offentlige `oneuptime.com`-endepunktet. Behandle den hemmelige nøkkelen som en legitimasjon.
+- **Endepunktet er uautentisert av design** – den hemmelige nøkkelen i URL-stien _er_ autentiseringen, akkurat som den er på det offentlige `oneuptime.com`-endepunktet. Behandle den hemmelige nøkkelen som en legitimasjon.
 - **Bind bare til et privat grensesnitt.** Inngangs-lytteren skal ikke være tilgjengelig fra det offentlige internett. Bruk en nettverkspolicy, brannmurregel eller `ClusterIP`-tjeneste for å begrense tilgangen.
 - **Bruk HTTPS-terminering hvis du krever kryptering under overføring.** Probens lytter snakker vanlig HTTP. Plasser den bak en intern lastbalanser/inngangs-kontroller hvis du trenger TLS på det innkommende hoppet. Videresendingssegmentet fra probe → OneUptime bruker alltid HTTPS (forutsatt at `ONEUPTIME_URL` er `https://`).
 - **Ressursgrenser.** Lytteren aksepterer forespørselskropper opptil 50 MB. Hvis du trenger en strammere grense, plasser en omvendt proxy foran.

@@ -24,34 +24,34 @@ DNS monitors query DNS servers for specific record types and evaluate the result
 
 ### Basic Settings
 
-| Field | Description | Required |
-|-------|-------------|----------|
-| Domain Name | The domain to query (e.g., `example.com`) | Yes |
-| Record Type | The DNS record type to query | Yes |
-| DNS Server | Custom DNS server to use (e.g., `8.8.8.8`). Leave empty for system default | No |
+| Field       | Description                                                                | Required |
+| ----------- | -------------------------------------------------------------------------- | -------- |
+| Domain Name | The domain to query (e.g., `example.com`)                                  | Yes      |
+| Record Type | The DNS record type to query                                               | Yes      |
+| DNS Server  | Custom DNS server to use (e.g., `8.8.8.8`). Leave empty for system default | No       |
 
 ### Supported Record Types
 
-| Record Type | Description |
-|-------------|-------------|
-| A | IPv4 address records |
-| AAAA | IPv6 address records |
-| CNAME | Canonical name (alias) records |
-| MX | Mail exchange records |
-| NS | Nameserver records |
-| TXT | Text records (SPF, DKIM, etc.) |
-| SOA | Start of Authority records |
-| PTR | Pointer records (reverse DNS) |
-| SRV | Service locator records |
-| CAA | Certificate Authority Authorization records |
+| Record Type | Description                                 |
+| ----------- | ------------------------------------------- |
+| A           | IPv4 address records                        |
+| AAAA        | IPv6 address records                        |
+| CNAME       | Canonical name (alias) records              |
+| MX          | Mail exchange records                       |
+| NS          | Nameserver records                          |
+| TXT         | Text records (SPF, DKIM, etc.)              |
+| SOA         | Start of Authority records                  |
+| PTR         | Pointer records (reverse DNS)               |
+| SRV         | Service locator records                     |
+| CAA         | Certificate Authority Authorization records |
 
 ### Advanced Settings
 
-| Field | Description | Default |
-|-------|-------------|---------|
-| Port | DNS port number | 53 |
-| Timeout (ms) | How long to wait for a response | 5000 |
-| Retries | Number of retry attempts on failure | 3 |
+| Field        | Description                         | Default |
+| ------------ | ----------------------------------- | ------- |
+| Port         | DNS port number                     | 53      |
+| Timeout (ms) | How long to wait for a response     | 5000    |
+| Retries      | Number of retry attempts on failure | 3       |
 
 ## Monitoring Criteria
 
@@ -59,13 +59,13 @@ You can configure criteria to determine when your DNS is considered online, degr
 
 ### Available Check Types
 
-| Check Type | Description |
-|------------|-------------|
-| DNS Is Online | Whether the DNS server responds to queries |
-| DNS Response Time (in ms) | Query response time in milliseconds |
-| DNS Record Exists | Whether DNS records exist for the query |
-| DNS Record Value | The value returned by a DNS record |
-| DNSSEC Is Valid | Whether DNSSEC validation passes |
+| Check Type                | Description                                |
+| ------------------------- | ------------------------------------------ |
+| DNS Is Online             | Whether the DNS server responds to queries |
+| DNS Response Time (in ms) | Query response time in milliseconds        |
+| DNS Record Exists         | Whether DNS records exist for the query    |
+| DNS Record Value          | The value returned by a DNS record         |
+| DNSSEC Is Valid           | Whether DNSSEC validation passes           |
 
 ### Filter Types
 

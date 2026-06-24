@@ -54,9 +54,11 @@ Las notificaciones push se entregan a través de Firebase Cloud Messaging (FCM) 
 ## Actualizaciones
 
 **Google Play:**
+
 - Las actualizaciones se instalan automáticamente. Para activar una manualmente, abra **Play Store → Perfil → Administrar apps y dispositivo → Actualizaciones disponibles → OneUptime On-Call → Actualizar**.
 
 **Instalación manual del APK:**
+
 - Vuelva a descargar el APK más reciente desde el enlace de GitHub Releases anterior e instálelo sobre la aplicación existente — sus datos, URL del servidor e inicio de sesión se conservan.
 
 ## Desinstalación
@@ -70,11 +72,13 @@ Su cuenta de OneUptime y sus turnos de guardia se almacenan en el servidor y no 
 ## Solución de problemas
 
 **"Error de red" al iniciar sesión:**
+
 - Verifique que la **URL del servidor** sea correcta y accesible desde su dispositivo.
 - Si está en una red corporativa o VPN, asegúrese de que la instancia de OneUptime sea accesible.
 - Confirme que el servidor se sirva a través de HTTPS con un certificado válido.
 
 **No se reciben notificaciones push:**
+
 - Confirme que las notificaciones estén habilitadas en **Ajustes → Aplicaciones → OneUptime On-Call → Notificaciones**.
 - Deshabilite la optimización de batería para OneUptime On-Call (consulte Notificaciones push arriba).
 - Asegúrese de que Do Not Disturb esté desactivado, o de que OneUptime On-Call esté en la lista de excepciones.
@@ -82,14 +86,17 @@ Su cuenta de OneUptime y sus turnos de guardia se almacenan en el servidor y no 
 - Usuarios autoalojados: confirme que las notificaciones push estén configuradas en su instancia de OneUptime (consulte la guía de [Notificaciones push](/docs/self-hosted/push-notifications) para instalaciones autoalojadas).
 
 **El desbloqueo biométrico no funciona:**
+
 - Registre una huella dactilar en **Ajustes → Seguridad → Huella dactilar**.
 - Vuelva a habilitar el desbloqueo biométrico desde la pantalla **Configuración** dentro de la aplicación OneUptime On-Call.
 
 **Instalación del APK bloqueada:**
+
 - Debe conceder al navegador permiso para instalar aplicaciones desconocidas (consulte la Opción 2 anterior).
 - Algunas operadoras o perfiles de dispositivos empresariales bloquean por completo la instalación manual; en ese caso, utilice la versión de Google Play.
 
 **La aplicación se bloquea al iniciar:**
+
 - Actualice a la última versión desde Google Play o al último APK.
 - Reinicie su dispositivo.
 - Si el problema persiste, desinstale y reinstale, y vuelva a iniciar sesión.

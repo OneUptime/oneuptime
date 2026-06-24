@@ -98,10 +98,10 @@ provider "oneuptime" {
 
 ### Configuration Options
 
-| Argument | Environment Variable | Description | Required |
-|----------|---------------------|-------------|----------|
-| `oneuptime_url` | `ONEUPTIME_URL` | OneUptime URL | Yes |
-| `api_key` | `ONEUPTIME_API_KEY` | OneUptime API Key | Yes |
+| Argument        | Environment Variable | Description       | Required |
+| --------------- | -------------------- | ----------------- | -------- |
+| `oneuptime_url` | `ONEUPTIME_URL`      | OneUptime URL     | Yes      |
+| `api_key`       | `ONEUPTIME_API_KEY`  | OneUptime API Key | Yes      |
 
 ## Quick Start
 
@@ -195,11 +195,11 @@ terraform {
 
 **Critical**: Self-hosted customers must pin the provider version to match their OneUptime installation:
 
-| OneUptime Version | Provider Version | Configuration |
-|-------------------|------------------|---------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
-| 7.2.x | 7.2.x | `version = "~> 7.2.0"` |
+| OneUptime Version | Provider Version | Configuration          |
+| ----------------- | ---------------- | ---------------------- |
+| 7.0.x             | 7.0.x            | `version = "~> 7.0.0"` |
+| 7.1.x             | 7.1.x            | `version = "~> 7.1.0"` |
+| 7.2.x             | 7.2.x            | `version = "~> 7.2.0"` |
 
 Example for OneUptime 7.0.123:
 
@@ -219,26 +219,33 @@ terraform {
 The OneUptime Terraform provider supports the following resources:
 
 ### Core Resources
+
 - `oneuptime_team` - Manage teams
 
 ### Monitoring
+
 - `oneuptime_monitor` - Create and manage monitors
 - `oneuptime_probe` - Manage monitoring probes
 
 ### On-Call Management
+
 - `oneuptime_on_call_duty_policy` - Set up on-call schedules
 
 ### Status Pages
+
 - `oneuptime_status_page` - Create status pages
 
 ### Service Catalog
+
 - `oneuptime_service_catalog` - Manage service catalog entries
 
 ### Service Catalog
+
 - `oneuptime_service` - Define services
 - `oneuptime_service_dependency` - Map service dependencies
 
 ### Data Sources
+
 Note: Data sources are not currently available in the provider as no datasources are defined in the provider schema.
 
 ## Examples
@@ -301,12 +308,12 @@ resource "oneuptime_monitor" "api" {
 resource "oneuptime_monitor" "database" {
   name       = "Database Connection"
   project_id = oneuptime_project.production.id
-  
+
   monitor_type = "port"
   hostname     = "db.mycompany.com"
   port         = 5432
   interval     = "2m"
-  
+
   tags = {
     service     = "database"
     environment = "production"
@@ -319,11 +326,11 @@ resource "oneuptime_on_call_policy" "platform_oncall" {
   name       = "Platform On-Call"
   project_id = oneuptime_project.production.id
   team_id    = oneuptime_team.platform.id
-  
+
   schedules {
     name      = "Business Hours"
     timezone  = "America/New_York"
-    
+
     layers {
       name = "Primary"
       users = ["user1@mycompany.com", "user2@mycompany.com"]
@@ -339,22 +346,22 @@ resource "oneuptime_on_call_policy" "platform_oncall" {
 resource "oneuptime_alert_policy" "critical_alerts" {
   name       = "Critical System Alerts"
   project_id = oneuptime_project.production.id
-  
+
   conditions {
     monitor_id = oneuptime_monitor.api.id
     threshold  = "down"
   }
-  
+
   conditions {
     monitor_id = oneuptime_monitor.database.id
     threshold  = "down"
   }
-  
+
   actions {
     type = "webhook"
     url  = "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
   }
-  
+
   actions {
     type           = "oncall_escalation"
     oncall_policy_id = oneuptime_on_call_policy.platform_oncall.id
@@ -365,14 +372,14 @@ resource "oneuptime_alert_policy" "critical_alerts" {
 resource "oneuptime_status_page" "public" {
   name       = "MyCompany Status"
   project_id = oneuptime_project.production.id
-  
+
   domain = "status.mycompany.com"
-  
+
   components {
     name       = "API"
     monitor_id = oneuptime_monitor.api.id
   }
-  
+
   components {
     name       = "Database"
     monitor_id = oneuptime_monitor.database.id
@@ -407,10 +414,12 @@ provider "oneuptime" {
 ### 1. Version Management
 
 **For Cloud Customers:**
+
 - Use semantic versioning with `~>` to get compatible updates
 - Review changelog before major version upgrades
 
 **For Self-Hosted Customers:**
+
 - Always pin to exact version matching your installation
 - Update provider version when you upgrade OneUptime
 - Test in non-production environment first
@@ -545,15 +554,19 @@ terraform apply
 ### Common Issues
 
 1. **Version Mismatch (Self-Hosted)**
+
    ```
    Error: API version incompatible
    ```
+
    **Solution**: Ensure provider version matches OneUptime installation
 
 2. **Authentication Issues**
+
    ```
    Error: Invalid API key
    ```
+
    **Solution**: Verify API key and permissions
 
 3. **Resource Not Found**

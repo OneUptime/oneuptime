@@ -28,6 +28,10 @@ export default class DropUnusedTelemetryTables extends DataMigrationBase {
     super("DropUnusedTelemetryTables");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     const unusedTables: Array<string> = [
       /*

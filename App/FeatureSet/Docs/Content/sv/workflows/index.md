@@ -24,12 +24,12 @@ Du bygger allt detta visuellt på en arbetsyta. Ingen kodning krävs för de fle
 
 ## Nyckelbegrepp
 
-| Term | Betydelse |
-| --- | --- |
-| **Arbetsflöde** | Hela automationen — ett namn, en arbetsyta och en växel för att slå på eller av den. |
-| **Utlösare** | Det första blocket. Det bestämmer när arbetsflödet körs. Varje arbetsflöde har exakt en utlösare. |
-| **Komponent** | Ett åtgärdsblock — skickar ett meddelande, gör en förfrågan, kontrollerar ett villkor. |
-| **Körning** | En exekvering av arbetsflödet. Sparas med tidsstämplar och utdata från varje block. |
+| Term                | Betydelse                                                                                            |
+| ------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Arbetsflöde**     | Hela automationen — ett namn, en arbetsyta och en växel för att slå på eller av den.                 |
+| **Utlösare**        | Det första blocket. Det bestämmer när arbetsflödet körs. Varje arbetsflöde har exakt en utlösare.    |
+| **Komponent**       | Ett åtgärdsblock — skickar ett meddelande, gör en förfrågan, kontrollerar ett villkor.               |
+| **Körning**         | En exekvering av arbetsflödet. Sparas med tidsstämplar och utdata från varje block.                  |
 | **Global variabel** | Ett värde (som en API-nyckel) som du sparar en gång och återanvänder i vilket arbetsflöde som helst. |
 
 ## Var du hittar arbetsflöden i OneUptime

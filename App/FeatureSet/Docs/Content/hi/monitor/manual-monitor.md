@@ -39,10 +39,10 @@ Manual monitors में monitoring intervals, probes, या automated criteri
 
 ## Manual Monitors कब उपयोग करें
 
-| Use Case | विवरण |
-|----------|-------|
-| Third-party services | external services की status track करें जिन पर आप depend करते हैं लेकिन directly monitor नहीं कर सकते |
-| Physical infrastructure | network monitoring के बिना hardware या physical systems represent करें |
-| Business processes | service status को affect करने वाले non-technical processes track करें |
-| API-driven status | external tools को OneUptime API के माध्यम से monitor status update करने दें |
-| Status page placeholders | अपने status page पर ऐसे components दिखाएं जो OneUptime के बाहर प्रबंधित हैं |
+| Use Case                 | विवरण                                                                                                |
+| ------------------------ | ---------------------------------------------------------------------------------------------------- |
+| Third-party services     | external services की status track करें जिन पर आप depend करते हैं लेकिन directly monitor नहीं कर सकते |
+| Physical infrastructure  | network monitoring के बिना hardware या physical systems represent करें                               |
+| Business processes       | service status को affect करने वाले non-technical processes track करें                                |
+| API-driven status        | external tools को OneUptime API के माध्यम से monitor status update करने दें                          |
+| Status page placeholders | अपने status page पर ऐसे components दिखाएं जो OneUptime के बाहर प्रबंधित हैं                          |

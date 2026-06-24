@@ -123,15 +123,15 @@ spec:
         app: oneuptime-probe
     spec:
       containers:
-      - name: oneuptime-probe
-        image: oneuptime/probe:release
-        env:
-          - name: PROBE_KEY
-            value: "<probe-key>"
-          - name: PROBE_ID
-            value: "<probe-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 Kör sedan följande kommando:
@@ -147,11 +147,13 @@ Om du egeninstallerar OneUptime kan du ändra `ONEUPTIME_URL` till din anpassade
 Sonden stöder följande miljövariabler:
 
 #### Obligatoriska variabler
+
 - `PROBE_KEY` – Sondnyckeln från din OneUptime-instrumentpanel
 - `PROBE_ID` – Sond-ID:t från din OneUptime-instrumentpanel
 - `ONEUPTIME_URL` – URL:en till din OneUptime-instans (standard: https://oneuptime.com)
 
 #### Valfria variabler
+
 - `HTTP_PROXY_URL` – HTTP-proxyserverns URL för HTTP-förfrågningar
 - `HTTPS_PROXY_URL` – HTTP-proxyserverns URL för HTTPS-förfrågningar
 - `NO_PROXY` – Kommaseparerade värdar eller domäner som ska kringgå proxyn
@@ -168,11 +170,13 @@ Sonden stöder följande miljövariabler:
 Sonden stöder både HTTP- och HTTPS-proxyservrar. När den är konfigurerad dirigerar sonden all övervakningsrafik genom de angivna proxyservrarna. Du kan också ange en kommaseparerad `NO_PROXY`-lista för att kringgå proxyn för interna värdar eller nätverk.
 
 **Proxy-URL-format:**
+
 ```
 http://[username:password@]proxy.server.com:port
 ```
 
 **Stödda funktioner:**
+
 - HTTP- och HTTPS-proxystöd
 - Proxyautentisering (användarnamn/lösenord)
 - Automatisk fallback mellan HTTP- och HTTPS-proxyservrar

@@ -54,9 +54,11 @@ Push notifications are delivered through Firebase Cloud Messaging (FCM) via Expo
 ## Updates
 
 **Google Play:**
+
 - Updates install automatically. To trigger one manually, open **Play Store → Profile → Manage apps & device → Updates available → OneUptime On-Call → Update**.
 
 **APK sideload:**
+
 - Re-download the latest APK from the GitHub Releases link above and install over the existing app — your data, server URL, and login are preserved.
 
 ## Uninstall
@@ -70,11 +72,13 @@ Your OneUptime account and on-call schedules are stored server-side and are not 
 ## Troubleshooting
 
 **"Network Error" when signing in:**
+
 - Verify that the **Server URL** is correct and reachable from your device.
 - If you are on a corporate network or VPN, make sure the OneUptime instance is accessible.
 - Confirm the server is served over HTTPS with a valid certificate.
 
 **Not receiving push notifications:**
+
 - Confirm notifications are enabled at **Settings → Apps → OneUptime On-Call → Notifications**.
 - Disable battery optimization for OneUptime On-Call (see Push Notifications above).
 - Make sure Do Not Disturb is off, or that OneUptime On-Call is on the exception list.
@@ -82,14 +86,17 @@ Your OneUptime account and on-call schedules are stored server-side and are not 
 - Self-hosted users: confirm push notifications are configured on your OneUptime instance (see the self-hosted [Push Notifications](/docs/self-hosted/push-notifications) guide).
 
 **Biometric unlock not working:**
+
 - Enrol a fingerprint in **Settings → Security → Fingerprint**.
 - Re-enable biometric unlock from the **Settings** screen inside the OneUptime On-Call app.
 
 **APK install blocked:**
+
 - You must grant the browser permission to install unknown apps (see Option 2 above).
 - Some carriers or enterprise device profiles block sideloading entirely; in that case, use the Google Play version instead.
 
 **App crashes on launch:**
+
 - Update to the latest version from Google Play or the latest APK.
 - Restart your device.
 - If the issue persists, uninstall and reinstall, then sign in again.

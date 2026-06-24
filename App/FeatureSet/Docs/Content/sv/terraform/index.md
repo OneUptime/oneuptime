@@ -5,20 +5,25 @@ OneUptime Terraform-leverantören möjliggör Infrastructure as Code (IaC)-hante
 ## Dokumentationsavsnitt
 
 ### [Kom igång](./quick-start.md)
+
 Snabbinstallationsguide för att komma igång med OneUptime Terraform-leverantören på några minuter.
 
 ### [Fullständig leverantörsguide](./complete-guide.md)
+
 Heltäckande dokumentation om installation, konfiguration, resurser och bästa praxis.
 
 ### [Konfiguration för egeninstallation](./self-hosted.md)
+
 **Kritiskt för egeninstallerade kunder**: Versionsinlåsning, kompatibilitet och driftsättningsstrategier.
 
 ### [Exempel](./examples.md)
+
 Verkliga exempel och mönster för vanliga OneUptime Terraform-konfigurationer.
 
 ## Snabblänkar
 
 ### För OneUptime Cloud-kunder
+
 ```hcl
 terraform {
   required_providers {
@@ -36,6 +41,7 @@ provider "oneuptime" {
 ```
 
 ### För egeninstallerade kunder
+
 ```hcl
 terraform {
   required_providers {

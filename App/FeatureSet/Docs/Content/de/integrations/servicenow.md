@@ -31,6 +31,7 @@ Die Table API von ServiceNow akzeptiert **Basic-Auth**.
 1. Öffnen Sie **Workflows → Create Workflow**, benennen Sie ihn `Incidents → ServiceNow`, und öffnen Sie den **Builder**.
 2. Fügen Sie einen **Incident**-Auslöser mit **On Create** hinzu. Benennen Sie ihn in `Incident` um.
 3. Fügen Sie einen **API**-Block verbunden mit dem Auslöser hinzu:
+
    - **Method**: `POST`
    - **URL**: `https://your-instance.service-now.com/api/now/table/incident`
    - **Headers**:
@@ -54,6 +55,7 @@ Die Table API von ServiceNow akzeptiert **Basic-Auth**.
      ```
 
    `correlation_id` erhält einen Rückverweis auf den OneUptime-Vorfall – praktisch, wenn Sie später einen Auflöse-Schritt hinzufügen. ServiceNow `urgency`/`impact` verwenden `1` (hoch), `2` (mittel), `3` (niedrig).
+
 4. **Speichern**, aktivieren und einen Test-Vorfall erstellen. Eine `201 Created`-Antwort in den Workflow-Logs gibt die `sys_id` und `number` des neuen Datensatzes zurück (zum Beispiel `INC0012345`).
 
 ## Schritt 3 — Bei OneUptime-Auflösung auflösen (optional)

@@ -161,17 +161,17 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 
 ## Variables de entorno
 
-| Variable | Predeterminado | Descripción |
-|---|---|---|
-| `PROBE_INGRESS_PORT` | _sin establecer_ (deshabilitado) | Puerto al que se vincula el receptor de entrada. Cualquier valor `> 0` habilita el ingreso. |
-| `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | Tiempo de espera (ms) para cada intento de reenvío a OneUptime. Mínimo `1000`. |
-| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | Número de reintentos antes de que la sonda abandone un reenvío. Establece en `0` para deshabilitar los reintentos. |
+| Variable                            | Predeterminado                   | Descripción                                                                                                        |
+| ----------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `PROBE_INGRESS_PORT`                | _sin establecer_ (deshabilitado) | Puerto al que se vincula el receptor de entrada. Cualquier valor `> 0` habilita el ingreso.                        |
+| `PROBE_INGRESS_FORWARD_TIMEOUT_MS`  | `10000`                          | Tiempo de espera (ms) para cada intento de reenvío a OneUptime. Mínimo `1000`.                                     |
+| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3`                              | Número de reintentos antes de que la sonda abandone un reenvío. Establece en `0` para deshabilitar los reintentos. |
 
 Las variables estándar de la sonda (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL`, variables de proxy) se aplican todas; consulta [Sondas personalizadas](/docs/probe/custom-probe) para ver la lista completa.
 
 ## Consideraciones de seguridad
 
-- **El punto de conexión no tiene autenticación por diseño**: la clave secreta en la ruta de la URL *es* la autenticación, igual que en el punto de conexión público de `oneuptime.com`. Trata la clave secreta como una credencial.
+- **El punto de conexión no tiene autenticación por diseño**: la clave secreta en la ruta de la URL _es_ la autenticación, igual que en el punto de conexión público de `oneuptime.com`. Trata la clave secreta como una credencial.
 - **Vincula solo a una interfaz privada.** El receptor de ingreso no debe ser accesible desde internet público. Usa una política de red, una regla de firewall o un servicio `ClusterIP` para restringir el acceso.
 - **Usa la terminación HTTPS si necesitas cifrado en tránsito.** El receptor de la sonda usa HTTP simple. Ponlo detrás de un balanceador de carga interno/controlador de ingreso si necesitas TLS en el salto de entrada. El tramo de reenvío de la sonda → OneUptime siempre usa HTTPS (asumiendo que `ONEUPTIME_URL` es `https://`).
 - **Límites de recursos.** El receptor acepta cuerpos de solicitud de hasta 50 MB. Si necesitas un límite más estricto, coloca un proxy inverso al frente.

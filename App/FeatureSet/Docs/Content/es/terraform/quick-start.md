@@ -11,6 +11,7 @@ Esta guía te ayudará a comenzar con el Proveedor Terraform de OneUptime en sol
 ## Paso 1: Crear la clave de API
 
 ### Para OneUptime Cloud
+
 1. Ve a [OneUptime Cloud](https://oneuptime.com) e inicia sesión
 2. Navega a **Configuración** → **Claves de API**
 3. Haz clic en **Crear clave de API**
@@ -19,6 +20,7 @@ Esta guía te ayudará a comenzar con el Proveedor Terraform de OneUptime en sol
 6. Copia la clave de API generada
 
 ### Para OneUptime auto-alojado
+
 1. Accede a tu instancia de OneUptime
 2. Navega a **Configuración** → **Claves de API**
 3. Haz clic en **Crear clave de API**
@@ -37,7 +39,7 @@ terraform {
       source  = "oneuptime/oneuptime"
       # Para clientes en la nube
       version = "~> 7.0"
-      
+
       # Para clientes auto-alojados: fija a tu versión exacta
       # version = "= 7.0.123"  # Reemplaza con tu versión de OneUptime
     }
@@ -48,10 +50,10 @@ terraform {
 provider "oneuptime" {
   # Para clientes en la nube
   oneuptime_url = "https://oneuptime.com"
-  
+
   # Para clientes auto-alojados: usa la URL de tu instancia
   # oneuptime_url = "https://oneuptime.yourcompany.com"
-  
+
   api_key = var.oneuptime_api_key
 }
 
@@ -164,25 +166,33 @@ provider "oneuptime" {
 ## Solución de problemas del inicio rápido
 
 ### Problema: Proveedor no encontrado
+
 ```
 Error: Failed to query available provider packages
 ```
+
 **Solución**: Ejecuta `terraform init` para descargar el proveedor
 
 ### Problema: Autenticación fallida
+
 ```
 Error: Invalid API key
 ```
-**Solución**: 
+
+**Solución**:
+
 1. Verifica tu clave de API en el panel de OneUptime
 2. Comprueba que la clave de API tenga permisos suficientes
 3. Asegúrate de que `oneuptime_url` sea correcta para tu instancia
 
 ### Problema: Desajuste de versiones (auto-alojado)
+
 ```
 Error: API version incompatible
 ```
-**Solución**: 
+
+**Solución**:
+
 1. Comprueba tu versión de OneUptime en el panel
 2. Actualiza la versión del proveedor para que coincida exactamente
 3. Ejecuta `terraform init -upgrade`

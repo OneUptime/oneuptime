@@ -56,10 +56,10 @@ export ONEUPTIME_API_KEY="your-api-key-here"
 
 ### Konfigurationsoptionen
 
-| Argument | Umgebungsvariable | Beschreibung | Erforderlich |
-|----------|---------------------|-------------|----------|
-| `oneuptime_url` | `ONEUPTIME_URL` | OneUptime-URL | Ja |
-| `api_key` | `ONEUPTIME_API_KEY` | OneUptime-API-Schlüssel | Ja |
+| Argument        | Umgebungsvariable   | Beschreibung            | Erforderlich |
+| --------------- | ------------------- | ----------------------- | ------------ |
+| `oneuptime_url` | `ONEUPTIME_URL`     | OneUptime-URL           | Ja           |
+| `api_key`       | `ONEUPTIME_API_KEY` | OneUptime-API-Schlüssel | Ja           |
 
 ## Schnellstart
 
@@ -105,10 +105,10 @@ terraform {
 
 **Kritisch**: Pinnen Sie die Provider-Version auf Ihre OneUptime-Installation:
 
-| OneUptime-Version | Provider-Version | Konfiguration |
-|-------------------|------------------|---------------|
-| 7.0.x | 7.0.x | `version = "~> 7.0.0"` |
-| 7.1.x | 7.1.x | `version = "~> 7.1.0"` |
+| OneUptime-Version | Provider-Version | Konfiguration          |
+| ----------------- | ---------------- | ---------------------- |
+| 7.0.x             | 7.0.x            | `version = "~> 7.0.0"` |
+| 7.1.x             | 7.1.x            | `version = "~> 7.1.0"` |
 
 ## Verfügbare Ressourcen
 
@@ -124,10 +124,12 @@ terraform {
 ### 1. Versionsverwaltung
 
 **Für Cloud-Kunden:**
+
 - Semantische Versionierung mit `~>` verwenden
 - Änderungsprotokoll vor größeren Versions-Upgrades prüfen
 
 **Für selbst gehostete Kunden:**
+
 - Immer auf genaue Version Ihrer Installation pinnen
 - Provider-Version beim OneUptime-Upgrade aktualisieren
 - Zuerst in Nicht-Produktionsumgebung testen

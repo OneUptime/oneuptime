@@ -58,10 +58,10 @@ export ONEUPTIME_API_KEY="your-api-key-here"
 
 ### Konfigurationsalternativ
 
-| Argument | Miljövariabel | Beskrivning | Obligatorisk |
-|----------|---------------|-------------|--------------|
-| `oneuptime_url` | `ONEUPTIME_URL` | OneUptime URL | Ja |
-| `api_key` | `ONEUPTIME_API_KEY` | OneUptime API-nyckel | Ja |
+| Argument        | Miljövariabel       | Beskrivning          | Obligatorisk |
+| --------------- | ------------------- | -------------------- | ------------ |
+| `oneuptime_url` | `ONEUPTIME_URL`     | OneUptime URL        | Ja           |
+| `api_key`       | `ONEUPTIME_API_KEY` | OneUptime API-nyckel | Ja           |
 
 ## Snabbstart
 
@@ -129,19 +129,24 @@ terraform apply
 OneUptime Terraform-leverantören stöder följande resurser:
 
 ### Kärnresurser
+
 - `oneuptime_team` – Hantera team
 
 ### Övervakning
+
 - `oneuptime_monitor` – Skapa och hantera monitorer
 - `oneuptime_probe` – Hantera övervakningssonder
 
 ### Jour-hantering
+
 - `oneuptime_on_call_duty_policy` – Konfigurera jourschemat
 
 ### Statussidor
+
 - `oneuptime_status_page` – Skapa statussidor
 
 ### Tjänstkatalog
+
 - `oneuptime_service_catalog` – Hantera tjänstkatalogposter
 
 ## Bästa praxis
@@ -149,9 +154,11 @@ OneUptime Terraform-leverantören stöder följande resurser:
 ### 1. Versionshantering
 
 **För molnkunder:**
+
 - Använd semantisk versionshantering med `~>` för att få kompatibla uppdateringar
 
 **För egeninstallerade kunder:**
+
 - Lås alltid till exakt version som matchar din installation
 - Uppdatera leverantörens version när du uppgraderar OneUptime
 - Testa i icke-produktionsmiljö först
@@ -183,15 +190,19 @@ terraform workspace new staging
 ### Vanliga problem
 
 1. **Versionsmismatch (egeninstallerad)**
+
    ```
    Error: API version incompatible
    ```
+
    **Lösning**: Se till att leverantörens version matchar OneUptime-installationen
 
 2. **Autentiseringsproblem**
+
    ```
    Error: Invalid API key
    ```
+
    **Lösning**: Verifiera API-nyckeln och behörigheter
 
 3. **Resursen hittades inte**

@@ -22,11 +22,11 @@ Hvis du foretrækker at bruge dine egne API-nøgler eller en bestemt udbyder, ka
 
 OneUptime understøtter i øjeblikket følgende LLM-udbydere:
 
-| Udbyder | Beskrivelse | API-nøgle påkrævet | Base URL påkrævet |
-|----------|-------------|------------------|-------------------|
-| **OpenAI** | GPT-4, GPT-4o, GPT-3.5 Turbo og andre OpenAI-modeller | Ja | Nej (bruger standard) |
-| **Anthropic** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku og andre Claude-modeller | Ja | Nej (bruger standard) |
-| **Ollama** | Selvhostede open source-modeller som Llama 2, Mistral, CodeLlama osv. | Nej | Ja |
+| Udbyder       | Beskrivelse                                                             | API-nøgle påkrævet | Base URL påkrævet     |
+| ------------- | ----------------------------------------------------------------------- | ------------------ | --------------------- |
+| **OpenAI**    | GPT-4, GPT-4o, GPT-3.5 Turbo og andre OpenAI-modeller                   | Ja                 | Nej (bruger standard) |
+| **Anthropic** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku og andre Claude-modeller | Ja                 | Nej (bruger standard) |
+| **Ollama**    | Selvhostede open source-modeller som Llama 2, Mistral, CodeLlama osv.   | Nej                | Ja                    |
 
 ## Opsætning af en LLM-udbyder
 
@@ -61,6 +61,7 @@ Udfyld følgende felter:
    - `gpt-3.5-turbo` – Hurtig og økonomisk
 
 **Eksempelkonfiguration:**
+
 ```
 Navn: Produktions-OpenAI
 LLM-type: OpenAI
@@ -80,6 +81,7 @@ Modelnavn: gpt-4o
    - `claude-3-5-sonnet-20241022` – Seneste Sonnet-model
 
 **Eksempelkonfiguration:**
+
 ```
 Navn: Produktions-Anthropic
 LLM-type: Anthropic
@@ -99,6 +101,7 @@ Ollama giver dig mulighed for at køre open source-LLM'er lokalt eller på din e
 6. Indtast modelnavnet, du hentede
 
 **Eksempelkonfiguration:**
+
 ```
 Navn: Lokal Ollama
 LLM-type: Ollama
@@ -107,6 +110,7 @@ Modelnavn: llama2
 ```
 
 **Populære Ollama-modeller:**
+
 - `llama2` – Metas Llama 2-model
 - `llama3` – Metas Llama 3-model
 - `mistral` – Mistral AIs model

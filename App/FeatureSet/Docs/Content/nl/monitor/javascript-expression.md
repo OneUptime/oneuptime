@@ -8,12 +8,12 @@ JavaScript-expressie als monitoringcriterium is beschikbaar voor de volgende mon
 
 De volgende variabelen zijn beschikbaar in de context van het bewaakte object:
 
-| Variabele | Beschrijving | Type |
-| --- | --- | --- |
-| `responseBody` | Het responslichaamobject. Als het responslichaam in HTML/XML is, is dit van het type string. Als het responslichaam in JSON is, is dit in JSON. | `string` of `JSON` |
-| `responseHeaders` | Het responsheaderobject. | `Dictionary<string>` |
-| `responseStatusCode` | De responsstatuscode. | `number` |
-| `responseTimeInMs` | De responstijd in milliseconden. | `number` |
+| Variabele            | Beschrijving                                                                                                                                    | Type                 |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| `responseBody`       | Het responslichaamobject. Als het responslichaam in HTML/XML is, is dit van het type string. Als het responslichaam in JSON is, is dit in JSON. | `string` of `JSON`   |
+| `responseHeaders`    | Het responsheaderobject.                                                                                                                        | `Dictionary<string>` |
+| `responseStatusCode` | De responsstatuscode.                                                                                                                           | `number`             |
+| `responseTimeInMs`   | De responstijd in milliseconden.                                                                                                                | `number`             |
 
 #### Voorbeeld
 
@@ -22,12 +22,12 @@ Het volgende voorbeeld toont hoe u een JavaScript-expressie gebruikt om een webs
 ```javascript
 
 /**
- *  
+ *
  * Als het responslichaam in JSON is, zal responseBody een JSON-object zijn
  * {
  *    "item": "hello"
  * }
- * 
+ *
  *  **/
 
 "{{responseBody.item}}" === "hello"
@@ -52,14 +52,14 @@ Het volgende voorbeeld toont hoe u een JavaScript-expressie gebruikt om een webs
 // voor arrays kunt u het volgende gebruiken
 
 /**
- *  
- * Als het responslichaam is: 
+ *
+ * Als het responslichaam is:
  * {
  *    "item": [{
  *          "name": "hello"
  *      }]
  * }
- * 
+ *
  *  **/
 
 "{{responseBody.items[0].name}}" === "hello"
@@ -69,37 +69,37 @@ Het volgende voorbeeld toont hoe u een JavaScript-expressie gebruikt om een webs
 
 De volgende variabelen zijn beschikbaar in de context van het bewaakte object:
 
-| Variabele | Beschrijving | Type |
-| --- | --- | --- |
-| `requestBody` | Het verzoeklichaamobject. | `string` of `JSON` |
-| `requestHeaders` | Het verzoekheaderobject. | `Dictionary<string>` |
-
+| Variabele        | Beschrijving              | Type                 |
+| ---------------- | ------------------------- | -------------------- |
+| `requestBody`    | Het verzoeklichaamobject. | `string` of `JSON`   |
+| `requestHeaders` | Het verzoekheaderobject.  | `Dictionary<string>` |
 
 #### Voorbeeld
 
 Het volgende voorbeeld toont hoe u een JavaScript-expressie gebruikt om een inkomend verzoek te bewaken op een specifieke tekenreeks in het verzoeklichaam:
 
 ```javascript
-"{{requestBody.item}}" === "hello"
+"{{requestBody.item}}" === "hello";
 
 // of u kunt verzoekheaders gebruiken
 
-"{{requestHeaders.contentType}}" === "text/html"
+"{{requestHeaders.contentType}}" === "text/html";
 
 // u kunt ook reguliere expressies gebruiken
 
-"{{requestBody.item}}".match(/hello/)
+"{{requestBody.item}}".match(/hello/);
 
 // u kunt meerdere expressies combineren met logische operatoren
 
-"{{requestBody.item}}" === "hello" && "{{requestHeaders.contentType}}" === "text/html"
+"{{requestBody.item}}" === "hello" &&
+  "{{requestHeaders.contentType}}" === "text/html";
 
 // u kunt het volgende gebruiken voor arrays
 
-"{{requestBody.items[0].name}}" === "hello"
+"{{requestBody.items[0].name}}" === "hello";
 ```
 
 ### Aandachtspunten
 
-* Scripts hebben een time-out van 1 seconde; als het script langer dan 1 seconde duurt om te worden uitgevoerd, wordt `false` geretourneerd.
-* `{{var}}` vervangt de variabele door de waarde; als u een tekenreeks wilt vergelijken, moet u deze in aanhalingstekens plaatsen, bijv. `"{{responseBody.item}}" === "hello"`, en als u een getal wilt vergelijken, hoeft u het niet in aanhalingstekens te plaatsen, bijv. `{{responseStatusCode}} === 200`.
+- Scripts hebben een time-out van 1 seconde; als het script langer dan 1 seconde duurt om te worden uitgevoerd, wordt `false` geretourneerd.
+- `{{var}}` vervangt de variabele door de waarde; als u een tekenreeks wilt vergelijken, moet u deze in aanhalingstekens plaatsen, bijv. `"{{responseBody.item}}" === "hello"`, en als u een getal wilt vergelijken, hoeft u het niet in aanhalingstekens te plaatsen, bijv. `{{responseStatusCode}} === 200`.

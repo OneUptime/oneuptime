@@ -10,7 +10,7 @@ Every integration moves data in one of two directions (and many use both).
 
 ### Inbound — another tool sends data into OneUptime
 
-Use this when an external system needs to *create or update something in OneUptime* — usually open an incident or an alert when it detects a problem.
+Use this when an external system needs to _create or update something in OneUptime_ — usually open an incident or an alert when it detects a problem.
 
 1. Build a workflow that starts with a **[Webhook trigger](/docs/workflows/triggers#webhook)**. OneUptime gives you a unique URL.
 2. In the other tool, configure a webhook / notification action that POSTs to that URL when something happens.
@@ -22,7 +22,7 @@ Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  �
 
 ### Outbound — OneUptime sends data to another tool
 
-Use this when *something in OneUptime should show up in another tool* — open a Jira ticket, page someone in PagerDuty, post to Slack.
+Use this when _something in OneUptime should show up in another tool_ — open a Jira ticket, page someone in PagerDuty, post to Slack.
 
 1. Build a workflow that starts with a **[OneUptime event trigger](/docs/workflows/triggers#oneuptime-event-triggers)** — for example **Incident → On Create**.
 2. Add an **[API component](/docs/workflows/components#api)** that calls the other tool's REST API with the incident's details.
@@ -34,22 +34,22 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 ## Catalog
 
-| Tool | Direction | What it does |
-| --- | --- | --- |
-| [Zabbix](/docs/integrations/zabbix) | Inbound | Turn Zabbix problems into OneUptime incidents (and resolve them on recovery). |
-| [Jira](/docs/integrations/jira) | Outbound (+ inbound) | Open a Jira issue for every incident; sync status back. |
-| [PagerDuty](/docs/integrations/pagerduty) | Outbound (+ inbound) | Trigger and resolve PagerDuty events from OneUptime incidents. |
-| [Opsgenie](/docs/integrations/opsgenie) | Outbound (+ inbound) | Create and close Opsgenie alerts. |
-| [ServiceNow](/docs/integrations/servicenow) | Outbound (+ inbound) | Open ServiceNow incidents from OneUptime. |
-| [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Inbound | Convert Alertmanager notifications into incidents. |
-| [Grafana](/docs/integrations/grafana) | Inbound | Convert Grafana alerts into incidents. |
-| [Datadog](/docs/integrations/datadog) | Inbound | Convert Datadog monitor alerts into incidents. |
-| [GitHub](/docs/integrations/github) | Outbound | Open a GitHub issue for an incident. |
-| [GitLab](/docs/integrations/gitlab) | Outbound | Open a GitLab issue for an incident. |
-| [Discord](/docs/integrations/discord) | Outbound | Post incident updates to a Discord channel. |
-| [Telegram](/docs/integrations/telegram) | Outbound | Send incident updates to a Telegram chat. |
-| [Slack](/docs/workspace-connections/slack) | Both | Native workspace connection — channels, alerts, and on-call. |
-| [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | Both | Native workspace connection. |
+| Tool                                                                  | Direction            | What it does                                                                  |
+| --------------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------- |
+| [Zabbix](/docs/integrations/zabbix)                                   | Inbound              | Turn Zabbix problems into OneUptime incidents (and resolve them on recovery). |
+| [Jira](/docs/integrations/jira)                                       | Outbound (+ inbound) | Open a Jira issue for every incident; sync status back.                       |
+| [PagerDuty](/docs/integrations/pagerduty)                             | Outbound (+ inbound) | Trigger and resolve PagerDuty events from OneUptime incidents.                |
+| [Opsgenie](/docs/integrations/opsgenie)                               | Outbound (+ inbound) | Create and close Opsgenie alerts.                                             |
+| [ServiceNow](/docs/integrations/servicenow)                           | Outbound (+ inbound) | Open ServiceNow incidents from OneUptime.                                     |
+| [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Inbound              | Convert Alertmanager notifications into incidents.                            |
+| [Grafana](/docs/integrations/grafana)                                 | Inbound              | Convert Grafana alerts into incidents.                                        |
+| [Datadog](/docs/integrations/datadog)                                 | Inbound              | Convert Datadog monitor alerts into incidents.                                |
+| [GitHub](/docs/integrations/github)                                   | Outbound             | Open a GitHub issue for an incident.                                          |
+| [GitLab](/docs/integrations/gitlab)                                   | Outbound             | Open a GitLab issue for an incident.                                          |
+| [Discord](/docs/integrations/discord)                                 | Outbound             | Post incident updates to a Discord channel.                                   |
+| [Telegram](/docs/integrations/telegram)                               | Outbound             | Send incident updates to a Telegram chat.                                     |
+| [Slack](/docs/workspace-connections/slack)                            | Both                 | Native workspace connection — channels, alerts, and on-call.                  |
+| [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | Both                 | Native workspace connection.                                                  |
 
 > **Slack and Microsoft Teams** have a deeper, native connection that goes beyond workflows — automatic incident channels, two-way actions, and on-call notifications. Use the [Slack](/docs/workspace-connections/slack) and [Microsoft Teams](/docs/workspace-connections/microsoft-teams) workspace connections for those rather than building a workflow.
 
@@ -67,13 +67,13 @@ Secret variables are hidden in the UI after you save and are scrubbed from run l
 
 Most outbound integrations need an `Authorization` header on the API block. The common forms:
 
-| Scheme | Header value | Used by |
-| --- | --- | --- |
-| Bearer token | `Bearer {{variable.TOKEN}}` | GitHub, many modern APIs |
-| Basic auth | `Basic {{variable.BASE64_USER_PASS}}` | Jira, ServiceNow |
-| API key header | `GenieKey {{variable.OPSGENIE_KEY}}` | Opsgenie |
-| Token in body | `routing_key` field in the JSON body | PagerDuty Events API |
-| Private token header | `PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}` | GitLab |
+| Scheme               | Header value                               | Used by                  |
+| -------------------- | ------------------------------------------ | ------------------------ |
+| Bearer token         | `Bearer {{variable.TOKEN}}`                | GitHub, many modern APIs |
+| Basic auth           | `Basic {{variable.BASE64_USER_PASS}}`      | Jira, ServiceNow         |
+| API key header       | `GenieKey {{variable.OPSGENIE_KEY}}`       | Opsgenie                 |
+| Token in body        | `routing_key` field in the JSON body       | PagerDuty Events API     |
+| Private token header | `PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}` | GitLab                   |
 
 For Basic auth, base64-encode `username:password` (or `email:api_token`) **once**, then store the result as the secret. On macOS/Linux:
 

@@ -24,11 +24,11 @@ Une fois que vous avez créé un jeton, cliquez sur « View » pour le consulter
 
 ## Ce dont vous avez besoin de la part de OneUptime
 
-| Paramètre | Valeur |
-| --- | --- |
-| Point de terminaison OTLP | `https://oneuptime.com/otlp` |
-| En-tête d'authentification | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
-| Nom du service | Le nom sous lequel votre service doit apparaître, par exemple `my-service` |
+| Paramètre                  | Valeur                                                                     |
+| -------------------------- | -------------------------------------------------------------------------- |
+| Point de terminaison OTLP  | `https://oneuptime.com/otlp`                                               |
+| En-tête d'authentification | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN`                        |
+| Nom du service             | Le nom sous lequel votre service doit apparaître, par exemple `my-service` |
 
 > **Vous hébergez OneUptime vous-même ?** Remplacez `https://oneuptime.com/otlp` par `https://YOUR-ONEUPTIME-HOST/otlp` (ou `http://...` si vous ne terminez pas le TLS). Tout le reste demeure inchangé.
 
@@ -109,7 +109,7 @@ Si vous préférez la configuration au code, utilisez `Serilog.Settings.Configur
 ```json
 {
   "Serilog": {
-    "Using": [ "Serilog.Sinks.OpenTelemetry" ],
+    "Using": ["Serilog.Sinks.OpenTelemetry"],
     "MinimumLevel": "Information",
     "WriteTo": [
       {

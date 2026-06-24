@@ -32,25 +32,25 @@ Kubernetes 监控器使用来自您集群的指标，为您的基础设施提供
 
 选择监控资源的层级：
 
-| 范围 | 描述 |
-|-------|-------------|
-| Cluster | 监控整个集群 |
-| Namespace | 监控特定命名空间内的资源 |
-| Workload | 监控特定的 deployment、statefulset、daemonset、job 或 cronjob |
-| Node | 监控特定的集群节点 |
-| Pod | 监控特定的 Pod |
+| 范围      | 描述                                                          |
+| --------- | ------------------------------------------------------------- |
+| Cluster   | 监控整个集群                                                  |
+| Namespace | 监控特定命名空间内的资源                                      |
+| Workload  | 监控特定的 deployment、statefulset、daemonset、job 或 cronjob |
+| Node      | 监控特定的集群节点                                            |
+| Pod       | 监控特定的 Pod                                                |
 
 ### 资源过滤器
 
 使用可选过滤器缩小范围：
 
-| 过滤器 | 描述 | 适用范围 |
-|--------|-------------|-------------------|
-| Namespace | Kubernetes 命名空间 | Namespace、Workload、Pod |
-| Workload Type | deployment、statefulset、daemonset、job、cronjob | Workload |
-| Workload Name | 工作负载名称 | Workload |
-| Node Name | 节点名称 | Node |
-| Pod Name | Pod 名称 | Pod |
+| 过滤器        | 描述                                             | 适用范围                 |
+| ------------- | ------------------------------------------------ | ------------------------ |
+| Namespace     | Kubernetes 命名空间                              | Namespace、Workload、Pod |
+| Workload Type | deployment、statefulset、daemonset、job、cronjob | Workload                 |
+| Workload Name | 工作负载名称                                     | Workload                 |
+| Node Name     | 节点名称                                         | Node                     |
+| Pod Name      | Pod 名称                                         | Pod                      |
 
 ### 指标查询
 
@@ -77,60 +77,60 @@ Kubernetes 监控器使用来自您集群的指标，为您的基础设施提供
 
 ### Pod 指标
 
-| 指标 | 描述 |
-|--------|-------------|
-| Pod CPU Usage | Pod 的 CPU 消耗 |
-| Pod Memory Usage | Pod 的内存消耗 |
-| Pod Filesystem Usage | Pod 的磁盘使用情况 |
-| Pod Network Receive/Transmit | 网络流量 |
-| Pod Phase | 当前 Pod 阶段（Running、Pending、Failed 等） |
+| 指标                         | 描述                                         |
+| ---------------------------- | -------------------------------------------- |
+| Pod CPU Usage                | Pod 的 CPU 消耗                              |
+| Pod Memory Usage             | Pod 的内存消耗                               |
+| Pod Filesystem Usage         | Pod 的磁盘使用情况                           |
+| Pod Network Receive/Transmit | 网络流量                                     |
+| Pod Phase                    | 当前 Pod 阶段（Running、Pending、Failed 等） |
 
 ### 节点指标
 
-| 指标 | 描述 |
-|--------|-------------|
-| Node CPU Usage | 每个节点的 CPU 使用率 |
-| Node Memory Usage | 每个节点的内存使用率 |
+| 指标                  | 描述                   |
+| --------------------- | ---------------------- |
+| Node CPU Usage        | 每个节点的 CPU 使用率  |
+| Node Memory Usage     | 每个节点的内存使用率   |
 | Node Filesystem Usage | 每个节点的磁盘使用情况 |
-| Node Disk I/O | 读/写操作 |
-| Node Ready Condition | 节点是否就绪 |
+| Node Disk I/O         | 读/写操作              |
+| Node Ready Condition  | 节点是否就绪           |
 
 ### 容器指标
 
-| 指标 | 描述 |
-|--------|-------------|
-| Container Restarts | 容器重启次数 |
-| Container CPU/Memory Limits | 资源 limits |
+| 指标                          | 描述          |
+| ----------------------------- | ------------- |
+| Container Restarts            | 容器重启次数  |
+| Container CPU/Memory Limits   | 资源 limits   |
 | Container CPU/Memory Requests | 资源 requests |
-| Container Ready Status | 容器是否就绪 |
+| Container Ready Status        | 容器是否就绪  |
 
 ### 工作负载指标
 
-| 指标 | 描述 |
-|--------|-------------|
-| Deployment Available/Unavailable Replicas | 副本数 |
-| DaemonSet Misscheduled Nodes | 调度问题 |
-| StatefulSet Ready Replicas | 就绪副本数 |
-| Job Active/Failed/Succeeded Pods | Job 状态 |
+| 指标                                      | 描述       |
+| ----------------------------------------- | ---------- |
+| Deployment Available/Unavailable Replicas | 副本数     |
+| DaemonSet Misscheduled Nodes              | 调度问题   |
+| StatefulSet Ready Replicas                | 就绪副本数 |
+| Job Active/Failed/Succeeded Pods          | Job 状态   |
 
 ## 监控条件
 
 ### 可用的检查类型
 
-| 检查类型 | 描述 |
-|------------|-------------|
+| 检查类型     | 描述                     |
+| ------------ | ------------------------ |
 | Metric Value | 所配置指标查询或公式的值 |
 
 ### 聚合类型
 
-| 聚合方式 | 描述 |
-|-------------|-------------|
-| Average | 时间窗口内的平均值 |
-| Sum | 所有值的总和 |
-| Maximum Value | 时间窗口内的最高值 |
-| Minimum Value | 时间窗口内的最低值 |
-| All Values | 所有值都必须满足条件 |
-| Any Value | 至少有一个值满足条件 |
+| 聚合方式      | 描述                 |
+| ------------- | -------------------- |
+| Average       | 时间窗口内的平均值   |
+| Sum           | 所有值的总和         |
+| Maximum Value | 时间窗口内的最高值   |
+| Minimum Value | 时间窗口内的最低值   |
+| All Values    | 所有值都必须满足条件 |
+| Any Value     | 至少有一个值满足条件 |
 
 ### 过滤类型
 
@@ -140,20 +140,20 @@ Kubernetes 监控器使用来自您集群的指标，为您的基础设施提供
 
 OneUptime 为常见的 Kubernetes 监控场景提供模板：
 
-| 模板 | 描述 | 阈值 |
-|----------|-------------|-----------|
-| CrashLoopBackOff Detection | 容器重启次数 | > 5 次重启 |
-| Pod Stuck in Pending | 处于 Pending 阶段的 Pod | > 0 个 Pod |
-| Node Not Ready | 节点就绪状态 | = 0（未就绪） |
-| High Node CPU | 节点 CPU 使用率 | > 90% |
-| High Node Memory | 节点内存使用率 | > 85% |
-| Deployment Replica Mismatch | 不可用副本数 | > 0 个副本 |
-| Job Failures | Job 中失败的 Pod | > 0 次失败 |
-| etcd No Leader | etcd 集群缺少 leader | = 0（无 leader） |
-| API Server Throttling | 被丢弃的 API 请求 | > 0 个请求 |
-| Scheduler Backlog | scheduler 中待处理的 Pod | > 0 个 Pod |
-| High Node Disk Usage | 节点文件系统使用率 | > 90% |
-| DaemonSet Unavailable | 调度失败的节点 | > 0 个节点 |
+| 模板                        | 描述                     | 阈值             |
+| --------------------------- | ------------------------ | ---------------- |
+| CrashLoopBackOff Detection  | 容器重启次数             | > 5 次重启       |
+| Pod Stuck in Pending        | 处于 Pending 阶段的 Pod  | > 0 个 Pod       |
+| Node Not Ready              | 节点就绪状态             | = 0（未就绪）    |
+| High Node CPU               | 节点 CPU 使用率          | > 90%            |
+| High Node Memory            | 节点内存使用率           | > 85%            |
+| Deployment Replica Mismatch | 不可用副本数             | > 0 个副本       |
+| Job Failures                | Job 中失败的 Pod         | > 0 次失败       |
+| etcd No Leader              | etcd 集群缺少 leader     | = 0（无 leader） |
+| API Server Throttling       | 被丢弃的 API 请求        | > 0 个请求       |
+| Scheduler Backlog           | scheduler 中待处理的 Pod | > 0 个 Pod       |
+| High Node Disk Usage        | 节点文件系统使用率       | > 90%            |
+| DaemonSet Unavailable       | 调度失败的节点           | > 0 个节点       |
 
 ## 安装要求
 

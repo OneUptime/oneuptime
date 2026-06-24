@@ -29,12 +29,12 @@ In der Liste **Dashboards** können Sie nach Label filtern – der schnellste We
 
 Dashboards arbeiten mit der rollenbasierten Zugriffskontrolle Ihres Projekts. Die relevanten Berechtigungen:
 
-| Berechtigung | Was sie erlaubt |
-| --- | --- |
-| **Dashboard erstellen** | Neue Dashboards anlegen. |
-| **Dashboard lesen** | Dashboards anzeigen (im privaten Modus). |
+| Berechtigung             | Was sie erlaubt                              |
+| ------------------------ | -------------------------------------------- |
+| **Dashboard erstellen**  | Neue Dashboards anlegen.                     |
+| **Dashboard lesen**      | Dashboards anzeigen (im privaten Modus).     |
 | **Dashboard bearbeiten** | Widgets, Variablen und Einstellungen ändern. |
-| **Dashboard löschen** | Ein Dashboard löschen. |
+| **Dashboard löschen**    | Ein Dashboard löschen.                       |
 
 Es gibt passende Berechtigungen für Dashboard-Eigentümer und eigene Domains, sodass Sie „Eigentümer verwalten" vergeben können, ohne „Dashboard bearbeiten" zu erteilen.
 

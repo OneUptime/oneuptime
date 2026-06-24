@@ -27,12 +27,12 @@ Metrisk monitorer forespørger og evaluerer numeriske metrikker fra dine telemet
 
 Definer én eller flere metriske forespørgsler. Hver forespørgsel inkluderer:
 
-| Felt | Beskrivelse | Påkrævet |
-|-------|-------------|----------|
-| Metrisk navn | Navnet på metrikken der skal forespørges | Ja |
-| Aggregeringstype | Sådan aggregeres råmetriske værdier (sum, gns., min., maks., antal) | Ja |
-| Attributter | Nøgle-værdi-filtre til at indsnævre de metriske data | Nej |
-| Aggregér efter | Dimensioner til at gruppere metrikken efter | Nej |
+| Felt             | Beskrivelse                                                         | Påkrævet |
+| ---------------- | ------------------------------------------------------------------- | -------- |
+| Metrisk navn     | Navnet på metrikken der skal forespørges                            | Ja       |
+| Aggregeringstype | Sådan aggregeres råmetriske værdier (sum, gns., min., maks., antal) | Ja       |
+| Attributter      | Nøgle-værdi-filtre til at indsnævre de metriske data                | Nej      |
+| Aggregér efter   | Dimensioner til at gruppere metrikken efter                         | Nej      |
 
 Hver forespørgsel tildeles et alias (f.eks. `a`, `b`, `c`) til brug i formler.
 
@@ -59,21 +59,21 @@ Vælg tidsvinduet for metrisk evaluering:
 
 Vælg, hvordan de metriske værdier skal aggregeres til evaluering:
 
-| Strategi | Beskrivelse |
-|----------|-------------|
-| Gennemsnit | Gennemsnitsværdi over tidsvinduet |
-| Sum | Sum af alle værdier |
-| Maksimumsværdi | Højeste værdi i tidsvinduet |
-| Minimumsværdi | Laveste værdi i tidsvinduet |
-| Alle værdier | Alle værdier skal opfylde kriterierne |
-| Enhver værdi | Mindst én værdi skal opfylde kriterierne |
+| Strategi       | Beskrivelse                              |
+| -------------- | ---------------------------------------- |
+| Gennemsnit     | Gennemsnitsværdi over tidsvinduet        |
+| Sum            | Sum af alle værdier                      |
+| Maksimumsværdi | Højeste værdi i tidsvinduet              |
+| Minimumsværdi  | Laveste værdi i tidsvinduet              |
+| Alle værdier   | Alle værdier skal opfylde kriterierne    |
+| Enhver værdi   | Mindst én værdi skal opfylde kriterierne |
 
 ## Overvågningskriterier
 
 ### Tilgængelige kontroltyper
 
-| Kontroltype | Beskrivelse |
-|------------|-------------|
+| Kontroltype   | Beskrivelse                                                                   |
+| ------------- | ----------------------------------------------------------------------------- |
 | Metrisk værdi | Den aggregerede værdi af den konfigurerede metriske forespørgsel eller formel |
 
 ### Filtertyper

@@ -55,6 +55,7 @@ OneUptime 可搭配任何 LLM 供應商使用。您可以使用：
 對於需要在自有基礎架構內執行 AI 代理人的組織（例如基於安全性、合規性或網路存取需求），OneUptime 支援自架 AI 代理人。
 
 自架 AI 代理人：
+
 - 在您的私有網路內執行
 - 可存取內部資源與系統
 - 讓您完全掌控代理人的執行環境
@@ -134,15 +135,15 @@ spec:
         app: oneuptime-ai-agent
     spec:
       containers:
-      - name: oneuptime-ai-agent
-        image: oneuptime/ai-agent:release
-        env:
-          - name: AI_AGENT_KEY
-            value: "<ai-agent-key>"
-          - name: AI_AGENT_ID
-            value: "<ai-agent-id>"
-          - name: ONEUPTIME_URL
-            value: "https://oneuptime.com"
+        - name: oneuptime-ai-agent
+          image: oneuptime/ai-agent:release
+          env:
+            - name: AI_AGENT_KEY
+              value: "<ai-agent-key>"
+            - name: AI_AGENT_ID
+              value: "<ai-agent-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
 
 套用此設定：
@@ -157,12 +158,11 @@ AI 代理人支援以下環境變數：
 
 #### 必要變數
 
-| 變數 | 說明 |
-|----------|-------------|
-| `AI_AGENT_KEY` | 來自您 OneUptime 儀表板的 AI 代理人金鑰 |
-| `AI_AGENT_ID` | 來自您 OneUptime 儀表板的 AI 代理人 ID |
+| 變數            | 說明                                                         |
+| --------------- | ------------------------------------------------------------ |
+| `AI_AGENT_KEY`  | 來自您 OneUptime 儀表板的 AI 代理人金鑰                      |
+| `AI_AGENT_ID`   | 來自您 OneUptime 儀表板的 AI 代理人 ID                       |
 | `ONEUPTIME_URL` | 您 OneUptime 執行個體的 URL（預設值：https://oneuptime.com） |
-
 
 ## 驗證您的 AI 代理人
 

@@ -39,10 +39,10 @@ You can create incidents and alerts against manual monitors just like any other 
 
 ## When to Use Manual Monitors
 
-| Use Case | Description |
-|----------|-------------|
-| Third-party services | Track the status of external services you depend on but cannot monitor directly |
-| Physical infrastructure | Represent hardware or physical systems without network monitoring |
-| Business processes | Track non-technical processes that affect service status |
-| API-driven status | Let external tools update monitor status via the OneUptime API |
-| Status page placeholders | Show components on your status page that are managed outside OneUptime |
+| Use Case                 | Description                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| Third-party services     | Track the status of external services you depend on but cannot monitor directly |
+| Physical infrastructure  | Represent hardware or physical systems without network monitoring               |
+| Business processes       | Track non-technical processes that affect service status                        |
+| API-driven status        | Let external tools update monitor status via the OneUptime API                  |
+| Status page placeholders | Show components on your status page that are managed outside OneUptime          |

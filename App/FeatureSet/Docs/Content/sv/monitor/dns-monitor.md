@@ -24,34 +24,34 @@ DNS-monitorer frågar DNS-servrar efter specifika posttyper och utvärderar resu
 
 ### Grundinställningar
 
-| Fält | Beskrivning | Obligatorisk |
-|------|-------------|--------------|
-| Domännamn | Domänen att fråga (t.ex. `example.com`) | Ja |
-| Posttyp | DNS-posttypen att fråga | Ja |
-| DNS-server | Anpassad DNS-server att använda (t.ex. `8.8.8.8`). Lämna tomt för systemstandard | Nej |
+| Fält       | Beskrivning                                                                      | Obligatorisk |
+| ---------- | -------------------------------------------------------------------------------- | ------------ |
+| Domännamn  | Domänen att fråga (t.ex. `example.com`)                                          | Ja           |
+| Posttyp    | DNS-posttypen att fråga                                                          | Ja           |
+| DNS-server | Anpassad DNS-server att använda (t.ex. `8.8.8.8`). Lämna tomt för systemstandard | Nej          |
 
 ### Posttyper som stöds
 
-| Posttyp | Beskrivning |
-|---------|-------------|
-| A | IPv4-adressposter |
-| AAAA | IPv6-adressposter |
-| CNAME | Kanoniska namnposter (alias) |
-| MX | Brevlådeserverörter |
-| NS | Namnserverposter |
-| TXT | Textposter (SPF, DKIM etc.) |
-| SOA | Start of Authority-poster |
-| PTR | Pekarposter (omvänd DNS) |
-| SRV | Tjänstelokaliserarposter |
-| CAA | Certificate Authority Authorization-poster |
+| Posttyp | Beskrivning                                |
+| ------- | ------------------------------------------ |
+| A       | IPv4-adressposter                          |
+| AAAA    | IPv6-adressposter                          |
+| CNAME   | Kanoniska namnposter (alias)               |
+| MX      | Brevlådeserverörter                        |
+| NS      | Namnserverposter                           |
+| TXT     | Textposter (SPF, DKIM etc.)                |
+| SOA     | Start of Authority-poster                  |
+| PTR     | Pekarposter (omvänd DNS)                   |
+| SRV     | Tjänstelokaliserarposter                   |
+| CAA     | Certificate Authority Authorization-poster |
 
 ### Avancerade inställningar
 
-| Fält | Beskrivning | Standard |
-|------|-------------|----------|
-| Port | DNS-portnummer | 53 |
-| Timeout (ms) | Hur länge man väntar på ett svar | 5000 |
-| Återförsök | Antal återförsök vid fel | 3 |
+| Fält         | Beskrivning                      | Standard |
+| ------------ | -------------------------------- | -------- |
+| Port         | DNS-portnummer                   | 53       |
+| Timeout (ms) | Hur länge man väntar på ett svar | 5000     |
+| Återförsök   | Antal återförsök vid fel         | 3        |
 
 ## Övervakningskriterier
 
@@ -59,13 +59,13 @@ Du kan konfigurera kriterier för att avgöra när ditt DNS anses vara online, d
 
 ### Tillgängliga kontrolltyper
 
-| Kontrolltyp | Beskrivning |
-|------------|-------------|
-| DNS är online | Om DNS-servern svarar på frågor |
-| DNS-svarstid (i ms) | Svarstid i millisekunder |
-| DNS-post finns | Om DNS-poster finns för frågan |
-| DNS-postvärde | Värdet som returneras av en DNS-post |
-| DNSSEC är giltig | Om DNSSEC-validering godkänns |
+| Kontrolltyp         | Beskrivning                          |
+| ------------------- | ------------------------------------ |
+| DNS är online       | Om DNS-servern svarar på frågor      |
+| DNS-svarstid (i ms) | Svarstid i millisekunder             |
+| DNS-post finns      | Om DNS-poster finns för frågan       |
+| DNS-postvärde       | Värdet som returneras av en DNS-post |
+| DNSSEC är giltig    | Om DNSSEC-validering godkänns        |
 
 ### Filtertyper
 

@@ -15,12 +15,12 @@ Estas têm precedência sobre contextos salvos, mas são substituídas por flags
 
 ## Códigos de Saída
 
-| Código | Significado |
-|------|---------|
-| `0` | Sucesso |
-| `1` | Erro geral |
-| `2` | Erro de autenticação (credenciais ausentes ou inválidas) |
-| `3` | Não encontrado (404) |
+| Código | Significado                                              |
+| ------ | -------------------------------------------------------- |
+| `0`    | Sucesso                                                  |
+| `1`    | Erro geral                                               |
+| `2`    | Erro de autenticação (credenciais ausentes ou inválidas) |
+| `3`    | Não encontrado (404)                                     |
 
 Use códigos de saída em scripts para lidar com erros:
 
@@ -80,7 +80,7 @@ done
 name: Check Active Incidents
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: "*/5 * * * *"
 
 jobs:
   health-check:

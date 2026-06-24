@@ -28,12 +28,12 @@ Wählen Sie einen oder mehrere Dienste aus, von denen Traces überwacht werden s
 
 ### Span-Filter
 
-| Filter | Beschreibung | Erforderlich |
-|--------|-------------|----------|
-| Span-Status | Nach Span-Statuscode filtern (OK, ERROR, UNSET) | Nein |
-| Span-Name | Textsuche nach bestimmten Span-Namen (z. B. Operations- oder Endpunktnamen) | Nein |
-| Attribute | Schlüssel-Wert-Paare zum Filtern nach benutzerdefinierten Span-Attributen | Nein |
-| Zeitfenster | Wie weit zurück nach Spans gesucht wird (in Sekunden, Standard: 60) | Nein |
+| Filter      | Beschreibung                                                                | Erforderlich |
+| ----------- | --------------------------------------------------------------------------- | ------------ |
+| Span-Status | Nach Span-Statuscode filtern (OK, ERROR, UNSET)                             | Nein         |
+| Span-Name   | Textsuche nach bestimmten Span-Namen (z. B. Operations- oder Endpunktnamen) | Nein         |
+| Attribute   | Schlüssel-Wert-Paare zum Filtern nach benutzerdefinierten Span-Attributen   | Nein         |
+| Zeitfenster | Wie weit zurück nach Spans gesucht wird (in Sekunden, Standard: 60)         | Nein         |
 
 ### Span-Statuscodes
 
@@ -45,8 +45,8 @@ Wählen Sie einen oder mehrere Dienste aus, von denen Traces überwacht werden s
 
 ### Verfügbare Prüftypen
 
-| Prüftyp | Beschreibung |
-|------------|-------------|
+| Prüftyp     | Beschreibung                                                       |
+| ----------- | ------------------------------------------------------------------ |
 | Span-Anzahl | Die Anzahl der Spans, die Ihren Filtern im Zeitfenster entsprechen |
 
 ### Filtertypen

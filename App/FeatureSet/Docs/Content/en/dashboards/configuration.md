@@ -29,12 +29,12 @@ The **Dashboards** list lets you filter by label, which is the fastest way to fi
 
 Dashboards work with your project's role-based access control. The relevant permissions:
 
-| Permission | What it allows |
-| --- | --- |
-| **Create Dashboard** | Create new dashboards. |
-| **Read Dashboard** | View dashboards (in private mode). |
-| **Edit Dashboard** | Change widgets, variables, and settings. |
-| **Delete Dashboard** | Delete a dashboard. |
+| Permission           | What it allows                           |
+| -------------------- | ---------------------------------------- |
+| **Create Dashboard** | Create new dashboards.                   |
+| **Read Dashboard**   | View dashboards (in private mode).       |
+| **Edit Dashboard**   | Change widgets, variables, and settings. |
+| **Delete Dashboard** | Delete a dashboard.                      |
 
 There are matching permissions for dashboard owners and custom domains, so you can grant "manage owners" without granting "edit the dashboard."
 

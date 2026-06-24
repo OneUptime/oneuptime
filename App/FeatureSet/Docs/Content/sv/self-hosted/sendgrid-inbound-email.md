@@ -33,9 +33,9 @@ Denna underdomän används uteslutande för OneUptime-monitormeddelanden.
 
 Lägg till en MX-post i din DNS-konfiguration för att dirigera e-postmeddelanden för din inkommande underdomän till SendGrid.
 
-| Typ | Värd/Namn | Prioritet | Värde |
-|-----|-----------|----------|-------|
-| MX | inbound | 10 | mx.sendgrid.net |
+| Typ | Värd/Namn | Prioritet | Värde           |
+| --- | --------- | --------- | --------------- |
+| MX  | inbound   | 10        | mx.sendgrid.net |
 
 **Exempel:** Om din domän är `example.com` och du använder `inbound.example.com`:
 
@@ -61,13 +61,13 @@ För bättre leveransbarhet och för att undvika att e-postmeddelanden markeras 
 3. Klicka på **Add Host & URL**
 4. Konfigurera följande:
 
-| Fält | Värde |
-|------|-------|
-| **Receiving Domain** | Din inkommande underdomän (t.ex. `inbound.yourdomain.com`) |
-| **Destination URL** | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
-| **Check incoming emails for spam** | Valfritt – aktivera om du vill |
-| **Send raw, full MIME message** | Lämna omarkerat (krävs inte) |
-| **POST the raw, full MIME message** | Lämna omarkerat (krävs inte) |
+| Fält                                | Värde                                                                   |
+| ----------------------------------- | ----------------------------------------------------------------------- |
+| **Receiving Domain**                | Din inkommande underdomän (t.ex. `inbound.yourdomain.com`)              |
+| **Destination URL**                 | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
+| **Check incoming emails for spam**  | Valfritt – aktivera om du vill                                          |
+| **Send raw, full MIME message**     | Lämna omarkerat (krävs inte)                                            |
+| **POST the raw, full MIME message** | Lämna omarkerat (krävs inte)                                            |
 
 5. Klicka på **Add**
 
@@ -121,23 +121,26 @@ inboundEmail:
 
 ## Referens för miljövariabler
 
-| Variabel | Beskrivning | Obligatorisk | Standard |
-|----------|-------------|--------------|----------|
-| `INBOUND_EMAIL_PROVIDER` | Den inkommande e-postleverantören att använda | Ja | – |
-| `INBOUND_EMAIL_DOMAIN` | Underdomänen konfigurerad för inkommande e-postmeddelanden | Ja | – |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | Hemlighet för att validera webhook-förfrågningar. När angiven, lägg till denna hemlighet till webhook-URL:en: `/incoming-email/sendgrid/YOUR_SECRET` | Nej | – |
+| Variabel                       | Beskrivning                                                                                                                                          | Obligatorisk | Standard |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | -------- |
+| `INBOUND_EMAIL_PROVIDER`       | Den inkommande e-postleverantören att använda                                                                                                        | Ja           | –        |
+| `INBOUND_EMAIL_DOMAIN`         | Underdomänen konfigurerad för inkommande e-postmeddelanden                                                                                           | Ja           | –        |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | Hemlighet för att validera webhook-förfrågningar. När angiven, lägg till denna hemlighet till webhook-URL:en: `/incoming-email/sendgrid/YOUR_SECRET` | Nej          | –        |
 
 ## Felsökning
 
 ### E-postmeddelanden tas inte emot
 
 1. **Kontrollera DNS-spridning:**
+
    ```bash
    dig MX inbound.yourdomain.com
    ```
+
    Bör returnera `mx.sendgrid.net`
 
 2. **Verifiera SendGrid Inbound Parse-inställningar:**
+
    - Logga in på SendGrid-instrumentpanelen
    - Gå till Settings > Inbound Parse
    - Verifiera att din domän och webhook-URL är korrekta
@@ -148,10 +151,12 @@ inboundEmail:
 ### Webhooks misslyckas
 
 1. **Se till att OneUptime är offentligt tillgängligt:**
+
    - Webhook-URL:en måste vara nåbar från internet
    - Testa med: `curl -X POST https://your-oneuptime-domain.com/incoming-email/sendgrid`
 
 2. **Kontrollera brandväggsregler:**
+
    - Tillåt inkommande HTTPS-trafik från SendGrids IP-intervall
 
 3. **Verifiera SSL-certifikatet:**

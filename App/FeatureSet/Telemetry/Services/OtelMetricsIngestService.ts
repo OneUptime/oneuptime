@@ -534,11 +534,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       ] as JSONArray;
 
       if (!resourceMetrics || !Array.isArray(resourceMetrics)) {
-        logger.error(
-          "Invalid resourceMetrics format in request body",
-          getLogAttributesFromRequest(req as RequestLike),
+        /*
+         * Nothing to ingest. Reached when the out-of-band body was lost
+         * (TTL elapsed before the worker ran — decodeFromQueue returns {})
+         * or the payload genuinely carried no resourceMetrics. Skip, do NOT
+         * throw: this runs in the worker after the 200 was already sent, so
+         * throwing only burns retries (the body won't reappear) and masks
+         * the real first-attempt error behind "Invalid resourceMetrics format".
+         */
+        logger.warn(
+          "No resourceMetrics to ingest (empty or lost body); skipping batch.",
         );
-        throw new BadRequestException("Invalid resourceMetrics format");
+        logger.warn(getLogAttributesFromRequest(req as RequestLike));
+        return;
       }
 
       /*

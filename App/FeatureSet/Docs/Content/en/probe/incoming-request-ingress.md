@@ -161,17 +161,17 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 
 ## Environment variables
 
-| Variable | Default | Description |
-|---|---|---|
-| `PROBE_INGRESS_PORT` | _unset_ (disabled) | Port the inbound listener binds. Any value `> 0` enables ingress. |
-| `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | Timeout (ms) for each forward attempt to OneUptime. Minimum `1000`. |
-| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | Number of retries before the probe gives up on a forward. Set to `0` to disable retries. |
+| Variable                            | Default            | Description                                                                              |
+| ----------------------------------- | ------------------ | ---------------------------------------------------------------------------------------- |
+| `PROBE_INGRESS_PORT`                | _unset_ (disabled) | Port the inbound listener binds. Any value `> 0` enables ingress.                        |
+| `PROBE_INGRESS_FORWARD_TIMEOUT_MS`  | `10000`            | Timeout (ms) for each forward attempt to OneUptime. Minimum `1000`.                      |
+| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3`                | Number of retries before the probe gives up on a forward. Set to `0` to disable retries. |
 
 The standard probe variables (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL`, proxy vars) all apply — see [Custom Probes](/docs/probe/custom-probe) for the full list.
 
 ## Security considerations
 
-- **The endpoint is unauthenticated by design** — the secret key in the URL path *is* the authentication, just as it is on the public `oneuptime.com` endpoint. Treat the secret key as a credential.
+- **The endpoint is unauthenticated by design** — the secret key in the URL path _is_ the authentication, just as it is on the public `oneuptime.com` endpoint. Treat the secret key as a credential.
 - **Bind to a private interface only.** The ingress listener should not be reachable from the public internet. Use a network policy, firewall rule, or `ClusterIP` service to restrict access.
 - **Use HTTPS termination if you require encryption in transit.** The probe's listener speaks plain HTTP. Put it behind an internal load balancer / ingress controller if you need TLS on the inbound hop. The forward leg from probe → OneUptime always uses HTTPS (assuming `ONEUPTIME_URL` is `https://`).
 - **Resource limits.** The listener accepts request bodies up to 50 MB. If you need a tighter cap, place a reverse proxy in front.

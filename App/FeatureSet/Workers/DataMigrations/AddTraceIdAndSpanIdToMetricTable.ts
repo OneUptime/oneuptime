@@ -8,6 +8,10 @@ export default class AddTraceIdAndSpanIdToMetricTable extends DataMigrationBase 
     super("AddTraceIdAndSpanIdToMetricTable");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     const metricModel: Metric = new Metric();
 

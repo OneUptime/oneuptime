@@ -8,12 +8,12 @@ JavaScript-Ausdrücke als Überwachungskriterien sind für die folgenden Überwa
 
 Die folgenden Variablen sind im Kontext des überwachten Objekts verfügbar:
 
-| Variable | Beschreibung | Typ |
-| --- | --- | --- |
-| `responseBody` | Das Antworttextobjekt. Wenn der Antworttext in HTML/XML ist, ist dies eine Zeichenkette. Wenn der Antworttext in JSON ist, ist dies JSON | `string` oder `JSON` |
-| `responseHeaders` | Das Antwort-Header-Objekt. | `Dictionary<string>` |
-| `responseStatusCode` | Der Antwortstatuscode. | `number` |
-| `responseTimeInMs` | Die Antwortzeit in Millisekunden. | `number` |
+| Variable             | Beschreibung                                                                                                                             | Typ                  |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| `responseBody`       | Das Antworttextobjekt. Wenn der Antworttext in HTML/XML ist, ist dies eine Zeichenkette. Wenn der Antworttext in JSON ist, ist dies JSON | `string` oder `JSON` |
+| `responseHeaders`    | Das Antwort-Header-Objekt.                                                                                                               | `Dictionary<string>` |
+| `responseStatusCode` | Der Antwortstatuscode.                                                                                                                   | `number`             |
+| `responseTimeInMs`   | Die Antwortzeit in Millisekunden.                                                                                                        | `number`             |
 
 #### Beispiel
 
@@ -22,12 +22,12 @@ Das folgende Beispiel zeigt, wie ein JavaScript-Ausdruck verwendet wird, um eine
 ```javascript
 
 /**
- *  
+ *
  * If response body is in JSON then responseBody will be a JSON object
  * {
  *    "item": "hello"
  * }
- * 
+ *
  *  **/
 
 "{{responseBody.item}}" === "hello"
@@ -52,14 +52,14 @@ Das folgende Beispiel zeigt, wie ein JavaScript-Ausdruck verwendet wird, um eine
 // for arrays you can use the following
 
 /**
- *  
- * If response body is: 
+ *
+ * If response body is:
  * {
  *    "item": [{
  *          "name": "hello"
  *      }]
  * }
- * 
+ *
  *  **/
 
 "{{responseBody.items[0].name}}" === "hello"
@@ -69,37 +69,37 @@ Das folgende Beispiel zeigt, wie ein JavaScript-Ausdruck verwendet wird, um eine
 
 Die folgenden Variablen sind im Kontext des überwachten Objekts verfügbar:
 
-| Variable | Beschreibung | Typ |
-| --- | --- | --- |
-| `requestBody` | Das Anfragetextobjekt. | `string` oder `JSON` |
+| Variable         | Beschreibung               | Typ                  |
+| ---------------- | -------------------------- | -------------------- |
+| `requestBody`    | Das Anfragetextobjekt.     | `string` oder `JSON` |
 | `requestHeaders` | Das Anfrage-Header-Objekt. | `Dictionary<string>` |
-
 
 #### Beispiel
 
 Das folgende Beispiel zeigt, wie ein JavaScript-Ausdruck verwendet wird, um eine eingehende Anfrage auf eine bestimmte Zeichenkette im Anfragetext zu überwachen:
 
 ```javascript
-"{{requestBody.item}}" === "hello"
+"{{requestBody.item}}" === "hello";
 
 // or you can use request headers
 
-"{{requestHeaders.contentType}}" === "text/html"
+"{{requestHeaders.contentType}}" === "text/html";
 
 // you can also use regular expressions
 
-"{{requestBody.item}}".match(/hello/)
+"{{requestBody.item}}".match(/hello/);
 
 // you can combine multiple expressions using logical operators
 
-"{{requestBody.item}}" === "hello" && "{{requestHeaders.contentType}}" === "text/html"
+"{{requestBody.item}}" === "hello" &&
+  "{{requestHeaders.contentType}}" === "text/html";
 
 // you can use the following for arrays
 
-"{{requestBody.items[0].name}}" === "hello"
+"{{requestBody.items[0].name}}" === "hello";
 ```
 
 ### Zu beachtende Punkte
 
-* Skripte haben ein Timeout von 1 Sekunde; sie geben `false` zurück, wenn das Skript länger als 1 Sekunde zur Ausführung benötigt.
-* `{{var}}` ersetzt die Variable durch den Wert; wenn Sie also eine Zeichenkette vergleichen möchten, müssen Sie sie in Anführungszeichen einschließen, z. B. `"{{responseBody.item}}" === "hello"`, und wenn Sie eine Zahl vergleichen möchten, brauchen Sie keine Anführungszeichen, z. B. `{{responseStatusCode}} === 200`
+- Skripte haben ein Timeout von 1 Sekunde; sie geben `false` zurück, wenn das Skript länger als 1 Sekunde zur Ausführung benötigt.
+- `{{var}}` ersetzt die Variable durch den Wert; wenn Sie also eine Zeichenkette vergleichen möchten, müssen Sie sie in Anführungszeichen einschließen, z. B. `"{{responseBody.item}}" === "hello"`, und wenn Sie eine Zahl vergleichen möchten, brauchen Sie keine Anführungszeichen, z. B. `{{responseStatusCode}} === 200`

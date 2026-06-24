@@ -29,16 +29,16 @@ Indtast hostnavnet eller IP-adressen på mål-hosten (f.eks. `example.com` eller
 
 Indtast portnummeret der skal overvåges (1-65535). Almindelige eksempler:
 
-| Port | Tjeneste |
-|------|---------|
-| 22 | SSH |
-| 25 | SMTP |
-| 80 | HTTP |
-| 443 | HTTPS |
-| 3306 | MySQL |
-| 5432 | PostgreSQL |
-| 6379 | Redis |
-| 27017 | MongoDB |
+| Port  | Tjeneste   |
+| ----- | ---------- |
+| 22    | SSH        |
+| 25    | SMTP       |
+| 80    | HTTP       |
+| 443   | HTTPS      |
+| 3306  | MySQL      |
+| 5432  | PostgreSQL |
+| 6379  | Redis      |
+| 27017 | MongoDB    |
 
 ## Overvågningskriterier
 
@@ -46,11 +46,11 @@ Du kan konfigurere kriterier til at afgøre, hvornår din port betragtes som onl
 
 ### Tilgængelige kontroltyper
 
-| Kontroltype | Beskrivelse |
-|------------|-------------|
-| Er online | Om porten er åben og accepterer forbindelser |
-| Svartid (ms) | Tid til at etablere en forbindelse i millisekunder |
-| Er anmodning-timeout | Om forbindelsesforsøget fik timeout |
+| Kontroltype          | Beskrivelse                                        |
+| -------------------- | -------------------------------------------------- |
+| Er online            | Om porten er åben og accepterer forbindelser       |
+| Svartid (ms)         | Tid til at etablere en forbindelse i millisekunder |
+| Er anmodning-timeout | Om forbindelsesforsøget fik timeout                |
 
 ### Filtertyper
 

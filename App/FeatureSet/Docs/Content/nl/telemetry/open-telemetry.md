@@ -14,7 +14,6 @@ Zodra u een token hebt aangemaakt, klikt u op "Bekijken" om het token te bekijke
 
 ![Dienst bekijken](/docs/static/images/TelemetryIngestionKeyView.png)
 
-
 ### Stap 2
 
 #### De telemetriedienst configureren in uw applicatie.
@@ -35,17 +34,15 @@ We gebruiken OpenTelemetry om applicatielogboeken te verzamelen. OneUptime onder
 - [.NET / C#](https://opentelemetry.io/docs/instrumentation/net/)
 - [Swift](https://opentelemetry.io/docs/instrumentation/swift/)
 
-
 **Integreren met OneUptime**
 
 Zodra u de telemetriedienst in uw applicatie hebt geconfigureerd, kunt u integreren met OneUptime door de volgende omgevingsvariabelen in te stellen.
 
-| Omgevingsvariabele | Waarde |
-| --- | --- |
-| OTEL_EXPORTER_OTLP_HEADERS | x-oneuptime-token=YOUR_ONEUPTIME_SERVICE_TOKEN |
-| OTEL_EXPORTER_OTLP_ENDPOINT | https://oneuptime.com/otlp |
-| OTEL_SERVICE_NAME | NAME_OF_YOUR_SERVICE |
-
+| Omgevingsvariabele          | Waarde                                         |
+| --------------------------- | ---------------------------------------------- |
+| OTEL_EXPORTER_OTLP_HEADERS  | x-oneuptime-token=YOUR_ONEUPTIME_SERVICE_TOKEN |
+| OTEL_EXPORTER_OTLP_ENDPOINT | https://oneuptime.com/otlp                     |
+| OTEL_SERVICE_NAME           | NAME_OF_YOUR_SERVICE                           |
 
 **Voorbeeld**
 
@@ -55,13 +52,11 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=https://oneuptime.com/otlp
 export OTEL_SERVICE_NAME=my-service
 ```
 
-
 **Zelf-gehoste OneUptime**
 
 Als u OneUptime zelf host, kan dit worden gewijzigd naar uw eigen zelf-gehoste OpenTelemetry collector-eindpunt (bijv. `http(s)://YOUR-ONEUPTIME-HOST/otlp`)
 
 Zodra u uw applicatie uitvoert, zou u de logboeken moeten zien op de pagina van de OneUptime-telemetriedienst. Neem contact op via support@oneuptime.com als u hulp nodig heeft.
-
 
 #### De OpenTelemetry Collector gebruiken
 
@@ -80,7 +75,6 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 exporters:
-
   # Exporteren via HTTP
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"

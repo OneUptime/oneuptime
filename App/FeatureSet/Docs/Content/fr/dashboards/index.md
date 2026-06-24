@@ -23,27 +23,27 @@ Voir [Widgets](/docs/dashboards/widgets) pour la liste complète et ce que chacu
 
 ## Termes clés
 
-| Terme | Signification |
-| --- | --- |
-| **Tableau de bord** | La page entière — un nom, une grille de widgets, des contrôles de plage temporelle et une liste de variables. |
-| **Widget** | Une tuile sur la page — un graphique, un nombre, une liste, un paragraphe. |
-| **Variable** | Une liste déroulante en haut de la page qui filtre tous les widgets à la fois (cluster, service, client, environnement). |
-| **Plage temporelle** | La fenêtre de temps utilisée par chaque graphique et chaque nombre. Définissez-la une fois en haut de la page. |
-| **Actualisation** | À quelle fréquence les widgets relancent leur requête. Désactivée, toutes les quelques secondes, toutes les quelques minutes. |
-| **Mode** | Soit **Edit** (déplacer les widgets), soit **View** (lecture seule, tel que les visiteurs le voient). |
+| Terme                | Signification                                                                                                                 |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Tableau de bord**  | La page entière — un nom, une grille de widgets, des contrôles de plage temporelle et une liste de variables.                 |
+| **Widget**           | Une tuile sur la page — un graphique, un nombre, une liste, un paragraphe.                                                    |
+| **Variable**         | Une liste déroulante en haut de la page qui filtre tous les widgets à la fois (cluster, service, client, environnement).      |
+| **Plage temporelle** | La fenêtre de temps utilisée par chaque graphique et chaque nombre. Définissez-la une fois en haut de la page.                |
+| **Actualisation**    | À quelle fréquence les widgets relancent leur requête. Désactivée, toutes les quelques secondes, toutes les quelques minutes. |
+| **Mode**             | Soit **Edit** (déplacer les widgets), soit **View** (lecture seule, tel que les visiteurs le voient).                         |
 
 ## Où trouver les tableaux de bord
 
 Ouvrez **Dashboards** dans la navigation de gauche.
 
-| Page | Ce que vous y faites |
-| --- | --- |
-| **Dashboards** | Votre liste de tableaux de bord. Créez-en un nouveau, recherchez ou filtrez par étiquette. |
-| **Dashboard → View** | Le canevas. Basculez entre **Edit** et **View** dans l'en-tête. |
-| **Dashboard → Overview** | Description, propriétaires et étiquettes. |
+| Page                     | Ce que vous y faites                                                                          |
+| ------------------------ | --------------------------------------------------------------------------------------------- |
+| **Dashboards**           | Votre liste de tableaux de bord. Créez-en un nouveau, recherchez ou filtrez par étiquette.    |
+| **Dashboard → View**     | Le canevas. Basculez entre **Edit** et **View** dans l'en-tête.                               |
+| **Dashboard → Overview** | Description, propriétaires et étiquettes.                                                     |
 | **Dashboard → Settings** | Partage public, mot de passe, liste d'IP autorisées, domaine personnalisé, identité visuelle. |
-| **Dashboard → Owners** | Utilisateurs et équipes ayant un accès explicite. |
-| **Dashboard → Delete** | Supprimer le tableau de bord. |
+| **Dashboard → Owners**   | Utilisateurs et équipes ayant un accès explicite.                                             |
+| **Dashboard → Delete**   | Supprimer le tableau de bord.                                                                 |
 
 ## Construire un tableau de bord
 

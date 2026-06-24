@@ -54,9 +54,11 @@ Push notifications, Expo Push के माध्यम से Firebase Cloud Me
 ## Updates
 
 **Google Play:**
+
 - Updates automatically install होते हैं। manually trigger करने के लिए, **Play Store → Profile → Manage apps & device → Updates available → OneUptime On-Call → Update** open करें।
 
 **APK sideload:**
+
 - ऊपर दिए गए GitHub Releases link से latest APK फिर से download करें और existing app के ऊपर install करें — आपका data, server URL, और login सुरक्षित रहता है।
 
 ## Uninstall
@@ -70,11 +72,13 @@ Push notifications, Expo Push के माध्यम से Firebase Cloud Me
 ## Troubleshooting
 
 **Sign in करते समय "Network Error":**
+
 - verify करें कि **Server URL** सही है और आपके device से reachable है।
 - यदि आप corporate network या VPN पर हैं, तो सुनिश्चित करें कि OneUptime instance accessible है।
 - पुष्टि करें कि server HTTPS पर valid certificate के साथ serve हो रहा है।
 
 **Push notifications प्राप्त नहीं हो रहे:**
+
 - पुष्टि करें कि notifications **Settings → Apps → OneUptime On-Call → Notifications** पर enabled हैं।
 - OneUptime On-Call के लिए battery optimization disable करें (ऊपर Push Notifications देखें)।
 - सुनिश्चित करें कि Do Not Disturb बंद है, या OneUptime On-Call exception list पर है।
@@ -82,14 +86,17 @@ Push notifications, Expo Push के माध्यम से Firebase Cloud Me
 - Self-hosted users: पुष्टि करें कि push notifications आपके OneUptime instance पर configure हैं (self-hosted [Push Notifications](/docs/self-hosted/push-notifications) guide देखें)।
 
 **Biometric unlock काम नहीं कर रहा:**
+
 - **Settings → Security → Fingerprint** में एक fingerprint enrol करें।
 - OneUptime On-Call app के अंदर **Settings** screen से biometric unlock को फिर से enable करें।
 
 **APK install block हो रहा है:**
+
 - आपको unknown apps install करने के लिए browser को permission देनी होगी (ऊपर Option 2 देखें)।
 - कुछ carriers या enterprise device profiles sideloading को पूरी तरह से block करते हैं; उस स्थिति में, Google Play version का उपयोग करें।
 
 **App launch पर crash होता है:**
+
 - Google Play से या latest APK से latest version पर update करें।
 - अपना device restart करें।
 - यदि समस्या बनी रहती है, तो uninstall करके फिर से install करें, फिर sign in करें।

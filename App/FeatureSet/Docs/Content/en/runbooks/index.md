@@ -24,13 +24,13 @@ Incident response is often the difference between a one-minute blip and a multi-
 
 A few terms recur across the rest of the runbook docs. Get these straight first:
 
-| Term | Meaning |
-| --- | --- |
-| **Runbook** | The template. A named, reusable procedure with an ordered list of steps and an `isEnabled` flag. |
-| **Step** | One item in a runbook. Has a type (Manual / JavaScript / HTTP / Bash), a title, a description, and type-specific config. |
-| **Runbook Rule** | A pattern that auto-attaches one or more runbooks to incidents, alerts, or scheduled maintenance events when their title or description matches a regex. |
-| **Execution** | One run of a runbook. Created when a rule fires, when someone clicks "Run Runbook" on an event, or when someone clicks "Run Now" on the runbook itself. Holds a snapshot of the steps and per-step status / output. |
-| **Snapshot** | The frozen copy of the runbook's steps that lives on each execution. Lets you edit the template later without rewriting history. |
+| Term             | Meaning                                                                                                                                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Runbook**      | The template. A named, reusable procedure with an ordered list of steps and an `isEnabled` flag.                                                                                                                    |
+| **Step**         | One item in a runbook. Has a type (Manual / JavaScript / HTTP / Bash), a title, a description, and type-specific config.                                                                                            |
+| **Runbook Rule** | A pattern that auto-attaches one or more runbooks to incidents, alerts, or scheduled maintenance events when their title or description matches a regex.                                                            |
+| **Execution**    | One run of a runbook. Created when a rule fires, when someone clicks "Run Runbook" on an event, or when someone clicks "Run Now" on the runbook itself. Holds a snapshot of the steps and per-step status / output. |
+| **Snapshot**     | The frozen copy of the runbook's steps that lives on each execution. Lets you edit the template later without rewriting history.                                                                                    |
 
 ## The lifecycle of a runbook
 
@@ -44,25 +44,25 @@ A few terms recur across the rest of the runbook docs. Get these straight first:
 
 A quick decision guide. The longer breakdown is in [Authoring a Runbook](/docs/runbooks/authoring).
 
-| Step type | Reach for it when… | Example |
-| --- | --- | --- |
-| **Manual** | A human has to verify something, make a judgement call, or take an action OneUptime can't observe. | "Confirm secondary region traffic on the load balancer dashboard." |
-| **JavaScript** | You need a small, contained computation — query a config service, transform a payload, run logic before the next step. Runs sandboxed on a [Runbook Agent](/docs/runbooks/agents) in your own infrastructure. | Compute current replica lag and decide whether to proceed. |
-| **HTTP request** | You're calling an existing API — your own admin endpoint, a cloud provider, PagerDuty, Slack. | `POST` to your failover orchestrator. |
-| **Bash** | You need to run shell commands on your own infrastructure — restart a service, run `kubectl`, call a deploy script. Requires a [Runbook Agent](/docs/runbooks/agents) installed in your environment. | Restart a service, run `kubectl rollout restart`, exec a recovery script. |
+| Step type        | Reach for it when…                                                                                                                                                                                            | Example                                                                   |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **Manual**       | A human has to verify something, make a judgement call, or take an action OneUptime can't observe.                                                                                                            | "Confirm secondary region traffic on the load balancer dashboard."        |
+| **JavaScript**   | You need a small, contained computation — query a config service, transform a payload, run logic before the next step. Runs sandboxed on a [Runbook Agent](/docs/runbooks/agents) in your own infrastructure. | Compute current replica lag and decide whether to proceed.                |
+| **HTTP request** | You're calling an existing API — your own admin endpoint, a cloud provider, PagerDuty, Slack.                                                                                                                 | `POST` to your failover orchestrator.                                     |
+| **Bash**         | You need to run shell commands on your own infrastructure — restart a service, run `kubectl`, call a deploy script. Requires a [Runbook Agent](/docs/runbooks/agents) installed in your environment.          | Restart a service, run `kubectl rollout restart`, exec a recovery script. |
 
 You can mix all four in a single runbook — the strength of runbooks is interleaving human verification with automation.
 
 ## Where runbooks live in the dashboard
 
-| Page | What you do there |
-| --- | --- |
-| **Analytics & Automation → Runbooks** | Browse, create, and edit runbook templates. |
-| **A runbook's Steps tab** | Author and reorder the step list. |
-| **A runbook's Executions tab** | See every run of this runbook with status filters. |
-| **A runbook's Run Now button** | Kick off an ad-hoc execution not attached to any event. |
-| **Incidents / Alerts / Scheduled Maintenance → Settings → Runbook Rules** | Create the auto-trigger rules per entity type. |
-| **An incident / alert / maintenance event → Runbooks tab** | See executions attached to this event and click **Run Runbook** for a manual run. |
+| Page                                                                      | What you do there                                                                 |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **Analytics & Automation → Runbooks**                                     | Browse, create, and edit runbook templates.                                       |
+| **A runbook's Steps tab**                                                 | Author and reorder the step list.                                                 |
+| **A runbook's Executions tab**                                            | See every run of this runbook with status filters.                                |
+| **A runbook's Run Now button**                                            | Kick off an ad-hoc execution not attached to any event.                           |
+| **Incidents / Alerts / Scheduled Maintenance → Settings → Runbook Rules** | Create the auto-trigger rules per entity type.                                    |
+| **An incident / alert / maintenance event → Runbooks tab**                | See executions attached to this event and click **Run Runbook** for a manual run. |
 
 ## Common use cases
 
@@ -80,13 +80,13 @@ Suppose you want every incident with "db-primary" in the title to kick off a fiv
 
 **1. Create the runbook.** Under **Runbooks → Create Runbook**, name it "DB primary failover" and add these steps:
 
-| # | Type | Title |
-| --- | --- | --- |
-| 1 | JavaScript | Capture pre-failover replica lag |
-| 2 | Manual | Confirm replica is healthy in DBA dashboard |
-| 3 | HTTP | `POST` to failover orchestrator |
-| 4 | Manual | Verify writes are now going to the new primary |
-| 5 | HTTP | Post all-clear to `#db-incidents` Slack |
+| #   | Type       | Title                                          |
+| --- | ---------- | ---------------------------------------------- |
+| 1   | JavaScript | Capture pre-failover replica lag               |
+| 2   | Manual     | Confirm replica is healthy in DBA dashboard    |
+| 3   | HTTP       | `POST` to failover orchestrator                |
+| 4   | Manual     | Verify writes are now going to the new primary |
+| 5   | HTTP       | Post all-clear to `#db-incidents` Slack        |
 
 **2. Add a rule.** Under **Incidents → Settings → Runbook Rules**, create:
 

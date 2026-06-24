@@ -82,9 +82,12 @@ Branding gælder kun, når dashboardet ses offentligt. Interne besøgende ser al
 Du kan indlejre et offentligt dashboard på din egen side med en iframe:
 
 ```html
-<iframe src="https://dashboard.acme.com/view"
-        width="100%" height="800"
-        frameborder="0"></iframe>
+<iframe
+  src="https://dashboard.acme.com/view"
+  width="100%"
+  height="800"
+  frameborder="0"
+></iframe>
 ```
 
 Hvis dashboardet har en master-adgangskode, vil besøgende se adgangskodeprompten inde i iframen.

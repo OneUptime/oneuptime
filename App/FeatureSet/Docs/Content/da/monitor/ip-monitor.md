@@ -31,11 +31,11 @@ Du kan konfigurere kriterier til at afgøre, hvornår din IP-adresse betragtes s
 
 ### Tilgængelige kontroltyper
 
-| Kontroltype | Beskrivelse |
-|------------|-------------|
-| Er online | Om IP-adressen er tilgængelig |
-| Svartid (ms) | Svartid i millisekunder |
-| Er anmodning-timeout | Om anmodningen fik timeout |
+| Kontroltype          | Beskrivelse                   |
+| -------------------- | ----------------------------- |
+| Er online            | Om IP-adressen er tilgængelig |
+| Svartid (ms)         | Svartid i millisekunder       |
+| Er anmodning-timeout | Om anmodningen fik timeout    |
 
 ### Filtertyper
 

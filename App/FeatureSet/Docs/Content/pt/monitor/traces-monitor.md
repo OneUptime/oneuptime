@@ -28,12 +28,12 @@ Selecione um ou mais serviços para monitorar rastreamentos. Os serviços devem 
 
 ### Filtros de Span
 
-| Filtro | Descrição | Obrigatório |
-|--------|-------------|----------|
-| Span Statuses | Filtrar por código de status de span (OK, ERROR, UNSET) | Não |
-| Span Name | Pesquisa de texto para nomes de span específicos (ex.: nomes de operação ou endpoint) | Não |
-| Attributes | Pares chave-valor para filtrar em atributos de span personalizados | Não |
-| Time Window | Quão longe retrospectar para pesquisar spans (em segundos, padrão: 60) | Não |
+| Filtro        | Descrição                                                                             | Obrigatório |
+| ------------- | ------------------------------------------------------------------------------------- | ----------- |
+| Span Statuses | Filtrar por código de status de span (OK, ERROR, UNSET)                               | Não         |
+| Span Name     | Pesquisa de texto para nomes de span específicos (ex.: nomes de operação ou endpoint) | Não         |
+| Attributes    | Pares chave-valor para filtrar em atributos de span personalizados                    | Não         |
+| Time Window   | Quão longe retrospectar para pesquisar spans (em segundos, padrão: 60)                | Não         |
 
 ### Códigos de Status de Span
 
@@ -45,9 +45,9 @@ Selecione um ou mais serviços para monitorar rastreamentos. Os serviços devem 
 
 ### Tipos de Verificação Disponíveis
 
-| Tipo de Verificação | Descrição |
-|------------|-------------|
-| Span Count | O número de spans que correspondem aos seus filtros na janela de tempo |
+| Tipo de Verificação | Descrição                                                              |
+| ------------------- | ---------------------------------------------------------------------- |
+| Span Count          | O número de spans que correspondem aos seus filtros na janela de tempo |
 
 ### Tipos de Filtro
 

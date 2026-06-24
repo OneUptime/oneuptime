@@ -21,6 +21,15 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.List,
         },
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
       ],
     },
     {

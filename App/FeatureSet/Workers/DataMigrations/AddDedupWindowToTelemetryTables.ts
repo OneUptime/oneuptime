@@ -29,6 +29,10 @@ export default class AddDedupWindowToTelemetryTables extends DataMigrationBase {
     super("AddDedupWindowToTelemetryTables");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     const tables: Array<string> = [
       "LogItemV3",

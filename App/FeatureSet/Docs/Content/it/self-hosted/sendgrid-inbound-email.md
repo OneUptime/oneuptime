@@ -33,9 +33,9 @@ Questo sottodominio verrà usato esclusivamente per le email del monitor OneUpti
 
 Aggiungere un record MX alla propria configurazione DNS per instradare le email per il sottodominio inbound a SendGrid.
 
-| Tipo | Host/Nome | Priorità | Valore |
-|------|-----------|----------|-------|
-| MX | inbound | 10 | mx.sendgrid.net |
+| Tipo | Host/Nome | Priorità | Valore          |
+| ---- | --------- | -------- | --------------- |
+| MX   | inbound   | 10       | mx.sendgrid.net |
 
 **Esempio:** Se il proprio dominio è `example.com` e si usa `inbound.example.com`:
 
@@ -61,13 +61,13 @@ Per una migliore consegnabilità e per evitare che le email vengano contrassegna
 3. Fare clic su **Aggiungi Host & URL**
 4. Configurare quanto segue:
 
-| Campo | Valore |
-|-------|-------|
-| **Dominio di Ricezione** | Il proprio sottodominio inbound (ad es. `inbound.vostrodominio.com`) |
-| **URL di Destinazione** | `https://vostro-dominio-oneuptime.com/incoming-email/sendgrid/VOSTRO_SEGRETO` |
-| **Controlla le email in entrata per spam** | Opzionale - abilitare se desiderato |
-| **Invia messaggio MIME completo** | Lasciare deselezionato (non richiesto) |
-| **POST del messaggio MIME completo** | Lasciare deselezionato (non richiesto) |
+| Campo                                      | Valore                                                                        |
+| ------------------------------------------ | ----------------------------------------------------------------------------- |
+| **Dominio di Ricezione**                   | Il proprio sottodominio inbound (ad es. `inbound.vostrodominio.com`)          |
+| **URL di Destinazione**                    | `https://vostro-dominio-oneuptime.com/incoming-email/sendgrid/VOSTRO_SEGRETO` |
+| **Controlla le email in entrata per spam** | Opzionale - abilitare se desiderato                                           |
+| **Invia messaggio MIME completo**          | Lasciare deselezionato (non richiesto)                                        |
+| **POST del messaggio MIME completo**       | Lasciare deselezionato (non richiesto)                                        |
 
 5. Fare clic su **Aggiungi**
 
@@ -123,35 +123,37 @@ Dopo la creazione, verrà visualizzato l'indirizzo email univoco per questo moni
 
 ## Riferimento Variabili d'Ambiente
 
-| Variabile | Descrizione | Obbligatorio | Predefinito |
-|----------|-------------|----------|---------|
-| `INBOUND_EMAIL_PROVIDER` | Il provider di email in entrata da usare | Sì | - |
-| `INBOUND_EMAIL_DOMAIN` | Il sottodominio configurato per le email in entrata | Sì | - |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | Segreto per validare le richieste webhook. Quando impostato, aggiungere questo segreto all'URL webhook: `/incoming-email/sendgrid/VOSTRO_SEGRETO` | No | - |
+| Variabile                      | Descrizione                                                                                                                                       | Obbligatorio | Predefinito |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------- |
+| `INBOUND_EMAIL_PROVIDER`       | Il provider di email in entrata da usare                                                                                                          | Sì           | -           |
+| `INBOUND_EMAIL_DOMAIN`         | Il sottodominio configurato per le email in entrata                                                                                               | Sì           | -           |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | Segreto per validare le richieste webhook. Quando impostato, aggiungere questo segreto all'URL webhook: `/incoming-email/sendgrid/VOSTRO_SEGRETO` | No           | -           |
 
 ## Criteri Email Supportati
 
 Quando si configura il proprio Monitor Email In Entrata, è possibile creare criteri basati su:
 
-| Campo | Descrizione | Filtri Disponibili |
-|-------|-------------|-------------------|
-| **Oggetto Email** | La riga dell'oggetto dell'email | Contiene, Non Contiene, Uguale a, Diverso da, Inizia Con, Termina Con, È Vuoto, Non È Vuoto |
-| **Email Da** | L'indirizzo email del mittente | Contiene, Non Contiene, Uguale a, Diverso da, Inizia Con, Termina Con, È Vuoto, Non È Vuoto |
-| **Corpo Email** | Il corpo testuale dell'email | Contiene, Non Contiene, Uguale a, Diverso da, Inizia Con, Termina Con, È Vuoto, Non È Vuoto |
-| **Email A** | L'indirizzo email del destinatario | Contiene, Non Contiene, Uguale a, Diverso da, Inizia Con, Termina Con, È Vuoto, Non È Vuoto |
-| **Email Ricevuta** | Tempo dall'ultima email ricevuta | Ricevuta In Minuti, Non Ricevuta In Minuti |
+| Campo              | Descrizione                        | Filtri Disponibili                                                                          |
+| ------------------ | ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| **Oggetto Email**  | La riga dell'oggetto dell'email    | Contiene, Non Contiene, Uguale a, Diverso da, Inizia Con, Termina Con, È Vuoto, Non È Vuoto |
+| **Email Da**       | L'indirizzo email del mittente     | Contiene, Non Contiene, Uguale a, Diverso da, Inizia Con, Termina Con, È Vuoto, Non È Vuoto |
+| **Corpo Email**    | Il corpo testuale dell'email       | Contiene, Non Contiene, Uguale a, Diverso da, Inizia Con, Termina Con, È Vuoto, Non È Vuoto |
+| **Email A**        | L'indirizzo email del destinatario | Contiene, Non Contiene, Uguale a, Diverso da, Inizia Con, Termina Con, È Vuoto, Non È Vuoto |
+| **Email Ricevuta** | Tempo dall'ultima email ricevuta   | Ricevuta In Minuti, Non Ricevuta In Minuti                                                  |
 
 ## Casi d'Uso di Esempio
 
 ### Avvisi da Sistemi Legacy
 
 Molti sistemi legacy possono inviare solo avvisi via email. Creare un Monitor Email In Entrata per:
+
 - Creare avvisi OneUptime quando il sistema legacy invia email `[CRITICO]`
 - Risolvere gli avvisi quando vengono ricevute email `[RISOLTO]`
 
 ### Integrazione con Servizi di Terze Parti
 
 Integrarsi con servizi che inviano notifiche via email:
+
 - Strumenti di monitoraggio privi di integrazioni API
 - Notifiche dei provider cloud
 - Strumenti di scansione della sicurezza
@@ -159,6 +161,7 @@ Integrarsi con servizi che inviano notifiche via email:
 ### Heartbeat via Email
 
 Usare i criteri "Email Ricevuta" per assicurarsi di ricevere email periodiche:
+
 - Creare un avviso se non viene ricevuta nessuna email in 60 minuti
 - Utile per monitorare job batch o attività pianificate che inviano email di completamento
 
@@ -167,12 +170,15 @@ Usare i criteri "Email Ricevuta" per assicurarsi di ricevere email periodiche:
 ### Email Non Ricevute
 
 1. **Controllare la propagazione DNS:**
+
    ```bash
    dig MX inbound.vostrodominio.com
    ```
+
    Dovrebbe restituire `mx.sendgrid.net`
 
 2. **Verificare le impostazioni SendGrid Inbound Parse:**
+
    - Accedere alla Dashboard SendGrid
    - Accedere a Impostazioni > Inbound Parse
    - Verificare che il dominio e l'URL webhook siano corretti
@@ -184,10 +190,12 @@ Usare i criteri "Email Ricevuta" per assicurarsi di ricevere email periodiche:
 ### Webhook Falliti
 
 1. **Assicurarsi che OneUptime sia accessibile pubblicamente:**
+
    - L'URL del webhook deve essere raggiungibile da Internet
    - Testare con: `curl -X POST https://vostro-dominio-oneuptime.com/incoming-email/sendgrid`
 
 2. **Controllare le regole del firewall:**
+
    - Consentire il traffico HTTPS in entrata dagli intervalli IP di SendGrid
 
 3. **Verificare il certificato SSL:**
@@ -197,10 +205,12 @@ Usare i criteri "Email Ricevuta" per assicurarsi di ricevere email periodiche:
 ### Il Monitor Non Crea Avvisi
 
 1. **Verificare la configurazione dei criteri:**
+
    - Controllare che i criteri di creazione avvisi corrispondano al contenuto dell'email
    - Testare con stringhe esatte prima di usare la corrispondenza per pattern
 
 2. **Controllare lo stato del monitor:**
+
    - Assicurarsi che il monitor non sia disabilitato
    - Verificare che il tipo di monitor sia "Email In Entrata"
 
@@ -228,9 +238,9 @@ Per verificare se SendGrid sta inviando correttamente i webhook:
 
 OneUptime è progettato per supportare più provider di email in entrata. Attualmente supportati:
 
-| Provider | Stato |
-|----------|--------|
-| SendGrid | Supportato |
+| Provider             | Stato       |
+| -------------------- | ----------- |
+| SendGrid             | Supportato  |
 | Haraka (Self-hosted) | Pianificato |
 
 Se si necessita del supporto per un provider diverso, contattarci o inviare una richiesta di funzionalità.

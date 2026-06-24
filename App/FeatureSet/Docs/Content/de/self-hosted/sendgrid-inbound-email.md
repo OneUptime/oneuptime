@@ -29,9 +29,9 @@ Sie benötigen eine Subdomain, die ausschließlich für eingehende E-Mails besti
 
 Fügen Sie einen MX-Eintrag zu Ihrer DNS-Konfiguration hinzu, um E-Mails für Ihre eingehende Subdomain an SendGrid weiterzuleiten.
 
-| Typ | Host/Name | Priorität | Wert |
-|------|-----------|----------|-------|
-| MX | inbound | 10 | mx.sendgrid.net |
+| Typ | Host/Name | Priorität | Wert            |
+| --- | --------- | --------- | --------------- |
+| MX  | inbound   | 10        | mx.sendgrid.net |
 
 **Hinweis:** DNS-Änderungen können bis zu 48 Stunden dauern, bis sie sich propagiert haben.
 
@@ -42,10 +42,10 @@ Fügen Sie einen MX-Eintrag zu Ihrer DNS-Konfiguration hinzu, um E-Mails für Ih
 3. Klicken Sie auf **Host & URL hinzufügen**
 4. Konfigurieren Sie Folgendes:
 
-| Feld | Wert |
-|-------|-------|
-| **Empfangsdomain** | Ihre eingehende Subdomain (z. B. `inbound.yourdomain.com`) |
-| **Ziel-URL** | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
+| Feld               | Wert                                                                    |
+| ------------------ | ----------------------------------------------------------------------- |
+| **Empfangsdomain** | Ihre eingehende Subdomain (z. B. `inbound.yourdomain.com`)              |
+| **Ziel-URL**       | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
 
 5. Klicken Sie auf **Hinzufügen**
 
@@ -85,20 +85,22 @@ Nach der Erstellung sehen Sie die eindeutige E-Mail-Adresse für diesen Monitor.
 
 ## Umgebungsvariablen-Referenz
 
-| Variable | Beschreibung | Erforderlich | Standard |
-|----------|-------------|----------|---------|
-| `INBOUND_EMAIL_PROVIDER` | Der zu verwendende eingehende E-Mail-Anbieter | Ja | - |
-| `INBOUND_EMAIL_DOMAIN` | Die für eingehende E-Mails konfigurierte Subdomain | Ja | - |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | Geheimnis zur Validierung von Webhook-Anfragen | Nein | - |
+| Variable                       | Beschreibung                                       | Erforderlich | Standard |
+| ------------------------------ | -------------------------------------------------- | ------------ | -------- |
+| `INBOUND_EMAIL_PROVIDER`       | Der zu verwendende eingehende E-Mail-Anbieter      | Ja           | -        |
+| `INBOUND_EMAIL_DOMAIN`         | Die für eingehende E-Mails konfigurierte Subdomain | Ja           | -        |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | Geheimnis zur Validierung von Webhook-Anfragen     | Nein         | -        |
 
 ## Fehlerbehebung
 
 ### E-Mails werden nicht empfangen
 
 1. **DNS-Propagation prüfen:**
+
    ```bash
    dig MX inbound.yourdomain.com
    ```
+
    Sollte `mx.sendgrid.net` zurückgeben
 
 2. **SendGrid Inbound Parse-Einstellungen überprüfen:**

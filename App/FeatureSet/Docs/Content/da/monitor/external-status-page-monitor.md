@@ -16,12 +16,12 @@ Eksterne statussidemonitorer kontrollerer sundheden af tjenester, du er afhængi
 
 OneUptime understøtter overvågning af statussider via følgende metoder:
 
-| Udbydertype | Beskrivelse |
-|---|---|
-| **Auto** (standard) | Registrerer automatisk statussideformatet |
+| Udbydertype              | Beskrivelse                                           |
+| ------------------------ | ----------------------------------------------------- |
+| **Auto** (standard)      | Registrerer automatisk statussideformatet             |
 | **Atlassian Statuspage** | Statussider drevet af Atlassian Statuspage (JSON API) |
-| **RSS** | Statussider, der leverer et RSS-feed |
-| **Atom** | Statussider, der leverer et Atom-feed |
+| **RSS**                  | Statussider, der leverer et RSS-feed                  |
+| **Atom**                 | Statussider, der leverer et Atom-feed                 |
 
 ### Auto-detektion
 
@@ -81,28 +81,28 @@ Du kan konfigurere kriterier til at afgøre, hvornår den eksterne tjeneste betr
 
 Her er en kurateret liste over populære tjenestestatussider, du kan overvåge:
 
-| Tjeneste | Statusside URL |
-|---|---|
-| AWS | `https://health.aws.amazon.com/health/status` |
-| Google Cloud Platform | `https://status.cloud.google.com` |
-| Microsoft Azure | `https://status.azure.com` |
-| GitHub | `https://www.githubstatus.com` |
-| Cloudflare | `https://www.cloudflarestatus.com` |
-| Datadog | `https://status.datadoghq.com` |
-| PagerDuty | `https://status.pagerduty.com` |
-| Twilio | `https://status.twilio.com` |
-| Stripe | `https://status.stripe.com` |
-| Slack | `https://status.slack.com` |
-| Atlassian (Jira, Confluence) | `https://status.atlassian.com` |
-| Vercel | `https://www.vercel-status.com` |
-| Netlify | `https://www.netlifystatus.com` |
-| DigitalOcean | `https://status.digitalocean.com` |
-| Heroku | `https://status.heroku.com` |
-| MongoDB Atlas | `https://status.cloud.mongodb.com` |
-| Fastly | `https://status.fastly.com` |
-| New Relic | `https://status.newrelic.com` |
-| Sentry | `https://status.sentry.io` |
-| CircleCI | `https://status.circleci.com` |
+| Tjeneste                     | Statusside URL                                |
+| ---------------------------- | --------------------------------------------- |
+| AWS                          | `https://health.aws.amazon.com/health/status` |
+| Google Cloud Platform        | `https://status.cloud.google.com`             |
+| Microsoft Azure              | `https://status.azure.com`                    |
+| GitHub                       | `https://www.githubstatus.com`                |
+| Cloudflare                   | `https://www.cloudflarestatus.com`            |
+| Datadog                      | `https://status.datadoghq.com`                |
+| PagerDuty                    | `https://status.pagerduty.com`                |
+| Twilio                       | `https://status.twilio.com`                   |
+| Stripe                       | `https://status.stripe.com`                   |
+| Slack                        | `https://status.slack.com`                    |
+| Atlassian (Jira, Confluence) | `https://status.atlassian.com`                |
+| Vercel                       | `https://www.vercel-status.com`               |
+| Netlify                      | `https://www.netlifystatus.com`               |
+| DigitalOcean                 | `https://status.digitalocean.com`             |
+| Heroku                       | `https://status.heroku.com`                   |
+| MongoDB Atlas                | `https://status.cloud.mongodb.com`            |
+| Fastly                       | `https://status.fastly.com`                   |
+| New Relic                    | `https://status.newrelic.com`                 |
+| Sentry                       | `https://status.sentry.io`                    |
+| CircleCI                     | `https://status.circleci.com`                 |
 
 > **Bemærk:** Mange af disse bruger Atlassian Statuspage, så **Auto**-udbydertypen vil registrere dem automatisk.
 
@@ -110,14 +110,14 @@ Her er en kurateret liste over populære tjenestestatussider, du kan overvåge:
 
 Når du opretter incidents eller advarsler fra Eksterne Statussidemonitorer, kan du bruge følgende skabelonvariabler:
 
-| Variabel | Beskrivelse |
-|---|---|
-| `{{isOnline}}` | Om statussiden er online (sand/falsk) |
-| `{{responseTimeInMs}}` | Svartid i millisekunder |
-| `{{failureCause}}` | Årsag til fejl, hvis nogen |
-| `{{overallStatus}}` | Den overordnede statusindikatorværdi |
-| `{{activeIncidentCount}}` | Antal aktive incidents |
-| `{{componentStatuses}}` | JSON-array af komponentstatus |
+| Variabel                  | Beskrivelse                           |
+| ------------------------- | ------------------------------------- |
+| `{{isOnline}}`            | Om statussiden er online (sand/falsk) |
+| `{{responseTimeInMs}}`    | Svartid i millisekunder               |
+| `{{failureCause}}`        | Årsag til fejl, hvis nogen            |
+| `{{overallStatus}}`       | Den overordnede statusindikatorværdi  |
+| `{{activeIncidentCount}}` | Antal aktive incidents                |
+| `{{componentStatuses}}`   | JSON-array af komponentstatus         |
 
 ## Bedste praksis
 

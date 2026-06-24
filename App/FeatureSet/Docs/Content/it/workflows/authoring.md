@@ -10,12 +10,12 @@ Ogni workflow inizia con un **trigger** all'inizio. Tutto il resto e un **compon
 
 ## Cosa contiene un blocco
 
-| Campo | Cosa fa |
-| --- | --- |
-| **Titolo** | Il nome mostrato sul canvas. Rinominalo per rendere piu leggibili i workflow complessi. |
+| Campo            | Cosa fa                                                                                                                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Titolo**       | Il nome mostrato sul canvas. Rinominalo per rendere piu leggibili i workflow complessi.                                                                                             |
 | **Impostazioni** | Cio di cui il blocco ha bisogno per svolgere il proprio compito — un URL, un canale Slack, il corpo di un messaggio, ecc. I campi obbligatori sono contrassegnati con un asterisco. |
-| **Input** | Il pallino a sinistra dove arrivano le linee dai blocchi precedenti. |
-| **Output** | I pallini a destra da cui partono le linee verso i blocchi successivi. Molti blocchi hanno output **success** ed **error** separati, cosi puoi gestire entrambi i casi. |
+| **Input**        | Il pallino a sinistra dove arrivano le linee dai blocchi precedenti.                                                                                                                |
+| **Output**       | I pallini a destra da cui partono le linee verso i blocchi successivi. Molti blocchi hanno output **success** ed **error** separati, cosi puoi gestire entrambi i casi.             |
 
 ## Collegare i blocchi
 

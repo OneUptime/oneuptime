@@ -120,13 +120,19 @@ export class Service extends DatabaseService<Model> {
 
     const now: Date = OneUptimeDate.getCurrentDate();
 
-    await this.updateOneById({
+    /*
+     * Heartbeat write: a single-statement UPDATE with no hooks and no
+     * `version` bump. This fires from the probe-auth middleware on every
+     * authenticated probe request, so it must not head the hot-row Postgres
+     * lock convoy the full updateOneById pipeline causes. A lastAlive-only
+     * write never sets connectionStatus, so the connection-status-change
+     * hooks (onBeforeUpdate/onUpdateSuccess) are inert here. See
+     * ServiceService.updateLastSeen.
+     */
+    await this.updateColumnsByIdWithoutHooks({
       id: probeId,
       data: {
         lastAlive: now,
-      },
-      props: {
-        isRoot: true,
       },
     });
   }

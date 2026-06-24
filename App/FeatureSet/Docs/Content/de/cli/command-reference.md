@@ -12,11 +12,11 @@ Mit einer OneUptime-Instanz authentifizieren.
 oneuptime login <api-key> <instance-url> [--context-name <name>]
 ```
 
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|------|----------|-------------|
-| `<api-key>` | Argument | Ja | API-Schlüssel zur Authentifizierung |
-| `<instance-url>` | Argument | Ja | OneUptime-Instanz-URL |
-| `--context-name` | Option | Nein | Kontextname (Standard: `"default"`) |
+| Parameter        | Typ      | Erforderlich | Beschreibung                        |
+| ---------------- | -------- | ------------ | ----------------------------------- |
+| `<api-key>`      | Argument | Ja           | API-Schlüssel zur Authentifizierung |
+| `<instance-url>` | Argument | Ja           | OneUptime-Instanz-URL               |
+| `--context-name` | Option   | Nein         | Kontextname (Standard: `"default"`) |
 
 ---
 
@@ -38,9 +38,9 @@ Zu einem benannten Kontext wechseln.
 oneuptime context use <name>
 ```
 
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|------|----------|-------------|
-| `<name>` | Argument | Ja | Zu aktivierender Kontextname |
+| Parameter | Typ      | Erforderlich | Beschreibung                 |
+| --------- | -------- | ------------ | ---------------------------- |
+| `<name>`  | Argument | Ja           | Zu aktivierender Kontextname |
 
 ---
 
@@ -62,9 +62,9 @@ Einen gespeicherten Kontext entfernen.
 oneuptime context delete <name>
 ```
 
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|------|----------|-------------|
-| `<name>` | Argument | Ja | Zu löschender Kontextname |
+| Parameter | Typ      | Erforderlich | Beschreibung              |
+| --------- | -------- | ------------ | ------------------------- |
+| `<name>`  | Argument | Ja           | Zu löschender Kontextname |
 
 ---
 
@@ -80,13 +80,13 @@ Ressourcen mit Filterung und Paginierung auflisten.
 oneuptime <resource> list [options]
 ```
 
-| Option | Typ | Standard | Beschreibung |
-|--------|------|---------|-------------|
-| `--query <json>` | Zeichenkette | Keiner | Filterkriterien als JSON |
-| `--limit <n>` | Zahl | `10` | Maximale Ergebnisse |
-| `--skip <n>` | Zahl | `0` | Zu überspringende Ergebnisse |
-| `--sort <json>` | Zeichenkette | Keiner | Sortierreihenfolge als JSON |
-| `-o, --output` | Zeichenkette | `table` | Ausgabeformat |
+| Option           | Typ          | Standard | Beschreibung                 |
+| ---------------- | ------------ | -------- | ---------------------------- |
+| `--query <json>` | Zeichenkette | Keiner   | Filterkriterien als JSON     |
+| `--limit <n>`    | Zahl         | `10`     | Maximale Ergebnisse          |
+| `--skip <n>`     | Zahl         | `0`      | Zu überspringende Ergebnisse |
+| `--sort <json>`  | Zeichenkette | Keiner   | Sortierreihenfolge als JSON  |
+| `-o, --output`   | Zeichenkette | `table`  | Ausgabeformat                |
 
 ---
 
@@ -98,10 +98,10 @@ Eine einzelne Ressource nach ID abrufen.
 oneuptime <resource> get <id> [-o <format>]
 ```
 
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|------|----------|-------------|
-| `<id>` | Argument | Ja | Ressourcen-ID (UUID) |
-| `-o, --output` | Option | Nein | Ausgabeformat |
+| Parameter      | Typ      | Erforderlich | Beschreibung         |
+| -------------- | -------- | ------------ | -------------------- |
+| `<id>`         | Argument | Ja           | Ressourcen-ID (UUID) |
+| `-o, --output` | Option   | Nein         | Ausgabeformat        |
 
 ---
 
@@ -113,11 +113,11 @@ Eine neue Ressource erstellen.
 oneuptime <resource> create [--data <json> | --file <path>] [-o <format>]
 ```
 
-| Option | Typ | Erforderlich | Beschreibung |
-|--------|------|----------|-------------|
+| Option          | Typ          | Erforderlich                     | Beschreibung             |
+| --------------- | ------------ | -------------------------------- | ------------------------ |
 | `--data <json>` | Zeichenkette | Eines von `--data` oder `--file` | Ressourcendaten als JSON |
-| `--file <path>` | Zeichenkette | Eines von `--data` oder `--file` | Pfad zur JSON-Datei |
-| `-o, --output` | Zeichenkette | Nein | Ausgabeformat |
+| `--file <path>` | Zeichenkette | Eines von `--data` oder `--file` | Pfad zur JSON-Datei      |
+| `-o, --output`  | Zeichenkette | Nein                             | Ausgabeformat            |
 
 ---
 
@@ -129,11 +129,11 @@ Eine vorhandene Ressource aktualisieren.
 oneuptime <resource> update <id> --data <json> [-o <format>]
 ```
 
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|------|----------|-------------|
-| `<id>` | Argument | Ja | Ressourcen-ID |
-| `--data <json>` | Option | Ja | Zu aktualisierende Felder als JSON |
-| `-o, --output` | Option | Nein | Ausgabeformat |
+| Parameter       | Typ      | Erforderlich | Beschreibung                       |
+| --------------- | -------- | ------------ | ---------------------------------- |
+| `<id>`          | Argument | Ja           | Ressourcen-ID                      |
+| `--data <json>` | Option   | Ja           | Zu aktualisierende Felder als JSON |
+| `-o, --output`  | Option   | Nein         | Ausgabeformat                      |
 
 ---
 
@@ -145,10 +145,10 @@ Eine Ressource löschen.
 oneuptime <resource> delete <id> [--force]
 ```
 
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|------|----------|-------------|
-| `<id>` | Argument | Ja | Ressourcen-ID |
-| `--force` | Option | Nein | Bestätigungsaufforderung überspringen |
+| Parameter | Typ      | Erforderlich | Beschreibung                          |
+| --------- | -------- | ------------ | ------------------------------------- |
+| `<id>`    | Argument | Ja           | Ressourcen-ID                         |
+| `--force` | Option   | Nein         | Bestätigungsaufforderung überspringen |
 
 ---
 
@@ -160,9 +160,9 @@ Ressourcen zählen, die einem Filter entsprechen.
 oneuptime <resource> count [--query <json>]
 ```
 
-| Option | Typ | Standard | Beschreibung |
-|--------|------|---------|-------------|
-| `--query <json>` | Zeichenkette | Keiner | Filterkriterien als JSON |
+| Option           | Typ          | Standard | Beschreibung             |
+| ---------------- | ------------ | -------- | ------------------------ |
+| `--query <json>` | Zeichenkette | Keiner   | Filterkriterien als JSON |
 
 ---
 
@@ -198,9 +198,9 @@ Alle verfügbaren Ressourcentypen auflisten.
 oneuptime resources [--type <type>]
 ```
 
-| Option | Typ | Standard | Beschreibung |
-|--------|------|---------|-------------|
-| `--type <type>` | Zeichenkette | Keiner | Nach `database` oder `analytics` filtern |
+| Option          | Typ          | Standard | Beschreibung                             |
+| --------------- | ------------ | -------- | ---------------------------------------- |
+| `--type <type>` | Zeichenkette | Keiner   | Nach `database` oder `analytics` filtern |
 
 ---
 
@@ -208,27 +208,27 @@ oneuptime resources [--type <type>]
 
 Diese Flags sind für alle Befehle verfügbar:
 
-| Option | Beschreibung |
-|--------|-------------|
-| `--api-key <key>` | API-Schlüssel überschreiben |
-| `--url <url>` | Instanz-URL überschreiben |
-| `--context <name>` | Einen spezifischen Kontext verwenden |
+| Option                  | Beschreibung                           |
+| ----------------------- | -------------------------------------- |
+| `--api-key <key>`       | API-Schlüssel überschreiben            |
+| `--url <url>`           | Instanz-URL überschreiben              |
+| `--context <name>`      | Einen spezifischen Kontext verwenden   |
 | `-o, --output <format>` | Ausgabeformat: `json`, `table`, `wide` |
-| `--no-color` | Farbige Ausgabe deaktivieren |
-| `--help` | Hilfe anzeigen |
-| `--version` | Version anzeigen |
+| `--no-color`            | Farbige Ausgabe deaktivieren           |
+| `--help`                | Hilfe anzeigen                         |
+| `--version`             | Version anzeigen                       |
 
 ## API-Routen
 
 Als Referenz ordnet die CLI Befehle diesen API-Endpunkten zu:
 
-| Befehl | Methode | Endpunkt |
-|---------|--------|----------|
-| `list` | POST | `/api/<resource>/get-list` |
-| `get` | POST | `/api/<resource>/<id>/get-item` |
-| `create` | POST | `/api/<resource>` |
-| `update` | PUT | `/api/<resource>/<id>/` |
-| `delete` | DELETE | `/api/<resource>/<id>/` |
-| `count` | POST | `/api/<resource>/count` |
+| Befehl   | Methode | Endpunkt                        |
+| -------- | ------- | ------------------------------- |
+| `list`   | POST    | `/api/<resource>/get-list`      |
+| `get`    | POST    | `/api/<resource>/<id>/get-item` |
+| `create` | POST    | `/api/<resource>`               |
+| `update` | PUT     | `/api/<resource>/<id>/`         |
+| `delete` | DELETE  | `/api/<resource>/<id>/`         |
+| `count`  | POST    | `/api/<resource>/count`         |
 
 Alle Anfragen enthalten den `APIKey`-Header zur Authentifizierung.

@@ -40,46 +40,48 @@ Você pode copiar este endereço da página de detalhes do monitor e configurar 
 
 Você pode criar critérios com base nos seguintes campos de email:
 
-| Campo | Descrição |
-|-------|-------------|
-| **Email Subject** | A linha de assunto do email de entrada |
-| **Email From** | O endereço de email do remetente |
-| **Email Body** | O conteúdo em texto simples do corpo do email |
-| **Email To** | O endereço de email do destinatário |
+| Campo              | Descrição                                                       |
+| ------------------ | --------------------------------------------------------------- |
+| **Email Subject**  | A linha de assunto do email de entrada                          |
+| **Email From**     | O endereço de email do remetente                                |
+| **Email Body**     | O conteúdo em texto simples do corpo do email                   |
+| **Email To**       | O endereço de email do destinatário                             |
 | **Email Received** | Critérios baseados em tempo para quando os emails são recebidos |
 
 ## Tipos de Filtro Disponíveis
 
 ### Filtros de String (Subject, From, Body, To)
 
-| Filtro | Descrição | Exemplo |
-|--------|-------------|---------|
-| **Contains** | O campo contém o texto especificado | Subject contains "CRITICAL" |
-| **Not Contains** | O campo não contém o texto especificado | Subject not contains "TEST" |
-| **Equals** | O campo corresponde exatamente ao texto especificado | From equals "alerts@service.com" |
-| **Not Equals** | O campo não corresponde ao texto especificado | Subject not equals "OK" |
-| **Starts With** | O campo começa com o texto especificado | Subject starts with "[ALERT]" |
-| **Ends With** | O campo termina com o texto especificado | Subject ends with "- Production" |
-| **Is Empty** | O campo está vazio ou em branco | Body is empty |
-| **Is Not Empty** | O campo tem conteúdo | Subject is not empty |
+| Filtro           | Descrição                                            | Exemplo                          |
+| ---------------- | ---------------------------------------------------- | -------------------------------- |
+| **Contains**     | O campo contém o texto especificado                  | Subject contains "CRITICAL"      |
+| **Not Contains** | O campo não contém o texto especificado              | Subject not contains "TEST"      |
+| **Equals**       | O campo corresponde exatamente ao texto especificado | From equals "alerts@service.com" |
+| **Not Equals**   | O campo não corresponde ao texto especificado        | Subject not equals "OK"          |
+| **Starts With**  | O campo começa com o texto especificado              | Subject starts with "[ALERT]"    |
+| **Ends With**    | O campo termina com o texto especificado             | Subject ends with "- Production" |
+| **Is Empty**     | O campo está vazio ou em branco                      | Body is empty                    |
+| **Is Not Empty** | O campo tem conteúdo                                 | Subject is not empty             |
 
 ### Filtros Baseados em Tempo (Email Received)
 
-| Filtro | Descrição | Exemplo |
-|--------|-------------|---------|
-| **Received In Minutes** | O email foi recebido dentro de X minutos | Email received in 30 minutes |
-| **Not Received In Minutes** | Nenhum email recebido em X minutos | Email not received in 60 minutes |
+| Filtro                      | Descrição                                | Exemplo                          |
+| --------------------------- | ---------------------------------------- | -------------------------------- |
+| **Received In Minutes**     | O email foi recebido dentro de X minutos | Email received in 30 minutes     |
+| **Not Received In Minutes** | Nenhum email recebido em X minutos       | Email not received in 60 minutes |
 
 ## Configurações de Exemplo
 
 ### Exemplo 1: Criar Alerta em Emails Críticos
 
 **Alert Creation Criteria:**
+
 - Email Subject **Contains** "CRITICAL"
 - OR Email Subject **Contains** "ALERT"
 - OR Email Subject **Contains** "ERROR"
 
 **Alert Resolution Criteria:**
+
 - Email Subject **Contains** "RESOLVED"
 - OR Email Subject **Contains** "OK"
 - OR Email Subject **Contains** "RECOVERED"
@@ -87,21 +89,25 @@ Você pode criar critérios com base nos seguintes campos de email:
 ### Exemplo 2: Monitorar Remetente Específico
 
 **Alert Creation Criteria:**
+
 - Email From **Equals** "monitoring@legacy-system.com"
 - AND Email Subject **Contains** "Failed"
 
 **Alert Resolution Criteria:**
+
 - Email From **Equals** "monitoring@legacy-system.com"
 - AND Email Subject **Contains** "Success"
 
 ### Exemplo 3: Monitor de Heartbeat (Sem Email = Alerta)
 
 **Alert Creation Criteria:**
+
 - Email Received **Not Received In Minutes** com valor `60`
 
 Isso cria um alerta se nenhum email for recebido por 60 minutos — útil para monitorar trabalhos programados ou processos em lote que devem enviar emails de conclusão.
 
 **Alert Resolution Criteria:**
+
 - Email Received **Received In Minutes** com valor `5`
 
 Isso resolve o alerta quando um email é recebido.
@@ -111,6 +117,7 @@ Isso resolve o alerta quando um email é recebido.
 ### Integração com Sistema Legado
 
 Muitos sistemas mais antigos suportam apenas alerta baseado em email. Use o Monitor de Email de Entrada para:
+
 - Converter alertas de email em incidentes do OneUptime
 - Resolver automaticamente incidentes quando emails de recuperação chegam
 - Centralizar alertas de múltiplos sistemas legados
@@ -118,6 +125,7 @@ Muitos sistemas mais antigos suportam apenas alerta baseado em email. Use o Moni
 ### Monitoramento de Serviços de Terceiros
 
 Integre com serviços que enviam notificações por email:
+
 - Alertas de provedores de nuvem (AWS, GCP, Azure)
 - Ferramentas de verificação de segurança
 - Notificações de conclusão de backup
@@ -126,6 +134,7 @@ Integre com serviços que enviam notificações por email:
 ### Monitoramento de Trabalhos Programados
 
 Monitore trabalhos em lote e tarefas programadas:
+
 - Crie alertas se emails de conclusão não forem recebidos no prazo
 - Rastreie falhas de trabalhos por emails de notificação de erro
 - Monitore conclusões de pipelines de dados
@@ -133,6 +142,7 @@ Monitore trabalhos em lote e tarefas programadas:
 ### Agregação de Alertas de Múltiplos Fornecedores
 
 Consolide alertas de múltiplas ferramentas de monitoramento:
+
 - Receba alertas do Nagios, Zabbix ou outras ferramentas por email
 - Unifique o gerenciamento de incidentes no OneUptime
 - Mantenha uma única fonte de verdade para todos os alertas
@@ -141,17 +151,18 @@ Consolide alertas de múltiplas ferramentas de monitoramento:
 
 Ao configurar modelos de incidentes, você pode usar estas variáveis de emails de entrada:
 
-| Variável | Descrição |
-|----------|-------------|
-| `{{emailSubject}}` | O assunto do email recebido |
-| `{{emailFrom}}` | O endereço de email do remetente |
-| `{{emailTo}}` | O endereço de email do destinatário |
-| `{{emailBody}}` | O corpo em texto simples do email |
-| `{{emailReceivedAt}}` | Quando o email foi recebido |
+| Variável              | Descrição                           |
+| --------------------- | ----------------------------------- |
+| `{{emailSubject}}`    | O assunto do email recebido         |
+| `{{emailFrom}}`       | O endereço de email do remetente    |
+| `{{emailTo}}`         | O endereço de email do destinatário |
+| `{{emailBody}}`       | O corpo em texto simples do email   |
+| `{{emailReceivedAt}}` | Quando o email foi recebido         |
 
 ## Visão Resumida do Monitor
 
 O resumo do monitor mostra:
+
 - **Last Email Received At:** Quando o email mais recente foi recebido
 - **From:** O remetente do último email
 - **Subject:** A linha de assunto do último email

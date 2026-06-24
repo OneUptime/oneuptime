@@ -10,14 +10,14 @@ OneUptime में profiling data के साथ, आप CPU consuming hot fu
 
 OneUptime निम्नलिखित profile types का समर्थन करता है:
 
-| Profile Type | विवरण | Unit |
-| --- | --- | --- |
-| cpu | code execute करने में CPU time | nanoseconds |
-| wall | Wall-clock time (waiting/sleeping सहित) | nanoseconds |
-| alloc_objects | heap allocations की संख्या | count |
-| alloc_space | allocated heap memory के Bytes | bytes |
-| goroutine | active goroutines की संख्या (Go) | count |
-| contention | locks/mutexes पर इंतज़ार में लगा समय | nanoseconds |
+| Profile Type  | विवरण                                   | Unit        |
+| ------------- | --------------------------------------- | ----------- |
+| cpu           | code execute करने में CPU time          | nanoseconds |
+| wall          | Wall-clock time (waiting/sleeping सहित) | nanoseconds |
+| alloc_objects | heap allocations की संख्या              | count       |
+| alloc_space   | allocated heap memory के Bytes          | bytes       |
+| goroutine     | active goroutines की संख्या (Go)        | count       |
+| contention    | locks/mutexes पर इंतज़ार में लगा समय    | nanoseconds |
 
 ## शुरू करना
 
@@ -37,10 +37,10 @@ Token बनाने के बाद, token देखने के लिए "
 
 OneUptime OTLP profiles protocol का उपयोग करके gRPC और HTTP दोनों पर profiling data accept करता है।
 
-| Protocol | Endpoint |
-| --- | --- |
-| gRPC | `your-oneuptime-host:4317` (OTLP standard gRPC port) |
-| HTTP | `https://your-oneuptime-host/otlp/v1/profiles` |
+| Protocol | Endpoint                                             |
+| -------- | ---------------------------------------------------- |
+| gRPC     | `your-oneuptime-host:4317` (OTLP standard gRPC port) |
+| HTTP     | `https://your-oneuptime-host/otlp/v1/profiles`       |
 
 **Environment Variables**
 

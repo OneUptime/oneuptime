@@ -11,7 +11,7 @@ Esta página é o **guia de instalação**. Para configurar monitores e alertas 
 - Um cluster Kubernetes em execução (v1.23+)
 - `kubectl` configurado para acessar seu cluster
 - `helm` v3 instalado
-- Uma **chave de API do OneUptime** — crie uma em *Project Settings → API Keys*
+- Uma **chave de API do OneUptime** — crie uma em _Project Settings → API Keys_
 
 ## Passo 1 — Adicione o Repositório Helm do OneUptime
 
@@ -24,11 +24,11 @@ helm repo update
 
 O chart expõe uma única opção de nível superior — `preset` — que escolhe padrões compatíveis para a sua distribuição do Kubernetes. Ela controla aspectos que você precisaria ajustar manualmente de outra forma: se os logs devem ser enviados por meio de um DaemonSet com hostPath ou pela API do Kubernetes, e qual contexto de segurança aplicar.
 
-| `preset` | Use para | Coleta de logs |
-|---|---|---|
-| `standard` *(padrão)* | Clusters autogerenciados, **EKS no EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | DaemonSet lendo `/var/log/pods` via hostPath (menor sobrecarga) |
-| `gke-autopilot` | **GKE Autopilot** | Deployment de coletor de logs via API do Kubernetes (sem hostPath, sem acesso ao host) |
-| `eks-fargate` | **EKS Fargate** | Deployment de coletor de logs via API do Kubernetes (sem hostPath, sem acesso ao host) |
+| `preset`              | Use para                                                                                 | Coleta de logs                                                                         |
+| --------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `standard` _(padrão)_ | Clusters autogerenciados, **EKS no EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | DaemonSet lendo `/var/log/pods` via hostPath (menor sobrecarga)                        |
+| `gke-autopilot`       | **GKE Autopilot**                                                                        | Deployment de coletor de logs via API do Kubernetes (sem hostPath, sem acesso ao host) |
+| `eks-fargate`         | **EKS Fargate**                                                                          | Deployment de coletor de logs via API do Kubernetes (sem hostPath, sem acesso ao host) |
 
 Se você não tiver certeza, comece com `standard`. Se a instalação falhar com um erro de Pod Security mencionando `hostPath`, execute novamente com `preset=gke-autopilot` (ou `eks-fargate` no Fargate) e funcionará.
 
@@ -208,19 +208,19 @@ kubectl delete namespace oneuptime-agent
 
 ## O Que é Coletado
 
-| Categoria | Dados |
-|----------|------|
-| **Métricas de Nó** | Utilização de CPU, uso de memória, uso de sistema de arquivos, E/S de rede |
-| **Métricas de Pod** | Uso de CPU, uso de memória, E/S de rede, reinicializações |
-| **Métricas de Contêiner** | Uso de CPU, uso de memória por contêiner |
-| **Métricas de Cluster** | Condições dos nós, recursos alocáveis, contagens de pods |
-| **Eventos do Kubernetes** | Avisos, erros, eventos de agendamento |
-| **Logs de Pods** | Logs de stdout/stderr de todos os contêineres (via DaemonSet com hostPath em clusters padrão, ou via API do Kubernetes no Autopilot / Fargate) |
-| **Traces de Aplicação** *(via eBPF, ativado por padrão)* | Spans de HTTP, gRPC, SQL/Redis de cada pod — sem SDK nem alterações de código |
-| **Métricas HTTP RED** *(via eBPF)* | `http.server.request.duration`, tamanhos de corpo de requisição e resposta, por serviço |
-| **Grafo de Serviços** *(via eBPF)* | Taxa de requisições, latência e arestas de erro de chamador → chamado — alimenta a visão de mapa de serviços |
-| **Métricas de Fluxo de Rede** *(via eBPF)* | Contadores de bytes e pacotes TCP/UDP pod-a-pod com metadados do k8s |
-| **Estatísticas de TCP** *(via eBPF)* | Contadores de RTT, conexões falhas e retransmissões em nível de nó |
+| Categoria                                                | Dados                                                                                                                                          |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Métricas de Nó**                                       | Utilização de CPU, uso de memória, uso de sistema de arquivos, E/S de rede                                                                     |
+| **Métricas de Pod**                                      | Uso de CPU, uso de memória, E/S de rede, reinicializações                                                                                      |
+| **Métricas de Contêiner**                                | Uso de CPU, uso de memória por contêiner                                                                                                       |
+| **Métricas de Cluster**                                  | Condições dos nós, recursos alocáveis, contagens de pods                                                                                       |
+| **Eventos do Kubernetes**                                | Avisos, erros, eventos de agendamento                                                                                                          |
+| **Logs de Pods**                                         | Logs de stdout/stderr de todos os contêineres (via DaemonSet com hostPath em clusters padrão, ou via API do Kubernetes no Autopilot / Fargate) |
+| **Traces de Aplicação** _(via eBPF, ativado por padrão)_ | Spans de HTTP, gRPC, SQL/Redis de cada pod — sem SDK nem alterações de código                                                                  |
+| **Métricas HTTP RED** _(via eBPF)_                       | `http.server.request.duration`, tamanhos de corpo de requisição e resposta, por serviço                                                        |
+| **Grafo de Serviços** _(via eBPF)_                       | Taxa de requisições, latência e arestas de erro de chamador → chamado — alimenta a visão de mapa de serviços                                   |
+| **Métricas de Fluxo de Rede** _(via eBPF)_               | Contadores de bytes e pacotes TCP/UDP pod-a-pod com metadados do k8s                                                                           |
+| **Estatísticas de TCP** _(via eBPF)_                     | Contadores de RTT, conexões falhas e retransmissões em nível de nó                                                                             |
 
 ## Traces de Aplicação e Métricas HTTP via eBPF (ativado por padrão)
 
@@ -250,15 +250,15 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 Todas ativadas por padrão. Desative qualquer uma com `--set ebpf.features.<name>=false`:
 
-| `ebpf.features.*` | Padrão | O que adiciona |
-|---|---|---|
-| `httpMetrics` | ativado | Métricas HTTP/gRPC RED (taxa de requisições, latência, erros) por serviço |
-| `spanMetrics` | ativado | Tamanho de requisição/resposta e duração por span |
-| `serviceGraph` | ativado | Métricas de aresta chamador → chamado; alimenta o mapa de serviços |
-| `hostMetrics` | ativado | CPU e memória por processo instrumentado |
-| `networkMetrics` | ativado | Contadores de fluxo TCP/UDP pod-a-pod |
-| `networkInterZoneMetrics` | desativado | Variante entre zonas das métricas de rede (dobra a cardinalidade) |
-| `tcpStats` | ativado | Contadores de RTT TCP, conexões falhas e retransmissões em nível de nó |
+| `ebpf.features.*`         | Padrão     | O que adiciona                                                            |
+| ------------------------- | ---------- | ------------------------------------------------------------------------- |
+| `httpMetrics`             | ativado    | Métricas HTTP/gRPC RED (taxa de requisições, latência, erros) por serviço |
+| `spanMetrics`             | ativado    | Tamanho de requisição/resposta e duração por span                         |
+| `serviceGraph`            | ativado    | Métricas de aresta chamador → chamado; alimenta o mapa de serviços        |
+| `hostMetrics`             | ativado    | CPU e memória por processo instrumentado                                  |
+| `networkMetrics`          | ativado    | Contadores de fluxo TCP/UDP pod-a-pod                                     |
+| `networkInterZoneMetrics` | desativado | Variante entre zonas das métricas de rede (dobra a cardinalidade)         |
+| `tcpStats`                | ativado    | Contadores de RTT TCP, conexões falhas e retransmissões em nível de nó    |
 
 A propagação de contexto de trace entre serviços também está ativada por padrão — o OBI injeta o `traceparent` W3C no tráfego HTTP/TCP de saída, de modo que uma requisição cruzando do pod A → pod B aparece como um único trace, sem alterações de SDK em lugar algum. Desative com `--set ebpf.contextPropagation=false`.
 
@@ -298,7 +298,7 @@ A razão mais comum — especialmente após uma reinstalação — é uma **chav
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   Se retornar `401`, a chave no seu release está errada ou foi revogada. Copie uma chave ativa em *Project Settings → Telemetry Ingestion Keys* e reimplante:
+   Se retornar `401`, a chave no seu release está errada ou foi revogada. Copie uma chave ativa em _Project Settings → Telemetry Ingestion Keys_ e reimplante:
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

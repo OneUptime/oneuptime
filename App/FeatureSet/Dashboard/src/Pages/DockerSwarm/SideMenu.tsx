@@ -23,6 +23,15 @@ const DockerSwarmSideMenu: FunctionComponent = (): ReactElement => {
         },
         {
           link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DOCKER_SWARM_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
+        {
+          link: {
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.DOCKER_SWARM_DOCUMENTATION] as Route,

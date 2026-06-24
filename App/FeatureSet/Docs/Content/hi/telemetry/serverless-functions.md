@@ -8,20 +8,20 @@ OneUptime किसी **Serverless Function** को उसी क्षण स
 
 ## पूर्वापेक्षाएं
 
-- एक **OneUptime Telemetry Ingestion Token** — इसे *Project Settings → Telemetry Ingestion Keys* से बनाएं और `x-oneuptime-token` मान को कॉपी करें।
+- एक **OneUptime Telemetry Ingestion Token** — इसे _Project Settings → Telemetry Ingestion Keys_ से बनाएं और `x-oneuptime-token` मान को कॉपी करें।
 - आपके फंक्शन की भाषा के लिए OpenTelemetry SDK (या एक ऑटो-इंस्ट्रूमेंटेशन लेयर)।
 
 ## OneUptime किसी फंक्शन की पहचान कैसे करता है
 
 OneUptime प्रत्येक फंक्शन को `faas.name` resource attribute पर की (key) करता है:
 
-| Attribute | आवश्यक | उद्देश्य |
-|---|---|---|
-| `faas.name` | **हां** | फंक्शन पहचान (उदा. `checkout-handler`) |
-| `faas.version` | नहीं | अवलोकन पर दिखाया गया |
-| `faas.instance` | नहीं | **Instances** टैब के अंतर्गत प्रति-इंस्टेंस ट्रैक किया गया |
-| `cloud.platform` | नहीं | `aws_lambda`, `gcp_cloud_functions`, `azure_functions`, ... |
-| `cloud.provider` / `cloud.region` / `cloud.account.id` | नहीं | अवलोकन पर दिखाया गया |
+| Attribute                                              | आवश्यक  | उद्देश्य                                                    |
+| ------------------------------------------------------ | ------- | ----------------------------------------------------------- |
+| `faas.name`                                            | **हां** | फंक्शन पहचान (उदा. `checkout-handler`)                      |
+| `faas.version`                                         | नहीं    | अवलोकन पर दिखाया गया                                        |
+| `faas.instance`                                        | नहीं    | **Instances** टैब के अंतर्गत प्रति-इंस्टेंस ट्रैक किया गया  |
+| `cloud.platform`                                       | नहीं    | `aws_lambda`, `gcp_cloud_functions`, `azure_functions`, ... |
+| `cloud.provider` / `cloud.region` / `cloud.account.id` | नहीं    | अवलोकन पर दिखाया गया                                        |
 
 > एक फंक्शन जो `service.name` भी सेट करता है, वह **Services** के अंतर्गत भी दिखाई देता है। **Serverless Functions** दृश्य FaaS-केंद्रित लेंस है, जिसका दायरा `faas.name` द्वारा निर्धारित होता है।
 
@@ -57,4 +57,4 @@ OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN
 - **Instances** — देखे गए `faas.instance` मानों की एक लाइव गणना।
 - इस फंक्शन के दायरे तक सीमित संपूर्ण **Logs**, **Traces** और **Metrics** टैब।
 
-आप *Serverless → Settings → Label Rules / Owner Rules* के माध्यम से लेबल और मालिक भी स्वतः लागू कर सकते हैं।
+आप _Serverless → Settings → Label Rules / Owner Rules_ के माध्यम से लेबल और मालिक भी स्वतः लागू कर सकते हैं।

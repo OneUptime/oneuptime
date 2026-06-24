@@ -10,6 +10,10 @@ export default class AddIsRootSpanToSpanTable extends DataMigrationBase {
     super("AddIsRootSpanToSpanTable");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     /*
      * Legacy V2-era migration. On fresh installs of the V3 cut SpanItemV2

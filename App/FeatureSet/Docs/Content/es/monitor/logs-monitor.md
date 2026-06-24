@@ -28,12 +28,12 @@ Selecciona uno o más servicios desde los que monitorear registros. Los servicio
 
 ### Filtros de registros
 
-| Filtro | Descripción | Requerido |
-|--------|-------------|----------|
-| Niveles de gravedad | Filtra por gravedad del registro (ERROR, WARN, INFO, DEBUG, etc.) | No |
-| Cuerpo | Búsqueda de texto dentro del cuerpo del mensaje de registro | No |
-| Atributos | Pares clave-valor para filtrar en atributos de registro personalizados | No |
-| Ventana de tiempo | Hasta qué punto atrás buscar registros (en segundos, predeterminado: 60) | No |
+| Filtro              | Descripción                                                              | Requerido |
+| ------------------- | ------------------------------------------------------------------------ | --------- |
+| Niveles de gravedad | Filtra por gravedad del registro (ERROR, WARN, INFO, DEBUG, etc.)        | No        |
+| Cuerpo              | Búsqueda de texto dentro del cuerpo del mensaje de registro              | No        |
+| Atributos           | Pares clave-valor para filtrar en atributos de registro personalizados   | No        |
+| Ventana de tiempo   | Hasta qué punto atrás buscar registros (en segundos, predeterminado: 60) | No        |
 
 ### Niveles de gravedad
 
@@ -51,8 +51,8 @@ Filtra los registros por uno o más niveles de gravedad:
 
 ### Tipos de verificación disponibles
 
-| Tipo de verificación | Descripción |
-|------------|-------------|
+| Tipo de verificación  | Descripción                                                                  |
+| --------------------- | ---------------------------------------------------------------------------- |
 | Recuento de registros | El número de registros que coinciden con tus filtros en la ventana de tiempo |
 
 ### Tipos de filtro

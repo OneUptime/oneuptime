@@ -19,17 +19,17 @@ OAuth 2.0 biedt een veiligere manier om te authenticeren bij e-mailservers, met 
 
 Bij het configureren van SMTP met OAuth-authenticatie in OneUptime heeft u het volgende nodig:
 
-| Veld | Beschrijving |
-|-------|-------------|
-| **Hostnaam** | SMTP-serveradres |
-| **Poort** | SMTP-poort (meestal 587 voor STARTTLS of 465 voor impliciete TLS) |
-| **Gebruikersnaam** | Het e-mailadres om van te verzenden |
-| **Authenticatietype** | Selecteer "OAuth" |
+| Veld                    | Beschrijving                                                                             |
+| ----------------------- | ---------------------------------------------------------------------------------------- |
+| **Hostnaam**            | SMTP-serveradres                                                                         |
+| **Poort**               | SMTP-poort (meestal 587 voor STARTTLS of 465 voor impliciete TLS)                        |
+| **Gebruikersnaam**      | Het e-mailadres om van te verzenden                                                      |
+| **Authenticatietype**   | Selecteer "OAuth"                                                                        |
 | **OAuth Provider Type** | Selecteer "Client Credentials" voor Microsoft 365, of "JWT Bearer" voor Google Workspace |
-| **Client ID** | Applicatie/Client ID van uw OAuth-provider (voor Google: e-mailadres van serviceaccount) |
-| **Client Secret** | Clientgeheim van uw OAuth-provider (voor Google: privésleutel) |
-| **Token URL** | OAuth token-eindpunt-URL |
-| **Bereik** | Vereiste OAuth-bereik(en) voor SMTP-toegang |
+| **Client ID**           | Applicatie/Client ID van uw OAuth-provider (voor Google: e-mailadres van serviceaccount) |
+| **Client Secret**       | Clientgeheim van uw OAuth-provider (voor Google: privésleutel)                           |
+| **Token URL**           | OAuth token-eindpunt-URL                                                                 |
+| **Bereik**              | Vereiste OAuth-bereik(en) voor SMTP-toegang                                              |
 
 ---
 
@@ -48,6 +48,7 @@ Om OAuth te gebruiken met Microsoft 365/Exchange Online, moet u een applicatie r
 7. Klik op **Registreren**
 
 Noteer na de registratie de volgende waarden op de **Overzichtspagina**:
+
 - **Applicatie (client) ID** - Dit is uw Client ID
 - **Map (tenant) ID** - U heeft dit nodig voor de Token URL
 
@@ -107,19 +108,19 @@ Add-MailboxPermission -Identity "sender@yourdomain.com" -User <service-principal
 
 Maak of bewerk in OneUptime een SMTP-configuratie met deze instellingen:
 
-| Veld | Waarde |
-|-------|-------|
-| Hostnaam | `smtp.office365.com` |
-| Poort | `587` |
-| Gebruikersnaam | Het e-mailadres waarvoor u machtigingen heeft verleend (bijv. `sender@yourdomain.com`) |
-| Authenticatietype | `OAuth` |
-| OAuth Provider Type | `Client Credentials` |
-| Client ID | Uw Applicatie (client) ID uit stap 1 |
-| Client Secret | De geheimwaarde uit stap 2 |
-| Token URL | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` |
-| Bereik | `https://outlook.office365.com/.default` |
-| Van e-mail | Gelijk aan gebruikersnaam |
-| Beveiligd (TLS) | Ingeschakeld |
+| Veld                | Waarde                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------- |
+| Hostnaam            | `smtp.office365.com`                                                                   |
+| Poort               | `587`                                                                                  |
+| Gebruikersnaam      | Het e-mailadres waarvoor u machtigingen heeft verleend (bijv. `sender@yourdomain.com`) |
+| Authenticatietype   | `OAuth`                                                                                |
+| OAuth Provider Type | `Client Credentials`                                                                   |
+| Client ID           | Uw Applicatie (client) ID uit stap 1                                                   |
+| Client Secret       | De geheimwaarde uit stap 2                                                             |
+| Token URL           | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`                      |
+| Bereik              | `https://outlook.office365.com/.default`                                               |
+| Van e-mail          | Gelijk aan gebruikersnaam                                                              |
+| Beveiligd (TLS)     | Ingeschakeld                                                                           |
 
 Vervang `<tenant-id>` door uw Map (tenant) ID uit stap 1.
 
@@ -189,19 +190,19 @@ Opmerking: Het kan enkele minuten tot 24 uur duren voordat de delegatie wordt do
 
 Maak of bewerk in OneUptime een SMTP-configuratie met deze instellingen:
 
-| Veld | Waarde |
-|-------|-------|
-| Hostnaam | `smtp.gmail.com` |
-| Poort | `587` |
-| Gebruikersnaam | Het Google Workspace-e-mailadres om van te verzenden (bijv. `notifications@yourdomain.com`). Deze gebruiker wordt nagebootst door het serviceaccount. |
-| Authenticatietype | `OAuth` |
-| OAuth Provider Type | `JWT Bearer` |
-| Client ID | Het `client_email` uit uw serviceaccount-JSON (bijv. `your-service@your-project.iam.gserviceaccount.com`) |
-| Client Secret | De `private_key` uit uw serviceaccount-JSON (de volledige sleutel inclusief `-----BEGIN PRIVATE KEY-----` en `-----END PRIVATE KEY-----`) |
-| Token URL | `https://oauth2.googleapis.com/token` |
-| Bereik | `https://mail.google.com/` |
-| Van e-mail | Gelijk aan gebruikersnaam |
-| Beveiligd (TLS) | Ingeschakeld |
+| Veld                | Waarde                                                                                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hostnaam            | `smtp.gmail.com`                                                                                                                                      |
+| Poort               | `587`                                                                                                                                                 |
+| Gebruikersnaam      | Het Google Workspace-e-mailadres om van te verzenden (bijv. `notifications@yourdomain.com`). Deze gebruiker wordt nagebootst door het serviceaccount. |
+| Authenticatietype   | `OAuth`                                                                                                                                               |
+| OAuth Provider Type | `JWT Bearer`                                                                                                                                          |
+| Client ID           | Het `client_email` uit uw serviceaccount-JSON (bijv. `your-service@your-project.iam.gserviceaccount.com`)                                             |
+| Client Secret       | De `private_key` uit uw serviceaccount-JSON (de volledige sleutel inclusief `-----BEGIN PRIVATE KEY-----` en `-----END PRIVATE KEY-----`)             |
+| Token URL           | `https://oauth2.googleapis.com/token`                                                                                                                 |
+| Bereik              | `https://mail.google.com/`                                                                                                                            |
+| Van e-mail          | Gelijk aan gebruikersnaam                                                                                                                             |
+| Beveiligd (TLS)     | Ingeschakeld                                                                                                                                          |
 
 **Belangrijk:** Voor Google (JWT Bearer) is de Client ID het **e-mailadres van het serviceaccount** (`client_email`), NIET het numerieke `client_id`. Het serviceaccount zal de gebruiker nabootsen die is opgegeven in het veld Gebruikersnaam om e-mails te verzenden.
 
@@ -211,20 +212,20 @@ Maak of bewerk in OneUptime een SMTP-configuratie met deze instellingen:
 
 ### Microsoft 365
 
-| Probleem | Oplossing |
-|-------|----------|
-| "Authentication unsuccessful" | Controleer of de serviceprincipal is geregistreerd in Exchange en postvakrechten heeft |
-| "AADSTS700016: Application not found" | Controleer of het Client ID correct is en de app bestaat in uw tenant |
-| "AADSTS7000215: Invalid client secret" | Genereer het clientgeheim opnieuw - het kan zijn verlopen |
-| "The mailbox is not enabled for this operation" | Voer `Add-MailboxPermission` uit om toegang tot het postvak te verlenen |
+| Probleem                                        | Oplossing                                                                              |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------- |
+| "Authentication unsuccessful"                   | Controleer of de serviceprincipal is geregistreerd in Exchange en postvakrechten heeft |
+| "AADSTS700016: Application not found"           | Controleer of het Client ID correct is en de app bestaat in uw tenant                  |
+| "AADSTS7000215: Invalid client secret"          | Genereer het clientgeheim opnieuw - het kan zijn verlopen                              |
+| "The mailbox is not enabled for this operation" | Voer `Add-MailboxPermission` uit om toegang tot het postvak te verlenen                |
 
 ### Google Workspace
 
-| Probleem | Oplossing |
-|-------|----------|
-| "invalid_grant" | Zorg dat domeinbrede delegatie correct is geconfigureerd en doorgevoerd |
-| "unauthorized_client" | Controleer of het Client ID is geautoriseerd in de Google Workspace-beheerconsole |
-| "access_denied" | Controleer of het bereik `https://mail.google.com/` is geautoriseerd |
+| Probleem                                            | Oplossing                                                                                 |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| "invalid_grant"                                     | Zorg dat domeinbrede delegatie correct is geconfigureerd en doorgevoerd                   |
+| "unauthorized_client"                               | Controleer of het Client ID is geautoriseerd in de Google Workspace-beheerconsole         |
+| "access_denied"                                     | Controleer of het bereik `https://mail.google.com/` is geautoriseerd                      |
 | "Domain policy has disabled third-party Drive apps" | Schakel API-toegang in via Google Workspace Admin > Beveiliging > API-besturingselementen |
 
 ### Algemeen
@@ -248,10 +249,12 @@ Maak of bewerk in OneUptime een SMTP-configuratie met deze instellingen:
 ## Aanvullende bronnen
 
 ### Microsoft 365
+
 - [Authenticate an IMAP, POP or SMTP connection using OAuth](https://learn.microsoft.com/en-us/exchange/client-developer/legacy-protocols/how-to-authenticate-an-imap-pop-smtp-application-by-using-oauth)
 - [Register an application with Microsoft identity platform](https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app)
 
 ### Google Workspace
+
 - [Using OAuth 2.0 for Server to Server Applications](https://developers.google.com/identity/protocols/oauth2/service-account)
 - [Gmail API Documentation](https://developers.google.com/gmail/api)
 - [XOAUTH2 Protocol](https://developers.google.com/gmail/imap/xoauth2-protocol)

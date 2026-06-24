@@ -2,7 +2,6 @@
 
 Installeer OneUptime als desktopapplicatie op Windows voor uitgebreide monitoring en incidentbeheer.
 
-
 ## Installatiemethoden
 
 ### Methode 1: Microsoft Edge (aanbevolen)
@@ -10,17 +9,20 @@ Installeer OneUptime als desktopapplicatie op Windows voor uitgebreide monitorin
 Edge biedt de beste Windows PWA-integratie met native functies.
 
 1. **OneUptime openen in Edge**
+
    - Start de Microsoft Edge-browser
    - Navigeer naar de URL van uw OneUptime-instantie
    - Meld u aan bij uw OneUptime-account
    - Wacht tot de pagina volledig is geladen
 
 2. **App installeren**
+
    - Zoek het **installatiepictogram** (⊞) in de adresbalk
    - Klik op de knop **"OneUptime installeren"**
    - Of klik op het **menu met drie puntjes** → **Apps** → **Deze site installeren als app**
 
 3. **Installatie aanpassen**
+
    - **App-naam**: Pas aan indien gewenst (standaard: OneUptime)
    - **Startmenu**: Kies of u wilt toevoegen aan Startmenu
    - **Taakbalk**: Optie om vast te zetten aan taakbalk
@@ -36,17 +38,20 @@ Edge biedt de beste Windows PWA-integratie met native functies.
 Chrome biedt uitstekende PWA-ondersteuning met uitgebreide desktopintegratie.
 
 1. **OneUptime openen in Chrome**
+
    - Start Google Chrome
    - Ga naar uw OneUptime-instantie
    - Zorg dat u bent aangemeld
    - Laat de pagina volledig laden
 
 2. **Installeren via adresbalk**
+
    - Zoek het **installatiepictogram** (⊞) in de adresbalk
    - Klik op **"OneUptime installeren"**
    - Of gebruik het menu: **drie puntjes** → **Meer hulpmiddelen** → **Snelkoppeling maken**
 
 3. **Installatieopties**
+
    - Vink **"Als venster openen"** aan voor een app-achtige ervaring
    - Pas de app-naam aan indien gewenst
    - Klik op **"Installeren"** of **"Maken"**
@@ -61,6 +66,7 @@ Chrome biedt uitstekende PWA-ondersteuning met uitgebreide desktopintegratie.
 Firefox ondersteunt PWA-installatie met basisdesktopintegratie.
 
 1. **OneUptime openen in Firefox**
+
    - Start de Firefox-browser
    - Navigeer naar de OneUptime-URL
    - Voltooi het aanmeldproces
@@ -70,15 +76,17 @@ Firefox ondersteunt PWA-installatie met basisdesktopintegratie.
    - Of klik op **menu** → **Installeren**
    - Klik indien beschikbaar op het equivalent van **"Aan startscherm toevoegen"**
 
-
 ### Opstarticonfiguratie
+
 1. **Automatisch starten**: Configureer OneUptime om te starten met Windows
    - Klik met rechtermuisknop op taakbalk → Taakbeheer → Opstarten
    - Schakel OneUptime in indien gewenst
 2. **Standaardgrootte**: Stel de gewenste venstergrootte en -positie in
 
 ### Meldingsinstellingen
+
 1. **Windows-meldingen**
+
    - Instellingen → Systeem → Meldingen en acties
    - Zoek OneUptime en configureer meldingsvoorkeuren
    - Schakel bannermeldingen in voor incidenten
@@ -93,6 +101,7 @@ Firefox ondersteunt PWA-installatie met basisdesktopintegratie.
 ### Installatieproblemen
 
 **Installatieknop verschijnt niet:**
+
 ```
 Oplossingen:
 1. Zorg dat u Edge of Chrome gebruikt (aanbevolen browsers)
@@ -104,6 +113,7 @@ Oplossingen:
 ```
 
 **Installatie mislukt of crasht:**
+
 ```
 Oplossingen:
 1. Browser uitvoeren als administrator
@@ -115,6 +125,7 @@ Oplossingen:
 ```
 
 **App verschijnt niet in Startmenu:**
+
 ```
 Oplossingen:
 1. Zoek naar "OneUptime" in Windows-zoekfunctie
@@ -127,6 +138,7 @@ Oplossingen:
 ### Meldingsproblemen
 
 **Windows-meldingen werken niet:**
+
 ```
 Oplossingen:
 1. Windows Instellingen → Systeem → Meldingen en acties
@@ -139,12 +151,15 @@ Oplossingen:
 ## Verwijderen
 
 ### Volledig verwijderen
+
 1. **Via Windows Instellingen**
+
    - Instellingen → Apps → Apps en functies
    - Zoek naar "OneUptime"
    - Klik en selecteer "Verwijderen"
 
 2. **Via browser**
+
    - Open Edge/Chrome
    - Ga naar edge://apps/ of chrome://apps/
    - Zoek OneUptime
@@ -155,10 +170,10 @@ Oplossingen:
    - Selecteer "Verwijderen"
    - Bevestig verwijdering
 
-
 ## Updates en onderhoud
 
 ### Automatische updates
+
 - OneUptime PWA wordt automatisch bijgewerkt wanneer online
 - Geen handmatige tussenkomst vereist
 - Updates worden direct toegepast na herstart

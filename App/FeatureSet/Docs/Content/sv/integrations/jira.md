@@ -36,6 +36,7 @@ Nu kan du använda `Basic {{variable.JIRA_AUTH}}` som en auth-header och token v
 1. Öppna **Workflows → Create Workflow**, namnge det `Incidents → Jira` och öppna **Builder**.
 2. Dra en **Incident**-utlösare till arbetsytan och välj händelsen **On Create**. Byt namn till `Incident`.
 3. Dra ett **API**-block och koppla utlösaren till det. Konfigurera:
+
    - **Method**: `POST`
    - **URL**: `https://your-domain.atlassian.net/rest/api/3/issue`
    - **Headers**:
@@ -70,6 +71,7 @@ Nu kan du använda `Basic {{variable.JIRA_AUTH}}` som en auth-header och token v
      ```
 
    Ersätt `OPS` med din projektnyckel och `Bug` med en ärendetyp som finns i det projektet.
+
 4. **Spara.** Lämna arbetsflödet inaktiverat tills du har testat det.
 
 ## Steg 3 — Testa det
@@ -96,8 +98,9 @@ För att lösa OneUptime-incidenten när någon stänger Jira-ärendet, lägg ti
 
 1. Skapa ett andra arbetsflöde som börjar med en **Webhook**-utlösare och kopiera dess URL.
 2. Gå i Jira till **Project settings → Automation → Create rule**:
-   - **Trigger**: *Issue transitioned* till **Done** (eller *Issue resolved*).
-   - **Action**: *Send web request* → method `POST`, URL = din arbetsflödes webhook-URL, body innehåller ärendenyckeln och OneUptime-incidentens id, t.ex.:
+
+   - **Trigger**: _Issue transitioned_ till **Done** (eller _Issue resolved_).
+   - **Action**: _Send web request_ → method `POST`, URL = din arbetsflödes webhook-URL, body innehåller ärendenyckeln och OneUptime-incidentens id, t.ex.:
 
      ```json
      { "issueKey": "{{issue.key}}", "status": "resolved" }
@@ -121,16 +124,20 @@ För att ta reda på exakt vilka fältnamn ett projekt förväntar sig, anropa J
 ## Felsökning
 
 **`401 Unauthorized`.**
+
 - Koda om `email:api_token` och uppdatera `JIRA_AUTH`-variabeln. En avslutande radbrytning är den vanliga boven — använd `printf` (inte `echo`) vid kodning.
 - Bekräfta att kontot som äger API-token kan skapa ärenden i projektet.
 
 **`400 Bad Request` som nämner ett fält.**
+
 - Ärendetypen eller ett obligatoriskt fält är fel. Kontrollera projektets **ärendetypnamn** och om det har obligatoriska anpassade fält. Använd `createmeta` (ovan) för att se vad som är obligatoriskt.
 
 **`404 Not Found`.**
+
 - Dubbelkolla bas-URL:en och att du träffar `/rest/api/3/issue` (Cloud) eller `/rest/api/2/issue` (Server/Data Center).
 
 **Beskrivningen visas som en enda rad / ser konstig ut.**
+
 - v3 kräver Atlassian Document Format som visas ovan. Om du hellre vill skicka vanlig text, använd slutpunkten `/rest/api/2/issue` med `"description": "{{Incident.description}}"` som en vanlig sträng.
 
 ## Läs vidare

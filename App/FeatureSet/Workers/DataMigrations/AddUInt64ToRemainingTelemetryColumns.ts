@@ -14,6 +14,10 @@ export default class AddUInt64ToRemainingTelemetryColumns extends DataMigrationB
     super("AddUInt64ToRemainingTelemetryColumns");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     // [table, column, full type incl. nullability, CODEC clause]
     const alters: Array<[string, string, string, string]> = [

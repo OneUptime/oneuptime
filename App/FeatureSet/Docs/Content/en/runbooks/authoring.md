@@ -6,13 +6,13 @@ Create a runbook under **Runbooks → Create Runbook**, then open it and go to t
 
 Every step has:
 
-| Field | Purpose |
-| --- | --- |
-| **Title** | Short label shown in the checklist UI. Required. |
-| **Description** | Optional context for the responder. Markdown-safe text. |
-| **Continue on failure** | If on, a failing step doesn't stop the run — the next step still executes. |
-| **Require approval** | If on, the runbook pauses after this step and waits for a user to approve before running the next step. |
-| **Type-specific config** | Script, URL, agent, etc. — see below. |
+| Field                    | Purpose                                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------------- |
+| **Title**                | Short label shown in the checklist UI. Required.                                                        |
+| **Description**          | Optional context for the responder. Markdown-safe text.                                                 |
+| **Continue on failure**  | If on, a failing step doesn't stop the run — the next step still executes.                              |
+| **Require approval**     | If on, the runbook pauses after this step and waits for a user to approve before running the next step. |
+| **Type-specific config** | Script, URL, agent, etc. — see below.                                                                   |
 
 Steps run **in order**. Reorder them with the up/down arrows on the Steps editor.
 

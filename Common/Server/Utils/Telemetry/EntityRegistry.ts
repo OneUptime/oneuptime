@@ -271,11 +271,17 @@ export async function reconcileByNaturalKey<
   });
 
   if (existing) {
-    // Throttled bump of lastSeenAt (+ any caller-supplied merge fields).
-    await data.service.updateOneById({
+    /*
+     * Throttled bump of lastSeenAt (+ any caller-supplied merge fields).
+     * Heartbeat write: single-statement UPDATE, no hooks and no `version`
+     * bump (TelemetryEntity/Relationship enable no update workflow/realtime/
+     * audit). buildBump returns only plain values — lastSeenAt plus, at most,
+     * the descriptiveAttributes / labels JSON columns — which the primitive
+     * persists via the driver transformer path. See ServiceService.updateLastSeen.
+     */
+    await data.service.updateColumnsByIdWithoutHooks({
       id: existing.id!,
       data: buildBump(existing),
-      props: { isRoot: true },
     });
     return;
   }
@@ -306,10 +312,9 @@ export async function reconcileByNaturalKey<
       logger.debug(
         `EntityRegistry: create raced for ${data.describe} (concurrent insert); bumping lastSeenAt on the winning row.`,
       );
-      await data.service.updateOneById({
+      await data.service.updateColumnsByIdWithoutHooks({
         id: winner.id!,
         data: buildBump(winner),
-        props: { isRoot: true },
       });
       return;
     }
