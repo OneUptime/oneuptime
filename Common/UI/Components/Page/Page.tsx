@@ -47,7 +47,7 @@ const Page: FunctionComponent<ComponentProps> = (
   return (
     <div
       className={
-        props.className || "max-w-full px-4 sm:px-6 lg:px-8 mt-5 mb-20 h-max"
+        props.className || "mb-auto max-w-full px-4 sm:px-6 lg:px-8 mt-5 h-max"
       }
     >
       {((props.breadcrumbLinks && props.breadcrumbLinks.length > 0) ||
