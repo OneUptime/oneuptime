@@ -809,5 +809,5 @@ export default [
   WidenDockerResourceImageColumns1782800000000,
   AddIoTFleetAndDeviceTables1782900000000,
   AddIoTFleetActivityJoinTables1783000000000,
-  MigrationName1783010000000
+  MigrationName1783010000000,
 ];

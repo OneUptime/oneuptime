@@ -46,8 +46,7 @@ const IoTFleetLabelRulesPage: FunctionComponent<
       createEditModalWidth={ModalWidth.Large}
       cardProps={{
         title: "IoT Fleet Label Rules",
-        description:
-          "Auto-attach labels when matching IoT fleets are created.",
+        description: "Auto-attach labels when matching IoT fleets are created.",
       }}
       helpContent={{
         title: "How IoT Fleet Label Rules Work",

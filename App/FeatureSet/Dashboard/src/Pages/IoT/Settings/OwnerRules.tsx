@@ -54,7 +54,8 @@ const IoTFleetOwnerRulesPage: FunctionComponent<
       }}
       helpContent={{
         title: "How IoT Fleet Owner Rules Work",
-        description: "Match IoT fleets and add owner users/teams automatically.",
+        description:
+          "Match IoT fleets and add owner users/teams automatically.",
         markdown: iotFleetOwnerDocumentation,
       }}
       sortBy="name"

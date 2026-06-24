@@ -610,6 +610,14 @@
               <span class="text-sm font-medium text-gray-900">Docker Swarm</span>
             </a>
 
+            <!-- IoT Devices - Teal -->
+            <a href="/product/iot" class="flex items-center gap-3 rounded-xl p-3 hover:bg-teal-50 ring-1 ring-transparent hover:ring-teal-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-teal-50 ring-1 ring-teal-200">
+                <%- include('./Partials/icons/iot', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">IoT Devices</span>
+            </a>
+
             <!-- Serverless - Fuchsia -->
             <a href="/product/serverless" class="flex items-center gap-3 rounded-xl p-3 hover:bg-fuchsia-50 ring-1 ring-transparent hover:ring-fuchsia-200">
               <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-fuchsia-50 ring-1 ring-fuchsia-200">
@@ -983,6 +991,15 @@
                 <div class="min-w-0 flex-1">
                   <p class="product-card-title truncate text-sm font-medium text-gray-900">Docker Swarm</p>
                   <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Nodes, services, tasks &amp; stacks</p>
+                </div>
+              </a>
+              <a href="/product/iot" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="iot devices fleets sensors gateways battery signal telemetry">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-teal-50 ring-1 ring-teal-200">
+                  <%- include('./Partials/icons/iot', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">IoT Devices</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Fleets, sensors &amp; gateways</p>
                 </div>
               </a>
               <a href="/product/serverless" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="serverless functions cold starts lambda">

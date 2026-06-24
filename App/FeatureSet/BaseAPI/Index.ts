@@ -2275,10 +2275,7 @@ const BaseAPIFeatureSet: FeatureSet = {
       new ProxmoxResourceAPI().getRouter(),
     );
 
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new IoTDeviceAPI().getRouter(),
-    );
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new IoTDeviceAPI().getRouter());
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

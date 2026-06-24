@@ -1312,6 +1312,17 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
+    app.get("/product/iot", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/product/iot",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/iot`, {
+        enableGoogleTagManager: IsBillingEnabled,
+        seo,
+      });
+    });
+
     app.get(
       "/product/services",
       (_req: ExpressRequest, res: ExpressResponse) => {

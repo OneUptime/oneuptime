@@ -678,6 +678,41 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/iot": {
+    title:
+      "IoT Device Monitoring | Fleets, Sensors, Battery & Signal | OneUptime",
+    description:
+      "Monitor your entire IoT fleet from one dashboard: per-device health, battery, signal strength, temperature, and connectivity alerting. Standard OpenTelemetry, no proprietary agent, usage-based pricing. Open source.",
+    canonicalPath: "/product/iot",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "IoT Devices", url: "/product/iot" },
+    ],
+    softwareApplication: {
+      name: "OneUptime IoT Device Monitoring",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitor IoT device fleets over standard OpenTelemetry: per-device health, battery, signal strength, temperature, CPU, and memory, with auto-discovery, per-device drill-down, alert templates, and on-call escalation in a single product.",
+      features: [
+        "Fleet view across every device",
+        "Auto-discovery from first reading",
+        "Per-device battery, signal, temperature, CPU & memory",
+        "Device-offline detection from missed check-ins",
+        "Low-battery and weak-signal alert templates",
+        "High-temperature and high-CPU alerting",
+        "One incident per device.id, auto-resolving",
+        "Gateway-friendly via OpenTelemetry Collector",
+        "Usage-based pricing, not per-device",
+        "OpenTelemetry native",
+        "Open source",
+      ],
+    },
+  },
+
   "/product/services": {
     title: "Service Catalog | Map, Own & Monitor Every Service | OneUptime",
     description:
