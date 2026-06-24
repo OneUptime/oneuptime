@@ -282,13 +282,13 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
     <>
       {renderMetricInfoModal()}
       <div
-        className={`grid grid-cols-1 ${gridCols} gap-4 space-y-4 lg:space-y-0`}
+        className={`grid grid-cols-1 ${gridCols} gap-4 space-y-4 lg:space-y-0 min-h-80`}
       >
         {props.charts.map((chart: Chart, index: number) => {
           return (
             <div
               key={index}
-              className={`p-5 rounded-lg border border-gray-200 bg-white shadow-sm ${props.chartCssClass || ""}`}
+              className={`p-5 rounded-lg border border-gray-200 bg-white shadow-sm flex flex-col ${props.chartCssClass || ""}`}
             >
               <div className="flex items-center">
                 <h2
