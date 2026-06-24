@@ -402,6 +402,7 @@ import { RemoveDeprecatedEnableSubscribersFromStatusPage1782700000000 } from "./
 import { WidenDockerResourceImageColumns1782800000000 } from "./1782800000000-WidenDockerResourceImageColumns";
 import { AddIoTFleetAndDeviceTables1782900000000 } from "./1782900000000-AddIoTFleetAndDeviceTables";
 import { AddIoTFleetActivityJoinTables1783000000000 } from "./1783000000000-AddIoTFleetActivityJoinTables";
+import { MigrationName1783010000000 } from "./1783010000000-MigrationName";
 
 export default [
   InitialMigration,
@@ -808,4 +809,5 @@ export default [
   WidenDockerResourceImageColumns1782800000000,
   AddIoTFleetAndDeviceTables1782900000000,
   AddIoTFleetActivityJoinTables1783000000000,
+  MigrationName1783010000000
 ];
