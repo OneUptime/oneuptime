@@ -276,9 +276,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
 
   // When showing cards, use the grid layout
   const gridCols: string =
-    props.charts.length > 1
-      ? "lg:grid-cols-2 min-h-96"
-      : "lg:grid-cols-1 min-h-80";
+    props.charts.length > 1 ? "lg:grid-cols-2" : "lg:grid-cols-1";
 
   return (
     <>
@@ -290,7 +288,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
           return (
             <div
               key={index}
-              className={`p-5 rounded-lg border border-gray-200 bg-white shadow-sm flex flex-col ${props.chartCssClass || ""}`}
+              className={`p-5 rounded-lg border border-gray-200 bg-white shadow-sm flex flex-col gap-3 ${props.chartCssClass || ""}`}
             >
               <div className="flex items-center">
                 <h2
@@ -310,10 +308,10 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                   {chart.description}
                 </p>
               )}
-              {chart.seriesControls ? (
-                <div className="mt-3">{chart.seriesControls}</div>
-              ) : null}
-              {getChartContent(chart, index)}
+              {chart.seriesControls ? chart.seriesControls : null}
+              <div className="flex-1 flex flex-col min-h-80">
+                {getChartContent(chart, index)}
+              </div>
             </div>
           );
         })}
