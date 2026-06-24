@@ -300,6 +300,14 @@ const OSSFriends: OSSFriend[] = [
     websiteUrl: URL.fromString("https://dify.ai"),
     category: "AI & Machine Learning",
   },
+  {
+    name: "Future AGI",
+    description:
+      "Open-source platform to simulate, evaluate, trace, guard, and auto-improve AI agents.",
+    repositoryUrl: URL.fromString("https://github.com/future-agi/future-agi"),
+    websiteUrl: URL.fromString("https://futureagi.com"),
+    category: "AI & Machine Learning",
+  },
 ];
 
 export default OSSFriends;
