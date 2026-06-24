@@ -25,6 +25,10 @@ export default class AddServiceTypeColumnToTelemetryTables extends DataMigration
     super("AddServiceTypeColumnToTelemetryTables");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     await this.addServiceTypeColumn(new Log(), LogService);
     await this.addServiceTypeColumn(new Span(), SpanService);

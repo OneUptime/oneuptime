@@ -29,6 +29,10 @@ export default class MaterializeEntityKeysIndexOnTelemetryTables extends DataMig
     super("MaterializeEntityKeysIndexOnTelemetryTables");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   private static readonly signalTables: ReadonlyArray<string> = [
     "LogItemV3",
     "MetricItemV3",

@@ -522,8 +522,10 @@
                         "cluster": {
                             "type": "object",
                             "properties": {
+                                "name": { "type": "string" },
                                 "shardsCount": { "type": "integer" },
-                                "replicasCount": { "type": "integer" }
+                                "replicasCount": { "type": "integer" },
+                                "shardingKey": { "type": "string" }
                             },
                             "additionalProperties": false
                         },
@@ -1857,6 +1859,12 @@
             "type": "object",
             "properties": {
                 "host": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "clusterName": {
                     "type": [
                         "string",
                         "null"

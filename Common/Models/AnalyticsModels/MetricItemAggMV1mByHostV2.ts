@@ -171,6 +171,8 @@ GROUP BY projectId, name, hostEntityKey, bucketTime`,
       sortKeys: ["projectId", "name", "hostEntityKey", "bucketTime"],
       primaryKeys: ["projectId", "name", "hostEntityKey", "bucketTime"],
       partitionKey: "toYYYYMM(bucketTime)",
+      // Align with this MV's GROUP BY (projectId, name, hostEntityKey).
+      shardingKey: "cityHash64(projectId, name, hostEntityKey)",
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",

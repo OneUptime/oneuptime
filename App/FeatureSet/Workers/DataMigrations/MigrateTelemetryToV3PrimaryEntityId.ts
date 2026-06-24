@@ -52,6 +52,10 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
     super("MigrateTelemetryToV3PrimaryEntityId");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     /*
      * 1. Drop the stale MV triggers and the pre-V3 target tables. The

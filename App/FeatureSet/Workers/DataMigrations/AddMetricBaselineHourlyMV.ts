@@ -52,6 +52,10 @@ export default class AddMetricBaselineHourlyMV extends DataMigrationBase {
     super("AddMetricBaselineHourlyMV");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     /*
      * MV creation is now owned by the model + analytics schema-sync

@@ -12,6 +12,11 @@ import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
 import Projection from "Common/Types/AnalyticsDatabase/Projection";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
+import {
+  applyClusterToMaterializedViewQuery,
+  getStorageTableName,
+  onClusterClause,
+} from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
 
 /**
  * A column as it physically exists in ClickHouse (read from
@@ -63,7 +68,125 @@ export default class AnalyticsTableManagement {
        */
       await this.reconcileSkipIndexes(service);
       await this.reconcileProjections(service);
+
+      /*
+       * The model's tableName is a Distributed table that wraps the local
+       * `<tableName>Local` table created above. Reconcile it AFTER the local
+       * table's columns / indexes / projections so the Distributed layout
+       * matches.
+       */
+      await this.reconcileDistributedTable(service);
     }
+  }
+
+  /**
+   * Ensure the app-facing `<tableName>` is the `Distributed` wrapper over the
+   * local `<tableName>Local` storage table.
+   *
+   * createTables() runs on every boot BEFORE data migrations. On a
+   * cluster-conversion boot the model's table still exists as the legacy
+   * single-node MergeTree holding real data. We must NOT clobber it — but we
+   * also must switch `<tableName>` to the Distributed table HERE (at schema-sync,
+   * before ingestion ramps) rather than waiting for the late-running converter,
+   * so NEW telemetry lands in the cluster tables from the get-go instead of
+   * piling back into the legacy (and, on a multi-node cluster, re-splitting)
+   * table. So: rename the legacy table aside to `<tableName>_preclustered`, then
+   * create the Distributed wrapper. The ConvertAnalyticsTablesToCluster
+   * migration later backfills the old rows from the backup (best-effort).
+   *
+   * The `_preclustered` suffix MUST match ConvertAnalyticsTablesToCluster's
+   * PRECLUSTER_SUFFIX.
+   */
+  private static async reconcileDistributedTable(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+  ): Promise<void> {
+    const tableName: string = service.model.tableName;
+    const preclustered: string = `${tableName}_preclustered`;
+
+    const existingEngine: string | null = await this.getTableEngine(
+      service,
+      tableName,
+    );
+
+    if (existingEngine && !existingEngine.startsWith("Distributed")) {
+      // Legacy non-Distributed table holding pre-cluster data.
+      const backupEngine: string | null = await this.getTableEngine(
+        service,
+        preclustered,
+      );
+      if (backupEngine !== null) {
+        /*
+         * Inconsistent: the legacy table AND a backup both exist. Don't rename
+         * (would fail) or create the Distributed wrapper (would clobber the
+         * legacy table's live data). Leave it for manual intervention.
+         */
+        logger.error({
+          message: `${tableName} still exists as a non-Distributed (${existingEngine}) table AND ${preclustered} already exists. Not renaming or creating the Distributed wrapper — manual intervention needed.`,
+          table: tableName,
+        });
+        return;
+      }
+
+      try {
+        logger.info({
+          message: `Renaming legacy ${tableName} to ${preclustered} so new telemetry lands in the cluster tables immediately; ConvertAnalyticsTablesToCluster will backfill the old rows.`,
+          table: tableName,
+        });
+        await service.execute(
+          `RENAME TABLE ${tableName} TO ${preclustered}${onClusterClause()}`,
+        );
+      } catch (error) {
+        // Rename failed — do NOT create the Distributed wrapper over the still
+        // present legacy table (that would clobber it). Retry next boot.
+        logger.error({
+          message: `Failed to rename legacy ${tableName} to ${preclustered}; leaving it in place. Distributed wrapper not created this boot.`,
+          table: tableName,
+          error: (error as Error).message,
+        });
+        return;
+      }
+    }
+
+    // <tableName> is now absent (just renamed) or already Distributed — safe to
+    // create / re-sync the Distributed wrapper.
+    await service.execute(
+      service.statementGenerator.toDistributedTableCreateStatement(),
+    );
+  }
+
+  /**
+   * The ClickHouse engine string of a table (e.g. "MergeTree",
+   * "ReplicatedMergeTree", "Distributed"), or null if it does not exist.
+   */
+  public static async getTableEngine(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+    tableName: string,
+  ): Promise<string | null> {
+    const escapedTableName: string = this.escapeForQuery(tableName);
+    let result: Results;
+    try {
+      result = await service.executeQuery(
+        `SELECT engine FROM system.tables WHERE database = currentDatabase() AND name = '${escapedTableName}' LIMIT 1`,
+      );
+    } catch (error) {
+      logger.error({
+        message: `Failed to read engine for ${tableName}`,
+        error: (error as Error).message,
+      });
+      return null;
+    }
+
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    if (!response.data || response.data.length === 0) {
+      return null;
+    }
+
+    const row: JSONObject = response.data[0] as JSONObject;
+    const engine: unknown = row["engine"];
+    return typeof engine === "string" ? engine : null;
   }
 
   /**
@@ -135,7 +258,7 @@ export default class AnalyticsTableManagement {
     service: AnalyticsDatabaseService<AnalyticsBaseModel>,
   ): Promise<Map<string, ExistingColumn>> {
     const escapedTableName: string = this.escapeForQuery(
-      service.model.tableName,
+      getStorageTableName(service.model.tableName),
     );
 
     const result: Results = await service.executeQuery(
@@ -235,7 +358,7 @@ export default class AnalyticsTableManagement {
     service: AnalyticsDatabaseService<AnalyticsBaseModel>,
   ): Promise<Set<string>> {
     const escapedTableName: string = this.escapeForQuery(
-      service.model.tableName,
+      getStorageTableName(service.model.tableName),
     );
 
     const result: Results = await service.executeQuery(
@@ -560,7 +683,7 @@ export default class AnalyticsTableManagement {
             await service.execute(
               `DROP VIEW IF EXISTS ${this.escapeIdentifier(
                 materializedView.name,
-              )} SYNC`,
+              )}${onClusterClause()} SYNC`,
             );
           } else {
             /*
@@ -808,7 +931,13 @@ export default class AnalyticsTableManagement {
     }
 
     const escapedDatabase: string = this.escapeIdentifier(databaseName);
-    const escapedTable: string = this.escapeIdentifier(service.model.tableName);
+    /*
+     * Projections live on the physical (local) storage table — in cluster mode
+     * `<tableName>Local`, otherwise the model's own table.
+     */
+    const escapedTable: string = this.escapeIdentifier(
+      getStorageTableName(service.model.tableName),
+    );
 
     for (const projection of projections) {
       let exists: boolean;
@@ -870,7 +999,7 @@ export default class AnalyticsTableManagement {
 
     const escapedDatabaseName: string = this.escapeForQuery(databaseName);
     const escapedTableName: string = this.escapeForQuery(
-      service.model.tableName,
+      getStorageTableName(service.model.tableName),
     );
     const escapedProjectionName: string = this.escapeForQuery(projectionName);
 
@@ -910,7 +1039,9 @@ export default class AnalyticsTableManagement {
     }
 
     const escapedDatabase: string = this.escapeIdentifier(databaseName);
-    const escapedTable: string = this.escapeIdentifier(service.model.tableName);
+    const escapedTable: string = this.escapeIdentifier(
+      getStorageTableName(service.model.tableName),
+    );
     const escapedProjection: string = this.escapeIdentifier(projectionName);
 
     const statement: string = `ALTER TABLE ${escapedDatabase}.${escapedTable} MATERIALIZE PROJECTION ${escapedProjection}`;
@@ -983,7 +1114,13 @@ export default class AnalyticsTableManagement {
     materializedView: MaterializedView,
   ): Promise<void> {
     try {
-      await service.execute(materializedView.query);
+      /*
+       * Inject ON CLUSTER and retarget the view's TO/FROM at the local
+       * source/target tables before creating it.
+       */
+      await service.execute(
+        applyClusterToMaterializedViewQuery(materializedView.query),
+      );
     } catch (error) {
       const clickhouseError: { code?: string } = error as { code?: string };
 

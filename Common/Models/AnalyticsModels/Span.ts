@@ -996,6 +996,11 @@ export default class Span extends AnalyticsBaseModel {
       sortKeys: ["projectId", "startTime", "primaryEntityId", "traceId"],
       primaryKeys: ["projectId", "startTime", "primaryEntityId", "traceId"],
       partitionKey: "toYYYYMMDD(startTime)",
+      /*
+       * Shard by traceId: high-cardinality so a big project spreads evenly, and
+       * it keeps every span of a trace on one shard for a fast single-trace view.
+       */
+      shardingKey: "cityHash64(traceId)",
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",

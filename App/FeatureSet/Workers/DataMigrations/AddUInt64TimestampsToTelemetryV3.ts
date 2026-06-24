@@ -20,6 +20,10 @@ export default class AddUInt64TimestampsToTelemetryV3 extends DataMigrationBase 
     super("AddUInt64TimestampsToTelemetryV3");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     // [table, column, full type incl. nullability matching the model]
     const alters: Array<[string, string, string]> = [

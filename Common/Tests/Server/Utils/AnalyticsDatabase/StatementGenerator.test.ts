@@ -111,10 +111,11 @@ describe("StatementGenerator", () => {
       expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(2, statement);
 
       /* eslint-disable prettier/prettier */
+      // Cluster mode: mutation targets the local table and dispatches ON CLUSTER.
       expectStatement(
         statement,
         SQL`
-                ALTER TABLE ${"oneuptime"}.${"<table-name>"}
+                ALTER TABLE ${"oneuptime"}.${"<table-name>Local"} ON CLUSTER 'oneuptime'
                 UPDATE <set-statement>
                 WHERE TRUE <where-statement>
             `,
@@ -868,12 +869,13 @@ describe("StatementGenerator", () => {
       expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(2, statement);
 
       /* eslint-disable prettier/prettier */
+      // Cluster mode: the local <table>Local table, Replicated engine, ON CLUSTER.
       const expectedStatement: Statement = SQL`
-            CREATE TABLE IF NOT EXISTS ${"oneuptime"}.${"<table-name>"}
+            CREATE TABLE IF NOT EXISTS ${"oneuptime"}.${"<table-name>Local"} ON CLUSTER 'oneuptime'
     (
         <columns-create-statement>
     )
-    ENGINE = MergeTree
+    ENGINE = ReplicatedMergeTree
 PARTITION BY (column_ObjectID)
 
     PRIMARY KEY (${"column_ObjectID"})

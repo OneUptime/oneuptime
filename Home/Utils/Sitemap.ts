@@ -204,6 +204,11 @@ async function getBlogPostCount(): Promise<number> {
     return blogPostCountCache!.data;
   }
 
+  /*
+   * Use the lightweight list (no git-history contributors). The sitemap only
+   * needs the post count, and resolving contributors runs an expensive `git log`
+   * over the whole blog repo that previously timed the sitemap index out (504).
+   */
   const blogPosts: Array<BlogPostHeader> = await BlogPostUtil.getBlogPostList();
   const count: number = blogPosts.length;
 
@@ -494,6 +499,7 @@ export async function generateBlogSitemapXml(page: number): Promise<string> {
   const baseUrl: URL = await BlogPostUtil.getHomeUrl();
   const baseUrlString: string = baseUrl.toString().replace(/\/$/, "");
 
+  // Lightweight list (no contributors) — the sitemap only needs urls + dates.
   const blogPosts: Array<BlogPostHeader> = await BlogPostUtil.getBlogPostList();
 
   // Calculate slice for this page (1-indexed)

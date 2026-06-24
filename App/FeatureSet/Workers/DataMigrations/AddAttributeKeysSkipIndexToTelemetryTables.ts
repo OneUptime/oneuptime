@@ -40,6 +40,10 @@ export default class AddAttributeKeysSkipIndexToTelemetryTables extends DataMigr
     super("AddAttributeKeysSkipIndexToTelemetryTables");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     await this.addAttributeKeysIndex(LogService, "LogItemV2");
     await this.addAttributeKeysIndex(SpanService, "SpanItemV2");

@@ -6,6 +6,10 @@ export default class DropDescriptionAndUnitColumnFromMetrics extends DataMigrati
     super("DropDescriptionAndUnitColumnFromMetrics");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     await MetricService.dropColumnInDatabase("unit");
     await MetricService.dropColumnInDatabase("description");

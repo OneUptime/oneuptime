@@ -143,7 +143,9 @@ app.get(
       }
 
       const allPosts: Array<BlogPostHeader> =
-        await BlogPostUtil.getBlogPostList(tagName);
+        await BlogPostUtil.getBlogPostList(tagName, {
+          includeContributors: true,
+        });
       const totalPosts: number = allPosts.length;
       const totalPages: number = Math.ceil(totalPosts / pageSize) || 1;
       if (page > totalPages) {
@@ -205,7 +207,9 @@ app.get(
       }
 
       const allPosts: Array<BlogPostHeader> =
-        await BlogPostUtil.getBlogPostList();
+        await BlogPostUtil.getBlogPostList(undefined, {
+          includeContributors: true,
+        });
       const totalPosts: number = allPosts.length;
       const totalPages: number = Math.ceil(totalPosts / pageSize) || 1;
       if (page > totalPages) {

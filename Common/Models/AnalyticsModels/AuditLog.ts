@@ -289,6 +289,8 @@ export default class AuditLog extends AnalyticsBaseModel {
       sortKeys: ["projectId", "createdAt", "resourceType", "resourceId"],
       primaryKeys: ["projectId", "createdAt"],
       partitionKey: "toYYYYMM(createdAt)",
+      // Shard by the audited resource so its history co-locates; spreads across shards.
+      shardingKey: "cityHash64(projectId, resourceId)",
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",
