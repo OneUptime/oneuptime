@@ -1,11 +1,13 @@
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
+import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import CephClusterService from "../../Services/CephClusterService";
 import DockerSwarmClusterService from "../../Services/DockerSwarmClusterService";
+import IoTFleetService from "../../Services/IoTFleetService";
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
@@ -26,6 +28,7 @@ export interface MonitorClusterContext {
   proxmoxClusterIds: Array<string>;
   cephClusterIds: Array<string>;
   dockerSwarmClusterIds: Array<string>;
+  iotFleetIds: Array<string>;
 }
 
 export default class MonitorClusterContextUtil {
@@ -46,6 +49,7 @@ export default class MonitorClusterContextUtil {
       proxmoxClusterIds: [],
       cephClusterIds: [],
       dockerSwarmClusterIds: [],
+      iotFleetIds: [],
     };
 
     const monitorType: MonitorType | undefined = input.monitor.monitorType;
@@ -53,7 +57,8 @@ export default class MonitorClusterContextUtil {
     if (
       monitorType !== MonitorType.Proxmox &&
       monitorType !== MonitorType.Ceph &&
-      monitorType !== MonitorType.DockerSwarm
+      monitorType !== MonitorType.DockerSwarm &&
+      monitorType !== MonitorType.IoTDevice
     ) {
       return context;
     }
@@ -77,6 +82,8 @@ export default class MonitorClusterContextUtil {
       } else if (monitorType === MonitorType.DockerSwarm) {
         clusterIdentifier =
           monitorStep.data?.dockerSwarmMonitor?.clusterIdentifier;
+      } else if (monitorType === MonitorType.IoTDevice) {
+        clusterIdentifier = monitorStep.data?.iotMonitor?.fleetIdentifier;
       }
 
       if (clusterIdentifier && clusterIdentifier.trim().length > 0) {
@@ -127,7 +134,7 @@ export default class MonitorClusterContextUtil {
           if (cephCluster?._id) {
             context.cephClusterIds.push(String(cephCluster._id));
           }
-        } else {
+        } else if (monitorType === MonitorType.DockerSwarm) {
           const dockerSwarmCluster: DockerSwarmCluster | null =
             await DockerSwarmClusterService.findOneBy({
               query: {
@@ -144,6 +151,23 @@ export default class MonitorClusterContextUtil {
 
           if (dockerSwarmCluster?._id) {
             context.dockerSwarmClusterIds.push(String(dockerSwarmCluster._id));
+          }
+        } else {
+          const iotFleet: IoTFleet | null = await IoTFleetService.findOneBy({
+            query: {
+              projectId: input.monitor.projectId,
+              name: QueryHelper.findWithSameText(clusterIdentifier),
+            },
+            select: {
+              _id: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (iotFleet?._id) {
+            context.iotFleetIds.push(String(iotFleet._id));
           }
         }
       } catch (err) {

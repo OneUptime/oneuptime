@@ -147,7 +147,6 @@ const IoTFleetOverview: FunctionComponent<
   const loadInventory: PromiseVoidFunction = async (): Promise<void> => {
     try {
       const rows: Array<IoTDeviceModel> = await fetchIoTInventoryRows({
-        projectId: ProjectUtil.getCurrentProjectId()!,
         iotFleetId: modelId,
       });
 
