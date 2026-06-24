@@ -108,19 +108,22 @@ interface IncidentIoSummaryComponent {
   name?: string;
 }
 
+interface IncidentIoStructure {
+  items?: Array<IncidentIoStructureItem>;
+}
+
 interface IncidentIoSummary {
   components?: Array<IncidentIoSummaryComponent>;
   affected_components?: Array<IncidentIoAffectedComponent>;
   ongoing_incidents?: Array<IncidentIoIncident>;
+  structure?: IncidentIoStructure;
 }
 
 interface IncidentIoResponse {
   summary?: IncidentIoSummary;
   affected_components?: Array<IncidentIoAffectedComponent>;
   ongoing_incidents?: Array<IncidentIoIncident>;
-  structure?: {
-    items?: Array<IncidentIoStructureItem>;
-  };
+  structure?: IncidentIoStructure;
 }
 
 export default class ExternalStatusPageMonitorUtil {
@@ -654,12 +657,16 @@ export default class ExternalStatusPageMonitorUtil {
       }
 
       const summary: IncidentIoSummary = data.summary || {};
+      /*
+       * The proxy endpoint nests everything under `summary`, but be tolerant of a
+       * flattened (top-level) shape too.
+       */
       const structureItems: Array<IncidentIoStructureItem> =
-        data.structure?.items || [];
+        (data.structure || summary.structure)?.items || [];
 
       // Verify this actually looks like an incident.io status page.
       const looksLikeIncidentIo: boolean =
-        Array.isArray(structureItems) ||
+        structureItems.length > 0 ||
         Array.isArray(summary.components) ||
         Array.isArray(data.ongoing_incidents) ||
         Array.isArray(summary.ongoing_incidents);
