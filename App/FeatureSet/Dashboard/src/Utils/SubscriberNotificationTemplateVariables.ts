@@ -125,6 +125,52 @@ ${commonVariablesRows}`;
 | \`{{detailsUrl}}\` | URL to view incident details |`;
       break;
 
+    case StatusPageSubscriberNotificationEventType.SubscriberReport:
+      /*
+       * The report email is rendered through the full Handlebars engine, so it
+       * exposes a structured `report` object (not flat scalars) and supports
+       * loops, conditionals and partials. Return a dedicated doc rather than the
+       * common flat-variable table.
+       */
+      return `**Available Template Variables** - The report template is rendered with Handlebars, so you can use loops and conditionals in addition to \`{{variableName}}\` substitution.
+
+| Variable | Description |
+|----------|-------------|
+| \`{{statusPageName}}\` | Name of the status page |
+| \`{{statusPageUrl}}\` | URL of the status page |
+| \`{{detailsUrl}}\` | URL to view the full status page |
+| \`{{unsubscribeUrl}}\` | URL for subscribers to unsubscribe from notifications |
+| \`{{subscriberEmailNotificationFooterText}}\` | Custom footer text configured for the status page |
+| \`{{report.reportDates}}\` | The reporting period (e.g. "14 days (01 Jul - 14 Jul)") |
+| \`{{report.averageUptimePercent}}\` | Average uptime across all resources (e.g. "99.95%") |
+| \`{{report.totalDowntimeInHoursAndMinutes}}\` | Total downtime in the period |
+| \`{{report.totalIncidents}}\` | Total number of incidents in the period |
+| \`{{report.totalResources}}\` | Number of resources on the status page |
+| \`{{report.resources}}\` | Array of per-resource breakdown rows (loop over this) |
+
+**Per-resource fields** (available inside \`{{#each report.resources}}\`):
+
+| Variable | Description |
+|----------|-------------|
+| \`{{this.resourceName}}\` | Name of the resource/monitor |
+| \`{{this.uptimePercentAsString}}\` | Uptime for the resource (e.g. "99.9%") |
+| \`{{this.downtimeInHoursAndMinutes}}\` | Downtime for the resource |
+| \`{{this.totalIncidentCount}}\` | Number of incidents for the resource |
+
+**Example — loop and conditional:**
+
+\`\`\`handlebars
+{{#if report.totalResources}}
+  {{#each report.resources}}
+    {{this.resourceName}}: {{this.uptimePercentAsString}} uptime
+  {{/each}}
+{{else}}
+  No resources to report this period.
+{{/if}}
+\`\`\`
+
+You may also use OneUptime's email partials (e.g. \`{{> Start this}}\`, \`{{> Footer this}}\`, \`{{> End this}}\`) if you want the standard chrome.`;
+
     default:
       return `**Available Template Variables**
 

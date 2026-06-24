@@ -710,13 +710,21 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
      * routing, keeping the histogram consistent with the list.
      */
     const TEXT_CHIP_FIELDS: Set<string> = new Set(["name", "statusMessage"]);
-    for (const textKey of TEXT_CHIP_FIELDS) {
-      const tokenValues: Array<string> | undefined = fieldFilters[textKey];
+    /*
+     * Merge typed search tokens for these fields into the chip groups so a
+     * clicked facet value and a typed token for the same field resolve through
+     * one path. Deduped so a chip plus an identical token stays single-valued
+     * (preserving substring / boolean semantics) instead of flipping to a
+     * multi-value exact match. hasException is included so its chip and any
+     * `hasException:` token resolve together (both buckets → no filter),
+     * matching the aggregation side below.
+     */
+    for (const mergeKey of [...TEXT_CHIP_FIELDS, "hasException"]) {
+      const tokenValues: Array<string> | undefined = fieldFilters[mergeKey];
       if (tokenValues && tokenValues.length > 0) {
-        facetGroups[textKey] = [
-          ...(facetGroups[textKey] || []),
-          ...tokenValues,
-        ];
+        facetGroups[mergeKey] = Array.from(
+          new Set([...(facetGroups[mergeKey] || []), ...tokenValues]),
+        );
       }
     }
     for (const key of Object.keys(facetGroups)) {
@@ -724,6 +732,24 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         continue;
       }
       const values: Array<string> = facetGroups[key]!;
+      if (key === "hasException") {
+        /*
+         * Boolean column — a chip value "true"/"false" must compile to a
+         * boolean, not a string, or ClickHouse can't compare it. Selecting
+         * both buckets is equivalent to no filter.
+         */
+        const bools: Array<boolean> = Array.from(
+          new Set(
+            values.map((v: string): boolean => {
+              return v.toLowerCase() === "true";
+            }),
+          ),
+        );
+        if (bools.length === 1) {
+          (query as Record<string, unknown>)[key] = bools[0]!;
+        }
+        continue;
+      }
       if (TEXT_CHIP_FIELDS.has(key) && values.length === 1) {
         (query as Record<string, unknown>)[key] = new Search(values[0]!);
         continue;
@@ -763,9 +789,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         (query as Record<string, unknown>)[key] =
           mapped.length === 1 ? mapped[0] : new Includes(mapped);
       } else if (key === "hasException") {
-        // Boolean field
-        const boolVal: boolean = values[0]!.toLowerCase() === "true";
-        (query as Record<string, unknown>)[key] = boolVal;
+        // Already merged into the chip groups above (boolean, both → no filter).
+        continue;
       } else if (key === "durationUnixNano") {
         // Duration filter: duration:>500 or duration:<200 (in milliseconds)
         const raw: string = values[0]!;
@@ -1276,10 +1301,15 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
      * spanNames preserves.
      */
     if (groups["name"] && groups["name"].length > 0) {
-      if (groups["name"].length === 1) {
-        payload["spanNameSearches"] = groups["name"];
+      /*
+       * Dedupe so a chip plus an identical token stays a single substring
+       * match (mirrors baseQuery) instead of flipping to a multi-value exact.
+       */
+      const names: Array<string> = Array.from(new Set(groups["name"]));
+      if (names.length === 1) {
+        payload["spanNameSearches"] = names;
       } else {
-        payload["spanNames"] = groups["name"];
+        payload["spanNames"] = names;
       }
     }
 
@@ -1292,8 +1322,20 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     if (groups["hasException"] && groups["hasException"].length > 0) {
-      payload["hasException"] =
-        groups["hasException"][0]!.toLowerCase() === "true";
+      /*
+       * Mirror baseQuery: a single distinct boolean filters; both buckets
+       * selected means no filter, so the chart never disagrees with the list.
+       */
+      const bools: Array<boolean> = Array.from(
+        new Set(
+          groups["hasException"].map((v: string): boolean => {
+            return v.toLowerCase() === "true";
+          }),
+        ),
+      );
+      if (bools.length === 1) {
+        payload["hasException"] = bools[0];
+      }
     }
 
     /*
@@ -1301,10 +1343,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
      * (mirrors the list's Search), several match exactly (mirrors Includes).
      */
     if (groups["statusMessage"] && groups["statusMessage"].length > 0) {
-      if (groups["statusMessage"].length === 1) {
-        payload["statusMessageSearchText"] = groups["statusMessage"][0];
+      const statusMessages: Array<string> = Array.from(
+        new Set(groups["statusMessage"]),
+      );
+      if (statusMessages.length === 1) {
+        payload["statusMessageSearchText"] = statusMessages[0];
       } else {
-        payload["statusMessages"] = groups["statusMessage"];
+        payload["statusMessages"] = statusMessages;
       }
     }
 
@@ -1412,6 +1457,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         "kind",
         // Backs the "Span Type" facet (root vs non-root counts).
         "isRootSpan",
+        // Backs the "Has Exception" facet (exact exception-span counts).
+        "hasException",
+        // Backs the "Span Name" facet (top operation names, sampled).
+        "name",
         ...Array.from(ATTRIBUTE_FACET_KEYS),
       ],
     };
@@ -1487,6 +1536,20 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         { value: SPAN_TYPE_ROOT_VALUE, count: rootSpanBucket?.count ?? 0 },
       ];
       delete mappedFacets["isRootSpan"];
+
+      /*
+       * Has Exception facet: keep just the "with exceptions" bucket as a single
+       * "Has exception" choice. It is a normal filter chip (value "true"),
+       * which baseQuery/aggregationRequest already compile to hasException.
+       */
+      const hasExceptionBucket: FacetValue | undefined = facetsRaw[
+        "hasException"
+      ]?.find((f: FacetValue): boolean => {
+        return f.value === "true" || f.value === "1";
+      });
+      mappedFacets["hasException"] = [
+        { value: "true", count: hasExceptionBucket?.count ?? 0 },
+      ];
       setFacetData(mappedFacets);
     } else {
       setFacetData({});
@@ -1647,11 +1710,33 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         valueDisplayMap: { [SPAN_TYPE_ROOT_VALUE]: "Root spans" },
         priority: 6.5,
       },
+      /*
+       * Has Exception: a single "Has exception" choice. Count is the exact
+       * number of spans that recorded an exception (computed server-side, not
+       * sampled, so rare exceptions are never under-reported).
+       */
+      {
+        key: "hasException",
+        title: "Has Exception",
+        valueDisplayMap: { true: "Has exception" },
+        valueColorMap: { true: SPAN_STATUS_COLOR[SpanStatus.Error]! },
+        priority: 6.7,
+      },
       {
         key: "kind",
         title: "Span Kind",
         valueDisplayMap: SPAN_KIND_LABEL,
         priority: 7,
+      },
+      /*
+       * Span Name: top operation names in the window (sampled, like other
+       * non-projection facets). Selecting one filters the list to a substring
+       * match on the span name, mirroring a typed `name:` search.
+       */
+      {
+        key: "name",
+        title: "Span Name",
+        priority: 7.5,
       },
       /*
        * Attribute-backed instance facets (see ATTRIBUTE_FACET_KEYS) — a
@@ -1782,6 +1867,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
   const handleClearAllFilters: () => void = useCallback(() => {
     setActiveFilters([]);
+    /*
+     * Span Type lives in rootOnly, not activeFilters — clear it too so "Clear
+     * all" truly resets every chip (incl. the synthetic "Root spans" one).
+     */
+    setRootOnly(false);
     setPage(1);
   }, []);
 
