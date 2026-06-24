@@ -325,8 +325,12 @@ function readInitialUrlState(): InitialUrlState {
   const viewMode: "spans" | "analytics" =
     params.get("view") === "analytics" ? "analytics" : "spans";
 
-  // Root-spans-only is the default; only `rootOnly=false` switches it off.
-  const rootOnly: boolean = params.get("rootOnly") !== "false";
+  /*
+   * Show all spans by default; only `rootOnly=true` restricts to root spans.
+   * Downstream services (e.g. a callee behind a gateway/queue) never own the
+   * trace root, so a root-only default would hide all their spans.
+   */
+  const rootOnly: boolean = params.get("rootOnly") === "true";
 
   return { search, filters, timeRange, page, pageSize, viewMode, rootOnly };
 }
@@ -900,8 +904,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     if (viewMode === "analytics") {
       params.set("view", "analytics");
     }
-    if (!rootOnly) {
-      params.set("rootOnly", "false");
+    if (rootOnly) {
+      params.set("rootOnly", "true");
     }
 
     const query: string = params.toString();
@@ -1984,8 +1988,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       if (state.pageSize) {
         setPageSize(state.pageSize);
       }
-      // Views saved before the toggle existed default to root-spans-only.
-      setRootOnly(state.rootOnly ?? true);
+      // Views saved before the toggle existed default to showing all spans.
+      setRootOnly(state.rootOnly ?? false);
       setPage(1);
     }, []);
 
