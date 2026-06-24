@@ -276,13 +276,15 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
 
   // When showing cards, use the grid layout
   const gridCols: string =
-    props.charts.length > 1 ? "lg:grid-cols-2" : "lg:grid-cols-1";
+    props.charts.length > 1
+      ? "lg:grid-cols-2 min-h-96"
+      : "lg:grid-cols-1 min-h-80";
 
   return (
     <>
       {renderMetricInfoModal()}
       <div
-        className={`grid grid-cols-1 ${gridCols} gap-4 space-y-4 lg:space-y-0 min-h-80`}
+        className={`grid grid-cols-1 ${gridCols} gap-4 space-y-4 lg:space-y-0`}
       >
         {props.charts.map((chart: Chart, index: number) => {
           return (
