@@ -2,10 +2,6 @@ import AlertStateUtil from "../../Utils/AlertState";
 import IncidentStateUtil from "../../Utils/IncidentState";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-/*
- * import SearchBox from './SearchBox';
- * import Notifications from './Notifications';
- */
 import Help from "./Help";
 import Logo from "./Logo";
 import ProjectPicker from "./ProjectPicker";
@@ -862,15 +858,6 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
               onProjectSelected={props.onProjectSelected}
               selectedProject={props.selectedProject}
             />
-          </>
-        }
-        centerComponents={
-          <>
-            {/* <SearchBox
-                            key={2}
-                            selectedProject={props.selectedProject}
-                            onChange={(_value: string) => { }}
-                        />{' '} */}
           </>
         }
         rightComponents={

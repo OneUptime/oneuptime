@@ -100,31 +100,44 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                   ? "none"
                   : undefined;
 
+            const toggleSort = (): void => {
+              if (!column.key) {
+                return;
+              }
+
+              if (!canSort) {
+                return;
+              }
+
+              const sortOrder: SortOrder =
+                props.sortOrder === SortOrder.Ascending
+                  ? SortOrder.Descending
+                  : SortOrder.Ascending;
+
+              const currentSortColumn: keyof T = column.key;
+
+              props.onSortChanged(currentSortColumn, sortOrder);
+            };
+
             return (
               <th
                 key={i}
                 scope="col"
                 aria-sort={ariaSort}
+                tabIndex={canSort ? 0 : undefined}
                 className={`px-6 py-3 text-left text-sm font-semibold text-gray-900 ${
-                  canSort ? "cursor-pointer" : ""
+                  canSort
+                    ? "cursor-pointer hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
+                    : ""
                 }`}
                 onClick={() => {
-                  if (!column.key) {
-                    return;
+                  toggleSort();
+                }}
+                onKeyDown={(e) => {
+                  if (canSort && (e.key === "Enter" || e.key === " ")) {
+                    e.preventDefault();
+                    toggleSort();
                   }
-
-                  if (!canSort) {
-                    return;
-                  }
-
-                  const sortOrder: SortOrder =
-                    props.sortOrder === SortOrder.Ascending
-                      ? SortOrder.Descending
-                      : SortOrder.Ascending;
-
-                  const currentSortColumn: keyof T = column.key;
-
-                  props.onSortChanged(currentSortColumn, sortOrder);
                 }}
               >
                 <div

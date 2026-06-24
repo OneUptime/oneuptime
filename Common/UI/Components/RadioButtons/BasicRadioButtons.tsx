@@ -52,20 +52,25 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
           {props.options.map(
             (radioButton: BasicRadioButtonOption, i: number) => {
               const checked: boolean = value === radioButton.value;
+              const optionId: string = `${id}-option-${i}`;
 
               return (
                 <div key={i}>
                   <div className="flex items-center">
                     <input
+                      id={optionId}
                       type="radio"
                       name={id}
                       checked={checked}
-                      onClick={() => {
+                      onChange={() => {
                         handleChange(radioButton.value);
                       }}
-                      className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                      className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600"
                     />
-                    <label className="ml-3 block text-sm font-medium leading-6 text-gray-900">
+                    <label
+                      htmlFor={optionId}
+                      className="ml-3 block text-sm font-medium leading-6 text-gray-900"
+                    >
                       <span className="font-medium text-gray-900">
                         {radioButton.title}
                       </span>
@@ -82,7 +87,10 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
         </div>
       </fieldset>
       {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
+        <p
+          data-testid="error-message"
+          className="mt-1 text-sm font-medium text-red-600"
+        >
           {props.error}
         </p>
       )}

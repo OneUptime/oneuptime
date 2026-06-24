@@ -89,7 +89,7 @@ const Alert: FunctionComponent<ComponentProps> = (
   return (
     <div
       id={props.id}
-      className={`alert rounded-md ${bgClassName} p-4 ${props.className}`}
+      className={`alert rounded-lg ${bgClassName} p-4 ${props.className}`}
       data-testid={props.dataTestId}
       onClick={props.onClick}
       role="alert"

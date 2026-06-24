@@ -79,7 +79,7 @@ const Accordion: FunctionComponent<ComponentProps> = (
         <div
           className={`flex justify-between ${
             props.description ? "items-start" : "items-center"
-          } gap-3 cursor-pointer group/accordion-header rounded-lg -mx-2 px-2 py-2 transition-colors ${
+          } gap-3 cursor-pointer group/accordion-header rounded-lg -mx-2 px-2 py-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
             isOpen ? "" : "hover:bg-gray-50/80"
           }`}
           role="button"

@@ -4,7 +4,6 @@ import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import BulkUpdateForm, {
   BulkActionButtonSchema,
 } from "../BulkUpdate/BulkUpdateForm";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import FilterViewer from "../Filters/FilterViewer";
 import Filter from "../Filters/Types/Filter";
@@ -130,13 +129,41 @@ const Table: TableFunction = <T extends GenericObject>(
 
   const getTablebody: GetReactElementFunction = (): ReactElement => {
     if (props.isLoading) {
+      if (isMobile) {
+        return (
+          <div role="status" aria-label="Loading" aria-live="polite">
+            <span className="sr-only">Loading...</span>
+            {[0, 1, 2, 3, 4].map((index: number) => {
+              return (
+                <div
+                  key={index}
+                  className="h-4 my-3 mx-3 rounded bg-gray-100 animate-pulse"
+                />
+              );
+            })}
+          </div>
+        );
+      }
+
       return (
-        <tbody>
+        <tbody
+          className="divide-y divide-gray-200 bg-white"
+          role="status"
+          aria-label="Loading"
+          aria-live="polite"
+        >
+          {[0, 1, 2, 3, 4].map((index: number) => {
+            return (
+              <tr key={index}>
+                <td colSpan={colspan}>
+                  <div className="h-4 my-3 rounded bg-gray-100 animate-pulse" />
+                </td>
+              </tr>
+            );
+          })}
           <tr>
             <td colSpan={colspan}>
-              <div className="flex justify-center w-full">
-                <ComponentLoader />
-              </div>
+              <span className="sr-only">Loading...</span>
             </td>
           </tr>
         </tbody>

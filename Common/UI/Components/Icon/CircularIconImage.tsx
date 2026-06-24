@@ -14,10 +14,8 @@ const CircularIconImage: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <div
-      className="me-3 rounded-circle avatar-sm shadow-md"
+      className="mr-3 flex h-10 w-10 items-center justify-center rounded-full shadow-md"
       style={{
-        textAlign: "center",
-        paddingTop: "3px",
         backgroundColor: props.backgroundColor
           ? props.backgroundColor.toString()
           : "black",

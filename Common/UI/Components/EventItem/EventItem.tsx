@@ -65,7 +65,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { t } = useTranslation();
   return (
-    <div className="mt-5 mb-5 bg-white shadow rounded-xl border-gray-100 p-5">
+    <div className="mt-5 mb-5 bg-white border border-gray-200 shadow-sm rounded-xl p-5">
       <div>
         <div className="flex space-x-1">
           <div>

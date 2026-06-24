@@ -34,7 +34,7 @@ const DropdownButton: React.FC<DropdownButtonProps> = ({
     <div className="inline-flex rounded-md shadow-sm">
       <button
         type="button"
-        className="relative inline-flex items-center rounded-l-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10"
+        className="relative inline-flex items-center rounded-l-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 transition-colors duration-150"
         onClick={onButtonClick}
       >
         {translateString(title) ?? title}
@@ -42,7 +42,7 @@ const DropdownButton: React.FC<DropdownButtonProps> = ({
       <div className="relative -ml-px block">
         <button
           type="button"
-          className="relative inline-flex items-center rounded-r-md bg-white px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10"
+          className="relative inline-flex items-center rounded-r-md bg-white px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 transition-colors duration-150"
           id="option-menu-button"
           aria-expanded={isOpen}
           aria-haspopup="true"
@@ -50,7 +50,7 @@ const DropdownButton: React.FC<DropdownButtonProps> = ({
         >
           <span className="sr-only">Open options</span>
           <svg
-            className="size-5"
+            className={`size-5 transition-transform${isOpen ? " rotate-180" : ""}`}
             viewBox="0 0 20 20"
             fill="currentColor"
             aria-hidden="true"
@@ -76,7 +76,7 @@ const DropdownButton: React.FC<DropdownButtonProps> = ({
                   <a
                     key={index}
                     href="#"
-                    className="block px-4 py-2 text-sm text-gray-700"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-150"
                     role="menuitem"
                     onClick={option.onClick}
                   >

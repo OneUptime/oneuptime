@@ -32,20 +32,7 @@ const EnterpriseFeatureUpgrade: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <Card
-      title={props.title}
-      description={props.description}
-      rightElement={
-        <Button
-          title="Learn about Enterprise Edition"
-          buttonStyle={ButtonStyleType.PRIMARY}
-          icon={IconProp.Info}
-          onClick={() => {
-            window.open(ENTERPRISE_OVERVIEW_URL, "_blank");
-          }}
-        />
-      }
-    >
+    <Card title={props.title} description={props.description}>
       <div className="px-4 pb-6 pt-2">
         <div className="flex flex-col items-start gap-4 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-white p-5">
           <div className="flex items-center gap-3">

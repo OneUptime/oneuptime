@@ -4,6 +4,7 @@ export interface ExternalStatusPageComponentStatus {
   name: string;
   status: string;
   description?: string | undefined;
+  groupName?: string | undefined; // the component group this component belongs to (e.g. "APIs"), when the provider exposes groups
 }
 
 export default interface ExternalStatusPageMonitorResponse {

@@ -32,14 +32,14 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
         htmlFor={props.htmlFor}
         className={
           props.className ||
-          `block ${
+          `${
             props.isHeading ? "text-lg" : "text-sm"
-          }  font-medium text-gray-700 flex justify-between`
+          }  font-medium text-gray-900 flex items-center justify-between`
         }
       >
         <span>
           {translatedTitle}{" "}
-          <span className="text-gray-400 text-xs">
+          <span className="text-gray-500 text-xs">
             {props.required || props.hideOptionalLabel
               ? ""
               : translateString("(Optional)") ?? "(Optional)"}

@@ -562,7 +562,10 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         </div>
       )}
       {props.error && (
-        <p data-testid="error-message" className="text-sm text-red-400">
+        <p
+          data-testid="error-message"
+          className="text-sm font-medium text-red-600"
+        >
           {props.error}
         </p>
       )}

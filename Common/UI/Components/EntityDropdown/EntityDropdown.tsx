@@ -1792,7 +1792,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       )}
 
       {props.error && (
-        <p className="mt-1 text-sm text-red-400" role="alert">
+        <p className="mt-1 text-sm font-medium text-red-600" role="alert">
           {props.error}
         </p>
       )}

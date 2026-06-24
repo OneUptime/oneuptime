@@ -22,6 +22,8 @@ export interface ComponentProps {
   autoFocus?: boolean | undefined;
   dataTestId?: string | undefined;
   disableSpellCheck?: boolean | undefined;
+  disabled?: boolean | undefined;
+  readOnly?: boolean | undefined;
 }
 
 const TextArea: FunctionComponent<ComponentProps> = (
@@ -34,14 +36,18 @@ const TextArea: FunctionComponent<ComponentProps> = (
 
   if (!props.className) {
     className =
-      "block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm resize-y min-h-32";
+      "block w-full rounded-lg border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 transition-colors duration-150 hover:border-gray-400 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm resize-y min-h-32";
   } else {
-    className = props.className;
+    className = `${props.className} w-full rounded-lg`;
   }
 
   if (props.error) {
     className +=
       " border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500";
+  }
+
+  if (props.disabled) {
+    className += " bg-gray-100 text-gray-500 cursor-not-allowed";
   }
 
   useEffect(() => {
@@ -69,6 +75,8 @@ const TextArea: FunctionComponent<ComponentProps> = (
           data-testid={props.dataTestId}
           className={`${className || ""}`}
           value={text}
+          readOnly={props.readOnly || props.disabled || false}
+          disabled={props.disabled || false}
           rows={6}
           spellCheck={!props.disableSpellCheck}
           aria-invalid={props.error ? "true" : undefined}
@@ -107,7 +115,7 @@ const TextArea: FunctionComponent<ComponentProps> = (
         <p
           id="textarea-error-message"
           data-testid="error-message"
-          className="mt-1 text-sm text-red-400"
+          className="mt-1 text-sm font-medium text-red-600"
           role="alert"
         >
           {props.error}

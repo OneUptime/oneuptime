@@ -91,52 +91,72 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
 
       {/* Component Statuses Section */}
       {externalStatusPageResponse?.componentStatuses &&
-        externalStatusPageResponse.componentStatuses.length > 0 && (
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium text-gray-700">
-              Component Statuses
-            </h3>
-            <div className="border rounded-md overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Component
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Description
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {externalStatusPageResponse.componentStatuses.map(
-                    (
-                      component: ExternalStatusPageComponentStatus,
-                      index: number,
-                    ) => {
-                      return (
-                        <tr key={index}>
-                          <td className="px-4 py-2 text-sm text-gray-900">
-                            {component.name}
-                          </td>
-                          <td className="px-4 py-2 text-sm text-gray-500 font-mono">
-                            {component.status}
-                          </td>
-                          <td className="px-4 py-2 text-sm text-gray-500">
-                            {component.description || "-"}
-                          </td>
-                        </tr>
-                      );
-                    },
-                  )}
-                </tbody>
-              </table>
+        externalStatusPageResponse.componentStatuses.length > 0 &&
+        (() => {
+          const showGroupColumn: boolean =
+            externalStatusPageResponse.componentStatuses.some(
+              (component: ExternalStatusPageComponentStatus) => {
+                return Boolean(component.groupName);
+              },
+            );
+
+          return (
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-gray-700">
+                Component Statuses
+              </h3>
+              <div className="border rounded-md overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {showGroupColumn && (
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Group
+                        </th>
+                      )}
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Component
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Description
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {externalStatusPageResponse.componentStatuses.map(
+                      (
+                        component: ExternalStatusPageComponentStatus,
+                        index: number,
+                      ) => {
+                        return (
+                          <tr key={index}>
+                            {showGroupColumn && (
+                              <td className="px-4 py-2 text-sm text-gray-500">
+                                {component.groupName || "-"}
+                              </td>
+                            )}
+                            <td className="px-4 py-2 text-sm text-gray-900">
+                              {component.name}
+                            </td>
+                            <td className="px-4 py-2 text-sm text-gray-500 font-mono">
+                              {component.status}
+                            </td>
+                            <td className="px-4 py-2 text-sm text-gray-500">
+                              {component.description || "-"}
+                            </td>
+                          </tr>
+                        );
+                      },
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
       {hadRetries && (
         <ProbeAttemptsView

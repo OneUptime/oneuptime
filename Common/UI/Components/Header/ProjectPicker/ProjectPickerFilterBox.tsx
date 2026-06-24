@@ -10,9 +10,12 @@ const ProjectPickerFilterBox: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <div className="px-2 pb-2 mb-1 border-b border-gray-100">
-      <label className="sr-only">Search Projects</label>
+      <label htmlFor="project-picker-search" className="sr-only">
+        Search Projects
+      </label>
       <div className="relative">
         <Input
+          id="project-picker-search"
           onChange={(value: string) => {
             props.onChange(value);
           }}

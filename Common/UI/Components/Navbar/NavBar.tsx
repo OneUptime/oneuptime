@@ -295,7 +295,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
               <span className="text-gray-400 mx-1">/</span>
               <button
                 onClick={openMoreMenu}
-                className="group bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"
+                className="group bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
               >
                 <Icon
                   icon={activeMoreItem.icon}
@@ -321,7 +321,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
                 <span className="text-gray-400 mx-1">/</span>
                 <button
                   onClick={openMoreMenu}
-                  className="group text-gray-500 hover:bg-gray-50 hover:text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"
+                  className="group text-gray-500 hover:bg-gray-50 hover:text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
                 >
                   <Icon
                     icon={IconProp.Squares}

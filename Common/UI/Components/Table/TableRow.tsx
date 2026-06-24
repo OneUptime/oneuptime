@@ -89,7 +89,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
           <div
             {...provided?.draggableProps}
             ref={provided?.innerRef}
-            className="p-4 bg-white border-b border-gray-200"
+            className="mx-3 my-2 rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
           >
             {props.enableDragAndDrop ? (
               <div
@@ -305,7 +305,11 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     // Desktop view: render as table row
     return (
       <>
-        <tr {...provided?.draggableProps} ref={provided?.innerRef}>
+        <tr
+          {...provided?.draggableProps}
+          ref={provided?.innerRef}
+          className="hover:bg-gray-50 transition-colors"
+        >
           {props.enableDragAndDrop && (
             <td
               className="ml-5 py-4 w-10 align-top"

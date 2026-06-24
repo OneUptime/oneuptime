@@ -476,7 +476,7 @@ export default class TemplateVariablesCatalog {
             },
             {
               key: "componentStatuses",
-              description: "Array of {name, status, description}.",
+              description: "Array of {name, status, description, groupName}.",
             },
             {
               key: "isOnline",

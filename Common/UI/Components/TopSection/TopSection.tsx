@@ -11,7 +11,11 @@ const TopSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <header className={props.className || "bg-white shadow"}>
+    <header
+      className={
+        props.className || "bg-white shadow-sm border-b border-gray-200"
+      }
+    >
       <div className="w-full px-2 sm:px-4 lg:divide-y lg:divide-gray-200 lg:px-8">
         {!props.hideHeader && props.header}
         {props.navbar}

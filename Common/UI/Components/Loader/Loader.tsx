@@ -1,4 +1,4 @@
-import { VeryLightGray } from "../../../Types/BrandColors";
+import { Gray500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import React, { FunctionComponent } from "react";
 import BarLoader from "react-spinners/BarLoader";
@@ -18,7 +18,7 @@ export interface ComponentProps {
 
 const Loader: FunctionComponent<ComponentProps> = ({
   size = 50,
-  color = VeryLightGray,
+  color = Gray500,
   loaderType = LoaderType.Bar,
   className = "",
 }: ComponentProps) => {

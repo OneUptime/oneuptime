@@ -518,6 +518,13 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
 
+      /*
+       * Operational when the page is reachable AND reports no active
+       * incidents. Reachability alone is not a useful signal — a status
+       * page that loads fine while the upstream service is on fire should
+       * not read as "operational". The down criteria (checked first)
+       * already catches non-operational components.
+       */
       monitorCriteriaInstance.data = {
         id: ObjectID.generate().toString(),
         monitorStatusId: arg.monitorStatusId,
@@ -528,14 +535,19 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             filterType: FilterType.True,
             value: undefined,
           },
+          {
+            checkOn: CheckOn.ExternalStatusPageActiveIncidents,
+            filterType: FilterType.LessThanOrEqualTo,
+            value: 0,
+          },
         ],
         incidents: [],
         alerts: [],
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the ${arg.monitorName} external status page is reachable`,
+        name: `Check if ${arg.monitorName} is operational`,
+        description: `This criteria checks if the ${arg.monitorName} status page reports no active incidents and is reachable`,
       };
 
       return monitorCriteriaInstance;
@@ -763,11 +775,28 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     }
 
     if (arg.monitorType === MonitorType.ExternalStatusPage) {
+      /*
+       * The meaningful signals lead: an active incident on the page, or a
+       * component reporting anything other than "operational" (when a
+       * component/group is filtered in the monitor step, this scopes to
+       * just that selection). Unreachability is the last-resort fallback,
+       * not the primary check.
+       */
       monitorCriteriaInstance.data = {
         id: ObjectID.generate().toString(),
         monitorStatusId: arg.monitorStatusId,
         filterCondition: FilterCondition.Any,
         filters: [
+          {
+            checkOn: CheckOn.ExternalStatusPageActiveIncidents,
+            filterType: FilterType.GreaterThan,
+            value: 0,
+          },
+          {
+            checkOn: CheckOn.ExternalStatusPageComponentStatus,
+            filterType: FilterType.NotEqualTo,
+            value: "operational",
+          },
           {
             checkOn: CheckOn.ExternalStatusPageIsOnline,
             filterType: FilterType.False,
@@ -776,8 +805,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} external status page is currently unreachable.`,
+            title: `${arg.monitorName} is reporting an issue`,
+            description: `${arg.monitorName} status page is reporting an active incident, a non-operational component, or is unreachable.`,
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -789,16 +818,16 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} external status page is currently unreachable.`,
+            title: `${arg.monitorName} is reporting an issue`,
+            description: `${arg.monitorName} status page is reporting an active incident, a non-operational component, or is unreachable.`,
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
           },
         ],
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} external status page is unreachable`,
+        name: `Check if ${arg.monitorName} is reporting an issue`,
+        description: `This criteria checks if the ${arg.monitorName} status page reports active incidents, a non-operational component, or is unreachable`,
       };
     }
 

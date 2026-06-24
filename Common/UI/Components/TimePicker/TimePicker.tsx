@@ -465,7 +465,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
         <p
           id="timepicker-error"
           data-testid="error-message"
-          className="mt-1 text-sm text-red-400"
+          className="mt-1 text-sm font-medium text-red-600"
           aria-live="polite"
         >
           {props.error}

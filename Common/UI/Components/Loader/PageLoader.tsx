@@ -11,7 +11,7 @@ const PageLoader: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   if (props.isVisible) {
     return (
-      <div className="m-auto w-full text-center w-max mt-52 align-middle flex items-center">
+      <div className="flex min-h-[60vh] w-full items-center justify-center">
         <Loader loaderType={LoaderType.Bar} color={VeryLightGray} size={200} />
       </div>
     );

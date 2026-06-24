@@ -53,8 +53,9 @@ const Input: FunctionComponent<ComponentProps> = (
   let className: string = "";
 
   if (!props.className) {
-    className =
-      "block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm";
+    className = `block w-full rounded-lg border ${
+      props.disabled ? "border-gray-200" : "border-gray-300"
+    } bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 sm:text-sm transition-colors duration-150 hover:border-gray-400 min-h-[40px]`;
   } else {
     className = props.className;
   }
@@ -151,7 +152,7 @@ const Input: FunctionComponent<ComponentProps> = (
       <div
         className={
           props.outerDivClassName ||
-          `relative mt-2 mb-1 rounded-md shadow-sm w-full`
+          `relative mt-2 mb-1 rounded-lg shadow-sm w-full`
         }
       >
         <input
@@ -228,7 +229,7 @@ const Input: FunctionComponent<ComponentProps> = (
         <p
           id="input-error-message"
           data-testid="error-message"
-          className="mt-1 text-sm text-red-400"
+          className="mt-1 text-sm font-medium text-red-600"
           role="alert"
         >
           {props.error}

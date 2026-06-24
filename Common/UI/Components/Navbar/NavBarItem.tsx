@@ -35,19 +35,19 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
   );
 
   let classNames: string =
-    "text-gray-500 hover:bg-gray-50 hover:text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium";
+    "transition-colors duration-150 text-gray-500 hover:bg-gray-50 hover:text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-1";
 
   if (isActive) {
     classNames =
-      "bg-gray-100 text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium";
+      "transition-colors duration-150 bg-gray-100 text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-1";
   }
 
   if (props.isRenderedOnMobile) {
     classNames =
-      "text-gray-900 hover:bg-gray-50 hover:text-gray-900 inline-flex items-center rounded-md py-2 px-3 text-base font-medium";
+      "transition-colors duration-150 text-gray-900 hover:bg-gray-50 hover:text-gray-900 inline-flex items-center rounded-md py-2 px-3 text-base font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-1";
     if (isActive) {
       classNames =
-        "bg-gray-100 text-gray-900 inline-flex items-center rounded-md py-2 px-3 text-base font-medium";
+        "transition-colors duration-150 bg-gray-100 text-gray-900 inline-flex items-center rounded-md py-2 px-3 text-base font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-1";
     }
   }
 
@@ -71,7 +71,14 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
           <></>
         )}
         <span>{translatedTitle}</span>
-        {props.children ? <div className="arrow-down"></div> : <></>}
+        {props.children ? (
+          <Icon
+            icon={IconProp.ChevronDown}
+            className="ml-1 h-3 w-3 text-gray-400"
+          />
+        ) : (
+          <></>
+        )}
       </Link>
       {props.children}
     </>

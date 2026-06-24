@@ -635,7 +635,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
         " bg-gradient-to-br from-white to-gray-50/50 rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-md hover:border-gray-200";
     } else if (isMinimalStyle) {
       containerClasses +=
-        " py-3 first:pt-0 last:pb-0 border-b border-gray-50 last:border-b-0 hover:bg-gray-50/50 px-2 -mx-2 rounded-lg";
+        " py-3 first:pt-0 last:pb-0 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 px-2 -mx-2 rounded-lg";
     } else {
       containerClasses +=
         " py-5 first:pt-0 last:pb-0 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/30 px-3 -mx-3 rounded-lg";

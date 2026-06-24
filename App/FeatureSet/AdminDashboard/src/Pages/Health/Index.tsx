@@ -18,7 +18,6 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
@@ -233,7 +232,23 @@ const Health: FunctionComponent = (): ReactElement => {
 
   const renderOverview: () => ReactElement = (): ReactElement => {
     if (isInitialLoading && !data) {
-      return <ComponentLoader />;
+      return (
+        <div>
+          <span className="sr-only">Loading...</span>
+          <div aria-hidden="true">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+              <div className="h-20 rounded-xl bg-gray-100 animate-pulse" />
+              <div className="h-20 rounded-xl bg-gray-100 animate-pulse" />
+              <div className="h-20 rounded-xl bg-gray-100 animate-pulse" />
+            </div>
+            <div>
+              <div className="h-5 my-2 rounded bg-gray-100 animate-pulse" />
+              <div className="h-5 my-2 rounded bg-gray-100 animate-pulse" />
+              <div className="h-5 my-2 rounded bg-gray-100 animate-pulse" />
+            </div>
+          </div>
+        </div>
+      );
     }
 
     return (

@@ -652,7 +652,7 @@ const BackgroundQueues: FunctionComponent<ComponentProps> = (
                       {failed > 0 ? (
                         <button
                           type="button"
-                          className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                          className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
                           onClick={() => {
                             setSelectedQueue(queueName);
                           }}

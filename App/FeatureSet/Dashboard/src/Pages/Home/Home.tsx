@@ -8,6 +8,8 @@ import DashboardSideMenu from "./SideMenu";
 import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import IconProp from "Common/Types/Icon/IconProp";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Page from "Common/UI/Components/Page/Page";
@@ -86,6 +88,14 @@ const Home: FunctionComponent<ComponentProps> = (
       }
     >
       <div>
+        <div className="mb-5">
+          <h1 className="text-2xl font-semibold text-gray-900">Welcome back</h1>
+          {props.currentProject?.name ? (
+            <p className="mt-1 text-sm text-gray-500">
+              {`Here's what's happening across ${props.currentProject.name} right now.`}
+            </p>
+          ) : null}
+        </div>
         {isLoading && <PageLoader isVisible={true} />}
         {error && <ErrorMessage message={error} />}
 
@@ -102,6 +112,16 @@ const Home: FunctionComponent<ComponentProps> = (
             noItemsMessage="Nice work! No Active Incidents so far."
             title="Active Incidents"
             description="Here is a list of all the Active Incidents for this project."
+          />
+        )}
+
+        {!isLoading && !error && unresolvedIncidentStates.length === 0 && (
+          <EmptyState
+            id="home-all-clear"
+            icon={IconProp.CheckCircle}
+            title="All clear"
+            description="No active incidents right now. We'll surface anything that needs your attention here."
+            showSolidBackground={true}
           />
         )}
       </div>

@@ -13,7 +13,7 @@ const ComingSoon: FunctionComponent<ComponentProps> = (
   return (
     <EmptyState
       id="coming-soon"
-      icon={IconProp.CursorArrowRays}
+      icon={IconProp.Sparkles}
       title={props.title || "Coming soon!"}
       description={
         props.description ||

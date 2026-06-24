@@ -52,7 +52,7 @@ const AlertBanner: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className={`rounded-lg border p-4 ${styles.container} ${props.className || ""}`}
+      className={`rounded-xl border p-4 ${styles.container} ${props.className || ""}`}
       role="alert"
     >
       <div className="flex items-center justify-between">

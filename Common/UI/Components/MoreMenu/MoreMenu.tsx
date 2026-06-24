@@ -129,6 +129,10 @@ const MoreMenu: React.ForwardRefExoticComponent<
             }}
             role="button"
             tabIndex={0}
+            aria-haspopup="menu"
+            aria-expanded={isComponentVisible}
+            aria-label={props.text || "More options"}
+            className="focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
             onKeyDown={(e: React.KeyboardEvent) => {
               if (e.key === "Enter" || e.key === " ") {
                 setIsComponentVisible(!isDropdownVisible);

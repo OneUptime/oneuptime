@@ -54,7 +54,7 @@ const CopyTextButton: FunctionComponent<ComponentProps> = (
 
   const variantClasses: Record<typeof variant, string> = {
     ghost:
-      "bg-transparent border border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-gray-600",
+      "bg-transparent border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700",
     soft: "bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200",
     solid:
       "bg-indigo-600 text-white border border-indigo-600 hover:bg-indigo-500",
@@ -66,7 +66,7 @@ const CopyTextButton: FunctionComponent<ComponentProps> = (
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center gap-1 transition-colors duration-150 cursor-pointer select-none ${
+      className={`inline-flex items-center justify-center gap-1 transition-colors duration-150 cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${
         copied ? copiedClasses : variantClasses[variant]
       } ${sizeClasses[size]} ${props.className || ""}`}
       onClick={handleCopy}

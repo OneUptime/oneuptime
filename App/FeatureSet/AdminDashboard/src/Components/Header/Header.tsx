@@ -19,15 +19,6 @@ const DashboardHeader: FunctionComponent = (): ReactElement => {
             <Logo onClick={() => {}} />
           </>
         }
-        centerComponents={
-          <>
-            {/* <SearchBox
-                            key={2}
-                            selectedProject={props.selectedProject}
-                            onChange={(_value: string) => { }}
-                        />{' '} */}
-          </>
-        }
         rightComponents={
           <>
             <EditionLabel className="mr-3 hidden md:inline-flex" />

@@ -40,7 +40,7 @@ const Badge: FunctionComponent<ComponentProps> = (
         id={props.id}
         data-testid={props.id}
         className={`${className} ml-auto min-w-[1.75rem] whitespace-nowrap rounded-full px-2 py-0.5 text-center text-xs font-semibold leading-4 tabular-nums transition-all duration-200`}
-        aria-hidden="true"
+        aria-label={`${props.badgeCount} items`}
       >
         {props.badgeCount}
       </span>

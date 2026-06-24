@@ -43,6 +43,7 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
           px-2 py-1.5 rounded-lg
           text-sm font-medium
           transition-all duration-200 ease-out
+          focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1
           ${
             isActive
               ? "bg-gradient-to-r from-indigo-50 to-indigo-50/50 text-indigo-700 shadow-sm"
@@ -54,16 +55,6 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
       >
-        {/* Active Indicator Bar */}
-        <div
-          className={`
-            absolute left-0 top-1/2 -translate-y-1/2
-            w-0.5 rounded-full
-            transition-all duration-200 ease-out
-            ${isActive ? "h-5 bg-indigo-600" : "h-0 bg-transparent"}
-          `}
-        />
-
         {/* Content Container */}
         <div className="flex items-center min-w-0 gap-2">
           {/* Icon with background on active */}
@@ -140,6 +131,7 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
             ml-8 px-2 py-1.5 rounded-lg
             text-sm font-medium
             transition-all duration-200 ease-out
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1
             ${
               isSubItemActive
                 ? "bg-indigo-50/70 text-indigo-700"

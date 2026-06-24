@@ -59,10 +59,20 @@ const Link: FunctionComponent<ComponentProps> = (
     ? "cursor-pointer"
     : "cursor-default";
 
+  /*
+   * Button-like links (onClick but no href/to) are rendered as role="button" and
+   * are keyboard-focusable. Give them a visible focus ring so keyboard users can
+   * see where focus is. Normal href links are left untouched.
+   */
+  const focusClassName: string =
+    !props.to && props.onClick
+      ? " focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 rounded"
+      : "";
+
   return (
     <a
       id={props.id}
-      className={`${cursorClassName} ${props.className || ""}`}
+      className={`${cursorClassName} ${props.className || ""}${focusClassName}`}
       onMouseOver={props.onMouseOver}
       onMouseOut={props.onMouseOut}
       onMouseLeave={props.onMouseLeave}

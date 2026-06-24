@@ -12,9 +12,12 @@ const SearchBox: FunctionComponent<ComponentProps> = (
   return (
     <div className="relative z-0 flex flex-1 items-center justify-center px-2 sm:absolute sm:inset-0">
       <div className="w-full sm:max-w-xs">
-        <label className="sr-only">Search</label>
+        <label htmlFor="global-search" className="sr-only">
+          Search
+        </label>
         <div className="relative">
           <Input
+            id="global-search"
             onChange={(value: string) => {
               props.onChange(value);
             }}

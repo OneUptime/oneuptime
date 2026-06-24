@@ -126,7 +126,10 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
         )}
       </div>
       {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
+        <p
+          data-testid="error-message"
+          className="mt-1 text-sm font-medium text-red-600"
+        >
           {props.error}
         </p>
       )}

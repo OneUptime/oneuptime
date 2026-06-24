@@ -72,7 +72,7 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
             }
             aria-invalid={props.error ? "true" : undefined}
             type="checkbox"
-            className={`accent-indigo-600 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 ${
+            className={`accent-indigo-600 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 focus:ring-2 focus:ring-offset-2 ${
               props.className || ""
             }`}
           />
@@ -87,7 +87,10 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
         </div>
       </div>
       {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
+        <p
+          data-testid="error-message"
+          className="mt-1 text-sm font-medium text-red-600"
+        >
           {props.error}
         </p>
       )}

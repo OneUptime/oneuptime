@@ -410,6 +410,7 @@ export default class MonitorTemplateUtil {
                   name: component.name,
                   status: component.status,
                   description: component.description,
+                  groupName: component.groupName,
                 };
               },
             );

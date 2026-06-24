@@ -252,7 +252,7 @@ const PermissionPicker: FunctionComponent<ComponentProps> = (
       </div>
 
       {props.error && (
-        <p className="mt-1 text-sm text-red-400">{props.error}</p>
+        <p className="mt-1 text-sm font-medium text-red-600">{props.error}</p>
       )}
     </div>
   );

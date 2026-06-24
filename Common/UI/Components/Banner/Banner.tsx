@@ -3,7 +3,6 @@ import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
-import { GetReactElementFunction } from "../../Types/FunctionTypes";
 
 export interface ComponentProps {
   title: string;
@@ -20,7 +19,9 @@ const Banner: FunctionComponent<ComponentProps> = (
   const translatedTitle: string = translateString(props.title) || props.title;
   const translatedDescription: string =
     translateString(props.description) || props.description;
-  const getContent: GetReactElementFunction = (): ReactElement => {
+  const getContent: (showArrow: boolean) => ReactElement = (
+    showArrow: boolean,
+  ): ReactElement => {
     return (
       <>
         <strong className="font-semibold">{translatedTitle}</strong>
@@ -31,23 +32,28 @@ const Banner: FunctionComponent<ComponentProps> = (
         >
           <circle cx="1" cy="1" r="1" />
         </svg>
-        {translatedDescription}&nbsp;
-        <span aria-hidden="true">&rarr;</span>
+        {translatedDescription}
+        {showArrow && (
+          <>
+            &nbsp;
+            <span aria-hidden="true">&rarr;</span>
+          </>
+        )}
       </>
     );
   };
 
   return (
     <div
-      className={`flex border-gray-200 rounded-xl border-2 py-2.5 px-6 sm:px-3.5 mb-5${props.hideOnMobile ? " hidden md:flex" : ""}`}
+      className={`flex border-gray-200 rounded-lg border py-2.5 px-6 sm:px-3.5 mb-5${props.hideOnMobile ? " hidden md:flex" : ""}`}
     >
       <p className="text-sm text-gray-400 hover:text-gray-500">
         {props.link && (
           <Link to={props.link} openInNewTab={props.openInNewTab}>
-            {getContent()}
+            {getContent(true)}
           </Link>
         )}
-        {!props.link && getContent()}
+        {!props.link && getContent(false)}
       </p>
     </div>
   );

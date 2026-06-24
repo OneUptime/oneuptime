@@ -754,7 +754,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         <p
           id={errorId}
           data-testid="error-message"
-          className="mt-1 text-sm text-red-400"
+          className="mt-1 text-sm font-medium text-red-600"
           role="alert"
         >
           {props.error}

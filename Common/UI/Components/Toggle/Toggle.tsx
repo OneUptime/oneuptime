@@ -22,6 +22,7 @@ export interface ComponentProps {
   dataTestId?: string | undefined;
   tooltip?: string | undefined;
   ariaLabelledby?: string | undefined;
+  disabled?: boolean | undefined;
 }
 
 const Toggle: FunctionComponent<ComponentProps> = (
@@ -67,11 +68,22 @@ const Toggle: FunctionComponent<ComponentProps> = (
       "translate-x-5 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out";
   }
 
+  if (props.disabled) {
+    buttonClassName = buttonClassName.replace(
+      "cursor-pointer",
+      "cursor-not-allowed opacity-50",
+    );
+  }
+
   return (
     <div>
       <div className="flex items-center">
         <button
+          disabled={props.disabled}
           onClick={() => {
+            if (props.disabled) {
+              return;
+            }
             if (props.onFocus) {
               props.onFocus();
             }
@@ -79,7 +91,6 @@ const Toggle: FunctionComponent<ComponentProps> = (
               props.onBlur();
             }
             handleChange(!isChecked);
-            props.onChange(!isChecked);
           }}
           onFocus={() => {
             if (props.onFocus) {
@@ -103,7 +114,16 @@ const Toggle: FunctionComponent<ComponentProps> = (
         >
           <span aria-hidden="true" className={toggleClassName}></span>
         </button>
-        <span className="ml-3" id={labelId}>
+        <span
+          className="ml-3 cursor-pointer select-none"
+          id={labelId}
+          onClick={() => {
+            if (props.disabled) {
+              return;
+            }
+            handleChange(!isChecked);
+          }}
+        >
           <span className="text-sm font-medium text-gray-900">
             {props.title}
           </span>
@@ -126,7 +146,7 @@ const Toggle: FunctionComponent<ComponentProps> = (
         <p
           id={errorId}
           data-testid="error-message"
-          className="mt-1 text-sm text-red-400"
+          className="mt-1 text-sm font-medium text-red-600"
           role="alert"
         >
           {props.error}

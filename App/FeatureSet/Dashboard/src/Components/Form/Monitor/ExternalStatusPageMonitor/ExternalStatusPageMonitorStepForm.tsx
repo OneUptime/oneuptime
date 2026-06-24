@@ -1,8 +1,14 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import MonitorStepExternalStatusPageMonitor from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
+import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusPageProviderType";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 
 export interface ComponentProps {
   monitorStepExternalStatusPageMonitor: MonitorStepExternalStatusPageMonitor;
@@ -15,12 +21,24 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [showAdvancedOptions, setShowAdvancedOptions] =
     useState<boolean>(false);
 
+  const providerOptions: Array<DropdownOption> =
+    DropdownUtil.getDropdownOptionsFromEnum(ExternalStatusPageProviderType);
+
+  const selectedProviderOption: DropdownOption | undefined =
+    providerOptions.find((option: DropdownOption) => {
+      return (
+        option.value ===
+        (props.monitorStepExternalStatusPageMonitor.provider ||
+          ExternalStatusPageProviderType.Auto)
+      );
+    });
+
   return (
     <div className="space-y-5">
       <div>
         <FieldLabelElement
           title="Status Page URL"
-          description="The URL of the external status page to monitor (e.g. https://www.githubstatus.com)"
+          description="The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)"
           required={true}
         />
         <Input
@@ -39,15 +57,55 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
 
       <div>
         <FieldLabelElement
+          title="Provider Type"
+          description="Leave as Auto to auto-detect the status page format. OneUptime supports Atlassian Statuspage, incident.io (e.g. status.openai.com), and RSS/Atom feeds."
+          required={false}
+        />
+        <Dropdown
+          value={selectedProviderOption}
+          options={providerOptions}
+          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+            props.onChange({
+              ...props.monitorStepExternalStatusPageMonitor,
+              provider:
+                (value?.toString() as ExternalStatusPageProviderType) ||
+                ExternalStatusPageProviderType.Auto,
+            });
+          }}
+        />
+      </div>
+
+      <div>
+        <FieldLabelElement
+          title="Component Group Filter (Optional)"
+          description="Filter to a specific component group by name (e.g. 'APIs' on status.openai.com). Leave blank to monitor all groups. Supported for Atlassian Statuspage and incident.io."
+          required={false}
+        />
+        <Input
+          initialValue={
+            props.monitorStepExternalStatusPageMonitor.componentGroupName || ""
+          }
+          placeholder="e.g. APIs"
+          onChange={(value: string) => {
+            props.onChange({
+              ...props.monitorStepExternalStatusPageMonitor,
+              componentGroupName: value || undefined,
+            });
+          }}
+        />
+      </div>
+
+      <div>
+        <FieldLabelElement
           title="Component Name Filter (Optional)"
-          description="Filter to a specific component by name. Leave blank to monitor overall status."
+          description="Filter to a specific component by name. Combine with the group filter above to target a sub-set within a group. Leave blank to monitor every component."
           required={false}
         />
         <Input
           initialValue={
             props.monitorStepExternalStatusPageMonitor.componentName || ""
           }
-          placeholder="e.g. API, Compute Engine, us-east-1"
+          placeholder="e.g. Chat Completions, EC2 us-east-1"
           onChange={(value: string) => {
             props.onChange({
               ...props.monitorStepExternalStatusPageMonitor,

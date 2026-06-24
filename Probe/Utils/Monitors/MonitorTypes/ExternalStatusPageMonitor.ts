@@ -37,12 +37,97 @@ interface AtlassianComponent {
   name?: string;
   status?: string;
   description?: string;
+  group?: boolean;
   group_id?: string | null;
 }
 
 interface AtlassianComponentsResponse {
   components?: Array<AtlassianComponent>;
 }
+
+interface AtlassianIncident {
+  id?: string;
+  name?: string;
+  status?: string;
+  components?: Array<AtlassianComponent>;
+}
+
+interface AtlassianIncidentsResponse {
+  incidents?: Array<AtlassianIncident>;
+}
+
+// incident.io status page (e.g. status.openai.com) — the page's own proxy API.
+
+interface IncidentIoComponent {
+  id?: string;
+  name?: string;
+}
+
+interface IncidentIoAffectedComponent {
+  component_id?: string;
+  status?: string;
+}
+
+interface IncidentIoStructureGroupComponent {
+  component_id?: string;
+  name?: string;
+}
+
+interface IncidentIoStructureItem {
+  group?: {
+    id?: string;
+    name?: string;
+    components?: Array<IncidentIoStructureGroupComponent>;
+  };
+  component?: {
+    component_id?: string;
+    name?: string;
+  };
+}
+
+interface IncidentIoIncident {
+  id?: string;
+  name?: string;
+  status?: string;
+  affected_components?: Array<IncidentIoAffectedComponent>;
+}
+
+interface IncidentIoSummaryResponse {
+  summary?: {
+    components?: Array<IncidentIoComponent>;
+    affected_components?: Array<IncidentIoAffectedComponent>;
+    ongoing_incidents?: Array<IncidentIoIncident>;
+    structure?: {
+      items?: Array<IncidentIoStructureItem>;
+    };
+  };
+}
+
+/*
+ * A component as resolved by a provider parser, before it is mapped onto
+ * the public ExternalStatusPageComponentStatus type. Carries the provider
+ * component id so active incidents can be scoped to the filtered set.
+ */
+interface ResolvedComponent {
+  id?: string | undefined;
+  name: string;
+  status: string;
+  description?: string | undefined;
+  groupName?: string | undefined;
+}
+
+/*
+ * Worst-first ordering of non-operational component statuses, used to derive
+ * an overall status from a set of components. "operational" is intentionally
+ * absent — it is the healthy baseline, not a severity.
+ */
+const COMPONENT_STATUS_SEVERITY: Array<string> = [
+  "major_outage",
+  "partial_outage",
+  "degraded_performance",
+  "under_maintenance",
+  "maintenance",
+];
 
 export default class ExternalStatusPageMonitorUtil {
   public static async fetch(
@@ -74,11 +159,18 @@ export default class ExternalStatusPageMonitorUtil {
       const provider: ExternalStatusPageProviderType = config.provider;
 
       if (provider === ExternalStatusPageProviderType.Auto) {
-        // Auto-detect: try Atlassian first, then fall back to RSS/Atom
+        // Auto-detect: try Atlassian, then incident.io, then fall back to RSS/Atom
         response = await ExternalStatusPageMonitorUtil.tryAtlassianStatuspage(
           config,
           options,
         );
+
+        if (!response) {
+          response = await ExternalStatusPageMonitorUtil.tryIncidentIo(
+            config,
+            options,
+          );
+        }
 
         if (!response) {
           response = await ExternalStatusPageMonitorUtil.tryRssAtomFeed(
@@ -90,6 +182,11 @@ export default class ExternalStatusPageMonitorUtil {
         provider === ExternalStatusPageProviderType.AtlassianStatuspage
       ) {
         response = await ExternalStatusPageMonitorUtil.tryAtlassianStatuspage(
+          config,
+          options,
+        );
+      } else if (provider === ExternalStatusPageProviderType.IncidentIo) {
+        response = await ExternalStatusPageMonitorUtil.tryIncidentIo(
           config,
           options,
         );
@@ -119,12 +216,24 @@ export default class ExternalStatusPageMonitorUtil {
       if (response) {
         response.responseTimeInMs = responseTimeInMs;
 
-        // Filter by component name if specified
-        if (config.componentName && response.componentStatuses.length > 0) {
-          const filterName: string = config.componentName.toLowerCase();
+        /*
+         * Narrow the reported component statuses to the configured group
+         * and/or component. The provider parsers already scope the active
+         * incident count and overall status to the same filter, so the
+         * whole response reflects only what the user asked to track
+         * (e.g. just the "APIs" group on status.openai.com).
+         */
+        if (
+          ExternalStatusPageMonitorUtil.hasComponentFilter(config) &&
+          response.componentStatuses.length > 0
+        ) {
           response.componentStatuses = response.componentStatuses.filter(
             (c: ExternalStatusPageComponentStatus) => {
-              return c.name.toLowerCase().includes(filterName);
+              return ExternalStatusPageMonitorUtil.componentMatchesFilter(
+                config,
+                c.name,
+                c.groupName,
+              );
             },
           );
         }
@@ -269,8 +378,8 @@ export default class ExternalStatusPageMonitorUtil {
         return null;
       }
 
-      // Fetch components
-      const componentStatuses: Array<ExternalStatusPageComponentStatus> = [];
+      // Fetch components (leaf components plus the groups they belong to).
+      const resolvedComponents: Array<ResolvedComponent> = [];
       try {
         const componentsUrl: string = `${baseUrl}/api/v2/components.json`;
         const componentsResponse: AxiosResponse = await axios.get(
@@ -288,13 +397,30 @@ export default class ExternalStatusPageMonitorUtil {
           componentsResponse.data as AtlassianComponentsResponse;
 
         if (componentsData?.components) {
+          // First pass: map group id -> group name (group headers).
+          const groupIdToName: Record<string, string> = {};
           for (const component of componentsData.components) {
-            // Skip group headers (components with no group_id that are groups themselves)
+            if (component.group === true && component.id && component.name) {
+              groupIdToName[component.id] = component.name;
+            }
+          }
+
+          // Second pass: collect leaf components with their group name.
+          for (const component of componentsData.components) {
+            // Skip group headers — they are surfaced as the groupName below.
+            if (component.group === true) {
+              continue;
+            }
+
             if (component.name && component.status) {
-              componentStatuses.push({
+              resolvedComponents.push({
+                id: component.id,
                 name: component.name,
                 status: component.status,
                 description: component.description || undefined,
+                groupName: component.group_id
+                  ? groupIdToName[component.group_id]
+                  : undefined,
               });
             }
           }
@@ -306,14 +432,65 @@ export default class ExternalStatusPageMonitorUtil {
         // Continue without component data
       }
 
+      // Fetch unresolved incidents so active incident criteria are meaningful.
+      const incidentAffectedComponentIds: Array<Array<string>> = [];
+      try {
+        const incidentsUrl: string = `${baseUrl}/api/v2/incidents/unresolved.json`;
+        const incidentsResponse: AxiosResponse = await axios.get(incidentsUrl, {
+          timeout: config.timeout || options.timeout || 10000,
+          headers: {
+            Accept: "application/json",
+            "User-Agent": "OneUptime-Probe/1.0",
+          },
+          validateStatus: (status: number) => {
+            return status < 500;
+          },
+        });
+
+        const incidentsData: AtlassianIncidentsResponse =
+          incidentsResponse.data as AtlassianIncidentsResponse;
+
+        if (incidentsData?.incidents) {
+          for (const incident of incidentsData.incidents) {
+            incidentAffectedComponentIds.push(
+              (incident.components || [])
+                .map((c: AtlassianComponent) => {
+                  return c.id || "";
+                })
+                .filter((id: string) => {
+                  return Boolean(id);
+                }),
+            );
+          }
+        }
+      } catch (err) {
+        logger.debug(
+          `Failed to fetch Atlassian incidents for ${baseUrl}: ${err}`,
+        );
+        // Continue without incident data
+      }
+
+      const activeIncidentCount: number =
+        ExternalStatusPageMonitorUtil.countScopedIncidents({
+          config,
+          components: resolvedComponents,
+          incidentAffectedComponentIds,
+        });
+
       const overallStatus: string =
-        statusData.status.description || statusData.status.indicator || "";
+        ExternalStatusPageMonitorUtil.deriveOverallStatus({
+          config,
+          components: resolvedComponents,
+          fallback:
+            statusData.status.description || statusData.status.indicator || "",
+        });
 
       return {
         isOnline: true,
         overallStatus: overallStatus,
-        componentStatuses: componentStatuses,
-        activeIncidentCount: 0, // Could be enhanced later with /api/v2/incidents/unresolved.json
+        componentStatuses:
+          ExternalStatusPageMonitorUtil.toComponentStatuses(resolvedComponents),
+        activeIncidentCount: activeIncidentCount,
         responseTimeInMs: 0, // Will be overwritten by caller
         failureCause: "",
         rawBody: JSON.stringify(statusData),
@@ -321,6 +498,154 @@ export default class ExternalStatusPageMonitorUtil {
     } catch (err) {
       logger.debug(
         `Atlassian Statuspage API failed for ${config.statusPageUrl}: ${err}`,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * incident.io-powered status pages (e.g. status.openai.com) expose the
+   * same JSON the page itself renders from at `<origin>/proxy/<hostname>`.
+   * The payload lists every component, the currently affected components,
+   * the ongoing incidents, and a group structure — which lets us scope
+   * monitoring to a single group (e.g. "APIs") or a component within it.
+   */
+  private static async tryIncidentIo(
+    config: MonitorStepExternalStatusPageMonitor,
+    options: ExternalStatusPageQueryOptions,
+  ): Promise<ExternalStatusPageMonitorResponse | null> {
+    try {
+      let parsedUrl: globalThis.URL;
+      try {
+        const lowerCaseUrl: string = config.statusPageUrl.toLowerCase();
+        const hasProtocol: boolean =
+          lowerCaseUrl.startsWith("http://") ||
+          lowerCaseUrl.startsWith("https://");
+        const normalizedUrl: string = hasProtocol
+          ? config.statusPageUrl
+          : `https://${config.statusPageUrl}`;
+        parsedUrl = new URL(normalizedUrl);
+      } catch (err) {
+        logger.debug(
+          `incident.io: could not parse status page URL ${config.statusPageUrl}: ${err}`,
+        );
+        return null;
+      }
+
+      const proxyUrl: string = `${parsedUrl.origin}/proxy/${parsedUrl.hostname}`;
+
+      const proxyResponse: AxiosResponse = await axios.get(proxyUrl, {
+        timeout: config.timeout || options.timeout || 10000,
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "OneUptime-Probe/1.0",
+        },
+        validateStatus: (status: number) => {
+          return status < 500;
+        },
+      });
+
+      if (
+        proxyResponse.status === 404 ||
+        proxyResponse.status === 403 ||
+        proxyResponse.status === 401
+      ) {
+        return null;
+      }
+
+      const data: IncidentIoSummaryResponse =
+        proxyResponse.data as IncidentIoSummaryResponse;
+
+      const summary: IncidentIoSummaryResponse["summary"] | undefined =
+        data?.summary;
+
+      // Not an incident.io page if the summary envelope is missing.
+      if (!summary || !Array.isArray(summary.components)) {
+        return null;
+      }
+
+      // component id -> name
+      const componentIdToName: Record<string, string> = {};
+      for (const component of summary.components) {
+        if (component.id && component.name) {
+          componentIdToName[component.id] = component.name;
+        }
+      }
+
+      // component id -> group name, derived from the page structure.
+      const componentIdToGroupName: Record<string, string> = {};
+      for (const item of summary.structure?.items || []) {
+        const groupName: string | undefined = item.group?.name;
+        if (groupName && item.group?.components) {
+          for (const groupComponent of item.group.components) {
+            if (groupComponent.component_id) {
+              componentIdToGroupName[groupComponent.component_id] = groupName;
+            }
+          }
+        }
+      }
+
+      // component id -> current status (anything not affected is operational).
+      const componentIdToStatus: Record<string, string> = {};
+      for (const affected of summary.affected_components || []) {
+        if (affected.component_id && affected.status) {
+          componentIdToStatus[affected.component_id] = affected.status;
+        }
+      }
+
+      const resolvedComponents: Array<ResolvedComponent> = [];
+      for (const component of summary.components) {
+        if (!component.id || !component.name) {
+          continue;
+        }
+
+        resolvedComponents.push({
+          id: component.id,
+          name: component.name,
+          status: componentIdToStatus[component.id] || "operational",
+          groupName: componentIdToGroupName[component.id],
+        });
+      }
+
+      const incidentAffectedComponentIds: Array<Array<string>> = (
+        summary.ongoing_incidents || []
+      ).map((incident: IncidentIoIncident) => {
+        return (incident.affected_components || [])
+          .map((c: IncidentIoAffectedComponent) => {
+            return c.component_id || "";
+          })
+          .filter((id: string) => {
+            return Boolean(id);
+          });
+      });
+
+      const activeIncidentCount: number =
+        ExternalStatusPageMonitorUtil.countScopedIncidents({
+          config,
+          components: resolvedComponents,
+          incidentAffectedComponentIds,
+        });
+
+      const overallStatus: string =
+        ExternalStatusPageMonitorUtil.deriveOverallStatus({
+          config,
+          components: resolvedComponents,
+          fallback: "operational",
+        });
+
+      return {
+        isOnline: true,
+        overallStatus: overallStatus,
+        componentStatuses:
+          ExternalStatusPageMonitorUtil.toComponentStatuses(resolvedComponents),
+        activeIncidentCount: activeIncidentCount,
+        responseTimeInMs: 0, // Will be overwritten by caller
+        failureCause: "",
+        rawBody: JSON.stringify(summary),
+      };
+    } catch (err) {
+      logger.debug(
+        `incident.io status page API failed for ${config.statusPageUrl}: ${err}`,
       );
       return null;
     }
@@ -498,6 +823,147 @@ export default class ExternalStatusPageMonitorUtil {
       failureCause: "",
       rawBody: rawBody,
     };
+  }
+
+  // Whether a group and/or component filter is configured.
+  public static hasComponentFilter(
+    config: MonitorStepExternalStatusPageMonitor,
+  ): boolean {
+    return Boolean(config.componentGroupName || config.componentName);
+  }
+
+  /*
+   * Case-insensitive substring match of a component (and its group) against
+   * the configured group/component filter. Both must match when both are set
+   * — this is what lets the user target a sub-set within a group.
+   */
+  public static componentMatchesFilter(
+    config: MonitorStepExternalStatusPageMonitor,
+    componentName: string,
+    groupName?: string | undefined,
+  ): boolean {
+    if (config.componentGroupName) {
+      const filterGroup: string = config.componentGroupName.toLowerCase();
+      if (!(groupName || "").toLowerCase().includes(filterGroup)) {
+        return false;
+      }
+    }
+
+    if (config.componentName) {
+      const filterName: string = config.componentName.toLowerCase();
+      if (!componentName.toLowerCase().includes(filterName)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /*
+   * Count active incidents. When a group/component filter is configured,
+   * only incidents that affect an in-scope component are counted — so a
+   * monitor watching the "APIs" group does not fire on an unrelated
+   * ChatGPT incident.
+   */
+  private static countScopedIncidents(input: {
+    config: MonitorStepExternalStatusPageMonitor;
+    components: Array<ResolvedComponent>;
+    incidentAffectedComponentIds: Array<Array<string>>;
+  }): number {
+    if (!ExternalStatusPageMonitorUtil.hasComponentFilter(input.config)) {
+      return input.incidentAffectedComponentIds.length;
+    }
+
+    const inScopeComponentIds: Set<string> = new Set<string>(
+      input.components
+        .filter((c: ResolvedComponent) => {
+          return ExternalStatusPageMonitorUtil.componentMatchesFilter(
+            input.config,
+            c.name,
+            c.groupName,
+          );
+        })
+        .map((c: ResolvedComponent) => {
+          return c.id || "";
+        })
+        .filter((id: string) => {
+          return Boolean(id);
+        }),
+    );
+
+    return input.incidentAffectedComponentIds.filter(
+      (affectedIds: Array<string>) => {
+        return affectedIds.some((id: string) => {
+          return inScopeComponentIds.has(id);
+        });
+      },
+    ).length;
+  }
+
+  /*
+   * Derive an overall status from the (optionally filtered) components by
+   * picking the worst component status. Falls back to the provider's own
+   * overall indicator (or "operational") when no component is impacted.
+   */
+  private static deriveOverallStatus(input: {
+    config: MonitorStepExternalStatusPageMonitor;
+    components: Array<ResolvedComponent>;
+    fallback: string;
+  }): string {
+    const scopedComponents: Array<ResolvedComponent> =
+      ExternalStatusPageMonitorUtil.hasComponentFilter(input.config)
+        ? input.components.filter((c: ResolvedComponent) => {
+            return ExternalStatusPageMonitorUtil.componentMatchesFilter(
+              input.config,
+              c.name,
+              c.groupName,
+            );
+          })
+        : input.components;
+
+    let worstStatus: string | undefined = undefined;
+    let worstRank: number = Number.MAX_SAFE_INTEGER;
+
+    for (const component of scopedComponents) {
+      const normalized: string = (component.status || "").toLowerCase();
+      const rank: number = COMPONENT_STATUS_SEVERITY.indexOf(normalized);
+
+      // Only non-operational statuses are ranked (operational => rank -1).
+      if (rank >= 0 && rank < worstRank) {
+        worstRank = rank;
+        worstStatus = component.status;
+      }
+    }
+
+    // Something in scope is impacted — report the worst of it.
+    if (worstStatus) {
+      return worstStatus;
+    }
+
+    /*
+     * Everything in scope is operational. When the user scoped to a group/
+     * component, report "operational" for that scope rather than leaking
+     * the page-level status of unrelated parts of the status page.
+     */
+    if (ExternalStatusPageMonitorUtil.hasComponentFilter(input.config)) {
+      return "operational";
+    }
+
+    return input.fallback || "operational";
+  }
+
+  // Map internal components onto the public component status type.
+  private static toComponentStatuses(
+    components: Array<ResolvedComponent>,
+  ): Array<ExternalStatusPageComponentStatus> {
+    return components.map((component: ResolvedComponent) => {
+      return {
+        name: component.name,
+        status: component.status,
+        description: component.description,
+        groupName: component.groupName,
+      };
+    });
   }
 
   private static async tryBasicHttpCheck(

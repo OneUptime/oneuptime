@@ -21,21 +21,23 @@ const EmptyState: FunctionComponent<ComponentProps> = (
     <React.Fragment>
       <div
         id={props.id}
-        className={`flex pt-52 pb-52 ${
-          props.showSolidBackground ? "bg-white rounded shadow" : ""
+        className={`flex py-20 sm:py-28 ${
+          props.showSolidBackground
+            ? "bg-white rounded-xl border border-gray-200 shadow-sm"
+            : ""
         }`}
       >
         <div className="m-auto text-center">
-          {props.icon && (
-            <Icon
-              icon={props.icon}
-              className={
-                props.iconClassName || `mx-auto h-12 w-12 text-gray-400`
-              }
-            />
-          )}
+          {props.icon &&
+            (props.iconClassName ? (
+              <Icon icon={props.icon} className={props.iconClassName} />
+            ) : (
+              <div className="mx-auto mb-1 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                <Icon icon={props.icon} className="h-6 w-6 text-gray-400" />
+              </div>
+            ))}
 
-          <h3 className="mt-2 text-sm font-medium text-gray-900">
+          <h3 className="mt-2 text-base font-semibold text-gray-900">
             {translateValue(props.title)}
           </h3>
           <p className="mt-1 text-sm text-gray-500">

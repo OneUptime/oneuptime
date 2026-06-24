@@ -19,17 +19,18 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
     <div className="text-center my-10 text-gray-500 text-sm">
       {translatedMessage}
       {props.onRefreshClick ? (
-        <div
+        <button
+          type="button"
           role={"refresh-button"}
           onClick={() => {
             if (props.onRefreshClick) {
               props.onRefreshClick();
             }
           }}
-          className="underline cursor-pointer hover:text-gray-700 mt-3"
+          className="mt-3 underline text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
         >
           {translateString("Refresh?") ?? "Refresh?"}
-        </div>
+        </button>
       ) : (
         <></>
       )}

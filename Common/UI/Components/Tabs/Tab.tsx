@@ -28,13 +28,12 @@ const TabElement: FunctionComponent<ComponentProps> = (
   const { translateString } = useTranslateValue();
   const translatedName: string =
     translateString(props.tab.name) ?? props.tab.name;
-  const backgroundColor: string = "bg-gray-100";
 
   const baseClasses: string =
-    "rounded-md px-3 py-2 text-sm font-medium cursor-pointer inline-flex whitespace-nowrap flex-shrink-0";
+    "rounded-md px-3 py-2 text-sm font-medium cursor-pointer inline-flex whitespace-nowrap flex-shrink-0 items-center transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1";
   const stateClasses: string = props.isSelected
-    ? `${backgroundColor} text-gray-700`
-    : "text-gray-500 hover:text-gray-700";
+    ? "bg-indigo-50 text-indigo-700 font-semibold"
+    : "text-gray-500 hover:bg-gray-50 hover:text-gray-700";
 
   const handleKeyDown: (event: React.KeyboardEvent) => void = (
     event: React.KeyboardEvent,
@@ -73,7 +72,7 @@ const TabElement: FunctionComponent<ComponentProps> = (
                     : props.tab.tabType === TabType.Success
                       ? "bg-green-500"
                       : "bg-gray-500"
-            } text-white rounded-full px-2 py-1 text-xs font-semibold ml-2 -mt-0.5`}
+            } text-white rounded-full px-1.5 py-0.5 leading-none text-xs font-semibold ml-2`}
           >
             {props.tab.countBadge}
           </span>

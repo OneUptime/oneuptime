@@ -163,7 +163,7 @@ const LegendItem: React.FunctionComponent<LegendItemProps> = ({
     >
       <span
         className={cx(
-          "size-2 shrink-0 rounded-xs",
+          "size-2 shrink-0 rounded-sm",
           getColorClassName(color, "bg"),
           activeLegend && activeLegend !== name ? "opacity-40" : "opacity-100",
         )}
@@ -572,7 +572,7 @@ const ChartTooltip: React.FunctionComponent<ChartTooltipProps> = ({
                     <span
                       aria-hidden="true"
                       className={cx(
-                        "size-2 shrink-0 rounded-xs",
+                        "size-2 shrink-0 rounded-sm",
                         getColorClassName(color, "bg"),
                       )}
                     />
