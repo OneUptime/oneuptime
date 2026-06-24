@@ -29,8 +29,8 @@ O OneUptime suporta o monitoramento de páginas de status através dos seguintes
 
 Quando definido como **Auto**, o OneUptime tentará detectar o formato da página de status automaticamente, nesta ordem:
 
-1. Em seguida, tenta a API da página de status do incident.io (`/proxy/<host>`)
-2. Primeiro, tenta a API JSON do Atlassian Statuspage (`/api/v2/status.json`, `/api/v2/components.json` e `/api/v2/incidents/unresolved.json`)
+1. Primeiro, tenta a API da página de status do incident.io (`/proxy/<host>`)
+2. Em seguida, tenta a API JSON do Atlassian Statuspage (`/api/v2/status.json`, `/api/v2/components.json` e `/api/v2/incidents/unresolved.json`)
 3. Se essas falharem, tenta analisar a página como um feed RSS ou Atom
 4. Como fallback final, realiza uma verificação básica de acessibilidade HTTP
 

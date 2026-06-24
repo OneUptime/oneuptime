@@ -29,8 +29,8 @@ OneUptime ondersteunt het bewaken van statuspagina's via de volgende methoden:
 
 Bij instelling op **Automatisch** probeert OneUptime het formaat van de statuspagina automatisch te detecteren, in deze volgorde:
 
-1. Vervolgens probeert het de incident.io-statuspagina-API (`/proxy/<host>`)
-2. Eerst probeert het de Atlassian Statuspage JSON API (`/api/v2/status.json`, `/api/v2/components.json` en `/api/v2/incidents/unresolved.json`)
+1. Eerst probeert het de incident.io-statuspagina-API (`/proxy/<host>`)
+2. Vervolgens probeert het de Atlassian Statuspage JSON API (`/api/v2/status.json`, `/api/v2/components.json` en `/api/v2/incidents/unresolved.json`)
 3. Als die mislukken, probeert het de pagina te verwerken als een RSS- of Atom-feed
 4. Als laatste terugvaloptie voert het een eenvoudige HTTP-bereikbaarheidscontrole uit
 
