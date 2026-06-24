@@ -136,8 +136,10 @@ export default class AnalyticsTableManagement {
           `RENAME TABLE ${tableName} TO ${preclustered}${onClusterClause()}`,
         );
       } catch (error) {
-        // Rename failed — do NOT create the Distributed wrapper over the still
-        // present legacy table (that would clobber it). Retry next boot.
+        /*
+         * Rename failed — do NOT create the Distributed wrapper over the still
+         * present legacy table (that would clobber it). Retry next boot.
+         */
         logger.error({
           message: `Failed to rename legacy ${tableName} to ${preclustered}; leaving it in place. Distributed wrapper not created this boot.`,
           table: tableName,
@@ -147,8 +149,10 @@ export default class AnalyticsTableManagement {
       }
     }
 
-    // <tableName> is now absent (just renamed) or already Distributed — safe to
-    // create / re-sync the Distributed wrapper.
+    /*
+     * <tableName> is now absent (just renamed) or already Distributed — safe to
+     * create / re-sync the Distributed wrapper.
+     */
     await service.execute(
       service.statementGenerator.toDistributedTableCreateStatement(),
     );
