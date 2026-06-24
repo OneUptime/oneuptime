@@ -214,9 +214,7 @@ const IoTFleetSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "Scheduled Maintenance",
             to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.IOT_FLEET_VIEW_SCHEDULED_MAINTENANCE
-              ] as Route,
+              RouteMap[PageMap.IOT_FLEET_VIEW_SCHEDULED_MAINTENANCE] as Route,
               { modelId: props.modelId },
             ),
           }}

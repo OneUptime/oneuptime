@@ -76,10 +76,10 @@ const LIVE_POLL_INTERVAL_MS: number = 10000;
 
 /*
  * Synthetic "Span Type" facet. It is not a real Span column — selecting its
- * single "Root spans" value drives the same `rootOnly` state as the toolbar
- * toggle (so the two stay in sync), rather than adding a normal filter chip.
- * Kept distinct from the backend `isRootSpan` key so it never collides with
- * generic column-chip query building.
+ * single "Root spans" value drives the `rootOnly` state (restricting the view
+ * to root spans), rather than adding a normal filter chip. This facet is the
+ * sole control for root-only mode. Kept distinct from the backend `isRootSpan`
+ * key so it never collides with generic column-chip query building.
  */
 const SPAN_TYPE_FACET_KEY: string = "spanType";
 const SPAN_TYPE_ROOT_VALUE: string = "root";
@@ -1700,7 +1700,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         priority: 6,
       },
       /*
-       * Span Type: a single "Root spans" choice mirroring the toolbar toggle.
+       * Span Type: a single "Root spans" choice that toggles root-only mode.
        * Selecting it scopes to root spans (trace entry points); leaving it
        * unselected shows all spans. Count is the exact number of root spans.
        */
@@ -1797,9 +1797,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     useCallback(
       (facetKey: string, value: string) => {
         /*
-         * Span Type is a synthetic facet that mirrors the toolbar toggle:
-         * selecting "Root spans" sets rootOnly instead of adding a filter
-         * chip, so both surfaces share one source of truth.
+         * Span Type is a synthetic facet: selecting "Root spans" sets
+         * rootOnly instead of adding a filter chip.
          */
         if (facetKey === SPAN_TYPE_FACET_KEY) {
           setRootOnly(value === SPAN_TYPE_ROOT_VALUE);
@@ -2211,26 +2210,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
               },
             )}
           </div>
-          {/* Root-spans-only toggle */}
-          <button
-            type="button"
-            className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors ${
-              rootOnly
-                ? "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                : "border-indigo-300 bg-indigo-50 text-indigo-700"
-            }`}
-            onClick={() => {
-              setRootOnly(!rootOnly);
-              setPage(1);
-            }}
-            title={
-              rootOnly
-                ? "Showing root spans only — click to include all spans (e.g. when http.route / url.host live on a non-root span)"
-                : "Showing all spans — click to show root spans only"
-            }
-          >
-            {rootOnly ? "Root spans" : "All spans"}
-          </button>
+          {/*
+           * The root-spans-only toggle lives in the "Span Type" facet
+           * (sidebar), which drives the same `rootOnly` state — so no separate
+           * toolbar button is needed here.
+           */}
         </>
       }
       emptyMessage="No traces found"

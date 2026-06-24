@@ -66,7 +66,9 @@ const IoTFleetDevices: FunctionComponent<
               return (
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-gray-900">
-                    {(item.name as string) || (item.externalId as string) || "—"}
+                    {(item.name as string) ||
+                      (item.externalId as string) ||
+                      "—"}
                   </span>
                   {item.name && item.externalId ? (
                     <span className="text-xs text-gray-500">

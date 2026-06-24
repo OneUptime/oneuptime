@@ -200,8 +200,10 @@ const IoTFleetDeviceDetail: FunctionComponent<
     yAxisValueFormatter: formatBytes,
   };
 
-  // Build read-only overview summary fields (latest-metric tiles) from
-  // the inventory row.
+  /*
+   * Build read-only overview summary fields (latest-metric tiles) from
+   * the inventory row.
+   */
   const summaryFields: Array<SummaryField> = [
     { title: "Device Name", value: deviceName },
     { title: "Fleet", value: fleetName },
