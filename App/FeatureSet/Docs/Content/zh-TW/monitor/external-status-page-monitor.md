@@ -29,10 +29,12 @@ OneUptime 支援透過下列方法監控狀態頁面:
 
 當設定為 **Auto** 時,OneUptime 會依下列順序嘗試自動偵測狀態頁面格式:
 
-1. 首先,它會嘗試 Atlassian Statuspage JSON API(`/api/v2/status.json`、`/api/v2/components.json` 與 `/api/v2/incidents/unresolved.json`)
-2. 接著,它會嘗試 incident.io 狀態頁面 API(`/proxy/<host>`)
+1. 接著,它會嘗試 incident.io 狀態頁面 API(`/proxy/<host>`)
+2. 首先,它會嘗試 Atlassian Statuspage JSON API(`/api/v2/status.json`、`/api/v2/components.json` 與 `/api/v2/incidents/unresolved.json`)
 3. 如果上述方法失敗,它會嘗試將該頁面解析為 RSS 或 Atom 摘要
 4. 作為最後的後備方案,它會執行基本的 HTTP 可達性檢查
+
+> **注意:** 會先檢查 incident.io,因為某些 incident.io 狀態頁面(例如 `https://status.openai.com`)也會公開一個有限的 Atlassian 相容端點,但該端點省略了元件群組與進行中的事件。先檢查 incident.io 可確保使用更豐富、具備群組感知能力的資料。
 
 ## 建立外部狀態頁面監控
 

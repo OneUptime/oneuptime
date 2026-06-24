@@ -29,10 +29,12 @@ OneUptime supports monitoring status pages via the following methods:
 
 When set to **Auto**, OneUptime will attempt to detect the status page format automatically, in this order:
 
-1. First, it tries the Atlassian Statuspage JSON API (`/api/v2/status.json`, `/api/v2/components.json`, and `/api/v2/incidents/unresolved.json`)
-2. Next, it tries the incident.io status page API (`/proxy/<host>`)
+1. First, it tries the incident.io status page API (`/proxy/<host>`)
+2. Next, it tries the Atlassian Statuspage JSON API (`/api/v2/status.json`, `/api/v2/components.json`, and `/api/v2/incidents/unresolved.json`)
 3. If those fail, it attempts to parse the page as an RSS or Atom feed
 4. As a final fallback, it performs a basic HTTP reachability check
+
+> **Note:** incident.io is checked first because some incident.io status pages (such as `https://status.openai.com`) also expose a limited Atlassian-compatible endpoint that omits component groups and active incidents. Checking incident.io first ensures the richer, group-aware data is used.
 
 ## Creating an External Status Page Monitor
 

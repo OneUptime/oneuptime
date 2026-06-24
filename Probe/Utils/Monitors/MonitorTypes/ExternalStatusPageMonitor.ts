@@ -156,14 +156,22 @@ export default class ExternalStatusPageMonitorUtil {
       const provider: ExternalStatusPageProviderType = config.provider;
 
       if (provider === ExternalStatusPageProviderType.Auto) {
-        // Auto-detect: try Atlassian, then incident.io, then RSS/Atom.
-        response = await ExternalStatusPageMonitorUtil.tryAtlassianStatuspage(
+        /*
+         * Auto-detect: try incident.io first, then Atlassian, then RSS/Atom.
+         * incident.io must be tried first because some incident.io pages (e.g.
+         * status.openai.com) also serve an Atlassian-compatible /api/v2/status.json
+         * shim that exposes neither component groups nor an unresolved-incidents
+         * endpoint — so Atlassian detection would "win" but return degraded data.
+         * A genuine Atlassian page 404s the incident.io proxy endpoint and falls
+         * through to the Atlassian branch below.
+         */
+        response = await ExternalStatusPageMonitorUtil.tryIncidentIo(
           config,
           options,
         );
 
         if (!response) {
-          response = await ExternalStatusPageMonitorUtil.tryIncidentIo(
+          response = await ExternalStatusPageMonitorUtil.tryAtlassianStatuspage(
             config,
             options,
           );

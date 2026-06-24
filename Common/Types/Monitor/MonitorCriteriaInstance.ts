@@ -524,6 +524,11 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         filterCondition: FilterCondition.All,
         filters: [
           {
+            checkOn: CheckOn.ExternalStatusPageIsOnline,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+          {
             checkOn: CheckOn.ExternalStatusPageActiveIncidents,
             filterType: FilterType.EqualTo,
             value: 0,
@@ -535,7 +540,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: true,
         createIncidents: false,
         name: `Check if ${arg.monitorName} is operational`,
-        description: `This criteria checks if the ${arg.monitorName} external status page has no active incidents`,
+        description: `This criteria checks if the ${arg.monitorName} external status page is reachable and has no active incidents`,
       };
 
       return monitorCriteriaInstance;
@@ -769,6 +774,11 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         filterCondition: FilterCondition.Any,
         filters: [
           {
+            checkOn: CheckOn.ExternalStatusPageIsOnline,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+          {
             checkOn: CheckOn.ExternalStatusPageActiveIncidents,
             filterType: FilterType.GreaterThan,
             value: 0,
@@ -818,7 +828,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           },
         ],
         name: `Check if ${arg.monitorName} has an active incident or outage`,
-        description: `This criteria checks if the ${arg.monitorName} external status page has an active incident or a degraded, partial, or major outage`,
+        description: `This criteria checks if the ${arg.monitorName} external status page is unreachable, has an active incident, or has a degraded, partial, or major outage`,
       };
     }
 

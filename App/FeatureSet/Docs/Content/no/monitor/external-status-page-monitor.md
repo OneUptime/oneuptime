@@ -29,10 +29,12 @@ OneUptime støtter overvåking av statussider via følgende metoder:
 
 Når det er satt til **Auto**, vil OneUptime forsøke å oppdage formatet til statussiden automatisk, i denne rekkefølgen:
 
-1. Først prøver den Atlassian Statuspage JSON API (`/api/v2/status.json`, `/api/v2/components.json` og `/api/v2/incidents/unresolved.json`)
-2. Deretter prøver den incident.io-statussidens API (`/proxy/<host>`)
+1. Deretter prøver den incident.io-statussidens API (`/proxy/<host>`)
+2. Først prøver den Atlassian Statuspage JSON API (`/api/v2/status.json`, `/api/v2/components.json` og `/api/v2/incidents/unresolved.json`)
 3. Hvis disse mislykkes, forsøker den å analysere siden som en RSS- eller Atom-strøm
 4. Som siste utvei utfører den en grunnleggende HTTP-tilgjengelighetssjekk
+
+> **Merk:** incident.io sjekkes først fordi enkelte incident.io-statussider (som `https://status.openai.com`) også eksponerer et begrenset Atlassian-kompatibelt endepunkt som utelater komponentgrupper og aktive hendelser. Ved å sjekke incident.io først sikrer man at de rikere, gruppe-bevisste dataene blir brukt.
 
 ## Opprette en ekstern statussidemonitor
 

@@ -29,10 +29,12 @@ OneUptime admite el monitoreo de páginas de estado a través de los siguientes 
 
 Cuando se establece en **Automático**, OneUptime intentará detectar el formato de la página de estado automáticamente, en este orden:
 
-1. Primero, prueba la API JSON de Atlassian Statuspage (`/api/v2/status.json`, `/api/v2/components.json` y `/api/v2/incidents/unresolved.json`)
-2. A continuación, prueba la API de página de estado de incident.io (`/proxy/<host>`)
+1. Primero, prueba la API de página de estado de incident.io (`/proxy/<host>`)
+2. A continuación, prueba la API JSON de Atlassian Statuspage (`/api/v2/status.json`, `/api/v2/components.json` y `/api/v2/incidents/unresolved.json`)
 3. Si esas fallan, intenta analizar la página como un feed RSS o Atom
 4. Como último recurso, realiza una verificación básica de accesibilidad HTTP
+
+> **Nota:** incident.io se verifica primero porque algunas páginas de estado de incident.io (como `https://status.openai.com`) también exponen un endpoint limitado compatible con Atlassian que omite los grupos de componentes y los incidentes activos. Verificar incident.io primero garantiza que se utilicen los datos más completos y con reconocimiento de grupos.
 
 ## Creación de un monitor de páginas de estado externas
 

@@ -29,10 +29,12 @@ OneUptime prend en charge la surveillance des pages de statut via les méthodes 
 
 Lorsque défini sur **Auto**, OneUptime tente de détecter automatiquement le format de la page de statut, dans cet ordre :
 
-1. D'abord, il essaie l'API JSON Atlassian Statuspage (`/api/v2/status.json`, `/api/v2/components.json` et `/api/v2/incidents/unresolved.json`)
-2. Ensuite, il essaie l'API de page de statut incident.io (`/proxy/<host>`)
+1. D'abord, il essaie l'API de page de statut incident.io (`/proxy/<host>`)
+2. Ensuite, il essaie l'API JSON Atlassian Statuspage (`/api/v2/status.json`, `/api/v2/components.json` et `/api/v2/incidents/unresolved.json`)
 3. En cas d'échec, il tente d'analyser la page comme un flux RSS ou Atom
 4. En dernier recours, il effectue une vérification d'accessibilité HTTP de base
+
+> **Note :** incident.io est vérifié en premier car certaines pages de statut incident.io (telles que `https://status.openai.com`) exposent également un point de terminaison limité compatible Atlassian qui omet les groupes de composants et les incidents actifs. Vérifier incident.io en premier garantit l'utilisation des données plus riches et tenant compte des groupes.
 
 ## Création d'un moniteur de page de statut externe
 
