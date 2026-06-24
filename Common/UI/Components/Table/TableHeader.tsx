@@ -100,7 +100,7 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                   ? "none"
                   : undefined;
 
-            const toggleSort = (): void => {
+            const toggleSort: () => void = (): void => {
               if (!column.key) {
                 return;
               }
@@ -133,7 +133,7 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                 onClick={() => {
                   toggleSort();
                 }}
-                onKeyDown={(e) => {
+                onKeyDown={(e: React.KeyboardEvent<HTMLTableCellElement>) => {
                   if (canSort && (e.key === "Enter" || e.key === " ")) {
                     e.preventDefault();
                     toggleSort();
