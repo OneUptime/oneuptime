@@ -226,6 +226,11 @@ GROUP BY projectId, name, primaryEntityId, day, hourOfWeek`,
         "day",
       ],
       partitionKey: "toYYYYMM(day)",
+      /*
+       * Match the source Metric sharding (the series) so each series' baseline
+       * states stay on a single shard.
+       */
+      shardingKey: "cityHash64(projectId, name, primaryEntityId)",
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "day + INTERVAL 90 DAY",

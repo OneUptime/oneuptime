@@ -5,6 +5,10 @@ export default class DeleteAllTelemetryAttributes extends DataMigrationBase {
     super("DeleteAllTelemetryAttributes");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     // Telemetry attributes now reside directly within telemetry data tables.
     return;

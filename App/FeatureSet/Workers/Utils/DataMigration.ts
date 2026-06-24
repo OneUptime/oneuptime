@@ -80,6 +80,33 @@ const RunDatabaseMigrations: PromiseVoidFunction = async (): Promise<void> => {
           continue;
         }
 
+        /*
+         * Baseline legacy ClickHouse schema migrations: the analytics schema is
+         * always a cluster (Distributed over local ReplicatedMergeTree) and the
+         * boot schema-sync already builds it, so running these historical
+         * single-node DDL migrations against the Distributed / *Local tables
+         * would fail and halt the chain. Record them as executed without running
+         * them; the ConvertAnalyticsTablesToCluster migration handles any
+         * existing data.
+         */
+        if (!migration.runsInClusterMode()) {
+          logger.info(
+            "Baselining Database Migration on clustered ClickHouse (recorded without running): " +
+              migration.name,
+          );
+          const baselined: DataMigration = new DataMigration();
+          baselined.name = migration.name;
+          baselined.executed = true;
+          baselined.executedAt = OneUptimeDate.getCurrentDate();
+          await DataMigrationService.create({
+            data: baselined,
+            props: {
+              isRoot: true,
+            },
+          });
+          continue;
+        }
+
         logger.debug("Running Database Migration:" + migration.name, {
           service: "workers",
         });

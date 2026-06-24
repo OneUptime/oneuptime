@@ -43,6 +43,10 @@ export default class ChangeMetricColumnTypeToDecimal extends DataMigrationBase {
     super("ChangeMetricColumnTypeToDecimal");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     const columnKeys: Array<string> = ["value", "sum", "min", "max"];
 

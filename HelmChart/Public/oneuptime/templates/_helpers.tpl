@@ -387,6 +387,31 @@ its userlist at startup.
   {{- else }}
   value: {{ $.Values.externalClickhouse.database }}
   {{- end }}
+# Cluster name. OneUptime's analytics schema ALWAYS runs as a sharded +
+# replicated cluster (Distributed over local ReplicatedMergeTree, ON CLUSTER).
+# The name must match the cluster defined in the ClickHouse config:
+#   - operator path: the CHI cluster (clickhouseOperator.altinity.cluster.name);
+#   - built-in StatefulSet: the "oneuptime" 1-node cluster + embedded Keeper in
+#     clickhouse.configuration;
+#   - external ClickHouse: the cluster you defined there (externalClickhouse.clusterName).
+# The ConvertAnalyticsTablesToCluster data-migration converts any existing
+# single-node data in place on boot.
+- name: CLICKHOUSE_CLUSTER_NAME
+  {{- if $chAltinity.enabled }}
+  value: {{ $chAltinity.cluster.name | default "oneuptime" | squote }}
+  {{- else if $.Values.clickhouse.enabled }}
+  value: "oneuptime"
+  {{- else }}
+  value: {{ $.Values.externalClickhouse.clusterName | default "oneuptime" | squote }}
+  {{- end }}
+{{- if $chAltinity.enabled }}
+{{- with $chAltinity.cluster.shardingKey }}
+# Optional GLOBAL override of the Distributed sharding-key expression (default:
+# each model's own key — cityHash64(traceId) for spans, the series for metrics).
+- name: CLICKHOUSE_SHARDING_KEY
+  value: {{ . | squote }}
+{{- end }}
+{{- end }}
 
 
 ## CLICKHOUSE SSL BLOCK

@@ -36,6 +36,10 @@ export default class RebuildMetricBaselineHourlyWithBFloat16Quantiles extends Da
     super("RebuildMetricBaselineHourlyWithBFloat16Quantiles");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     /*
      * If the live medianState is already quantileBFloat16 (fresh install

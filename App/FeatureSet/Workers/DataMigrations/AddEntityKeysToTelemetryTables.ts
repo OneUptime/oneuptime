@@ -36,6 +36,10 @@ export default class AddEntityKeysToTelemetryTables extends DataMigrationBase {
     super("AddEntityKeysToTelemetryTables");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     this.failures = [];
     await this.addEntityKeysColumn(new Log(), LogService);

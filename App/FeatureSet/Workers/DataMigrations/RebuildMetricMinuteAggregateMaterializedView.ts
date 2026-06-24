@@ -23,6 +23,10 @@ export default class RebuildMetricMinuteAggregateMaterializedView extends DataMi
     super("RebuildMetricMinuteAggregateMaterializedView");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     /*
      * MV creation is now owned by the model + analytics schema-sync

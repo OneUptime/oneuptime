@@ -41,6 +41,10 @@ export default class AddTelemetryStorageCompression extends DataMigrationBase {
     super("AddTelemetryStorageCompression");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
     await this.applyMetricCodecs();
     await this.applyLogCodecs();

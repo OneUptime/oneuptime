@@ -29,6 +29,10 @@ import UpdateBy from "../Types/AnalyticsDatabase/UpdateBy";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "../Utils/AnalyticsDatabase/StatementGenerator";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import {
+  getStorageTableName,
+  onClusterClause,
+} from "../Utils/AnalyticsDatabase/ClusterConfig";
 import logger, { LogAttributes } from "../Utils/Logger";
 import Realtime from "../Utils/Realtime";
 import StreamUtil from "../Utils/Stream";
@@ -472,7 +476,8 @@ export default class AnalyticsDatabaseService<
   }
 
   public async doesColumnExist(columnName: string): Promise<boolean> {
-    const tableName: string = this.model.tableName;
+    // Columns live on the physical (local) storage table in cluster mode.
+    const tableName: string = getStorageTableName(this.model.tableName);
     const result: { data: Array<JSONObject> } = await (
       await this.executeQuery(
         `SELECT count() as cnt FROM system.columns WHERE database = currentDatabase() AND table = '${tableName}' AND name = '${columnName}'`,
@@ -485,7 +490,7 @@ export default class AnalyticsDatabaseService<
   }
 
   public async getColumnCodec(columnName: string): Promise<string> {
-    const tableName: string = this.model.tableName;
+    const tableName: string = getStorageTableName(this.model.tableName);
     const result: { data: Array<JSONObject> } = await (
       await this.executeQuery(
         `SELECT compression_codec FROM system.columns WHERE database = currentDatabase() AND table = '${tableName}' AND name = '${columnName}'`,
@@ -508,7 +513,7 @@ export default class AnalyticsDatabaseService<
    * re-state a column's type in a MODIFY COLUMN without guessing it.
    */
   public async getColumnDatabaseType(columnName: string): Promise<string> {
-    const tableName: string = this.model.tableName;
+    const tableName: string = getStorageTableName(this.model.tableName);
     const result: { data: Array<JSONObject> } = await (
       await this.executeQuery(
         `SELECT type FROM system.columns WHERE database = currentDatabase() AND table = '${tableName}' AND name = '${columnName}'`,
@@ -530,7 +535,11 @@ export default class AnalyticsDatabaseService<
     codec: string;
     expectedCodecValue: string;
   }): Promise<void> {
-    const tableName: string = this.model.tableName;
+    /*
+     * MODIFY COLUMN on the local table; ReplicatedMergeTree fans the codec
+     * change out to the other replicas through Keeper.
+     */
+    const tableName: string = getStorageTableName(this.model.tableName);
     const currentCodec: string = await this.getColumnCodec(data.columnName);
 
     if (currentCodec === data.expectedCodecValue) {
@@ -1294,19 +1303,23 @@ export default class AnalyticsDatabaseService<
     );
 
     /*
-     * Use ClickHouse lightweight deletes (`DELETE FROM`) rather than
-     * `ALTER TABLE … DELETE`. The latter creates an async mutation that
-     * rewrites whole parts and is bounded by `number_of_mutations_to_throw`
-     * (default 1000). Customers with chatty state transitions hit that
-     * ceiling and every subsequent delete fails with TOO_MANY_MUTATIONS.
-     * Lightweight deletes mark rows via the hidden `_row_exists` column
-     * and are reconciled during normal merges, so they don't accumulate
-     * in the mutations queue.
+     * Lightweight `DELETE FROM` cannot target a Distributed table and does not
+     * accept `ON CLUSTER`, so deletes are an `ALTER TABLE <local> ON CLUSTER …
+     * DELETE` mutation dispatched to every shard (and replicated within each
+     * shard via Keeper). ALTER ... DELETE mutations are bounded by
+     * `number_of_mutations_to_throw` (default 1000) — but deletes are rare here
+     * (retention is handled by TTL), so the queue does not accumulate.
      */
     /* eslint-disable prettier/prettier */
+    const localTableName: string = getStorageTableName(this.model.tableName);
     const statement: Statement = SQL`
-            DELETE FROM ${databaseName}.${this.model.tableName}
-            WHERE TRUE `.append(whereStatement);
+            ALTER TABLE ${databaseName}.${localTableName}`
+      .append(onClusterClause())
+      .append(
+        SQL`
+            DELETE WHERE TRUE `,
+      )
+      .append(whereStatement);
 
     logger.debug(`${this.model.tableName} Delete Statement`, {
       tableName: this.model.tableName,
