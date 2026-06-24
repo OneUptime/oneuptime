@@ -476,7 +476,20 @@ export default class TemplateVariablesCatalog {
             },
             {
               key: "componentStatuses",
-              description: "Array of {name, status, description}.",
+              description: "Array of {name, status, description, groupName}.",
+            },
+            {
+              key: "provider",
+              description:
+                "Detected provider (Atlassian Statuspage, incident.io, RSS, Atom).",
+            },
+            {
+              key: "componentGroup",
+              description: "Component group this monitor is scoped to, if any.",
+            },
+            {
+              key: "componentName",
+              description: "Component this monitor is scoped to, if any.",
             },
             {
               key: "isOnline",

@@ -1,8 +1,14 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import MonitorStepExternalStatusPageMonitor from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
+import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusPageProviderType";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 
 export interface ComponentProps {
   monitorStepExternalStatusPageMonitor: MonitorStepExternalStatusPageMonitor;
@@ -15,12 +21,15 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [showAdvancedOptions, setShowAdvancedOptions] =
     useState<boolean>(false);
 
+  const providerDropdownOptions: Array<DropdownOption> =
+    DropdownUtil.getDropdownOptionsFromEnum(ExternalStatusPageProviderType);
+
   return (
     <div className="space-y-5">
       <div>
         <FieldLabelElement
           title="Status Page URL"
-          description="The URL of the external status page to monitor (e.g. https://www.githubstatus.com)"
+          description="The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)"
           required={true}
         />
         <Input
@@ -39,8 +48,54 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
 
       <div>
         <FieldLabelElement
+          title="Provider"
+          description="How OneUptime reads this status page. 'Auto' detects Atlassian Statuspage, incident.io, or an RSS/Atom feed automatically."
+          required={false}
+        />
+        <Dropdown
+          initialValue={providerDropdownOptions.find((i: DropdownOption) => {
+            return (
+              i.value ===
+              (props.monitorStepExternalStatusPageMonitor.provider ||
+                ExternalStatusPageProviderType.Auto)
+            );
+          })}
+          options={providerDropdownOptions}
+          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+            props.onChange({
+              ...props.monitorStepExternalStatusPageMonitor,
+              provider:
+                (value?.toString() as ExternalStatusPageProviderType) ||
+                ExternalStatusPageProviderType.Auto,
+            });
+          }}
+        />
+      </div>
+
+      <div>
+        <FieldLabelElement
+          title="Component Group Filter (Optional)"
+          description="Scope to a specific component group, e.g. 'APIs'. Incidents and component statuses outside this group are ignored. Supported for Atlassian Statuspage and incident.io."
+          required={false}
+        />
+        <Input
+          initialValue={
+            props.monitorStepExternalStatusPageMonitor.componentGroupName || ""
+          }
+          placeholder="e.g. APIs"
+          onChange={(value: string) => {
+            props.onChange({
+              ...props.monitorStepExternalStatusPageMonitor,
+              componentGroupName: value || undefined,
+            });
+          }}
+        />
+      </div>
+
+      <div>
+        <FieldLabelElement
           title="Component Name Filter (Optional)"
-          description="Filter to a specific component by name. Leave blank to monitor overall status."
+          description="Filter to a specific component by name (applied within the component group when one is set). Leave blank to monitor all components in scope."
           required={false}
         />
         <Input
