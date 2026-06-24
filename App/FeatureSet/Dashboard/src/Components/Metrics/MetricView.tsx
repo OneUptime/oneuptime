@@ -911,7 +911,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
                * Give each metric result ~20rem of height (matching the
                * chart's previous fixed h-80 / 320px height).
                */
-              height: metricResults.length * 20 + "rem",
+              minHeight: metricResults.length * 20 + "rem",
             }}
           >
             <MetricCharts
