@@ -13,6 +13,7 @@ enum MonitorType {
   DockerSwarm = "Docker Swarm",
   Proxmox = "Proxmox",
   Ceph = "Ceph",
+  IoTDevice = "IoT Device",
   IP = "IP",
   IncomingRequest = "Incoming Request",
   IncomingEmail = "Incoming Email",
@@ -106,6 +107,7 @@ export class MonitorTypeHelper {
           MonitorType.DockerSwarm,
           MonitorType.Proxmox,
           MonitorType.Ceph,
+          MonitorType.IoTDevice,
         ],
       },
       {
@@ -145,7 +147,8 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.Podman ||
       monitorType === MonitorType.DockerSwarm ||
       monitorType === MonitorType.Proxmox ||
-      monitorType === MonitorType.Ceph
+      monitorType === MonitorType.Ceph ||
+      monitorType === MonitorType.IoTDevice
     );
   }
 
@@ -231,6 +234,13 @@ export class MonitorTypeHelper {
         description:
           "This monitor type lets you monitor Ceph storage clusters — cluster health, monitor quorum, OSD availability, pool capacity, and placement group states.",
         icon: IconProp.Ceph,
+      },
+      {
+        monitorType: MonitorType.IoTDevice,
+        title: "IoT Device",
+        description:
+          "This monitor type lets you monitor IoT device fleets — device availability, battery level, connectivity and signal strength, temperature, and system health across your devices and gateways.",
+        icon: IconProp.IoT,
       },
       {
         monitorType: MonitorType.IP,
@@ -439,6 +449,7 @@ export class MonitorTypeHelper {
       MonitorType.DockerSwarm,
       MonitorType.Proxmox,
       MonitorType.Ceph,
+      MonitorType.IoTDevice,
     ];
   }
 

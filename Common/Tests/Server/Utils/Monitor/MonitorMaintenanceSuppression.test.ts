@@ -15,6 +15,7 @@ function emptyMaintained(): MaintainedResourceKeys {
     kubernetesClusters: { ids: new Set<string>(), names: new Set<string>() },
     proxmoxClusters: { ids: new Set<string>(), names: new Set<string>() },
     cephClusters: { ids: new Set<string>(), names: new Set<string>() },
+    iotFleets: { ids: new Set<string>(), names: new Set<string>() },
     services: { ids: new Set<string>(), names: new Set<string>() },
   };
 }
@@ -105,6 +106,21 @@ describe("SeriesResourceLabels", () => {
       expect(refs.proxmoxClusterNames).toEqual(["pve-1"]);
       expect(refs.cephClusterNames).toEqual(["ceph-1"]);
     });
+
+    it("maps iot fleet name keys (prefixed and unprefixed)", () => {
+      const refs: SeriesResourceRefs = SeriesResourceLabels.extractResourceRefs(
+        {
+          "resource.iot.fleet.name": "fleet-1",
+        },
+      );
+      expect(refs.iotFleetNames).toEqual(["fleet-1"]);
+
+      const refsUnprefixed: SeriesResourceRefs =
+        SeriesResourceLabels.extractResourceRefs({
+          "iot.fleet.name": "fleet-2",
+        });
+      expect(refsUnprefixed.iotFleetNames).toEqual(["fleet-2"]);
+    });
   });
 });
 
@@ -169,6 +185,26 @@ describe("MonitorMaintenanceSuppression.getSuppressedFingerprintsForMaintainedRe
       "fpDocker",
       "fpService",
     ]);
+  });
+
+  it("suppresses an IoT series whose fleet is under maintenance", () => {
+    const maintained: MaintainedResourceKeys = emptyMaintained();
+    maintained.iotFleets.names.add("warehouse-sensors");
+
+    const result: Set<string> =
+      MonitorMaintenanceSuppression.getSuppressedFingerprintsForMaintainedResources(
+        {
+          matchesPerSeries: [
+            series("fpFleet", {
+              "resource.iot.fleet.name": "warehouse-sensors",
+            }),
+            series("fpClear", { "resource.iot.fleet.name": "office-sensors" }),
+          ],
+          maintained,
+        },
+      );
+
+    expect(Array.from(result)).toEqual(["fpFleet"]);
   });
 
   it("does not cross-match resource types that happen to share a name", () => {

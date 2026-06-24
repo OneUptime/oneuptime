@@ -245,6 +245,42 @@ export class Service extends DatabaseService<Model> {
           },
         ];
 
+      case StatusPageSubscriberNotificationEventType.SubscriberReport:
+        /*
+         * The report template is rendered through the full Handlebars engine
+         * with the structured `report` object, so the per-resource fields are
+         * accessed inside {{#each report.resources}} rather than as flat
+         * scalars. The entries below document the top-level paths.
+         */
+        return [
+          ...commonVariables,
+          {
+            name: "report.reportDates",
+            description: "The reporting period",
+          },
+          {
+            name: "report.averageUptimePercent",
+            description: "Average uptime across all resources",
+          },
+          {
+            name: "report.totalDowntimeInHoursAndMinutes",
+            description: "Total downtime in the period",
+          },
+          {
+            name: "report.totalIncidents",
+            description: "Total number of incidents in the period",
+          },
+          {
+            name: "report.totalResources",
+            description: "Number of resources on the status page",
+          },
+          {
+            name: "report.resources",
+            description:
+              "Array of per-resource rows (resourceName, uptimePercentAsString, downtimeInHoursAndMinutes, totalIncidentCount) to loop over with {{#each}}",
+          },
+        ];
+
       default:
         throw new BadDataException(`Unknown event type: ${eventType}`);
     }

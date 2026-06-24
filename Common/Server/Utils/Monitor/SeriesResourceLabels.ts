@@ -100,6 +100,23 @@ export const CephClusterNameLabelKeys: ReadonlyArray<string> = [
 ];
 
 /*
+ * IoT fleet identity rides the agent-stamped resource attribute
+ * (`iot.fleet.name`) and its ClickHouse `resource.`-prefixed twin.
+ * Ingest keys fleet rows by name only — there is no `oneuptime.*.id`
+ * stamp for fleets — so only name keys exist. The name maps to the
+ * IoTFleet model's `name` column. Like Proxmox/Ceph, the shipped IoT
+ * alert templates group by the datapoint label `device.id`, so their
+ * series labels do NOT carry these keys; the deterministic fleet link
+ * for those monitors comes from the monitor step config instead (see
+ * MonitorClusterContext). These keys cover user-built monitors that
+ * group by the fleet attribute.
+ */
+export const IoTFleetNameLabelKeys: ReadonlyArray<string> = [
+  "resource.iot.fleet.name",
+  "iot.fleet.name",
+];
+
+/*
  * Services come from OTel-ingested telemetry. The ingest pipeline
  * auto-creates a Service row keyed by `service.name`, so any series
  * label carrying that attribute (raw or prefixed) tells us the emitting
@@ -134,6 +151,7 @@ export interface SeriesResourceRefs {
   kubernetesClusterNames: Array<string>;
   proxmoxClusterNames: Array<string>;
   cephClusterNames: Array<string>;
+  iotFleetNames: Array<string>;
   serviceIds: Array<string>;
   serviceNames: Array<string>;
 }
@@ -207,6 +225,10 @@ export default class SeriesResourceLabels {
       cephClusterNames: this.collectLabelValues(
         seriesLabels,
         CephClusterNameLabelKeys,
+      ),
+      iotFleetNames: this.collectLabelValues(
+        seriesLabels,
+        IoTFleetNameLabelKeys,
       ),
       serviceIds: this.collectLabelValues(seriesLabels, ServiceIdLabelKeys),
       serviceNames: this.collectLabelValues(seriesLabels, ServiceNameLabelKeys),

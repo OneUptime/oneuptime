@@ -64,6 +64,11 @@ import CephResourceService, {
 } from "Common/Server/Services/CephResourceService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
 import CephClusterService from "Common/Server/Services/CephClusterService";
+import IoTDeviceService, {
+  ParsedIoTDevice,
+  IoTDeviceLatestMetric,
+} from "Common/Server/Services/IoTDeviceService";
+import IoTFleetService from "Common/Server/Services/IoTFleetService";
 import HostService from "Common/Server/Services/HostService";
 import LabelService from "Common/Server/Services/LabelService";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -84,6 +89,14 @@ import {
   deriveProxmoxClusterSnapshotExtras,
   deriveCephClusterSnapshotExtras,
 } from "Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan";
+import {
+  IOT_SNAPSHOT_METRIC_NAMES,
+  IoTDeviceBufferEntry,
+  IoTFleetSnapshotBufferEntry,
+  IoTFleetSnapshotExtras,
+  bufferIoTSnapshotMetric,
+  deriveIoTFleetSnapshotExtras,
+} from "Common/Server/Utils/Telemetry/IoTSnapshotScan";
 
 type MetricTimestamp = {
   nano: string;
@@ -669,6 +682,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         string,
         CephClusterSnapshotBufferEntry
       > = new Map();
+      const iotResourceMetricsBuffer: Map<
+        string,
+        Map<string, IoTDeviceBufferEntry>
+      > = new Map();
+      const iotFleetSnapshotBuffer: Map<string, IoTFleetSnapshotBufferEntry> =
+        new Map();
 
       // Load project + service-scoped pipeline rules once per batch (60s cached).
       let pipelineRules: MetricRulesForProject | null = null;
@@ -745,7 +764,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             proxmoxClusterId,
             cephClusterId,
             dockerSwarmClusterId,
+            iotFleetId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -774,6 +795,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             }),
             this.autoDiscoverDockerSwarmCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverIoTFleet({
               projectId,
               attributes: resourceAttributes_raw,
             }),
@@ -1265,6 +1290,25 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           });
                         }
 
+                        /*
+                         * IoT device identity lives in datapoint labels
+                         * (device.id) and resource/datapoint attributes —
+                         * the buffer function reads the raw datapoint
+                         * attribute array directly.
+                         */
+                        if (
+                          iotFleetId &&
+                          IOT_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          bufferIoTSnapshotMetric({
+                            fleetIdStr: iotFleetId.toString(),
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                            resourceBuffer: iotResourceMetricsBuffer,
+                            fleetBuffer: iotFleetSnapshotBuffer,
+                          });
+                        }
+
                         const metricRow: JSONObject = this.buildMetricRow({
                           datapoint: datapoint as JSONObject,
                           baseAttributes: metricAttributes,
@@ -1380,6 +1424,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         projectId,
         resourceBuffer: cephResourceMetricsBuffer,
         clusterBuffer: cephClusterSnapshotBuffer,
+      });
+
+      await this.flushIoTSnapshotBuffers({
+        projectId,
+        resourceBuffer: iotResourceMetricsBuffer,
+        fleetBuffer: iotFleetSnapshotBuffer,
       });
 
       if (totalMetricsProcessed === 0) {
@@ -2794,6 +2844,113 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       } catch (err) {
         logger.warn(
           `Ceph snapshot writeback (cluster) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  /*
+   * Drain the IoT buffers: device inventory upsert + latest-metric
+   * mirror, then the IoTFleet snapshot columns. The count columns are
+   * computed from the SAME buffer the inventory rows were upserted from
+   * — single-source rule, so list-page counts and sidebar badges can
+   * never drift. Failures are logged and swallowed: snapshots are
+   * best-effort and must never affect ClickHouse ingest.
+   */
+  private static async flushIoTSnapshotBuffers(data: {
+    projectId: ObjectID;
+    resourceBuffer: Map<string, Map<string, IoTDeviceBufferEntry>>;
+    fleetBuffer: Map<string, IoTFleetSnapshotBufferEntry>;
+  }): Promise<void> {
+    const fleetIdStrs: Set<string> = new Set<string>([
+      ...data.resourceBuffer.keys(),
+      ...data.fleetBuffer.keys(),
+    ]);
+
+    for (const fleetIdStr of fleetIdStrs) {
+      const byKey: Map<string, IoTDeviceBufferEntry> | undefined =
+        data.resourceBuffer.get(fleetIdStr);
+      const entries: Array<IoTDeviceBufferEntry> = byKey
+        ? Array.from(byKey.values())
+        : [];
+      const snap: IoTFleetSnapshotBufferEntry | undefined =
+        data.fleetBuffer.get(fleetIdStr);
+
+      if (entries.length > 0) {
+        try {
+          const devices: Array<ParsedIoTDevice> = entries.map(
+            (e: IoTDeviceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                name: e.name,
+                deviceType: e.deviceType,
+                firmwareVersion: e.firmwareVersion,
+                isUp: e.isUp,
+                uptimeSeconds: e.uptimeSeconds,
+                lastSeenAt: e.observedAt,
+              };
+            },
+          );
+          await IoTDeviceService.bulkUpsert({
+            projectId: data.projectId,
+            iotFleetId: new ObjectID(fleetIdStr),
+            devices,
+          });
+
+          const metrics: Array<IoTDeviceLatestMetric> = entries.map(
+            (e: IoTDeviceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                cpuPercent: e.latestCpuPercent,
+                memoryBytes: e.latestMemoryBytes,
+                maxMemoryBytes: e.maxMemoryBytes,
+                memoryPercent:
+                  e.latestMemoryBytes !== null &&
+                  e.maxMemoryBytes !== null &&
+                  e.maxMemoryBytes > 0
+                    ? (e.latestMemoryBytes / e.maxMemoryBytes) * 100
+                    : null,
+                batteryPercent: e.latestBatteryPercent,
+                signalStrengthDbm: e.latestSignalStrengthDbm,
+                temperatureCelsius: e.latestTemperatureCelsius,
+                observedAt: e.observedAt,
+              };
+            },
+          );
+          await IoTDeviceService.bulkUpdateLatestMetrics({
+            projectId: data.projectId,
+            iotFleetId: new ObjectID(fleetIdStr),
+            metrics,
+          });
+        } catch (err) {
+          logger.warn(
+            `IoT snapshot writeback (inventory) failed for fleet ${fleetIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      try {
+        /*
+         * Counts are only written when the batch carried the matching
+         * identity series — never zero a count on a partial batch
+         * (deriveIoTFleetSnapshotExtras owns that contract).
+         */
+        const extras: IoTFleetSnapshotExtras = deriveIoTFleetSnapshotExtras(
+          entries,
+          snap,
+        );
+
+        if (Object.keys(extras).length > 0) {
+          await IoTFleetService.updateLastSeen(
+            new ObjectID(fleetIdStr),
+            extras,
+          );
+        }
+      } catch (err) {
+        logger.warn(
+          `IoT snapshot writeback (fleet) failed for fleet ${fleetIdStr}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }

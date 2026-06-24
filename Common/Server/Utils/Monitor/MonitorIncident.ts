@@ -12,6 +12,7 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
+import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
 import Service from "../../../Models/DatabaseModels/Service";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -267,13 +268,25 @@ export default class MonitorIncident {
           continue;
         }
 
+        /*
+         * Dedupe match must mirror the create path below (which sets
+         * `createdCriteriaId` / `createdIncidentTemplateId` only when the
+         * corresponding id is present). A criteria incident template can be
+         * missing its `id` (legacy/API-authored criteria), so guard the
+         * `.toString()` with `?.` — an unguarded call previously threw
+         * "Cannot read properties of undefined (reading 'toString')" here and
+         * failed the probe/telemetry queue job on every cycle for the affected
+         * monitor. Normalise both sides to `undefined` on missing so a created
+         * incident (whose template id was left NULL) still matches itself next
+         * cycle instead of being recreated as a duplicate.
+         */
         const alreadyOpenIncident: Incident | undefined = openIncidents.find(
           (incident: Incident) => {
             return (
-              incident.createdCriteriaId ===
-                input.criteriaInstance.data?.id.toString() &&
-              incident.createdIncidentTemplateId ===
-                criteriaIncident.id.toString() &&
+              (incident.createdCriteriaId || undefined) ===
+                (input.criteriaInstance.data?.id?.toString() || undefined) &&
+              (incident.createdIncidentTemplateId || undefined) ===
+                (criteriaIncident.id?.toString() || undefined) &&
               (incident.seriesFingerprint || undefined) === seriesFingerprint
             );
           },
@@ -808,6 +821,27 @@ export default class MonitorIncident {
 
       input.incident.dockerSwarmClusters = merged;
     }
+
+    if (input.clusterContext.iotFleetIds.length > 0) {
+      const existingIds: Set<string> = new Set<string>(
+        (input.incident.iotFleets || []).map((fleet: IoTFleet) => {
+          return String(fleet._id);
+        }),
+      );
+
+      const merged: Array<IoTFleet> = [...(input.incident.iotFleets || [])];
+
+      for (const id of input.clusterContext.iotFleetIds) {
+        if (existingIds.has(id)) {
+          continue;
+        }
+        const fleet: IoTFleet = new IoTFleet();
+        fleet._id = id;
+        merged.push(fleet);
+      }
+
+      input.incident.iotFleets = merged;
+    }
   }
 
   /*
@@ -1002,7 +1036,7 @@ export default class MonitorIncident {
 
     if (
       input.openIncident.createdCriteriaId?.toString() ===
-      input.criteriaInstance?.data?.id.toString()
+      input.criteriaInstance?.data?.id?.toString()
     ) {
       // same incident active. So, do not close.
       return false;

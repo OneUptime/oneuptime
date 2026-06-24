@@ -253,6 +253,15 @@ const ProxmoxRoutes: React.LazyExoticComponent<
     };
   });
 });
+const IoTRoutes: React.LazyExoticComponent<AllRoutesModule["IoTRoutes"]> = lazy(
+  () => {
+    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+      return {
+        default: m.IoTRoutes,
+      };
+    });
+  },
+);
 const DockerSwarmRoutes: React.LazyExoticComponent<
   AllRoutesModule["DockerSwarmRoutes"]
 > = lazy(() => {
@@ -702,6 +711,12 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.PROXMOX_ROOT]?.toString() || ""}
             element={<ProxmoxRoutes {...commonPageProps} />}
+          />
+
+          {/* IoT */}
+          <PageRoute
+            path={RouteMap[PageMap.IOT_ROOT]?.toString() || ""}
+            element={<IoTRoutes {...commonPageProps} />}
           />
 
           {/* Docker Swarm */}

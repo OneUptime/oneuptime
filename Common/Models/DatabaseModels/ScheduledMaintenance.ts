@@ -8,6 +8,7 @@ import Monitor from "./Monitor";
 import MonitorStatus from "./MonitorStatus";
 import Project from "./Project";
 import ProxmoxCluster from "./ProxmoxCluster";
+import IoTFleet from "./IoTFleet";
 import DockerSwarmCluster from "./DockerSwarmCluster";
 import ScheduledMaintenanceState from "./ScheduledMaintenanceState";
 import Service from "./Service";
@@ -763,6 +764,60 @@ export default class ScheduledMaintenance extends BaseModel {
     },
   })
   public proxmoxClusters?: Array<ProxmoxCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: IoTFleet,
+    title: "IoT Fleets",
+    description: "List of IoT fleets affected by this event.",
+  })
+  @ManyToMany(
+    () => {
+      return IoTFleet;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceIoTFleet",
+    inverseJoinColumn: {
+      name: "iotFleetId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceId",
+      referencedColumnName: "_id",
+    },
+  })
+  public iotFleets?: Array<IoTFleet> = undefined;
 
   @ColumnAccessControl({
     create: [

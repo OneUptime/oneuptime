@@ -190,6 +190,26 @@ export const ProxmoxRoutePath: Dictionary<string> = {
   [PageMap.PROXMOX_ARCHIVED]: `archived`,
 };
 
+export const IoTRoutePath: Dictionary<string> = {
+  [PageMap.IOT_FLEET_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.IOT_FLEET_VIEW_DEVICES]: `${RouteParams.ModelID}/devices`,
+  [PageMap.IOT_FLEET_VIEW_DEVICE_DETAIL]: `${RouteParams.ModelID}/devices/${RouteParams.SubModelID}`,
+  [PageMap.IOT_FLEET_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.IOT_FLEET_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.IOT_FLEET_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.IOT_FLEET_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.IOT_FLEET_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.IOT_FLEET_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.IOT_FLEET_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.IOT_FLEET_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.IOT_FLEET_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.IOT_FLEET_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.IOT_DOCUMENTATION]: `documentation`,
+  [PageMap.IOT_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.IOT_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.IOT_ARCHIVED]: `archived`,
+};
+
 export const DockerSwarmRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODES]: `${RouteParams.ModelID}/nodes`,
@@ -2707,6 +2727,113 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PROXMOX_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/proxmox/${
       ProxmoxRoutePath[PageMap.PROXMOX_ARCHIVED]
+    }`,
+  ),
+
+  // IoT
+
+  [PageMap.IOT_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/iot/*`),
+
+  [PageMap.IOT_FLEETS]: new Route(`/dashboard/${RouteParams.ProjectID}/iot`),
+
+  [PageMap.IOT_FLEET_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_DEVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_DEVICES]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_DEVICE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_DEVICE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.IOT_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.IOT_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.IOT_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+  [PageMap.IOT_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_ARCHIVED]
     }`,
   ),
 
