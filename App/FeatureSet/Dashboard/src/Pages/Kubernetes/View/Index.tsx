@@ -1672,14 +1672,24 @@ const KubernetesClusterOverview: FunctionComponent<
         ? status.charAt(0).toUpperCase() + status.slice(1)
         : "Disconnected";
 
-    const healthBadgeClass: string =
-      clusterHealth === "Healthy"
+    /*
+     * Health is derived from the last inventory snapshot, which goes stale
+     * once the collector disconnects. Reporting "Healthy" next to a
+     * "Disconnected" badge is contradictory and misleading, so when the
+     * cluster is not connected we surface health as "Unknown" (neutral grey)
+     * rather than the last-known live status.
+     */
+    const healthLabel: string = isConnected ? clusterHealth : "Unknown";
+    const healthBadgeClass: string = !isConnected
+      ? "bg-gray-50 text-gray-600 ring-gray-200"
+      : clusterHealth === "Healthy"
         ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
         : clusterHealth === "Degraded"
           ? "bg-amber-50 text-amber-700 ring-amber-200"
           : "bg-red-50 text-red-700 ring-red-200";
-    const healthDotClass: string =
-      clusterHealth === "Healthy"
+    const healthDotClass: string = !isConnected
+      ? "bg-gray-400"
+      : clusterHealth === "Healthy"
         ? "bg-emerald-500"
         : clusterHealth === "Degraded"
           ? "bg-amber-500"
@@ -1798,7 +1808,7 @@ const KubernetesClusterOverview: FunctionComponent<
                         <span
                           className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
                         />
-                        {clusterHealth}
+                        {healthLabel}
                       </span>
                     )}
                   </div>
