@@ -279,6 +279,17 @@ const WorkersFeatureSet: FeatureSet = {
           });
           logger.error(err, { service: "workers" });
         });
+      } else {
+        /*
+         * RUN_DATABASE_MIGRATIONS_ON_BOOT=false: a dedicated migrate Job owns
+         * ClickHouse schema sync + data migrations. Log it so a transient
+         * UNKNOWN_TABLE right after a fresh install/upgrade (pod Ready before the
+         * non-blocking Job has created the tables) is recognizable as expected,
+         * not a bug. Steady-state pods are unaffected — the tables already exist.
+         */
+        logger.info(
+          "RUN_DATABASE_MIGRATIONS_ON_BOOT=false: skipping boot ClickHouse schema sync + data migrations; the migrate Job owns them. This pod becomes Ready without issuing ON CLUSTER DDL.",
+        );
       }
 
       /*

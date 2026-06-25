@@ -25,6 +25,7 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
+import { getClickhouseClusterName } from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -1246,6 +1247,15 @@ async function getClickhouseDiagnostics(): Promise<JSONObject> {
     mutations: { total: null, unfinished: null, failed: null, items: [] },
     activeMerges: null,
     topTablesByParts: [],
+    clusterHealth: {
+      clusterName: null,
+      clusters: [],
+      distributedDdlQueue: { unfinished: null, byStatus: [], items: [] },
+      unhealthyReplicas: [],
+      replicationQueue: [],
+      preclusteredTables: [],
+      keeperConnection: [],
+    },
   };
 
   try {
@@ -1372,6 +1382,225 @@ async function getClickhouseDiagnostics(): Promise<JSONObject> {
         };
       },
     );
+
+    /*
+     * Cluster health — the distributed-DDL / replication / Keeper state needed
+     * to diagnose a wedged ON CLUSTER schema sync (the class of incident where
+     * the migrate Job or boot schema-sync times out because a DDL task never
+     * finishes on some shards). Each probe is independently guarded so a
+     * single-node deployment, or an older ClickHouse missing one of these system
+     * tables, degrades gracefully instead of dropping the whole payload. None of
+     * these emit row data — only schema/topology and engine-level error text
+     * (scrubbed + truncated).
+     */
+    const clusterName: string = getClickhouseClusterName();
+    const clusterNameLiteral: string = clusterName.replace(/'/g, "''");
+    const clusterHealth: JSONObject = {
+      clusterName: clusterName,
+      clusters: [],
+      distributedDdlQueue: { unfinished: null, byStatus: [], items: [] },
+      unhealthyReplicas: [],
+      replicationQueue: [],
+      preclusteredTables: [],
+      keeperConnection: [],
+    };
+
+    // 1. Cluster topology + per-host error counters (is every shard reachable?).
+    try {
+      const clustersResult: ClickhouseJsonResult = (await (
+        await client.query({
+          query:
+            `SELECT shard_num, replica_num, host_name, errors_count, slowdowns_count, estimated_recovery_time FROM system.clusters WHERE cluster = '${clusterNameLiteral}' ORDER BY shard_num ASC, replica_num ASC` +
+            CH_DIAG_QUERY_SETTINGS,
+          format: "JSON",
+        })
+      ).json()) as ClickhouseJsonResult;
+      clusterHealth["clusters"] = (clustersResult.data || []).map(
+        (row: JSONObject): JSONObject => {
+          return {
+            shardNum: toNumberOrNull(row["shard_num"]),
+            replicaNum: toNumberOrNull(row["replica_num"]),
+            hostName: String(row["host_name"]),
+            errorsCount: toNumberOrNull(row["errors_count"]),
+            slowdownsCount: toNumberOrNull(row["slowdowns_count"]),
+            estimatedRecoveryTime: toNumberOrNull(
+              row["estimated_recovery_time"],
+            ),
+          };
+        },
+      );
+    } catch {
+      logger.debug("AdminHealth: system.clusters unavailable");
+    }
+
+    // 2. Distributed DDL queue — unfinished tasks are the signature of a wedge.
+    try {
+      const ddlByStatusResult: ClickhouseJsonResult = (await (
+        await client.query({
+          query:
+            "SELECT host, status, count() AS n FROM system.distributed_ddl_queue WHERE status != 'Finished' GROUP BY host, status ORDER BY host ASC" +
+            CH_DIAG_QUERY_SETTINGS,
+          format: "JSON",
+        })
+      ).json()) as ClickhouseJsonResult;
+
+      const ddlItemsResult: ClickhouseJsonResult = (await (
+        await client.query({
+          query:
+            "SELECT entry, host, status, exception_code, exception_text, query_duration_ms FROM system.distributed_ddl_queue WHERE status != 'Finished' ORDER BY entry ASC LIMIT 50" +
+            CH_DIAG_QUERY_SETTINGS,
+          format: "JSON",
+        })
+      ).json()) as ClickhouseJsonResult;
+
+      const ddlByStatus: JSONArray = (ddlByStatusResult.data || []).map(
+        (row: JSONObject): JSONObject => {
+          return {
+            host: String(row["host"]),
+            status: String(row["status"]),
+            count: toNumberOrNull(row["n"]),
+          };
+        },
+      );
+
+      let ddlUnfinished: number = 0;
+      for (const row of ddlByStatus) {
+        ddlUnfinished += toNumberOrNull((row as JSONObject)["count"]) || 0;
+      }
+
+      clusterHealth["distributedDdlQueue"] = {
+        unfinished: ddlUnfinished,
+        byStatus: ddlByStatus,
+        items: (ddlItemsResult.data || []).map(
+          (row: JSONObject): JSONObject => {
+            return {
+              entry: String(row["entry"]),
+              host: String(row["host"]),
+              status: String(row["status"]),
+              exceptionCode: toNumberOrNull(row["exception_code"]),
+              exceptionText: row["exception_text"]
+                ? scrubSecretsFromText(String(row["exception_text"])).substring(
+                    0,
+                    500,
+                  )
+                : null,
+              queryDurationMs: toNumberOrNull(row["query_duration_ms"]),
+            };
+          },
+        ),
+      };
+    } catch {
+      logger.debug("AdminHealth: system.distributed_ddl_queue unavailable");
+    }
+
+    // 3. Replicas that are read-only / session-expired / lagging / missing peers.
+    try {
+      const replicasResult: ClickhouseJsonResult = (await (
+        await client.query({
+          query:
+            "SELECT database, table, is_readonly, is_session_expired, absolute_delay, queue_size, total_replicas, active_replicas FROM system.replicas WHERE is_readonly OR is_session_expired OR active_replicas < total_replicas OR absolute_delay > 60 ORDER BY absolute_delay DESC LIMIT 50" +
+            CH_DIAG_QUERY_SETTINGS,
+          format: "JSON",
+        })
+      ).json()) as ClickhouseJsonResult;
+      clusterHealth["unhealthyReplicas"] = (replicasResult.data || []).map(
+        (row: JSONObject): JSONObject => {
+          return {
+            database: String(row["database"]),
+            table: String(row["table"]),
+            isReadonly: toNumberOrNull(row["is_readonly"]),
+            isSessionExpired: toNumberOrNull(row["is_session_expired"]),
+            absoluteDelay: toNumberOrNull(row["absolute_delay"]),
+            queueSize: toNumberOrNull(row["queue_size"]),
+            totalReplicas: toNumberOrNull(row["total_replicas"]),
+            activeReplicas: toNumberOrNull(row["active_replicas"]),
+          };
+        },
+      );
+    } catch {
+      logger.debug("AdminHealth: system.replicas unavailable");
+    }
+
+    // 4. Replication queue backlog per table (stuck fetches / merges).
+    try {
+      const replQueueResult: ClickhouseJsonResult = (await (
+        await client.query({
+          query:
+            "SELECT database, table, count() AS n, max(num_tries) AS max_tries, max(num_postponed) AS max_postponed FROM system.replication_queue GROUP BY database, table ORDER BY n DESC LIMIT 20" +
+            CH_DIAG_QUERY_SETTINGS,
+          format: "JSON",
+        })
+      ).json()) as ClickhouseJsonResult;
+      clusterHealth["replicationQueue"] = (replQueueResult.data || []).map(
+        (row: JSONObject): JSONObject => {
+          return {
+            database: String(row["database"]),
+            table: String(row["table"]),
+            count: toNumberOrNull(row["n"]),
+            maxTries: toNumberOrNull(row["max_tries"]),
+            maxPostponed: toNumberOrNull(row["max_postponed"]),
+          };
+        },
+      );
+    } catch {
+      logger.debug("AdminHealth: system.replication_queue unavailable");
+    }
+
+    /*
+     * 5. Leftover *_preclustered backups ⇒ an incomplete cluster conversion:
+     *    history is stranded in them and not yet backfilled into the cluster
+     *    tables (invisible in the UI, but recoverable).
+     */
+    try {
+      const preclusteredResult: ClickhouseJsonResult = (await (
+        await client.query({
+          query:
+            "SELECT name, total_rows AS rows, total_bytes AS bytes FROM system.tables WHERE database = currentDatabase() AND name LIKE '%\\_preclustered' ORDER BY total_bytes DESC" +
+            CH_DIAG_QUERY_SETTINGS,
+          format: "JSON",
+        })
+      ).json()) as ClickhouseJsonResult;
+      clusterHealth["preclusteredTables"] = (preclusteredResult.data || []).map(
+        (row: JSONObject): JSONObject => {
+          return {
+            name: String(row["name"]),
+            rows: toNumberOrNull(row["rows"]),
+            sizeInBytes: toNumberOrNull(row["bytes"]),
+          };
+        },
+      );
+    } catch {
+      logger.debug("AdminHealth: preclustered-table probe failed");
+    }
+
+    // 6. Keeper/ZooKeeper connection state (is this node talking to Keeper?).
+    try {
+      const keeperResult: ClickhouseJsonResult = (await (
+        await client.query({
+          query:
+            "SELECT name, host, is_expired, session_uptime_elapsed_seconds, keeper_api_version FROM system.zookeeper_connection" +
+            CH_DIAG_QUERY_SETTINGS,
+          format: "JSON",
+        })
+      ).json()) as ClickhouseJsonResult;
+      clusterHealth["keeperConnection"] = (keeperResult.data || []).map(
+        (row: JSONObject): JSONObject => {
+          return {
+            name: String(row["name"]),
+            host: String(row["host"]),
+            isExpired: toNumberOrNull(row["is_expired"]),
+            sessionUptimeSeconds: toNumberOrNull(
+              row["session_uptime_elapsed_seconds"],
+            ),
+            keeperApiVersion: toNumberOrNull(row["keeper_api_version"]),
+          };
+        },
+      );
+    } catch {
+      logger.debug("AdminHealth: system.zookeeper_connection unavailable");
+    }
+
+    result["clusterHealth"] = clusterHealth;
   } catch (err) {
     logger.error("AdminHealth: failed to read ClickHouse diagnostics");
     logger.error(err);
@@ -1936,6 +2165,46 @@ router.get(
 
       const data: JSONObject = await getDiagnosticLogs();
       return Response.sendJsonObjectResponse(req, res, data);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * ClickHouse cluster health for the dashboard: shard reachability, the
+ * distributed-DDL queue, replica / replication-queue state, leftover
+ * *_preclustered backups and the Keeper connection — the signals that reveal a
+ * wedged ON CLUSTER schema sync (where the migrate Job or boot schema-sync times
+ * out because a DDL task never finishes on some shards). Enterprise Edition +
+ * master-admin only, like the overview and logs beside it. Reuses the support
+ * bundle's diagnostics so the dashboard and the downloaded bundle never disagree.
+ */
+router.get(
+  "/clickhouse-cluster",
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!IsEnterpriseEdition) {
+        throw new PaymentRequiredException(
+          "The instance health dashboard is only available on the OneUptime Enterprise Edition. " +
+            "Please switch to the Enterprise Edition build to enable this feature. " +
+            "See https://oneuptime.com/enterprise/overview for details.",
+        );
+      }
+
+      const diagnostics: JSONObject = await getClickhouseDiagnostics();
+      const clusterHealth: JSONObject = (diagnostics["clusterHealth"] ||
+        {}) as JSONObject;
+
+      return Response.sendJsonObjectResponse(req, res, {
+        connected: Boolean(diagnostics["connected"]),
+        ...clusterHealth,
+      });
     } catch (err) {
       return next(err);
     }

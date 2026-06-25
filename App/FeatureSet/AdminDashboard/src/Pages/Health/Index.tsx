@@ -1,6 +1,7 @@
 import AdminModelAPI from "../../Utils/ModelAPI";
 import EnterpriseFeatureUpgrade from "../../Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
 import BackgroundQueues from "./BackgroundQueues";
+import ClickhouseCluster from "./ClickhouseCluster";
 import DiagnosticLogs from "./DiagnosticLogs";
 import MigrationStatus from "./MigrationStatus";
 import SupportBundle from "./SupportBundle";
@@ -393,6 +394,9 @@ const Health: FunctionComponent = (): ReactElement => {
       )}
 
       {renderOverview()}
+
+      {/* ClickHouse cluster health (Enterprise-only, like the overview above). */}
+      <ClickhouseCluster />
 
       {/* Global probes — read straight from the Probe model, no new backend needed. */}
       <ModelTable<Probe>
