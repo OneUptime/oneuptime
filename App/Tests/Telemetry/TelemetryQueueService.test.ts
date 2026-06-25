@@ -82,6 +82,12 @@ const getStoredBodyKey: (callIndex?: number) => Promise<string> = (
   return getStoreBodyMock().mock.results[callIndex]!.value as Promise<string>;
 };
 
+const getEnqueuedJobOptions: (callIndex?: number) => JSONObject = (
+  callIndex: number = 0,
+): JSONObject => {
+  return getAddJobMock().mock.calls[callIndex]![4] as JSONObject;
+};
+
 describe("TelemetryQueueService.addTelemetryIngestJob", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -275,5 +281,85 @@ describe("TelemetryQueueService.addTelemetryIngestJob", () => {
 
     // Identical clock reading, identical project — ids must still differ.
     expect(firstJobId).not.toBe(secondJobId);
+  });
+});
+
+describe("TelemetryQueueService.addIncomingRequestIngestJob", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("coalesces same-monitor incoming requests via per-secret-key deduplication", async () => {
+    const secretKey: string = ObjectID.generate().toString();
+
+    await TelemetryQueueService.addIncomingRequestIngestJob({
+      secretKey,
+      requestHeaders: { "x-test": "1" },
+      requestBody: { hello: "world" },
+      requestMethod: "POST",
+    });
+
+    expect(getAddJobMock()).toHaveBeenCalledTimes(1);
+    expect(getAddJobMock().mock.calls[0]![0]).toBe("Telemetry");
+    expect(getAddJobMock().mock.calls[0]![2]).toBe("ProcessTelemetry");
+
+    const jobData: TelemetryIngestJobData = getEnqueuedJobData();
+    expect(jobData.type).toBe(TelemetryType.IncomingRequestIngest);
+    expect(jobData.incomingRequestIngest?.secretKey).toBe(secretKey);
+
+    const options: JSONObject = getEnqueuedJobOptions();
+    // Unique job id => existence check skipped.
+    expect(options["skipExistenceCheck"]).toBe(true);
+    /*
+     * keepLastIfActive coalescing keyed by the monitor's secret key: BullMQ
+     * keeps at most one active + one waiting job per monitor so an external
+     * sender cannot fan out into concurrent same-monitor monitorResource()
+     * calls contending on the per-monitor lock.
+     */
+    expect(options["deduplication"]).toEqual({
+      id: `incoming-request-${secretKey}`,
+      keepLastIfActive: true,
+    });
+  });
+
+  test("job id is unique per call but the dedup id is stable per secret key", async () => {
+    const frozenUnixNano: number = 1234567890123456;
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDateAsUnixNano")
+      .mockReturnValue(frozenUnixNano);
+
+    const secretKey: string = ObjectID.generate().toString();
+
+    await TelemetryQueueService.addIncomingRequestIngestJob({
+      secretKey,
+      requestHeaders: {},
+      requestBody: {},
+      requestMethod: "GET",
+    });
+    await TelemetryQueueService.addIncomingRequestIngestJob({
+      secretKey,
+      requestHeaders: {},
+      requestBody: {},
+      requestMethod: "GET",
+    });
+
+    expect(getAddJobMock()).toHaveBeenCalledTimes(2);
+
+    // Distinct job ids (random suffix) even with the clock pinned...
+    expect(getEnqueuedJobId(0)).not.toBe(getEnqueuedJobId(1));
+
+    // ...but the dedup id is stable so BullMQ coalesces them onto one monitor.
+    const firstDedupId: string = (
+      getEnqueuedJobOptions(0)["deduplication"] as JSONObject
+    )["id"] as string;
+    const secondDedupId: string = (
+      getEnqueuedJobOptions(1)["deduplication"] as JSONObject
+    )["id"] as string;
+    expect(firstDedupId).toBe(`incoming-request-${secretKey}`);
+    expect(secondDedupId).toBe(firstDedupId);
   });
 });

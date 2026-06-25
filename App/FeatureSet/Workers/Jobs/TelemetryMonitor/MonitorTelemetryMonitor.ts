@@ -285,7 +285,21 @@ RunCron(
         continue;
       }
 
-      MonitorResourceUtil.monitorResource(settledResponse.value);
+      /*
+       * Fire-and-forget per monitor (we intentionally do not await each
+       * evaluation serially). monitorResource() can reject — notably it now
+       * throws when the per-monitor lock is contended so the work is retried
+       * rather than run unlocked — so attach a catch to keep one monitor's
+       * failure from surfacing as an unhandled promise rejection.
+       */
+      MonitorResourceUtil.monitorResource(settledResponse.value).catch(
+        (err: Error) => {
+          logger.error(
+            `Error while processing telemetry monitor resource: ${evaluatedMonitor?.id?.toString()}`,
+          );
+          logger.error(err);
+        },
+      );
     }
   },
 );

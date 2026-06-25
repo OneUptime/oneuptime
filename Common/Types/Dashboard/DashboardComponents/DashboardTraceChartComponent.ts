@@ -16,10 +16,15 @@ export default interface DashboardTraceChartComponent extends BaseComponent {
     // Substring filter on span name (e.g. "/Shipment/ShipShipment").
     spanNameContains?: string | undefined;
     /*
-     * Attribute equality filters, ANDed — "key=value; key2=value2"
-     * (e.g. "url.host=torginol.starship.online").
+     * Attribute equality filters, ANDed. The structured editor stores a
+     * key/value record (e.g. { "url.host": "torginol.starship.online" }).
+     * A legacy "key=value; key2=value2" string is still read for widgets
+     * saved before the structured editor existed.
      */
-    attributeFilters?: string | undefined;
+    attributeFilters?:
+      | string
+      | Record<string, string | number | boolean>
+      | undefined;
     /*
      * Optional split dimension: a span attribute key (e.g. url.host,
      * resource.service.instance.id) or a top-level column (name,

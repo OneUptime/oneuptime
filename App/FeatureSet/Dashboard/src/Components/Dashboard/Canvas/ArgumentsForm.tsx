@@ -46,6 +46,7 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import EntityFilterDropdown from "./EntityFilterDropdown";
+import TraceChartQueryEditor from "./TraceChartQueryEditor";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
 
@@ -1248,6 +1249,20 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           </div>
         );
       })}
+
+      {/*
+       * Trace charts render a bespoke, structured Query section (key/value
+       * attribute filters, a searchable split-by picker, conditional max
+       * series) instead of the declarative free-text fields.
+       */}
+      {componentType === DashboardComponentType.TraceChart && (
+        <div className="mt-3">
+          <TraceChartQueryEditor
+            component={component}
+            onChange={commitComponent}
+          />
+        </div>
+      )}
 
       {/* If no Data Source section exists, render multi-query/formula at end */}
       {!sectionGroups.some((g: SectionGroup) => {

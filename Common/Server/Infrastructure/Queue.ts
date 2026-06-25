@@ -219,6 +219,19 @@ export default class Queue {
        * timestamp.
        */
       skipExistenceCheck?: boolean | undefined;
+      /**
+       * Coalesce same-key jobs so they are never processed in parallel.
+       * When set, BullMQ keeps at most one active + one waiting job per
+       * `deduplication.id`: additional adds while one is active collapse into
+       * the single waiting slot, keeping only the latest job data
+       * (keepLastIfActive). Used by the incoming-request ingest path to stop
+       * an external sender hammering one monitor's URL from fanning out into
+       * many concurrent same-monitor jobs that contend on the per-monitor
+       * lock. Independent of `jobId`, which stays unique.
+       */
+      deduplication?:
+        | { id: string; keepLastIfActive?: boolean | undefined }
+        | undefined;
     },
   ): Promise<Job> {
     const sanitizedJobId: string = this.sanitizeJobId(jobId.toString());
@@ -239,6 +252,13 @@ export default class Queue {
       optionsObject.backoff = {
         type: "exponential",
         delay: options?.backoffDelayInMs ?? 5000,
+      };
+    }
+
+    if (options?.deduplication?.id) {
+      optionsObject.deduplication = {
+        id: this.sanitizeJobId(options.deduplication.id),
+        keepLastIfActive: options.deduplication.keepLastIfActive ?? false,
       };
     }
 

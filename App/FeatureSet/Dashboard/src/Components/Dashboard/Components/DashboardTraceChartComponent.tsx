@@ -33,23 +33,20 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import OneUptimeDate from "Common/Types/Date";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import DashboardResourceList from "../Utils/DashboardResourceList";
+import {
+  TimeseriesRow,
+  buildTraceAnalyticsRequest,
+  formatCount,
+  formatDurationMs,
+  formatTickTime,
+  isDurationMetric,
+  pivotTimeseries,
+} from "./TraceChartData";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTraceChartComponent;
-}
-
-interface TimeseriesRow {
-  time: string;
-  value: number;
-  groupValues: Record<string, string>;
-}
-
-interface PivotedRow {
-  time: string;
-  [series: string]: number | string;
 }
 
 const CHART_COLORS: Array<string> = [
@@ -64,88 +61,6 @@ const CHART_COLORS: Array<string> = [
   "#64748b",
   "#84cc16",
 ];
-
-function isDurationMetric(metric: string): boolean {
-  return metric !== "count" && metric !== "errorCount";
-}
-
-function formatDurationMs(ms: number): string {
-  if (!isFinite(ms)) {
-    return "-";
-  }
-  if (ms < 1) {
-    return `${Math.round(ms * 1000)} µs`;
-  }
-  if (ms < 1000) {
-    return `${ms < 10 ? ms.toFixed(1) : Math.round(ms)} ms`;
-  }
-  if (ms < 60000) {
-    return `${(ms / 1000).toFixed(2)} s`;
-  }
-  return `${(ms / 60000).toFixed(1)} min`;
-}
-
-function formatCount(value: number): string {
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
-  }
-  if (value >= 1000) {
-    return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`;
-  }
-  return Math.round(value).toLocaleString();
-}
-
-function formatTickTime(time: string): string {
-  const date: Date = OneUptimeDate.fromString(time);
-  if (isNaN(date.getTime())) {
-    return time;
-  }
-  return date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-}
-
-function computeBucketSizeInMinutes(startTime: Date, endTime: Date): number {
-  const diffMinutes: number =
-    (endTime.getTime() - startTime.getTime()) / (1000 * 60);
-  if (diffMinutes <= 60) {
-    return 1;
-  }
-  if (diffMinutes <= 360) {
-    return 5;
-  }
-  if (diffMinutes <= 1440) {
-    return 15;
-  }
-  if (diffMinutes <= 10080) {
-    return 60;
-  }
-  return 360;
-}
-
-// "key=value; key2=value2" → attribute filter record.
-function parseAttributeFilters(
-  raw: string | undefined,
-): Record<string, string> {
-  const filters: Record<string, string> = {};
-  if (!raw) {
-    return filters;
-  }
-  for (const pair of raw.split(";")) {
-    const eqIndex: number = pair.indexOf("=");
-    if (eqIndex <= 0) {
-      continue;
-    }
-    const key: string = pair.substring(0, eqIndex).trim();
-    const value: string = pair.substring(eqIndex + 1).trim();
-    if (key && value) {
-      filters[key] = value;
-    }
-  }
-  return filters;
-}
 
 const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -192,43 +107,11 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     try {
-      const requestData: JSONObject = {
-        startTime: startAndEndDate.startValue.toISOString(),
-        endTime: startAndEndDate.endValue.toISOString(),
-        bucketSizeInMinutes: computeBucketSizeInMinutes(
-          startAndEndDate.startValue,
-          startAndEndDate.endValue,
-        ),
-        chartType: "timeseries",
-        metric,
-        /*
-         * Dashboard form arguments are stored as strings — coerce so the
-         * server-side numeric check doesn't silently fall back to 10.
-         */
-        limit: Number(props.component.arguments.topLimit) || 10,
-        /*
-         * Root spans only by default, matching the traces explorer the
-         * user compares against.
-         */
-        rootOnly: !props.component.arguments.includeChildSpans,
-      };
-
-      const spanNameContains: string | undefined =
-        props.component.arguments.spanNameContains?.trim() || undefined;
-      if (spanNameContains) {
-        requestData["spanNameSearches"] = [spanNameContains];
-      }
-
-      const attributes: Record<string, string> = parseAttributeFilters(
-        props.component.arguments.attributeFilters,
-      );
-      if (Object.keys(attributes).length > 0) {
-        requestData["attributes"] = attributes;
-      }
-
-      if (groupByAttribute) {
-        requestData["groupBy"] = [groupByAttribute];
-      }
+      const requestData: JSONObject = buildTraceAnalyticsRequest({
+        arguments: props.component.arguments,
+        startTime: startAndEndDate.startValue,
+        endTime: startAndEndDate.endValue,
+      });
 
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.post({
@@ -276,25 +159,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
   }, [fetchData, props.refreshTick]);
 
   const { pivotedData, seriesKeys } = useMemo(() => {
-    const map: Map<string, PivotedRow> = new Map();
-    const seriesKeysSet: Set<string> = new Set();
-
-    for (const row of rows) {
-      let pivotRow: PivotedRow | undefined = map.get(row.time);
-      if (!pivotRow) {
-        pivotRow = { time: row.time };
-        map.set(row.time, pivotRow);
-      }
-      const seriesKey: string =
-        Object.values(row.groupValues || {}).join(" / ") || metric;
-      seriesKeysSet.add(seriesKey);
-      pivotRow[seriesKey] = row.value;
-    }
-
-    return {
-      pivotedData: Array.from(map.values()),
-      seriesKeys: Array.from(seriesKeysSet),
-    };
+    return pivotTimeseries(rows, metric);
   }, [rows, metric]);
 
   const valueFormatter: (value: number) => string = isDuration
