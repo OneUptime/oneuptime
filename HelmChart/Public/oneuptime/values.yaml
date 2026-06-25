@@ -695,6 +695,30 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
 
+# Pod Disruption Budgets for the stateless OneUptime deployments (app, worker,
+# nginx, home, ai-agent, probes, pgbouncer). A PDB caps how many pods the
+# cluster may take down at once during *voluntary* disruptions — node drains,
+# rolling node-pool upgrades, and cluster-autoscaler scale-down — so an upgrade
+# can't evict every replica of a service simultaneously. It has no effect on
+# involuntary disruptions (node crash, OOM kill).
+#
+# The defaults below (maxUnavailable: 1) are safe even at replicaCount: 1 — the
+# lone pod can still be evicted, so node drains never wedge — and start limiting
+# disruption to one pod at a time the moment you scale a service out. Each
+# service can override these under "<service>.podDisruptionBudget".
+#
+# Set EITHER minAvailable OR maxUnavailable (the Kubernetes PDB spec allows only
+# one). If both resolve to a value, minAvailable wins. Both accept an integer or
+# a percentage string like "50%". The single-replica databases (postgresql,
+# redis, clickhouse) are intentionally excluded — a PDB there would imply HA
+# they don't provide; the multi-replica clickhouse-keeper ships its own PDB.
+podDisruptionBudget:
+  enabled: true
+  # Minimum pods that must stay available. Leave empty to use maxUnavailable.
+  minAvailable: ""
+  # Maximum pods that may be unavailable at once during a voluntary disruption.
+  maxUnavailable: 1
+
 nodeEnvironment: production
 
 billing:
@@ -1078,6 +1102,15 @@ app:
   disableTelemetryCollection: false
   enableProfiling: false
   disableAutoscaler: false
+  # Per-service Pod Disruption Budget override. Any key omitted here falls back
+  # to the global podDisruptionBudget block above. Every stateless service
+  # (worker, nginx, home, aiAgent, probes.<key>, pgbouncer) accepts the same
+  # block. Uncomment to customise just this service, e.g. keep at least one
+  # replica available instead of the global maxUnavailable:
+  # podDisruptionBudget:
+  #   enabled: true
+  #   minAvailable: 1
+  #   maxUnavailable: ""
   ports:
     http: 3002
     grpc: 4317

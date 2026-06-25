@@ -230,6 +230,21 @@
         "nginx": {
             "type": "object",
             "properties": {
+                "podDisruptionBudget": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minAvailable": {
+                            "type": ["integer", "string", "null"]
+                        },
+                        "maxUnavailable": {
+                            "type": ["integer", "string", "null"]
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "enabled": {
                     "type": "boolean"
                 },
@@ -784,6 +799,21 @@
         "pgbouncer": {
             "type": "object",
             "properties": {
+                "podDisruptionBudget": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minAvailable": {
+                            "type": ["integer", "string", "null"]
+                        },
+                        "maxUnavailable": {
+                            "type": ["integer", "string", "null"]
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "enabled": {
                     "type": "boolean"
                 },
@@ -1042,6 +1072,21 @@
                 },
                 "restartPolicy": {
                     "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "podDisruptionBudget": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "minAvailable": {
+                    "type": ["integer", "string", "null"]
+                },
+                "maxUnavailable": {
+                    "type": ["integer", "string", "null"]
                 }
             },
             "additionalProperties": false
@@ -1350,6 +1395,21 @@
                 "^.*$": {
                     "type": "object",
                     "properties": {
+                        "podDisruptionBudget": {
+                            "type": "object",
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "minAvailable": {
+                                    "type": ["integer", "string", "null"]
+                                },
+                                "maxUnavailable": {
+                                    "type": ["integer", "string", "null"]
+                                }
+                            },
+                            "additionalProperties": false
+                        },
                         "enabled": {
                             "type": "boolean"
                         },
@@ -2041,6 +2101,21 @@
         "home": {
             "type": "object",
             "properties": {
+                "podDisruptionBudget": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minAvailable": {
+                            "type": ["integer", "string", "null"]
+                        },
+                        "maxUnavailable": {
+                            "type": ["integer", "string", "null"]
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "enabled": {
                     "type": "boolean"
                 },
@@ -2131,6 +2206,21 @@
         "app": {
             "type": "object",
             "properties": {
+                "podDisruptionBudget": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minAvailable": {
+                            "type": ["integer", "string", "null"]
+                        },
+                        "maxUnavailable": {
+                            "type": ["integer", "string", "null"]
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "enabled": {
                     "type": "boolean"
                 },
@@ -2238,6 +2328,21 @@
         "worker": {
             "type": "object",
             "properties": {
+                "podDisruptionBudget": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minAvailable": {
+                            "type": ["integer", "string", "null"]
+                        },
+                        "maxUnavailable": {
+                            "type": ["integer", "string", "null"]
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "enabled": {
                     "type": "boolean"
                 },
@@ -2504,6 +2609,21 @@
         "aiAgent": {
             "type": "object",
             "properties": {
+                "podDisruptionBudget": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minAvailable": {
+                            "type": ["integer", "string", "null"]
+                        },
+                        "maxUnavailable": {
+                            "type": ["integer", "string", "null"]
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "enabled": {
                     "type": "boolean"
                 },
