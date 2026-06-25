@@ -911,87 +911,149 @@ export class ProjectService extends DatabaseService<Model> {
 
   @CaptureSpan()
   public async addDefaultAlertState(createdItem: Model): Promise<Model> {
-    let createdAlertState: AlertState = new AlertState();
-    createdAlertState.name = "Identified";
-    createdAlertState.description =
-      "When an alert is created, it belongs to this state";
-    createdAlertState.color = Red;
-    createdAlertState.isCreatedState = true;
-    createdAlertState.projectId = createdItem.id!;
-    createdAlertState.order = 1;
+    const projectId: ObjectID = createdItem.id!;
 
-    createdAlertState = await AlertStateService.create({
-      data: createdAlertState,
-      props: {
-        isRoot: true,
-      },
-    });
+    /*
+     * Idempotent for the same reason as addDefaultAlertSeverity above:
+     * AlertState.name is unique per project and these defaults are also seeded
+     * at project creation, so only create the states this project is missing.
+     */
+    const existingNames: Set<string | undefined> = new Set(
+      (
+        await AlertStateService.findBy({
+          query: { projectId },
+          select: { name: true },
+          skip: 0,
+          limit: LIMIT_MAX,
+          props: {
+            isRoot: true,
+          },
+        })
+      ).map((alertState: AlertState) => {
+        return alertState.name;
+      }),
+    );
 
-    let acknowledgedAlertState: AlertState = new AlertState();
-    acknowledgedAlertState.name = "Acknowledged";
-    acknowledgedAlertState.description =
-      "When an alert is acknowledged, it belongs to this state.";
-    acknowledgedAlertState.color = Yellow;
-    acknowledgedAlertState.isAcknowledgedState = true;
-    acknowledgedAlertState.projectId = createdItem.id!;
-    acknowledgedAlertState.order = 2;
+    if (!existingNames.has("Identified")) {
+      const createdAlertState: AlertState = new AlertState();
+      createdAlertState.name = "Identified";
+      createdAlertState.description =
+        "When an alert is created, it belongs to this state";
+      createdAlertState.color = Red;
+      createdAlertState.isCreatedState = true;
+      createdAlertState.projectId = projectId;
+      createdAlertState.order = 1;
 
-    acknowledgedAlertState = await AlertStateService.create({
-      data: acknowledgedAlertState,
-      props: {
-        isRoot: true,
-      },
-    });
+      await AlertStateService.create({
+        data: createdAlertState,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
-    let resolvedAlertState: AlertState = new AlertState();
-    resolvedAlertState.name = "Resolved";
-    resolvedAlertState.description =
-      "When an incident is resolved, it belongs to this state.";
-    resolvedAlertState.color = Green;
-    resolvedAlertState.isResolvedState = true;
-    resolvedAlertState.projectId = createdItem.id!;
-    resolvedAlertState.order = 3;
+    if (!existingNames.has("Acknowledged")) {
+      const acknowledgedAlertState: AlertState = new AlertState();
+      acknowledgedAlertState.name = "Acknowledged";
+      acknowledgedAlertState.description =
+        "When an alert is acknowledged, it belongs to this state.";
+      acknowledgedAlertState.color = Yellow;
+      acknowledgedAlertState.isAcknowledgedState = true;
+      acknowledgedAlertState.projectId = projectId;
+      acknowledgedAlertState.order = 2;
 
-    resolvedAlertState = await AlertStateService.create({
-      data: resolvedAlertState,
-      props: {
-        isRoot: true,
-      },
-    });
+      await AlertStateService.create({
+        data: acknowledgedAlertState,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (!existingNames.has("Resolved")) {
+      const resolvedAlertState: AlertState = new AlertState();
+      resolvedAlertState.name = "Resolved";
+      resolvedAlertState.description =
+        "When an incident is resolved, it belongs to this state.";
+      resolvedAlertState.color = Green;
+      resolvedAlertState.isResolvedState = true;
+      resolvedAlertState.projectId = projectId;
+      resolvedAlertState.order = 3;
+
+      await AlertStateService.create({
+        data: resolvedAlertState,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
     return createdItem;
   }
 
   @CaptureSpan()
   public async addDefaultAlertSeverity(createdItem: Model): Promise<Model> {
-    let highSeverity: AlertSeverity = new AlertSeverity();
-    highSeverity.name = "High";
-    highSeverity.description =
-      "Issues causing very high impact to customers. Immediate attention is required.";
-    highSeverity.color = Moroon500;
-    highSeverity.projectId = createdItem.id!;
-    highSeverity.order = 1;
+    const projectId: ObjectID = createdItem.id!;
 
-    highSeverity = await AlertSeverityService.create({
-      data: highSeverity,
-      props: {
-        isRoot: true,
-      },
-    });
+    /*
+     * Idempotent: only create a default severity whose name this project does
+     * not already have. AlertSeverity.name is unique per project
+     * (@UniqueColumnBy("projectId")), and these defaults are also seeded at
+     * project creation. Without this guard, re-running for a project that
+     * already has them — exactly what the AddDefaultAlertSeverityAndStateToExistingProjects
+     * data migration does — throws "Alert Severity with the same name already
+     * exists" in checkUniqueColumnBy, and because the data-migration runner
+     * halts at the first failure that one error freezes the whole migration
+     * chain.
+     */
+    const existingNames: Set<string | undefined> = new Set(
+      (
+        await AlertSeverityService.findBy({
+          query: { projectId },
+          select: { name: true },
+          skip: 0,
+          limit: LIMIT_MAX,
+          props: {
+            isRoot: true,
+          },
+        })
+      ).map((severity: AlertSeverity) => {
+        return severity.name;
+      }),
+    );
 
-    let lowSeverity: AlertSeverity = new AlertSeverity();
-    lowSeverity.name = "Low";
-    lowSeverity.description = "Issues causing low impact to customers.";
-    lowSeverity.color = Yellow500;
-    lowSeverity.projectId = createdItem.id!;
-    lowSeverity.order = 2;
+    if (!existingNames.has("High")) {
+      const highSeverity: AlertSeverity = new AlertSeverity();
+      highSeverity.name = "High";
+      highSeverity.description =
+        "Issues causing very high impact to customers. Immediate attention is required.";
+      highSeverity.color = Moroon500;
+      highSeverity.projectId = projectId;
+      highSeverity.order = 1;
 
-    lowSeverity = await AlertSeverityService.create({
-      data: lowSeverity,
-      props: {
-        isRoot: true,
-      },
-    });
+      await AlertSeverityService.create({
+        data: highSeverity,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (!existingNames.has("Low")) {
+      const lowSeverity: AlertSeverity = new AlertSeverity();
+      lowSeverity.name = "Low";
+      lowSeverity.description = "Issues causing low impact to customers.";
+      lowSeverity.color = Yellow500;
+      lowSeverity.projectId = projectId;
+      lowSeverity.order = 2;
+
+      await AlertSeverityService.create({
+        data: lowSeverity,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
     return createdItem;
   }

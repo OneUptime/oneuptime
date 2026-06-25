@@ -1327,10 +1327,26 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       );
     }
 
+    /*
+     * ON CLUSTER is appended as RAW SQL right after the table reference. The
+     * analytics schema is ALWAYS a sharded + replicated cluster (see
+     * ClusterConfig: a single node is just a "cluster of one"). A bare
+     * `ALTER … ADD COLUMN` reaches only the shard the client is connected to —
+     * Keeper replicates within a shard but never across shards — so the column
+     * lands on one shard and a later scatter-gather read through the Distributed
+     * wrapper hits a shard that lacks it and fails with
+     * "Missing columns: '<col>'" (Code 47 UNKNOWN_IDENTIFIER). ON CLUSTER also
+     * makes this ADD COLUMN wait for cluster-wide completion, so the separate
+     * `ADD INDEX` that addColumnInDatabase issues next never races a column that
+     * has not yet propagated to the node the index DDL lands on.
+     */
     const statement: Statement = SQL`
             ALTER TABLE ${this.database.getDatasourceOptions().database!}.${getStorageTableName(
               this.model.tableName,
-            )} ADD COLUMN IF NOT EXISTS `.append(columnDef);
+            )}`
+      .append(onClusterClause())
+      .append(" ADD COLUMN IF NOT EXISTS ")
+      .append(columnDef);
 
     logger.debug(`${this.model.tableName} Add Column Statement`);
     logger.debug(statement);
@@ -1359,8 +1375,14 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     const databaseName: string = this.database.getDatasourceOptions().database!;
     const statement: Statement = new Statement();
+    /*
+     * ON CLUSTER (raw SQL) so the skip index is added on every shard, matching
+     * toAddColumnStatement. A bare ADD INDEX only reaches the connected shard,
+     * and if the column it references has not propagated to that node yet it
+     * fails with "Missing columns: '<col>'" (Code 47).
+     */
     statement.append(
-      `ALTER TABLE ${databaseName}.${getStorageTableName(this.model.tableName)} ADD INDEX IF NOT EXISTS ${idx.name} ${columnExpr} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`,
+      `ALTER TABLE ${databaseName}.${getStorageTableName(this.model.tableName)}${onClusterClause()} ADD INDEX IF NOT EXISTS ${idx.name} ${columnExpr} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`,
     );
 
     logger.debug(`${this.model.tableName} Add Skip Index Statement`);
@@ -1371,7 +1393,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
   public toDropSkipIndexStatement(indexName: string): string {
     const databaseName: string = this.database.getDatasourceOptions().database!;
-    const statement: string = `ALTER TABLE ${databaseName}.${getStorageTableName(this.model.tableName)} DROP INDEX IF EXISTS ${indexName}`;
+    const statement: string = `ALTER TABLE ${databaseName}.${getStorageTableName(this.model.tableName)}${onClusterClause()} DROP INDEX IF EXISTS ${indexName}`;
 
     logger.debug(`${this.model.tableName} Drop Skip Index Statement`);
     logger.debug(statement);
@@ -1383,7 +1405,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     const statement: string = `ALTER TABLE ${this.database.getDatasourceOptions()
       .database!}.${getStorageTableName(
       this.model.tableName,
-    )} DROP COLUMN IF EXISTS ${columnName}`;
+    )}${onClusterClause()} DROP COLUMN IF EXISTS ${columnName}`;
 
     logger.debug(`${this.model.tableName} Drop Column Statement`);
     logger.debug(statement);
