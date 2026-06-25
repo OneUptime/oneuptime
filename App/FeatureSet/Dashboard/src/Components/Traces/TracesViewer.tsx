@@ -52,6 +52,7 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import TraceRow from "./TraceRow";
+import SpanDetailsPanel from "./SpanDetailsPanel";
 import TelemetrySavedViewsControl, {
   serializeTimeRange,
   deserializeTimeRange,
@@ -473,6 +474,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   const livePollRef: React.MutableRefObject<ReturnType<
     typeof setInterval
   > | null> = useRef(null);
+
+  // spanId of the row whose inline detail panel is open (null = all collapsed).
+  const [expandedSpanId, setExpandedSpanId] = useState<string | null>(null);
 
   // Telemetry attribute state for attribute-based search
   const [telemetryAttributes, setTelemetryAttributes] = useState<Array<string>>(
@@ -2223,13 +2227,32 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         const service: Service | undefined = span.primaryEntityId
           ? serviceById[span.primaryEntityId.toString()]
           : undefined;
+        const spanKey: string = span.spanId?.toString() || "";
+        const isExpanded: boolean =
+          spanKey !== "" && expandedSpanId === spanKey;
         return (
-          <TraceRow
-            span={span}
-            service={service}
-            maxDurationNano={maxDurationNano}
-            to={getTraceRoute(span)}
-          />
+          <>
+            <TraceRow
+              span={span}
+              service={service}
+              maxDurationNano={maxDurationNano}
+              isExpanded={isExpanded}
+              onToggle={() => {
+                setExpandedSpanId(isExpanded ? null : spanKey || null);
+              }}
+            />
+            {isExpanded && (
+              <SpanDetailsPanel
+                span={span}
+                service={service}
+                traceRoute={getTraceRoute(span)}
+                onFilterByAttribute={(key: string, value: string) => {
+                  handleFacetInclude(`attributes.${key}`, value);
+                  setExpandedSpanId(null);
+                }}
+              />
+            )}
+          </>
         );
       }}
       getRowKey={(span: Span, index: number): string => {

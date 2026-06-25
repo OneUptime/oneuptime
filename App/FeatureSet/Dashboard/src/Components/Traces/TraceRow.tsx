@@ -1,8 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import { Link } from "react-router-dom";
 import Span, { SpanStatus, SpanKind } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
-import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import SpanUtil from "../../Utils/SpanUtil";
 
@@ -10,7 +8,10 @@ export interface TraceRowProps {
   span: Span;
   service?: Service | undefined;
   maxDurationNano: number;
-  to?: Route | undefined;
+  // Whether the inline span detail panel is open for this row.
+  isExpanded?: boolean | undefined;
+  // Toggles the inline span detail panel.
+  onToggle?: (() => void) | undefined;
 }
 
 type StatusTheme = {
@@ -138,15 +139,23 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
 
   const isError: boolean = span.statusCode === SpanStatus.Error;
 
+  const isExpanded: boolean = props.isExpanded === true;
+
   /*
-   * Render as a real anchor so cmd/ctrl/middle-click open the trace in a new
-   * tab and right-click exposes "Open in new tab". Plain clicks still go
-   * through React Router's client-side navigation.
+   * Clicking the row toggles an inline span detail panel (the same affordance
+   * as expanding a log row). Navigation to the full trace happens from the
+   * "See full trace" button inside the expanded panel.
    */
   return (
-    <Link
-      to={props.to?.toString() || ""}
-      className="group relative block cursor-pointer border-b border-gray-100 bg-white text-inherit no-underline transition-colors duration-150 last:border-b-0 hover:bg-gray-50/70 focus:outline-none focus-visible:bg-indigo-50/40 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-indigo-300"
+    <button
+      type="button"
+      aria-expanded={isExpanded}
+      onClick={props.onToggle}
+      className={`group relative block w-full cursor-pointer border-b border-gray-100 text-left text-inherit transition-colors duration-150 last:border-b-0 focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-indigo-300 ${
+        isExpanded
+          ? "bg-indigo-50/40"
+          : "bg-white hover:bg-gray-50/70 focus-visible:bg-indigo-50/40"
+      }`}
     >
       <div className="flex items-center gap-4 px-5 py-3">
         {/* Status indicator */}
@@ -237,13 +246,17 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
             </div>
           )}
 
-          {/* Chevron */}
+          {/* Chevron — rotates to point down when the row is expanded */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 20 20"
             fill="currentColor"
             aria-hidden="true"
-            className="h-4 w-4 flex-shrink-0 text-gray-300 transition-all duration-150 group-hover:translate-x-0.5 group-hover:text-gray-500"
+            className={`h-4 w-4 flex-shrink-0 transition-all duration-150 ${
+              isExpanded
+                ? "rotate-90 text-gray-500"
+                : "text-gray-300 group-hover:translate-x-0.5 group-hover:text-gray-500"
+            }`}
           >
             <path
               fillRule="evenodd"
@@ -290,7 +303,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
           </>
         )}
       </div>
-    </Link>
+    </button>
   );
 };
 
