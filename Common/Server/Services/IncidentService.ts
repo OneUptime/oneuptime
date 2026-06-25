@@ -1474,11 +1474,32 @@ ${incident.remediationNotes || "No remediation notes provided."}
         },
       });
 
-    if (!timeline || !timeline.startsAt) {
-      throw new BadDataException("Incident identified date not found.");
+    if (timeline && timeline.startsAt) {
+      return timeline.startsAt;
     }
 
-    return timeline.startsAt;
+    /*
+     * The identified-state timeline is created asynchronously after the
+     * incident is committed (see onCreateSuccess), so it may not exist yet, or
+     * may be missing entirely if that step failed. Fall back to the incident's
+     * creation date instead of throwing, otherwise the owner-notification cron
+     * fails permanently for this incident and retries every minute forever.
+     */
+    const incident: Model | null = await this.findOneById({
+      id: incidentId,
+      select: {
+        createdAt: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (incident && incident.createdAt) {
+      return incident.createdAt;
+    }
+
+    throw new BadDataException("Incident identified date not found.");
   }
 
   @CaptureSpan()
