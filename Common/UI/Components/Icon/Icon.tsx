@@ -35,6 +35,14 @@ export interface ComponentProps {
   onClick?: (() => void) | undefined;
   type?: IconType | undefined;
   style?: React.CSSProperties | undefined;
+  /*
+   * When the icon conveys meaning on its own (e.g. a standalone status or
+   * severity indicator that is not described by adjacent text), pass an
+   * ariaLabel so the icon is exposed to assistive technology as an image
+   * with an accessible name (WCAG 1.1.1). When omitted, the icon is treated
+   * as decorative and hidden from assistive technology.
+   */
+  ariaLabel?: string | undefined;
   "data-testid"?: string;
 }
 const Icon: FunctionComponent<ComponentProps> = ({
@@ -46,6 +54,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
   onClick,
   type,
   style,
+  ariaLabel,
   "data-testid": dataTestId,
 }: ComponentProps): ReactElement => {
   let sizeClassName: string = "";
@@ -113,7 +122,10 @@ const Icon: FunctionComponent<ComponentProps> = ({
       | undefined,
   ): ReactElement => {
     return (
-      <div role="icon">
+      <div
+        role={ariaLabel ? "img" : undefined}
+        aria-label={ariaLabel || undefined}
+      >
         <svg
           onClick={() => {
             if (onClick) {

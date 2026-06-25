@@ -133,116 +133,81 @@ const Pagination: FunctionComponent<ComponentProps> = (
             />
           </div>
 
-          <ul className="py-3" role="list">
-            <li
-              role="button"
-              tabIndex={isPreviousDisabled ? -1 : 0}
-              aria-disabled={isPreviousDisabled}
-              aria-label="Go to previous page"
-              onClick={() => {
-                let currentPageNumber: number = props.currentPageNumber;
-
-                if (typeof currentPageNumber === "string") {
-                  currentPageNumber = parseInt(currentPageNumber);
-                }
-
-                if (props.onNavigateToPage && !isPreviousDisabled) {
-                  props.onNavigateToPage(
-                    currentPageNumber - 1,
-                    props.itemsOnPage,
-                  );
-                }
-              }}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (
-                  (e.key === "Enter" || e.key === " ") &&
-                  !isPreviousDisabled
-                ) {
-                  e.preventDefault();
+          <ul className="flex py-3" role="list">
+            <li className="flex">
+              <button
+                type="button"
+                disabled={isPreviousDisabled}
+                aria-label="Go to previous page"
+                onClick={() => {
                   let currentPageNumber: number = props.currentPageNumber;
+
                   if (typeof currentPageNumber === "string") {
                     currentPageNumber = parseInt(currentPageNumber);
                   }
-                  if (props.onNavigateToPage) {
+
+                  if (props.onNavigateToPage && !isPreviousDisabled) {
                     props.onNavigateToPage(
                       currentPageNumber - 1,
                       props.itemsOnPage,
                     );
                   }
-                }
-              }}
-              className={` inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500   ${
-                isPreviousDisabled
-                  ? "bg-gray-100"
-                  : "hover:bg-gray-50 cursor-pointer"
-              }`}
-            >
-              <span className="page-link">Previous</span>
+                }}
+                className={` inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500   ${
+                  isPreviousDisabled
+                    ? "bg-gray-100 cursor-not-allowed"
+                    : "hover:bg-gray-50 cursor-pointer"
+                }`}
+              >
+                <span className="page-link">Previous</span>
+              </button>
             </li>
-            <li
-              role="button"
-              tabIndex={isCurrentPageButtonDisabled ? -1 : 0}
-              aria-current="page"
-              aria-label={`Page ${props.currentPageNumber}, click to change page`}
-              data-testid="current-page-link"
-              className={` z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600  cursor-pointer ${
-                isCurrentPageButtonDisabled ? "bg-gray-100" : ""
-              }`}
-              onClick={() => {
-                if (!isHasMoreMode) {
-                  setShowPaginationModel(true);
-                }
-              }}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if ((e.key === "Enter" || e.key === " ") && !isHasMoreMode) {
-                  e.preventDefault();
-                  setShowPaginationModel(true);
-                }
-              }}
-            >
-              <span>{props.currentPageNumber}</span>
+            <li className="flex">
+              <button
+                type="button"
+                disabled={isCurrentPageButtonDisabled}
+                aria-current="page"
+                aria-label={`Page ${props.currentPageNumber}, current page. Select to jump to another page.`}
+                data-testid="current-page-link"
+                className={` z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
+                  isCurrentPageButtonDisabled ? "bg-gray-100" : ""
+                }`}
+                onClick={() => {
+                  if (!isHasMoreMode) {
+                    setShowPaginationModel(true);
+                  }
+                }}
+              >
+                <span>{props.currentPageNumber}</span>
+              </button>
             </li>
-            <li
-              role="button"
-              tabIndex={isNextDisabled ? -1 : 0}
-              aria-disabled={isNextDisabled}
-              aria-label="Go to next page"
-              onClick={() => {
-                let currentPageNumber: number = props.currentPageNumber;
-
-                if (typeof currentPageNumber === "string") {
-                  currentPageNumber = parseInt(currentPageNumber);
-                }
-
-                if (props.onNavigateToPage && !isNextDisabled) {
-                  props.onNavigateToPage(
-                    currentPageNumber + 1,
-                    props.itemsOnPage,
-                  );
-                }
-              }}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if ((e.key === "Enter" || e.key === " ") && !isNextDisabled) {
-                  e.preventDefault();
+            <li className="flex">
+              <button
+                type="button"
+                disabled={isNextDisabled}
+                aria-label="Go to next page"
+                onClick={() => {
                   let currentPageNumber: number = props.currentPageNumber;
+
                   if (typeof currentPageNumber === "string") {
                     currentPageNumber = parseInt(currentPageNumber);
                   }
-                  if (props.onNavigateToPage) {
+
+                  if (props.onNavigateToPage && !isNextDisabled) {
                     props.onNavigateToPage(
                       currentPageNumber + 1,
                       props.itemsOnPage,
                     );
                   }
-                }
-              }}
-              className={` inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500  ${
-                isNextDisabled
-                  ? "bg-gray-100"
-                  : " hover:bg-gray-50 cursor-pointer"
-              }`}
-            >
-              <span>Next</span>
+                }}
+                className={` inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500  ${
+                  isNextDisabled
+                    ? "bg-gray-100 cursor-not-allowed"
+                    : " hover:bg-gray-50 cursor-pointer"
+                }`}
+              >
+                <span>Next</span>
+              </button>
             </li>
           </ul>
         </div>
@@ -265,116 +230,81 @@ const Pagination: FunctionComponent<ComponentProps> = (
 
       <div className="md:hidden">
         <div className="inline-flex -space-x-px rounded-md shadow-sm">
-          <ul role="list">
-            <li
-              role="button"
-              tabIndex={isPreviousDisabled ? -1 : 0}
-              aria-disabled={isPreviousDisabled}
-              aria-label="Go to previous page"
-              onClick={() => {
-                let currentPageNumber: number = props.currentPageNumber;
-
-                if (typeof currentPageNumber === "string") {
-                  currentPageNumber = parseInt(currentPageNumber);
-                }
-
-                if (props.onNavigateToPage && !isPreviousDisabled) {
-                  props.onNavigateToPage(
-                    currentPageNumber - 1,
-                    props.itemsOnPage,
-                  );
-                }
-              }}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (
-                  (e.key === "Enter" || e.key === " ") &&
-                  !isPreviousDisabled
-                ) {
-                  e.preventDefault();
+          <ul className="flex" role="list">
+            <li className="flex">
+              <button
+                type="button"
+                disabled={isPreviousDisabled}
+                aria-label="Go to previous page"
+                onClick={() => {
                   let currentPageNumber: number = props.currentPageNumber;
+
                   if (typeof currentPageNumber === "string") {
                     currentPageNumber = parseInt(currentPageNumber);
                   }
-                  if (props.onNavigateToPage) {
+
+                  if (props.onNavigateToPage && !isPreviousDisabled) {
                     props.onNavigateToPage(
                       currentPageNumber - 1,
                       props.itemsOnPage,
                     );
                   }
-                }
-              }}
-              className={` inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500   ${
-                isPreviousDisabled
-                  ? "bg-gray-100"
-                  : "hover:bg-gray-50 cursor-pointer"
-              }`}
-            >
-              <span className="page-link">Previous</span>
+                }}
+                className={` inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500   ${
+                  isPreviousDisabled
+                    ? "bg-gray-100 cursor-not-allowed"
+                    : "hover:bg-gray-50 cursor-pointer"
+                }`}
+              >
+                <span className="page-link">Previous</span>
+              </button>
             </li>
-            <li
-              role="button"
-              tabIndex={isCurrentPageButtonDisabled ? -1 : 0}
-              aria-current="page"
-              aria-label={`Page ${props.currentPageNumber}, click to change page`}
-              data-testid="current-page-link-mobile"
-              className={` z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600  cursor-pointer ${
-                isCurrentPageButtonDisabled ? "bg-gray-100" : ""
-              }`}
-              onClick={() => {
-                if (!isHasMoreMode) {
-                  setShowPaginationModel(true);
-                }
-              }}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if ((e.key === "Enter" || e.key === " ") && !isHasMoreMode) {
-                  e.preventDefault();
-                  setShowPaginationModel(true);
-                }
-              }}
-            >
-              <span>{props.currentPageNumber}</span>
+            <li className="flex">
+              <button
+                type="button"
+                disabled={isCurrentPageButtonDisabled}
+                aria-current="page"
+                aria-label={`Page ${props.currentPageNumber}, current page. Select to jump to another page.`}
+                data-testid="current-page-link-mobile"
+                className={` z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
+                  isCurrentPageButtonDisabled ? "bg-gray-100" : ""
+                }`}
+                onClick={() => {
+                  if (!isHasMoreMode) {
+                    setShowPaginationModel(true);
+                  }
+                }}
+              >
+                <span>{props.currentPageNumber}</span>
+              </button>
             </li>
-            <li
-              role="button"
-              tabIndex={isNextDisabled ? -1 : 0}
-              aria-disabled={isNextDisabled}
-              aria-label="Go to next page"
-              onClick={() => {
-                let currentPageNumber: number = props.currentPageNumber;
-
-                if (typeof currentPageNumber === "string") {
-                  currentPageNumber = parseInt(currentPageNumber);
-                }
-
-                if (props.onNavigateToPage && !isNextDisabled) {
-                  props.onNavigateToPage(
-                    currentPageNumber + 1,
-                    props.itemsOnPage,
-                  );
-                }
-              }}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if ((e.key === "Enter" || e.key === " ") && !isNextDisabled) {
-                  e.preventDefault();
+            <li className="flex">
+              <button
+                type="button"
+                disabled={isNextDisabled}
+                aria-label="Go to next page"
+                onClick={() => {
                   let currentPageNumber: number = props.currentPageNumber;
+
                   if (typeof currentPageNumber === "string") {
                     currentPageNumber = parseInt(currentPageNumber);
                   }
-                  if (props.onNavigateToPage) {
+
+                  if (props.onNavigateToPage && !isNextDisabled) {
                     props.onNavigateToPage(
                       currentPageNumber + 1,
                       props.itemsOnPage,
                     );
                   }
-                }
-              }}
-              className={` inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500  ${
-                isNextDisabled
-                  ? "bg-gray-100"
-                  : " hover:bg-gray-50 cursor-pointer"
-              }`}
-            >
-              <span>Next</span>
+                }}
+                className={` inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500  ${
+                  isNextDisabled
+                    ? "bg-gray-100 cursor-not-allowed"
+                    : " hover:bg-gray-50 cursor-pointer"
+                }`}
+              >
+                <span>Next</span>
+              </button>
             </li>
           </ul>
         </div>

@@ -296,6 +296,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         makeTopSectionUnstick={true}
         isLoading={props.isLoading || false}
         error={props.error || ""}
+        disableMainContentWrapper={true}
       >
         <>
           {!headerHtml ? (
