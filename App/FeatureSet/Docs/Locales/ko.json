@@ -156,6 +156,7 @@
     "Host OpenTelemetry Collector": "호스트 OpenTelemetry 수집기",
     "Kubernetes Agent": "Kubernetes 에이전트",
     "Docker Agent": "Docker 에이전트",
+    "IoT Devices": "IoT 기기",
     "AI Agents": "AI 에이전트",
     "LLM Providers": "LLM 공급자",
     "MCP Server": "MCP 서버",

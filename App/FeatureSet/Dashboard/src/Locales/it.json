@@ -64,6 +64,8 @@
       "performanceProfilesDescription": "Trova funzioni lente e hotspot di memoria.",
       "exceptionsTitle": "Eccezioni",
       "exceptionsDescription": "Traccia e risolvi i bug sui tuoi servizi.",
+      "llmObservabilityTitle": "AI / LLM",
+      "llmObservabilityDescription": "Osserva le chiamate a LLM e agenti IA — token, costo, latenza, prompt e completion.",
       "servicesTitle": "Servizi",
       "servicesDescription": "Cataloga ogni servizio che esegui.",
       "kubernetesTitle": "Kubernetes",

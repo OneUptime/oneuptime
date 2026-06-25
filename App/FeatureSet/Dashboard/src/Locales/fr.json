@@ -64,6 +64,8 @@
       "performanceProfilesDescription": "Identifiez les fonctions lentes et les points chauds de mémoire.",
       "exceptionsTitle": "Exceptions",
       "exceptionsDescription": "Suivez et résolvez les bugs sur l'ensemble de vos services.",
+      "llmObservabilityTitle": "AI / LLM",
+      "llmObservabilityDescription": "Observez les appels LLM et d'agents IA — tokens, coût, latence, prompts et complétions.",
       "servicesTitle": "Services",
       "servicesDescription": "Cataloguez chaque service que vous exécutez.",
       "kubernetesTitle": "Kubernetes",

@@ -64,6 +64,8 @@
       "performanceProfilesDescription": "Vind langzame functies en geheugen-hotspots.",
       "exceptionsTitle": "Uitzonderingen",
       "exceptionsDescription": "Volg en los bugs op in uw services.",
+      "llmObservabilityTitle": "AI / LLM",
+      "llmObservabilityDescription": "Observeer LLM- en AI-agent-aanroepen — tokens, kosten, latency, prompts en completions.",
       "servicesTitle": "Services",
       "servicesDescription": "Catalogiseer elke service die je draait.",
       "kubernetesTitle": "Kubernetes",

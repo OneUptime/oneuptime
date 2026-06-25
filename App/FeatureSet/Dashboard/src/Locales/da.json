@@ -64,6 +64,8 @@
       "performanceProfilesDescription": "Find langsomme funktioner og hukommelses-hotspots.",
       "exceptionsTitle": "Undtagelser",
       "exceptionsDescription": "Spor og løs fejl på tværs af dine tjenester.",
+      "llmObservabilityTitle": "AI / LLM",
+      "llmObservabilityDescription": "Observér LLM- og AI-agent-kald — tokens, omkostninger, latens, prompts og completions.",
       "servicesTitle": "Tjenester",
       "servicesDescription": "Katalogiser hver tjeneste du kører.",
       "kubernetesTitle": "Kubernetes",
