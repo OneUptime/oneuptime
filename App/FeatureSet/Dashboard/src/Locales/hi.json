@@ -64,6 +64,8 @@
       "performanceProfilesDescription": "धीमे फ़ंक्शन और मेमोरी हॉटस्पॉट खोजें।",
       "exceptionsTitle": "अपवाद",
       "exceptionsDescription": "अपनी सेवाओं में बग्स को ट्रैक करें और हल करें।",
+      "llmObservabilityTitle": "AI / LLM",
+      "llmObservabilityDescription": "LLM और AI-एजेंट कॉल का अवलोकन करें — टोकन, लागत, विलंबता, प्रॉम्प्ट और कंप्लीशन।",
       "servicesTitle": "सेवाएं",
       "servicesDescription": "अपनी हर सेवा को कैटलॉग करें।",
       "kubernetesTitle": "Kubernetes",

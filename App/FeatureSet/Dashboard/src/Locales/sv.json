@@ -64,6 +64,8 @@
       "performanceProfilesDescription": "Hitta långsamma funktioner och minneshotspots.",
       "exceptionsTitle": "Undantag",
       "exceptionsDescription": "Spåra och lös buggar över dina tjänster.",
+      "llmObservabilityTitle": "AI / LLM",
+      "llmObservabilityDescription": "Observera LLM- och AI-agent-anrop — tokens, kostnad, latens, prompts och completions.",
       "servicesTitle": "Tjänster",
       "servicesDescription": "Katalogisera varje tjänst du kör.",
       "kubernetesTitle": "Kubernetes",

@@ -156,6 +156,7 @@
     "Host OpenTelemetry Collector": "Colector OpenTelemetry en el host",
     "Kubernetes Agent": "Agente de Kubernetes",
     "Docker Agent": "Agente de Docker",
+    "IoT Devices": "Dispositivos IoT",
     "AI Agents": "Agentes de IA",
     "LLM Providers": "Proveedores de LLM",
     "MCP Server": "Servidor MCP",

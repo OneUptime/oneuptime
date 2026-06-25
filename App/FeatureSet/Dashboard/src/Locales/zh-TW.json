@@ -64,6 +64,8 @@
       "performanceProfilesDescription": "找出緩慢函式與記憶體熱點。",
       "exceptionsTitle": "例外",
       "exceptionsDescription": "跨服務追蹤並解決錯誤。",
+      "llmObservabilityTitle": "AI / LLM",
+      "llmObservabilityDescription": "觀測 LLM 和 AI 代理呼叫 — 權杖、成本、延遲、提示詞和補全。",
       "servicesTitle": "服務",
       "servicesDescription": "為運行的每個服務建立目錄。",
       "kubernetesTitle": "Kubernetes",
