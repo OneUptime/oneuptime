@@ -72,50 +72,10 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
         />
       </div>
 
-      <div>
-        <FieldLabelElement
-          title="Component Group Filter (Optional)"
-          description="Scope to a specific component group, e.g. 'APIs'. Incidents and component statuses outside this group are ignored. Supported for Atlassian Statuspage and incident.io."
-          required={false}
-        />
-        <Input
-          initialValue={
-            props.monitorStepExternalStatusPageMonitor.componentGroupName || ""
-          }
-          placeholder="e.g. APIs"
-          onChange={(value: string) => {
-            props.onChange({
-              ...props.monitorStepExternalStatusPageMonitor,
-              componentGroupName: value || undefined,
-            });
-          }}
-        />
-      </div>
-
-      <div>
-        <FieldLabelElement
-          title="Component Name Filter (Optional)"
-          description="Filter to a specific component by name (applied within the component group when one is set). Leave blank to monitor all components in scope."
-          required={false}
-        />
-        <Input
-          initialValue={
-            props.monitorStepExternalStatusPageMonitor.componentName || ""
-          }
-          placeholder="e.g. API, Compute Engine, us-east-1"
-          onChange={(value: string) => {
-            props.onChange({
-              ...props.monitorStepExternalStatusPageMonitor,
-              componentName: value || undefined,
-            });
-          }}
-        />
-      </div>
-
       {!showAdvancedOptions && (
         <div className="mt-1 -ml-3">
           <Button
-            title="Advanced: Timeout and Retries"
+            title="Advanced: Component Filters, Timeout and Retries"
             buttonStyle={ButtonStyleType.SECONDARY_LINK}
             onClick={() => {
               setShowAdvancedOptions(true);
@@ -127,6 +87,47 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
       {showAdvancedOptions && (
         <div className="space-y-4 border p-4 rounded-md bg-gray-50">
           <h4 className="font-medium">Advanced Options</h4>
+
+          <div>
+            <FieldLabelElement
+              title="Component Group Filter (Optional)"
+              description="Scope to a specific component group, e.g. 'APIs'. Incidents and component statuses outside this group are ignored. Supported for Atlassian Statuspage and incident.io."
+              required={false}
+            />
+            <Input
+              initialValue={
+                props.monitorStepExternalStatusPageMonitor.componentGroupName ||
+                ""
+              }
+              placeholder="e.g. APIs"
+              onChange={(value: string) => {
+                props.onChange({
+                  ...props.monitorStepExternalStatusPageMonitor,
+                  componentGroupName: value || undefined,
+                });
+              }}
+            />
+          </div>
+
+          <div>
+            <FieldLabelElement
+              title="Component Name Filter (Optional)"
+              description="Filter to a specific component by name (applied within the component group when one is set). Leave blank to monitor all components in scope."
+              required={false}
+            />
+            <Input
+              initialValue={
+                props.monitorStepExternalStatusPageMonitor.componentName || ""
+              }
+              placeholder="e.g. API, Compute Engine, us-east-1"
+              onChange={(value: string) => {
+                props.onChange({
+                  ...props.monitorStepExternalStatusPageMonitor,
+                  componentName: value || undefined,
+                });
+              }}
+            />
+          </div>
 
           <div>
             <FieldLabelElement
