@@ -232,34 +232,47 @@ const WorkersFeatureSet: FeatureSet = {
       // expose metrics endpoint used by KEDA
       app.use(["/worker", "/"], MetricsAPI);
 
-      // create tables in analytics database
-      await AnalyticsTableManagement.createTables();
-
       /*
-       * Ensure ClickHouse materialized views exist. Runs every boot and
-       * is idempotent (CREATE ... IF NOT EXISTS + existence check), so a
-       * wiped/recreated ClickHouse volume self-heals even when the
-       * one-time DataMigrations that originally created the MVs are
-       * already recorded as executed in Postgres. Must run after
-       * createTables() so the source/target tables exist.
-       */
-      await AnalyticsTableManagement.createMaterializedViews();
-
-      /*
-       * Run async database migrations AFTER the awaited schema sync above:
-       * on a wiped/first-boot ClickHouse, migration ALTERs against
-       * model-owned tables would otherwise race table creation and throw
-       * UNKNOWN_TABLE, wedging the chain until the next boot. Still
-       * fire-and-forget — a long migration never blocks the listener,
+       * Schema sync (ClickHouse createTables + createMaterializedViews) AND the
+       * Postgres/ClickHouse data migrations are all owned by the dedicated
+       * migrate Job whenever one is deployed. Helm sets
+       * RUN_DATABASE_MIGRATIONS_ON_BOOT=false on runtime (app/worker) pods so the
+       * Job — not every replica — runs them (also required for PgBouncer
+       * transaction-mode pooling: the data-migration session advisory lock must
+       * not run on a pooled runtime connection). So gate ALL of it behind the
+       * same flag.
+       *
+       * Why schema sync is gated too (not just data migrations): every analytics
+       * DDL statement is `ON CLUSTER`. If each booting replica re-issues it, a
+       * degraded / unreachable ClickHouse cluster makes the awaited DDL time out
+       * and (because init re-throws) crash-loops the ENTIRE app + worker tier —
+       * turning a ClickHouse problem into a full outage. With it gated off,
+       * runtime pods issue no boot DDL: only the migrate Job does, and it fails
+       * loudly where it belongs while the runtime tier stays up.
+       *
+       * Trade-off (accepted): the migrate Job is non-blocking by default
+       * (migrate.hook=false), so on a fresh install / schema-adding upgrade there
+       * is a window where pods are up but the tables/MVs don't exist yet —
+       * telemetry inserts transiently fail with UNKNOWN_TABLE and retry until the
+       * Job finishes. This is the same model Postgres schema already follows, and
+       * the boot self-heal of a wiped ClickHouse volume likewise becomes "re-run
+       * the migrate Job".
+       *
+       * Deployments WITHOUT a dedicated migrate Job leave the flag at its default
+       * (true) and keep the original behavior: every boot reconciles the schema
+       * (idempotent CREATE ... IF NOT EXISTS + drift checks) and runs migrations.
+       *
+       * createTables() + createMaterializedViews() are awaited BEFORE the
+       * fire-and-forget data migrations so migration ALTERs against model-owned
+       * tables never race table creation (UNKNOWN_TABLE). The data migration run
+       * stays fire-and-forget so a long migration never blocks the listener,
        * probes, queues, or cron scheduling.
        */
-      /*
-       * Skipped on runtime pods when a dedicated migrate Job owns migrations
-       * (RUN_DATABASE_MIGRATIONS_ON_BOOT=false) — required for PgBouncer
-       * transaction-mode pooling, since the data-migration session advisory
-       * lock would otherwise run on the pooled runtime connection.
-       */
       if (RunDatabaseMigrationsOnBoot) {
+        // create tables + materialized views in the analytics database
+        await AnalyticsTableManagement.createTables();
+        await AnalyticsTableManagement.createMaterializedViews();
+
         RunDatabaseMigrations().catch((err: Error) => {
           logger.error("Error running database migrations", {
             service: "workers",
