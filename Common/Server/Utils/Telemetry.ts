@@ -524,30 +524,45 @@ export default class Telemetry {
   }): void {
     const { span, exception } = data;
 
-    const exceptionAttributes: Attributes =
-      this.getExceptionAttributes(exception);
-
-    // log the exception as well
-    logger.error(exception);
-
     /*
-     * Span *events* (from recordException) are not reliably surfaced when the
-     * span is read back, and setStatus on its own only records the error CODE,
-     * not the message. So we also attach the exception details as queryable
-     * span attributes — including DB driver fields like the failing constraint
-     * and table — so the actual cause is visible in the trace UI instead of an
-     * empty "Error" status.
+     * This runs on the universal catch path of every @CaptureSpan-decorated
+     * function, so it must NEVER throw — a throw here would mask the original
+     * error and skip marking the span. The whole body is wrapped defensively
+     * and the span is always marked-as-error and ended (in the finally).
      */
-    span.setAttributes(exceptionAttributes);
-    span.recordException(exception as SpanException);
-    span.setStatus({
-      code: SpanStatusCode.ERROR,
-      message:
-        (exceptionAttributes["exception.message"] as string | undefined) ||
-        "Error",
-    });
+    try {
+      const exceptionAttributes: Attributes =
+        this.getExceptionAttributes(exception);
 
-    this.endSpan(span);
+      // log the exception as well
+      logger.error(exception);
+
+      /*
+       * Span *events* (from recordException) are not reliably surfaced when the
+       * span is read back, and setStatus on its own only records the error CODE,
+       * not the message. So we also attach the exception details as queryable
+       * span attributes — including DB driver fields like the failing constraint
+       * and table — so the actual cause is visible in the trace UI instead of an
+       * empty "Error" status.
+       */
+      span.setAttributes(exceptionAttributes);
+      span.recordException(exception as SpanException);
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message:
+          (exceptionAttributes["exception.message"] as string | undefined) ||
+          "Error",
+      });
+    } catch {
+      // Enrichment failed on some exotic thrown value — still flag the span.
+      try {
+        span.setStatus({ code: SpanStatusCode.ERROR });
+      } catch {
+        // span may already be ended; nothing more we can do.
+      }
+    } finally {
+      this.endSpan(span);
+    }
   }
 
   /*
@@ -557,72 +572,113 @@ export default class Telemetry {
    * the Postgres fields (SQLSTATE code, detail, constraint, table, column) live
    * either on the error itself or on `driverError`; these are what tell us which
    * constraint failed during e.g. a cascade delete.
+   *
+   * The thrown value is `unknown`, so anything (a Proxy, an object with a
+   * throwing getter or a throwing toString) could be passed — every field read
+   * and string coercion is guarded so this can never throw on the error path.
    */
   private static getExceptionAttributes(exception: unknown): Attributes {
     const attributes: Attributes = {};
 
-    if (exception === null || exception === undefined) {
-      attributes["exception.message"] =
-        "Unknown error: null or undefined was thrown";
-      return attributes;
-    }
-
-    if (exception instanceof Error) {
-      attributes["exception.type"] =
-        exception.name || exception.constructor?.name || "Error";
-      attributes["exception.message"] = exception.message || "";
-      if (exception.stack) {
-        attributes["exception.stacktrace"] = exception.stack.substring(0, 8000);
+    try {
+      if (exception === null || exception === undefined) {
+        attributes["exception.message"] =
+          "Unknown error: null or undefined was thrown";
+        return attributes;
       }
-    } else if (typeof exception === "string") {
-      attributes["exception.message"] = exception;
-    } else {
-      attributes["exception.message"] = this.safeStringify(exception);
-    }
 
-    type PotentialDatabaseError = {
-      code?: unknown;
-      detail?: unknown;
-      constraint?: unknown;
-      table?: unknown;
-      column?: unknown;
-      schema?: unknown;
-      query?: unknown;
-      driverError?: PotentialDatabaseError;
-    };
-
-    const error: PotentialDatabaseError = exception as PotentialDatabaseError;
-    const databaseError: PotentialDatabaseError = error.driverError || error;
-
-    const setStringAttribute: (key: string, value: unknown) => void = (
-      key: string,
-      value: unknown,
-    ): void => {
-      if (value !== undefined && value !== null && value !== "") {
-        attributes[key] = String(value);
+      if (exception instanceof Error) {
+        attributes["exception.type"] =
+          exception.name || exception.constructor?.name || "Error";
+        attributes["exception.message"] = this.truncate(
+          exception.message || "",
+          4000,
+        );
+        if (exception.stack) {
+          attributes["exception.stacktrace"] = this.truncate(
+            exception.stack,
+            8000,
+          );
+        }
+      } else if (typeof exception === "string") {
+        attributes["exception.message"] = this.truncate(exception, 4000);
+      } else {
+        attributes["exception.message"] = this.truncate(
+          this.safeStringify(exception),
+          4000,
+        );
       }
-    };
 
-    // SQLSTATE (e.g. "23503" = foreign key violation) or a Node error code.
-    setStringAttribute("exception.code", error.code ?? databaseError.code);
-    setStringAttribute("db.error.detail", databaseError.detail);
-    setStringAttribute("db.error.constraint", databaseError.constraint);
-    setStringAttribute("db.error.table", databaseError.table);
-    setStringAttribute("db.error.column", databaseError.column);
-    setStringAttribute("db.error.schema", databaseError.schema);
+      type PotentialDatabaseError = {
+        code?: unknown;
+        detail?: unknown;
+        constraint?: unknown;
+        table?: unknown;
+        column?: unknown;
+        schema?: unknown;
+        query?: unknown;
+        driverError?: PotentialDatabaseError;
+      };
 
-    if (typeof error.query === "string" && error.query.length > 0) {
-      attributes["db.statement"] = error.query.substring(0, 2000);
+      const error: PotentialDatabaseError = exception as PotentialDatabaseError;
+      const databaseError: PotentialDatabaseError = error.driverError || error;
+
+      const setStringAttribute: (key: string, value: unknown) => void = (
+        key: string,
+        value: unknown,
+      ): void => {
+        try {
+          if (value !== undefined && value !== null && value !== "") {
+            attributes[key] = this.truncate(String(value), 2000);
+          }
+        } catch {
+          // A single unserializable field must not abort the whole enrichment.
+        }
+      };
+
+      // SQLSTATE (e.g. "23503" = foreign key violation) or a Node error code.
+      setStringAttribute("exception.code", error.code ?? databaseError.code);
+      setStringAttribute("db.error.detail", databaseError.detail);
+      setStringAttribute("db.error.constraint", databaseError.constraint);
+      setStringAttribute("db.error.table", databaseError.table);
+      setStringAttribute("db.error.column", databaseError.column);
+      setStringAttribute("db.error.schema", databaseError.schema);
+
+      if (typeof error.query === "string" && error.query.length > 0) {
+        attributes["db.statement"] = this.truncate(error.query, 2000);
+      }
+    } catch {
+      /*
+       * Reading exotic thrown values (throwing getters, Proxies) must never
+       * crash the error-reporting path. Keep whatever was collected so far.
+       */
+      if (!attributes["exception.message"]) {
+        attributes["exception.message"] =
+          "Error (exception details could not be extracted)";
+      }
     }
 
     return attributes;
   }
 
+  private static truncate(value: string, maxLength: number): string {
+    return value.length > maxLength ? value.substring(0, maxLength) : value;
+  }
+
   private static safeStringify(value: unknown): string {
     try {
-      return JSON.stringify(value) || String(value);
+      const serialized: string | undefined = JSON.stringify(value);
+      if (serialized) {
+        return serialized;
+      }
     } catch {
+      // fall through to String() below
+    }
+
+    try {
       return String(value);
+    } catch {
+      return "[unserializable error value]";
     }
   }
 
