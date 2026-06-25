@@ -702,10 +702,13 @@ autoscaling:
 # can't evict every replica of a service simultaneously. It has no effect on
 # involuntary disruptions (node crash, OOM kill).
 #
-# The defaults below (maxUnavailable: 1) are safe even at replicaCount: 1 — the
-# lone pod can still be evicted, so node drains never wedge — and start limiting
-# disruption to one pod at a time the moment you scale a service out. Each
-# service can override these under "<service>.podDisruptionBudget".
+# Disabled by default. When enabled, the defaults below (maxUnavailable: 1) are
+# safe even at replicaCount: 1 — the lone pod can still be evicted, so node
+# drains never wedge — and start limiting disruption to one pod at a time the
+# moment you scale a service out. Each service can override these under
+# "<service>.podDisruptionBudget". PDBs only provide real protection once a
+# service runs more than one replica, so scale the services you need to keep
+# available (e.g. nginx, app) before relying on this.
 #
 # Set EITHER minAvailable OR maxUnavailable (the Kubernetes PDB spec allows only
 # one). If both resolve to a value, minAvailable wins. Both accept an integer or
@@ -713,7 +716,7 @@ autoscaling:
 # redis, clickhouse) are intentionally excluded — a PDB there would imply HA
 # they don't provide; the multi-replica clickhouse-keeper ships its own PDB.
 podDisruptionBudget:
-  enabled: true
+  enabled: false
   # Minimum pods that must stay available. Leave empty to use maxUnavailable.
   minAvailable: ""
   # Maximum pods that may be unavailable at once during a voluntary disruption.
