@@ -607,6 +607,41 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/ai-observability": {
+    title:
+      "AI / LLM Observability | Tokens, Cost, Traces & Prompts | OneUptime",
+    description:
+      "Observe LLM and AI-agent apps with OpenTelemetry: per-call traces, token usage, cost, latency, errors, and full prompts and completions. Works with OpenLLMetry, OpenInference and native OTel. Open source.",
+    canonicalPath: "/product/ai-observability",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "AI / LLM Observability", url: "/product/ai-observability" },
+    ],
+    softwareApplication: {
+      name: "OneUptime AI / LLM Observability",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Observe LLM and AI-agent applications over OpenTelemetry: per-call traces, token usage, cost, latency, errors, prompts and completions, plus dashboards and alerts on GenAI metrics.",
+      features: [
+        "OpenTelemetry GenAI native — no proprietary SDK",
+        "Works with OpenLLMetry, OpenInference and native OTel",
+        "Per-call traces for LLM, embedding, agent and tool spans",
+        "Token usage (input / output / total) and cost rollups",
+        "Prompt and completion content rendering",
+        "Latency and error-rate tracking per model",
+        "Filter calls by provider, model and operation",
+        "Token / cost / latency dashboards and alerts",
+        "Scrub rules for sensitive prompt data",
+        "Usage-based pricing, not per-seat",
+        "Open source",
+      ],
+    },
+  },
+
   "/product/ceph": {
     title:
       "Ceph Monitoring | Cluster Health, OSDs, Pools & Capacity | OneUptime",

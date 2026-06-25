@@ -26,6 +26,7 @@ import AnalyticsModelAPI, {
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import SpanUtil from "../../Utils/SpanUtil";
+import LlmSpanPanel from "./LlmSpanPanel";
 
 export interface SpanDetailsPanelProps {
   span: Span;
@@ -409,6 +410,13 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
               </ul>
             </section>
           )}
+
+          {/* AI / LLM call (only renders for gen_ai.* spans) */}
+          <LlmSpanPanel
+            attributes={fullSpan?.attributes as JSONObject | undefined}
+            events={fullSpan?.events}
+            durationLabel={durationLabel}
+          />
 
           {/* Attributes */}
           <section className="space-y-3">

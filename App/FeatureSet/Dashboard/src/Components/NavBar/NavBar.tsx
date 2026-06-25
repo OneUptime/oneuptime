@@ -155,6 +155,18 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       iconColor: "orange",
       category: observabilityCategory,
     },
+    {
+      title: t("navbar.items.llmObservabilityTitle", "AI / LLM"),
+      description: t(
+        "navbar.items.llmObservabilityDescription",
+        "Observe LLM and AI-agent calls — tokens, cost, latency, prompts and completions.",
+      ),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.LLM] as Route),
+      activeRoute: RouteMap[PageMap.LLM],
+      icon: IconProp.Sparkles,
+      iconColor: "violet",
+      category: observabilityCategory,
+    },
     /*
      * {
      *   title: t("navbar.items.entitiesTitle"),

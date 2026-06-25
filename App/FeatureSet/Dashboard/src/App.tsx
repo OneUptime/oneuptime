@@ -93,6 +93,16 @@ const ExceptionsRoutes: React.LazyExoticComponent<
   });
 });
 
+const LlmRoutes: React.LazyExoticComponent<AllRoutesModule["LlmRoutes"]> = lazy(
+  () => {
+    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+      return {
+        default: m.LlmRoutes,
+      };
+    });
+  },
+);
+
 const EntitiesRoutes: React.LazyExoticComponent<
   AllRoutesModule["EntitiesRoutes"]
 > = lazy(() => {
@@ -974,6 +984,13 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.EXCEPTIONS_ROOT]?.toString() || ""}
             element={<ExceptionsRoutes {...commonPageProps} />}
+          />
+
+          {/** AI / LLM Observability */}
+
+          <PageRoute
+            path={RouteMap[PageMap.LLM_ROOT]?.toString() || ""}
+            element={<LlmRoutes {...commonPageProps} />}
           />
 
           {/** Entities (entity explorer) */}

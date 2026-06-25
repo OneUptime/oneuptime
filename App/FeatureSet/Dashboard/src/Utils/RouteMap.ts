@@ -430,6 +430,13 @@ export const ExceptionsRoutePath: Dictionary<string> = {
   [PageMap.EXCEPTIONS_DOCUMENTATION]: "documentation",
 };
 
+export const LlmRoutePath: Dictionary<string> = {
+  [PageMap.LLM]: "overview",
+  [PageMap.LLM_OVERVIEW]: "overview",
+  [PageMap.LLM_CALLS]: "calls",
+  [PageMap.LLM_DOCUMENTATION]: "documentation",
+};
+
 export const DashboardsRoutePath: Dictionary<string> = {
   [PageMap.DASHBOARD_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.DASHBOARD_VIEW_OVERVIEW]: `${RouteParams.ModelID}/overview`,
@@ -4861,6 +4868,28 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.EXCEPTIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/exceptions/${
       ExceptionsRoutePath[PageMap.EXCEPTIONS]
+    }`,
+  ),
+
+  [PageMap.LLM_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/llm/*`),
+
+  [PageMap.LLM]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/llm/${LlmRoutePath[PageMap.LLM]}`,
+  ),
+
+  [PageMap.LLM_OVERVIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/llm/${
+      LlmRoutePath[PageMap.LLM_OVERVIEW]
+    }`,
+  ),
+
+  [PageMap.LLM_CALLS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/llm/${LlmRoutePath[PageMap.LLM_CALLS]}`,
+  ),
+
+  [PageMap.LLM_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/llm/${
+      LlmRoutePath[PageMap.LLM_DOCUMENTATION]
     }`,
   ),
 
