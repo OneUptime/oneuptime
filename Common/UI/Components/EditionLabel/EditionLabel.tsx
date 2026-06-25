@@ -462,7 +462,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         type="button"
         onClick={openDialog}
         className={`${pillClassName} ${props.className ? props.className : ""}`}
-        aria-label={`${editionName} details`}
+        /*
+         * Accessible name must include the visible text (WCAG 2.5.3 Label in
+         * Name) so voice-control users can activate it by the words they see
+         * ("{editionName}" and "{ctaLabel}", e.g. "Learn more").
+         */
+        aria-label={`${editionName}, ${ctaLabel}`}
       >
         {showAlertedPill && (
           <Icon

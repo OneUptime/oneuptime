@@ -13,7 +13,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   return (
     <Page
-      title={"Home"}
+      title={"Ongoing Scheduled Maintenance"}
       sideMenu={<SideMenu project={props.currentProject || undefined} />}
       breadcrumbLinks={[
         {
