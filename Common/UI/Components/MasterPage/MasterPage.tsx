@@ -78,7 +78,10 @@ const MasterPage: FunctionComponent<ComponentProps> = (
             <main
               id="main-content"
               tabIndex={-1}
-              className="focus:outline-none"
+              // grow so the main content fills the remaining vertical space in
+              // the flex column, keeping the page top-aligned and pinning the
+              // footer to the bottom even when the content is short.
+              className="grow focus:outline-none"
             >
               {props.children}
             </main>

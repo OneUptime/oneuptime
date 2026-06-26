@@ -26,7 +26,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         navBar={<NavBar />}
         isLoading={false}
         error={""}
-        className="flex flex-col h-screen justify-between"
+        className="flex flex-col h-screen"
       >
         {props.children}
       </MasterPage>
