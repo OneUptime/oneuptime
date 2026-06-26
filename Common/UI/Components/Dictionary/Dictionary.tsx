@@ -55,7 +55,7 @@ export interface ComponentProps {
 
 interface Item {
   key: string;
-  value: string | number | boolean;
+  value: string | number | boolean | Array<string>;
   type: ValueType;
   operator: DictionaryFilterOperator;
 }
@@ -108,14 +108,18 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
       const detected: {
         operator: DictionaryFilterOperator;
         rawValue: string;
+        rawValues?: Array<string> | undefined;
       } = detectOperatorFromValue(rawEntry);
 
       /*
-       * Restore typed values (number/boolean) for the form input from
+       * Restore typed values (number/boolean/array) for the form input from
        * the stringified raw representation when the column type allows.
        */
-      let restoredValue: string | number | boolean = detected.rawValue;
-      if (valueType === ValueType.Number && detected.rawValue !== "") {
+      let restoredValue: string | number | boolean | Array<string> =
+        detected.rawValue;
+      if (detected.operator === DictionaryFilterOperator.IsAnyOf) {
+        restoredValue = detected.rawValues ?? [];
+      } else if (valueType === ValueType.Number && detected.rawValue !== "") {
         const parsed: number = Number(detected.rawValue);
         restoredValue = isNaN(parsed) ? detected.rawValue : parsed;
       } else if (valueType === ValueType.Boolean) {
@@ -175,6 +179,16 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
         result[item.key] = buildDictionaryValue({
           operator: item.operator,
           rawValue: "",
+        });
+        return;
+      }
+      if (operatorOption.expectsMultiValue) {
+        result[item.key] = buildDictionaryValue({
+          operator: item.operator,
+          rawValue: "",
+          rawValues: Array.isArray(item.value)
+            ? (item.value as Array<string>)
+            : [],
         });
         return;
       }
@@ -298,10 +312,21 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                       const newData: Array<Item> = [...data];
                       newData[index]!.operator = newOperator;
                       /*
-                       * Reset the value when switching to a value-less
-                       * operator so we don't ship stale text downstream.
+                       * Reset the value when the input shape changes so we
+                       * don't ship a stale scalar where an array is expected
+                       * (or vice versa). Value-less operators clear to "".
                        */
                       if (newOperatorOption.hidesValueInput) {
+                        newData[index]!.value = "";
+                      } else if (
+                        newOperatorOption.expectsMultiValue &&
+                        !Array.isArray(newData[index]!.value)
+                      ) {
+                        newData[index]!.value = [];
+                      } else if (
+                        !newOperatorOption.expectsMultiValue &&
+                        Array.isArray(newData[index]!.value)
+                      ) {
                         newData[index]!.value = "";
                       }
                       setData(newData);
@@ -370,51 +395,99 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                     }}
                   />
                 )}
-                {!hideValueInput && item.type === ValueType.Text && (
-                  <AutocompleteTextInput
-                    value={item.value.toString()}
-                    placeholder={
-                      operatorOption.expectsNumericValue
-                        ? "Number"
-                        : props.valuePlaceholder
-                    }
-                    suggestions={
-                      operatorOption.expectsNumericValue
-                        ? undefined
-                        : item.key && props.valueSuggestions?.[item.key]
-                          ? props.valueSuggestions[item.key]
-                          : undefined
-                    }
-                    isLoadingSuggestions={
-                      operatorOption.expectsNumericValue
-                        ? false
-                        : Boolean(
-                            item.key &&
-                              props.loadingValueKeys?.includes(item.key),
-                          )
-                    }
-                    loadingMessage="Loading values..."
-                    onChange={(value: string) => {
-                      const newData: Array<Item> = [...data];
-                      newData[index]!.value = value;
-                      setData(newData);
-                      onDataChange(newData);
-
-                      /*
-                       * Let the parent refine value suggestions server-side
-                       * as the user types. Skip numeric operators — those
-                       * have no value suggestions to narrow.
-                       */
-                      if (
-                        props.onValueSearch &&
-                        item.key &&
-                        !operatorOption.expectsNumericValue
-                      ) {
-                        props.onValueSearch(item.key, value);
+                {!hideValueInput &&
+                  item.type === ValueType.Text &&
+                  operatorOption.expectsMultiValue && (
+                    <Dropdown
+                      isMultiSelect={true}
+                      placeholder={props.valuePlaceholder}
+                      value={(Array.isArray(item.value) ? item.value : []).map(
+                        (selectedValue: string) => {
+                          return { label: selectedValue, value: selectedValue };
+                        },
+                      )}
+                      options={Array.from(
+                        new Set([
+                          ...(Array.isArray(item.value)
+                            ? (item.value as Array<string>)
+                            : []),
+                          ...(item.key && props.valueSuggestions?.[item.key]
+                            ? props.valueSuggestions[item.key]!
+                            : []),
+                        ]),
+                      ).map((optionValue: string) => {
+                        return { label: optionValue, value: optionValue };
+                      })}
+                      onChange={(
+                        selectedOption:
+                          | DropdownValue
+                          | Array<DropdownValue>
+                          | null,
+                      ) => {
+                        const selectedValues: Array<string> = Array.isArray(
+                          selectedOption,
+                        )
+                          ? selectedOption.map((selected: DropdownValue) => {
+                              return String(selected);
+                            })
+                          : selectedOption !== null &&
+                              selectedOption !== undefined
+                            ? [String(selectedOption)]
+                            : [];
+                        const newData: Array<Item> = [...data];
+                        newData[index]!.value = selectedValues;
+                        setData(newData);
+                        onDataChange(newData);
+                      }}
+                    />
+                  )}
+                {!hideValueInput &&
+                  item.type === ValueType.Text &&
+                  !operatorOption.expectsMultiValue && (
+                    <AutocompleteTextInput
+                      value={item.value.toString()}
+                      placeholder={
+                        operatorOption.expectsNumericValue
+                          ? "Number"
+                          : props.valuePlaceholder
                       }
-                    }}
-                  />
-                )}
+                      suggestions={
+                        operatorOption.expectsNumericValue
+                          ? undefined
+                          : item.key && props.valueSuggestions?.[item.key]
+                            ? props.valueSuggestions[item.key]
+                            : undefined
+                      }
+                      isLoadingSuggestions={
+                        operatorOption.expectsNumericValue
+                          ? false
+                          : Boolean(
+                              item.key &&
+                                props.loadingValueKeys?.includes(item.key),
+                            )
+                      }
+                      loadingMessage="Loading values..."
+                      onChange={(value: string) => {
+                        const newData: Array<Item> = [...data];
+                        newData[index]!.value = value;
+                        setData(newData);
+                        onDataChange(newData);
+
+                        /*
+                         * Let the parent refine value suggestions server-side
+                         * as the user types. Skip numeric operators — those
+                         * have no value suggestions to narrow.
+                         */
+                        if (
+                          props.onValueSearch &&
+                          item.key &&
+                          !operatorOption.expectsNumericValue
+                        ) {
+                          props.onValueSearch(item.key, value);
+                        }
+                      }}
+                    />
+                  )}
 
                 {!hideValueInput && item.type === ValueType.Number && (
                   <Input
