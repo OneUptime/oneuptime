@@ -10,11 +10,48 @@ This guide covers how to safely upgrade your self-hosted OneUptime installation.
 
 ## Upgrading from OneUptime 10 → 11
 
-OneUptime 11 rebuilds the ClickHouse telemetry storage. This page explains
-what changes, who needs to act, and — for installations that want to carry
-historical telemetry forward — every query needed to do it.
+OneUptime 11 has two changes that need your attention before you upgrade:
 
-### What changes in v11
+1. **Identity features (SSO, OIDC, SCIM) moved to the Enterprise Edition** —
+   if you sign in with SSO on a self-hosted Community build, read this first.
+2. **The ClickHouse telemetry storage was rebuilt** — relevant if you want to
+   carry historical telemetry forward.
+
+This page explains both — what changes, who needs to act, and (for the
+telemetry rebuild) every query needed to migrate history.
+
+### Identity features (SSO, OIDC, SCIM) now require the Enterprise Edition
+
+In v11, the following authentication and access-management features moved to
+the **OneUptime Enterprise Edition** and are no longer part of the free,
+open-source (Community) build:
+
+- **SAML SSO** — both project login and status-page login
+- **OpenID Connect (OIDC)** — both project login and status-page login
+- **SCIM user provisioning** — project and status page
+- **Global (instance-wide) SSO / OIDC**
+- **Team compliance settings**
+
+**What you'll see after upgrading:** if you configured any of these on a
+Community Edition build, sign-in through them is disabled after the upgrade,
+and the settings pages show an upgrade prompt instead of the configuration
+form. Your existing provider records are **preserved in the database** —
+nothing is deleted — they simply become inactive until the instance runs the
+Enterprise Edition.
+
+**Availability:**
+
+- **Self-hosted:** requires the **Enterprise Edition** build.
+- **OneUptime Cloud:** requires the **Scale** plan (or above).
+
+**If you rely on SSO and self-host**, email
+[support@oneuptime.com](mailto:support@oneuptime.com) for an Enterprise Edition
+license so you can restore SSO/OIDC/SCIM. Mention that you upgraded from v10 to
+v11 and we'll help you get it back online. If your team is mid-upgrade and this
+is blocking sign-in, contact us before upgrading production so we can plan it
+with you.
+
+### What changes in v11 (telemetry storage)
 
 Telemetry (logs, traces, metrics, exceptions, profiles, monitor logs,
 audit logs) moves to new ClickHouse tables with time-based partitioning,

@@ -10,6 +10,39 @@
 
 ## OneUptime 10 → 11 へのアップグレード
 
+<!-- TODO(i18n): Translate this section. English source: en/installation/upgrading.md (added for v11 SSO->Enterprise change). -->
+
+### Identity features (SSO, OIDC, SCIM) now require the Enterprise Edition
+
+In v11, the following authentication and access-management features moved to
+the **OneUptime Enterprise Edition** and are no longer part of the free,
+open-source (Community) build:
+
+- **SAML SSO** — both project login and status-page login
+- **OpenID Connect (OIDC)** — both project login and status-page login
+- **SCIM user provisioning** — project and status page
+- **Global (instance-wide) SSO / OIDC**
+- **Team compliance settings**
+
+**What you'll see after upgrading:** if you configured any of these on a
+Community Edition build, sign-in through them is disabled after the upgrade,
+and the settings pages show an upgrade prompt instead of the configuration
+form. Your existing provider records are **preserved in the database** —
+nothing is deleted — they simply become inactive until the instance runs the
+Enterprise Edition.
+
+**Availability:**
+
+- **Self-hosted:** requires the **Enterprise Edition** build.
+- **OneUptime Cloud:** requires the **Scale** plan (or above).
+
+**If you rely on SSO and self-host**, email
+[support@oneuptime.com](mailto:support@oneuptime.com) for an Enterprise Edition
+license so you can restore SSO/OIDC/SCIM. Mention that you upgraded from v10 to
+v11 and we'll help you get it back online. If your team is mid-upgrade and this
+is blocking sign-in, contact us before upgrading production so we can plan it
+with you.
+
 OneUptime 11 は ClickHouse のテレメトリーストレージを再構築します。このページでは、何が変わるのか、誰が対応する必要があるのか、そして過去のテレメトリーを引き継ぎたいインストール環境向けに、そのために必要なすべてのクエリを説明します。
 
 ### v11 で変わること
