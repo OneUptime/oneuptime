@@ -15,6 +15,9 @@ import {
   CriteriaFilterSchema,
 } from "./CriteriaFilter";
 import { CriteriaIncident, CriteriaIncidentSchema } from "./CriteriaIncident";
+import IncidentGroupingConfig, {
+  IncidentGroupingConfigSchema,
+} from "./IncomingMonitor/IncidentGroupingConfig";
 import MonitorType from "./MonitorType";
 import { FindOperator } from "typeorm";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
@@ -31,6 +34,12 @@ export interface MonitorCriteriaInstanceType {
   createIncidents?: boolean | undefined;
   createAlerts?: boolean | undefined;
   isEnabled?: boolean | undefined;
+  /**
+   * Incoming Request monitors only: opt-in config to open one incident
+   * per distinct value extracted from the webhook payload (e.g. one per
+   * Grafana alert name) instead of a single active incident per criteria.
+   */
+  incidentGrouping?: IncidentGroupingConfig | undefined;
   id: string;
 }
 
@@ -1500,6 +1509,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: this.data.changeMonitorStatus,
         createIncidents: this.data.createIncidents,
         isEnabled: this.data.isEnabled,
+        incidentGrouping: this.data.incidentGrouping,
         name: this.data.name,
         description: this.data.description,
       } as any,
@@ -1609,6 +1619,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       createAlerts: (json["createAlerts"] as boolean) || false,
       isEnabled:
         json["isEnabled"] === undefined ? true : (json["isEnabled"] as boolean),
+      incidentGrouping: (json["incidentGrouping"] as any) || undefined,
       filters: filters as any,
       incidents: incidents as any,
       alerts: alerts as any,
@@ -1635,6 +1646,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createIncidents: Zod.boolean().optional(),
         createAlerts: Zod.boolean().optional(),
         isEnabled: Zod.boolean().optional(),
+        incidentGrouping: IncidentGroupingConfigSchema.optional(),
       }).openapi({
         type: "object",
         example: {

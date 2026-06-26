@@ -137,6 +137,107 @@ export default class MonitorIncident {
     return openIncidents;
   }
 
+  /**
+   * Event-driven (incoming-request / webhook) resolution: resolve the
+   * open incidents for the given payload-derived fingerprints — and only
+   * those — when the criteria that created them has auto-resolve enabled.
+   *
+   * Unlike the metric snapshot model, this never resolves an incident by
+   * absence: a webhook describes only the keys in its payload, so a
+   * missing key is not a recovery signal. The caller passes exactly the
+   * fingerprints the payload explicitly classified as resolved (see
+   * IncomingRequestIncidentGrouping.collectResolvedFingerprints).
+   */
+  @CaptureSpan()
+  public static async resolveSeriesIncidentsByFingerprint(input: {
+    monitor: Monitor;
+    fingerprints: Array<string>;
+    rootCause: string;
+    dataToProcess: DataToProcess;
+    autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
+      Array<string>
+    >;
+    evaluationSummary?: MonitorEvaluationSummary | undefined;
+  }): Promise<void> {
+    if (!input.fingerprints || input.fingerprints.length === 0) {
+      return;
+    }
+
+    const fingerprintSet: Set<string> = new Set<string>(input.fingerprints);
+
+    const openIncidents: Array<Incident> = await IncidentService.findBy({
+      query: {
+        monitors: [input.monitor.id!],
+        currentIncidentState: {
+          isResolvedState: false,
+        },
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      select: {
+        _id: true,
+        title: true,
+        createdCriteriaId: true,
+        createdIncidentTemplateId: true,
+        projectId: true,
+        incidentNumber: true,
+        incidentNumberWithPrefix: true,
+        seriesFingerprint: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const openIncident of openIncidents) {
+      const fingerprint: string | undefined =
+        openIncident.seriesFingerprint || undefined;
+
+      if (!fingerprint || !fingerprintSet.has(fingerprint)) {
+        continue;
+      }
+
+      const createdCriteriaId: string | undefined =
+        openIncident.createdCriteriaId?.toString();
+      const createdIncidentTemplateId: string | undefined =
+        openIncident.createdIncidentTemplateId?.toString();
+
+      // Only auto-resolve when the creating criteria opted into it.
+      if (!createdCriteriaId || !createdIncidentTemplateId) {
+        continue;
+      }
+
+      const autoResolveTemplates: Array<string> | undefined =
+        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
+          createdCriteriaId
+        ];
+
+      if (
+        !autoResolveTemplates ||
+        !autoResolveTemplates.includes(createdIncidentTemplateId)
+      ) {
+        continue;
+      }
+
+      await this.resolveOpenIncident({
+        openIncident: openIncident,
+        rootCause: input.rootCause,
+        dataToProcess: input.dataToProcess,
+      });
+
+      input.evaluationSummary?.events.push({
+        type: "incident-resolved",
+        title: `Incident resolved: ${openIncident.id?.toString()}`,
+        message:
+          "Incident auto-resolved because the incoming payload reported this key as resolved.",
+        relatedIncidentId: openIncident.id?.toString(),
+        relatedIncidentNumber: openIncident.incidentNumber,
+        relatedIncidentNumberWithPrefix: openIncident.incidentNumberWithPrefix,
+        at: OneUptimeDate.getCurrentDate(),
+      });
+    }
+  }
+
   @CaptureSpan()
   public static async criteriaMetCreateIncidentsAndUpdateMonitorStatus(input: {
     criteriaInstance: MonitorCriteriaInstance;
@@ -165,6 +266,17 @@ export default class MonitorIncident {
      * are suppressed at creation time. See MonitorMaintenanceSuppression.
      */
     suppressedSeriesFingerprints?: Set<string> | undefined;
+    /**
+     * Event-driven monitors (incoming-request / webhook fan-out) must not
+     * use the metric snapshot model where a series absent from this tick's
+     * breaching set is auto-resolved — a single webhook only describes the
+     * keys in that payload, not the full firing set, so absence is not
+     * recovery. When true, the per-series absence-resolve pass is skipped;
+     * those incidents are resolved explicitly elsewhere (see
+     * IncomingRequestIncidentGrouping + resolveSeriesIncidentsByFingerprint).
+     * Per-key create + dedupe still happen via matchesPerSeries.
+     */
+    disableSeriesAbsenceResolution?: boolean | undefined;
   }): Promise<void> {
     const incidentLogAttributes: LogAttributes = {
       projectId: input.monitor.projectId?.toString(),
@@ -182,7 +294,7 @@ export default class MonitorIncident {
      * dedupe decisions below match the post-resolve state.
      */
     const breachingSeriesFingerprints: Set<string> | undefined =
-      input.matchesPerSeries
+      input.matchesPerSeries && !input.disableSeriesAbsenceResolution
         ? new Set<string>(
             input.matchesPerSeries.map((m: PerSeriesCriteriaMatch) => {
               return m.fingerprint;
@@ -224,8 +336,15 @@ export default class MonitorIncident {
      * Series-less path: one incident per criteriaIncident template as
      * before. Series-aware path: one incident per (series × template).
      */
+    /*
+     * `undefined` matchesPerSeries → legacy single-incident path. A
+     * defined (even empty) array → per-series mode: iterate exactly the
+     * matches. An empty array therefore creates nothing — used by grouped
+     * incoming-request criteria on a payload with no firing key so they
+     * don't fall back to a single whole-monitor incident.
+     */
     const seriesToProcess: Array<PerSeriesCriteriaMatch | undefined> =
-      input.matchesPerSeries && input.matchesPerSeries.length > 0
+      input.matchesPerSeries !== undefined
         ? input.matchesPerSeries
         : [undefined];
 

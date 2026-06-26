@@ -5,6 +5,7 @@ import APIRequestCriteria from "./Criteria/APIRequestCriteria";
 import CustomCodeMonitoringCriteria from "./Criteria/CustomCodeMonitorCriteria";
 import IncomingEmailCriteria from "./Criteria/IncomingEmailCriteria";
 import IncomingRequestCriteria from "./Criteria/IncomingRequestCriteria";
+import IncomingRequestIncidentGrouping from "./IncomingRequestIncidentGrouping";
 import SSLMonitorCriteria from "./Criteria/SSLMonitorCriteria";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
 import SyntheticMonitoringCriteria from "./Criteria/SyntheticMonitor";
@@ -215,6 +216,16 @@ ${contextBlock}
 
         if (perSeriesMatches.length > 0) {
           input.probeApiIngestResponse.perSeriesMatches = perSeriesMatches;
+        } else if (
+          IncomingRequestIncidentGrouping.isGroupingConfigured(criteriaInstance)
+        ) {
+          /*
+           * Grouped incoming-request criteria that produced no firing key
+           * (e.g. a pure "resolved" webhook). Force per-series mode with an
+           * empty set so the create path does NOT fall back to opening a
+           * single whole-monitor incident.
+           */
+          input.probeApiIngestResponse.perSeriesMatches = [];
         }
 
         break;
@@ -238,6 +249,20 @@ ${contextBlock}
     monitorStep: MonitorStep;
     criteriaInstance: MonitorCriteriaInstance;
   }): Promise<Array<PerSeriesCriteriaMatch>> {
+    /*
+     * Incoming Request / webhook monitors fan out per payload-derived key
+     * (e.g. one incident per Grafana alert name) when incidentGrouping is
+     * configured. No-op (returns []) when grouping is not configured, so
+     * existing incoming-request monitors keep their single-incident
+     * behaviour.
+     */
+    if (input.monitor.monitorType === MonitorType.IncomingRequest) {
+      return IncomingRequestIncidentGrouping.collectFiringMatches({
+        dataToProcess: input.dataToProcess,
+        criteriaInstance: input.criteriaInstance,
+      });
+    }
+
     if (
       input.monitor.monitorType !== MonitorType.Metrics &&
       input.monitor.monitorType !== MonitorType.Kubernetes &&
