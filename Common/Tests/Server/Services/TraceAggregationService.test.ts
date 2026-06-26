@@ -328,9 +328,19 @@ describe("TraceAggregationService", () => {
 
       const query: string = normalizedQuery(statement);
       expect(query).toContain("count() AS cnt");
+      expect(query).toContain("countIf(statusCode = 2) AS err_cnt");
       expect(query).toContain("avg(durationUnixNano) / 1000000 AS avg_ms");
       expect(query).toContain(
         "quantile(0.5)(durationUnixNano) / 1000000 AS p50_ms",
+      );
+      expect(query).toContain(
+        "quantile(0.9)(durationUnixNano) / 1000000 AS p90_ms",
+      );
+      expect(query).toContain(
+        "quantile(0.95)(durationUnixNano) / 1000000 AS p95_ms",
+      );
+      expect(query).toContain(
+        "quantile(0.99)(durationUnixNano) / 1000000 AS p99_ms",
       );
       expect(query).toContain("min(durationUnixNano) / 1000000 AS min_ms");
       expect(query).toContain("max(durationUnixNano) / 1000000 AS max_ms");

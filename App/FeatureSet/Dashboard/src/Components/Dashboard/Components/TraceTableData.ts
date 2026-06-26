@@ -26,8 +26,12 @@ export type TraceTableArguments = DashboardTraceTableComponent["arguments"];
 export interface TraceTableRow {
   groupValues: Record<string, string>;
   count: number;
+  errorCount: number;
   avgDurationMs: number;
   p50DurationMs: number;
+  p90DurationMs: number;
+  p95DurationMs: number;
+  p99DurationMs: number;
   minDurationMs: number;
   maxDurationMs: number;
 }

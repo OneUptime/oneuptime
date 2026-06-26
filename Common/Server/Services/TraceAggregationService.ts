@@ -107,8 +107,12 @@ export interface TraceAnalyticsTopItem {
 export interface TraceAnalyticsTableRow {
   groupValues: Record<string, string>;
   count: number;
+  errorCount: number;
   avgDurationMs: number;
   p50DurationMs: number;
+  p90DurationMs: number;
+  p95DurationMs: number;
+  p99DurationMs: number;
   minDurationMs: number;
   maxDurationMs: number;
 }
@@ -1344,8 +1348,12 @@ export class TraceAggregationService {
       return {
         groupValues,
         count: Number(row["cnt"] || 0),
+        errorCount: Number(row["err_cnt"] || 0),
         avgDurationMs: Number(row["avg_ms"] || 0),
         p50DurationMs: Number(row["p50_ms"] || 0),
+        p90DurationMs: Number(row["p90_ms"] || 0),
+        p95DurationMs: Number(row["p95_ms"] || 0),
+        p99DurationMs: Number(row["p99_ms"] || 0),
         minDurationMs: Number(row["min_ms"] || 0),
         maxDurationMs: Number(row["max_ms"] || 0),
       };
@@ -1676,15 +1684,20 @@ export class TraceAggregationService {
       request.limit ?? TraceAggregationService.DEFAULT_ANALYTICS_LIMIT;
 
     /*
-     * The "top dimensions" table always carries the full duration stat set
-     * (count, avg, median, min, max) — one query answers "requests and
-     * median response time per tenant" without a follow-up.
+     * The "top dimensions" table always carries the full stat set (count,
+     * errors, avg, p50/p90/p95/p99, min, max) — one query answers "requests,
+     * errors and tail latency per tenant" without a follow-up. errorCount
+     * mirrors the METRIC_EXPRESSIONS convention: statusCode = 2 is an error.
      */
     const statement: Statement = new Statement();
     statement.append(
       "SELECT count() AS cnt" +
+        ", countIf(statusCode = 2) AS err_cnt" +
         ", avg(durationUnixNano) / 1000000 AS avg_ms" +
         ", quantile(0.5)(durationUnixNano) / 1000000 AS p50_ms" +
+        ", quantile(0.9)(durationUnixNano) / 1000000 AS p90_ms" +
+        ", quantile(0.95)(durationUnixNano) / 1000000 AS p95_ms" +
+        ", quantile(0.99)(durationUnixNano) / 1000000 AS p99_ms" +
         ", min(durationUnixNano) / 1000000 AS min_ms" +
         ", max(durationUnixNano) / 1000000 AS max_ms",
     );

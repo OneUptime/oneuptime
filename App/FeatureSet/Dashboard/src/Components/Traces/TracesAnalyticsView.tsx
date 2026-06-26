@@ -47,8 +47,12 @@ interface TopItem {
 interface TableRow {
   groupValues: Record<string, string>;
   count: number;
+  errorCount: number;
   avgDurationMs: number;
   p50DurationMs: number;
+  p90DurationMs: number;
+  p95DurationMs: number;
+  p99DurationMs: number;
   minDurationMs: number;
   maxDurationMs: number;
 }
@@ -886,8 +890,12 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                   );
                 })}
                 <th className={`text-right ${headerCell}`}>Requests</th>
-                <th className={`text-right ${headerCell}`}>Median</th>
+                <th className={`text-right ${headerCell}`}>Errors</th>
                 <th className={`text-right ${headerCell}`}>Avg</th>
+                <th className={`text-right ${headerCell}`}>P50</th>
+                <th className={`text-right ${headerCell}`}>P90</th>
+                <th className={`text-right ${headerCell}`}>P95</th>
+                <th className={`text-right ${headerCell}`}>P99</th>
                 <th className={`text-right ${headerCell}`}>Min</th>
                 <th className={`text-right ${headerCell}`}>Max</th>
               </tr>
@@ -915,11 +923,29 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm font-semibold tabular-nums text-gray-800">
                       {row.count.toLocaleString()}
                     </td>
+                    <td
+                      className={`whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums ${
+                        row.errorCount > 0
+                          ? "font-semibold text-red-600"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      {row.errorCount.toLocaleString()}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
+                      {formatDurationMs(row.avgDurationMs)}
+                    </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
                       {formatDurationMs(row.p50DurationMs)}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
-                      {formatDurationMs(row.avgDurationMs)}
+                      {formatDurationMs(row.p90DurationMs)}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
+                      {formatDurationMs(row.p95DurationMs)}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
+                      {formatDurationMs(row.p99DurationMs)}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-xs tabular-nums text-gray-500">
                       {formatDurationMs(row.minDurationMs)}

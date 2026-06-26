@@ -158,8 +158,12 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
                 );
               })}
               <th className={`text-right ${HEADER_CELL}`}>Requests</th>
-              <th className={`text-right ${HEADER_CELL}`}>Median</th>
+              <th className={`text-right ${HEADER_CELL}`}>Errors</th>
               <th className={`text-right ${HEADER_CELL}`}>Avg</th>
+              <th className={`text-right ${HEADER_CELL}`}>P50</th>
+              <th className={`text-right ${HEADER_CELL}`}>P90</th>
+              <th className={`text-right ${HEADER_CELL}`}>P95</th>
+              <th className={`text-right ${HEADER_CELL}`}>P99</th>
               <th className={`text-right ${HEADER_CELL}`}>Min</th>
               <th className={`text-right ${HEADER_CELL}`}>Max</th>
             </tr>
@@ -187,11 +191,29 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
                   <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-sm font-semibold tabular-nums text-gray-800">
                     {row.count.toLocaleString()}
                   </td>
+                  <td
+                    className={`whitespace-nowrap px-3 py-2 text-right font-mono text-sm tabular-nums ${
+                      row.errorCount > 0
+                        ? "font-semibold text-red-600"
+                        : "text-gray-400"
+                    }`}
+                  >
+                    {row.errorCount.toLocaleString()}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-sm tabular-nums text-gray-700">
+                    {formatDurationMs(row.avgDurationMs)}
+                  </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-sm tabular-nums text-gray-700">
                     {formatDurationMs(row.p50DurationMs)}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-sm tabular-nums text-gray-700">
-                    {formatDurationMs(row.avgDurationMs)}
+                    {formatDurationMs(row.p90DurationMs)}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-sm tabular-nums text-gray-700">
+                    {formatDurationMs(row.p95DurationMs)}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-sm tabular-nums text-gray-700">
+                    {formatDurationMs(row.p99DurationMs)}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-xs tabular-nums text-gray-500">
                     {formatDurationMs(row.minDurationMs)}
