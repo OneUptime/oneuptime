@@ -316,6 +316,35 @@ const LocalTime: FunctionComponent<{ isoValue: string }> = ({
   );
 };
 
+/*
+ * Recursively pull the plain text out of a React children tree. Used to derive
+ * an accessible name for task-list checkboxes (WCAG 4.1.2), whose visible label
+ * is a sibling text node not otherwise associated with the <input>.
+ */
+const extractTextFromChildren: (children: unknown) => string = (
+  children: unknown,
+): string => {
+  if (children === null || children === undefined || children === false) {
+    return "";
+  }
+  if (typeof children === "string" || typeof children === "number") {
+    return String(children);
+  }
+  if (Array.isArray(children)) {
+    return children
+      .map((child: unknown) => {
+        return extractTextFromChildren(child);
+      })
+      .join("");
+  }
+  if (React.isValidElement(children)) {
+    return extractTextFromChildren(
+      (children.props as { children?: unknown }).children,
+    );
+  }
+  return "";
+};
+
 const MarkdownViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -388,6 +417,15 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
               />
             );
           },
+          img: ({ ...props }: any) => {
+            return (
+              <img
+                className="max-w-full h-auto rounded-md border border-gray-200 my-3"
+                loading="lazy"
+                {...props}
+              />
+            );
+          },
 
           pre: ({ children, ...rest }: any) => {
             // Check if this is a mermaid diagram - don't render pre wrapper for mermaid
@@ -430,12 +468,44 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
               />
             );
           },
-          li: ({ ...props }: any) => {
+          li: ({ children, ...props }: any) => {
+            const isTaskItem: boolean =
+              typeof props.className === "string" &&
+              props.className.includes("task-list-item");
+
+            // Give the task-list checkbox an accessible name from its label text.
+            const renderedChildren: any = isTaskItem
+              ? React.Children.map(children, (child: any) => {
+                  if (
+                    React.isValidElement(child) &&
+                    (child.type === "input" ||
+                      (child.props as { type?: string } | null)?.type ===
+                        "checkbox")
+                  ) {
+                    const existingLabel: string | undefined = (
+                      child.props as { ["aria-label"]?: string }
+                    )["aria-label"];
+                    return React.cloneElement(
+                      child as ReactElement,
+                      {
+                        "aria-label":
+                          existingLabel ||
+                          extractTextFromChildren(children).trim() ||
+                          "Task item",
+                      } as any,
+                    );
+                  }
+                  return child;
+                })
+              : children;
+
             return (
               <li
                 className="text-sm mt-1 mb-1 text-gray-700 leading-relaxed"
                 {...props}
-              />
+              >
+                {renderedChildren}
+              </li>
             );
           },
           ul: ({ ...props }: any) => {

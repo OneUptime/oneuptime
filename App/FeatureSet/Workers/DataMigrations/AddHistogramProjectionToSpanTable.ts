@@ -1,4 +1,5 @@
 import DataMigrationBase from "./DataMigrationBase";
+import ClickHouseMigrationUtil from "./ClickHouseMigrationUtil";
 import SpanService from "Common/Server/Services/SpanService";
 import logger from "Common/Server/Utils/Logger";
 
@@ -15,7 +16,25 @@ export default class AddHistogramProjectionToSpanTable extends DataMigrationBase
     super("AddHistogramProjectionToSpanTable");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
+    /*
+     * Legacy V2-era migration. On fresh installs of the V3 cut SpanItemV2
+     * never exists (the Span model declares the primaryEntityId-keyed
+     * proj_hist_by_minute natively on SpanItemV3) — skip so the unguarded
+     * ALTER cannot throw UNKNOWN_TABLE and wedge the migration chain.
+     */
+    if (!(await ClickHouseMigrationUtil.tableExists("SpanItemV2"))) {
+      logger.info(
+        "AddHistogramProjectionToSpanTable: SpanItemV2 not present (fresh V3 install) — skipping.",
+        { service: "workers" },
+      );
+      return;
+    }
+
     // Step 1: Add the projection (IF NOT EXISTS makes it safe to re-run)
     await SpanService.execute(
       `ALTER TABLE SpanItemV2 ADD PROJECTION IF NOT EXISTS proj_hist_by_minute (

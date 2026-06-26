@@ -62,6 +62,7 @@ import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import Model from "../../Models/DatabaseModels/Project";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import PromoCode from "../../Models/DatabaseModels/PromoCode";
 import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
 import Team from "../../Models/DatabaseModels/Team";
@@ -82,6 +83,7 @@ import DatabaseConfig from "../DatabaseConfig";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 
 export interface CurrentPlan {
   plan: PlanType | null;
@@ -89,6 +91,38 @@ export interface CurrentPlan {
 }
 
 export class ProjectService extends DatabaseService<Model> {
+  /*
+   * Suppresses repeated `lastActive` UPDATEs from a single API node. 60s of
+   * staleness on "last seen" is acceptable; an UPDATE per request is not.
+   */
+  private lastActiveCache: InMemoryTTLCache<true> = new InMemoryTTLCache(
+    10_000,
+  );
+  /*
+   * Caches the `requireSsoForLogin` flag per project so middleware can skip a
+   * Postgres findOneById on every authenticated request.
+   */
+  private requireSsoForLoginCache: InMemoryTTLCache<boolean> =
+    new InMemoryTTLCache(10_000);
+  /*
+   * Caches the `requireSsoWithSsoProviderId` discriminator per project so the
+   * enforce-SSO middleware can require that the SSO token was issued by a
+   * specific provider. Stored as a string id (or null when unset). Populated
+   * alongside `getRequireSsoForLogin` so the common path stays a single query.
+   */
+  private requireSsoWithSsoProviderIdCache: InMemoryTTLCache<string | null> =
+    new InMemoryTTLCache(10_000);
+  /*
+   * Caches the current billing plan per project. `getCurrentPlan` is hit
+   * by `CommonAPI.getDatabaseCommonInteractionProps` on every
+   * authenticated request when billing is enabled — without caching,
+   * that's one Postgres findOneById per API call to a billable project.
+   * Plans change rarely (subscription create / cancel / change), so a
+   * 60s staleness window is acceptable.
+   */
+  private currentPlanCache: InMemoryTTLCache<CurrentPlan> =
+    new InMemoryTTLCache(10_000);
+
   public constructor() {
     super(Model);
   }
@@ -318,6 +352,18 @@ export class ProjectService extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    /*
+     * Any project field could have changed; invalidate the in-process cache
+     * of the SSO flag. Cheap to refetch on the next request.
+     */
+    if (updateBy.data.requireSsoForLogin !== undefined) {
+      this.requireSsoForLoginCache.clear();
+    }
+
+    if (updateBy.data.requireSsoWithSsoProviderId !== undefined) {
+      this.requireSsoWithSsoProviderIdCache.clear();
+    }
+
     if (IsBillingEnabled) {
       if (
         updateBy.data.businessDetails ||
@@ -593,80 +639,132 @@ export class ProjectService extends DatabaseService<Model> {
     }
   }
 
+  /**
+   * Names of every row of `service` already scoped to `projectId`.
+   *
+   * The addDefault* seeders below each create a fixed set of named rows on a
+   * column that is unique per project (@UniqueColumnBy("projectId") on `name`).
+   * The SAME defaults are created in two places: here, in the project-create
+   * hooks, AND by backfill data migrations (e.g.
+   * AddDefaultAlertSeverityAndStateToExistingProjects). Creating a name that
+   * already exists throws "<X> with the same name already exists" in
+   * DatabaseService.checkUniqueColumnBy — and because the DataMigration runner
+   * halts the whole chain at the first failure, that single throw freezes every
+   * later migration. Each seeder guards its creates against this set so both
+   * paths are idempotent / safe to re-run.
+   */
+  private async getExistingProjectScopedNames<TBaseModel extends BaseModel>(
+    service: DatabaseService<TBaseModel>,
+    projectId: ObjectID,
+  ): Promise<Set<string | undefined>> {
+    const items: Array<TBaseModel> = await service.findBy({
+      query: {
+        projectId: projectId,
+      } as Query<TBaseModel>,
+      select: {
+        name: true,
+      } as Select<TBaseModel>,
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return new Set(
+      items.map((item: TBaseModel): string | undefined => {
+        return (item as { name?: string | undefined }).name;
+      }),
+    );
+  }
+
   private async addDefaultScheduledMaintenanceState(
     createdItem: Model,
   ): Promise<Model> {
-    let createdScheduledMaintenanceState: ScheduledMaintenanceState =
-      new ScheduledMaintenanceState();
-    createdScheduledMaintenanceState.name = "Scheduled";
-    createdScheduledMaintenanceState.description =
-      "When an event is scheduled, it belongs to this state";
-    createdScheduledMaintenanceState.color = Black;
-    createdScheduledMaintenanceState.isScheduledState = true;
-    createdScheduledMaintenanceState.projectId = createdItem.id!;
-    createdScheduledMaintenanceState.order = 1;
+    const projectId: ObjectID = createdItem.id!;
 
-    createdScheduledMaintenanceState =
+    // Idempotent — see getExistingProjectScopedNames.
+    const existingNames: Set<string | undefined> =
+      await this.getExistingProjectScopedNames(
+        ScheduledMaintenanceStateService,
+        projectId,
+      );
+
+    if (!existingNames.has("Scheduled")) {
+      const createdScheduledMaintenanceState: ScheduledMaintenanceState =
+        new ScheduledMaintenanceState();
+      createdScheduledMaintenanceState.name = "Scheduled";
+      createdScheduledMaintenanceState.description =
+        "When an event is scheduled, it belongs to this state";
+      createdScheduledMaintenanceState.color = Black;
+      createdScheduledMaintenanceState.isScheduledState = true;
+      createdScheduledMaintenanceState.projectId = projectId;
+      createdScheduledMaintenanceState.order = 1;
+
       await ScheduledMaintenanceStateService.create({
         data: createdScheduledMaintenanceState,
         props: {
           isRoot: true,
         },
       });
+    }
 
-    let ongoingScheduledMaintenanceState: ScheduledMaintenanceState =
-      new ScheduledMaintenanceState();
-    ongoingScheduledMaintenanceState.name = "Ongoing";
-    ongoingScheduledMaintenanceState.description =
-      "When an event is ongoing, it belongs to this state.";
-    ongoingScheduledMaintenanceState.color = Yellow;
-    ongoingScheduledMaintenanceState.isOngoingState = true;
-    ongoingScheduledMaintenanceState.projectId = createdItem.id!;
-    ongoingScheduledMaintenanceState.order = 2;
+    if (!existingNames.has("Ongoing")) {
+      const ongoingScheduledMaintenanceState: ScheduledMaintenanceState =
+        new ScheduledMaintenanceState();
+      ongoingScheduledMaintenanceState.name = "Ongoing";
+      ongoingScheduledMaintenanceState.description =
+        "When an event is ongoing, it belongs to this state.";
+      ongoingScheduledMaintenanceState.color = Yellow;
+      ongoingScheduledMaintenanceState.isOngoingState = true;
+      ongoingScheduledMaintenanceState.projectId = projectId;
+      ongoingScheduledMaintenanceState.order = 2;
 
-    ongoingScheduledMaintenanceState =
       await ScheduledMaintenanceStateService.create({
         data: ongoingScheduledMaintenanceState,
         props: {
           isRoot: true,
         },
       });
+    }
 
-    let endedScheduledMaintenanceState: ScheduledMaintenanceState =
-      new ScheduledMaintenanceState();
-    endedScheduledMaintenanceState.name = "Ended";
-    endedScheduledMaintenanceState.description =
-      "Scheduled maintenance events switch to this state when they end.";
-    endedScheduledMaintenanceState.color = new Color("#4A4A4A");
-    endedScheduledMaintenanceState.isEndedState = true;
-    endedScheduledMaintenanceState.projectId = createdItem.id!;
-    endedScheduledMaintenanceState.order = 3;
+    if (!existingNames.has("Ended")) {
+      const endedScheduledMaintenanceState: ScheduledMaintenanceState =
+        new ScheduledMaintenanceState();
+      endedScheduledMaintenanceState.name = "Ended";
+      endedScheduledMaintenanceState.description =
+        "Scheduled maintenance events switch to this state when they end.";
+      endedScheduledMaintenanceState.color = new Color("#4A4A4A");
+      endedScheduledMaintenanceState.isEndedState = true;
+      endedScheduledMaintenanceState.projectId = projectId;
+      endedScheduledMaintenanceState.order = 3;
 
-    endedScheduledMaintenanceState =
       await ScheduledMaintenanceStateService.create({
         data: endedScheduledMaintenanceState,
         props: {
           isRoot: true,
         },
       });
+    }
 
-    let completedScheduledMaintenanceState: ScheduledMaintenanceState =
-      new ScheduledMaintenanceState();
-    completedScheduledMaintenanceState.name = "Completed";
-    completedScheduledMaintenanceState.description =
-      "When an event is completed, it belongs to this state.";
-    completedScheduledMaintenanceState.color = Green;
-    completedScheduledMaintenanceState.isResolvedState = true;
-    completedScheduledMaintenanceState.projectId = createdItem.id!;
-    completedScheduledMaintenanceState.order = 4;
+    if (!existingNames.has("Completed")) {
+      const completedScheduledMaintenanceState: ScheduledMaintenanceState =
+        new ScheduledMaintenanceState();
+      completedScheduledMaintenanceState.name = "Completed";
+      completedScheduledMaintenanceState.description =
+        "When an event is completed, it belongs to this state.";
+      completedScheduledMaintenanceState.color = Green;
+      completedScheduledMaintenanceState.isResolvedState = true;
+      completedScheduledMaintenanceState.projectId = projectId;
+      completedScheduledMaintenanceState.order = 4;
 
-    completedScheduledMaintenanceState =
       await ScheduledMaintenanceStateService.create({
         data: completedScheduledMaintenanceState,
         props: {
           isRoot: true,
         },
       });
+    }
 
     return createdItem;
   }
@@ -742,14 +840,23 @@ export class ProjectService extends DatabaseService<Model> {
       }
     }
 
-    createdItem = await this.addDefaultIncidentSeverity(createdItem);
-    createdItem = await this.addDefaultAlertSeverity(createdItem);
-    createdItem = await this.addDefaultProjectTeams(createdItem);
-    createdItem = await this.addDefaultMonitorStatus(createdItem);
-    createdItem = await this.addDefaultIncidentState(createdItem);
-    createdItem = await this.addDefaultScheduledMaintenanceState(createdItem);
-    createdItem = await this.addDefaultAlertState(createdItem);
-    createdItem = await this.addDefaultIncidentRoles(createdItem);
+    /*
+     * Each addDefault* method only reads `createdItem.id` and writes rows to a
+     * distinct table; none of them mutate `createdItem`. Running them in
+     * parallel cuts the onCreate hook latency from sum-of-8 sequential DB
+     * round-trips to max-of-8, which removes ~hundreds of ms on project
+     * create.
+     */
+    await Promise.all([
+      this.addDefaultIncidentSeverity(createdItem),
+      this.addDefaultAlertSeverity(createdItem),
+      this.addDefaultProjectTeams(createdItem),
+      this.addDefaultMonitorStatus(createdItem),
+      this.addDefaultIncidentState(createdItem),
+      this.addDefaultScheduledMaintenanceState(createdItem),
+      this.addDefaultAlertState(createdItem),
+      this.addDefaultIncidentRoles(createdItem),
+    ]);
 
     if (NotificationSlackWebhookOnCreateProject) {
       // fetch project again.
@@ -804,304 +911,380 @@ export class ProjectService extends DatabaseService<Model> {
   }
 
   private async addDefaultIncidentState(createdItem: Model): Promise<Model> {
-    let createdIncidentState: IncidentState = new IncidentState();
-    createdIncidentState.name = "Identified";
-    createdIncidentState.description =
-      "When an incident is created, it belongs to this state";
-    createdIncidentState.color = Red;
-    createdIncidentState.isCreatedState = true;
-    createdIncidentState.projectId = createdItem.id!;
-    createdIncidentState.order = 1;
+    const projectId: ObjectID = createdItem.id!;
 
-    createdIncidentState = await IncidentStateService.create({
-      data: createdIncidentState,
-      props: {
-        isRoot: true,
-      },
-    });
+    // Idempotent — see getExistingProjectScopedNames.
+    const existingNames: Set<string | undefined> =
+      await this.getExistingProjectScopedNames(IncidentStateService, projectId);
 
-    let acknowledgedIncidentState: IncidentState = new IncidentState();
-    acknowledgedIncidentState.name = "Acknowledged";
-    acknowledgedIncidentState.description =
-      "When an incident is acknowledged, it belongs to this state.";
-    acknowledgedIncidentState.color = Yellow;
-    acknowledgedIncidentState.isAcknowledgedState = true;
-    acknowledgedIncidentState.projectId = createdItem.id!;
-    acknowledgedIncidentState.order = 2;
+    if (!existingNames.has("Identified")) {
+      const createdIncidentState: IncidentState = new IncidentState();
+      createdIncidentState.name = "Identified";
+      createdIncidentState.description =
+        "When an incident is created, it belongs to this state";
+      createdIncidentState.color = Red;
+      createdIncidentState.isCreatedState = true;
+      createdIncidentState.projectId = projectId;
+      createdIncidentState.order = 1;
 
-    acknowledgedIncidentState = await IncidentStateService.create({
-      data: acknowledgedIncidentState,
-      props: {
-        isRoot: true,
-      },
-    });
+      await IncidentStateService.create({
+        data: createdIncidentState,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
-    let resolvedIncidentState: IncidentState = new IncidentState();
-    resolvedIncidentState.name = "Resolved";
-    resolvedIncidentState.description =
-      "When an incident is resolved, it belongs to this state.";
-    resolvedIncidentState.color = Green;
-    resolvedIncidentState.isResolvedState = true;
-    resolvedIncidentState.projectId = createdItem.id!;
-    resolvedIncidentState.order = 3;
+    if (!existingNames.has("Acknowledged")) {
+      const acknowledgedIncidentState: IncidentState = new IncidentState();
+      acknowledgedIncidentState.name = "Acknowledged";
+      acknowledgedIncidentState.description =
+        "When an incident is acknowledged, it belongs to this state.";
+      acknowledgedIncidentState.color = Yellow;
+      acknowledgedIncidentState.isAcknowledgedState = true;
+      acknowledgedIncidentState.projectId = projectId;
+      acknowledgedIncidentState.order = 2;
 
-    resolvedIncidentState = await IncidentStateService.create({
-      data: resolvedIncidentState,
-      props: {
-        isRoot: true,
-      },
-    });
+      await IncidentStateService.create({
+        data: acknowledgedIncidentState,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (!existingNames.has("Resolved")) {
+      const resolvedIncidentState: IncidentState = new IncidentState();
+      resolvedIncidentState.name = "Resolved";
+      resolvedIncidentState.description =
+        "When an incident is resolved, it belongs to this state.";
+      resolvedIncidentState.color = Green;
+      resolvedIncidentState.isResolvedState = true;
+      resolvedIncidentState.projectId = projectId;
+      resolvedIncidentState.order = 3;
+
+      await IncidentStateService.create({
+        data: resolvedIncidentState,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
     return createdItem;
   }
 
   @CaptureSpan()
   public async addDefaultAlertState(createdItem: Model): Promise<Model> {
-    let createdAlertState: AlertState = new AlertState();
-    createdAlertState.name = "Identified";
-    createdAlertState.description =
-      "When an alert is created, it belongs to this state";
-    createdAlertState.color = Red;
-    createdAlertState.isCreatedState = true;
-    createdAlertState.projectId = createdItem.id!;
-    createdAlertState.order = 1;
+    const projectId: ObjectID = createdItem.id!;
 
-    createdAlertState = await AlertStateService.create({
-      data: createdAlertState,
-      props: {
-        isRoot: true,
-      },
-    });
+    // Idempotent — see getExistingProjectScopedNames.
+    const existingNames: Set<string | undefined> =
+      await this.getExistingProjectScopedNames(AlertStateService, projectId);
 
-    let acknowledgedAlertState: AlertState = new AlertState();
-    acknowledgedAlertState.name = "Acknowledged";
-    acknowledgedAlertState.description =
-      "When an alert is acknowledged, it belongs to this state.";
-    acknowledgedAlertState.color = Yellow;
-    acknowledgedAlertState.isAcknowledgedState = true;
-    acknowledgedAlertState.projectId = createdItem.id!;
-    acknowledgedAlertState.order = 2;
+    if (!existingNames.has("Identified")) {
+      const createdAlertState: AlertState = new AlertState();
+      createdAlertState.name = "Identified";
+      createdAlertState.description =
+        "When an alert is created, it belongs to this state";
+      createdAlertState.color = Red;
+      createdAlertState.isCreatedState = true;
+      createdAlertState.projectId = projectId;
+      createdAlertState.order = 1;
 
-    acknowledgedAlertState = await AlertStateService.create({
-      data: acknowledgedAlertState,
-      props: {
-        isRoot: true,
-      },
-    });
+      await AlertStateService.create({
+        data: createdAlertState,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
-    let resolvedAlertState: AlertState = new AlertState();
-    resolvedAlertState.name = "Resolved";
-    resolvedAlertState.description =
-      "When an incident is resolved, it belongs to this state.";
-    resolvedAlertState.color = Green;
-    resolvedAlertState.isResolvedState = true;
-    resolvedAlertState.projectId = createdItem.id!;
-    resolvedAlertState.order = 3;
+    if (!existingNames.has("Acknowledged")) {
+      const acknowledgedAlertState: AlertState = new AlertState();
+      acknowledgedAlertState.name = "Acknowledged";
+      acknowledgedAlertState.description =
+        "When an alert is acknowledged, it belongs to this state.";
+      acknowledgedAlertState.color = Yellow;
+      acknowledgedAlertState.isAcknowledgedState = true;
+      acknowledgedAlertState.projectId = projectId;
+      acknowledgedAlertState.order = 2;
 
-    resolvedAlertState = await AlertStateService.create({
-      data: resolvedAlertState,
-      props: {
-        isRoot: true,
-      },
-    });
+      await AlertStateService.create({
+        data: acknowledgedAlertState,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (!existingNames.has("Resolved")) {
+      const resolvedAlertState: AlertState = new AlertState();
+      resolvedAlertState.name = "Resolved";
+      resolvedAlertState.description =
+        "When an incident is resolved, it belongs to this state.";
+      resolvedAlertState.color = Green;
+      resolvedAlertState.isResolvedState = true;
+      resolvedAlertState.projectId = projectId;
+      resolvedAlertState.order = 3;
+
+      await AlertStateService.create({
+        data: resolvedAlertState,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
     return createdItem;
   }
 
   @CaptureSpan()
   public async addDefaultAlertSeverity(createdItem: Model): Promise<Model> {
-    let highSeverity: AlertSeverity = new AlertSeverity();
-    highSeverity.name = "High";
-    highSeverity.description =
-      "Issues causing very high impact to customers. Immediate attention is required.";
-    highSeverity.color = Moroon500;
-    highSeverity.projectId = createdItem.id!;
-    highSeverity.order = 1;
+    const projectId: ObjectID = createdItem.id!;
 
-    highSeverity = await AlertSeverityService.create({
-      data: highSeverity,
-      props: {
-        isRoot: true,
-      },
-    });
+    // Idempotent — see getExistingProjectScopedNames.
+    const existingNames: Set<string | undefined> =
+      await this.getExistingProjectScopedNames(AlertSeverityService, projectId);
 
-    let lowSeverity: AlertSeverity = new AlertSeverity();
-    lowSeverity.name = "Low";
-    lowSeverity.description = "Issues causing low impact to customers.";
-    lowSeverity.color = Yellow500;
-    lowSeverity.projectId = createdItem.id!;
-    lowSeverity.order = 2;
+    if (!existingNames.has("High")) {
+      const highSeverity: AlertSeverity = new AlertSeverity();
+      highSeverity.name = "High";
+      highSeverity.description =
+        "Issues causing very high impact to customers. Immediate attention is required.";
+      highSeverity.color = Moroon500;
+      highSeverity.projectId = projectId;
+      highSeverity.order = 1;
 
-    lowSeverity = await AlertSeverityService.create({
-      data: lowSeverity,
-      props: {
-        isRoot: true,
-      },
-    });
+      await AlertSeverityService.create({
+        data: highSeverity,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (!existingNames.has("Low")) {
+      const lowSeverity: AlertSeverity = new AlertSeverity();
+      lowSeverity.name = "Low";
+      lowSeverity.description = "Issues causing low impact to customers.";
+      lowSeverity.color = Yellow500;
+      lowSeverity.projectId = projectId;
+      lowSeverity.order = 2;
+
+      await AlertSeverityService.create({
+        data: lowSeverity,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
     return createdItem;
   }
 
   private async addDefaultIncidentSeverity(createdItem: Model): Promise<Model> {
-    let criticalIncident: IncidentSeverity = new IncidentSeverity();
-    criticalIncident.name = "Critical Incident";
-    criticalIncident.description =
-      "Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.";
-    criticalIncident.color = Moroon500;
-    criticalIncident.projectId = createdItem.id!;
-    criticalIncident.order = 1;
+    const projectId: ObjectID = createdItem.id!;
 
-    criticalIncident = await IncidentSeverityService.create({
-      data: criticalIncident,
-      props: {
-        isRoot: true,
-      },
-    });
+    // Idempotent — see getExistingProjectScopedNames.
+    const existingNames: Set<string | undefined> =
+      await this.getExistingProjectScopedNames(
+        IncidentSeverityService,
+        projectId,
+      );
 
-    let majorIncident: IncidentSeverity = new IncidentSeverity();
-    majorIncident.name = "Major Incident";
-    majorIncident.description =
-      "Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing.";
-    majorIncident.color = Red;
-    majorIncident.projectId = createdItem.id!;
-    majorIncident.order = 2;
+    if (!existingNames.has("Critical Incident")) {
+      const criticalIncident: IncidentSeverity = new IncidentSeverity();
+      criticalIncident.name = "Critical Incident";
+      criticalIncident.description =
+        "Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.";
+      criticalIncident.color = Moroon500;
+      criticalIncident.projectId = projectId;
+      criticalIncident.order = 1;
 
-    majorIncident = await IncidentSeverityService.create({
-      data: majorIncident,
-      props: {
-        isRoot: true,
-      },
-    });
+      await IncidentSeverityService.create({
+        data: criticalIncident,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
-    let minorIncident: IncidentSeverity = new IncidentSeverity();
-    minorIncident.name = "Minor Incident";
-    minorIncident.description =
-      "Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance.";
-    minorIncident.color = Yellow;
-    minorIncident.projectId = createdItem.id!;
-    minorIncident.order = 3;
+    if (!existingNames.has("Major Incident")) {
+      const majorIncident: IncidentSeverity = new IncidentSeverity();
+      majorIncident.name = "Major Incident";
+      majorIncident.description =
+        "Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing.";
+      majorIncident.color = Red;
+      majorIncident.projectId = projectId;
+      majorIncident.order = 2;
 
-    minorIncident = await IncidentSeverityService.create({
-      data: minorIncident,
-      props: {
-        isRoot: true,
-      },
-    });
+      await IncidentSeverityService.create({
+        data: majorIncident,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (!existingNames.has("Minor Incident")) {
+      const minorIncident: IncidentSeverity = new IncidentSeverity();
+      minorIncident.name = "Minor Incident";
+      minorIncident.description =
+        "Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance.";
+      minorIncident.color = Yellow;
+      minorIncident.projectId = projectId;
+      minorIncident.order = 3;
+
+      await IncidentSeverityService.create({
+        data: minorIncident,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
     return createdItem;
   }
 
   public async addDefaultIncidentRoles(createdItem: Model): Promise<Model> {
-    let incidentCommander: IncidentRole = new IncidentRole();
-    incidentCommander.name = "Incident Commander";
-    incidentCommander.description =
-      "Primary decision maker during an incident. Responsible for coordinating the response and making final decisions.";
-    incidentCommander.color = Purple500;
-    incidentCommander.roleIcon = IconProp.ShieldCheck;
-    incidentCommander.projectId = createdItem.id!;
-    incidentCommander.isPrimaryRole = true;
-    incidentCommander.isDeleteable = false;
+    const projectId: ObjectID = createdItem.id!;
 
-    incidentCommander = await IncidentRoleService.create({
-      data: incidentCommander,
-      props: {
-        isRoot: true,
-      },
-    });
+    // Idempotent — see getExistingProjectScopedNames.
+    const existingNames: Set<string | undefined> =
+      await this.getExistingProjectScopedNames(IncidentRoleService, projectId);
 
-    let responder: IncidentRole = new IncidentRole();
-    responder.name = "Responder";
-    responder.description =
-      "Active participant in incident resolution. Performs hands-on work to resolve the incident.";
-    responder.color = Blue500;
-    responder.roleIcon = IconProp.Wrench;
-    responder.projectId = createdItem.id!;
+    if (!existingNames.has("Incident Commander")) {
+      const incidentCommander: IncidentRole = new IncidentRole();
+      incidentCommander.name = "Incident Commander";
+      incidentCommander.description =
+        "Primary decision maker during an incident. Responsible for coordinating the response and making final decisions.";
+      incidentCommander.color = Purple500;
+      incidentCommander.roleIcon = IconProp.ShieldCheck;
+      incidentCommander.projectId = projectId;
+      incidentCommander.isPrimaryRole = true;
+      incidentCommander.isDeleteable = false;
 
-    responder = await IncidentRoleService.create({
-      data: responder,
-      props: {
-        isRoot: true,
-      },
-    });
+      await IncidentRoleService.create({
+        data: incidentCommander,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
-    let communicationsLead: IncidentRole = new IncidentRole();
-    communicationsLead.name = "Communications Lead";
-    communicationsLead.description =
-      "Handles stakeholder communication and status updates during an incident.";
-    communicationsLead.color = Teal500;
-    communicationsLead.roleIcon = IconProp.Announcement;
-    communicationsLead.projectId = createdItem.id!;
+    if (!existingNames.has("Responder")) {
+      const responder: IncidentRole = new IncidentRole();
+      responder.name = "Responder";
+      responder.description =
+        "Active participant in incident resolution. Performs hands-on work to resolve the incident.";
+      responder.color = Blue500;
+      responder.roleIcon = IconProp.Wrench;
+      responder.projectId = projectId;
 
-    communicationsLead = await IncidentRoleService.create({
-      data: communicationsLead,
-      props: {
-        isRoot: true,
-      },
-    });
+      await IncidentRoleService.create({
+        data: responder,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
-    let observer: IncidentRole = new IncidentRole();
-    observer.name = "Observer";
-    observer.description =
-      "Read-only participant who monitors the incident without active involvement.";
-    observer.color = Gray500;
-    observer.roleIcon = IconProp.Activity;
-    observer.projectId = createdItem.id!;
-    observer.canAssignMultipleUsers = true;
+    if (!existingNames.has("Communications Lead")) {
+      const communicationsLead: IncidentRole = new IncidentRole();
+      communicationsLead.name = "Communications Lead";
+      communicationsLead.description =
+        "Handles stakeholder communication and status updates during an incident.";
+      communicationsLead.color = Teal500;
+      communicationsLead.roleIcon = IconProp.Announcement;
+      communicationsLead.projectId = projectId;
 
-    observer = await IncidentRoleService.create({
-      data: observer,
-      props: {
-        isRoot: true,
-      },
-    });
+      await IncidentRoleService.create({
+        data: communicationsLead,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (!existingNames.has("Observer")) {
+      const observer: IncidentRole = new IncidentRole();
+      observer.name = "Observer";
+      observer.description =
+        "Read-only participant who monitors the incident without active involvement.";
+      observer.color = Gray500;
+      observer.roleIcon = IconProp.Activity;
+      observer.projectId = projectId;
+      observer.canAssignMultipleUsers = true;
+
+      await IncidentRoleService.create({
+        data: observer,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
     return createdItem;
   }
 
   private async addDefaultMonitorStatus(createdItem: Model): Promise<Model> {
-    let operationalStatus: MonitorStatus = new MonitorStatus();
-    operationalStatus.name = "Operational";
-    operationalStatus.description = "Monitor operating normally";
-    operationalStatus.projectId = createdItem.id!;
-    operationalStatus.priority = 1;
-    operationalStatus.isOperationalState = true;
-    operationalStatus.color = Green;
+    const projectId: ObjectID = createdItem.id!;
 
-    operationalStatus = await MonitorStatusService.create({
-      data: operationalStatus,
-      props: {
-        isRoot: true,
-      },
-    });
+    // Idempotent — see getExistingProjectScopedNames.
+    const existingNames: Set<string | undefined> =
+      await this.getExistingProjectScopedNames(MonitorStatusService, projectId);
 
-    let degradedStatus: MonitorStatus = new MonitorStatus();
-    degradedStatus.name = "Degraded";
-    degradedStatus.description = "Monitor is operating at reduced performance.";
-    degradedStatus.priority = 2;
-    degradedStatus.projectId = createdItem.id!;
-    degradedStatus.color = Yellow;
+    if (!existingNames.has("Operational")) {
+      const operationalStatus: MonitorStatus = new MonitorStatus();
+      operationalStatus.name = "Operational";
+      operationalStatus.description = "Monitor operating normally";
+      operationalStatus.projectId = projectId;
+      operationalStatus.priority = 1;
+      operationalStatus.isOperationalState = true;
+      operationalStatus.color = Green;
 
-    degradedStatus = await MonitorStatusService.create({
-      data: degradedStatus,
-      props: {
-        isRoot: true,
-      },
-    });
+      await MonitorStatusService.create({
+        data: operationalStatus,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
-    let downStatus: MonitorStatus = new MonitorStatus();
-    downStatus.name = "Offline";
-    downStatus.description = "Monitor is offline.";
-    downStatus.isOfflineState = true;
-    downStatus.projectId = createdItem.id!;
-    downStatus.priority = 3;
-    downStatus.color = Red;
+    if (!existingNames.has("Degraded")) {
+      const degradedStatus: MonitorStatus = new MonitorStatus();
+      degradedStatus.name = "Degraded";
+      degradedStatus.description =
+        "Monitor is operating at reduced performance.";
+      degradedStatus.priority = 2;
+      degradedStatus.projectId = projectId;
+      degradedStatus.color = Yellow;
 
-    downStatus = await MonitorStatusService.create({
-      data: downStatus,
-      props: {
-        isRoot: true,
-      },
-    });
+      await MonitorStatusService.create({
+        data: degradedStatus,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (!existingNames.has("Offline")) {
+      const downStatus: MonitorStatus = new MonitorStatus();
+      downStatus.name = "Offline";
+      downStatus.description = "Monitor is offline.";
+      downStatus.isOfflineState = true;
+      downStatus.projectId = projectId;
+      downStatus.priority = 3;
+      downStatus.color = Red;
+
+      await MonitorStatusService.create({
+        data: downStatus,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
     return createdItem;
   }
@@ -1251,7 +1434,21 @@ export class ProjectService extends DatabaseService<Model> {
 
   @CaptureSpan()
   public async updateLastActive(projectId: ObjectID): Promise<void> {
-    await this.updateOneById({
+    const key: string = projectId.toString();
+    if (this.lastActiveCache.has(key)) {
+      return;
+    }
+    /*
+     * Set BEFORE the await so a burst of concurrent requests collapses to one
+     * UPDATE per node per 60s window instead of all firing in parallel.
+     */
+    this.lastActiveCache.set(key, true, 60_000);
+
+    /*
+     * Fire-and-forget — `lastActive` is a soft-real-time field and the
+     * caller (auth middleware) shouldn't pay a Postgres round-trip for it.
+     */
+    void this.updateOneById({
       id: projectId,
       data: {
         lastActive: OneUptimeDate.getCurrentDate(),
@@ -1259,7 +1456,72 @@ export class ProjectService extends DatabaseService<Model> {
       props: {
         isRoot: true,
       },
+    }).catch((err: Error) => {
+      // Drop the cache entry so a retry can fire within the same TTL window.
+      this.lastActiveCache.delete(key);
+      logger.error(
+        `Failed to update Project.lastActive for ${key}: ${err.message}`,
+      );
     });
+  }
+
+  /**
+   * Returns whether the given project requires SSO for login. Cached for
+   * 60s in-process — middleware calls this on every authenticated request.
+   */
+  @CaptureSpan()
+  public async getRequireSsoForLogin(projectId: ObjectID): Promise<boolean> {
+    const key: string = projectId.toString();
+    const cached: boolean | undefined = this.requireSsoForLoginCache.get(key);
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const project: Model | null = await this.findOneById({
+      id: projectId,
+      select: { requireSsoForLogin: true, requireSsoWithSsoProviderId: true },
+      props: { isRoot: true },
+    });
+
+    if (!project) {
+      // Don't cache "not found" — let the caller decide how to handle it.
+      throw new BadDataException("Project not found");
+    }
+
+    const value: boolean = Boolean(project.requireSsoForLogin);
+    this.requireSsoForLoginCache.set(key, value, 60_000);
+    this.requireSsoWithSsoProviderIdCache.set(
+      key,
+      project.requireSsoWithSsoProviderId
+        ? project.requireSsoWithSsoProviderId.toString()
+        : null,
+      60_000,
+    );
+    return value;
+  }
+
+  /**
+   * Returns the specific SSO provider id a project requires for SSO-enforced
+   * login, or null when any trusted provider is acceptable. Cached for 60s and
+   * populated by `getRequireSsoForLogin`, so the enforce path stays one query.
+   */
+  @CaptureSpan()
+  public async getRequireSsoWithSsoProviderId(
+    projectId: ObjectID,
+  ): Promise<ObjectID | null> {
+    const key: string = projectId.toString();
+    const cached: string | null | undefined =
+      this.requireSsoWithSsoProviderIdCache.get(key);
+    if (cached !== undefined) {
+      return cached ? new ObjectID(cached) : null;
+    }
+
+    // Populate both caches via the existing single-query path.
+    await this.getRequireSsoForLogin(projectId);
+
+    const populated: string | null | undefined =
+      this.requireSsoWithSsoProviderIdCache.get(key);
+    return populated ? new ObjectID(populated) : null;
   }
 
   @CaptureSpan()
@@ -1421,6 +1683,12 @@ export class ProjectService extends DatabaseService<Model> {
       return { plan: null, isSubscriptionUnpaid: false };
     }
 
+    const cacheKey: string = projectId.toString();
+    const cached: CurrentPlan | undefined = this.currentPlanCache.get(cacheKey);
+    if (cached !== undefined) {
+      return cached;
+    }
+
     const project: Model | null = await this.findOneById({
       id: projectId,
       select: {
@@ -1435,10 +1703,12 @@ export class ProjectService extends DatabaseService<Model> {
     });
 
     if (!project) {
+      // Don't cache "not found" — let the caller surface a fresh error.
       throw new BadDataException("Project ID is invalid");
     }
 
     if (!project.paymentProviderPlanId) {
+      // Don't cache "no plan" — the project may be mid-onboarding.
       throw new BadDataException("Project does not have any plans");
     }
 
@@ -1447,7 +1717,7 @@ export class ProjectService extends DatabaseService<Model> {
       getAllEnvVars(),
     );
 
-    return {
+    const result: CurrentPlan = {
       plan: plan,
       isSubscriptionUnpaid:
         !BillingService.isSubscriptionActive(
@@ -1457,6 +1727,8 @@ export class ProjectService extends DatabaseService<Model> {
           project.paymentProviderMeteredSubscriptionStatus!,
         ),
     };
+    this.currentPlanCache.set(cacheKey, result, 60_000);
+    return result;
   }
 
   @CaptureSpan()

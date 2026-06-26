@@ -3,6 +3,7 @@ import Query from "../Query";
 import QueryUtil from "../QueryUtil";
 import Select from "../Select";
 import AccessControlPermission from "./AccessControlPermission";
+import OwnedScopePermission from "./OwnedScopePermission";
 import PermissionUtil from "./PermissionsUtil";
 import PublicPermission from "./PublicPermission";
 import QueryPermission from "./QueryPermission";
@@ -12,6 +13,7 @@ import TenantPermission from "./TenantPermission";
 import UserPermissions from "./UserPermission";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { JSONObject } from "../../../../Types/JSON";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import ObjectID from "../../../../Types/ObjectID";
@@ -80,6 +82,20 @@ export default class BasePermission {
           type,
         );
 
+        /*
+         * Apply the `Owned` permission scope filter (see
+         * Internal/Docs/PermissionsSimplification.md). When the user's
+         * applicable permission rows are exclusively Owned-scoped, this
+         * restricts the query to resources where the user is in *OwnerUser
+         * or any of their teams is in *OwnerTeam.
+         */
+        query = await OwnedScopePermission.addOwnedScopeToQuery(
+          modelType,
+          query,
+          props,
+          type,
+        );
+
         /// Implement Related Permissions.
         if (model.canAccessIfCanReadOn) {
           const tableColumnMetadata: TableColumnMetadata =
@@ -106,10 +122,45 @@ export default class BasePermission {
               const tableColumnMetadataModel: BaseModel =
                 new tableColumnMetadata.modelType();
 
-              (query as any)[model.canAccessIfCanReadOn as string] = {
+              const accessControlQuery: JSONObject = {
                 [tableColumnMetadataModel.getAccessControlColumn() as string]:
                   accessControlIds,
               };
+
+              /*
+               * Preserve any caller-supplied filter on the relation key
+               * instead of overwriting it. Plain relation objects are
+               * merged (the access-control predicate wins on a key
+               * collision — fail closed, access never widens); a scalar
+               * id filter is folded in as the relation's _id. Anything
+               * else falls back to the access-control query alone.
+               */
+              const existingRelationFilter: unknown = (query as any)[
+                model.canAccessIfCanReadOn as string
+              ];
+
+              if (
+                typeof existingRelationFilter === "string" ||
+                existingRelationFilter instanceof ObjectID
+              ) {
+                (query as any)[model.canAccessIfCanReadOn as string] = {
+                  _id: existingRelationFilter.toString(),
+                  ...accessControlQuery,
+                };
+              } else if (
+                existingRelationFilter &&
+                typeof existingRelationFilter === "object" &&
+                !Array.isArray(existingRelationFilter) &&
+                existingRelationFilter.constructor === Object
+              ) {
+                (query as any)[model.canAccessIfCanReadOn as string] = {
+                  ...(existingRelationFilter as JSONObject),
+                  ...accessControlQuery,
+                };
+              } else {
+                (query as any)[model.canAccessIfCanReadOn as string] =
+                  accessControlQuery;
+              }
             }
           }
         }

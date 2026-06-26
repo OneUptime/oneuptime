@@ -1,12 +1,12 @@
 ### Installation
 
-Test Install: 
+Test Install:
 
 ```
 helm install oneuptime ./HelmChart/Public/oneuptime -f ./HelmChart/Public/oneuptime/values.yaml -f ./HelmChart/Values/test.values.yaml
 ```
 
-Prod Install: 
+Prod Install:
 
 ```
 helm install oneuptime ./HelmChart/Public/oneuptime -f ./HelmChart/Public/oneuptime/values.yaml -f ./HelmChart/Values/prod.values.yaml
@@ -14,13 +14,13 @@ helm install oneuptime ./HelmChart/Public/oneuptime -f ./HelmChart/Public/oneupt
 
 ### Upgrade
 
-Test Upgrade: 
+Test Upgrade:
 
 ```
 helm upgrade oneuptime ./HelmChart/Public/oneuptime -f ./HelmChart/Public/oneuptime/values.yaml  -f ./HelmChart/Values/test.values.yaml
 ```
 
-Prod Upgrade: 
+Prod Upgrade:
 
 ```
 helm upgrade oneuptime ./HelmChart/Public/oneuptime -f ./HelmChart/Public/oneuptime/values.yaml -f ./HelmChart/Values/prod.values.yaml
@@ -29,21 +29,17 @@ helm upgrade oneuptime ./HelmChart/Public/oneuptime -f ./HelmChart/Public/oneupt
 ### Remove
 
 ```
-helm uninstall oneuptime 
+helm uninstall oneuptime
 ```
 
-### Lint 
+### Lint
 
 ```
 helm lint ./HelmChart/Public/oneuptime
 ```
-
 
 ### Run tests
 
 ```
 helm test oneuptime
 ```
-
-
-

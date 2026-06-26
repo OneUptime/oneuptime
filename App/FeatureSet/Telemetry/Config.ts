@@ -59,6 +59,27 @@ export const TELEMETRY_PROFILE_SAMPLE_FLUSH_BATCH_SIZE: number = parseBatchSize(
 );
 
 /*
+ * Detect exceptions inside ingested logs (explicit OTel exception.* attributes,
+ * and error/fatal log bodies that contain a stack trace) and roll them up into
+ * the same Issues view that trace span-event exceptions feed. On by default;
+ * set TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED=false to hot-disable the whole
+ * extraction block on the log ingest hot path without a code change.
+ */
+export const TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED: boolean =
+  process.env["TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED"] !== "false";
+
+/*
+ * Coalesce same-monitor Incoming Request ingest jobs at enqueue time so an
+ * external sender hammering one monitor's incoming-request URL cannot fan out
+ * into many concurrent monitorResource() calls that contend on the per-monitor
+ * Redis lock (the "Acquire mutex ... timeout" storm). On by default; set
+ * INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false to disable the BullMQ
+ * deduplication on the ingest hot path without a code change.
+ */
+export const INCOMING_REQUEST_INGEST_COALESCE_ENABLED: boolean =
+  process.env["INCOMING_REQUEST_INGEST_COALESCE_ENABLED"] !== "false";
+
+/*
  * Some telemetry batches can be large and take >30s (BullMQ default lock) to process.
  * Allow configuring a longer lock duration (in ms) to avoid premature stall detection.
  */

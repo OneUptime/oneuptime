@@ -1,10 +1,15 @@
+import DockerHost from "./DockerHost";
+import PodmanHost from "./PodmanHost";
+import Host from "./Host";
 import IncidentSeverity from "./IncidentSeverity";
 import IncidentState from "./IncidentState";
+import KubernetesCluster from "./KubernetesCluster";
 import Label from "./Label";
 import Monitor from "./Monitor";
 import MonitorStatus from "./MonitorStatus";
 import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Project from "./Project";
+import Service from "./Service";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -51,7 +56,8 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
     Permission.CreateIncidentTemplate,
   ],
   read: [
@@ -59,22 +65,25 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
+    Permission.IncidentViewer,
     Permission.ReadIncidentTemplate,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
     Permission.DeleteIncidentTemplate,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
     Permission.EditIncidentTemplate,
   ],
 })
@@ -102,7 +111,8 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentTemplate,
     ],
     read: [
@@ -110,9 +120,10 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -142,7 +153,8 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentTemplate,
     ],
     read: [
@@ -150,9 +162,10 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -177,7 +190,8 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentTemplate,
     ],
     read: [
@@ -185,15 +199,17 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.EditIncidentTemplate,
     ],
   })
@@ -218,7 +234,8 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentTemplate,
     ],
     read: [
@@ -226,15 +243,17 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.EditIncidentTemplate,
     ],
   })
@@ -258,7 +277,8 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentTemplate,
     ],
     read: [
@@ -266,15 +286,17 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.EditIncidentTemplate,
     ],
   })
@@ -299,7 +321,8 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentTemplate,
     ],
     read: [
@@ -307,15 +330,17 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.EditIncidentTemplate,
     ],
   })
@@ -342,9 +367,10 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -370,7 +396,8 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentTemplate,
     ],
     read: [
@@ -378,9 +405,10 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -411,7 +439,8 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentTemplate,
     ],
     read: [
@@ -419,9 +448,10 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -491,7 +521,8 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentTemplate,
     ],
     read: [
@@ -499,15 +530,17 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.EditIncidentTemplate,
     ],
   })
@@ -542,7 +575,8 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentTemplate,
     ],
     read: [
@@ -550,15 +584,292 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentTemplate,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Host,
+    title: "Hosts",
+    description:
+      "List of hosts to pre-populate on incidents created from this template.",
+  })
+  @ManyToMany(
+    () => {
+      return Host;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentTemplateHost",
+    inverseJoinColumn: {
+      name: "hostId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentTemplateId",
+      referencedColumnName: "_id",
+    },
+  })
+  public hosts?: Array<Host> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateIncidentTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentTemplate,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: KubernetesCluster,
+    title: "Kubernetes Clusters",
+    description:
+      "List of Kubernetes clusters to pre-populate on incidents created from this template.",
+  })
+  @ManyToMany(
+    () => {
+      return KubernetesCluster;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentTemplateKubernetesCluster",
+    inverseJoinColumn: {
+      name: "kubernetesClusterId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentTemplateId",
+      referencedColumnName: "_id",
+    },
+  })
+  public kubernetesClusters?: Array<KubernetesCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateIncidentTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentTemplate,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: DockerHost,
+    title: "Docker Hosts",
+    description:
+      "List of Docker hosts to pre-populate on incidents created from this template.",
+  })
+  @ManyToMany(
+    () => {
+      return DockerHost;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentTemplateDockerHost",
+    inverseJoinColumn: {
+      name: "dockerHostId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentTemplateId",
+      referencedColumnName: "_id",
+    },
+  })
+  public dockerHosts?: Array<DockerHost> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateIncidentTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentTemplate,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: PodmanHost,
+    title: "Podman Hosts",
+    description:
+      "List of Podman hosts to pre-populate on incidents created from this template.",
+  })
+  @ManyToMany(
+    () => {
+      return PodmanHost;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentTemplatePodmanHost",
+    inverseJoinColumn: {
+      name: "podmanHostId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentTemplateId",
+      referencedColumnName: "_id",
+    },
+  })
+  public podmanHosts?: Array<PodmanHost> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateIncidentTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentTemplate,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Service,
+    title: "Services",
+    description:
+      "List of services to pre-populate on incidents created from this template.",
+  })
+  @ManyToMany(
+    () => {
+      return Service;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentTemplateService",
+    inverseJoinColumn: {
+      name: "serviceId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentTemplateId",
+      referencedColumnName: "_id",
+    },
+  })
+  public services?: Array<Service> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateIncidentTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.EditIncidentTemplate,
     ],
   })
@@ -594,7 +905,8 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentTemplate,
     ],
     read: [
@@ -602,15 +914,17 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.EditIncidentTemplate,
     ],
   })
@@ -646,7 +960,8 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentTemplate,
     ],
     read: [
@@ -654,15 +969,17 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.EditIncidentTemplate,
     ],
   })
@@ -692,7 +1009,8 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentTemplate,
     ],
     read: [
@@ -700,15 +1018,17 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.EditIncidentTemplate,
     ],
   })
@@ -732,7 +1052,8 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentTemplate,
     ],
     read: [
@@ -740,9 +1061,10 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -772,7 +1094,8 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentTemplate,
     ],
     read: [
@@ -780,15 +1103,17 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.EditIncidentTemplate,
     ],
   })
@@ -813,7 +1138,8 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentTemplate,
     ],
     read: [
@@ -821,9 +1147,10 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -853,7 +1180,8 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentTemplate,
     ],
     read: [
@@ -861,15 +1189,17 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.EditIncidentTemplate,
     ],
   })
@@ -894,7 +1224,8 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentTemplate,
     ],
     read: [
@@ -902,15 +1233,17 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.EditIncidentTemplate,
     ],
   })

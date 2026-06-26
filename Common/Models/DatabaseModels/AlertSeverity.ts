@@ -36,8 +36,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   create: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.AlertManager,
+    Permission.AlertAdmin,
     Permission.CreateAlertSeverity,
   ],
   read: [
@@ -45,22 +44,21 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.AlertManager,
+    Permission.AlertAdmin,
+    Permission.AlertMember,
+    Permission.AlertViewer,
     Permission.ReadAlertSeverity,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.AlertManager,
+    Permission.AlertAdmin,
     Permission.DeleteAlertSeverity,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.AlertManager,
+    Permission.AlertAdmin,
     Permission.EditAlertSeverity,
   ],
 })
@@ -89,8 +87,7 @@ export default class AlertSeverity extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
       Permission.CreateAlertSeverity,
     ],
     read: [
@@ -98,9 +95,10 @@ export default class AlertSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -129,8 +127,7 @@ export default class AlertSeverity extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
       Permission.CreateAlertSeverity,
     ],
     read: [
@@ -138,9 +135,10 @@ export default class AlertSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -164,8 +162,7 @@ export default class AlertSeverity extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
       Permission.CreateAlertSeverity,
     ],
     read: [
@@ -173,15 +170,15 @@ export default class AlertSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
       Permission.EditAlertSeverity,
     ],
   })
@@ -208,9 +205,10 @@ export default class AlertSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -233,8 +231,7 @@ export default class AlertSeverity extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
       Permission.CreateAlertSeverity,
     ],
     read: [
@@ -242,15 +239,15 @@ export default class AlertSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
       Permission.EditAlertSeverity,
     ],
   })
@@ -273,8 +270,7 @@ export default class AlertSeverity extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
       Permission.CreateAlertSeverity,
     ],
     read: [
@@ -282,9 +278,10 @@ export default class AlertSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -314,8 +311,7 @@ export default class AlertSeverity extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
       Permission.CreateAlertSeverity,
     ],
     read: [
@@ -323,9 +319,10 @@ export default class AlertSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -349,9 +346,10 @@ export default class AlertSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -385,9 +383,10 @@ export default class AlertSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -408,8 +407,7 @@ export default class AlertSeverity extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
       Permission.CreateAlertSeverity,
     ],
     read: [
@@ -417,15 +415,15 @@ export default class AlertSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
       Permission.EditAlertSeverity,
     ],
   })
@@ -452,8 +450,7 @@ export default class AlertSeverity extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
       Permission.CreateAlertSeverity,
     ],
     read: [
@@ -461,15 +458,15 @@ export default class AlertSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
       Permission.EditAlertSeverity,
     ],
   })

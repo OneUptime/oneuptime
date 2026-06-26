@@ -226,15 +226,21 @@ export class LogScrubRuleService {
       return logRow;
     }
 
-    for (const { rule } of compiledRules) {
-      const fieldsToScrub: string = (rule.fieldsToScrub as string) || "both";
+    /*
+     * Each rule's `fieldsToScrub` can be "body", "attributes", or
+     * "both" — so we cannot just call scrubString once across the
+     * full ruleset, we have to honour each rule's scope. The old
+     * implementation did `compiledRules.filter(cr => cr.rule === rule)`
+     * inside this loop, which made the loop O(N^2) over the rule
+     * count. We now keep a one-element scratch array per rule and
+     * reuse it across the body / attributes scrubs.
+     */
+    const singleRule: Array<CompiledRule> = new Array<CompiledRule>(1);
 
-      // Filter compiled rules to just this one for per-rule scrubbing
-      const singleRule: Array<CompiledRule> = compiledRules.filter(
-        (cr: CompiledRule) => {
-          return cr.rule === rule;
-        },
-      );
+    for (const compiled of compiledRules) {
+      singleRule[0] = compiled;
+      const fieldsToScrub: string =
+        (compiled.rule.fieldsToScrub as string) || "both";
 
       // Scrub body
       if (

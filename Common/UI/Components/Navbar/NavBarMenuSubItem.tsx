@@ -1,5 +1,6 @@
 import Link from "../Link/Link";
 import Route from "../../../Types/API/Route";
+import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -10,9 +11,11 @@ export interface ComponentProps {
 const NavBarMenuItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const translatedTitle: string = translateString(props.title) ?? props.title;
   return (
     <Link className="dropdown-item" to={props.route}>
-      {props.title}
+      {translatedTitle}
     </Link>
   );
 };

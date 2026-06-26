@@ -1,10 +1,12 @@
 import OneUptimeDate from "Common/Types/Date";
+import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ExternalStatusPageMonitorResponse, {
   ExternalStatusPageComponentStatus,
 } from "Common/Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
+import ProbeAttemptsView from "./ProbeAttemptsView";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -24,6 +26,34 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
   if (responseTimeInMs > 0) {
     responseTimeInMs = Math.round(responseTimeInMs);
   }
+
+  const probeAttempts: Array<ProbeAttempt> =
+    props.probeMonitorResponse.probeAttempts || [];
+  const totalAttempts: number =
+    props.probeMonitorResponse.totalAttempts ?? probeAttempts.length;
+  const hadRetries: boolean = totalAttempts > 1;
+
+  const componentGroupName: string | undefined =
+    externalStatusPageResponse?.componentGroupName;
+  const componentName: string | undefined =
+    externalStatusPageResponse?.componentName;
+
+  let scopeText: string = "All components";
+  if (componentGroupName && componentName) {
+    scopeText = `${componentGroupName} › ${componentName}`;
+  } else if (componentGroupName) {
+    scopeText = `Group: ${componentGroupName}`;
+  } else if (componentName) {
+    scopeText = `Component: ${componentName}`;
+  }
+
+  const hasComponentGroups: boolean = Boolean(
+    externalStatusPageResponse?.componentStatuses?.some(
+      (component: ExternalStatusPageComponentStatus) => {
+        return Boolean(component.groupName);
+      },
+    ),
+  );
 
   return (
     <div className="space-y-5">
@@ -69,6 +99,16 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
             externalStatusPageResponse?.activeIncidentCount?.toString() || "0"
           }
         />
+        <InfoCard
+          className="w-1/3 shadow-none border-2 border-gray-100"
+          title="Provider"
+          value={externalStatusPageResponse?.provider || "-"}
+        />
+        <InfoCard
+          className="w-1/3 shadow-none border-2 border-gray-100"
+          title="Scope"
+          value={scopeText}
+        />
       </div>
 
       {props.probeMonitorResponse.failureCause && (
@@ -95,6 +135,11 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Component
                     </th>
+                    {hasComponentGroups && (
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Group
+                      </th>
+                    )}
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
@@ -114,6 +159,11 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
                           <td className="px-4 py-2 text-sm text-gray-900">
                             {component.name}
                           </td>
+                          {hasComponentGroups && (
+                            <td className="px-4 py-2 text-sm text-gray-500">
+                              {component.groupName || "-"}
+                            </td>
+                          )}
                           <td className="px-4 py-2 text-sm text-gray-500 font-mono">
                             {component.status}
                           </td>
@@ -129,6 +179,13 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
             </div>
           </div>
         )}
+
+      {hadRetries && (
+        <ProbeAttemptsView
+          attempts={probeAttempts}
+          totalAttempts={totalAttempts}
+        />
+      )}
     </div>
   );
 };

@@ -1,13 +1,23 @@
+import CephCluster from "./CephCluster";
+import DockerHost from "./DockerHost";
+import PodmanHost from "./PodmanHost";
+import Host from "./Host";
+import KubernetesCluster from "./KubernetesCluster";
 import Label from "./Label";
 import Monitor from "./Monitor";
 import MonitorStatus from "./MonitorStatus";
 import Project from "./Project";
+import ProxmoxCluster from "./ProxmoxCluster";
+import IoTFleet from "./IoTFleet";
+import DockerSwarmCluster from "./DockerSwarmCluster";
 import ScheduledMaintenanceState from "./ScheduledMaintenanceState";
+import Service from "./Service";
 import StatusPage from "./StatusPage";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OperationalResource from "../../Types/Database/AccessControl/OperationalResource";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -40,6 +50,7 @@ import {
 import Recurring from "../../Types/Events/Recurring";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 
+@OperationalResource()
 @EnableDocumentation()
 @EnableMCP()
 @AccessControlColumn("labels")
@@ -50,7 +61,8 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.ScheduledMaintenanceManager,
+    Permission.ScheduledMaintenanceAdmin,
+    Permission.ScheduledMaintenanceMember,
     Permission.CreateProjectScheduledMaintenance,
   ],
   read: [
@@ -58,22 +70,25 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.ScheduledMaintenanceManager,
+    Permission.ScheduledMaintenanceAdmin,
+    Permission.ScheduledMaintenanceMember,
+    Permission.ScheduledMaintenanceViewer,
     Permission.ReadProjectScheduledMaintenance,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.ScheduledMaintenanceManager,
+    Permission.ScheduledMaintenanceAdmin,
+    Permission.ScheduledMaintenanceMember,
     Permission.DeleteProjectScheduledMaintenance,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.ScheduledMaintenanceManager,
+    Permission.ScheduledMaintenanceAdmin,
+    Permission.ScheduledMaintenanceMember,
     Permission.EditProjectScheduledMaintenance,
   ],
 })
@@ -102,7 +117,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -110,9 +126,10 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -142,7 +159,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -150,9 +168,10 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -177,7 +196,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -185,15 +205,17 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditProjectScheduledMaintenance,
     ],
   })
@@ -218,7 +240,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -226,15 +249,17 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditProjectScheduledMaintenance,
     ],
   })
@@ -259,7 +284,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -267,9 +293,10 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -294,7 +321,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -302,9 +330,10 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -335,7 +364,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -343,9 +373,10 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -415,7 +446,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -423,15 +455,17 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditProjectScheduledMaintenance,
     ],
   })
@@ -466,7 +500,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -474,15 +509,503 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Host,
+    title: "Hosts",
+    description: "List of hosts affected by this event.",
+  })
+  @ManyToMany(
+    () => {
+      return Host;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceHost",
+    inverseJoinColumn: {
+      name: "hostId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceId",
+      referencedColumnName: "_id",
+    },
+  })
+  public hosts?: Array<Host> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: KubernetesCluster,
+    title: "Kubernetes Clusters",
+    description: "List of Kubernetes clusters affected by this event.",
+  })
+  @ManyToMany(
+    () => {
+      return KubernetesCluster;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceKubernetesCluster",
+    inverseJoinColumn: {
+      name: "kubernetesClusterId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceId",
+      referencedColumnName: "_id",
+    },
+  })
+  public kubernetesClusters?: Array<KubernetesCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: DockerHost,
+    title: "Docker Hosts",
+    description: "List of Docker hosts affected by this event.",
+  })
+  @ManyToMany(
+    () => {
+      return DockerHost;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceDockerHost",
+    inverseJoinColumn: {
+      name: "dockerHostId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceId",
+      referencedColumnName: "_id",
+    },
+  })
+  public dockerHosts?: Array<DockerHost> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: PodmanHost,
+    title: "Podman Hosts",
+    description: "List of Podman hosts affected by this event.",
+  })
+  @ManyToMany(
+    () => {
+      return PodmanHost;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenancePodmanHost",
+    inverseJoinColumn: {
+      name: "podmanHostId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceId",
+      referencedColumnName: "_id",
+    },
+  })
+  public podmanHosts?: Array<PodmanHost> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: ProxmoxCluster,
+    title: "Proxmox Clusters",
+    description: "List of Proxmox clusters affected by this event.",
+  })
+  @ManyToMany(
+    () => {
+      return ProxmoxCluster;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceProxmoxCluster",
+    inverseJoinColumn: {
+      name: "proxmoxClusterId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceId",
+      referencedColumnName: "_id",
+    },
+  })
+  public proxmoxClusters?: Array<ProxmoxCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: IoTFleet,
+    title: "IoT Fleets",
+    description: "List of IoT fleets affected by this event.",
+  })
+  @ManyToMany(
+    () => {
+      return IoTFleet;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceIoTFleet",
+    inverseJoinColumn: {
+      name: "iotFleetId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceId",
+      referencedColumnName: "_id",
+    },
+  })
+  public iotFleets?: Array<IoTFleet> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: DockerSwarmCluster,
+    title: "Docker Swarm Clusters",
+    description: "List of Docker Swarm clusters affected by this event.",
+  })
+  @ManyToMany(
+    () => {
+      return DockerSwarmCluster;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceDockerSwarmCluster",
+    inverseJoinColumn: {
+      name: "dockerSwarmClusterId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceId",
+      referencedColumnName: "_id",
+    },
+  })
+  public dockerSwarmClusters?: Array<DockerSwarmCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: CephCluster,
+    title: "Ceph Clusters",
+    description: "List of Ceph clusters affected by this event.",
+  })
+  @ManyToMany(
+    () => {
+      return CephCluster;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceCephCluster",
+    inverseJoinColumn: {
+      name: "cephClusterId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceId",
+      referencedColumnName: "_id",
+    },
+  })
+  public cephClusters?: Array<CephCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Service,
+    title: "Services",
+    description: "List of services affected by this event.",
+  })
+  @ManyToMany(
+    () => {
+      return Service;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceService",
+    inverseJoinColumn: {
+      name: "serviceId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceId",
+      referencedColumnName: "_id",
+    },
+  })
+  public services?: Array<Service> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditProjectScheduledMaintenance,
     ],
   })
@@ -517,7 +1040,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -525,15 +1049,17 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditProjectScheduledMaintenance,
     ],
   })
@@ -569,7 +1095,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -577,15 +1104,17 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditProjectScheduledMaintenance,
     ],
   })
@@ -616,7 +1145,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -624,15 +1154,17 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditProjectScheduledMaintenance,
     ],
   })
@@ -658,7 +1190,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -666,9 +1199,10 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -698,7 +1232,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -706,15 +1241,17 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditProjectScheduledMaintenance,
     ],
   })
@@ -745,7 +1282,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -753,15 +1291,17 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditProjectScheduledMaintenance,
     ],
   })
@@ -782,7 +1322,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -790,15 +1331,17 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditProjectScheduledMaintenance,
     ],
   })
@@ -813,7 +1356,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -821,15 +1365,17 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditProjectScheduledMaintenance,
     ],
   })
@@ -855,7 +1401,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateIncidentPublicNote,
     ],
     read: [
@@ -863,15 +1410,17 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditProjectScheduledMaintenance,
     ],
   })
@@ -893,7 +1442,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -901,9 +1451,10 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -926,7 +1477,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -934,9 +1486,10 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -960,7 +1513,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -968,9 +1522,10 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -994,7 +1549,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -1002,15 +1558,17 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditProjectScheduledMaintenance,
     ],
   })
@@ -1034,9 +1592,10 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1063,7 +1622,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -1071,15 +1631,17 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditProjectScheduledMaintenance,
     ],
   })
@@ -1104,7 +1666,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -1112,15 +1675,17 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditProjectScheduledMaintenance,
     ],
   })
@@ -1143,7 +1708,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -1151,9 +1717,10 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1179,9 +1746,10 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1225,7 +1793,8 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
@@ -1233,15 +1802,17 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditProjectScheduledMaintenance,
     ],
   })

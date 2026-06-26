@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Detail from "Common/UI/Components/Detail/Detail";
@@ -6,6 +7,7 @@ import Field from "Common/UI/Components/Detail/Field";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import React, { FunctionComponent, ReactElement } from "react";
+import ProbeAttemptsView from "./ProbeAttemptsView";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -48,6 +50,12 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
   const hasErrorDetails: boolean = Boolean(
     props.probeMonitorResponse.requestFailedDetails,
   );
+
+  const probeAttempts: Array<ProbeAttempt> =
+    props.probeMonitorResponse.probeAttempts || [];
+  const totalAttempts: number =
+    props.probeMonitorResponse.totalAttempts ?? probeAttempts.length;
+  const hadRetries: boolean = totalAttempts > 1;
 
   return (
     <div className="space-y-5">
@@ -133,6 +141,13 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
+      {showMoreDetails && hadRetries && (
+        <ProbeAttemptsView
+          attempts={probeAttempts}
+          totalAttempts={totalAttempts}
+        />
+      )}
+
       {showMoreDetails && fields.length > 0 && (
         <div>
           <Detail<ProbeMonitorResponse>
@@ -144,7 +159,7 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {!showMoreDetails && fields.length > 0 && (
+      {!showMoreDetails && (fields.length > 0 || hadRetries) && (
         <div className="-ml-2">
           <Button
             buttonStyle={ButtonStyleType.SECONDARY_LINK}
@@ -158,7 +173,7 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
 
       {/* Hide details button */}
 
-      {showMoreDetails && fields.length > 0 && (
+      {showMoreDetails && (fields.length > 0 || hadRetries) && (
         <div className="-ml-3">
           <Button
             buttonStyle={ButtonStyleType.SECONDARY_LINK}

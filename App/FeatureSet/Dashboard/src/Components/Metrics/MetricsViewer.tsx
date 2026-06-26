@@ -12,7 +12,6 @@ import {
   ActiveFilter,
   FacetConfig,
   FacetData,
-  FacetValue,
   SearchHelpRow,
 } from "Common/UI/Components/TelemetryViewer/types";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
@@ -26,6 +25,7 @@ import AnalyticsModelAPI, {
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
+import GroupBy from "Common/Types/BaseDatabase/GroupBy";
 import Select from "Common/Types/BaseDatabase/Select";
 import ObjectID from "Common/Types/ObjectID";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -42,12 +42,107 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
+import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
+import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import MetricRow from "./MetricRow";
 import { SparklinePoint } from "./MetricSparkline";
 import MetricUtil from "./Utils/Metrics";
+import TelemetrySavedViewsControl, {
+  serializeTimeRange,
+  deserializeTimeRange,
+} from "../Telemetry/TelemetrySavedViewsControl";
+import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
+import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
 import Search from "Common/Types/BaseDatabase/Search";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { JSONObject } from "Common/Types/JSON";
+import { APP_API_URL } from "Common/UI/Config";
+
+async function postApi(
+  path: string,
+  data: JSONObject,
+): Promise<HTTPResponse<JSONObject>> {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+    {
+      url: URL.fromString(APP_API_URL.toString()).addRoute(path),
+      data,
+      headers: ModelAPI.getCommonHeaders(),
+    },
+  );
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
+
+  return response;
+}
+
+/*
+ * Entity-scoped sparkline aggregates. MetricUtil.fetchSparklineAggregates has
+ * no entityKeys passthrough, so the per-metric aggregate is issued directly
+ * with the same `hasAny(entityKeys, [...])` constraint as the list query —
+ * otherwise the sparkline numbers would span the whole project.
+ */
+async function fetchEntityScopedSparklineAggregates(data: {
+  metricNames: Array<string>;
+  attributes: Record<string, string>;
+  startAndEndDate: InBetween<Date>;
+  entityKeys: Array<string>;
+  entityScope?: EntityScopeFilter | undefined;
+}): Promise<Map<string, AggregatedResult>> {
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  if (!projectId || data.metricNames.length === 0) {
+    return new Map();
+  }
+
+  const results: Array<[string, AggregatedResult]> = await Promise.all(
+    data.metricNames.map(
+      async (name: string): Promise<[string, AggregatedResult]> => {
+        try {
+          const query: Query<Metric> = {
+            projectId,
+            time: data.startAndEndDate,
+            name,
+          } as Query<Metric>;
+          if (Object.keys(data.attributes).length > 0) {
+            (query as Record<string, unknown>)["attributes"] = data.attributes;
+          }
+          if (data.entityKeys.length > 0) {
+            (query as Record<string, unknown>)["entityKeys"] = new Includes(
+              data.entityKeys,
+            );
+          }
+          if (data.entityScope) {
+            (query as Record<string, unknown>)["entityScope"] =
+              data.entityScope;
+          }
+          const result: AggregatedResult =
+            await AnalyticsModelAPI.aggregate<Metric>({
+              modelType: Metric,
+              aggregateBy: {
+                query,
+                aggregationType: MetricsAggregationType.Avg,
+                aggregateColumnName: "value",
+                aggregationTimestampColumnName: "time",
+                startTimestamp: data.startAndEndDate.startValue,
+                endTimestamp: data.startAndEndDate.endValue,
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+              } as AggregateBy<Metric>,
+            });
+          return [name, result];
+        } catch {
+          return [name, { data: [] }];
+        }
+      },
+    ),
+  );
+
+  return new Map(results);
+}
 
 const DEFAULT_PAGE_SIZE: number = 50;
 
@@ -76,32 +171,183 @@ const FIELD_ALIAS_MAP: Record<string, string> = {
 
 const KNOWN_FIELD_KEYS: Set<string> = new Set(["name", "service"]);
 
+interface InitialUrlState {
+  search: string;
+  filters: Array<ActiveFilter>;
+  timeRange: RangeStartAndEndDateTime;
+  page: number;
+  pageSize: number;
+}
+
+const POSITIVE_INT_REGEX: RegExp = /^\d+$/;
+
+/*
+ * Parse filter state from `window.location.search` on first mount so refresh
+ * + back-from-metric-detail restore the view rather than resetting it.
+ * Defensive: malformed JSON / unknown enum / non-numeric values fall back to
+ * defaults instead of throwing.
+ */
+function readInitialUrlState(): InitialUrlState {
+  const params: URLSearchParams = new URLSearchParams(window.location.search);
+
+  const rawSearch: string | null = params.get("search");
+  let search: string = "";
+  if (rawSearch) {
+    try {
+      search = decodeURIComponent(rawSearch);
+    } catch {
+      search = rawSearch;
+    }
+  }
+
+  let filters: Array<ActiveFilter> = [];
+  const filtersRaw: string | null = params.get("filters");
+  if (filtersRaw) {
+    try {
+      const parsed: unknown = JSON.parse(filtersRaw);
+      if (Array.isArray(parsed)) {
+        filters = (parsed as Array<unknown>)
+          .filter((pair: unknown): pair is [string, string] => {
+            return (
+              Array.isArray(pair) &&
+              pair.length === 2 &&
+              typeof pair[0] === "string" &&
+              typeof pair[1] === "string"
+            );
+          })
+          .map(([facetKey, value]: [string, string]): ActiveFilter => {
+            return {
+              facetKey,
+              value,
+              displayKey: facetKey,
+              displayValue: value,
+            };
+          });
+      }
+    } catch {
+      // malformed JSON → ignore
+    }
+  }
+
+  let timeRange: RangeStartAndEndDateTime = { range: TimeRange.PAST_ONE_HOUR };
+  const rangeRaw: string | null = params.get("range");
+  if (rangeRaw) {
+    const knownRanges: Array<string> = Object.values(TimeRange);
+    if (knownRanges.includes(rangeRaw)) {
+      const matched: TimeRange = rangeRaw as TimeRange;
+      if (matched === TimeRange.CUSTOM) {
+        const startStr: string | null = params.get("start");
+        const endStr: string | null = params.get("end");
+        if (startStr && endStr) {
+          const startDate: Date = new Date(startStr);
+          const endDate: Date = new Date(endStr);
+          if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+            timeRange = {
+              range: matched,
+              startAndEndDate: new InBetween<Date>(startDate, endDate),
+            };
+          }
+        }
+      } else {
+        timeRange = { range: matched };
+      }
+    }
+  }
+
+  const pageRaw: string | null = params.get("page");
+  const page: number =
+    pageRaw && POSITIVE_INT_REGEX.test(pageRaw)
+      ? Math.max(1, parseInt(pageRaw, 10))
+      : 1;
+  const pageSizeRaw: string | null = params.get("pageSize");
+  const pageSize: number =
+    pageSizeRaw && POSITIVE_INT_REGEX.test(pageSizeRaw)
+      ? Math.max(1, parseInt(pageSizeRaw, 10))
+      : DEFAULT_PAGE_SIZE;
+
+  return { search, filters, timeRange, page, pageSize };
+}
+
+/*
+ * Entity scope with attribute fallback (contract C4): compiles server-side
+ * to `hasAny(entityKeys, [...]) OR attributes[attributeKey] = attributeValue`
+ * so pre-entityKeys rows (no backfill) still match. Placed on analytics query
+ * records verbatim under the key "entityScope".
+ */
+interface EntityScopeFilter {
+  entityKeys: Array<string>;
+  attributeKey: string;
+  attributeValue: string;
+}
+
 interface Props {
   serviceIds?: Array<ObjectID> | undefined;
   attributeFilters?: Record<string, string> | undefined;
   attributeFilterDisplayKeys?: Record<string, string> | undefined;
+  /*
+   * Scope to a OneUptime entity by its stable entityKeys (membership) —
+   * compiles to `hasAny(entityKeys, [...])` server-side.
+   */
+  entityKeysFilter?: Array<string> | undefined;
+  entityScope?: EntityScopeFilter | undefined;
 }
 
 const MetricsViewer: FunctionComponent<Props> = (
   props: Props,
 ): ReactElement => {
+  /*
+   * Parse all filter state from the URL once on first mount so refresh +
+   * back-from-metric-detail restore the view.
+   */
+  const initialUrlState: InitialUrlState = useMemo(readInitialUrlState, []);
+
   const [metrics, setMetrics] = useState<Array<MetricType>>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
-  const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+  const [page, setPage] = useState<number>(initialUrlState.page);
+  const [pageSize, setPageSize] = useState<number>(initialUrlState.pageSize);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
   const [services, setServices] = useState<Array<Service>>([]);
 
-  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
-    range: TimeRange.PAST_ONE_HOUR,
-  });
+  const [facetData, setFacetData] = useState<FacetData>({});
+  const [facetLoading, setFacetLoading] = useState<boolean>(false);
+  /*
+   * Per-facet search text for resource facets (primaryEntityId / etc.). Updates
+   * trigger a backend refetch so the sidebar can show services beyond the
+   * loaded subset.
+   */
+  const [facetSearchText, setFacetSearchText] = useState<
+    Record<string, string>
+  >({});
 
-  const [searchValue, setSearchValue] = useState<string>("");
-  const [submittedSearch, setSubmittedSearch] = useState<string>("");
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(
+    initialUrlState.timeRange,
+  );
 
-  const [activeFilters, setActiveFilters] = useState<Array<ActiveFilter>>([]);
+  const [searchValue, setSearchValue] = useState<string>(
+    initialUrlState.search,
+  );
+  const [submittedSearch, setSubmittedSearch] = useState<string>(
+    initialUrlState.search,
+  );
+
+  const [activeFilters, setActiveFilters] = useState<Array<ActiveFilter>>(
+    initialUrlState.filters,
+  );
+
+  /*
+   * The search bar's X button (and full backspace) only updates `searchValue`
+   * — it doesn't call `onSubmit`. Without this effect, `submittedSearch`
+   * stays at the old value, results stay filtered, and the URL keeps the
+   * stale `?search=...`. Treat an emptied input as an implicit submit.
+   */
+  useEffect(() => {
+    if (searchValue === "" && submittedSearch !== "") {
+      setSubmittedSearch("");
+      setPage(1);
+    }
+  }, [searchValue, submittedSearch]);
 
   // Telemetry attributes for autocomplete
   const [telemetryAttributes, setTelemetryAttributes] = useState<Array<string>>(
@@ -144,8 +390,51 @@ const MetricsViewer: FunctionComponent<Props> = (
     const hasAttributeFilters: boolean = Boolean(
       props.attributeFilters && Object.keys(props.attributeFilters).length > 0,
     );
-    return hasServiceIds || hasAttributeFilters;
-  }, [props.serviceIds, props.attributeFilters]);
+    return hasServiceIds || hasAttributeFilters || Boolean(props.entityScope);
+  }, [props.serviceIds, props.attributeFilters, props.entityScope]);
+
+  /*
+   * Mirror filter state to the URL so refresh and back-from-metric-detail
+   * restore the view. Uses `replaceState` so individual filter tweaks don't
+   * push history entries.
+   */
+  useEffect(() => {
+    const params: URLSearchParams = new URLSearchParams();
+    if (submittedSearch) {
+      params.set("search", submittedSearch);
+    }
+    if (activeFilters.length > 0) {
+      const tuples: Array<[string, string]> = activeFilters.map(
+        (f: ActiveFilter): [string, string] => {
+          return [f.facetKey, f.value];
+        },
+      );
+      params.set("filters", JSON.stringify(tuples));
+    }
+    if (timeRange.range !== TimeRange.PAST_ONE_HOUR) {
+      params.set("range", timeRange.range);
+    }
+    if (timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate) {
+      params.set("start", timeRange.startAndEndDate.startValue.toISOString());
+      params.set("end", timeRange.startAndEndDate.endValue.toISOString());
+    }
+    if (page > 1) {
+      params.set("page", String(page));
+    }
+    if (pageSize !== DEFAULT_PAGE_SIZE) {
+      params.set("pageSize", String(pageSize));
+    }
+
+    const query: string = params.toString();
+    const nextSearch: string = query ? `?${query}` : "";
+    if (nextSearch !== window.location.search) {
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${nextSearch}${window.location.hash}`,
+      );
+    }
+  }, [submittedSearch, activeFilters, timeRange, page, pageSize]);
 
   // Load services and telemetry attributes once
   useEffect(() => {
@@ -252,24 +541,71 @@ const MetricsViewer: FunctionComponent<Props> = (
     let serviceFragment: string | null = null;
     const attributes: Record<string, string> = {};
     const freeTextParts: Array<string> = [];
-    const tokens: Array<string> = raw.match(/@\S+:[^\s]+|\S+/g) || [];
+    /*
+     * Tokenizer also matches `field:"value with spaces"` so users can search
+     * metric names that include spaces. See the matching block in
+     * TracesViewer for details.
+     */
+    const rawTokens: Array<string> =
+      raw.match(/@?\S+:"[^"]*"|@\S+:[^\s]+|\S+/g) || [];
+    const tokens: Array<string> = [];
+    for (let i: number = 0; i < rawTokens.length; i++) {
+      const token: string = rawTokens[i]!;
+      if (token.endsWith(":") && i + 1 < rawTokens.length) {
+        const prefix: string = token.slice(0, -1);
+        const isAttr: boolean = prefix.startsWith("@");
+        const fieldName: string = isAttr
+          ? prefix.slice(1).toLowerCase()
+          : prefix.toLowerCase();
+        if (isAttr || KNOWN_FIELD_KEYS.has(fieldName)) {
+          let merged: string = token + rawTokens[i + 1]!;
+          i++;
+          if (merged.includes(':"') && !merged.endsWith('"')) {
+            while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
+              i++;
+              merged = merged + " " + rawTokens[i]!;
+            }
+          }
+          tokens.push(merged);
+          continue;
+        }
+      }
+      if (token.includes(':"') && !token.endsWith('"')) {
+        let merged: string = token;
+        while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
+          i++;
+          merged = merged + " " + rawTokens[i]!;
+        }
+        tokens.push(merged);
+        continue;
+      }
+      tokens.push(token);
+    }
+    const stripQuotes: (s: string) => string = (s: string): string => {
+      if (s.length >= 2 && s.startsWith('"') && s.endsWith('"')) {
+        return s.slice(1, -1);
+      }
+      return s;
+    };
     for (const token of tokens) {
       // @attribute:value → attribute filter
       const attrMatch: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
       if (attrMatch) {
         const attrKey: string = attrMatch[1]!;
-        const attrValue: string = attrMatch[2]!;
-        attributes[attrKey] = attrValue;
+        const attrValue: string = stripQuotes(attrMatch[2]!);
+        if (attrValue.length > 0) {
+          attributes[attrKey] = attrValue;
+        }
         continue;
       }
       // field:value (no @) → known field filter
       const fieldMatch: RegExpMatchArray | null = token.match(/^([^:]+):(.*)$/);
       if (fieldMatch) {
         const fieldName: string = fieldMatch[1]!.toLowerCase();
-        const fieldValue: string = fieldMatch[2]!;
-        if (fieldName === "name") {
+        const fieldValue: string = stripQuotes(fieldMatch[2]!);
+        if (fieldName === "name" && fieldValue.length > 0) {
           nameFragment = fieldValue;
-        } else if (fieldName === "service") {
+        } else if (fieldName === "service" && fieldValue.length > 0) {
           serviceFragment = fieldValue;
         } else {
           freeTextParts.push(token);
@@ -315,12 +651,23 @@ const MetricsViewer: FunctionComponent<Props> = (
     return attrs;
   }, [parsedSearch.attributes, activeFilters, props.attributeFilters]);
 
-  // When attribute filters change, query the Metric analytics model for matching metric names
+  /*
+   * When attribute filters (or the entityKeys / entityScope scopes) change,
+   * query the Metric analytics model for matching metric names. The entity
+   * scopes must run this fetch even with zero attribute filters — they are
+   * the only thing that restricts the metric-name list to the entity.
+   */
   useEffect(() => {
     const attributeKeys: Array<string> = Object.keys(effectiveAttributes);
-    const filterKey: string = JSON.stringify(effectiveAttributes);
+    const entityKeys: Array<string> = props.entityKeysFilter || [];
+    const entityScope: EntityScopeFilter | undefined = props.entityScope;
+    const filterKey: string = JSON.stringify({
+      attributes: effectiveAttributes,
+      entityKeys,
+      entityScope: entityScope || null,
+    });
 
-    if (attributeKeys.length === 0) {
+    if (attributeKeys.length === 0 && entityKeys.length === 0 && !entityScope) {
       setAttributeMatchedNames(null);
       lastAttributeFilterRef.current = "";
       return;
@@ -347,19 +694,40 @@ const MetricsViewer: FunctionComponent<Props> = (
         const analyticsQuery: Query<Metric> = {
           projectId,
           time: new InBetween<Date>(dateRange.startValue, dateRange.endValue),
-          attributes: effectiveAttributes,
         } as Query<Metric>;
 
+        if (attributeKeys.length > 0) {
+          (analyticsQuery as Record<string, unknown>)["attributes"] =
+            effectiveAttributes;
+        }
+
+        if (entityKeys.length > 0) {
+          (analyticsQuery as Record<string, unknown>)["entityKeys"] =
+            new Includes(entityKeys);
+        }
+
+        if (entityScope) {
+          (analyticsQuery as Record<string, unknown>)["entityScope"] =
+            entityScope;
+        }
+
+        /*
+         * GROUP BY name server-side so ClickHouse returns one row per
+         * metric name. The previous getList with `limit: 5000` + client
+         * dedup truncated by recency when a busy entity emitted many rows
+         * per minute, silently dropping less-frequent metric names.
+         */
         const result: AnalyticsListResult<Metric> =
           await AnalyticsModelAPI.getList<Metric>({
             modelType: Metric,
             query: analyticsQuery,
-            limit: 5000,
+            groupBy: { name: true } as GroupBy<Metric>,
+            limit: LIMIT_PER_PROJECT,
             skip: 0,
             select: {
               name: true,
             } as Select<Metric>,
-            sort: { time: SortOrder.Descending } as Record<string, SortOrder>,
+            sort: { name: SortOrder.Ascending } as Record<string, SortOrder>,
             requestOptions: {},
           });
 
@@ -378,7 +746,12 @@ const MetricsViewer: FunctionComponent<Props> = (
       }
     };
     void fetchMatchingNames();
-  }, [effectiveAttributes, timeRange]);
+  }, [
+    effectiveAttributes,
+    props.entityKeysFilter,
+    props.entityScope,
+    timeRange,
+  ]);
 
   // Build metric query
   const metricQuery: Query<MetricType> = useMemo(() => {
@@ -394,7 +767,7 @@ const MetricsViewer: FunctionComponent<Props> = (
     // Active facet filters for service
     const facetServiceIds: Array<ObjectID> = [];
     for (const filter of activeFilters) {
-      if (filter.facetKey === "serviceId") {
+      if (filter.facetKey === "primaryEntityId") {
         facetServiceIds.push(new ObjectID(filter.value));
       }
     }
@@ -480,8 +853,34 @@ const MetricsViewer: FunctionComponent<Props> = (
   }, [metricQuery, page, pageSize]);
 
   useEffect(() => {
+    /*
+     * When attribute filters or the entityKeys / entityScope scopes are
+     * active, defer the metric list fetch until the name match has resolved.
+     * Otherwise the first pass would query with no name restriction and
+     * briefly render the unfiltered (project-wide) list before snapping to
+     * the filtered one.
+     */
+    const hasEffectiveAttributes: boolean =
+      Object.keys(effectiveAttributes).length > 0;
+    const isEntityScoped: boolean = Boolean(
+      (props.entityKeysFilter && props.entityKeysFilter.length > 0) ||
+        props.entityScope,
+    );
+    if (
+      (hasEffectiveAttributes || isEntityScoped) &&
+      attributeMatchedNames === null
+    ) {
+      setIsLoading(true);
+      return;
+    }
     void fetchMetrics();
-  }, [fetchMetrics]);
+  }, [
+    fetchMetrics,
+    effectiveAttributes,
+    attributeMatchedNames,
+    props.entityKeysFilter,
+    props.entityScope,
+  ]);
 
   // Batch-fetch sparklines for visible metric names
   const visibleNames: Array<string> = useMemo(() => {
@@ -503,92 +902,70 @@ const MetricsViewer: FunctionComponent<Props> = (
     const fetchSparklines: () => Promise<void> = async () => {
       setSparklineLoading(true);
       try {
-        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-        if (!projectId) {
-          return;
-        }
         const dateRange: InBetween<Date> =
           RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
 
-        const query: Query<Metric> = {
-          projectId,
-          name: new Includes(visibleNames),
-          time: new InBetween<Date>(dateRange.startValue, dateRange.endValue),
-          ...(Object.keys(parsedSearch.attributes).length > 0
-            ? { attributes: parsedSearch.attributes }
-            : {}),
-        } as Query<Metric>;
-
-        const result: AnalyticsListResult<Metric> =
-          await AnalyticsModelAPI.getList<Metric>({
-            modelType: Metric,
-            query,
-            limit: 5000,
-            skip: 0,
-            select: {
-              name: true,
-              time: true,
-              value: true,
-            } as Select<Metric>,
-            sort: { time: SortOrder.Ascending } as Record<string, SortOrder>,
-            requestOptions: {},
-          });
-
-        // Bucket into N equal-width buckets per metric name
-        const buckets: number = 24;
-        const startMs: number = dateRange.startValue.getTime();
-        const endMs: number = dateRange.endValue.getTime();
-        const bucketMs: number = Math.max(
-          1,
-          Math.floor((endMs - startMs) / buckets),
-        );
-
-        // name -> bucketIdx -> sum + count
-        const acc: Map<
-          string,
-          Array<{ sum: number; count: number }>
-        > = new Map();
-        for (const name of visibleNames) {
-          const arr: Array<{ sum: number; count: number }> = [];
-          for (let i: number = 0; i < buckets; i++) {
-            arr.push({ sum: 0, count: 0 });
-          }
-          acc.set(name, arr);
-        }
+        /*
+         * Backend-aggregated fetch (one parallel call per metric name).
+         * The previous getList path with `limit: 5000` truncated by
+         * time when a host emitted many per-attribute-combo rows
+         * (e.g. process.* metrics: ~700 rows/min each), so the right
+         * side of every sparkline flatlined at 0. The aggregate API
+         * returns one bucketed point per minute (~60 rows/metric for a
+         * 1h window) and reuses the explorer's dedup/result cache.
+         */
+        const entityKeys: Array<string> = props.entityKeysFilter || [];
+        const isEntityScoped: boolean =
+          entityKeys.length > 0 || Boolean(props.entityScope);
+        const aggregates: Map<string, AggregatedResult> = isEntityScoped
+          ? await fetchEntityScopedSparklineAggregates({
+              metricNames: visibleNames,
+              attributes: effectiveAttributes,
+              startAndEndDate: new InBetween<Date>(
+                dateRange.startValue,
+                dateRange.endValue,
+              ),
+              entityKeys,
+              entityScope: props.entityScope,
+            })
+          : await MetricUtil.fetchSparklineAggregates({
+              metricNames: visibleNames,
+              attributes: effectiveAttributes as Record<string, string>,
+              startAndEndDate: new InBetween<Date>(
+                dateRange.startValue,
+                dateRange.endValue,
+              ),
+            });
 
         const last: Record<string, number> = {};
-
-        for (const m of result.data) {
-          const name: string = m.name as unknown as string;
-          if (!name || !acc.has(name)) {
-            continue;
-          }
-          const t: Date = OneUptimeDate.fromString(m.time as unknown as string);
-          const idx: number = Math.min(
-            buckets - 1,
-            Math.max(0, Math.floor((t.getTime() - startMs) / bucketMs)),
-          );
-          const v: number = Number(m.value || 0);
-          const arr: Array<{ sum: number; count: number }> = acc.get(name)!;
-          arr[idx]!.sum += v;
-          arr[idx]!.count += 1;
-          last[name] = v;
-        }
-
         const out: Record<string, Array<SparklinePoint>> = {};
-        for (const [name, arr] of acc.entries()) {
-          const points: Array<SparklinePoint> = arr.map(
-            (
-              bucket: { sum: number; count: number },
-              i: number,
-            ): SparklinePoint => {
-              const t: Date = new Date(startMs + i * bucketMs);
-              const v: number =
-                bucket.count > 0 ? bucket.sum / bucket.count : 0;
-              return { time: t.toISOString(), value: v };
-            },
-          );
+        for (const name of visibleNames) {
+          const aggregated: AggregatedResult = aggregates.get(name) || {
+            data: [],
+          };
+          const points: Array<SparklinePoint> = [];
+          for (const row of aggregated.data) {
+            const ts: Date | undefined =
+              row.timestamp instanceof Date
+                ? row.timestamp
+                : row.timestamp
+                  ? OneUptimeDate.fromString(row.timestamp as unknown as string)
+                  : undefined;
+            const value: number = Number(row.value);
+            if (!ts || !Number.isFinite(value)) {
+              continue;
+            }
+            points.push({ time: ts.toISOString(), value });
+          }
+          // Sort ascending so the chart renders left-to-right.
+          points.sort((a: SparklinePoint, b: SparklinePoint): number => {
+            return new Date(a.time).getTime() - new Date(b.time).getTime();
+          });
           out[name] = points;
+          if (points.length > 0) {
+            // Most recent point — the rightmost bucket on the chart.
+            last[name] = points[points.length - 1]!.value;
+          }
         }
         setSparklineData(out);
         setSparklineLastValue(last);
@@ -600,7 +977,13 @@ const MetricsViewer: FunctionComponent<Props> = (
       }
     };
     void fetchSparklines();
-  }, [visibleNames, timeRange, parsedSearch.attributes]);
+  }, [
+    visibleNames,
+    timeRange,
+    effectiveAttributes,
+    props.entityKeysFilter,
+    props.entityScope,
+  ]);
 
   // Facet configs
   const facetConfigs: Array<FacetConfig> = useMemo(() => {
@@ -620,32 +1003,68 @@ const MetricsViewer: FunctionComponent<Props> = (
     }
     return [
       {
-        key: "serviceId",
+        key: "primaryEntityId",
         title: "Service",
         valueDisplayMap: serviceNameMap,
         valueColorMap: serviceColorMap,
         priority: 1,
+        serverSearchable: true,
       },
     ];
   }, [services, isScoped]);
 
   /*
-   * Compute facets from loaded services (and distribution isn't known without
-   * a backend aggregation, so show equal weights for v1)
+   * Fetch facets from the backend. Counts come from a ClickHouse GROUP BY
+   * over the current time window; values are resolved from the Postgres
+   * source-of-truth so every service in the project appears in the sidebar
+   * regardless of recent metric activity.
    */
-  const facetData: FacetData = useMemo(() => {
+  const fetchFacets: () => Promise<void> = useCallback(async () => {
     if (isScoped) {
-      return {};
+      setFacetData({});
+      return;
     }
-    const values: Array<FacetValue> = services
-      .filter((s: Service): boolean => {
-        return Boolean(s.id && s.name);
-      })
-      .map((s: Service): FacetValue => {
-        return { value: s.id!.toString(), count: 0 };
-      });
-    return { serviceId: values };
-  }, [services, isScoped]);
+
+    setFacetLoading(true);
+
+    const dateRange: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+
+    const payload: JSONObject = {
+      startTime: dateRange.startValue.toISOString(),
+      endTime: dateRange.endValue.toISOString(),
+      facetKeys: ["primaryEntityId"],
+    };
+
+    const facetSearchTextActive: Record<string, string> = {};
+    for (const [key, val] of Object.entries(facetSearchText)) {
+      if (val && val.trim().length > 0) {
+        facetSearchTextActive[key] = val.trim();
+      }
+    }
+    if (Object.keys(facetSearchTextActive).length > 0) {
+      payload["facetSearchText"] = facetSearchTextActive;
+    }
+
+    try {
+      const response: HTTPResponse<JSONObject> = await postApi(
+        "/telemetry/metrics/facets",
+        payload,
+      );
+      const facets: FacetData = (response.data["facets"] ||
+        {}) as unknown as FacetData;
+      setFacetData(facets);
+    } catch {
+      // Facets are non-critical; silently degrade
+      setFacetData({});
+    } finally {
+      setFacetLoading(false);
+    }
+  }, [isScoped, timeRange, facetSearchText]);
+
+  useEffect(() => {
+    void fetchFacets();
+  }, [fetchFacets]);
 
   // Facet interaction
   const handleFacetInclude: (facetKey: string, value: string) => void =
@@ -694,16 +1113,36 @@ const MetricsViewer: FunctionComponent<Props> = (
 
   // Read-only chips for prop-level scoping (e.g. service view page)
   const mergedActiveFilters: Array<ActiveFilter> = useMemo(() => {
+    const resolveDisplay: (chip: ActiveFilter) => ActiveFilter = (
+      chip: ActiveFilter,
+    ) => {
+      const config: FacetConfig | undefined = facetConfigs.find(
+        (c: FacetConfig): boolean => {
+          return c.key === chip.facetKey;
+        },
+      );
+      const displayKey: string = chip.facetKey.startsWith("attributes.")
+        ? chip.facetKey.substring("attributes.".length)
+        : config?.title || chip.displayKey || chip.facetKey;
+      const displayValue: string =
+        config?.valueDisplayMap?.[chip.value] ||
+        chip.displayValue ||
+        chip.value;
+      return { ...chip, displayKey, displayValue };
+    };
+
     const base: Array<ActiveFilter> = [];
     if (props.serviceIds && props.serviceIds.length > 0) {
-      for (const serviceId of props.serviceIds) {
-        base.push({
-          facetKey: "serviceId",
-          value: serviceId.toString(),
-          displayKey: "Service",
-          displayValue: serviceId.toString(),
-          readOnly: true,
-        });
+      for (const primaryEntityId of props.serviceIds) {
+        base.push(
+          resolveDisplay({
+            facetKey: "primaryEntityId",
+            value: primaryEntityId.toString(),
+            displayKey: "Service",
+            displayValue: primaryEntityId.toString(),
+            readOnly: true,
+          }),
+        );
       }
     }
     if (props.attributeFilters) {
@@ -722,12 +1161,13 @@ const MetricsViewer: FunctionComponent<Props> = (
         });
       }
     }
-    return [...base, ...activeFilters];
+    return [...base, ...activeFilters.map(resolveDisplay)];
   }, [
     props.serviceIds,
     props.attributeFilters,
     props.attributeFilterDisplayKeys,
     activeFilters,
+    facetConfigs,
   ]);
 
   // Row click → navigate to metric viewer
@@ -770,6 +1210,53 @@ const MetricsViewer: FunctionComponent<Props> = (
     [props.attributeFilters],
   );
 
+  // Whether the URL already carried filter state (deep link) on first mount.
+  const hasInitialUrlState: boolean = useMemo((): boolean => {
+    return (
+      initialUrlState.search.length > 0 ||
+      initialUrlState.filters.length > 0 ||
+      initialUrlState.timeRange.range !== TimeRange.PAST_ONE_HOUR
+    );
+  }, [initialUrlState]);
+
+  // Capture the current explorer state for Save / Update of a saved view.
+  const captureCurrentState: () => TelemetrySavedViewState =
+    useCallback((): TelemetrySavedViewState => {
+      return {
+        search: submittedSearch,
+        filters: activeFilters.map((filter: ActiveFilter): [string, string] => {
+          return [filter.facetKey, filter.value];
+        }),
+        timeRange: serializeTimeRange(timeRange),
+        pageSize: pageSize,
+      };
+    }, [submittedSearch, activeFilters, timeRange, pageSize]);
+
+  // Apply a saved view's state back into the explorer.
+  const applySavedViewState: (state: TelemetrySavedViewState) => void =
+    useCallback((state: TelemetrySavedViewState): void => {
+      const nextSearch: string = state.search || "";
+      setSearchValue(nextSearch);
+      setSubmittedSearch(nextSearch);
+      setActiveFilters(
+        (state.filters || []).map(
+          ([facetKey, value]: [string, string]): ActiveFilter => {
+            return {
+              facetKey: facetKey,
+              value: value,
+              displayKey: facetKey,
+              displayValue: value,
+            };
+          },
+        ),
+      );
+      setTimeRange(deserializeTimeRange(state.timeRange));
+      if (state.pageSize) {
+        setPageSize(state.pageSize);
+      }
+      setPage(1);
+    }, []);
+
   return (
     <TelemetryViewer<MetricType>
       items={metrics}
@@ -778,6 +1265,19 @@ const MetricsViewer: FunctionComponent<Props> = (
       onRefresh={() => {
         void fetchMetrics();
       }}
+      toolbarLeadingActions={
+        !isScoped ? (
+          <TelemetrySavedViewsControl<MetricSavedView>
+            modelType={MetricSavedView}
+            savedViewNoun="Metric"
+            explorerLabel="metrics"
+            hasInitialUrlState={hasInitialUrlState}
+            captureCurrentState={captureCurrentState}
+            applyState={applySavedViewState}
+            onError={setError}
+          />
+        ) : undefined
+      }
       emptyMessage="No metrics found"
       itemLabel="metrics"
       renderRow={(metric: MetricType): ReactElement => {
@@ -820,6 +1320,11 @@ const MetricsViewer: FunctionComponent<Props> = (
          * Known-field detection is case-insensitive; attribute keys keep
          * their original case (the backend matches map keys case-
          * insensitively at query time).
+         *
+         * For the attribute (chip) branch, strip surrounding quotes so a
+         * value like `"my-value"` doesn't get stored literally as a chip.
+         * The known-field branch preserves quotes because the resulting
+         * search string is re-parsed by `parseSearch`, which strips them.
          */
         const lowerFieldKey: string = fieldKey.toLowerCase();
         if (KNOWN_FIELD_KEYS.has(lowerFieldKey)) {
@@ -829,7 +1334,11 @@ const MetricsViewer: FunctionComponent<Props> = (
           setPage(1);
           return;
         }
-        handleFacetInclude(`attributes.${fieldKey}`, value);
+        const cleanValue: string =
+          value.length >= 2 && value.startsWith('"') && value.endsWith('"')
+            ? value.slice(1, -1)
+            : value;
+        handleFacetInclude(`attributes.${fieldKey}`, cleanValue);
       }}
       searchFieldAliasMap={FIELD_ALIAS_MAP}
       searchHelpRows={SEARCH_HELP_ROWS}
@@ -843,8 +1352,24 @@ const MetricsViewer: FunctionComponent<Props> = (
       showFacetSidebar={!isScoped}
       facetData={facetData}
       facetConfigs={facetConfigs}
-      facetLoading={false}
+      facetLoading={facetLoading}
       onFacetInclude={handleFacetInclude}
+      onFacetSearchChange={(facetKey: string, text: string) => {
+        setFacetSearchText(
+          (prev: Record<string, string>): Record<string, string> => {
+            if ((prev[facetKey] || "") === text) {
+              return prev;
+            }
+            const next: Record<string, string> = { ...prev };
+            if (text.length === 0) {
+              delete next[facetKey];
+            } else {
+              next[facetKey] = text;
+            }
+            return next;
+          },
+        );
+      }}
       // Active filters
       activeFilters={mergedActiveFilters}
       onRemoveFilter={handleRemoveFilter}

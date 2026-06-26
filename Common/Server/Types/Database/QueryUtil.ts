@@ -17,6 +17,7 @@ import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import Search from "../../../Types/BaseDatabase/Search";
+import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { JSONObject } from "../../../Types/JSON";
@@ -43,6 +44,82 @@ export default class QueryUtil {
 
     query = query as Query<TBaseModel>;
 
+    /*
+     * Multi-field text search:
+     * A MultiSearch operator on any key fans out into an ILIKE OR across the
+     * listed entity fields. We hang the Raw expression off `_id` so it lands
+     * in the WHERE clause without TypeORM treating the synthetic key as a
+     * real column. Falls through silently if metadata is unavailable or no
+     * fields resolve (e.g. property name typo).
+     */
+    for (const key in query) {
+      const value: any = query[key];
+      if (!(value instanceof MultiSearch)) {
+        continue;
+      }
+
+      delete query[key];
+
+      const ms: MultiSearch = value as MultiSearch;
+      if (!ms.value || ms.fields.length === 0) {
+        continue;
+      }
+
+      /*
+       * Validate the requested fields against entity metadata so we only
+       * emit identifiers TypeORM's post-processor can map back to real
+       * columns (otherwise the alias.field token survives unescaped and
+       * Postgres lowercases the table name → "missing FROM-clause entry").
+       */
+      const validPropertyNames: Array<string> = [];
+      if (PostgresAppInstance.isConnected()) {
+        const dataSource: DataSource | null =
+          PostgresAppInstance.getDataSource();
+        if (dataSource) {
+          let entityMetadata: EntityMetadata | undefined;
+          try {
+            entityMetadata = dataSource.getMetadata(modelType);
+          } catch {
+            entityMetadata = undefined;
+          }
+          if (entityMetadata) {
+            for (const fieldName of ms.fields) {
+              const column: any = entityMetadata.columns.find((c: any) => {
+                return c.propertyName === fieldName;
+              });
+              if (column) {
+                validPropertyNames.push(fieldName);
+              }
+            }
+          }
+        }
+      }
+
+      if (validPropertyNames.length === 0) {
+        continue;
+      }
+
+      const rawFilter: any = QueryHelper.multiSearch(
+        validPropertyNames,
+        ms.value,
+      );
+
+      const existingIdFilter: any = (query as any)._id;
+      if (existingIdFilter instanceof FindOperator) {
+        (query as any)._id = And(existingIdFilter, rawFilter);
+      } else if (
+        existingIdFilter &&
+        typeof existingIdFilter === Typeof.String
+      ) {
+        (query as any)._id = And(
+          QueryHelper.equalTo(existingIdFilter as string),
+          rawFilter,
+        );
+      } else {
+        (query as any)._id = rawFilter;
+      }
+    }
+
     for (const key in query) {
       const tableColumnMetadata: TableColumnMetadata =
         model.getTableColumnMetadata(key);
@@ -54,7 +131,45 @@ export default class QueryUtil {
         query[key] instanceof NotNull &&
         tableColumnMetadata
       ) {
-        query[key] = QueryHelper.notNull();
+        if (tableColumnMetadata.type === TableColumnType.EntityArray) {
+          const manyToManyMeta: {
+            joinTableName: string;
+            ownerColumnName: string;
+            relationColumnName: string;
+          } | null = QueryUtil.getManyToManyRelationMetadata(modelType, key);
+
+          if (manyToManyMeta) {
+            const subqueryFilter: any = QueryHelper.anyEntitiesInManyToMany({
+              joinTableName: manyToManyMeta.joinTableName,
+              ownerColumnName: manyToManyMeta.ownerColumnName,
+            });
+
+            delete query[key];
+
+            const existingIdFilter: any = (query as any)._id;
+            if (existingIdFilter instanceof FindOperator) {
+              (query as any)._id = And(existingIdFilter, subqueryFilter);
+            } else if (
+              existingIdFilter &&
+              typeof existingIdFilter === Typeof.String
+            ) {
+              (query as any)._id = And(
+                QueryHelper.equalTo(existingIdFilter as string),
+                subqueryFilter,
+              );
+            } else {
+              (query as any)._id = subqueryFilter;
+            }
+          } else {
+            /*
+             * Metadata unavailable — drop the filter rather than emit
+             * invalid SQL against a relation that isn't a real column.
+             */
+            delete query[key];
+          }
+        } else {
+          query[key] = QueryHelper.notNull();
+        }
       } else if (
         query[key] &&
         query[key] instanceof EqualToOrNull &&
@@ -157,7 +272,41 @@ export default class QueryUtil {
         query[key] instanceof IsNull &&
         tableColumnMetadata
       ) {
-        query[key] = QueryHelper.isNull() as any;
+        if (tableColumnMetadata.type === TableColumnType.EntityArray) {
+          const manyToManyMeta: {
+            joinTableName: string;
+            ownerColumnName: string;
+            relationColumnName: string;
+          } | null = QueryUtil.getManyToManyRelationMetadata(modelType, key);
+
+          if (manyToManyMeta) {
+            const subqueryFilter: any = QueryHelper.noEntitiesInManyToMany({
+              joinTableName: manyToManyMeta.joinTableName,
+              ownerColumnName: manyToManyMeta.ownerColumnName,
+            });
+
+            delete query[key];
+
+            const existingIdFilter: any = (query as any)._id;
+            if (existingIdFilter instanceof FindOperator) {
+              (query as any)._id = And(existingIdFilter, subqueryFilter);
+            } else if (
+              existingIdFilter &&
+              typeof existingIdFilter === Typeof.String
+            ) {
+              (query as any)._id = And(
+                QueryHelper.equalTo(existingIdFilter as string),
+                subqueryFilter,
+              );
+            } else {
+              (query as any)._id = subqueryFilter;
+            }
+          } else {
+            delete query[key];
+          }
+        } else {
+          query[key] = QueryHelper.isNull() as any;
+        }
       } else if (
         query[key] &&
         query[key] instanceof InBetween &&

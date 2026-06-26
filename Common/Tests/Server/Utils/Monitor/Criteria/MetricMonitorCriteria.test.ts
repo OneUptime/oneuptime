@@ -606,7 +606,7 @@ describe("MetricMonitorCriteria.evaluateAllSeries — per-host alerting", () => 
     };
   }
 
-  test("no seriesBreakdown → single synthetic evaluation (backward compatible)", () => {
+  test("no seriesBreakdown → single synthetic evaluation (backward compatible)", async () => {
     const criteriaFilter: CriteriaFilter = {
       checkOn: CheckOn.MetricValue,
       filterType: FilterType.GreaterThan,
@@ -623,14 +623,15 @@ describe("MetricMonitorCriteria.evaluateAllSeries — per-host alerting", () => 
       criteriaFilter,
     });
 
-    const results: ReturnType<typeof MetricMonitorCriteria.evaluateAllSeries> =
-      MetricMonitorCriteria.evaluateAllSeries(inputs);
+    const results: Awaited<
+      ReturnType<typeof MetricMonitorCriteria.evaluateAllSeries>
+    > = await MetricMonitorCriteria.evaluateAllSeries(inputs);
     expect(results).toHaveLength(1);
     expect(results[0]!.fingerprint).toBeUndefined();
     expect(results[0]!.rootCause).toBeTruthy();
   });
 
-  test("seriesBreakdown with 2 breaching + 1 non-breaching → only breaching series return rootCause", () => {
+  test("seriesBreakdown with 2 breaching + 1 non-breaching → only breaching series return rootCause", async () => {
     const criteriaFilter: CriteriaFilter = {
       checkOn: CheckOn.MetricValue,
       filterType: FilterType.GreaterThan,
@@ -651,8 +652,9 @@ describe("MetricMonitorCriteria.evaluateAllSeries — per-host alerting", () => 
         ],
       });
 
-    const results: ReturnType<typeof MetricMonitorCriteria.evaluateAllSeries> =
-      MetricMonitorCriteria.evaluateAllSeries(inputs);
+    const results: Awaited<
+      ReturnType<typeof MetricMonitorCriteria.evaluateAllSeries>
+    > = await MetricMonitorCriteria.evaluateAllSeries(inputs);
     expect(results).toHaveLength(3);
 
     const breaching: typeof results = results.filter(
@@ -670,7 +672,7 @@ describe("MetricMonitorCriteria.evaluateAllSeries — per-host alerting", () => 
     expect(breachingHosts).toEqual(["prod-01", "prod-02"]);
   });
 
-  test("each series gets its own breaching-samples context", () => {
+  test("each series gets its own breaching-samples context", async () => {
     const criteriaFilter: CriteriaFilter = {
       checkOn: CheckOn.MetricValue,
       filterType: FilterType.GreaterThan,
@@ -690,8 +692,9 @@ describe("MetricMonitorCriteria.evaluateAllSeries — per-host alerting", () => 
         ],
       });
 
-    const results: ReturnType<typeof MetricMonitorCriteria.evaluateAllSeries> =
-      MetricMonitorCriteria.evaluateAllSeries(inputs);
+    const results: Awaited<
+      ReturnType<typeof MetricMonitorCriteria.evaluateAllSeries>
+    > = await MetricMonitorCriteria.evaluateAllSeries(inputs);
     const prod01: (typeof results)[number] = results.find(
       (r: (typeof results)[number]) => {
         return r.labels["host.name"] === "prod-01";

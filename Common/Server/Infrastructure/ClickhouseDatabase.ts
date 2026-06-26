@@ -2,6 +2,8 @@ import logger from "../Utils/Logger";
 import {
   ClickHouseClientConfigOptions,
   dataSourceOptions,
+  ingestDataSourceOptions,
+  migrationDataSourceOptions,
   testDataSourceOptions,
 } from "./ClickhouseConfig";
 import { PingResult, createClient, ClickHouseClient } from "@clickhouse/client";
@@ -13,14 +15,30 @@ import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import { JSONObject } from "../../Types/JSON";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import GracefulShutdown, { ShutdownPriority } from "../Utils/GracefulShutdown";
 
 export type ClickhouseClient = ClickHouseClient;
 
 export default class ClickhouseDatabase {
   private dataSource!: ClickhouseClient | null;
+  private options: ClickHouseClientConfigOptions;
+
+  /*
+   * Each instance owns its own pool (App vs. Ingest), so each needs a
+   * distinct shutdown-handler name. The two instances share a database name,
+   * so a per-instance counter is what makes the names unique.
+   */
+  private static instanceCounter: number = 0;
+  private readonly instanceId: number = ++ClickhouseDatabase.instanceCounter;
+
+  public constructor(
+    options: ClickHouseClientConfigOptions = dataSourceOptions,
+  ) {
+    this.options = options;
+  }
 
   public getDatasourceOptions(): ClickHouseClientConfigOptions {
-    return dataSourceOptions;
+    return this.options;
   }
 
   public getTestDatasourceOptions(): ClickHouseClientConfigOptions {
@@ -89,7 +107,18 @@ export default class ClickhouseDatabase {
           }
         };
 
-      return await connectToDatabase();
+      const client: ClickhouseClient = await connectToDatabase();
+
+      // Close this Clickhouse pool on shutdown.
+      GracefulShutdown.registerHandler(
+        `ClickhouseDatabase#${this.instanceId}`,
+        ShutdownPriority.DataStores,
+        () => {
+          return this.disconnect();
+        },
+      );
+
+      return client;
     } catch (err) {
       logger.error("Clickhouse Database Connection Failed");
       logger.error(err);
@@ -161,5 +190,25 @@ export default class ClickhouseDatabase {
   }
 }
 
-export const ClickhouseAppInstance: ClickhouseDatabase =
-  new ClickhouseDatabase();
+export const ClickhouseAppInstance: ClickhouseDatabase = new ClickhouseDatabase(
+  dataSourceOptions,
+);
+
+/*
+ * Separate pool for high-volume telemetry inserts. Reads/DDL keep using
+ * ClickhouseAppInstance so dashboard queries are not starved of HTTP
+ * sockets when ingest is bursting.
+ */
+export const ClickhouseIngestInstance: ClickhouseDatabase =
+  new ClickhouseDatabase(ingestDataSourceOptions);
+
+/*
+ * Separate pool for schema sync + data migrations. Identical to the App pool
+ * except for a much higher request_timeout (see migrationDataSourceOptions):
+ * the App pool's 58s socket-idle timer is correct for dashboard reads but
+ * would destroy a long-running migration DDL/mutation mid-flight and crash
+ * boot. Schema sync and migrations route through this instance via
+ * MigrationExecuteOptions (AnalyticsDatabaseService).
+ */
+export const ClickhouseMigrationInstance: ClickhouseDatabase =
+  new ClickhouseDatabase(migrationDataSourceOptions);

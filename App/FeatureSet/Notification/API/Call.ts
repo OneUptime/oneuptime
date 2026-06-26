@@ -147,7 +147,7 @@ router.post(
         const testCallRequest: CallRequest = {
           data: [
             {
-              sayMessage: "This is a test call from OneUptime.",
+              sayMessage: "This is a test call from One Uptime.",
             },
           ],
           to: toPhone,

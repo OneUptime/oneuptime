@@ -1,8 +1,5 @@
 import IconProp from "Common/Types/Icon/IconProp";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -26,6 +23,7 @@ import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Loader from "Common/UI/Components/Loader/Loader";
 import DashboardVariableSelector from "./DashboardVariableSelector";
+import DashboardVariablesModal from "./DashboardVariablesModal";
 import Icon from "Common/UI/Components/Icon/Icon";
 import AddWidgetModal from "./AddWidgetModal";
 
@@ -47,10 +45,18 @@ export interface ComponentProps {
   isRefreshing?: boolean | undefined;
   variables?: Array<DashboardVariable> | undefined;
   onVariableValueChange?:
-    | ((variableId: string, value: string) => void)
+    | ((
+        variableId: string,
+        change: {
+          selectedValue?: string | undefined;
+          selectedValues?: Array<string> | undefined;
+        },
+      ) => void)
     | undefined;
-  canResetZoom?: boolean | undefined;
-  onResetZoom?: (() => void) | undefined;
+  onVariablesDefinitionChange?:
+    | ((variables: Array<DashboardVariable>) => void)
+    | undefined;
+  telemetryAttributeOptions?: Array<string> | undefined;
 }
 
 interface CountdownCircleProps {
@@ -268,6 +274,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 
   const [showCancelModal, setShowCancelModal] = useState<boolean>(false);
   const [showAddWidgetModal, setShowAddWidgetModal] = useState<boolean>(false);
+  const [showVariablesModal, setShowVariablesModal] = useState<boolean>(false);
 
   const isSaving: boolean = props.isSaving;
 
@@ -357,18 +364,6 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                     props.onAutoRefreshIntervalChange
                   }
                 />
-
-                {/* Reset Zoom button */}
-                {props.canResetZoom && props.onResetZoom && (
-                  <Button
-                    icon={IconProp.Refresh}
-                    title="Reset Zoom"
-                    buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
-                    buttonSize={ButtonSize.Small}
-                    onClick={props.onResetZoom}
-                    tooltip="Reset to original time range"
-                  />
-                )}
               </>
             )}
 
@@ -380,7 +375,8 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   <button
                     type="button"
                     className="flex items-center justify-center rounded-lg w-8 h-8 bg-gray-50 border border-gray-200/60 hover:bg-gray-100 transition-colors cursor-pointer"
-                    title="More options"
+                    title="More dashboard options"
+                    aria-label="More dashboard options"
                   >
                     <Icon
                       icon={IconProp.EllipsisHorizontal}
@@ -406,35 +402,63 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 
             {/* Edit mode actions */}
             {!isSaving && isEditMode && (
-              <div className="flex items-center gap-1">
-                <Button
-                  icon={IconProp.Add}
-                  title="Add Widget"
-                  buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
-                  buttonSize={ButtonSize.Small}
-                  onClick={() => {
-                    setShowAddWidgetModal(true);
-                  }}
-                />
+              <div className="flex items-center gap-2">
+                {/* Construction tools — segmented pill */}
+                <div className="flex items-center gap-0.5 rounded-lg bg-gray-50 border border-gray-200/60 p-0.5">
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium text-gray-700 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all cursor-pointer"
+                    onClick={() => {
+                      setShowAddWidgetModal(true);
+                    }}
+                    title="Add Widget"
+                  >
+                    <Icon icon={IconProp.Add} className="w-3.5 h-3.5" />
+                    <span>Add Widget</span>
+                  </button>
 
-                <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
+                  {props.onVariablesDefinitionChange && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium text-gray-700 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all cursor-pointer"
+                      onClick={() => {
+                        setShowVariablesModal(true);
+                      }}
+                      title="Variables"
+                    >
+                      <Icon icon={IconProp.Variable} className="w-3.5 h-3.5" />
+                      <span>Variables</span>
+                      {props.variables && props.variables.length > 0 && (
+                        <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-semibold">
+                          {props.variables.length}
+                        </span>
+                      )}
+                    </button>
+                  )}
+                </div>
 
-                <Button
-                  icon={IconProp.Check}
-                  title="Save"
-                  buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
-                  buttonSize={ButtonSize.Small}
-                  onClick={props.onSaveClick}
-                />
-                <Button
-                  icon={IconProp.Close}
-                  title="Cancel"
-                  buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
-                  buttonSize={ButtonSize.Small}
-                  onClick={() => {
-                    setShowCancelModal(true);
-                  }}
-                />
+                {/* Commit actions */}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    className="inline-flex items-center h-8 px-3 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer"
+                    onClick={() => {
+                      setShowCancelModal(true);
+                    }}
+                    title="Cancel"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer"
+                    onClick={props.onSaveClick}
+                    title="Save Changes"
+                  >
+                    <Icon icon={IconProp.Check} className="w-3.5 h-3.5" />
+                    <span>Save Changes</span>
+                  </button>
+                </div>
               </div>
             )}
 
@@ -476,6 +500,22 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
           }}
           onClose={() => {
             setShowAddWidgetModal(false);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {showVariablesModal && props.onVariablesDefinitionChange ? (
+        <DashboardVariablesModal
+          variables={props.variables || []}
+          telemetryAttributeOptions={props.telemetryAttributeOptions || []}
+          onClose={() => {
+            setShowVariablesModal(false);
+          }}
+          onSave={(updated: Array<DashboardVariable>) => {
+            props.onVariablesDefinitionChange?.(updated);
+            setShowVariablesModal(false);
           }}
         />
       ) : (

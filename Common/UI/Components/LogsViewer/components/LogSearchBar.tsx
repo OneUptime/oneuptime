@@ -398,7 +398,7 @@ function extractCurrentWord(value: string): string {
 const FIELD_ALIAS_MAP: Record<string, string> = {
   severity: "severityText",
   level: "severityText",
-  service: "serviceId",
+  service: "primaryEntityId",
   trace: "traceId",
   span: "spanId",
 };

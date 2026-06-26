@@ -21,6 +21,10 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/configmap-daemonset.yaml") . | sha256sum }}
     spec:
       serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
+      {{- if and .Values.debug.enabled .Values.debug.shareProcessNamespace }}
+      # Lets the debug sidecar see the collector's processes (ps, /proc, strace).
+      shareProcessNamespace: true
+      {{- end }}
       tolerations:
         - operator: Exists
       containers:
@@ -38,6 +42,16 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.hostIP
+            {{- with .Values.logs.resources.limits.memory }}
+            # Go runtime soft memory limit — makes the GC reclaim
+            # aggressively as the heap approaches the cgroup limit, so the
+            # collector's own memory_limiter (same 80% target) and the kernel
+            # OOM killer act as backstops rather than the primary control.
+            # Derived from .Values.logs.resources.limits.memory so it tracks
+            # the container limit. Only set when a memory limit is configured.
+            - name: GOMEMLIMIT
+              value: {{ include "kubernetes-agent.gomemlimit" . | quote }}
+            {{- end }}
             - name: ONEUPTIME_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -52,6 +66,34 @@ spec:
             - name: varlogpods
               mountPath: /var/log/pods
               readOnly: true
+            {{- if .Values.hostMetrics.enabled }}
+            # /host/proc and /host/sys are what the OTel `hostmetrics`
+            # receiver reads from. `root_path: /host` tells it to look
+            # under this prefix instead of /proc and /sys (which inside
+            # the container are the namespaced view).
+            - name: host-proc
+              mountPath: /host/proc
+              readOnly: true
+              mountPropagation: HostToContainer
+            - name: host-sys
+              mountPath: /host/sys
+              readOnly: true
+              mountPropagation: HostToContainer
+            - name: host-root
+              mountPath: /host/
+              readOnly: true
+              mountPropagation: HostToContainer
+            {{- end }}
+            {{- if .Values.auditLogs.enabled }}
+            # Read-only mount of the kube audit log directory. Default
+            # path matches the kubeadm convention.
+            - name: audit-logs
+              mountPath: /var/log/kubernetes
+              readOnly: true
+            {{- end }}
+        {{- if .Values.debug.enabled }}
+        {{- include "kubernetes-agent.debugContainer" . | nindent 8 }}
+        {{- end }}
       volumes:
         - name: config
           configMap:
@@ -59,4 +101,21 @@ spec:
         - name: varlogpods
           hostPath:
             path: /var/log/pods
+        {{- if .Values.hostMetrics.enabled }}
+        - name: host-proc
+          hostPath:
+            path: /proc
+        - name: host-sys
+          hostPath:
+            path: /sys
+        - name: host-root
+          hostPath:
+            path: /
+        {{- end }}
+        {{- if .Values.auditLogs.enabled }}
+        - name: audit-logs
+          hostPath:
+            path: /var/log/kubernetes
+            type: DirectoryOrCreate
+        {{- end }}
 {{- end }}

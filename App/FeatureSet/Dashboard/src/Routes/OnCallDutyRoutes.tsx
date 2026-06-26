@@ -18,6 +18,7 @@ import OnCallDutyPolicyViewUserOverrides from "../Pages/OnCallDuty/OnCallDutyPol
 import OnCallDutyPolicyExecutionLogTimeline from "../Pages/OnCallDuty/OnCallDutyExecutionLogView";
 import OnCallDutyPolicyView from "../Pages/OnCallDuty/OnCallDutyPolicy/Index";
 import OnCallDutyPolicyViewOwners from "../Pages/OnCallDuty/OnCallDutyPolicy/Owners";
+import OnCallDutyPolicyViewAuditLogs from "../Pages/OnCallDuty/OnCallDutyPolicy/AuditLogs";
 
 import OnCallDutyPolicyViewDelete from "../Pages/OnCallDuty/OnCallDutyPolicy/Delete";
 import OnCallDutyPolicyViewLogs from "../Pages/OnCallDuty/OnCallDutyPolicy/ExecutionLogs";
@@ -34,6 +35,8 @@ import OnCallDutyScheduleViewDelete from "../Pages/OnCallDuty/OnCallDutySchedule
 import OnCallDutyScheduleViewLayers from "../Pages/OnCallDuty/OnCallDutySchedule/Layers";
 
 import OnCallDutyScheduleViewNotificationLogs from "../Pages/OnCallDuty/OnCallDutySchedule/NotificationLogs";
+import OnCallDutyScheduleViewOwners from "../Pages/OnCallDuty/OnCallDutySchedule/Owners";
+import OnCallDutyScheduleViewAuditLogs from "../Pages/OnCallDuty/OnCallDutySchedule/AuditLogs";
 import OnCallDutyScheduleViewSettings from "../Pages/OnCallDuty/OnCallDutySchedule/Settings";
 
 // slack
@@ -47,6 +50,8 @@ import OnCallDutyUserTimeLogs from "../Pages/OnCallDuty/OnCallDutyUserTimeLogs";
 
 // Settings Pages
 import OnCallDutySettingsCustomFields from "../Pages/OnCallDuty/Settings/OnCallDutyPolicyCustomFields";
+import OnCallDutySettingsLabelRules from "../Pages/OnCallDuty/Settings/LabelRules";
+import OnCallDutySettingsOwnerRules from "../Pages/OnCallDuty/Settings/OwnerRules";
 
 // Incoming Call Policies
 import IncomingCallPoliciesPage from "../Pages/OnCallDuty/IncomingCallPolicies";
@@ -62,6 +67,10 @@ import IncomingCallPolicyViewLogs from "../Pages/OnCallDuty/IncomingCallPolicy/L
 import IncomingCallPolicyViewLogView from "../Pages/OnCallDuty/IncomingCallPolicy/LogView";
 
 import IncomingCallPolicyViewDelete from "../Pages/OnCallDuty/IncomingCallPolicy/Delete";
+
+import IncomingCallPolicyViewOwners from "../Pages/OnCallDuty/IncomingCallPolicy/Owners";
+
+import IncomingCallPolicyViewAuditLogs from "../Pages/OnCallDuty/IncomingCallPolicy/AuditLogs";
 
 import IncomingCallPolicyViewSettings from "../Pages/OnCallDuty/IncomingCallPolicy/Settings";
 
@@ -204,6 +213,34 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SETTINGS_LABEL_RULES] || ""
+          }
+          element={
+            <OnCallDutySettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ON_CALL_DUTY_SETTINGS_LABEL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SETTINGS_OWNER_RULES] || ""
+          }
+          element={
+            <OnCallDutySettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ON_CALL_DUTY_SETTINGS_OWNER_RULES] as Route
+              }
+            />
+          }
+        />
+
         {/* Incoming Call Policies */}
         <PageRoute
           path={
@@ -258,6 +295,20 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_OWNERS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_POLICY_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <OnCallDutyPolicyViewAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_AUDIT_LOGS] as Route
               }
             />
           }
@@ -418,6 +469,34 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_OWNERS,
+          )}
+          element={
+            <OnCallDutyScheduleViewOwners
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_OWNERS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <OnCallDutyScheduleViewAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_AUDIT_LOGS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
             PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS,
           )}
           element={
@@ -463,6 +542,38 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_OWNERS,
+          )}
+          element={
+            <IncomingCallPolicyViewOwners
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_OWNERS
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <IncomingCallPolicyViewAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_AUDIT_LOGS
                 ] as Route
               }
             />

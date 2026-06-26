@@ -1,4 +1,5 @@
 import ObjectID from "../../../Types/ObjectID";
+import useTranslateValue from "../../Utils/Translation";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -58,11 +59,18 @@ export interface ComponentProps {
   id?: string | undefined;
   dataTestId?: string | undefined;
   ariaLabel?: string | undefined;
+  ariaLabelledby?: string | undefined;
 }
 
 const Dropdown: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const tx: (value: string | undefined) => string | undefined = (
+    value: string | undefined,
+  ): string | undefined => {
+    return translateString(value);
+  };
   const uniqueId: string = useId();
   const errorId: string = `dropdown-error-${uniqueId}`;
 
@@ -459,7 +467,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           <div className="flex items-center gap-2">
             {renderOptionColorIndicator(option.color)}
             <span className="text-sm font-medium text-gray-900">
-              {option.label}
+              {tx(option.label) ?? option.label}
             </span>
           </div>
           {renderAssociatedLabels(
@@ -476,11 +484,13 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         <div className="flex items-center gap-2">
           {renderOptionColorIndicator(option.color)}
           <span className="text-sm font-medium text-gray-900">
-            {option.label}
+            {tx(option.label) ?? option.label}
           </span>
         </div>
         {option.description ? (
-          <span className="text-xs text-gray-500">{option.description}</span>
+          <span className="text-xs text-gray-500">
+            {tx(option.description) ?? option.description}
+          </span>
         ) : null}
         {renderAssociatedLabels(visibleLabels, meta.context, hiddenLabelCount)}
       </div>
@@ -528,6 +538,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           props.onFocus?.();
         }}
         aria-label={props.ariaLabel}
+        aria-labelledby={props.ariaLabelledby}
         aria-invalid={props.error ? true : undefined}
         aria-describedby={props.error ? errorId : undefined}
         classNames={{
@@ -707,7 +718,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         menuPosition="fixed"
         isClearable={true}
         isSearchable={true}
-        placeholder={props.placeholder}
+        placeholder={tx(props.placeholder) ?? props.placeholder}
         options={props.options as any}
         onChange={(option: any | null) => {
           if (option) {

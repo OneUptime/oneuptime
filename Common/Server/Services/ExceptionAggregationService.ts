@@ -1,4 +1,5 @@
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
+import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
@@ -8,6 +9,7 @@ import Includes from "../../Types/BaseDatabase/Includes";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 
 export interface HistogramBucket {
   time: string;
@@ -35,6 +37,7 @@ export interface HistogramRequest extends ExceptionFilters {
 export interface FacetValue {
   value: string;
   count: number;
+  displayName?: string | undefined;
 }
 
 export interface FacetRequest extends ExceptionFilters {
@@ -50,7 +53,7 @@ export class ExceptionAggregationService {
   private static readonly TABLE_NAME: string =
     AnalyticsTableName.ExceptionInstance;
   private static readonly TOP_LEVEL_COLUMNS: Set<string> = new Set([
-    "serviceId",
+    "primaryEntityId",
     "exceptionType",
     "environment",
     "fingerprint",
@@ -59,6 +62,24 @@ export class ExceptionAggregationService {
     "escaped",
     "release",
   ]);
+  /*
+   * Virtual facet keys — same scheme as TraceAggregationService /
+   * LogAggregationService. The `primaryEntityId` slot is reused for host /
+   * docker host / k8s cluster ids, disambiguated by the `primaryEntityType`
+   * discriminator column on each ExceptionInstance row.
+   */
+  private static readonly RESOURCE_FACET_KEYS: Map<string, ServiceType> =
+    new Map([
+      ["hostId", ServiceType.Host],
+      ["dockerHostId", ServiceType.DockerHost],
+      ["podmanHostId", ServiceType.PodmanHost],
+      ["kubernetesClusterId", ServiceType.KubernetesCluster],
+      ["proxmoxClusterId", ServiceType.ProxmoxCluster],
+      ["cephClusterId", ServiceType.CephCluster],
+      ["serverlessFunctionId", ServiceType.ServerlessFunction],
+      ["cloudResourceId", ServiceType.CloudResource],
+      ["rumApplicationId", ServiceType.RealUserMonitor],
+    ]);
   private static readonly ATTRIBUTE_KEY_PATTERN: RegExp = /^[a-zA-Z0-9._:/-]+$/;
   private static readonly MAX_FACET_KEY_LENGTH: number = 256;
 
@@ -147,6 +168,14 @@ export class ExceptionAggregationService {
         }}
     `;
 
+    /*
+     * Read-side retention filter: rows past their per-service retention
+     * stay in their part until the whole part drops (ttl_only_drop_parts).
+     * Raw `time` predicates already make these queries ineligible for the
+     * proj_exception_group projection, so the extra predicate is free.
+     */
+    statement.append(" AND retentionDate >= now()");
+
     ExceptionAggregationService.appendCommonFilters(statement, request);
 
     statement.append(" GROUP BY bucket, escaped ORDER BY bucket ASC");
@@ -157,33 +186,54 @@ export class ExceptionAggregationService {
      * rather than throwing, which is acceptable for a density viz.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     return statement;
   }
 
   private static buildFacetStatement(request: FacetRequest): Statement {
+    // Pre-rename alias from stale clients; the V3 column is primaryEntityId.
+    if (request.facetKey === "serviceId") {
+      request.facetKey = "primaryEntityId";
+    }
+
     const limit: number =
       request.limit ?? ExceptionAggregationService.DEFAULT_FACET_LIMIT;
 
     ExceptionAggregationService.validateFacetKey(request.facetKey);
 
+    const resourceServiceType: ServiceType | undefined =
+      ExceptionAggregationService.RESOURCE_FACET_KEYS.get(request.facetKey);
+    const isResourceFacet: boolean = resourceServiceType !== undefined;
     const isTopLevelColumn: boolean =
+      isResourceFacet ||
       ExceptionAggregationService.isTopLevelColumn(request.facetKey);
 
     const statement: Statement = new Statement();
 
-    if (isTopLevelColumn) {
+    if (isResourceFacet) {
+      /*
+       * Virtual facet — group primaryEntityId values whose row carries the
+       * matching ServiceType discriminator (Host / DockerHost /
+       * KubernetesCluster).
+       */
+      statement.append(
+        SQL`SELECT toString(primaryEntityId) AS val, count() AS cnt FROM ${ExceptionAggregationService.TABLE_NAME}`,
+      );
+    } else if (isTopLevelColumn) {
       statement.append(
         SQL`SELECT toString(${request.facetKey}) AS val, count() AS cnt FROM ${ExceptionAggregationService.TABLE_NAME}`,
       );
     } else {
       statement.append(
-        SQL`SELECT JSONExtractRaw(attributes, ${{
+        SQL`SELECT attributes[${{
           type: TableColumnType.Text,
           value: request.facetKey,
-        }}) AS val, count() AS cnt FROM ${ExceptionAggregationService.TABLE_NAME}`,
+        }}] AS val, count() AS cnt FROM ${ExceptionAggregationService.TABLE_NAME}`,
       );
     }
 
@@ -200,14 +250,35 @@ export class ExceptionAggregationService {
       }}`,
     );
 
-    if (!isTopLevelColumn) {
+    if (isResourceFacet) {
       statement.append(
-        SQL` AND JSONHas(attributes, ${{
+        SQL` AND primaryEntityType = ${{
+          type: TableColumnType.Text,
+          value: resourceServiceType as string,
+        }}`,
+      );
+    } else if (request.facetKey === "primaryEntityId") {
+      /*
+       * Constrain the canonical Services facet to rows that actually
+       * belong to a Service. NULL / empty primaryEntityType covers legacy
+       * rows ingested before the discriminator existed.
+       */
+      statement.append(
+        SQL` AND (primaryEntityType = '' OR primaryEntityType = ${{
+          type: TableColumnType.Text,
+          value: ServiceType.OpenTelemetry as string,
+        }})`,
+      );
+    } else if (!isTopLevelColumn) {
+      statement.append(
+        SQL` AND mapContains(attributes, ${{
           type: TableColumnType.Text,
           value: request.facetKey,
-        }}) = 1`,
+        }})`,
       );
     }
+
+    statement.append(" AND retentionDate >= now()");
 
     ExceptionAggregationService.appendCommonFilters(statement, request);
 
@@ -223,7 +294,10 @@ export class ExceptionAggregationService {
      * 60s proxy_read_timeout so a slow facet never starves the endpoint.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     return statement;
@@ -235,7 +309,7 @@ export class ExceptionAggregationService {
   ): void {
     if (request.serviceIds && request.serviceIds.length > 0) {
       statement.append(
-        SQL` AND serviceId IN (${{
+        SQL` AND primaryEntityId IN (${{
           type: TableColumnType.ObjectID,
           value: new Includes(
             request.serviceIds.map((id: ObjectID) => {
@@ -322,7 +396,10 @@ export class ExceptionAggregationService {
       throw new BadDataException("Invalid facetKey");
     }
 
-    if (ExceptionAggregationService.isTopLevelColumn(facetKey)) {
+    if (
+      ExceptionAggregationService.isTopLevelColumn(facetKey) ||
+      ExceptionAggregationService.RESOURCE_FACET_KEYS.has(facetKey)
+    ) {
       return;
     }
 

@@ -1,7 +1,10 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import DashboardKubernetesNodeListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesNodeListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
-import { ResourceListColumn } from "./DashboardResourceListBase";
+import {
+  ResourceListColumn,
+  ResourceListViewMode,
+} from "./DashboardResourceListBase";
 import DashboardKubernetesResourceListBase from "./DashboardKubernetesResourceListBase";
 import IconProp from "Common/Types/Icon/IconProp";
 import KubernetesResource from "Common/Models/DatabaseModels/KubernetesResource";
@@ -11,6 +14,17 @@ import PageMap from "../../../Utils/PageMap";
 import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import { AttributeToColumnMap } from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
+import { HoneycombTile } from "./DashboardResourceHoneycomb";
+import {
+  buildReadinessTile,
+  READINESS_LEGEND,
+} from "./DashboardKubernetesTileHelpers";
+
+const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
+  "k8s.node.name": "name",
+  "resource.k8s.node.name": "name",
+};
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardKubernetesNodeListComponent;
@@ -106,6 +120,39 @@ function renderNodeRow(r: KubernetesResource): ReactElement {
   );
 }
 
+function buildNodeTile(r: KubernetesResource): HoneycombTile {
+  const id: string = (r._id as string) || "";
+  const clusterId: string = (r.kubernetesClusterId?.toString() as string) || "";
+
+  let route: Route | undefined = undefined;
+  if (clusterId && id) {
+    route = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL] as Route,
+      { modelId: new ObjectID(clusterId), subModelId: new ObjectID(id) },
+    );
+  }
+
+  const pressures: Array<string> = [];
+  if (r.hasMemoryPressure) {
+    pressures.push("Mem");
+  }
+  if (r.hasDiskPressure) {
+    pressures.push("Disk");
+  }
+  if (r.hasPidPressure) {
+    pressures.push("PID");
+  }
+
+  return buildReadinessTile({
+    resource: r,
+    route: route,
+    extraDetails:
+      pressures.length > 0
+        ? [{ label: "Pressure", value: pressures.join(", ") }]
+        : undefined,
+  });
+}
+
 const DashboardKubernetesNodeListComponentElement: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
@@ -120,6 +167,9 @@ const DashboardKubernetesNodeListComponentElement: FunctionComponent<
     extraQuery = { isReady: false };
   }
 
+  const viewMode: ResourceListViewMode =
+    args.viewMode === "honeycomb" ? "honeycomb" : "list";
+
   return (
     <DashboardKubernetesResourceListBase
       title={args.title}
@@ -132,7 +182,12 @@ const DashboardKubernetesNodeListComponentElement: FunctionComponent<
       kubernetesClusterIds={args.kubernetesClusterIds}
       extraQuery={extraQuery}
       refreshTick={props.refreshTick}
+      variables={props.variables}
+      attributeToColumn={ATTRIBUTE_TO_COLUMN}
       renderRow={renderNodeRow}
+      viewMode={viewMode}
+      renderHoneycombTile={buildNodeTile}
+      honeycombLegend={READINESS_LEGEND}
     />
   );
 };
@@ -149,10 +204,13 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     return false;
   }
 
-  return JSONFunctions.deepEqual(
-    prev.component.arguments,
-    next.component.arguments,
-  );
+  if (
+    !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(prev.variables, next.variables);
 }
 
 export default React.memo(

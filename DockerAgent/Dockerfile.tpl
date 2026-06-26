@@ -11,15 +11,11 @@
 #   - DOCKER_HOST_NAME (optional) (friendly host name, defaults to docker-host)
 #
 
-FROM otel/opentelemetry-collector-contrib:0.118.0
+FROM otel/opentelemetry-collector-contrib:0.154.0
 
-ARG GIT_SHA
-ARG APP_VERSION
-ARG IS_ENTERPRISE_EDITION=false
-
-ENV GIT_SHA=${GIT_SHA}
-ENV APP_VERSION=${APP_VERSION}
-ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
+# Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
+# the bottom so the COPY layer stays cacheable across the community + enterprise
+# build passes.
 
 LABEL org.opencontainers.image.title="OneUptime Docker Agent"
 LABEL org.opencontainers.image.description="Pre-configured OpenTelemetry Collector for monitoring Docker hosts and containers with OneUptime."
@@ -28,8 +24,6 @@ LABEL org.opencontainers.image.url="https://oneuptime.com"
 LABEL org.opencontainers.image.documentation="https://oneuptime.com/docs"
 LABEL org.opencontainers.image.vendor="OneUptime"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
-LABEL org.opencontainers.image.revision="${GIT_SHA}"
-LABEL org.opencontainers.image.version="${APP_VERSION}"
 
 # Bake the pre-tuned collector config into the image. The config uses
 # env-var substitution (${ONEUPTIME_URL}, ${ONEUPTIME_SERVICE_TOKEN},
@@ -46,6 +40,17 @@ ENV DOCKER_HOST_NAME=docker-host
 # configuration. The base image defaults to a non-root user (10001) which
 # does not have access to either resource on most hosts.
 USER 0:0
+
+# Per-build metadata last so the COPY layer above stays cacheable across the
+# community + enterprise build passes.
+ARG GIT_SHA
+ARG APP_VERSION
+ARG IS_ENTERPRISE_EDITION=false
+ENV GIT_SHA=${GIT_SHA}
+ENV APP_VERSION=${APP_VERSION}
+ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
+LABEL org.opencontainers.image.revision="${GIT_SHA}"
+LABEL org.opencontainers.image.version="${APP_VERSION}"
 
 # The base image already sets ENTRYPOINT to the collector binary with
 # --config=/etc/otelcol-contrib/config.yaml, so nothing else is needed.

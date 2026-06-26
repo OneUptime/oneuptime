@@ -5,6 +5,7 @@ import APIRequestCriteria from "./Criteria/APIRequestCriteria";
 import CustomCodeMonitoringCriteria from "./Criteria/CustomCodeMonitorCriteria";
 import IncomingEmailCriteria from "./Criteria/IncomingEmailCriteria";
 import IncomingRequestCriteria from "./Criteria/IncomingRequestCriteria";
+import IncomingRequestIncidentGrouping from "./IncomingRequestIncidentGrouping";
 import SSLMonitorCriteria from "./Criteria/SSLMonitorCriteria";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
 import SyntheticMonitoringCriteria from "./Criteria/SyntheticMonitor";
@@ -18,6 +19,7 @@ import ProfileMonitorCriteria from "./Criteria/ProfileMonitorCriteria";
 import SnmpMonitorCriteria from "./Criteria/SnmpMonitorCriteria";
 import DnsMonitorCriteria from "./Criteria/DnsMonitorCriteria";
 import DomainMonitorCriteria from "./Criteria/DomainMonitorCriteria";
+import DnssecMonitorCriteria from "./Criteria/DnssecMonitorCriteria";
 import ExternalStatusPageMonitorCriteria from "./Criteria/ExternalStatusPageMonitorCriteria";
 import MonitorCriteriaMessageBuilder from "./MonitorCriteriaMessageBuilder";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
@@ -53,6 +55,12 @@ import { DashboardClientUrl } from "../../EnvironmentConfig";
 import MetricMonitorResponse, {
   KubernetesAffectedResource,
   KubernetesResourceBreakdown,
+  ProxmoxAffectedResource,
+  ProxmoxResourceBreakdown,
+  CephAffectedResource,
+  CephResourceBreakdown,
+  DockerSwarmAffectedResource,
+  DockerSwarmResourceBreakdown,
 } from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MetricSeriesResult from "../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
 import MetricCriteriaContext, {
@@ -61,6 +69,11 @@ import MetricCriteriaContext, {
   MetricComponentValue,
 } from "../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
 import MonitorStepDockerMonitor from "../../../Types/Monitor/MonitorStepDockerMonitor";
+import MonitorStepHostMonitor from "../../../Types/Monitor/MonitorStepHostMonitor";
+import MonitorStepPodmanMonitor from "../../../Types/Monitor/MonitorStepPodmanMonitor";
+import MonitorStepProxmoxMonitor from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
+import MonitorStepCephMonitor from "../../../Types/Monitor/MonitorStepCephMonitor";
+import MonitorStepDockerSwarmMonitor from "../../../Types/Monitor/MonitorStepDockerSwarmMonitor";
 
 export default class MonitorCriteriaEvaluator {
   public static async processMonitorStep(input: {
@@ -194,7 +207,7 @@ ${contextBlock}
          * still see a usable response if perSeriesMatches is ignored.
          */
         const perSeriesMatches: Array<PerSeriesCriteriaMatch> =
-          MonitorCriteriaEvaluator.collectPerSeriesMatches({
+          await MonitorCriteriaEvaluator.collectPerSeriesMatches({
             dataToProcess: input.dataToProcess,
             monitor: input.monitor,
             monitorStep: input.monitorStep,
@@ -203,6 +216,17 @@ ${contextBlock}
 
         if (perSeriesMatches.length > 0) {
           input.probeApiIngestResponse.perSeriesMatches = perSeriesMatches;
+        } else if (
+          input.monitor.monitorType === MonitorType.IncomingRequest &&
+          IncomingRequestIncidentGrouping.isGroupingConfigured(criteriaInstance)
+        ) {
+          /*
+           * Grouped incoming-request criteria that produced no firing key
+           * (e.g. a pure "resolved" webhook). Force per-series mode with an
+           * empty set so the create path does NOT fall back to opening a
+           * single whole-monitor incident.
+           */
+          input.probeApiIngestResponse.perSeriesMatches = [];
         }
 
         break;
@@ -213,23 +237,43 @@ ${contextBlock}
   }
 
   /**
-   * For metric-backed monitors (Metrics/Kubernetes/Docker) with
-   * per-series aggregated results, re-evaluate the matched criteria
+   * For metric-backed monitors (Metrics/Kubernetes/Docker/Proxmox/Ceph)
+   * with per-series aggregated results, re-evaluate the matched criteria
    * once per series and return one entry per series that breached.
    * Returns an empty array when the monitor is not series-aware or
    * no series matched — the caller falls back to the single-incident
    * path in that case.
    */
-  private static collectPerSeriesMatches(input: {
+  private static async collectPerSeriesMatches(input: {
     dataToProcess: DataToProcess;
     monitor: Monitor;
     monitorStep: MonitorStep;
     criteriaInstance: MonitorCriteriaInstance;
-  }): Array<PerSeriesCriteriaMatch> {
+  }): Promise<Array<PerSeriesCriteriaMatch>> {
+    /*
+     * Incoming Request / webhook monitors fan out per payload-derived key
+     * (e.g. one incident per Grafana alert name) when incidentGrouping is
+     * configured. No-op (returns []) when grouping is not configured, so
+     * existing incoming-request monitors keep their single-incident
+     * behaviour.
+     */
+    if (input.monitor.monitorType === MonitorType.IncomingRequest) {
+      return IncomingRequestIncidentGrouping.collectFiringMatches({
+        dataToProcess: input.dataToProcess,
+        criteriaInstance: input.criteriaInstance,
+      });
+    }
+
     if (
       input.monitor.monitorType !== MonitorType.Metrics &&
       input.monitor.monitorType !== MonitorType.Kubernetes &&
-      input.monitor.monitorType !== MonitorType.Docker
+      input.monitor.monitorType !== MonitorType.Docker &&
+      input.monitor.monitorType !== MonitorType.Host &&
+      input.monitor.monitorType !== MonitorType.Podman &&
+      input.monitor.monitorType !== MonitorType.DockerSwarm &&
+      input.monitor.monitorType !== MonitorType.Proxmox &&
+      input.monitor.monitorType !== MonitorType.Ceph &&
+      input.monitor.monitorType !== MonitorType.IoTDevice
     ) {
       return [];
     }
@@ -284,7 +328,7 @@ ${contextBlock}
 
     for (const criteriaFilter of metricFilters) {
       const evaluations: Array<MetricSeriesEvaluationResult> =
-        MetricMonitorCriteria.evaluateAllSeries({
+        await MetricMonitorCriteria.evaluateAllSeries({
           dataToProcess: input.dataToProcess,
           criteriaFilter,
           monitorStep: input.monitorStep,
@@ -675,7 +719,13 @@ ${contextBlock}
     if (
       input.monitor.monitorType === MonitorType.Metrics ||
       input.monitor.monitorType === MonitorType.Kubernetes ||
-      input.monitor.monitorType === MonitorType.Docker
+      input.monitor.monitorType === MonitorType.Docker ||
+      input.monitor.monitorType === MonitorType.Host ||
+      input.monitor.monitorType === MonitorType.Podman ||
+      input.monitor.monitorType === MonitorType.DockerSwarm ||
+      input.monitor.monitorType === MonitorType.Proxmox ||
+      input.monitor.monitorType === MonitorType.Ceph ||
+      input.monitor.monitorType === MonitorType.IoTDevice
     ) {
       const metricMonitorResult: string | null =
         await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
@@ -761,6 +811,18 @@ ${contextBlock}
       }
     }
 
+    if (input.monitor.monitorType === MonitorType.DNSSEC) {
+      const dnssecMonitorResult: string | null =
+        await DnssecMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (dnssecMonitorResult) {
+        return dnssecMonitorResult;
+      }
+    }
+
     if (input.monitor.monitorType === MonitorType.ExternalStatusPage) {
       const externalStatusPageResult: string | null =
         await ExternalStatusPageMonitorCriteria.isMonitorInstanceCriteriaFilterMet(
@@ -794,6 +856,31 @@ ${contextBlock}
     // Handle Docker monitors with resource context
     if (input.monitor.monitorType === MonitorType.Docker) {
       return MonitorCriteriaEvaluator.buildDockerRootCauseContext(input);
+    }
+
+    // Handle Host monitors with resource context
+    if (input.monitor.monitorType === MonitorType.Host) {
+      return MonitorCriteriaEvaluator.buildHostRootCauseContext(input);
+    }
+
+    // Handle Podman monitors with resource context
+    if (input.monitor.monitorType === MonitorType.Podman) {
+      return MonitorCriteriaEvaluator.buildPodmanRootCauseContext(input);
+    }
+
+    // Handle Proxmox monitors with resource context
+    if (input.monitor.monitorType === MonitorType.Proxmox) {
+      return MonitorCriteriaEvaluator.buildProxmoxRootCauseContext(input);
+    }
+
+    // Handle Docker Swarm monitors with resource context
+    if (input.monitor.monitorType === MonitorType.DockerSwarm) {
+      return MonitorCriteriaEvaluator.buildDockerSwarmRootCauseContext(input);
+    }
+
+    // Handle Ceph monitors with resource context
+    if (input.monitor.monitorType === MonitorType.Ceph) {
+      return MonitorCriteriaEvaluator.buildCephRootCauseContext(input);
     }
 
     // Handle generic Metric monitors with metric identity + breaching series
@@ -1542,6 +1629,606 @@ ${contextBlock}
 
     // Metric results summary
     if (metricResponse.metricResult && metricResponse.metricResult.length > 0) {
+      const resultDetails: Array<string> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            `- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      }
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  private static buildHostRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const sections: Array<string> = [];
+
+    // Host context
+    const hostMonitor: MonitorStepHostMonitor | undefined =
+      input.monitorStep.data?.hostMonitor;
+
+    if (hostMonitor) {
+      const hostDetails: Array<string> = [];
+      hostDetails.push(`- Host: ${hostMonitor.hostIdentifier || "Unknown"}`);
+
+      // Add metric name from the query config
+      if (
+        hostMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
+        hostMonitor.metricViewConfig.queryConfigs[0]
+      ) {
+        const metricName: string = hostMonitor.metricViewConfig.queryConfigs[0]
+          .metricQueryData?.filterData?.metricName as string;
+        if (metricName) {
+          hostDetails.push(`- Metric: \`${metricName}\``);
+        }
+      }
+
+      sections.push(`**Host Details**\n${hostDetails.join("\n")}`);
+    }
+
+    // Metric results summary
+    if (metricResponse.metricResult && metricResponse.metricResult.length > 0) {
+      const resultDetails: Array<string> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            `- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      }
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  private static buildPodmanRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const sections: Array<string> = [];
+
+    // Podman host context
+    const podmanMonitor: MonitorStepPodmanMonitor | undefined =
+      input.monitorStep.data?.podmanMonitor;
+
+    if (podmanMonitor) {
+      const hostDetails: Array<string> = [];
+      hostDetails.push(`- Host: ${podmanMonitor.hostIdentifier || "Unknown"}`);
+
+      if (podmanMonitor.containerFilters?.containerName) {
+        hostDetails.push(
+          `- Container Name Filter: ${podmanMonitor.containerFilters.containerName}`,
+        );
+      }
+
+      if (podmanMonitor.containerFilters?.containerImage) {
+        hostDetails.push(
+          `- Container Image Filter: ${podmanMonitor.containerFilters.containerImage}`,
+        );
+      }
+
+      // Add metric name from the query config
+      if (
+        podmanMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
+        podmanMonitor.metricViewConfig.queryConfigs[0]
+      ) {
+        const metricName: string = podmanMonitor.metricViewConfig
+          .queryConfigs[0].metricQueryData?.filterData?.metricName as string;
+        if (metricName) {
+          hostDetails.push(`- Metric: \`${metricName}\``);
+        }
+      }
+
+      sections.push(`**Podman Host Details**\n${hostDetails.join("\n")}`);
+    }
+
+    // Metric results summary
+    if (metricResponse.metricResult && metricResponse.metricResult.length > 0) {
+      const resultDetails: Array<string> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            `- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      }
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  private static buildProxmoxRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const breakdown: ProxmoxResourceBreakdown | undefined =
+      metricResponse.proxmoxResourceBreakdown;
+
+    const sections: Array<string> = [];
+
+    // Proxmox cluster context
+    const proxmoxMonitor: MonitorStepProxmoxMonitor | undefined =
+      input.monitorStep.data?.proxmoxMonitor;
+
+    if (proxmoxMonitor || breakdown) {
+      const clusterDetails: Array<string> = [];
+      clusterDetails.push(
+        `- Cluster: ${breakdown?.clusterName || proxmoxMonitor?.clusterIdentifier || "Unknown"}`,
+      );
+
+      if (breakdown) {
+        clusterDetails.push(
+          `- Metric: ${breakdown.metricFriendlyName} (\`${breakdown.metricName}\`)`,
+        );
+      } else if (
+        proxmoxMonitor &&
+        proxmoxMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
+        proxmoxMonitor.metricViewConfig.queryConfigs[0]
+      ) {
+        const metricName: string = proxmoxMonitor.metricViewConfig
+          .queryConfigs[0].metricQueryData?.filterData?.metricName as string;
+        if (metricName) {
+          clusterDetails.push(`- Metric: \`${metricName}\``);
+        }
+      }
+
+      if (proxmoxMonitor?.resourceFilters?.scope) {
+        clusterDetails.push(
+          `- Scope Filter: ${proxmoxMonitor.resourceFilters.scope}`,
+        );
+      }
+
+      if (proxmoxMonitor?.resourceFilters?.pveId) {
+        clusterDetails.push(
+          `- Resource ID Filter: ${proxmoxMonitor.resourceFilters.pveId}`,
+        );
+      }
+
+      if (proxmoxMonitor?.resourceFilters?.nodeName) {
+        clusterDetails.push(
+          `- Node Filter: ${proxmoxMonitor.resourceFilters.nodeName}`,
+        );
+      }
+
+      if (proxmoxMonitor?.resourceFilters?.guestId) {
+        clusterDetails.push(
+          `- Guest ID Filter: ${proxmoxMonitor.resourceFilters.guestId}`,
+        );
+      }
+
+      sections.push(
+        `**Proxmox Cluster Details**\n${clusterDetails.join("\n")}`,
+      );
+    }
+
+    // Affected resources (Resource / Type / Node / Value)
+    let renderedBreakdownTable: boolean = false;
+
+    if (breakdown && breakdown.affectedResources.length > 0) {
+      /*
+       * K8s-parity render: drop zero-value rows, worst (highest)
+       * first, top 10. Note that for availability metrics (pve_up)
+       * zero-valued rows ARE the down resources — those still drive
+       * alerting through the per-series criteria evaluation; this
+       * table is supplementary context only.
+       */
+      const sortedResources: Array<ProxmoxAffectedResource> = [
+        ...breakdown.affectedResources,
+      ]
+        .filter((r: ProxmoxAffectedResource) => {
+          return r.metricValue > 0;
+        })
+        .sort((a: ProxmoxAffectedResource, b: ProxmoxAffectedResource) => {
+          return b.metricValue - a.metricValue;
+        });
+
+      /*
+       * Skip the table when no row carries any identity label
+       * (cluster-wide series) — it would add nothing.
+       */
+      const hasIdentity: boolean = sortedResources.some(
+        (r: ProxmoxAffectedResource) => {
+          return r.resourceId || r.resourceName || r.nodeName;
+        },
+      );
+
+      if (sortedResources.length > 0 && hasIdentity) {
+        const resourcesToShow: Array<ProxmoxAffectedResource> =
+          sortedResources.slice(0, 10);
+
+        const resourceLines: Array<string> = [];
+        resourceLines.push(`| Resource | Type | Node | Value |`);
+        resourceLines.push(`| --- | --- | --- | --- |`);
+
+        for (const resource of resourcesToShow) {
+          let resourceCell: string = "-";
+          if (resource.resourceName && resource.resourceId) {
+            resourceCell = `\`${resource.resourceName}\` (\`${resource.resourceId}\`)`;
+          } else if (resource.resourceId) {
+            resourceCell = `\`${resource.resourceId}\``;
+          } else if (resource.resourceName) {
+            resourceCell = `\`${resource.resourceName}\``;
+          }
+
+          const typeCell: string =
+            resource.resourceType || resource.scope || "-";
+          const nodeCell: string = resource.nodeName
+            ? `\`${resource.nodeName}\``
+            : "-";
+
+          resourceLines.push(
+            `| ${resourceCell} | ${typeCell} | ${nodeCell} | **${resource.metricValue}** |`,
+          );
+        }
+
+        if (sortedResources.length > 10) {
+          resourceLines.push(
+            `\n*... and ${sortedResources.length - 10} more affected resources*`,
+          );
+        }
+
+        sections.push(
+          `\n\n**Affected Resources** (${sortedResources.length} total)\n\n${resourceLines.join("\n")}`,
+        );
+        renderedBreakdownTable = true;
+      }
+    }
+
+    // Metric results summary (fallback context when no table rendered)
+    if (
+      !renderedBreakdownTable &&
+      metricResponse.metricResult &&
+      metricResponse.metricResult.length > 0
+    ) {
+      const resultDetails: Array<string> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            `- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      }
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  private static buildDockerSwarmRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const breakdown: DockerSwarmResourceBreakdown | undefined =
+      metricResponse.dockerSwarmResourceBreakdown;
+
+    const sections: Array<string> = [];
+
+    // Docker Swarm cluster context
+    const dockerSwarmMonitor: MonitorStepDockerSwarmMonitor | undefined =
+      input.monitorStep.data?.dockerSwarmMonitor;
+
+    if (dockerSwarmMonitor || breakdown) {
+      const clusterDetails: Array<string> = [];
+      clusterDetails.push(
+        `- Cluster: ${breakdown?.clusterName || dockerSwarmMonitor?.clusterIdentifier || "Unknown"}`,
+      );
+
+      if (breakdown) {
+        clusterDetails.push(
+          `- Metric: ${breakdown.metricFriendlyName} (\`${breakdown.metricName}\`)`,
+        );
+      } else if (
+        dockerSwarmMonitor &&
+        dockerSwarmMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
+        dockerSwarmMonitor.metricViewConfig.queryConfigs[0]
+      ) {
+        const metricName: string = dockerSwarmMonitor.metricViewConfig
+          .queryConfigs[0].metricQueryData?.filterData?.metricName as string;
+        if (metricName) {
+          clusterDetails.push(`- Metric: \`${metricName}\``);
+        }
+      }
+
+      if (dockerSwarmMonitor?.resourceFilters?.serviceName) {
+        clusterDetails.push(
+          `- Service Filter: ${dockerSwarmMonitor.resourceFilters.serviceName}`,
+        );
+      }
+
+      if (dockerSwarmMonitor?.resourceFilters?.nodeName) {
+        clusterDetails.push(
+          `- Node Filter: ${dockerSwarmMonitor.resourceFilters.nodeName}`,
+        );
+      }
+
+      if (dockerSwarmMonitor?.resourceFilters?.containerName) {
+        clusterDetails.push(
+          `- Container Name Filter: ${dockerSwarmMonitor.resourceFilters.containerName}`,
+        );
+      }
+
+      if (dockerSwarmMonitor?.resourceFilters?.containerImage) {
+        clusterDetails.push(
+          `- Container Image Filter: ${dockerSwarmMonitor.resourceFilters.containerImage}`,
+        );
+      }
+
+      sections.push(
+        `**Docker Swarm Cluster Details**\n${clusterDetails.join("\n")}`,
+      );
+    }
+
+    // Affected resources (Task / Service / Node / Value)
+    let renderedBreakdownTable: boolean = false;
+
+    if (breakdown && breakdown.affectedResources.length > 0) {
+      /*
+       * K8s/Proxmox-parity render: drop zero-value rows, worst (highest)
+       * first, top 10. For the task-down template the breaching rows ARE
+       * the zero-uptime ones — those still drive alerting through the
+       * per-series criteria evaluation; this table is supplementary
+       * context only.
+       */
+      const sortedResources: Array<DockerSwarmAffectedResource> = [
+        ...breakdown.affectedResources,
+      ]
+        .filter((r: DockerSwarmAffectedResource) => {
+          return r.metricValue > 0;
+        })
+        .sort(
+          (a: DockerSwarmAffectedResource, b: DockerSwarmAffectedResource) => {
+            return b.metricValue - a.metricValue;
+          },
+        );
+
+      /*
+       * Skip the table when no row carries any identity label
+       * (cluster-wide series) — it would add nothing.
+       */
+      const hasIdentity: boolean = sortedResources.some(
+        (r: DockerSwarmAffectedResource) => {
+          return r.containerName || r.serviceName || r.nodeName;
+        },
+      );
+
+      if (sortedResources.length > 0 && hasIdentity) {
+        const resourcesToShow: Array<DockerSwarmAffectedResource> =
+          sortedResources.slice(0, 10);
+
+        const resourceLines: Array<string> = [];
+        resourceLines.push(`| Task / Container | Service | Node | Value |`);
+        resourceLines.push(`| --- | --- | --- | --- |`);
+
+        for (const resource of resourcesToShow) {
+          const taskCell: string = resource.containerName
+            ? `\`${resource.containerName}\``
+            : "-";
+          const serviceCell: string = resource.serviceName
+            ? `\`${resource.serviceName}\``
+            : "-";
+          const nodeCell: string = resource.nodeName
+            ? `\`${resource.nodeName}\``
+            : "-";
+
+          resourceLines.push(
+            `| ${taskCell} | ${serviceCell} | ${nodeCell} | **${resource.metricValue}** |`,
+          );
+        }
+
+        if (sortedResources.length > 10) {
+          resourceLines.push(
+            `\n*... and ${sortedResources.length - 10} more affected tasks*`,
+          );
+        }
+
+        sections.push(
+          `\n\n**Affected Tasks** (${sortedResources.length} total)\n\n${resourceLines.join("\n")}`,
+        );
+        renderedBreakdownTable = true;
+      }
+    }
+
+    // Metric results summary (fallback context when no table rendered)
+    if (
+      !renderedBreakdownTable &&
+      metricResponse.metricResult &&
+      metricResponse.metricResult.length > 0
+    ) {
+      const resultDetails: Array<string> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            `- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      }
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  private static buildCephRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const breakdown: CephResourceBreakdown | undefined =
+      metricResponse.cephResourceBreakdown;
+
+    const sections: Array<string> = [];
+
+    // Ceph cluster context
+    const cephMonitor: MonitorStepCephMonitor | undefined =
+      input.monitorStep.data?.cephMonitor;
+
+    if (cephMonitor || breakdown) {
+      const clusterDetails: Array<string> = [];
+      clusterDetails.push(
+        `- Cluster: ${breakdown?.clusterName || cephMonitor?.clusterIdentifier || "Unknown"}`,
+      );
+
+      if (breakdown) {
+        clusterDetails.push(
+          `- Metric: ${breakdown.metricFriendlyName} (\`${breakdown.metricName}\`)`,
+        );
+      } else if (
+        cephMonitor &&
+        cephMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
+        cephMonitor.metricViewConfig.queryConfigs[0]
+      ) {
+        const metricName: string = cephMonitor.metricViewConfig.queryConfigs[0]
+          .metricQueryData?.filterData?.metricName as string;
+        if (metricName) {
+          clusterDetails.push(`- Metric: \`${metricName}\``);
+        }
+      }
+
+      if (cephMonitor?.resourceFilters?.osdId) {
+        clusterDetails.push(
+          `- OSD Filter: ${cephMonitor.resourceFilters.osdId}`,
+        );
+      }
+
+      if (cephMonitor?.resourceFilters?.poolId) {
+        clusterDetails.push(
+          `- Pool ID Filter: ${cephMonitor.resourceFilters.poolId}`,
+        );
+      }
+
+      sections.push(`**Ceph Cluster Details**\n${clusterDetails.join("\n")}`);
+    }
+
+    // Affected resources (Daemon / Pool / Host / Value)
+    let renderedBreakdownTable: boolean = false;
+
+    if (breakdown && breakdown.affectedResources.length > 0) {
+      /*
+       * K8s-parity render: drop zero-value rows, worst (highest)
+       * first, top 10. Note that for availability metrics
+       * (ceph_osd_up / ceph_osd_in / ceph_mon_quorum_status)
+       * zero-valued rows ARE the down resources — those still drive
+       * alerting through the per-series criteria evaluation; this
+       * table is supplementary context only.
+       */
+      const sortedResources: Array<CephAffectedResource> = [
+        ...breakdown.affectedResources,
+      ]
+        .filter((r: CephAffectedResource) => {
+          return r.metricValue > 0;
+        })
+        .sort((a: CephAffectedResource, b: CephAffectedResource) => {
+          return b.metricValue - a.metricValue;
+        });
+
+      /*
+       * Skip the table when no row carries any identity label
+       * (cluster-wide series like ceph_health_status) — it would add
+       * nothing.
+       */
+      const hasIdentity: boolean = sortedResources.some(
+        (r: CephAffectedResource) => {
+          return r.daemon || r.poolId || r.poolName || r.hostname;
+        },
+      );
+
+      if (sortedResources.length > 0 && hasIdentity) {
+        const resourcesToShow: Array<CephAffectedResource> =
+          sortedResources.slice(0, 10);
+
+        const resourceLines: Array<string> = [];
+        resourceLines.push(`| Daemon | Pool | Host | Value |`);
+        resourceLines.push(`| --- | --- | --- | --- |`);
+
+        for (const resource of resourcesToShow) {
+          const daemonCell: string = resource.daemon
+            ? `\`${resource.daemon}\``
+            : "-";
+
+          let poolCell: string = "-";
+          if (resource.poolName && resource.poolId) {
+            poolCell = `\`${resource.poolName}\` (\`${resource.poolId}\`)`;
+          } else if (resource.poolName) {
+            poolCell = `\`${resource.poolName}\``;
+          } else if (resource.poolId) {
+            poolCell = `\`${resource.poolId}\``;
+          }
+
+          const hostCell: string = resource.hostname
+            ? `\`${resource.hostname}\``
+            : "-";
+
+          resourceLines.push(
+            `| ${daemonCell} | ${poolCell} | ${hostCell} | **${resource.metricValue}** |`,
+          );
+        }
+
+        if (sortedResources.length > 10) {
+          resourceLines.push(
+            `\n*... and ${sortedResources.length - 10} more affected resources*`,
+          );
+        }
+
+        sections.push(
+          `\n\n**Affected Resources** (${sortedResources.length} total)\n\n${resourceLines.join("\n")}`,
+        );
+        renderedBreakdownTable = true;
+      }
+    }
+
+    // Metric results summary (fallback context when no table rendered)
+    if (
+      !renderedBreakdownTable &&
+      metricResponse.metricResult &&
+      metricResponse.metricResult.length > 0
+    ) {
       const resultDetails: Array<string> = [];
 
       for (const result of metricResponse.metricResult) {

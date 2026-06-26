@@ -1,4 +1,7 @@
 {
+  "a11y": {
+    "skipToMainContent": "メインコンテンツにスキップ"
+  },
   "common": {
     "save": "保存",
     "cancel": "キャンセル",
@@ -128,8 +131,8 @@
       "description": "すべてのアップデートはこのSlack Webhookに送信されます。",
       "workspaceName": "Slackワークスペース名",
       "workspaceNameDescription": "検証のためSlackワークスペース名を入力してください。",
-      "workspaceNamePlaceholder": "my-company-workspace",
-      "webhookUrl": "Slack Incoming Webhook URL",
+      "workspaceNamePlaceholder": "私の会社のワークスペース",
+      "webhookUrl": "Slack 受信 Webhook URL",
       "webhookUrlDescription": "ステータスページの更新はこのSlack Webhookに送信されます。",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "managePrompt": "購読時に使用したSlackワークスペース名を入力してください",
@@ -140,12 +143,19 @@
       "description": "すべてのアップデートはこのTeams Webhookに送信されます。",
       "workspaceName": "Microsoft Teamsワークスペース名",
       "workspaceNameDescription": "検証のためMicrosoft Teamsワークスペース名を入力してください。",
-      "workspaceNamePlaceholder": "my-company-workspace",
-      "webhookUrl": "Microsoft Teams Incoming Webhook URL",
+      "workspaceNamePlaceholder": "私の会社のワークスペース",
+      "webhookUrl": "Microsoft Teams 受信 Webhook URL",
       "webhookUrlDescription": "ステータスページの更新はこのTeams Webhookに送信されます。",
       "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
       "managePrompt": "購読時に使用したMicrosoft Teamsワークスペース名を入力してください",
       "manageDescription": "購読管理リンクをこのワークスペースに送信します。"
+    },
+    "webhook": {
+      "title": "Webhookで購読",
+      "description": "すべての更新はJSON POSTリクエストとしてこのWebhook URLに送信されます。",
+      "webhookUrl": "Webhook URL",
+      "webhookUrlDescription": "ステータスページのイベントが発生するたびに、このURLにJSON POSTリクエストが送信されます。",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
     },
     "resources": {
       "all": "すべてのリソースを購読する",
@@ -163,6 +173,7 @@
       "title": "購読を更新",
       "description": "ここで購読設定を更新または解除できます。",
       "saved": "変更が保存されました。",
+      "submit": "購読を更新",
       "unsubscribe": "購読解除",
       "unsubscribeDescription": "すべてのリソースの購読を解除したい場合は、これを選択してください。"
     },
@@ -228,7 +239,7 @@
     "generic": "問題が発生しました。もう一度お試しください。"
   },
   "footer": {
-    "poweredBy": "Powered by OneUptime"
+    "poweredBy": "OneUptime によって提供"
   },
   "statusNames": {
     "identified": "確認済み",
@@ -244,5 +255,19 @@
     "ongoing": "進行中",
     "ended": "終了",
     "completed": "完了"
-  }
+  },
+  "Subscriber ID is required": "購読者 ID は必須です",
+  "Token is required": "トークンは必須です",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}}は{{minLength}}文字以上で入力してください。",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}}は{{maxLength}}文字以下で入力してください。",
+  "{{field}} should not have spaces.": "{{field}}にスペースを含めることはできません。",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}}には英字、数字、ハイフン (-)、アンダースコア (_) のみ使用できます。",
+  "{{field}} should not have numbers.": "{{field}}に数字を含めることはできません。",
+  "{{field}} should be a future date.": "{{field}}は未来の日付を指定してください。",
+  "{{field}} should be a number.": "{{field}}は数値を入力してください。",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}}は{{maxValue}}以下で入力してください。",
+  "{{field}} should not be less than {{minValue}}.": "{{field}}は{{minValue}}以上で入力してください。",
+  "{{field}} is required.": "{{field}}は必須です。",
+  "{{field}} should match {{matchField}}": "{{field}}は{{matchField}}と一致する必要があります",
+  "Email is not valid.": "メールアドレスが無効です。"
 }

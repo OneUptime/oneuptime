@@ -1,4 +1,7 @@
 {
+  "a11y": {
+    "skipToMainContent": "Hoppa till huvudinnehåll"
+  },
   "common": {
     "save": "Spara",
     "cancel": "Avbryt",
@@ -129,7 +132,7 @@
       "workspaceName": "Slack-arbetsytans namn",
       "workspaceNameDescription": "Ange namnet på din Slack-arbetsyta för validering.",
       "workspaceNamePlaceholder": "mitt-foretag-arbetsyta",
-      "webhookUrl": "Slack Incoming Webhook URL",
+      "webhookUrl": "URL för inkommande webhook i Slack",
       "webhookUrlDescription": "Uppdateringar från statussidan skickas till den här Slack-webhooken.",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "managePrompt": "Ange namnet på den Slack-arbetsyta du prenumererar med",
@@ -141,11 +144,18 @@
       "workspaceName": "Microsoft Teams-arbetsytans namn",
       "workspaceNameDescription": "Ange namnet på din Microsoft Teams-arbetsyta för validering.",
       "workspaceNamePlaceholder": "mitt-foretag-arbetsyta",
-      "webhookUrl": "Microsoft Teams Incoming Webhook URL",
+      "webhookUrl": "URL för inkommande webhook i Microsoft Teams",
       "webhookUrlDescription": "Uppdateringar från statussidan skickas till den här Teams-webhooken.",
       "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
       "managePrompt": "Ange namnet på den Microsoft Teams-arbetsyta du prenumererar med",
       "manageDescription": "Vi skickar en hanteringslänk till den här arbetsytan."
+    },
+    "webhook": {
+      "title": "Prenumerera via webhook",
+      "description": "Alla våra uppdateringar skickas som JSON POST-förfrågningar till den här webhook-URL:en.",
+      "webhookUrl": "Webhook-URL",
+      "webhookUrlDescription": "En JSON POST-förfrågan skickas till den här URL:en vid varje händelse på statussidan.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
     },
     "resources": {
       "all": "Prenumerera på alla resurser",
@@ -163,6 +173,7 @@
       "title": "Uppdatera prenumeration",
       "description": "Du kan uppdatera dina prenumerationsinställningar eller avsluta prenumerationen här.",
       "saved": "Dina ändringar har sparats.",
+      "submit": "Uppdatera prenumeration",
       "unsubscribe": "Avsluta prenumeration",
       "unsubscribeDescription": "Välj det här om du vill avsluta prenumerationen på alla resurser."
     },
@@ -244,5 +255,19 @@
     "ongoing": "Pågående",
     "ended": "Avslutad",
     "completed": "Slutförd"
-  }
+  },
+  "Subscriber ID is required": "Prenumerant-ID krävs",
+  "Token is required": "Token krävs",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} får inte vara mindre än {{minLength}} tecken.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} får inte vara mer än {{maxLength}} tecken.",
+  "{{field}} should not have spaces.": "{{field}} får inte innehålla mellanslag.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} får endast innehålla bokstäver, siffror, bindestreck (-) och understreck (_).",
+  "{{field}} should not have numbers.": "{{field}} får inte innehålla siffror.",
+  "{{field}} should be a future date.": "{{field}} måste vara ett framtida datum.",
+  "{{field}} should be a number.": "{{field}} måste vara ett tal.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} får inte vara större än {{maxValue}}.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} får inte vara mindre än {{minValue}}.",
+  "{{field}} is required.": "{{field}} är obligatoriskt.",
+  "{{field}} should match {{matchField}}": "{{field}} måste matcha {{matchField}}",
+  "Email is not valid.": "E-postadressen är ogiltig."
 }

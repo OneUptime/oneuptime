@@ -4,8 +4,10 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -24,6 +26,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
+@CanAccessIfCanReadOn("service")
 @TableBillingAccessControl({
   create: PlanType.Free,
   read: PlanType.Free,
@@ -32,6 +35,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/metric-pipeline-rule"))
+@OwnedThrough("serviceId", Service)
 @Entity({
   name: "MetricPipelineRule",
 })
@@ -54,9 +58,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.TelemetryManager,
+    Permission.TelemetryAdmin,
+    Permission.TelemetryMember,
+    Permission.TelemetryViewer,
     Permission.ReadProjectMetricPipelineRule,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -81,9 +86,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -120,9 +126,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -152,9 +159,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -196,9 +204,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -233,9 +242,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -268,9 +278,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -303,9 +314,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -339,9 +351,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -376,9 +389,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -410,9 +424,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -445,9 +460,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -480,9 +496,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -515,9 +532,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -549,9 +567,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -585,9 +604,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -621,9 +641,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -658,9 +679,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -691,9 +713,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -725,9 +748,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -750,9 +774,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -784,9 +809,10 @@ export default class MetricPipelineRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.TelemetryManager,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
       Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

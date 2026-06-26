@@ -18,6 +18,7 @@ export interface ComponentProps {
   selectedProjectName: string;
   onCreateProjectButtonClicked: () => void;
   onProjectSelected: (project: Project) => void;
+  hideCreateProjectButton?: boolean | undefined;
 }
 
 const ProjectPicker: FunctionComponent<ComponentProps> = (
@@ -101,12 +102,16 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
                   <></>
                 )}
               </>
-              <CreateNewProjectButton
-                onCreateButtonClicked={() => {
-                  setIsComponentVisible(false);
-                  props.onCreateProjectButtonClicked();
-                }}
-              />
+              {!props.hideCreateProjectButton ? (
+                <CreateNewProjectButton
+                  onCreateButtonClicked={() => {
+                    setIsComponentVisible(false);
+                    props.onCreateProjectButtonClicked();
+                  }}
+                />
+              ) : (
+                <></>
+              )}
             </ProjectPickerMenu>
           )}
         </div>

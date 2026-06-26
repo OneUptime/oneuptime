@@ -7,210 +7,178 @@ import React, {
 } from "react";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import Service from "Common/Models/DatabaseModels/Service";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import URL from "Common/Types/API/URL";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { APP_API_URL } from "Common/UI/Config";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import ObjectID from "Common/Types/ObjectID";
+import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
-import TelemetryServiceElement from "../TelemetryService/TelemetryServiceElement";
 import TelemetryExceptionElement from "./ExceptionElement";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import AppLink from "../AppLink/AppLink";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
+import ObjectID from "Common/Types/ObjectID";
+import ProjectUtil from "Common/UI/Utils/Project";
+import TelemetryServiceUtil, {
+  UNKNOWN_SERVICE_NAME,
+} from "Common/UI/Utils/TelemetryService";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 interface ServiceExceptionSummary {
-  service: Service;
+  /*
+   * primaryEntityId is polymorphic; the client resolves the display name per
+   * primaryEntityType from the loaded Services.
+   */
+  primaryEntityId: string;
+  primaryEntityType: ServiceType | null;
   unresolvedCount: number;
   totalOccurrences: number;
 }
 
-const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
-  const [unresolvedCount, setUnresolvedCount] = useState<number>(0);
-  const [resolvedCount, setResolvedCount] = useState<number>(0);
-  const [archivedCount, setArchivedCount] = useState<number>(0);
-  const [topExceptions, setTopExceptions] = useState<Array<TelemetryException>>(
-    [],
+interface DashboardData {
+  unresolvedCount: number;
+  resolvedCount: number;
+  archivedCount: number;
+  topExceptions: Array<TelemetryException>;
+  recentExceptions: Array<TelemetryException>;
+  serviceSummaries: Array<ServiceExceptionSummary>;
+}
+
+type Severity = "calm" | "info" | "warning" | "critical";
+
+const severityFromUnresolved: (count: number) => Severity = (
+  count: number,
+): Severity => {
+  if (count === 0) {
+    return "calm";
+  }
+  if (count > 20) {
+    return "critical";
+  }
+  if (count > 5) {
+    return "warning";
+  }
+  return "info";
+};
+
+const exceptionDetailRoute: (exception: TelemetryException) => Route = (
+  exception: TelemetryException,
+): Route => {
+  if (exception.id) {
+    return new Route(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.EXCEPTIONS_VIEW_ROOT] as Route,
+      )
+        .toString()
+        .replace(/\/?$/, `/${exception.id.toString()}`),
+    );
+  }
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.EXCEPTIONS_UNRESOLVED] as Route,
   );
-  const [recentExceptions, setRecentExceptions] = useState<
-    Array<TelemetryException>
-  >([]);
-  const [serviceSummaries, setServiceSummaries] = useState<
-    Array<ServiceExceptionSummary>
-  >([]);
+};
+
+const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
+  const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+
+  /*
+   * An exception's primaryEntityId is polymorphic (no Service relation). Load the
+   * project's Services so a real OpenTelemetry primaryEntityId resolves to its
+   * name/colour; Host/Docker/K8s and unattributed resolve to a label /
+   * synthetic via resolveServiceDisplay below.
+   */
+  const [services, setServices] = useState<Array<Service>>([]);
+
+  const resolveServiceDisplay: (
+    primaryEntityId: ObjectID | string | null | undefined,
+    primaryEntityType: ServiceType | string | null | undefined,
+  ) => { name: string; color: string } = (
+    primaryEntityId: ObjectID | string | null | undefined,
+    primaryEntityType: ServiceType | string | null | undefined,
+  ): { name: string; color: string } => {
+    const { service, label } = TelemetryServiceUtil.resolveTelemetryResource({
+      primaryEntityId: primaryEntityId,
+      primaryEntityType: primaryEntityType,
+      services: services,
+      projectId: ProjectUtil.getCurrentProjectId(),
+    });
+    if (service) {
+      return {
+        name: service.name?.toString() || UNKNOWN_SERVICE_NAME,
+        color: service.serviceColor?.toString() || "#9ca3af",
+      };
+    }
+    return { name: label || "Unknown", color: "#9ca3af" };
+  };
 
   const loadDashboard: () => Promise<void> = async (): Promise<void> => {
     try {
       setIsLoading(true);
       setError("");
 
-      const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/telemetry-exception/dashboard-summary`,
+          ),
+          data: {},
+          headers: ModelAPI.getCommonHeaders(),
+        });
 
-      const [
-        unresolvedResult,
-        resolvedResult,
-        archivedResult,
-        topExceptionsResult,
-        recentExceptionsResult,
-        servicesResult,
-      ] = await Promise.all([
-        ModelAPI.count({
-          modelType: TelemetryException,
-          query: {
-            projectId,
-            isResolved: false,
-            isArchived: false,
-          },
-        }),
-        ModelAPI.count({
-          modelType: TelemetryException,
-          query: {
-            projectId,
-            isResolved: true,
-            isArchived: false,
-          },
-        }),
-        ModelAPI.count({
-          modelType: TelemetryException,
-          query: {
-            projectId,
-            isArchived: true,
-          },
-        }),
-        ModelAPI.getList({
-          modelType: TelemetryException,
-          query: {
-            projectId,
-            isResolved: false,
-            isArchived: false,
-          },
-          select: {
-            message: true,
-            exceptionType: true,
-            fingerprint: true,
-            isResolved: true,
-            isArchived: true,
-            occuranceCount: true,
-            lastSeenAt: true,
-            firstSeenAt: true,
-            environment: true,
-            service: {
-              name: true,
-              serviceColor: true,
-            } as any,
-          },
-          limit: 10,
-          skip: 0,
-          sort: {
-            occuranceCount: SortOrder.Descending,
-          },
-        }),
-        ModelAPI.getList({
-          modelType: TelemetryException,
-          query: {
-            projectId,
-            isResolved: false,
-            isArchived: false,
-          },
-          select: {
-            message: true,
-            exceptionType: true,
-            fingerprint: true,
-            isResolved: true,
-            isArchived: true,
-            occuranceCount: true,
-            lastSeenAt: true,
-            firstSeenAt: true,
-            environment: true,
-            service: {
-              name: true,
-              serviceColor: true,
-            } as any,
-          },
-          limit: 8,
-          skip: 0,
-          sort: {
-            lastSeenAt: SortOrder.Descending,
-          },
-        }),
-        ModelAPI.getList({
-          modelType: Service,
-          query: {
-            projectId,
-          },
-          select: {
-            serviceColor: true,
-            name: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        }),
-      ]);
-
-      setUnresolvedCount(unresolvedResult);
-      setResolvedCount(resolvedResult);
-      setArchivedCount(archivedResult);
-      setTopExceptions(topExceptionsResult.data || []);
-      setRecentExceptions(recentExceptionsResult.data || []);
-
-      const loadedServices: Array<Service> = servicesResult.data || [];
-
-      // Load unresolved exception counts per service
-      const serviceExceptionCounts: Array<ServiceExceptionSummary> = [];
-
-      for (const service of loadedServices) {
-        const serviceExceptions: ListResult<TelemetryException> =
-          await ModelAPI.getList({
-            modelType: TelemetryException,
-            query: {
-              projectId,
-              serviceId: service.id!,
-              isResolved: false,
-              isArchived: false,
-            },
-            select: {
-              occuranceCount: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            sort: {
-              occuranceCount: SortOrder.Descending,
-            },
-          });
-
-        const exceptions: Array<TelemetryException> =
-          serviceExceptions.data || [];
-
-        if (exceptions.length > 0) {
-          let totalOccurrences: number = 0;
-          for (const ex of exceptions) {
-            totalOccurrences += ex.occuranceCount || 0;
-          }
-          serviceExceptionCounts.push({
-            service,
-            unresolvedCount: exceptions.length,
-            totalOccurrences,
-          });
-        }
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
       }
 
-      serviceExceptionCounts.sort(
-        (a: ServiceExceptionSummary, b: ServiceExceptionSummary) => {
-          return b.unresolvedCount - a.unresolvedCount;
+      const body: JSONObject = response.data || {};
+
+      const topExceptions: Array<TelemetryException> = BaseModel.fromJSONArray(
+        (body["topExceptions"] as JSONArray) || [],
+        TelemetryException,
+      );
+
+      const recentExceptions: Array<TelemetryException> =
+        BaseModel.fromJSONArray(
+          (body["recentExceptions"] as JSONArray) || [],
+          TelemetryException,
+        );
+
+      const rawSummaries: JSONArray =
+        (body["serviceSummaries"] as JSONArray) || [];
+
+      const serviceSummaries: Array<ServiceExceptionSummary> = rawSummaries.map(
+        (raw: JSONObject | unknown): ServiceExceptionSummary => {
+          const entry: JSONObject = (raw as JSONObject) || {};
+          return {
+            primaryEntityId: (entry["primaryEntityId"] as string) || "",
+            primaryEntityType:
+              (entry["primaryEntityType"] as ServiceType | null) ?? null,
+            unresolvedCount: Number(entry["unresolvedCount"] || 0),
+            totalOccurrences: Number(entry["totalOccurrences"] || 0),
+          };
         },
       );
 
-      setServiceSummaries(serviceExceptionCounts);
+      setData({
+        unresolvedCount: Number(body["unresolvedCount"] || 0),
+        resolvedCount: Number(body["resolvedCount"] || 0),
+        archivedCount: Number(body["archivedCount"] || 0),
+        topExceptions,
+        recentExceptions,
+        serviceSummaries,
+      });
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {
@@ -220,6 +188,25 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
 
   useEffect(() => {
     void loadDashboard();
+  }, []);
+
+  useEffect(() => {
+    const loadServices: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const result: ListResult<Service> = await ModelAPI.getList<Service>({
+          modelType: Service,
+          query: { projectId: ProjectUtil.getCurrentProjectId()! },
+          select: { _id: true, name: true, serviceColor: true },
+          sort: { name: SortOrder.Ascending },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+        });
+        setServices(result.data);
+      } catch {
+        // Non-fatal: rows fall back to a primaryEntityType label / "Unknown".
+      }
+    };
+    void loadServices();
   }, []);
 
   if (isLoading) {
@@ -237,28 +224,32 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
     );
   }
 
+  if (!data) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  const {
+    unresolvedCount,
+    resolvedCount,
+    archivedCount,
+    topExceptions,
+    recentExceptions,
+    serviceSummaries,
+  } = data;
+
   const totalCount: number = unresolvedCount + resolvedCount + archivedCount;
 
   if (totalCount === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-16 text-center">
-        <div className="mx-auto w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mb-5">
-          <svg
-            className="h-8 w-8 text-green-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.5}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
+      <div className="rounded-2xl border border-gray-200 bg-white p-16 text-center">
+        <div className="mx-auto h-14 w-14 rounded-full bg-emerald-50 flex items-center justify-center mb-5 ring-8 ring-emerald-50/40">
+          <Icon
+            icon={IconProp.CheckCircle}
+            className="text-emerald-500 h-7 w-7"
+          />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          No exceptions caught yet
+          No exceptions yet
         </h3>
         <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
           Once your services start reporting exceptions, you{"'"}ll see bug
@@ -273,7 +264,6 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
       ? Math.round(((resolvedCount + archivedCount) / totalCount) * 100)
       : 0;
 
-  // Count how many of the top exceptions were first seen in last 24h
   const now: Date = OneUptimeDate.getCurrentDate();
   const oneDayAgo: Date = OneUptimeDate.addRemoveHours(now, -24);
   const newTodayCount: number = topExceptions.filter(
@@ -285,227 +275,212 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
   const maxServiceBugs: number =
     serviceSummaries.length > 0 ? serviceSummaries[0]!.unresolvedCount : 1;
 
+  const severity: Severity = severityFromUnresolved(unresolvedCount);
+
+  const heroStyles: Record<
+    Severity,
+    {
+      bg: string;
+      border: string;
+      iconBg: string;
+      iconRing: string;
+      iconColor: string;
+      title: string;
+      subtitle: string;
+      chevron: string;
+      pulse: string;
+    }
+  > = {
+    calm: {
+      bg: "bg-emerald-50/60",
+      border: "border-emerald-100",
+      iconBg: "bg-emerald-100",
+      iconRing: "ring-emerald-50",
+      iconColor: "text-emerald-600",
+      title: "text-emerald-900",
+      subtitle: "text-emerald-700/80",
+      chevron: "text-emerald-400",
+      pulse: "bg-emerald-400",
+    },
+    info: {
+      bg: "bg-sky-50/60",
+      border: "border-sky-100",
+      iconBg: "bg-sky-100",
+      iconRing: "ring-sky-50",
+      iconColor: "text-sky-600",
+      title: "text-sky-900",
+      subtitle: "text-sky-700/80",
+      chevron: "text-sky-400",
+      pulse: "bg-sky-400",
+    },
+    warning: {
+      bg: "bg-amber-50/60",
+      border: "border-amber-100",
+      iconBg: "bg-amber-100",
+      iconRing: "ring-amber-50",
+      iconColor: "text-amber-600",
+      title: "text-amber-900",
+      subtitle: "text-amber-700/80",
+      chevron: "text-amber-400",
+      pulse: "bg-amber-400",
+    },
+    critical: {
+      bg: "bg-rose-50/60",
+      border: "border-rose-100",
+      iconBg: "bg-rose-100",
+      iconRing: "ring-rose-50",
+      iconColor: "text-rose-600",
+      title: "text-rose-900",
+      subtitle: "text-rose-700/80",
+      chevron: "text-rose-400",
+      pulse: "bg-rose-400",
+    },
+  };
+
+  const hero: (typeof heroStyles)[Severity] = heroStyles[severity];
+
+  const heroTitle: string =
+    unresolvedCount === 0
+      ? "All bugs handled"
+      : `${unresolvedCount.toLocaleString()} unresolved ${
+          unresolvedCount === 1 ? "bug" : "bugs"
+        } need attention`;
+
+  const heroSubtitle: string =
+    unresolvedCount === 0
+      ? `${(resolvedCount + archivedCount).toLocaleString()} ${
+          resolvedCount + archivedCount === 1 ? "bug has" : "bugs have"
+        } been resolved or archived`
+      : newTodayCount > 0
+        ? `${newTodayCount} new in the last 24 hours · Click to triage`
+        : "Click to view and triage";
+
   return (
     <Fragment>
-      {/* Unresolved Alert Banner */}
-      {unresolvedCount > 0 && (
-        <AppLink
-          className="block mb-6"
-          to={RouteUtil.populateRouteParams(
-            RouteMap[PageMap.EXCEPTIONS_UNRESOLVED] as Route,
-          )}
+      {/* Hero status banner — always visible, severity-aware */}
+      <AppLink
+        className="block mb-6 group"
+        to={RouteUtil.populateRouteParams(
+          RouteMap[
+            unresolvedCount > 0
+              ? PageMap.EXCEPTIONS_UNRESOLVED
+              : PageMap.EXCEPTIONS_RESOLVED
+          ] as Route,
+        )}
+      >
+        <div
+          className={`relative overflow-hidden rounded-2xl border ${hero.border} ${hero.bg} px-5 py-4 flex items-center justify-between transition-shadow group-hover:shadow-sm`}
         >
-          <div
-            className={`rounded-xl p-4 flex items-center justify-between ${unresolvedCount > 20 ? "bg-red-50 border border-red-200" : unresolvedCount > 5 ? "bg-amber-50 border border-amber-200" : "bg-blue-50 border border-blue-200"}`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-10 h-10 rounded-lg flex items-center justify-center ${unresolvedCount > 20 ? "bg-red-100" : unresolvedCount > 5 ? "bg-amber-100" : "bg-blue-100"}`}
-              >
-                <svg
-                  className={`h-5 w-5 ${unresolvedCount > 20 ? "text-red-600" : unresolvedCount > 5 ? "text-amber-600" : "text-blue-600"}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 12.75c1.148 0 2.278.08 3.383.237 1.037.146 1.866.966 1.866 2.013 0 3.728-2.35 6.75-5.25 6.75S6.75 18.728 6.75 15c0-1.046.83-1.867 1.866-2.013A24.204 24.204 0 0112 12.75zm0 0c2.883 0 5.647.508 8.207 1.44a23.91 23.91 0 01-1.152 6.06M12 12.75c-2.883 0-5.647.508-8.208 1.44.125 2.104.52 4.136 1.153 6.06M12 12.75a2.25 2.25 0 002.248-2.354M12 12.75a2.25 2.25 0 01-2.248-2.354M12 8.25c.995 0 1.971-.08 2.922-.236.403-.066.74-.358.795-.762a3.778 3.778 0 00-.399-2.25M12 8.25c-.995 0-1.97-.08-2.922-.236-.402-.066-.74-.358-.795-.762a3.734 3.734 0 01.4-2.253M12 8.25a2.25 2.25 0 00-2.248 2.146M12 8.25a2.25 2.25 0 012.248 2.146M8.683 5a6.032 6.032 0 01-1.155-1.002c.07-.63.27-1.222.574-1.747m.581 2.749A3.75 3.75 0 0115.318 5m0 0c.427-.283.815-.62 1.155-.999a4.471 4.471 0 00-.575-1.752M4.921 12s-.148-.277-.277-.5M19.08 12s.147-.277.277-.5"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p
-                  className={`text-sm font-semibold ${unresolvedCount > 20 ? "text-red-800" : unresolvedCount > 5 ? "text-amber-800" : "text-blue-800"}`}
-                >
-                  {unresolvedCount} unresolved{" "}
-                  {unresolvedCount === 1 ? "bug" : "bugs"} need attention
-                </p>
-                <p
-                  className={`text-xs mt-0.5 ${unresolvedCount > 20 ? "text-red-600" : unresolvedCount > 5 ? "text-amber-600" : "text-blue-600"}`}
-                >
-                  {newTodayCount > 0
-                    ? `${newTodayCount} new in the last 24 hours`
-                    : "Click to view and triage"}
-                </p>
-              </div>
-            </div>
-            <svg
-              className={`h-5 w-5 ${unresolvedCount > 20 ? "text-red-400" : unresolvedCount > 5 ? "text-amber-400" : "text-blue-400"}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M8.25 4.5l7.5 7.5-7.5 7.5"
-              />
-            </svg>
-          </div>
-        </AppLink>
-      )}
-
-      {/* Summary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <AppLink
-          className="block"
-          to={RouteUtil.populateRouteParams(
-            RouteMap[PageMap.EXCEPTIONS_UNRESOLVED] as Route,
-          )}
-        >
-          <div className="rounded-xl border border-gray-200 bg-white p-5 hover:border-red-200 hover:shadow-sm transition-all">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-gray-500">Unresolved</p>
-              <div className="h-8 w-8 rounded-lg bg-red-50 flex items-center justify-center">
-                <svg
-                  className="h-4 w-4 text-red-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-                  />
-                </svg>
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-red-600 mt-2">
-              {unresolvedCount.toLocaleString()}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">needs attention</p>
-          </div>
-        </AppLink>
-
-        <AppLink
-          className="block"
-          to={RouteUtil.populateRouteParams(
-            RouteMap[PageMap.EXCEPTIONS_RESOLVED] as Route,
-          )}
-        >
-          <div className="rounded-xl border border-gray-200 bg-white p-5 hover:border-green-200 hover:shadow-sm transition-all">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-gray-500">Resolved</p>
-              <div className="h-8 w-8 rounded-lg bg-green-50 flex items-center justify-center">
-                <svg
-                  className="h-4 w-4 text-green-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-green-600 mt-2">
-              {resolvedCount.toLocaleString()}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">fixed</p>
-          </div>
-        </AppLink>
-
-        <AppLink
-          className="block"
-          to={RouteUtil.populateRouteParams(
-            RouteMap[PageMap.EXCEPTIONS_ARCHIVED] as Route,
-          )}
-        >
-          <div className="rounded-xl border border-gray-200 bg-white p-5 hover:border-gray-300 hover:shadow-sm transition-all">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-gray-500">Archived</p>
-              <div className="h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                <svg
-                  className="h-4 w-4 text-gray-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
-                  />
-                </svg>
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-gray-600 mt-2">
-              {archivedCount.toLocaleString()}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">dismissed</p>
-          </div>
-        </AppLink>
-
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-500">Resolution Rate</p>
-            <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center">
-              <svg
-                className="h-4 w-4 text-indigo-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"
-                />
-              </svg>
-            </div>
-          </div>
-          <p className="text-3xl font-bold text-gray-900 mt-2">
-            {resolutionRate}%
-          </p>
-          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden mt-2">
+          <div className="flex items-center gap-4 min-w-0">
             <div
-              className="h-full rounded-full bg-indigo-400"
-              style={{ width: `${resolutionRate}%` }}
-            />
+              className={`relative h-11 w-11 shrink-0 rounded-xl ${hero.iconBg} ring-4 ${hero.iconRing} flex items-center justify-center`}
+            >
+              <Icon
+                icon={
+                  unresolvedCount === 0 ? IconProp.CheckCircle : IconProp.Bug
+                }
+                className={`${hero.iconColor} h-5 w-5`}
+              />
+              {unresolvedCount > 0 && (
+                <span
+                  className={`absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ${hero.pulse} ring-2 ring-white`}
+                />
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className={`text-sm font-semibold ${hero.title} truncate`}>
+                {heroTitle}
+              </p>
+              <p className={`text-xs mt-0.5 ${hero.subtitle}`}>
+                {heroSubtitle}
+              </p>
+            </div>
+          </div>
+          <Icon
+            icon={IconProp.ChevronRight}
+            className={`${hero.chevron} h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5`}
+          />
+        </div>
+      </AppLink>
+
+      {/* Stat strip — unified card, thin dividers */}
+      <div className="rounded-2xl border border-gray-200 bg-white mb-6 overflow-hidden">
+        <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-100">
+          <StatCell
+            label="Unresolved"
+            value={unresolvedCount}
+            sublabel={unresolvedCount === 1 ? "bug" : "bugs"}
+            valueClassName="text-rose-600"
+            accent="bg-rose-500"
+            to={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.EXCEPTIONS_UNRESOLVED] as Route,
+            )}
+          />
+          <StatCell
+            label="Resolved"
+            value={resolvedCount}
+            sublabel={resolvedCount === 1 ? "fix shipped" : "fixes shipped"}
+            valueClassName="text-emerald-600"
+            accent="bg-emerald-500"
+            to={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.EXCEPTIONS_RESOLVED] as Route,
+            )}
+          />
+          <StatCell
+            label="Archived"
+            value={archivedCount}
+            sublabel="dismissed"
+            valueClassName="text-gray-700"
+            accent="bg-gray-400"
+            to={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.EXCEPTIONS_ARCHIVED] as Route,
+            )}
+          />
+          <div className="p-5">
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs uppercase tracking-wider font-medium text-gray-500">
+                Resolution rate
+              </span>
+            </div>
+            <p className="text-3xl font-semibold text-gray-900 mt-3 tabular-nums">
+              {resolutionRate}
+              <span className="text-base font-medium text-gray-400 ml-0.5">
+                %
+              </span>
+            </p>
+            <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden mt-3">
+              <div
+                className="h-full rounded-full bg-indigo-500 transition-[width] duration-500"
+                style={{ width: `${resolutionRate}%` }}
+              />
+            </div>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Most Frequent Exceptions - takes 2 columns */}
+        {/* Most Frequent Bugs */}
         {topExceptions.length > 0 && (
           <div className="lg:col-span-2">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-red-500" />
-                <h3 className="text-base font-semibold text-gray-900">
-                  Most Frequent Bugs
-                </h3>
-              </div>
-              <AppLink
-                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-                to={RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.EXCEPTIONS_UNRESOLVED] as Route,
-                )}
-              >
-                View all
-              </AppLink>
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-              <div className="divide-y divide-gray-50">
+            <SectionHeader
+              dot="bg-rose-500"
+              title="Most frequent bugs"
+              subtitle="Sorted by occurrence count"
+              actionLabel="View all"
+              actionTo={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.EXCEPTIONS_UNRESOLVED] as Route,
+              )}
+            />
+            <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+              <ul className="divide-y divide-gray-100">
                 {topExceptions.map(
                   (exception: TelemetryException, index: number) => {
                     const maxOccurrences: number =
                       topExceptions[0]?.occuranceCount || 1;
-                    const barWidth: number =
-                      ((exception.occuranceCount || 0) / maxOccurrences) * 100;
+                    const barWidth: number = Math.max(
+                      ((exception.occuranceCount || 0) / maxOccurrences) * 100,
+                      2,
+                    );
 
                     const isNewToday: boolean = Boolean(
                       exception.firstSeenAt &&
@@ -513,224 +488,305 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                     );
 
                     return (
-                      <AppLink
+                      <li
                         key={exception.id?.toString() || index.toString()}
-                        className="block px-4 py-3 hover:bg-gray-50 transition-colors"
-                        to={
-                          exception.id
-                            ? new Route(
-                                RouteUtil.populateRouteParams(
-                                  RouteMap[
-                                    PageMap.EXCEPTIONS_VIEW_ROOT
-                                  ] as Route,
-                                )
-                                  .toString()
-                                  .replace(
-                                    /\/?$/,
-                                    `/${exception.id.toString()}`,
-                                  ),
-                              )
-                            : RouteUtil.populateRouteParams(
-                                RouteMap[
-                                  PageMap.EXCEPTIONS_UNRESOLVED
-                                ] as Route,
-                              )
-                        }
+                        className="relative"
                       >
-                        <div className="flex items-start justify-between mb-1.5">
-                          <div className="min-w-0 flex-1 mr-3">
-                            <div className="flex items-center gap-2 mb-1">
-                              <TelemetryExceptionElement
-                                message={
-                                  exception.message ||
-                                  exception.exceptionType ||
-                                  "Unknown exception"
-                                }
-                                isResolved={exception.isResolved || false}
-                                isArchived={exception.isArchived || false}
-                                className="text-sm"
-                              />
-                              {isNewToday && (
-                                <span className="flex-shrink-0 text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-medium">
-                                  New
-                                </span>
-                              )}
+                        <AppLink
+                          className="block px-5 py-3.5 hover:bg-gray-50/70 transition-colors"
+                          to={exceptionDetailRoute(exception)}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <TelemetryExceptionElement
+                                  message={
+                                    exception.message ||
+                                    exception.exceptionType ||
+                                    "Unknown exception"
+                                  }
+                                  isResolved={exception.isResolved || false}
+                                  isArchived={exception.isArchived || false}
+                                  className="text-sm font-medium text-gray-900"
+                                />
+                                {isNewToday && (
+                                  <span className="shrink-0 inline-flex items-center gap-1 text-[10px] uppercase tracking-wide bg-sky-50 text-sky-700 px-1.5 py-0.5 rounded-md font-semibold">
+                                    <span className="h-1 w-1 rounded-full bg-sky-500" />
+                                    New
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-xs">
+                                {exception.exceptionType && (
+                                  <span className="font-mono text-[11px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">
+                                    {exception.exceptionType}
+                                  </span>
+                                )}
+                                {(() => {
+                                  const svc: {
+                                    name: string;
+                                    color: string;
+                                  } = resolveServiceDisplay(
+                                    exception.primaryEntityId,
+                                    exception.primaryEntityType,
+                                  );
+                                  return (
+                                    <span className="inline-flex items-center gap-1.5 text-gray-600">
+                                      <span
+                                        className="h-1.5 w-1.5 rounded-full"
+                                        style={{ backgroundColor: svc.color }}
+                                      />
+                                      {svc.name}
+                                    </span>
+                                  );
+                                })()}
+                                {exception.environment && (
+                                  <span className="text-gray-500">
+                                    · {exception.environment}
+                                  </span>
+                                )}
+                                {exception.lastSeenAt && (
+                                  <span className="text-gray-400">
+                                    ·{" "}
+                                    {OneUptimeDate.fromNow(
+                                      new Date(exception.lastSeenAt),
+                                    )}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 mt-1">
-                              {exception.service && (
-                                <span className="text-xs text-gray-500">
-                                  {exception.service.name?.toString()}
-                                </span>
-                              )}
-                              {exception.exceptionType && (
-                                <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-mono">
-                                  {exception.exceptionType}
-                                </span>
-                              )}
-                              {exception.environment && (
-                                <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
-                                  {exception.environment}
-                                </span>
-                              )}
+                            <div className="text-right shrink-0">
+                              <p className="text-sm font-semibold text-gray-900 tabular-nums">
+                                {(
+                                  exception.occuranceCount || 0
+                                ).toLocaleString()}
+                              </p>
+                              <p className="text-[10px] uppercase tracking-wide text-gray-400 mt-0.5">
+                                hits
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-2.5 h-0.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-rose-400 to-rose-500 transition-[width] duration-500"
+                              style={{ width: `${barWidth}%` }}
+                            />
+                          </div>
+                        </AppLink>
+                      </li>
+                    );
+                  },
+                )}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* Right sidebar */}
+        <div className="space-y-6">
+          {serviceSummaries.length > 0 && (
+            <div>
+              <SectionHeader
+                dot="bg-amber-500"
+                title="Affected services"
+                subtitle={`${serviceSummaries.length} ${serviceSummaries.length === 1 ? "service has" : "services have"} open bugs`}
+              />
+              <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+                <ul className="divide-y divide-gray-100">
+                  {serviceSummaries.map((summary: ServiceExceptionSummary) => {
+                    const barWidth: number = Math.max(
+                      (summary.unresolvedCount / maxServiceBugs) * 100,
+                      4,
+                    );
+                    const serviceDisplay: { name: string; color: string } =
+                      resolveServiceDisplay(
+                        summary.primaryEntityId,
+                        summary.primaryEntityType,
+                      );
+
+                    return (
+                      <li
+                        key={summary.primaryEntityId}
+                        className="px-4 py-3 hover:bg-gray-50/70 transition-colors"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span
+                              className="h-2 w-2 rounded-full shrink-0"
+                              style={{ backgroundColor: serviceDisplay.color }}
+                            />
+                            <span className="text-sm font-medium text-gray-800 truncate">
+                              {serviceDisplay.name}
+                            </span>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <span className="text-sm font-semibold text-gray-900 tabular-nums">
+                              {summary.unresolvedCount}
+                            </span>
+                            <span className="text-[10px] uppercase tracking-wide text-gray-400 ml-1">
+                              {summary.unresolvedCount === 1 ? "bug" : "bugs"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-[width] duration-500"
+                              style={{
+                                width: `${barWidth}%`,
+                                backgroundColor: serviceDisplay.color,
+                              }}
+                            />
+                          </div>
+                          <span className="text-[11px] tabular-nums text-gray-400 shrink-0">
+                            {summary.totalOccurrences.toLocaleString()} hits
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {recentExceptions.length > 0 && (
+            <div>
+              <SectionHeader
+                dot="bg-sky-500"
+                title="Recently active"
+                subtitle="Last seen first"
+              />
+              <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+                <ul className="divide-y divide-gray-100">
+                  {recentExceptions.map(
+                    (exception: TelemetryException, index: number) => {
+                      return (
+                        <li key={exception.id?.toString() || index.toString()}>
+                          <AppLink
+                            className="block px-4 py-3 hover:bg-gray-50/70 transition-colors"
+                            to={exceptionDetailRoute(exception)}
+                          >
+                            <p className="text-sm text-gray-900 truncate font-medium">
+                              {exception.message ||
+                                exception.exceptionType ||
+                                "Unknown"}
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-1 text-xs">
+                              {(() => {
+                                const svc: { name: string; color: string } =
+                                  resolveServiceDisplay(
+                                    exception.primaryEntityId,
+                                    exception.primaryEntityType,
+                                  );
+                                return (
+                                  <span className="inline-flex items-center gap-1.5 text-gray-600">
+                                    <span
+                                      className="h-1.5 w-1.5 rounded-full"
+                                      style={{ backgroundColor: svc.color }}
+                                    />
+                                    {svc.name}
+                                  </span>
+                                );
+                              })()}
                               {exception.lastSeenAt && (
-                                <span className="text-xs text-gray-400">
+                                <span className="text-gray-400">
+                                  ·{" "}
                                   {OneUptimeDate.fromNow(
                                     new Date(exception.lastSeenAt),
                                   )}
                                 </span>
                               )}
                             </div>
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="text-sm font-bold text-gray-900">
-                              {(exception.occuranceCount || 0).toLocaleString()}
-                            </p>
-                            <p className="text-xs text-gray-400">hits</p>
-                          </div>
-                        </div>
-                        <div className="mt-1.5">
-                          <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-red-400"
-                              style={{ width: `${barWidth}%` }}
-                            />
-                          </div>
-                        </div>
-                      </AppLink>
-                    );
-                  },
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Right sidebar: Affected Services + Recently Seen */}
-        <div className="space-y-6">
-          {/* Affected Services */}
-          {serviceSummaries.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-2 h-2 rounded-full bg-amber-500" />
-                <h3 className="text-base font-semibold text-gray-900">
-                  Affected Services
-                </h3>
-              </div>
-              <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-                <div className="divide-y divide-gray-50">
-                  {serviceSummaries.map((summary: ServiceExceptionSummary) => {
-                    const barWidth: number =
-                      (summary.unresolvedCount / maxServiceBugs) * 100;
-
-                    return (
-                      <div
-                        key={summary.service.id?.toString()}
-                        className="px-4 py-3"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <TelemetryServiceElement
-                            telemetryService={summary.service}
-                          />
-                          <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <span className="text-sm font-bold text-red-600">
-                                {summary.unresolvedCount}
-                              </span>
-                              <span className="text-xs text-gray-400 ml-1">
-                                bugs
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-red-400"
-                              style={{
-                                width: `${Math.max(barWidth, 3)}%`,
-                              }}
-                            />
-                          </div>
-                          <span className="text-xs text-gray-400 flex-shrink-0">
-                            {summary.totalOccurrences.toLocaleString()} hits
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Recently Active */}
-          {recentExceptions.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-2 h-2 rounded-full bg-blue-500" />
-                <h3 className="text-base font-semibold text-gray-900">
-                  Recently Active
-                </h3>
-              </div>
-              <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-                <div className="divide-y divide-gray-50">
-                  {recentExceptions
-                    .slice(0, 5)
-                    .map((exception: TelemetryException, index: number) => {
-                      return (
-                        <AppLink
-                          key={exception.id?.toString() || index.toString()}
-                          className="block px-4 py-3 hover:bg-gray-50 transition-colors"
-                          to={
-                            exception.id
-                              ? new Route(
-                                  RouteUtil.populateRouteParams(
-                                    RouteMap[
-                                      PageMap.EXCEPTIONS_VIEW_ROOT
-                                    ] as Route,
-                                  )
-                                    .toString()
-                                    .replace(
-                                      /\/?$/,
-                                      `/${exception.id.toString()}`,
-                                    ),
-                                )
-                              : RouteUtil.populateRouteParams(
-                                  RouteMap[
-                                    PageMap.EXCEPTIONS_UNRESOLVED
-                                  ] as Route,
-                                )
-                          }
-                        >
-                          <p className="text-sm text-gray-900 truncate font-medium">
-                            {exception.message ||
-                              exception.exceptionType ||
-                              "Unknown"}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            {exception.service && (
-                              <span className="text-xs text-gray-500">
-                                {exception.service.name?.toString()}
-                              </span>
-                            )}
-                            {exception.lastSeenAt && (
-                              <span className="text-xs text-gray-400">
-                                {OneUptimeDate.fromNow(
-                                  new Date(exception.lastSeenAt),
-                                )}
-                              </span>
-                            )}
-                          </div>
-                        </AppLink>
+                          </AppLink>
+                        </li>
                       );
-                    })}
-                </div>
+                    },
+                  )}
+                </ul>
               </div>
             </div>
           )}
         </div>
       </div>
     </Fragment>
+  );
+};
+
+interface StatCellProps {
+  label: string;
+  value: number;
+  sublabel: string;
+  valueClassName: string;
+  accent: string;
+  to: Route;
+}
+
+const StatCell: FunctionComponent<StatCellProps> = (
+  props: StatCellProps,
+): ReactElement => {
+  return (
+    <AppLink className="block group" to={props.to}>
+      <div className="p-5 h-full hover:bg-gray-50/60 transition-colors">
+        <div className="flex items-baseline justify-between">
+          <span className="text-xs uppercase tracking-wider font-medium text-gray-500">
+            {props.label}
+          </span>
+          <span className={`h-1.5 w-1.5 rounded-full ${props.accent}`} />
+        </div>
+        <p
+          className={`text-3xl font-semibold mt-3 tabular-nums ${props.valueClassName}`}
+        >
+          {props.value.toLocaleString()}
+        </p>
+        <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+          {props.sublabel}
+          <Icon
+            icon={IconProp.ChevronRight}
+            size={SizeProp.ExtraSmall}
+            className="opacity-0 group-hover:opacity-100 transition-opacity h-3 w-3"
+          />
+        </p>
+      </div>
+    </AppLink>
+  );
+};
+
+interface SectionHeaderProps {
+  dot: string;
+  title: string;
+  subtitle?: string;
+  actionLabel?: string;
+  actionTo?: Route;
+}
+
+const SectionHeader: FunctionComponent<SectionHeaderProps> = (
+  props: SectionHeaderProps,
+): ReactElement => {
+  return (
+    <div className="flex items-end justify-between mb-3 px-0.5">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <span className={`h-1.5 w-1.5 rounded-full ${props.dot}`} />
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-gray-900 truncate">
+            {props.title}
+          </h3>
+          {props.subtitle && (
+            <p className="text-xs text-gray-500 mt-0.5 truncate">
+              {props.subtitle}
+            </p>
+          )}
+        </div>
+      </div>
+      {props.actionLabel && props.actionTo && (
+        <AppLink
+          className="text-xs font-medium text-indigo-600 hover:text-indigo-800 shrink-0"
+          to={props.actionTo}
+        >
+          <span>{`${props.actionLabel} →`}</span>
+        </AppLink>
+      )}
+    </div>
   );
 };
 

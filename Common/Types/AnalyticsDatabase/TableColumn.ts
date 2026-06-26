@@ -19,12 +19,37 @@ export interface SkipIndex {
   granularity: number;
 }
 
-export type ColumnCodec = "ZSTD" | "LZ4" | "LZ4HC" | "NONE";
+/*
+ * General-purpose compressors plus the specialized "encoding" codecs that
+ * pre-transform data before a general compressor runs. Delta / DoubleDelta
+ * shrink monotonic sequences (timestamps, counters); Gorilla is tuned for
+ * slowly-changing floating-point time-series values; T64 packs integers.
+ * These are almost always paired with a general compressor in a pipeline,
+ * e.g. CODEC(DoubleDelta, ZSTD(1)) — see ColumnCodecValue.
+ */
+export type ColumnCodec =
+  | "ZSTD"
+  | "LZ4"
+  | "LZ4HC"
+  | "NONE"
+  | "Delta"
+  | "DoubleDelta"
+  | "Gorilla"
+  | "T64";
 
 export interface ColumnCodecConfig {
   codec: ColumnCodec;
-  level?: number | undefined; // e.g. 3 for ZSTD(3)
+  level?: number | undefined; // e.g. 3 for ZSTD(3), or 8 for Delta(8)
 }
+
+/*
+ * A column's codec is either a single config or an ordered pipeline. The
+ * pipeline is emitted as CODEC(a, b, ...) and is applied left-to-right, so
+ * the encoding codec comes first and the general compressor last —
+ * e.g. [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }] becomes
+ * CODEC(DoubleDelta, ZSTD(1)), the ideal encoding for timestamp columns.
+ */
+export type ColumnCodecValue = ColumnCodecConfig | Array<ColumnCodecConfig>;
 
 export default class AnalyticsTableColumn {
   private _key: string = "id";
@@ -134,12 +159,44 @@ export default class AnalyticsTableColumn {
     this._skipIndex = v;
   }
 
-  private _codec: ColumnCodecConfig | undefined;
-  public get codec(): ColumnCodecConfig | undefined {
+  private _codec: ColumnCodecValue | undefined;
+  public get codec(): ColumnCodecValue | undefined {
     return this._codec;
   }
-  public set codec(v: ColumnCodecConfig | undefined) {
+  public set codec(v: ColumnCodecValue | undefined) {
     this._codec = v;
+  }
+
+  /*
+   * When true, the column is stored as LowCardinality(<type>) in ClickHouse
+   * (dictionary-encoded). Use for String columns with a small, bounded set of
+   * distinct values (e.g. serviceType, severityText, span kind) — it shrinks
+   * storage and, more importantly, makes GROUP BY / filters on the column far
+   * cheaper in memory. The column's `type` stays its logical type (e.g. Text);
+   * only the emitted DDL changes, so every other layer treats it normally.
+   */
+  private _isLowCardinality: boolean = false;
+  public get isLowCardinality(): boolean {
+    return this._isLowCardinality;
+  }
+  public set isLowCardinality(v: boolean) {
+    this._isLowCardinality = v;
+  }
+
+  /*
+   * For columns of type `AggregateFunction`, the parameterization that
+   * goes inside the parentheses, e.g. "stddevPop, Float64" or
+   * "quantile(0.95), Float64". The schema generator emits
+   * `AggregateFunction(<aggregateFunctionDefinition>)` literally, so
+   * include arg types but NOT the surrounding parens. Required when
+   * `type === AggregateFunction`; ignored otherwise.
+   */
+  private _aggregateFunctionDefinition: string | undefined;
+  public get aggregateFunctionDefinition(): string | undefined {
+    return this._aggregateFunctionDefinition;
+  }
+  public set aggregateFunctionDefinition(v: string | undefined) {
+    this._aggregateFunctionDefinition = v;
   }
 
   public constructor(data: {
@@ -157,7 +214,9 @@ export default class AnalyticsTableColumn {
       | (() => Date | string | number | boolean)
       | undefined;
     skipIndex?: SkipIndex | undefined;
-    codec?: ColumnCodecConfig | undefined;
+    codec?: ColumnCodecValue | undefined;
+    isLowCardinality?: boolean | undefined;
+    aggregateFunctionDefinition?: string | undefined;
   }) {
     this.accessControl = data.accessControl;
     this.key = data.key;
@@ -173,5 +232,7 @@ export default class AnalyticsTableColumn {
       data.allowAccessIfSubscriptionIsUnpaid || false;
     this.skipIndex = data.skipIndex;
     this.codec = data.codec;
+    this.isLowCardinality = data.isLowCardinality || false;
+    this.aggregateFunctionDefinition = data.aggregateFunctionDefinition;
   }
 }

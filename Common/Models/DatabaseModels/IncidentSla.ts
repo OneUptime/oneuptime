@@ -5,7 +5,9 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
@@ -21,6 +23,7 @@ import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
+@CanAccessIfCanReadOn("incident")
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
@@ -33,9 +36,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
+    Permission.IncidentViewer,
     Permission.ReadIncidentSla,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -49,6 +53,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   ],
 })
 @CrudApiEndpoint(new Route("/incident-sla"))
+@OwnedThrough("incidentId", Incident)
 @Entity({
   name: "IncidentSla",
 })
@@ -77,9 +82,10 @@ export default class IncidentSla extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSla,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -115,9 +121,10 @@ export default class IncidentSla extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSla,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -149,9 +156,10 @@ export default class IncidentSla extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSla,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -187,9 +195,10 @@ export default class IncidentSla extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSla,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -221,9 +230,10 @@ export default class IncidentSla extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSla,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -259,9 +269,10 @@ export default class IncidentSla extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSla,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -293,9 +304,10 @@ export default class IncidentSla extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSla,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -327,9 +339,10 @@ export default class IncidentSla extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSla,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -363,9 +376,10 @@ export default class IncidentSla extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSla,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -402,9 +416,10 @@ export default class IncidentSla extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSla,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -435,9 +450,10 @@ export default class IncidentSla extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSla,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -470,9 +486,10 @@ export default class IncidentSla extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSla,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -503,9 +520,10 @@ export default class IncidentSla extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSla,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -536,9 +554,10 @@ export default class IncidentSla extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSla,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -572,9 +591,10 @@ export default class IncidentSla extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSla,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -605,9 +625,10 @@ export default class IncidentSla extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSla,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -644,9 +665,10 @@ export default class IncidentSla extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSla,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

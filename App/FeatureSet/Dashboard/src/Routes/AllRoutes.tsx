@@ -3,6 +3,9 @@ export { default as LogsRoutes } from "./LogsRoutes";
 export { default as MetricsRoutes } from "./MetricsRoutes";
 export { default as TracesRoutes } from "./TracesRoutes";
 export { default as ExceptionsRoutes } from "./ExceptionsRoutes";
+export { default as LlmRoutes } from "./LlmRoutes";
+export { default as EntitiesRoutes } from "./EntitiesRoutes";
+export { default as TopologyRoutes } from "./TopologyRoutes";
 export { default as ProfilesRoutes } from "./ProfilesRoutes";
 
 // Incident management
@@ -17,15 +20,26 @@ export { default as MonitorGroupRoutes } from "./MonitorGroupRoutes";
 
 // Platform
 export { default as WorkflowRoutes } from "./WorkflowRoutes";
+export { default as RunbookRoutes } from "./RunbookRoutes";
 export { default as StatusPagesRoutes } from "./StatusPagesRoutes";
 export { default as DashboardRoutes } from "./DashboardRoutes";
 export { default as ServiceRoutes } from "./ServiceRoutes";
 export { default as CodeRepositoryRoutes } from "./CodeRepositoryRoutes";
 export { default as KubernetesRoutes } from "./KubernetesRoutes";
 export { default as DockerRoutes } from "./DockerRoutes";
+export { default as PodmanRoutes } from "./PodmanRoutes";
+export { default as ProxmoxRoutes } from "./ProxmoxRoutes";
+export { default as IoTRoutes } from "./IoTRoutes";
+export { default as DockerSwarmRoutes } from "./DockerSwarmRoutes";
+export { default as CephRoutes } from "./CephRoutes";
 export { default as HostRoutes } from "./HostRoutes";
+export { default as ServerlessRoutes } from "./ServerlessRoutes";
+export { default as CloudResourceRoutes } from "./CloudResourceRoutes";
+export { default as RumApplicationRoutes } from "./RumApplicationRoutes";
 export { default as AIAgentTasksRoutes } from "./AIAgentTasksRoutes";
 
 // Settings
 export { default as SettingsRoutes } from "./SettingsRoutes";
 export { default as UserSettingsRoutes } from "./UserSettingsRoutes";
+export { default as UsersRoutes } from "./UsersRoutes";
+export { default as TeamsRoutes } from "./TeamsRoutes";

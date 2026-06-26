@@ -32,6 +32,9 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
         modelType={IncomingCallPolicyEscalationRule}
         id="incoming-call-policy-escalation-rules-table"
         userPreferencesKey="incoming-call-policy-escalation-rules-table"
+        saveFilterProps={{
+          tableId: "incoming-call-policy-escalation-rules-table",
+        }}
         isDeleteable={true}
         name="Incoming Call Policy > Escalation Rules"
         isEditable={true}

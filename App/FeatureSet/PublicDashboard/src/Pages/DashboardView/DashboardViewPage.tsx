@@ -27,12 +27,16 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import DashboardVariableUrlState from "Common/Utils/Dashboard/VariableUrlState";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import DashboardVariableSelector from "./DashboardVariableSelector";
+import MetricUtil from "../../../../Dashboard/src/Components/Metrics/Utils/Metrics";
+import { setPublicDashboardContext } from "../../../../Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -68,6 +72,7 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
   const [dashboardName, setDashboardName] = useState<string>("");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [pageDescription, setPageDescription] = useState<string>("");
+  const [metricTypes, setMetricTypes] = useState<Array<MetricType>>([]);
 
   const handleResize: VoidFunction = (): void => {
     setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
@@ -140,15 +145,61 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
       }
 
       if (config.variables) {
-        setDashboardVariables(config.variables);
+        const urlSelections: ReturnType<
+          typeof DashboardVariableUrlState.parseFromSearch
+        > = DashboardVariableUrlState.parseFromSearch(window.location.search);
+        const withUrl: Array<DashboardVariable> =
+          DashboardVariableUrlState.applyUrlToVariables(
+            config.variables,
+            urlSelections,
+          );
+        setDashboardVariables(withUrl);
       }
     };
+
+  /*
+   * Best-effort: drives the unit labels shown in chart legends. Each widget
+   * also loads metric types on its own for unit conversion, so a failure
+   * here never blocks the dashboard from rendering.
+   */
+  const fetchMetricTypes: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      const result: { metricTypes: Array<MetricType> } =
+        await MetricUtil.loadAllMetricsTypes({ includeAttributes: false });
+      setMetricTypes(result.metricTypes);
+    } catch {
+      setMetricTypes([]);
+    }
+  };
 
   const loadPage: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     setError(null);
+
+    /*
+     * Route the shared metric widgets to the public, dashboard-scoped
+     * endpoints under /public-dashboard-api. Without this they fall through
+     * to the private /api/metric* routes, which 401 for an anonymous viewer
+     * and redirect the page to /accounts/login (issue #2467). The injected
+     * `postJSON` uses the public dashboard's API client so any auth redirect
+     * lands on the master-password page, not /accounts/login.
+     */
+    setPublicDashboardContext({
+      dashboardId: props.dashboardId,
+      apiUrl: PUBLIC_DASHBOARD_API_URL,
+      postJSON: (route: string, data: JSONObject) => {
+        return API.post<JSONObject>({
+          url: URL.fromString(PUBLIC_DASHBOARD_API_URL.toString()).addRoute(
+            route,
+          ),
+          data,
+        });
+      },
+    });
+
     try {
       await fetchDashboardViewConfig();
+      await fetchMetricTypes();
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Error));
     }
@@ -161,6 +212,11 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
     loadPage().catch((err: Error) => {
       setError(API.getFriendlyErrorMessage(err as Error));
     });
+
+    return () => {
+      // Stop routing widget reads to the public endpoints once this page unmounts.
+      setPublicDashboardContext(null);
+    };
   }, []);
 
   // Auto-refresh
@@ -337,18 +393,24 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
                   <div className="w-px h-5 bg-gray-200"></div>
                   <DashboardVariableSelector
                     variables={dashboardVariables}
+                    dashboardId={props.dashboardId}
                     onVariableValueChange={(
                       variableId: string,
                       value: string,
                     ) => {
-                      setDashboardVariables(
+                      const updated: Array<DashboardVariable> =
                         dashboardVariables.map((v: DashboardVariable) => {
                           if (v.id === variableId) {
-                            return { ...v, currentValue: value };
+                            return { ...v, selectedValue: value };
                           }
                           return v;
-                        }),
-                      );
+                        });
+                      setDashboardVariables(updated);
+                      DashboardVariableUrlState.writeToBrowserUrl(updated);
+                      // Trigger refresh when variable changes
+                      setRefreshTick((prev: number) => {
+                        return prev + 1;
+                      });
                     }}
                   />
                 </>
@@ -380,10 +442,11 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
           currentTotalDashboardWidthInPx={dashboardTotalWidth}
           dashboardStartAndEndDate={startAndEndDate}
           metrics={{
-            metricTypes: [],
+            metricTypes: metricTypes,
             telemetryAttributes: [],
           }}
           refreshTick={refreshTick}
+          variables={dashboardVariables}
         />
       </div>
 

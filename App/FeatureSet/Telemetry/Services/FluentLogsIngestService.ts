@@ -10,6 +10,7 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import LogSeverity from "Common/Types/Log/LogSeverity";
+import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
@@ -21,10 +22,16 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import OTelIngestService, {
   TelemetryServiceMetadata,
+  getScalarEntityKeyColumns,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import LogService from "Common/Server/Services/LogService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import FluentLogsQueueService from "./Queue/FluentLogsQueueService";
+import LogPipelineService, { LoadedPipeline } from "./LogPipelineService";
+import LogDropFilterService, {
+  LoadedLogDropFilter,
+} from "./LogDropFilterService";
+import LogScrubRuleService from "./LogScrubRuleService";
 import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
 
 export default class FluentLogsIngestService extends OtelIngestBaseService {
@@ -173,25 +180,44 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
         this.DEFAULT_SERVICE_NAME,
       );
 
-      const metadata: {
-        serviceId: ObjectID;
-        dataRententionInDays: number;
-      } = await OTelIngestService.telemetryServiceFromName({
-        serviceName,
-        projectId,
-      });
-
-      const serviceMetadata: TelemetryServiceMetadata = {
-        serviceName,
-        serviceId: metadata.serviceId,
-        dataRententionInDays: metadata.dataRententionInDays,
-      } satisfies TelemetryServiceMetadata;
+      const serviceMetadata: TelemetryServiceMetadata =
+        await OTelIngestService.telemetryServiceFromName({
+          serviceName,
+          projectId,
+        });
 
       const baseAttributes: Dictionary<AttributeType | Array<AttributeType>> =
         TelemetryUtil.getAttributesForServiceIdAndServiceName({
-          serviceId: serviceMetadata.serviceId,
+          serviceId: serviceMetadata.primaryEntityId,
           serviceName,
         });
+
+      /*
+       * Load pipelines, drop filters, and scrub rules once per batch so
+       * Fluentd-ingested logs go through the same processing stage as the
+       * OTLP path (OtelLogsIngestService.processLogsAsync). Without this,
+       * configured LogPipelines / drop filters / scrub rules are silently
+       * bypassed for the dedicated /fluentd/v1/logs endpoint. (Fluent Bit
+       * ships the OpenTelemetry output and lands on the OTLP path, which
+       * already applies these.) A load failure is logged and swallowed so a
+       * config lookup error can never fail ingest.
+       */
+      let loadedPipelines: Array<LoadedPipeline> = [];
+      let loadedDropFilters: Array<LoadedLogDropFilter> = [];
+      let loadedScrubRules: Awaited<
+        ReturnType<typeof LogScrubRuleService.loadScrubRules>
+      > = [];
+      try {
+        loadedPipelines = await LogPipelineService.loadPipelines(projectId);
+        loadedDropFilters =
+          await LogDropFilterService.loadDropFilters(projectId);
+        loadedScrubRules = await LogScrubRuleService.loadScrubRules(projectId);
+      } catch (loadError) {
+        logger.error(
+          "Fluent logs ingest: error loading pipelines/drop filters/scrub rules:",
+        );
+        logger.error(loadError);
+      }
 
       const dbLogs: Array<JSONObject> = [];
       let processed: number = 0;
@@ -222,17 +248,28 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
             ...entryAttributes,
           };
 
+          const retentionDays: number = resolveTelemetryRetentionInDays({
+            pillar: "logs",
+            bucketKey: severityInfo.text,
+            serviceConfig: serviceMetadata.serviceRetentionConfig,
+            serviceRetentionInDays: serviceMetadata.serviceRetentionInDays,
+            projectConfig: serviceMetadata.projectRetentionConfig,
+            projectRetentionInDays: serviceMetadata.projectRetentionInDays,
+          });
           const retentionDate: Date = OneUptimeDate.addRemoveDays(
             ingestionDate,
-            serviceMetadata.dataRententionInDays || 15,
+            retentionDays,
           );
 
-          const logRow: JSONObject = {
-            _id: ObjectID.generate().toString(),
+          let logRow: JSONObject = {
+            _id: ObjectID.generateTimeOrdered().toString(),
             createdAt: ingestionDateTime,
-            updatedAt: ingestionDateTime,
             projectId: projectId.toString(),
-            serviceId: serviceMetadata.serviceId.toString(),
+            primaryEntityId: serviceMetadata.primaryEntityId.toString(),
+            primaryEntityType: serviceMetadata.primaryEntityType,
+            entityKeys: serviceMetadata.entityKeys || [],
+            // serviceEntityKey from the resolved service; '' for the rest.
+            ...getScalarEntityKeyColumns(serviceMetadata),
             time: OneUptimeDate.toClickhouseDateTime64(ingestionDate),
             timeUnixNano,
             severityNumber: severityInfo.number,
@@ -244,6 +281,27 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
             body,
             retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
           } satisfies JSONObject;
+
+          /*
+           * Apply the same log-processing stage as the OTLP path, in the
+           * same order: drop filter (skip the row entirely), then sensitive
+           * data scrubbing, then pipeline processors. Each guarded on a
+           * non-empty rule set so projects with none configured pay no cost.
+           */
+          if (
+            loadedDropFilters.length > 0 &&
+            LogDropFilterService.shouldDropLog(logRow, loadedDropFilters)
+          ) {
+            continue;
+          }
+
+          if (loadedScrubRules.length > 0) {
+            logRow = LogScrubRuleService.scrubLog(logRow, loadedScrubRules);
+          }
+
+          if (loadedPipelines.length > 0) {
+            logRow = LogPipelineService.processLog(logRow, loadedPipelines);
+          }
 
           dbLogs.push(logRow);
           processed++;

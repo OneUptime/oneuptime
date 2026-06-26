@@ -10,6 +10,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import Email from "../../Types/Email";
+import MailTransportType from "../../Types/Email/MailTransportType";
 import OAuthProviderType from "../../Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "../../Types/Email/SMTPAuthenticationType";
 import IconProp from "../../Types/Icon/IconProp";
@@ -67,6 +68,25 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.Boolean,
+    title: "Require SSO for Login",
+    description:
+      "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public requireSsoForLogin?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
     title: "Disable User Project Creation",
     description: "Only master admins can create projects when enabled.",
     defaultValue: false,
@@ -104,13 +124,13 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     title: "SMTP Username",
     description: "Username for your SMTP Server",
   })
   @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
     nullable: true,
     unique: true,
   })
@@ -207,6 +227,33 @@ export default class GlobalConfig extends GlobalConfigModel {
     unique: true,
   })
   public smtpFromName?: string = undefined;
+
+  /*
+   * Transport selection for the global SMTP. Defaults to SMTP for backwards
+   * compatibility. 'Microsoft Graph' bypasses SMTP entirely and posts to
+   * https://graph.microsoft.com/v1.0/users/{from}/sendMail — useful for tenants
+   * that have SMTP AUTH disabled.
+   */
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "SMTP Transport",
+    description:
+      "How OneUptime delivers mail using the global SMTP config. 'SMTP' uses the host/port. 'Microsoft Graph' sends via the Microsoft Graph REST API.",
+    defaultValue: MailTransportType.SMTP,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    default: MailTransportType.SMTP,
+  })
+  public smtpTransportType?: MailTransportType = undefined;
 
   // SMTP OAuth 2.0 Settings.
 

@@ -64,6 +64,22 @@ export default class UserUtil {
     LocalStorage.setItem("user_timezone", timezone);
   }
 
+  public static getDismissedTimezonePrompt(): Timezone | null {
+    const value: JSONValue = LocalStorage.getItem("user_timezone_dismissed");
+    if (!value) {
+      return null;
+    }
+    return value as Timezone;
+  }
+
+  public static setDismissedTimezonePrompt(timezone: Timezone): void {
+    LocalStorage.setItem("user_timezone_dismissed", timezone);
+  }
+
+  public static clearDismissedTimezonePrompt(): void {
+    LocalStorage.removeItem("user_timezone_dismissed");
+  }
+
   public static setCardRegistered(value: boolean): void {
     LocalStorage.setItem("cardRegistered", value.toString());
   }

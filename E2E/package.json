@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "1.0.0",
+  "version": "11.3.6",
   "description": "",
   "repository": {
     "type": "git",
@@ -22,10 +22,9 @@
     "@types/node": "^20.10.4"
   },
   "dependencies": {
-    "@playwright/test": "^1.49.1",
+    "@playwright/test": "^1.60.0",
     "Common": "file:../Common",
-    
-    "playwright": "^1.49.1",
-    "typescript": "^5.4.5"
+    "playwright": "^1.60.0",
+    "typescript": "^5.9.2"
   }
 }

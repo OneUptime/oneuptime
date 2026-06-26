@@ -21,6 +21,10 @@ import { APP_API_URL } from "../../Config";
 import PageLoader from "../Loader/PageLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Service from "../../../Models/DatabaseModels/Service";
+import Host from "../../../Models/DatabaseModels/Host";
+import DockerHost from "../../../Models/DatabaseModels/DockerHost";
+import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
+import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
@@ -57,6 +61,8 @@ import { queryStringToFilter } from "../../../Types/Log/LogQueryToFilter";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
 import { exportLogs, LogExportFormat } from "../../Utils/LogExport";
+import ProjectUtil from "../../Utils/Project";
+import TelemetryServiceUtil from "../../Utils/TelemetryService";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 
@@ -86,6 +92,15 @@ export interface ComponentProps {
   facetLoading?: boolean;
   onFacetInclude?: (facetKey: string, value: string) => void;
   onFacetExclude?: (facetKey: string, value: string) => void;
+  /*
+   * Debounced search emit for resource facets (serviceId / hostId / etc.).
+   * Parent updates state and re-fetches facets so the result includes
+   * matching resources from the Postgres source-of-truth, not just those
+   * already loaded into the sidebar.
+   */
+  onFacetSearchChange?:
+    | ((facetKey: string, searchText: string) => void)
+    | undefined;
   showFacetSidebar?: boolean;
   activeFilters?: Array<ActiveFilter> | undefined;
   baseActiveFilters?: Array<ActiveFilter> | undefined;
@@ -210,6 +225,16 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const [pageError, setPageError] = useState<string>("");
 
   const [serviceMap, setServiceMap] = useState<Dictionary<Service>>({});
+  const [hostMap, setHostMap] = useState<Dictionary<Host>>({});
+  const [dockerHostMap, setDockerHostMap] = useState<Dictionary<DockerHost>>(
+    {},
+  );
+  const [podmanHostMap, setPodmanHostMap] = useState<Dictionary<PodmanHost>>(
+    {},
+  );
+  const [kubernetesClusterMap, setKubernetesClusterMap] = useState<
+    Dictionary<KubernetesCluster>
+  >({});
 
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
   const [focusedRowIndex, setFocusedRowIndex] = useState<number>(-1);
@@ -373,33 +398,148 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         setIsPageLoading(true);
         setPageError("");
 
-        const telemetryServices: ListResult<Service> = await ModelAPI.getList({
-          modelType: Service,
-          query: {},
-          select: {
-            name: true,
-            serviceColor: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
-        const services: Dictionary<Service> = {};
+        const [
+          telemetryServices,
+          hosts,
+          dockerHosts,
+          podmanHosts,
+          kubernetesClusters,
+        ]: [
+          ListResult<Service>,
+          ListResult<Host>,
+          ListResult<DockerHost>,
+          ListResult<PodmanHost>,
+          ListResult<KubernetesCluster>,
+        ] = await Promise.all([
+          ModelAPI.getList({
+            modelType: Service,
+            query: {},
+            select: {
+              name: true,
+              serviceColor: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          }),
+          ModelAPI.getList({
+            modelType: Host,
+            query: {},
+            select: {
+              name: true,
+              hostIdentifier: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          }),
+          ModelAPI.getList({
+            modelType: DockerHost,
+            query: {},
+            select: {
+              name: true,
+              hostIdentifier: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          }),
+          ModelAPI.getList({
+            modelType: PodmanHost,
+            query: {},
+            select: {
+              name: true,
+              hostIdentifier: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          }),
+          ModelAPI.getList({
+            modelType: KubernetesCluster,
+            query: {},
+            select: {
+              name: true,
+              clusterIdentifier: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          }),
+        ]);
 
+        const services: Dictionary<Service> = {};
         telemetryServices.data.forEach((service: Service) => {
           if (!service.id) {
             return;
           }
-
           services[service.id.toString()] = service;
         });
 
+        /*
+         * Logs without a service.name are tagged with the projectId
+         * (ServiceType.Unknown) and have no Service row. Register a
+         * synthetic "Unknown Service" keyed by the projectId so the
+         * primaryEntityId -> name resolution and the service facet render
+         * "Unknown Service" instead of a raw id. Harmless when no logs
+         * are unattributed — nothing resolves against it.
+         */
+        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+        if (projectId) {
+          services[projectId.toString()] =
+            TelemetryServiceUtil.getUnknownService(projectId);
+        }
+
+        const hostsById: Dictionary<Host> = {};
+        hosts.data.forEach((host: Host) => {
+          if (!host.id) {
+            return;
+          }
+          hostsById[host.id.toString()] = host;
+        });
+
+        const dockerHostsById: Dictionary<DockerHost> = {};
+        dockerHosts.data.forEach((dockerHost: DockerHost) => {
+          if (!dockerHost.id) {
+            return;
+          }
+          dockerHostsById[dockerHost.id.toString()] = dockerHost;
+        });
+
+        const podmanHostsById: Dictionary<PodmanHost> = {};
+        podmanHosts.data.forEach((podmanHost: PodmanHost) => {
+          if (!podmanHost.id) {
+            return;
+          }
+          podmanHostsById[podmanHost.id.toString()] = podmanHost;
+        });
+
+        const clustersById: Dictionary<KubernetesCluster> = {};
+        kubernetesClusters.data.forEach((cluster: KubernetesCluster) => {
+          if (!cluster.id) {
+            return;
+          }
+          clustersById[cluster.id.toString()] = cluster;
+        });
+
         setServiceMap(services);
+        setHostMap(hostsById);
+        setDockerHostMap(dockerHostsById);
+        setPodmanHostMap(podmanHostsById);
+        setKubernetesClusterMap(clustersById);
       } catch (err) {
         setPageError(
-          `We couldn't load telemetry service metadata. ${API.getFriendlyErrorMessage(err as Error)}`,
+          `We couldn't load telemetry resource metadata. ${API.getFriendlyErrorMessage(err as Error)}`,
         );
       } finally {
         setIsPageLoading(false);
@@ -524,17 +664,17 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
 
     // Resolve human-readable service name to UUID if needed
     if (
-      queryFilter["serviceId"] &&
-      typeof queryFilter["serviceId"] === "string"
+      queryFilter["primaryEntityId"] &&
+      typeof queryFilter["primaryEntityId"] === "string"
     ) {
-      const serviceName: string = queryFilter["serviceId"] as string;
+      const serviceName: string = queryFilter["primaryEntityId"] as string;
       const resolvedId: string | undefined = resolveServiceNameToId(
         serviceName,
         serviceMap,
       );
 
       if (resolvedId) {
-        queryFilter["serviceId"] = resolvedId;
+        queryFilter["primaryEntityId"] = resolvedId;
       }
     }
 
@@ -717,20 +857,62 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     }
 
     return props.activeFilters.map((filter: ActiveFilter): ActiveFilter => {
-      if (filter.facetKey === "serviceId" && serviceMap[filter.value]) {
+      if (filter.facetKey === "primaryEntityId" && serviceMap[filter.value]) {
         const service: Service | undefined = serviceMap[filter.value];
         return {
           ...filter,
           displayValue: service?.name || filter.value,
         };
       }
+      if (filter.facetKey === "hostId" && hostMap[filter.value]) {
+        const host: Host | undefined = hostMap[filter.value];
+        return {
+          ...filter,
+          displayValue: host?.name || host?.hostIdentifier || filter.value,
+        };
+      }
+      if (filter.facetKey === "dockerHostId" && dockerHostMap[filter.value]) {
+        const dockerHost: DockerHost | undefined = dockerHostMap[filter.value];
+        return {
+          ...filter,
+          displayValue:
+            dockerHost?.name || dockerHost?.hostIdentifier || filter.value,
+        };
+      }
+      if (filter.facetKey === "podmanHostId" && podmanHostMap[filter.value]) {
+        const podmanHost: PodmanHost | undefined = podmanHostMap[filter.value];
+        return {
+          ...filter,
+          displayValue:
+            podmanHost?.name || podmanHost?.hostIdentifier || filter.value,
+        };
+      }
+      if (
+        filter.facetKey === "kubernetesClusterId" &&
+        kubernetesClusterMap[filter.value]
+      ) {
+        const cluster: KubernetesCluster | undefined =
+          kubernetesClusterMap[filter.value];
+        return {
+          ...filter,
+          displayValue:
+            cluster?.name || cluster?.clusterIdentifier || filter.value,
+        };
+      }
 
       return filter;
     });
-  }, [props.activeFilters, serviceMap]);
+  }, [
+    props.activeFilters,
+    serviceMap,
+    hostMap,
+    dockerHostMap,
+    podmanHostMap,
+    kubernetesClusterMap,
+  ]);
 
   /*
-   * Replace serviceId UUIDs with human-readable names in value suggestions,
+   * Replace primaryEntityId UUIDs with human-readable names in value suggestions,
    * and merge in the lazily-fetched attribute value suggestions.
    * Must be before early returns to maintain consistent hook call order.
    */
@@ -749,8 +931,11 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         ...attributeValueSuggestions,
       };
 
-      if (suggestions["serviceId"] && Object.keys(serviceMap).length > 0) {
-        suggestions["serviceId"] = suggestions["serviceId"].map(
+      if (
+        suggestions["primaryEntityId"] &&
+        Object.keys(serviceMap).length > 0
+      ) {
+        suggestions["primaryEntityId"] = suggestions["primaryEntityId"].map(
           (id: string) => {
             const service: Service | undefined = serviceMap[id];
             return service?.name || id;
@@ -939,12 +1124,17 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               facetData={props.facetData}
               isLoading={props.facetLoading || false}
               serviceMap={serviceMap}
+              hostMap={hostMap}
+              dockerHostMap={dockerHostMap}
+              podmanHostMap={podmanHostMap}
+              kubernetesClusterMap={kubernetesClusterMap}
               onIncludeFilter={props.onFacetInclude || (() => {})}
               onExcludeFilter={props.onFacetExclude || (() => {})}
               activeFilters={props.activeFilters}
               savedViews={props.savedViews}
               selectedSavedViewId={props.selectedSavedViewId}
               onSavedViewSelect={props.onSavedViewSelect}
+              onFacetSearchChange={props.onFacetSearchChange}
             />
           )}
 

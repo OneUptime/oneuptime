@@ -15,7 +15,16 @@ import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Navigation from "Common/UI/Utils/Navigation";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Card from "Common/UI/Components/Card/Card";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import Host from "Common/Models/DatabaseModels/Host";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Service from "Common/Models/DatabaseModels/Service";
+import AffectedResourcesPicker, {
+  isAffectedResourcesPayload,
+} from "../../Components/AffectedResources/AffectedResourcesPicker";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -233,6 +242,114 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 },
               },
               {
+                /*
+                 * Alert.monitor is singular; this picker covers the other
+                 * ManyToMany resources the alert may impact. We anchor on
+                 * `hosts` because the picker payload is split out into the
+                 * proper fields via the onChange below.
+                 */
+                field: {
+                  hosts: true,
+                },
+                title: "Other Affected Resources",
+                stepId: "on-call",
+                description:
+                  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services affected by this alert.",
+                fieldType: FormFieldSchemaType.CustomComponent,
+                required: false,
+                getCustomElement: (
+                  values: FormValues<Alert>,
+                  elementProps: CustomElementProps,
+                ) => {
+                  return (
+                    <AffectedResourcesPicker
+                      hosts={values.hosts as Array<Host>}
+                      kubernetesClusters={
+                        values.kubernetesClusters as Array<KubernetesCluster>
+                      }
+                      dockerHosts={values.dockerHosts as Array<DockerHost>}
+                      podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                      services={values.services as Array<Service>}
+                      resourceTypes={[
+                        "Host",
+                        "KubernetesCluster",
+                        "DockerHost",
+                        "PodmanHost",
+                        "Service",
+                      ]}
+                      onChange={(payload: unknown) => {
+                        elementProps.onChange?.(payload);
+                      }}
+                    />
+                  );
+                },
+                onChange: (
+                  value: unknown,
+                  currentValues: FormValues<Alert>,
+                  setNewFormValues: (values: FormValues<Alert>) => void,
+                ) => {
+                  if (isAffectedResourcesPayload(value)) {
+                    const payload: typeof value = value;
+                    queueMicrotask(() => {
+                      setNewFormValues({
+                        ...currentValues,
+                        hosts: payload.hosts,
+                        kubernetesClusters: payload.kubernetesClusters,
+                        dockerHosts: payload.dockerHosts,
+                        podmanHosts: payload.podmanHosts,
+                        services: payload.services,
+                      } as FormValues<Alert>);
+                    });
+                  }
+                },
+              },
+              /*
+               * Hidden registrations so ModelForm.getSelectFields includes
+               * kubernetesClusters/dockerHosts/services. (hosts is already the
+               * picker's anchor field above so it doesn't need an extra
+               * registration.)
+               */
+              {
+                field: { kubernetesClusters: true },
+                stepId: "on-call",
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { dockerHosts: true },
+                stepId: "on-call",
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { podmanHosts: true },
+                stepId: "on-call",
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { services: true },
+                stepId: "on-call",
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
                 field: {
                   onCallDutyPolicies: true,
                 },
@@ -361,6 +478,18 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 description: MarkdownUtil.getMarkdownCheatsheet(
                   "Describe the remediation steps here",
                 ),
+              },
+              {
+                field: {
+                  isPrivate: true,
+                },
+                title: "Private Alert",
+                stepId: "more",
+                description:
+                  "If checked, only the alert's owner users and the members of its owner teams (plus project admins and owners) can view this alert.",
+                fieldType: FormFieldSchemaType.Checkbox,
+                defaultValue: false,
+                required: false,
               },
             ]}
             steps={[

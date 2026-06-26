@@ -9,7 +9,11 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { SupportedLanguage, SUPPORTED_LANGUAGES } from "../../Utils/i18n";
+import {
+  LANGUAGE_USER_CHOICE_KEY,
+  SupportedLanguage,
+  SUPPORTED_LANGUAGES,
+} from "../../Utils/i18n";
 
 export interface ComponentProps {
   className?: string | undefined;
@@ -58,6 +62,9 @@ const LanguageSwitcher: FunctionComponent<ComponentProps> = (
     event: ChangeEvent<HTMLSelectElement>,
   ): void => {
     const nextLanguage: string = event.target.value;
+    if (typeof window !== "undefined" && window.localStorage) {
+      window.localStorage.setItem(LANGUAGE_USER_CHOICE_KEY, "true");
+    }
     i18n.changeLanguage(nextLanguage);
   };
 
@@ -81,7 +88,7 @@ const LanguageSwitcher: FunctionComponent<ComponentProps> = (
         aria-label={t("language.switchLanguage")}
         value={currentLanguage}
         onChange={onChange}
-        className="cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-gray-500 transition-colors duration-200 hover:text-gray-700 focus:outline-none focus:ring-0"
+        className="cursor-pointer rounded border-0 bg-transparent p-0 text-sm font-medium text-gray-500 transition-colors duration-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
       >
         {availableLanguages.map((language: SupportedLanguage) => {
           return (

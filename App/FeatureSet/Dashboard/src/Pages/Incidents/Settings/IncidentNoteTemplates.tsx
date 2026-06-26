@@ -18,6 +18,9 @@ const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
         name="Settings > Incident Templates"
         isDeleteable={false}
         userPreferencesKey="incident-templates-table"
+        saveFilterProps={{
+          tableId: "incident-note-templates-table",
+        }}
         isEditable={false}
         isCreateable={true}
         isViewable={true}

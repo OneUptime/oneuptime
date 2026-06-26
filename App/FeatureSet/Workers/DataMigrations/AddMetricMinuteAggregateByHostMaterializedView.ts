@@ -1,4 +1,6 @@
 import DataMigrationBase from "./DataMigrationBase";
+import ClickHouseMigrationUtil from "./ClickHouseMigrationUtil";
+import AnalyticsTableManagement from "../Utils/AnalyticsDatabase/TableManegement";
 import MetricService from "Common/Server/Services/MetricService";
 import logger from "Common/Server/Utils/Logger";
 
@@ -31,16 +33,53 @@ import logger from "Common/Server/Utils/Logger";
  *   point inflating the per-host MV with non-host data.
  *
  * Backfill:
- *   Backfills the historical aggregate from MetricItemV2 with a
- *   1-second cutoff to avoid double-counting any rows that
- *   land between MV creation and the INSERT.
+ *   None. Only minute buckets for data ingested after this
+ *   migration runs will be present in the MV; older time ranges
+ *   fall through to the base MetricItemV2 table on read.
  */
 export default class AddMetricMinuteAggregateByHostMaterializedView extends DataMigrationBase {
   public constructor() {
     super("AddMetricMinuteAggregateByHostMaterializedView");
   }
 
+  public override runsInClusterMode(): boolean {
+    return false;
+  }
+
   public override async migrate(): Promise<void> {
+    /*
+     * Only applicable while MetricItemV2 is the live metric table: this
+     * legacy rollup is superseded by the model-owned, hostEntityKey-keyed
+     * MetricItemAggMV1mByHostV2 (the V3 cut detaches the view created
+     * here; the frozen table self-drains via TTL and serves as the manual
+     * per-host backfill source). On a fresh install of the V3 cut, V2
+     * never exists and the CREATE MATERIALIZED VIEW below would throw
+     * UNKNOWN_TABLE on its FROM clause and wedge the chain — skip.
+     */
+    if (!(await ClickHouseMigrationUtil.tableExists("MetricItemV2"))) {
+      logger.info(
+        "AddMetricMinuteAggregateByHostMaterializedView: MetricItemV2 not present (fresh V3 install) — skipping.",
+      );
+      return;
+    }
+
+    /*
+     * MV creation is now owned by the model + analytics schema-sync
+     * (AnalyticsTableManagement.createMaterializedViews). Skip if the
+     * view already exists so this one-time migration doesn't redo work.
+     */
+    if (
+      await AnalyticsTableManagement.doesMaterializedViewExist(
+        MetricService,
+        "MetricItemAggMV1mByHost_mv",
+      )
+    ) {
+      logger.info(
+        "MetricItemAggMV1mByHost_mv already exists - skipping migration.",
+      );
+      return;
+    }
+
     /*
      * Destination table. Keyed by hostIdentifier directly after
      * (projectId, name) so a query like
@@ -101,31 +140,6 @@ export default class AddMetricMinuteAggregateByHostMaterializedView extends Data
        GROUP BY projectId, name, hostIdentifier, bucketTime`,
     );
     logger.info("Created MetricItemAggMV1mByHost_mv materialized view");
-
-    /*
-     * Backfill from raw MetricItemV2. The 1-second cutoff is the
-     * race-window guard: any row inserted between the MV
-     * creation above and this INSERT is already covered by the
-     * MV, so we restrict the backfill to rows that predate it.
-     */
-    await MetricService.execute(
-      `INSERT INTO MetricItemAggMV1mByHost
-       SELECT
-         projectId,
-         name,
-         attributes['resource.host.name'] AS hostIdentifier,
-         toStartOfMinute(time) AS bucketTime,
-         sumState(toFloat64(coalesce(value, sum, 0))) AS valueSumState,
-         countState(toFloat64(coalesce(value, sum, 0))) AS valueCountState,
-         minState(toFloat64(coalesce(value, sum, 0))) AS valueMinState,
-         maxState(toFloat64(coalesce(value, sum, 0))) AS valueMaxState,
-         max(retentionDate) AS retentionDate
-       FROM MetricItemV2
-       WHERE time < (now() - INTERVAL 1 SECOND)
-         AND attributes['resource.host.name'] != ''
-       GROUP BY projectId, name, hostIdentifier, bucketTime`,
-    );
-    logger.info("Backfilled MetricItemAggMV1mByHost from MetricItemV2");
   }
 
   public override async rollback(): Promise<void> {

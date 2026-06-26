@@ -39,12 +39,12 @@ On Linux use `base64 release.keystore` instead.
 
 Go to **Settings > Secrets and variables > Actions** in your GitHub repository and add:
 
-| Secret name | Value |
-|---|---|
-| `ANDROID_KEYSTORE_BASE64` | Contents of `release.keystore.b64` |
+| Secret name                 | Value                                 |
+| --------------------------- | ------------------------------------- |
+| `ANDROID_KEYSTORE_BASE64`   | Contents of `release.keystore.b64`    |
 | `ANDROID_KEYSTORE_PASSWORD` | The `<your-store-password>` you chose |
-| `ANDROID_KEY_ALIAS` | The `<your-key-alias>` you chose |
-| `ANDROID_KEY_PASSWORD` | The `<your-key-password>` you chose |
+| `ANDROID_KEY_ALIAS`         | The `<your-key-alias>` you chose      |
+| `ANDROID_KEY_PASSWORD`      | The `<your-key-password>` you chose   |
 
 ---
 
@@ -131,12 +131,12 @@ cat profile.b64
 
 Go to **Settings > Secrets and variables > Actions** in your GitHub repository and add:
 
-| Secret name | Value |
-|---|---|
-| `IOS_DISTRIBUTION_CERTIFICATE_BASE64` | Contents of `distribution.p12.b64` |
+| Secret name                             | Value                                          |
+| --------------------------------------- | ---------------------------------------------- |
+| `IOS_DISTRIBUTION_CERTIFICATE_BASE64`   | Contents of `distribution.p12.b64`             |
 | `IOS_DISTRIBUTION_CERTIFICATE_PASSWORD` | The password you set when exporting the `.p12` |
-| `IOS_PROVISIONING_PROFILE_BASE64` | Contents of `profile.b64` |
-| `IOS_TEAM_ID` | Your 10-character Apple Team ID |
+| `IOS_PROVISIONING_PROFILE_BASE64`       | Contents of `profile.b64`                      |
+| `IOS_TEAM_ID`                           | Your 10-character Apple Team ID                |
 
 ---
 

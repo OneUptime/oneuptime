@@ -12,6 +12,19 @@ data:
         endpoint: "0.0.0.0:13133"
 
     receivers:
+      {{- if .Values.ebpf.enabled }}
+      # Accept OTLP traffic from the eBPF DaemonSet (and any other in-cluster
+      # OTLP senders). The eBPF DaemonSet ships its captured HTTP/gRPC/SQL
+      # spans here so the collector's k8sattributes processor can enrich them
+      # before they're forwarded to OneUptime.
+      otlp:
+        protocols:
+          http:
+            endpoint: "0.0.0.0:4318"
+          grpc:
+            endpoint: "0.0.0.0:4317"
+      {{- end }}
+
       # Collect cluster-level metrics from the Kubernetes API
       k8s_cluster:
         collection_interval: {{ .Values.collectionInterval }}
@@ -81,50 +94,67 @@ data:
           {{- end }}
           {{- end }}
 
-      {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled }}
-      # Scrape metrics via Prometheus endpoints (control plane and/or service mesh)
+      {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled }}
+      # Scrape metrics via Prometheus endpoints (control plane, service
+      # mesh, CSI drivers, CoreDNS, kube-state-metrics)
       prometheus:
         config:
           scrape_configs:
             {{- if .Values.controlPlane.enabled }}
             - job_name: etcd
               scheme: https
+              metrics_path: /metrics
               tls_config:
                 insecure_skip_verify: {{ .Values.controlPlane.etcd.insecureSkipVerify }}
               static_configs:
                 {{- range .Values.controlPlane.etcd.endpoints }}
                 - targets:
-                    - {{ . | quote }}
+                    # Prometheus targets must be bare host:port — strip any
+                    # scheme/path the endpoint was written with (scheme is set
+                    # above, metrics_path defaults to /metrics).
+                    - {{ . | trimPrefix "https://" | trimPrefix "http://" | trimSuffix "/metrics" | quote }}
                 {{- end }}
             - job_name: kube-apiserver
               scheme: https
+              metrics_path: /metrics
               tls_config:
                 insecure_skip_verify: {{ .Values.controlPlane.apiServer.insecureSkipVerify }}
               bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
               static_configs:
                 {{- range .Values.controlPlane.apiServer.endpoints }}
                 - targets:
-                    - {{ . | quote }}
+                    # Prometheus targets must be bare host:port — strip any
+                    # scheme/path the endpoint was written with (scheme is set
+                    # above, metrics_path defaults to /metrics).
+                    - {{ . | trimPrefix "https://" | trimPrefix "http://" | trimSuffix "/metrics" | quote }}
                 {{- end }}
             - job_name: kube-scheduler
               scheme: https
+              metrics_path: /metrics
               tls_config:
                 insecure_skip_verify: {{ .Values.controlPlane.scheduler.insecureSkipVerify }}
               bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
               static_configs:
                 {{- range .Values.controlPlane.scheduler.endpoints }}
                 - targets:
-                    - {{ . | quote }}
+                    # Prometheus targets must be bare host:port — strip any
+                    # scheme/path the endpoint was written with (scheme is set
+                    # above, metrics_path defaults to /metrics).
+                    - {{ . | trimPrefix "https://" | trimPrefix "http://" | trimSuffix "/metrics" | quote }}
                 {{- end }}
             - job_name: kube-controller-manager
               scheme: https
+              metrics_path: /metrics
               tls_config:
                 insecure_skip_verify: {{ .Values.controlPlane.controllerManager.insecureSkipVerify }}
               bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
               static_configs:
                 {{- range .Values.controlPlane.controllerManager.endpoints }}
                 - targets:
-                    - {{ . | quote }}
+                    # Prometheus targets must be bare host:port — strip any
+                    # scheme/path the endpoint was written with (scheme is set
+                    # above, metrics_path defaults to /metrics).
+                    - {{ . | trimPrefix "https://" | trimPrefix "http://" | trimSuffix "/metrics" | quote }}
                 {{- end }}
             {{- end }}
             {{- if and .Values.serviceMesh.enabled (eq .Values.serviceMesh.provider "istio") }}
@@ -173,6 +203,88 @@ data:
                   action: replace
                   target_label: pod_name
             {{- end }}
+            {{- if .Values.csi.enabled }}
+            # CSI (storage driver) metrics. Most drivers expose a
+            # `metrics` port on the driver pods themselves. Match on
+            # the canonical label conventions: `app=csi-driver` or
+            # `app.kubernetes.io/component=csi-driver`. If your driver
+            # uses a different convention, override this job via the
+            # values file.
+            - job_name: csi-drivers
+              scrape_interval: {{ .Values.csi.scrapeInterval }}
+              kubernetes_sd_configs:
+                - role: pod
+              relabel_configs:
+                - source_labels:
+                    - __meta_kubernetes_pod_label_app
+                    - __meta_kubernetes_pod_label_app_kubernetes_io_component
+                  action: keep
+                  regex: (csi-driver|.*csi-driver.*)
+                - source_labels: [__meta_kubernetes_pod_container_port_name]
+                  action: keep
+                  regex: (metrics|http-metrics|csi-metrics)
+                - action: labelmap
+                  regex: __meta_kubernetes_pod_label_(.+)
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: replace
+                  target_label: namespace
+                - source_labels: [__meta_kubernetes_pod_name]
+                  action: replace
+                  target_label: pod_name
+                - source_labels: [__meta_kubernetes_pod_container_name]
+                  action: replace
+                  target_label: container_name
+            {{- end }}
+            {{- if .Values.kubeStateMetrics.enabled }}
+            # Cluster-state metrics from kube-state-metrics (KSM).
+            # `metric_relabel_configs` keeps only the configured
+            # allowlist at the receiver — KSM exports ~100 metric
+            # families by default, and we only forward the ones that
+            # power monitors.
+            - job_name: kube-state-metrics
+              scrape_interval: {{ .Values.kubeStateMetrics.scrapeInterval }}
+              {{- if eq .Values.kubeStateMetrics.mode "external" }}
+              # External KSM — operator-provided endpoint.
+              static_configs:
+                - targets:
+                    - {{ .Values.kubeStateMetrics.endpoint | trimPrefix "http://" | trimPrefix "https://" | trimSuffix "/metrics" | quote }}
+              {{- else }}
+              # Bundled KSM — Service deployed by templates/kube-state-metrics.yaml.
+              static_configs:
+                - targets:
+                    - "{{ include "kubernetes-agent.fullname" . }}-kube-state-metrics.{{ .Release.Namespace }}.svc.cluster.local:8080"
+              {{- end }}
+              metric_relabel_configs:
+                - source_labels: [__name__]
+                  regex: "^({{ join "|" .Values.kubeStateMetrics.metricsAllowlist }})$"
+                  action: keep
+            {{- end }}
+            {{- if .Values.coreDns.enabled }}
+            # CoreDNS metrics. By default CoreDNS exposes a Prometheus
+            # endpoint on port 9153 — exposes query rate, latency, cache
+            # hits, error rates. Useful for catching DNS-induced P99
+            # latency.
+            - job_name: coredns
+              scrape_interval: {{ .Values.coreDns.scrapeInterval }}
+              kubernetes_sd_configs:
+                - role: pod
+                  namespaces:
+                    names:
+                      - {{ .Values.coreDns.namespace }}
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_pod_label_k8s_app]
+                  action: keep
+                  regex: {{ .Values.coreDns.service }}
+                - source_labels: [__meta_kubernetes_pod_container_port_number]
+                  action: keep
+                  regex: "{{ .Values.coreDns.port }}"
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: replace
+                  target_label: namespace
+                - source_labels: [__meta_kubernetes_pod_name]
+                  action: replace
+                  target_label: pod_name
+            {{- end }}
       {{- end }}
 
     processors:
@@ -209,15 +321,28 @@ data:
           - sources:
               - from: connection
 
-      # Stamp all telemetry with the cluster name and service name
+      # Stamp telemetry that doesn't already carry these attributes (e.g.
+      # k8s_cluster receiver metrics, k8sobjects logs) with the cluster
+      # name and a default service.name. Uses `insert` so OBI-emitted
+      # metrics — which already carry the real per-pod service.name —
+      # aren't overwritten and show up under their own service in the
+      # dashboard.
+      #
+      # Any keys under .Values.oneuptime.labels are also stamped here as
+      # `oneuptime.label.<key>=<value>` resource attributes. The OneUptime
+      # ingest pipeline promotes those into project Labels.
       resource:
         attributes:
           - key: k8s.cluster.name
             value: {{ .Values.clusterName | quote }}
-            action: upsert
+            action: insert
           - key: service.name
             value: "kubernetes-agent-{{ .Values.clusterName }}"
-            action: upsert
+            action: insert
+          - key: oneuptime.agent.version
+            value: {{ .Chart.AppVersion | quote }}
+            action: insert
+          {{- include "kubernetes-agent.oneuptimeLabels" (dict "labels" .Values.oneuptime.labels "action" "insert") | nindent 10 }}
 
       # The k8sobjects receiver emits LogRecords without a severity, so
       # Kubernetes events and resource snapshots arrive at OneUptime with
@@ -242,11 +367,15 @@ data:
         send_batch_max_size: 200
         timeout: 10s
 
-      # Limit memory usage
+      # Memory ceiling for the collector. limit_mib / spike_limit_mib are
+      # derived from the container memory limit
+      # (.Values.deployment.resources.limits.memory, wired into the Deployment
+      # at templates/deployment.yaml) so the limiter always trips *below* the
+      # cgroup limit and can't drift above it. limit_mib ≈ 80% of the
+      # container limit, spike_limit_mib ≈ 20% of limit_mib (OTel guidance).
+      # See the `kubernetes-agent.memoryLimiter` helper.
       memory_limiter:
-        check_interval: 5s
-        limit_mib: 3000
-        spike_limit_mib: 600
+        {{- include "kubernetes-agent.memoryLimiter" (.Values.deployment.resources.limits.memory | default "4Gi") | nindent 8 }}
 
     exporters:
       otlphttp:
@@ -271,7 +400,14 @@ data:
         metrics:
           receivers:
             - k8s_cluster
-            {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled }}
+            {{- if .Values.ebpf.enabled }}
+            # OBI emits application/network/stats metrics on the same OTLP
+            # receiver that handles its traces — pull them into the same
+            # metrics pipeline so they ride the existing batch/retry/auth
+            # path to OneUptime.
+            - otlp
+            {{- end }}
+            {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled }}
             - prometheus
             {{- end }}
           processors:
@@ -292,3 +428,20 @@ data:
             - batch
           exporters:
             - otlphttp
+        {{- if .Values.ebpf.enabled }}
+        # Traces pipeline: accept OTLP spans from the eBPF DaemonSet, enrich
+        # with k8s attributes, stamp cluster name, and forward to OneUptime.
+        # We deliberately omit the `resource` processor's service.name
+        # override here — OBI sets a per-process service.name from k8s
+        # workload metadata, and we want to preserve it so each app shows up
+        # under its own service in the dashboard.
+        traces:
+          receivers:
+            - otlp
+          processors:
+            - memory_limiter
+            - k8sattributes
+            - batch
+          exporters:
+            - otlphttp
+        {{- end }}

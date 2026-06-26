@@ -1,9 +1,12 @@
+import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
@@ -20,6 +23,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 
 @EnableDocumentation()
+@CanAccessIfCanReadOn("onCallDutyPolicy")
 @TableBillingAccessControl({
   create: PlanType.Growth,
   read: PlanType.Growth,
@@ -38,31 +42,36 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.OnCallManager,
+    Permission.OnCallAdmin,
+    Permission.OnCallMember,
   ],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.OnCallManager,
+    Permission.OnCallAdmin,
+    Permission.OnCallMember,
+    Permission.OnCallViewer,
     Permission.ReadOnCallDutyPolicyTimeLog,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.OnCallManager,
+    Permission.OnCallAdmin,
+    Permission.OnCallMember,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.OnCallManager,
+    Permission.OnCallAdmin,
+    Permission.OnCallMember,
   ],
 })
 @CrudApiEndpoint(new Route("/on-call-duty-policy-time-log"))
+@OwnedThrough("onCallDutyPolicyId", OnCallDutyPolicy)
 @Entity({
   name: "OnCallDutyPolicyTimeLog",
 })
@@ -80,16 +89,18 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -120,16 +131,18 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -154,16 +167,18 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -189,16 +204,18 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -224,16 +241,18 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -259,16 +278,18 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -294,16 +315,18 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -327,16 +350,18 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -368,16 +393,18 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -400,16 +427,18 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -441,19 +470,22 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
+  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
@@ -468,6 +500,7 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
   })
   public userId?: ObjectID = undefined;
 
+  @Index()
   @TableColumn({
     title: "Start At",
     type: TableColumnType.Date,
@@ -480,16 +513,18 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -499,6 +534,7 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
   })
   public startsAt?: Date = undefined;
 
+  @Index()
   @TableColumn({
     title: "Ends At",
     type: TableColumnType.Date,
@@ -511,16 +547,18 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

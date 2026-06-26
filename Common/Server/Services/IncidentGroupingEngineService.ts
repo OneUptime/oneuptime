@@ -11,20 +11,19 @@ import IncidentEpisodeRoleMember from "../../Models/DatabaseModels/IncidentEpiso
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
-import ServiceMonitor from "../../Models/DatabaseModels/ServiceMonitor";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import QueryHelper from "../Types/Database/QueryHelper";
 import IncidentGroupingRuleService from "./IncidentGroupingRuleService";
+import IncidentService from "./IncidentService";
 import IncidentEpisodeService from "./IncidentEpisodeService";
 import IncidentEpisodeMemberService from "./IncidentEpisodeMemberService";
 import IncidentEpisodeOwnerUserService from "./IncidentEpisodeOwnerUserService";
 import IncidentEpisodeOwnerTeamService from "./IncidentEpisodeOwnerTeamService";
 import IncidentEpisodeRoleMemberService from "./IncidentEpisodeRoleMemberService";
 import MonitorService from "./MonitorService";
-import ServiceMonitorService from "./ServiceMonitorService";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
@@ -95,7 +94,8 @@ class IncidentGroupingEngineServiceClass {
             groupByMonitor: true,
             groupBySeverity: true,
             groupByIncidentTitle: true,
-            groupByService: true,
+            groupByIncidentLabels: true,
+            groupByMonitorLabels: true,
             // Time settings
             enableTimeWindow: true,
             timeWindowMinutes: true,
@@ -589,37 +589,6 @@ class IncidentGroupingEngineServiceClass {
   ): Promise<string> {
     const parts: Array<string> = [];
 
-    /*
-     * Group by service - only if explicitly enabled
-     * Must be checked before monitor since service contains multiple monitors
-     */
-    if (
-      rule.groupByService &&
-      incident.monitors &&
-      incident.monitors.length > 0
-    ) {
-      // Use the first monitor's service for grouping
-      const firstMonitor: Monitor | undefined = incident.monitors[0];
-      if (firstMonitor && firstMonitor.id) {
-        const serviceMonitor: ServiceMonitor | null =
-          await ServiceMonitorService.findOneBy({
-            query: {
-              monitorId: firstMonitor.id,
-            },
-            select: {
-              serviceId: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-        if (serviceMonitor?.serviceId) {
-          parts.push(`service:${serviceMonitor.serviceId.toString()}`);
-        }
-      }
-    }
-
     // Group by monitor - only if explicitly enabled
     if (
       rule.groupByMonitor &&
@@ -647,8 +616,98 @@ class IncidentGroupingEngineServiceClass {
       parts.push(`title:${normalizedTitle}`);
     }
 
+    // Group by incident labels (exact set match) - only if explicitly enabled
+    if (rule.groupByIncidentLabels && incident.id) {
+      const incidentLabels: Array<Label> =
+        await this.getIncidentLabels(incident);
+      const sortedLabelIds: Array<string> = incidentLabels
+        .map((l: Label) => {
+          return l.id?.toString() || "";
+        })
+        .filter((id: string) => {
+          return id.length > 0;
+        })
+        .sort();
+      parts.push(`incidentLabels:${sortedLabelIds.join(",")}`);
+    }
+
+    /*
+     * Group by monitor labels (exact set match) - only if explicitly enabled
+     * Incidents can be associated with multiple monitors; we union and dedupe labels across all of them.
+     */
+    if (
+      rule.groupByMonitorLabels &&
+      incident.monitors &&
+      incident.monitors.length > 0
+    ) {
+      const monitorLabelIdSet: Set<string> = new Set<string>();
+      for (const incidentMonitor of incident.monitors) {
+        if (!incidentMonitor || !incidentMonitor.id) {
+          continue;
+        }
+        const monitorLabels: Array<Label> = await this.getMonitorLabels(
+          incidentMonitor.id,
+        );
+        for (const label of monitorLabels) {
+          const labelIdStr: string = label.id?.toString() || "";
+          if (labelIdStr.length > 0) {
+            monitorLabelIdSet.add(labelIdStr);
+          }
+        }
+      }
+      const sortedLabelIds: Array<string> =
+        Array.from(monitorLabelIdSet).sort();
+      parts.push(`monitorLabels:${sortedLabelIds.join(",")}`);
+    }
+
     // If no group by options are enabled, all matching incidents go into a single episode
     return parts.join("|") || "default";
+  }
+
+  @CaptureSpan()
+  private async getIncidentLabels(incident: Incident): Promise<Array<Label>> {
+    // If labels are already loaded on the incident, use them
+    if (incident.labels && Array.isArray(incident.labels)) {
+      return incident.labels;
+    }
+
+    if (!incident.id) {
+      return [];
+    }
+
+    // Re-load incident with labels
+    const reloadedIncident: Incident | null = await IncidentService.findOneById(
+      {
+        id: incident.id,
+        select: {
+          labels: {
+            _id: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      },
+    );
+
+    return reloadedIncident?.labels || [];
+  }
+
+  @CaptureSpan()
+  private async getMonitorLabels(monitorId: ObjectID): Promise<Array<Label>> {
+    const monitor: Monitor | null = await MonitorService.findOneById({
+      id: monitorId,
+      select: {
+        labels: {
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return monitor?.labels || [];
   }
 
   @CaptureSpan()
@@ -921,8 +980,11 @@ class IncidentGroupingEngineServiceClass {
         if (rule.groupByIncidentTitle) {
           groupByParts.push("Incident Title");
         }
-        if (rule.groupByService) {
-          groupByParts.push("Service");
+        if (rule.groupByIncidentLabels) {
+          groupByParts.push("Incident Labels");
+        }
+        if (rule.groupByMonitorLabels) {
+          groupByParts.push("Monitor Labels");
         }
 
         const groupByDescription: string =

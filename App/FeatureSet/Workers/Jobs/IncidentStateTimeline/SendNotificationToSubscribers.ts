@@ -41,6 +41,7 @@ import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 
 RunCron(
@@ -679,6 +680,42 @@ RunCron(
                 incidentId: incident.id?.toString(),
               },
             );
+          }
+
+          if (subscriber.subscriberWebhook) {
+            logger.debug(
+              `Queueing webhook notification to subscriber ${subscriber._id} for incident state timeline ${incidentStateTimeline.id}.`,
+              {
+                projectId: incident.projectId?.toString(),
+                incidentId: incident.id?.toString(),
+              },
+            );
+
+            StatusPageSubscriberWebhookUtil.sendWebhookNotification({
+              webhookUrl: subscriber.subscriberWebhook,
+              payload: {
+                eventType: "IncidentStateChanged",
+                statusPageId: statuspage.id!.toString(),
+                statusPageName: statusPageName,
+                statusPageUrl: statusPageURL,
+                unsubscribeUrl: unsubscribeUrl,
+                data: {
+                  incidentId: incident.id?.toString() || "",
+                  incidentNumber: incident.incidentNumber?.toString() || "",
+                  incidentTitle: incident.title || "",
+                  incidentSeverity: incident.incidentSeverity?.name || "",
+                  incidentState:
+                    incidentStateTimeline.incidentState?.name || "",
+                  resourcesAffected: resourcesAffected || "",
+                  detailsUrl: incidentDetailsUrl,
+                },
+              },
+            }).catch((err: Error) => {
+              logger.error(err, {
+                projectId: incident.projectId?.toString(),
+                incidentId: incident.id?.toString(),
+              });
+            });
           }
         }
       }

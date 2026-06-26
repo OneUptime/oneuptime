@@ -3,6 +3,15 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import Host from "Common/Models/DatabaseModels/Host";
+import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
+import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners, {
+  ResourceFacet,
+  buildEnumFacetQuery,
+} from "../../Components/ResourceOwners/useResourceOwners";
+import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
+import IconProp from "Common/Types/Icon/IconProp";
 import React, {
   Fragment,
   FunctionComponent,
@@ -12,6 +21,8 @@ import React, {
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -24,7 +35,8 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import HostDocumentationCard from "../../Components/Host/DocumentationCard";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
-import ProjectUtil from "Common/UI/Utils/Project";
+import AppLink from "../../Components/AppLink/AppLink";
+import ObjectID from "Common/Types/ObjectID";
 
 interface ResourceSummary {
   cores: number | undefined;
@@ -48,6 +60,116 @@ const formatMemory: (bytes: number | undefined) => string = (
   return `${v.toFixed(v < 10 ? 1 : 0)} ${units[i]}`;
 };
 
+const isIPv4: (ip: string) => boolean = (ip: string): boolean => {
+  return ip.includes(".") && !ip.includes(":");
+};
+
+const isLoopback: (ip: string) => boolean = (ip: string): boolean => {
+  const lower: string = ip.toLowerCase();
+  return lower === "::1" || lower.startsWith("127.");
+};
+
+const isLinkLocal: (ip: string) => boolean = (ip: string): boolean => {
+  const lower: string = ip.toLowerCase();
+  return lower.startsWith("fe80:") || lower.startsWith("169.254.");
+};
+
+const ipDisplayScore: (ip: string) => number = (ip: string): number => {
+  let score: number = 0;
+  if (isIPv4(ip)) {
+    score += 100;
+  }
+  if (!isLoopback(ip)) {
+    score += 10;
+  }
+  if (!isLinkLocal(ip)) {
+    score += 1;
+  }
+  return score;
+};
+
+const parseIpString: (ipString: string) => Array<string> = (
+  ipString: string,
+): Array<string> => {
+  const seen: Set<string> = new Set<string>();
+  const ips: Array<string> = [];
+  for (const raw of ipString.split(",")) {
+    const trimmed: string = raw.trim();
+    if (!trimmed) {
+      continue;
+    }
+    const key: string = trimmed.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    ips.push(trimmed);
+  }
+  return ips;
+};
+
+const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
+  ipString: string;
+}): ReactElement => {
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
+
+  if (!props.ipString) {
+    return <span className="text-sm text-gray-400">—</span>;
+  }
+
+  const ips: Array<string> = parseIpString(props.ipString);
+  if (ips.length === 0) {
+    return <span className="text-sm text-gray-400">—</span>;
+  }
+
+  const sorted: Array<string> = [...ips].sort(
+    (a: string, b: string): number => {
+      return ipDisplayScore(b) - ipDisplayScore(a);
+    },
+  );
+  const primary: string = sorted[0]!;
+  const rest: Array<string> = sorted.slice(1);
+
+  return (
+    <div className="text-sm text-gray-700">
+      <div className="font-mono">{primary}</div>
+      {rest.length > 0 && !isExpanded && (
+        <button
+          type="button"
+          onClick={(e: React.MouseEvent<HTMLButtonElement>): void => {
+            e.stopPropagation();
+            setIsExpanded(true);
+          }}
+          className="text-xs text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
+        >
+          +{rest.length} more
+        </button>
+      )}
+      {rest.length > 0 && isExpanded && (
+        <div className="mt-1 flex flex-col gap-0.5">
+          {rest.map((ip: string): ReactElement => {
+            return (
+              <div key={ip} className="font-mono text-xs text-gray-600">
+                {ip}
+              </div>
+            );
+          })}
+          <button
+            type="button"
+            onClick={(e: React.MouseEvent<HTMLButtonElement>): void => {
+              e.stopPropagation();
+              setIsExpanded(false);
+            }}
+            className="mt-0.5 self-start text-xs text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
+          >
+            Show less
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [hostCount, setHostCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -55,6 +177,89 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Host>({ modelType: Host });
+
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<Host>({
+      ownerUserModelType: HostOwnerUser,
+      ownerTeamModelType: HostOwnerTeam,
+      resourceIdField: "hostId",
+    });
+
+  const { archiveBulkActions } = useBulkArchiveActions<Host>({
+    modelType: Host,
+  });
+
+  const hostExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "otelCollectorStatus",
+      label: "Status",
+      icon: IconProp.Wifi,
+      isMultiSelect: false,
+      options: [
+        { value: "connected", label: "Connected" },
+        { value: "disconnected", label: "Disconnected" },
+      ],
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEnumFacetQuery(values, operator, false);
+      },
+    },
+    {
+      key: "osType",
+      label: "OS",
+      icon: IconProp.ComputerDesktop,
+      isMultiSelect: true,
+      options: [
+        { value: "linux", label: "Linux" },
+        { value: "darwin", label: "macOS" },
+        { value: "windows", label: "Windows" },
+        { value: "freebsd", label: "FreeBSD" },
+      ],
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEnumFacetQuery(values, operator);
+      },
+    },
+    {
+      key: "hostArch",
+      label: "Architecture",
+      icon: IconProp.CPUChip,
+      isMultiSelect: true,
+      options: [
+        { value: "amd64", label: "amd64" },
+        { value: "arm64", label: "arm64" },
+        { value: "x86", label: "x86" },
+        { value: "arm", label: "arm" },
+      ],
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEnumFacetQuery(values, operator);
+      },
+    },
+  ];
+
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<Host>({
+    persistKey: "hosts-table",
+    ownerUserModelType: HostOwnerUser,
+    ownerTeamModelType: HostOwnerTeam,
+    resourceIdField: "hostId",
+    showLabelsFacet: true,
+    extraFacets: hostExtraFacets,
+  });
 
   const fetchHostCount: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -101,12 +306,27 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelType={Host}
         id="hosts-table"
         userPreferencesKey="hosts-table"
+        saveFilterProps={{
+          tableId: "hosts-table",
+        }}
+        topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery({ isArchived: false })}
+        onFetchSuccess={(data: Array<Host>) => {
+          onResourcesFetched(data);
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         bulkActions={{
-          buttons: [...labelBulkActions],
+          buttons: [
+            ...labelBulkActions,
+            ...ownerBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         name="Hosts"
         isViewable={true}
@@ -190,43 +410,6 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           {
             field: {
-              otelCollectorStatus: true,
-            },
-            title: "Status",
-            type: FieldType.Dropdown,
-            filterDropdownOptions: [
-              { value: "connected", label: "Connected" },
-              { value: "disconnected", label: "Disconnected" },
-            ],
-          },
-          {
-            field: {
-              osType: true,
-            },
-            title: "OS",
-            type: FieldType.Dropdown,
-            filterDropdownOptions: [
-              { value: "linux", label: "Linux" },
-              { value: "darwin", label: "macOS" },
-              { value: "windows", label: "Windows" },
-              { value: "freebsd", label: "FreeBSD" },
-            ],
-          },
-          {
-            field: {
-              hostArch: true,
-            },
-            title: "Architecture",
-            type: FieldType.Dropdown,
-            filterDropdownOptions: [
-              { value: "amd64", label: "amd64" },
-              { value: "arm64", label: "arm64" },
-              { value: "x86", label: "x86" },
-              { value: "arm", label: "arm" },
-            ],
-          },
-          {
-            field: {
               containerRuntime: true,
             },
             title: "Container Runtime",
@@ -238,21 +421,6 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "IP Address",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
           },
           {
             field: {
@@ -273,11 +441,20 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               const id: string = (item.hostIdentifier as string) || "";
               const name: string = (item.name as string) || "";
               const showId: boolean = id !== "" && id !== name;
+              const route: Route = RouteUtil.populateRouteParams(
+                RouteMap[PageMap.HOST_VIEW] as Route,
+                {
+                  modelId: new ObjectID(item._id as string),
+                },
+              );
               return (
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate">
+                  <AppLink
+                    to={route}
+                    className="text-sm font-medium text-gray-900 truncate hover:underline"
+                  >
                     {name || "—"}
-                  </div>
+                  </AppLink>
                   {showId && (
                     <div className="text-xs text-gray-500 font-mono truncate">
                       {id}
@@ -320,30 +497,10 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: Host): ReactElement => {
-              const ipString: string = (item.hostIpAddresses as string) || "";
-              if (!ipString) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              const ips: Array<string> = ipString
-                .split(",")
-                .map((s: string) => {
-                  return s.trim();
-                })
-                .filter((s: string) => {
-                  return s.length > 0;
-                });
-              if (ips.length === 0) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              const primary: string = ips[0]!;
-              const rest: number = ips.length - 1;
               return (
-                <div className="text-sm text-gray-700">
-                  <div className="font-mono">{primary}</div>
-                  {rest > 0 && (
-                    <div className="text-xs text-gray-500">+{rest} more</div>
-                  )}
-                </div>
+                <IpAddressCell
+                  ipString={(item.hostIpAddresses as string) || ""}
+                />
               );
             },
           },
@@ -390,25 +547,6 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           {
             field: {
-              containerRuntime: true,
-            },
-            title: "Runtime",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: Host): ReactElement => {
-              const runtime: string = (item.containerRuntime as string) || "";
-              if (!runtime) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              return (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200">
-                  {runtime}
-                </span>
-              );
-            },
-          },
-          {
-            field: {
               otelCollectorStatus: true,
             },
             title: "Status",
@@ -445,6 +583,22 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
             },
           },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Host): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
+          },
         ]}
         onViewPage={(item: Host): Promise<Route> => {
           return Promise.resolve(
@@ -460,6 +614,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
       />
       {labelBulkActionModals}
+      {ownerBulkActionModals}
     </Fragment>
   );
 };

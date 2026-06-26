@@ -10,15 +10,25 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelProgress from "Common/UI/Components/ModelProgress/ModelProgress";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
+import WorkflowOwnerTeam from "Common/Models/DatabaseModels/WorkflowOwnerTeam";
+import WorkflowOwnerUser from "Common/Models/DatabaseModels/WorkflowOwnerUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green500, Red500 } from "Common/Types/BrandColors";
 import WorkflowElement from "../../Components/Workflow/WorkflowElement";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners, {
+  ResourceFacet,
+  buildBooleanFacetQuery,
+} from "../../Components/ResourceOwners/useResourceOwners";
+import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
+import IconProp from "Common/Types/Icon/IconProp";
 
 const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const startDate: Date = OneUptimeDate.getSomeDaysAgo(30);
@@ -27,6 +37,50 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Workflow>({ modelType: Workflow });
+
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<Workflow>({
+      ownerUserModelType: WorkflowOwnerUser,
+      ownerTeamModelType: WorkflowOwnerTeam,
+      resourceIdField: "workflowId",
+    });
+
+  const workflowExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "isEnabled",
+      label: "Enabled",
+      icon: IconProp.Power,
+      isMultiSelect: false,
+      options: [
+        { value: "true", label: "Enabled" },
+        { value: "false", label: "Disabled" },
+      ],
+      supportedOperators: ["is", "is_not"],
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildBooleanFacetQuery(values, operator);
+      },
+    },
+  ];
+
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<Workflow>({
+    persistKey: "workflows-table",
+    ownerUserModelType: WorkflowOwnerUser,
+    ownerTeamModelType: WorkflowOwnerTeam,
+    resourceIdField: "workflowId",
+    showLabelsFacet: true,
+    extraFacets: workflowExtraFacets,
+  });
 
   return (
     <Fragment>
@@ -53,11 +107,21 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           modelType={Workflow}
           id="status-page-table"
           userPreferencesKey="workflow-table"
+          topContent={filterBar}
+          currentFacetState={facetSaveState}
+          onFacetStateRestored={restoreFacetState}
+          query={mergeFiltersIntoQuery(undefined)}
+          onFetchSuccess={(data: Array<Workflow>) => {
+            onResourcesFetched(data);
+          }}
+          saveFilterProps={{
+            tableId: "workflows-table",
+          }}
           isDeleteable={false}
           isEditable={false}
           isCreateable={true}
           bulkActions={{
-            buttons: [...labelBulkActions],
+            buttons: [...labelBulkActions, ...ownerBulkActions],
           }}
           name="Workflows"
           isViewable={true}
@@ -129,6 +193,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           ]}
           showRefreshButton={true}
+          searchableFields={["name", "description"]}
           viewPageRoute={Navigation.getCurrentRoute()}
           filters={[
             {
@@ -144,32 +209,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
               field: {
                 description: true,
               },
-            },
-            {
-              title: "Enabled",
-              type: FieldType.Boolean,
-              field: {
-                isEnabled: true,
-              },
-            },
-            {
-              title: "Labels",
-              type: FieldType.EntityArray,
-              field: {
-                labels: {
-                  name: true,
-                  color: true,
-                },
-              },
-              filterEntityType: Label,
-              filterQuery: {
-                projectId: ProjectUtil.getCurrentProjectId()!,
-              },
-              filterDropdownField: {
-                label: "name",
-                value: "_id",
-              },
-              filterDropdownOptions: [],
             },
           ]}
           columns={[
@@ -220,9 +259,26 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
               },
             },
+            {
+              field: {
+                _id: true,
+              },
+              title: "Owners",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              getElement: (item: Workflow): ReactElement => {
+                return (
+                  <OwnersCell
+                    owners={getOwnersForResource(item)}
+                    isLoading={isLoadingOwners}
+                  />
+                );
+              },
+            },
           ]}
         />
         {labelBulkActionModals}
+        {ownerBulkActionModals}
       </>
     </Fragment>
   );

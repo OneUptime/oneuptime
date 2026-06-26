@@ -101,6 +101,23 @@ server {
         proxy_pass $backend_app;
     }
 
+    location /status-page-oidc-api/ {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        rewrite ^/status-page-oidc-api/(.*)$ /api/identity/status-page-oidc/$1 break;
+        proxy_pass $backend_app;
+    }
+
     location /status-page-identity-api/ {
         resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
@@ -248,6 +265,23 @@ server {
         proxy_set_header Connection "upgrade";
 
         rewrite ^/status-page-sso-api/(.*)$ /api/identity/status-page-sso/$1 break;
+        proxy_pass $backend_app;
+    }
+
+    location /status-page-oidc-api/ {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        rewrite ^/status-page-oidc-api/(.*)$ /api/identity/status-page-oidc/$1 break;
         proxy_pass $backend_app;
     }
 
@@ -466,6 +500,23 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Connection "upgrade";
 
         rewrite ^/status-page-sso-api/(.*)$ /api/identity/status-page-sso/$1 break;
+        proxy_pass $backend_app;
+    }
+
+    location /status-page-oidc-api/ {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        rewrite ^/status-page-oidc-api/(.*)$ /api/identity/status-page-oidc/$1 break;
         proxy_pass $backend_app;
     }
 
@@ -934,6 +985,23 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
 
     location /workflow {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_pass $backend_app;
+
+        client_max_body_size 50M;
+    }
+
+    location /runbook {
         resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;

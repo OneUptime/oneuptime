@@ -1,5 +1,6 @@
 import MonitorElement from "../../../Components/Monitor/Monitor";
 import MonitorGroupElement from "../../../Components/MonitorGroup/MonitorGroupElement";
+import GridResourceEditor from "../../../Components/StatusPage/GridResourceEditor";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -12,6 +13,8 @@ import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Columns from "Common/UI/Components/ModelTable/Column";
+import Filter from "Common/UI/Components/ModelFilter/Filter";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import API from "Common/UI/Utils/API/API";
@@ -30,6 +33,7 @@ import React, {
   useState,
 } from "react";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
+import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
 import Link from "Common/UI/Components/Link/Link";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
@@ -62,6 +66,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           select: {
             name: true,
             _id: true,
+            viewMode: true,
+            rowAxisLabel: true,
+            columnAxisLabel: true,
+            rowAxisValues: true,
+            columnAxisValues: true,
           },
           sort: {
             order: SortOrder.Ascending,
@@ -250,19 +259,101 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   ]);
 
   type GetModelTableFunction = (
-    statusPageGroupId: ObjectID | null,
-    statusPageGroupName: string | null,
+    statusPageGroup: StatusPageGroup | null,
   ) => ReactElement;
 
   const getModelTable: GetModelTableFunction = (
-    statusPageGroupId: ObjectID | null,
-    statusPageGroupName: string | null,
+    statusPageGroup: StatusPageGroup | null,
   ): ReactElement => {
+    const statusPageGroupId: ObjectID | null = statusPageGroup?.id || null;
+    const statusPageGroupName: string | null = statusPageGroup?.name || null;
+
+    const tableColumns: Array<Columns<StatusPageResource>> = [
+      {
+        field: {
+          monitor: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+        },
+        title: props.currentProject?.isFeatureFlagMonitorGroupsEnabled
+          ? "Resource"
+          : "Monitor",
+        type: FieldType.Entity,
+
+        getElement: (item: StatusPageResource): ReactElement => {
+          if (item["monitor"]) {
+            return (
+              <MonitorElement
+                monitor={item["monitor"]}
+                showIcon={
+                  props.currentProject?.isFeatureFlagMonitorGroupsEnabled ||
+                  false
+                }
+              />
+            );
+          }
+
+          if (item["monitorGroup"]) {
+            return (
+              <MonitorGroupElement
+                monitorGroup={item["monitorGroup"]}
+                showIcon={
+                  props.currentProject?.isFeatureFlagMonitorGroupsEnabled ||
+                  false
+                }
+              />
+            );
+          }
+
+          return <></>;
+        },
+      },
+      {
+        field: {
+          displayName: true,
+        },
+        title: "Display Name",
+        type: FieldType.Text,
+      },
+    ];
+
+    const tableFilters: Array<Filter<StatusPageResource>> = [
+      {
+        field: {
+          monitor: {
+            name: true,
+          },
+        },
+        title: "Monitor",
+        type: FieldType.Entity,
+        filterEntityType: Monitor,
+        filterQuery: {
+          projectId: ProjectUtil.getCurrentProjectId()!,
+        },
+        filterDropdownField: {
+          label: "name",
+          value: "_id",
+        },
+      },
+      {
+        field: {
+          displayName: true,
+        },
+        title: "Display Name",
+        type: FieldType.Text,
+      },
+    ];
+
     return (
       <ModelTable<StatusPageResource>
         modelType={StatusPageResource}
         id={`status-page-group-${statusPageGroupId?.toString() || ""}`}
         userPreferencesKey="status-page-resource-table"
+        saveFilterProps={{
+          tableId: `status-page-resources-table-${statusPageGroupId?.toString() || "ungrouped"}`,
+        }}
         isDeleteable={true}
         name="Status Page > Resources"
         sortBy="order"
@@ -326,82 +417,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             projectId: true,
           },
         }}
-        filters={[
-          {
-            field: {
-              monitor: {
-                name: true,
-              },
-            },
-            title: "Monitor",
-            type: FieldType.Entity,
-            filterEntityType: Monitor,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              displayName: true,
-            },
-            title: "Display Name",
-            type: FieldType.Text,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              monitor: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-            },
-            title: props.currentProject?.isFeatureFlagMonitorGroupsEnabled
-              ? "Resource"
-              : "Monitor",
-            type: FieldType.Entity,
-
-            getElement: (item: StatusPageResource): ReactElement => {
-              if (item["monitor"]) {
-                return (
-                  <MonitorElement
-                    monitor={item["monitor"]}
-                    showIcon={
-                      props.currentProject?.isFeatureFlagMonitorGroupsEnabled ||
-                      false
-                    }
-                  />
-                );
-              }
-
-              if (item["monitorGroup"]) {
-                return (
-                  <MonitorGroupElement
-                    monitorGroup={item["monitorGroup"]}
-                    showIcon={
-                      props.currentProject?.isFeatureFlagMonitorGroupsEnabled ||
-                      false
-                    }
-                  />
-                );
-              }
-
-              return <></>;
-            },
-          },
-          {
-            field: {
-              displayName: true,
-            },
-            title: "Display Name",
-            type: FieldType.Text,
-          },
-        ]}
+        filters={tableFilters}
+        columns={tableColumns}
       />
     );
   };
@@ -413,11 +430,27 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
         {error ? <ErrorMessage message={error} /> : <></>}
 
-        {!isLoading && !error ? getModelTable(null, null) : <></>}
+        {!isLoading && !error ? getModelTable(null) : <></>}
 
         {!isLoading && !error && groups && groups.length > 0 ? (
           groups.map((group: StatusPageGroup) => {
-            return getModelTable(group.id, group.name || null);
+            if (group.viewMode === StatusPageGroupViewMode.Grid) {
+              return (
+                <GridResourceEditor
+                  key={group.id?.toString() || ""}
+                  group={group}
+                  statusPageId={modelId}
+                  projectId={new ObjectID(props.currentProject!._id!)}
+                  currentProject={props.currentProject!}
+                  baseFormFields={formFields}
+                  formSteps={[
+                    { title: "Monitor Details", id: "monitor-details" },
+                    { title: "Advanced", id: "advanced" },
+                  ]}
+                />
+              );
+            }
+            return getModelTable(group);
           })
         ) : (
           <></>

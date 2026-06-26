@@ -24,8 +24,11 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Query from "Common/Types/BaseDatabase/Query";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Service from "Common/Models/DatabaseModels/Service";
+import Host from "Common/Models/DatabaseModels/Host";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ServiceElement from "../Service/ServiceElement";
 import ProfileUtil from "../../Utils/ProfileUtil";
@@ -33,6 +36,7 @@ import Route from "Common/Types/API/Route";
 import Link from "Common/UI/Components/Link/Link";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import Navigation from "Common/UI/Utils/Navigation";
 
 const PROFILE_TYPE_FILTER_OPTIONS: Array<{ label: string; value: string }> = [
   { label: "CPU time", value: "cpu" },
@@ -54,6 +58,41 @@ export interface ComponentProps {
   profileQuery?: Query<Profile> | undefined;
   isMinimalTable?: boolean | undefined;
   noItemsMessage?: string | undefined;
+  /*
+   * Scope to a OneUptime entity by its stable entityKeys (membership) —
+   * compiles to `hasAny(entityKeys, [...])` server-side.
+   */
+  entityKeys?: Array<string> | undefined;
+}
+
+/**
+ * Human label for a profile's primaryEntityType discriminator. Profiles
+ * don't only come from Services — host-level eBPF agents stamp Host,
+ * container collectors stamp DockerHost / KubernetesCluster — so the
+ * Service column must be able to say what kind of thing produced the
+ * recording even when no Service row exists for it.
+ */
+function getEntityTypeLabel(entityType: string): string {
+  switch (entityType) {
+    case ServiceType.OpenTelemetry:
+      return "Service";
+    case ServiceType.Host:
+      return "Host";
+    case ServiceType.DockerHost:
+      return "Docker host";
+    case ServiceType.PodmanHost:
+      return "Podman host";
+    case ServiceType.KubernetesCluster:
+      return "Kubernetes cluster";
+    case ServiceType.Monitor:
+      return "Monitor";
+    case ServiceType.ServerlessFunction:
+      return "Serverless function";
+    case ServiceType.CloudResource:
+      return "Cloud resource";
+    default:
+      return "Unknown source";
+  }
 }
 
 const ProfileTable: FunctionComponent<ComponentProps> = (
@@ -72,9 +111,29 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
   const [pageError, setPageError] = React.useState<string>("");
 
   const [telemetryServices, setServices] = React.useState<Array<Service>>([]);
+  const [hosts, setHosts] = React.useState<Array<Host>>([]);
 
   const [areAdvancedFiltersVisible, setAreAdvancedFiltersVisible] =
     useState<boolean>(false);
+
+  /*
+   * Deep-link filters: trace pages link here with ?traceId=..., and the
+   * Profiler overview's "All profiles" link carries ?serviceId= /
+   * ?profileType= so the list opens in the context the user was just
+   * looking at. Each is held in state (seeded from the URL once) so
+   * dismissing its chip both widens the table and cleans the URL.
+   */
+  const [traceIdFilter, setTraceIdFilter] = useState<string | null>(() => {
+    return Navigation.getQueryStringByName("traceId");
+  });
+  const [serviceIdFilter, setServiceIdFilter] = useState<string | null>(() => {
+    return Navigation.getQueryStringByName("serviceId");
+  });
+  const [profileTypeFilter, setProfileTypeFilter] = useState<string | null>(
+    () => {
+      return Navigation.getQueryStringByName("profileType");
+    },
+  );
 
   const query: Query<Profile> = React.useMemo(() => {
     const baseQuery: Query<Profile> = {
@@ -87,12 +146,50 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
       baseQuery.projectId = projectId;
     }
 
+    if (serviceIdFilter) {
+      baseQuery.primaryEntityId = new ObjectID(serviceIdFilter);
+    }
+
+    // An explicit entity page scope (modelId) wins over the deep link.
     if (modelId) {
-      baseQuery.serviceId = modelId;
+      baseQuery.primaryEntityId = modelId;
+    }
+
+    if (traceIdFilter) {
+      baseQuery.traceId = traceIdFilter;
+    }
+
+    if (profileTypeFilter) {
+      /*
+       * The deep link carries a UI selection (a category like "memory" or
+       * a specific raw type), so expand it the same way the overview's
+       * queries do — a literal match on "cpu" would miss Node profiles
+       * stored as "samples".
+       */
+      const rawTypes: Array<string> | undefined =
+        ProfileUtil.getQueryProfileTypes(profileTypeFilter);
+      if (rawTypes && rawTypes.length > 0) {
+        (baseQuery as Record<string, unknown>)["profileType"] = new Includes(
+          rawTypes,
+        );
+      }
+    }
+
+    if (props.entityKeys && props.entityKeys.length > 0) {
+      (baseQuery as Record<string, unknown>)["entityKeys"] = new Includes(
+        props.entityKeys,
+      );
     }
 
     return baseQuery;
-  }, [props.profileQuery, modelId]);
+  }, [
+    props.profileQuery,
+    modelId,
+    props.entityKeys,
+    traceIdFilter,
+    serviceIdFilter,
+    profileTypeFilter,
+  ]);
 
   const loadServices: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -117,6 +214,33 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
         });
 
       setServices(telemetryServicesResponse.data || []);
+
+      /*
+       * Hosts resolve names for host-level (eBPF) profiles, which carry
+       * a Host id — not a Service id — in primaryEntityId. Failure here
+       * is non-fatal: the table still renders, falling back to the
+       * entity-type label for those rows.
+       */
+      try {
+        const hostsResponse: ListResult<Host> = await ModelAPI.getList({
+          modelType: Host,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          },
+          select: {
+            name: true,
+            hostIdentifier: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
+        setHosts(hostsResponse.data || []);
+      } catch {
+        setHosts([]);
+      }
     } catch (err) {
       setPageError(API.getFriendlyErrorMessage(err as Error));
     } finally {
@@ -207,6 +331,74 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
+      {(traceIdFilter || serviceIdFilter || profileTypeFilter) && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {traceIdFilter && (
+            <span className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200">
+              Filtered by trace
+              <span className="font-mono" title={traceIdFilter}>
+                {traceIdFilter.length > 12
+                  ? `${traceIdFilter.substring(0, 8)}…`
+                  : traceIdFilter}
+              </span>
+              <button
+                type="button"
+                className="text-indigo-400 hover:text-indigo-700"
+                title="Remove trace filter"
+                onClick={() => {
+                  setTraceIdFilter(null);
+                  Navigation.setQueryString({ traceId: null });
+                }}
+              >
+                <Icon icon={IconProp.Close} className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+
+          {serviceIdFilter && (
+            <span className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200">
+              Service
+              <span title={serviceIdFilter}>
+                {telemetryServices.find((service: Service) => {
+                  return service.id?.toString() === serviceIdFilter;
+                })?.name || `${serviceIdFilter.substring(0, 8)}…`}
+              </span>
+              <button
+                type="button"
+                className="text-indigo-400 hover:text-indigo-700"
+                title="Remove service filter"
+                onClick={() => {
+                  setServiceIdFilter(null);
+                  Navigation.setQueryString({ serviceId: null });
+                }}
+              >
+                <Icon icon={IconProp.Close} className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+
+          {profileTypeFilter && (
+            <span className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200">
+              Type
+              <span>
+                {ProfileUtil.getProfileTypeDisplayName(profileTypeFilter)}
+              </span>
+              <button
+                type="button"
+                className="text-indigo-400 hover:text-indigo-700"
+                title="Remove type filter"
+                onClick={() => {
+                  setProfileTypeFilter(null);
+                  Navigation.setQueryString({ profileType: null });
+                }}
+              >
+                <Icon icon={IconProp.Close} className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="rounded">
         <AnalyticsModelTable<Profile>
           userPreferencesKey="profile-table"
@@ -235,12 +427,33 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
             durationNano: true,
             traceId: true,
             unit: true,
+            primaryEntityType: true,
           }}
           showViewIdButton={true}
           noItemsMessage={
-            props.noItemsMessage
-              ? props.noItemsMessage
-              : "No performance profiles found. Profiles are captured automatically by the OneUptime SDK once you enable the profiler in your service. See the documentation for setup instructions."
+            props.noItemsMessage ? (
+              props.noItemsMessage
+            ) : (
+              <div className="text-center">
+                <p className="text-sm text-gray-500 max-w-md mx-auto">
+                  No profiles found. Send continuous profiles with Grafana Alloy
+                  (zero-code eBPF profiling for anything on a host) or a
+                  Pyroscope SDK in your application — recordings show up here
+                  shortly after they arrive.
+                </p>
+                <div className="mt-3">
+                  <Link
+                    to={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.PROFILES_DOCUMENTATION] as Route,
+                    )}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                  >
+                    <Icon icon={IconProp.Book} className="h-4 w-4" />
+                    Set up profiling
+                  </Link>
+                </div>
+              </div>
+            )
           }
           showRefreshButton={true}
           sortBy="startTime"
@@ -255,7 +468,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
           filters={[
             {
               field: {
-                serviceId: true,
+                primaryEntityId: true,
               },
               type: FieldType.MultiSelectDropdown,
               filterDropdownOptions: telemetryServices.map(
@@ -304,26 +517,73 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
           columns={[
             {
               field: {
-                serviceId: true,
+                primaryEntityId: true,
               },
-              title: "Service",
+              title: "Source",
               type: FieldType.Element,
               getElement: (profile: Profile): ReactElement => {
+                const entityId: string =
+                  profile.primaryEntityId?.toString() || "";
+
+                /*
+                 * primaryEntityId is only a Service id when
+                 * primaryEntityType says so — host-level (eBPF) profiles
+                 * carry a Host id, container collectors a DockerHost /
+                 * KubernetesCluster id. Try the matching lookup table
+                 * first, then degrade to a type label so the column
+                 * never claims "Unknown" for a perfectly valid source.
+                 */
                 const telemetryService: Service | undefined =
                   telemetryServices.find((service: Service) => {
-                    return (
-                      service.id?.toString() === profile.serviceId?.toString()
-                    );
+                    return service.id?.toString() === entityId;
                   });
 
-                if (!telemetryService) {
-                  return <p>Unknown</p>;
+                if (telemetryService) {
+                  return (
+                    <Fragment>
+                      <ServiceElement service={telemetryService} />
+                    </Fragment>
+                  );
                 }
 
+                const entityType: string =
+                  profile.primaryEntityType?.toString() || "";
+
+                if (entityType === ServiceType.Host) {
+                  const host: Host | undefined = hosts.find((h: Host) => {
+                    return h.id?.toString() === entityId;
+                  });
+                  if (host) {
+                    return (
+                      <div className="flex flex-col">
+                        <span className="text-sm text-gray-900">
+                          {host.name || host.hostIdentifier}
+                        </span>
+                        <span className="text-xs text-gray-400">Host</span>
+                      </div>
+                    );
+                  }
+                }
+
+                const shortId: string =
+                  entityId.length > 12
+                    ? `${entityId.substring(0, 8)}…`
+                    : entityId;
+
                 return (
-                  <Fragment>
-                    <ServiceElement service={telemetryService} />
-                  </Fragment>
+                  <div className="flex flex-col">
+                    <span className="text-sm text-gray-900">
+                      {getEntityTypeLabel(entityType)}
+                    </span>
+                    {shortId && (
+                      <span
+                        className="text-xs font-mono text-gray-400"
+                        title={entityId}
+                      >
+                        {shortId}
+                      </span>
+                    )}
+                  </div>
                 );
               },
             },

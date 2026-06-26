@@ -18,6 +18,7 @@ import {
   getCachedSsoTokens,
   storeSsoToken,
   getSsoTokens,
+  getGlobalSsoToken,
 } from "../../storage/ssoTokens";
 import type { ProjectItem, ListResponse } from "../../api/types";
 import type { SettingsStackParamList } from "../../navigation/types";
@@ -30,6 +31,7 @@ export default function ProjectsScreen({
   const { theme } = useTheme();
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [ssoTokens, setSsoTokens] = useState<Record<string, string>>({});
+  const [globalSsoToken, setGlobalSsoToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [authenticatingProjectId, setAuthenticatingProjectId] = useState<
@@ -41,13 +43,19 @@ export default function ProjectsScreen({
     try {
       setError(null);
 
-      const [projectsResponse, tokens]: [
+      const [projectsResponse, tokens, globalToken]: [
         ListResponse<ProjectItem>,
         Record<string, string>,
-      ] = await Promise.all([fetchProjects(), getSsoTokens()]);
+        string | null,
+      ] = await Promise.all([
+        fetchProjects(),
+        getSsoTokens(),
+        getGlobalSsoToken(),
+      ]);
 
       setProjects(projectsResponse.data);
       setSsoTokens(tokens);
+      setGlobalSsoToken(globalToken);
     } catch {
       setError("Failed to load projects.");
     } finally {
@@ -65,8 +73,10 @@ export default function ProjectsScreen({
     const unsubscribe: () => void = navigation.addListener(
       "focus",
       async () => {
-        const tokens: Record<string, string> = await getSsoTokens();
+        const [tokens, globalToken]: [Record<string, string>, string | null] =
+          await Promise.all([getSsoTokens(), getGlobalSsoToken()]);
         setSsoTokens(tokens);
+        setGlobalSsoToken(globalToken);
       },
     );
     return unsubscribe;
@@ -155,7 +165,8 @@ export default function ProjectsScreen({
   const isProjectAuthenticated: (projectId: string) => boolean = (
     projectId: string,
   ): boolean => {
-    return Boolean(ssoTokens[projectId]);
+    // A global SSO token satisfies enforcement for every project.
+    return Boolean(ssoTokens[projectId] || globalSsoToken);
   };
 
   if (isLoading) {

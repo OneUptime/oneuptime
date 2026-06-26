@@ -6,6 +6,7 @@ import JSONFunctions from "../../Types/JSONFunctions";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
 import Name from "../../Types/Name";
 import ObjectID from "../../Types/ObjectID";
+import SsoProviderType from "../../Types/SSO/SsoProviderType";
 import Timezone from "../../Types/Timezone";
 import StatusPagePrivateUser from "../../Models/DatabaseModels/StatusPagePrivateUser";
 import User from "../../Models/DatabaseModels/User";
@@ -138,6 +139,12 @@ class JSONWebToken {
         isGlobalLogin: Boolean(decoded["isGlobalLogin"]),
         sessionId: decoded["sessionId"]
           ? new ObjectID(decoded["sessionId"] as string)
+          : undefined,
+        ssoProviderId: decoded["ssoProviderId"]
+          ? new ObjectID(decoded["ssoProviderId"] as string)
+          : undefined,
+        ssoProviderType: decoded["ssoProviderType"]
+          ? (decoded["ssoProviderType"] as SsoProviderType)
           : undefined,
       };
     } catch (e) {

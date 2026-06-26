@@ -3,7 +3,9 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -23,13 +25,15 @@ import { MonitorStepProbeResponse } from "./MonitorProbe";
 import Probe from "./Probe";
 import Monitor from "./Monitor";
 
+@CanAccessIfCanReadOn("monitor")
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.MonitorManager,
+    Permission.MonitorAdmin,
+    Permission.MonitorMember,
     Permission.CreateProjectMonitor,
   ],
   read: [
@@ -37,22 +41,25 @@ import Monitor from "./Monitor";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.MonitorManager,
+    Permission.MonitorAdmin,
+    Permission.MonitorMember,
+    Permission.MonitorViewer,
     Permission.ReadProjectMonitor,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.MonitorManager,
+    Permission.MonitorAdmin,
+    Permission.MonitorMember,
     Permission.DeleteProjectMonitor,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.MonitorManager,
+    Permission.MonitorAdmin,
+    Permission.MonitorMember,
     Permission.EditProjectMonitor,
   ],
 })
@@ -64,6 +71,7 @@ import Monitor from "./Monitor";
 })
 @CrudApiEndpoint(new Route("/monitor-test"))
 @SlugifyColumn("name", "slug")
+@OwnedThrough("monitorId", Monitor)
 @Entity({
   name: "MonitorTest",
 })
@@ -81,7 +89,8 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateProjectMonitor,
     ],
     read: [
@@ -89,9 +98,10 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitor,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -122,7 +132,8 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateProjectMonitor,
     ],
     read: [
@@ -130,9 +141,10 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitor,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -157,7 +169,8 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateProjectMonitor,
     ],
     read: [
@@ -165,9 +178,10 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitor,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -199,7 +213,8 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateProjectMonitor,
     ],
     read: [
@@ -207,9 +222,10 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitor,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -280,7 +296,8 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateProjectMonitor,
     ],
     read: [
@@ -288,9 +305,10 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitor,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -313,7 +331,8 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateProjectMonitor,
     ],
     read: [
@@ -321,15 +340,17 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitor,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.EditProjectMonitor,
     ],
   })
@@ -352,7 +373,8 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateProjectMonitor,
     ],
     read: [
@@ -360,15 +382,17 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitor,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.EditProjectMonitor,
     ],
   })
@@ -399,7 +423,8 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateProjectMonitor,
     ],
     read: [
@@ -407,15 +432,17 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitor,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.EditProjectMonitor,
     ],
   })
@@ -440,7 +467,8 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateProjectMonitor,
     ],
     read: [
@@ -448,15 +476,17 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitor,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.EditProjectMonitor,
     ],
   })
@@ -476,7 +506,8 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateProjectMonitor,
     ],
     read: [
@@ -484,15 +515,17 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitor,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.EditProjectMonitor,
     ],
   })
@@ -515,7 +548,8 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateProjectMonitor,
     ],
     read: [
@@ -523,15 +557,17 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitor,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.EditProjectMonitor,
     ],
   })
@@ -555,7 +591,8 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateProjectMonitor,
     ],
     read: [
@@ -563,9 +600,10 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitor,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -590,7 +628,8 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateProjectMonitor,
     ],
     read: [
@@ -598,9 +637,10 @@ export default class MonitorTest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitor,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

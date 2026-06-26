@@ -25,6 +25,10 @@ import { Tab } from "Common/UI/Components/Tabs/Tab";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import KubernetesLogsTab from "../../../Components/Kubernetes/KubernetesLogsTab";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesCpuUtils, {
+  NodeAllocatableCpu,
+} from "../Utils/KubernetesCpuUtils";
+import useNodeAllocatableCpu from "../Utils/useNodeAllocatableCpu";
 
 const KubernetesClusterContainerDetail: FunctionComponent<
   PageComponentProps
@@ -58,6 +62,11 @@ const KubernetesClusterContainerDetail: FunctionComponent<
       setError(API.getFriendlyMessage(err));
     });
   }, []);
+
+  // Per-node allocatable CPU — denominator for the true CPU% transform.
+  const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(
+    cluster?.clusterIdentifier || undefined,
+  );
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -107,6 +116,9 @@ const KubernetesClusterContainerDetail: FunctionComponent<
       },
     },
     getSeries: getSeries,
+    transformValue: allocatable
+      ? KubernetesCpuUtils.makeCpuPercentTransform(allocatable)
+      : undefined,
   };
 
   const memoryQuery: MetricQueryConfigData = {

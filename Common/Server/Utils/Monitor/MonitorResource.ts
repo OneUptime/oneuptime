@@ -35,6 +35,8 @@ import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/Ex
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import MonitorIncident from "./MonitorIncident";
 import MonitorAlert from "./MonitorAlert";
+import IncomingRequestIncidentGrouping from "./IncomingRequestIncidentGrouping";
+import MonitorMaintenanceSuppression from "./MonitorMaintenanceSuppression";
 import MonitorStatusTimelineUtil from "./MonitorStatusTimeline";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
@@ -58,17 +60,6 @@ export default class MonitorResourceUtil {
   public static async monitorResource(
     dataToProcess: DataToProcess,
   ): Promise<ProbeApiIngestResponse> {
-    let mutex: SemaphoreMutex | null = null;
-
-    try {
-      mutex = await Semaphore.lock({
-        key: dataToProcess.monitorId.toString(),
-        namespace: "MonitorResourceUtil.monitorResource",
-      });
-    } catch (err) {
-      logger.error(err);
-    }
-
     let response: ProbeApiIngestResponse = {
       monitorId: dataToProcess.monitorId,
       criteriaMetId: undefined,
@@ -188,382 +179,266 @@ export default class MonitorResourceUtil {
       );
     }
 
-    let probeName: string | undefined = undefined;
-    const monitorName: string | undefined = monitor.name || undefined;
+    /*
+     * Acquire a per-monitor lock so concurrent results for the same monitor are
+     * processed serially. This MUST come after the validation above: acquiring
+     * before the not-found/disabled checks meant those throw paths held — and
+     * leaked — the lock. redis-semaphore keeps a refresh timer alive until
+     * release() is called, so a leaked lock pinned the Redis key until pod
+     * restart and forced every other worker to spin on acquire. The try/finally
+     * below guarantees the lock is released on every exit path (return or
+     * throw); acquireTimeout/retryInterval cap the acquire spin so a contended
+     * lock fails fast instead of polling Redis for 10s.
+     *
+     * On acquire timeout we DO NOT continue unlocked. Falling through without
+     * the lock silently abandons the per-monitor serialization this lock exists
+     * to provide — concurrent results for the same monitor would then race
+     * incident/alert dedup and status-timeline writes (duplicate
+     * incidents/alerts, status flaps) exactly under the high contention the
+     * lock is meant to handle. Instead we surface the contention so the work is
+     * retried once the lock frees: the Telemetry queue re-runs each ingest job
+     * up to 3x with exponential backoff, and the per-monitor crons catch-and-
+     * skip to re-evaluate on their next tick. The dominant source of
+     * same-monitor contention (an external sender hammering one Incoming
+     * Request URL) is collapsed upstream by BullMQ job coalescing at enqueue
+     * time (see TelemetryQueueService.addIncomingRequestIngestJob), so this
+     * throw is a correctness backstop for the rare residual collision (e.g.
+     * cron vs ingest), not the steady-state path.
+     */
+    let mutex: SemaphoreMutex | null = null;
 
-    // save the last log to MonitorProbe.
+    try {
+      mutex = await Semaphore.lock({
+        key: dataToProcess.monitorId.toString(),
+        namespace: "MonitorResourceUtil.monitorResource",
+        acquireTimeout: 2000,
+        retryInterval: 100,
+        acquireAttemptsLimit: 20,
+      });
+    } catch (err) {
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} - Could not acquire per-monitor processing lock within the acquire window; another worker is processing this monitor. Deferring to retry to preserve serialization.`,
+      );
+      throw err;
+    }
 
-    // get last log. We do this because there are many monitoring steps and we need to store those.
-    logger.debug(
-      `${dataToProcess.monitorId.toString()} - monitor type ${
-        monitor.monitorType
-      }`,
-    );
+    const releaseMutex: () => Promise<void> = async (): Promise<void> => {
+      if (mutex) {
+        try {
+          await Semaphore.release(mutex);
+        } catch (err) {
+          logger.error(err);
+        }
+        mutex = null;
+      }
+    };
 
-    if (
-      monitor.monitorType &&
-      MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
-    ) {
-      dataToProcess = dataToProcess as ProbeMonitorResponse;
-      if ((dataToProcess as ProbeMonitorResponse).probeId) {
-        const monitorProbe: MonitorProbe | null =
-          await MonitorProbeService.findOneBy({
+    try {
+      let probeName: string | undefined = undefined;
+      const monitorName: string | undefined = monitor.name || undefined;
+
+      // save the last log to MonitorProbe.
+
+      // get last log. We do this because there are many monitoring steps and we need to store those.
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} - monitor type ${
+          monitor.monitorType
+        }`,
+      );
+
+      if (
+        monitor.monitorType &&
+        MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
+      ) {
+        dataToProcess = dataToProcess as ProbeMonitorResponse;
+        if ((dataToProcess as ProbeMonitorResponse).probeId) {
+          const monitorProbe: MonitorProbe | null =
+            await MonitorProbeService.findOneBy({
+              query: {
+                monitorId: monitor.id!,
+                probeId: (dataToProcess as ProbeMonitorResponse).probeId!,
+              },
+              select: {
+                lastMonitoringLog: true,
+                probe: {
+                  name: true,
+                },
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!monitorProbe) {
+            throw new BadDataException("Probe is not assigned to this monitor");
+          }
+
+          probeName = monitorProbe.probe?.name || undefined;
+
+          await MonitorProbeService.updateOneBy({
             query: {
               monitorId: monitor.id!,
               probeId: (dataToProcess as ProbeMonitorResponse).probeId!,
             },
-            select: {
-              lastMonitoringLog: true,
-              probe: {
-                name: true,
-              },
+            data: {
+              lastMonitoringLog: {
+                ...(monitorProbe.lastMonitoringLog || {}),
+                [(
+                  dataToProcess as ProbeMonitorResponse
+                ).monitorStepId.toString()]: {
+                  ...JSON.parse(JSON.stringify(dataToProcess)),
+                  monitoredAt: OneUptimeDate.getCurrentDate(),
+                },
+              } as any,
             },
             props: {
               isRoot: true,
             },
           });
+        }
+      }
 
-        if (!monitorProbe) {
-          throw new BadDataException("Probe is not assigned to this monitor");
+      const serverMonitorResponse: ServerMonitorResponse | undefined =
+        monitor.monitorType === MonitorType.Server &&
+        (dataToProcess as ServerMonitorResponse).requestReceivedAt
+          ? (dataToProcess as ServerMonitorResponse)
+          : undefined;
+
+      const incomingMonitorRequest: IncomingMonitorRequest | undefined =
+        monitor.monitorType === MonitorType.IncomingRequest &&
+        (dataToProcess as IncomingMonitorRequest).incomingRequestReceivedAt &&
+        !(dataToProcess as IncomingMonitorRequest)
+          .onlyCheckForIncomingRequestReceivedAt
+          ? (dataToProcess as IncomingMonitorRequest)
+          : undefined;
+
+      let hasPersistedMonitorData: boolean = false;
+
+      const persistLatestMonitorPayload: () => Promise<void> = async () => {
+        if (hasPersistedMonitorData) {
+          return;
         }
 
-        probeName = monitorProbe.probe?.name || undefined;
+        if (serverMonitorResponse) {
+          logger.debug(
+            `${dataToProcess.monitorId.toString()} - Server request received at ${serverMonitorResponse.requestReceivedAt}`,
+          );
 
-        await MonitorProbeService.updateOneBy({
-          query: {
-            monitorId: monitor.id!,
-            probeId: (dataToProcess as ProbeMonitorResponse).probeId!,
-          },
-          data: {
-            lastMonitoringLog: {
-              ...(monitorProbe.lastMonitoringLog || {}),
-              [(
-                dataToProcess as ProbeMonitorResponse
-              ).monitorStepId.toString()]: {
-                ...JSON.parse(JSON.stringify(dataToProcess)),
-                monitoredAt: OneUptimeDate.getCurrentDate(),
+          logger.debug(dataToProcess);
+
+          /*
+           * Skip persistence when this evaluation originated from the
+           * CheckOnlineStatus cron (onlyCheckRequestReceivedAt=true). The cron
+           * re-evaluates using the already-stale value read from the DB and has
+           * no new heartbeat data to persist — writing it back would race with
+           * (and overwrite) the ingest path's fresh heartbeat update, causing
+           * the monitor to flap between Online and Offline every minute.
+           */
+          if (!serverMonitorResponse.onlyCheckRequestReceivedAt) {
+            /*
+             * Heartbeat write: single-statement UPDATE, no hooks and no
+             * `version` bump. This DELIBERATELY drops the per-update workflow
+             * trigger and audit-log entry that Monitor's @EnableWorkflow /
+             * @EnableAuditLog fire on every changed update — the old
+             * `ignoreHooks: true` did NOT suppress those (they are gated on
+             * the model flag, not on ignoreHooks), so a heartbeat used to
+             * spam an on-update workflow + an audit row every ingest. A
+             * liveness ping should do neither. onUpdateSuccess is inert here
+             * regardless (gated on status/interval/steps/name/etc., none of
+             * which are written). Also skips the pre-SELECT that would reload
+             * the large serverMonitorResponse jsonb row. See
+             * ServiceService.updateLastSeen.
+             */
+            await MonitorService.updateColumnsByIdWithoutHooks({
+              id: monitor.id!,
+              data: {
+                serverMonitorRequestReceivedAt:
+                  serverMonitorResponse.requestReceivedAt!,
+                serverMonitorResponse,
               },
-            } as any,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      }
-    }
+            });
 
-    const serverMonitorResponse: ServerMonitorResponse | undefined =
-      monitor.monitorType === MonitorType.Server &&
-      (dataToProcess as ServerMonitorResponse).requestReceivedAt
-        ? (dataToProcess as ServerMonitorResponse)
-        : undefined;
+            logger.debug(
+              `${dataToProcess.monitorId.toString()} - Monitor Server Response Updated`,
+            );
+          } else {
+            logger.debug(
+              `${dataToProcess.monitorId.toString()} - Skipping Monitor Server Response persist (cron re-evaluation).`,
+            );
+          }
+        }
 
-    const incomingMonitorRequest: IncomingMonitorRequest | undefined =
-      monitor.monitorType === MonitorType.IncomingRequest &&
-      (dataToProcess as IncomingMonitorRequest).incomingRequestReceivedAt &&
-      !(dataToProcess as IncomingMonitorRequest)
-        .onlyCheckForIncomingRequestReceivedAt
-        ? (dataToProcess as IncomingMonitorRequest)
-        : undefined;
+        if (incomingMonitorRequest) {
+          logger.debug(
+            `${dataToProcess.monitorId.toString()} - Incoming request received at ${incomingMonitorRequest.incomingRequestReceivedAt}`,
+          );
 
-    let hasPersistedMonitorData: boolean = false;
-
-    const persistLatestMonitorPayload: () => Promise<void> = async () => {
-      if (hasPersistedMonitorData) {
-        return;
-      }
-
-      if (serverMonitorResponse) {
-        logger.debug(
-          `${dataToProcess.monitorId.toString()} - Server request received at ${serverMonitorResponse.requestReceivedAt}`,
-        );
-
-        logger.debug(dataToProcess);
-
-        /*
-         * Skip persistence when this evaluation originated from the
-         * CheckOnlineStatus cron (onlyCheckRequestReceivedAt=true). The cron
-         * re-evaluates using the already-stale value read from the DB and has
-         * no new heartbeat data to persist — writing it back would race with
-         * (and overwrite) the ingest path's fresh heartbeat update, causing
-         * the monitor to flap between Online and Offline every minute.
-         */
-        if (!serverMonitorResponse.onlyCheckRequestReceivedAt) {
-          await MonitorService.updateOneById({
+          /*
+           * Heartbeat write: single-statement UPDATE, no hooks and no
+           * `version` bump. As with the server-monitor branch above, this
+           * deliberately drops the per-update workflow trigger + audit-log
+           * entry Monitor would otherwise fire on every heartbeat, and skips
+           * the pre-SELECT of the large incomingMonitorRequest jsonb row. See
+           * ServiceService.updateLastSeen.
+           */
+          await MonitorService.updateColumnsByIdWithoutHooks({
             id: monitor.id!,
             data: {
-              serverMonitorRequestReceivedAt:
-                serverMonitorResponse.requestReceivedAt!,
-              serverMonitorResponse,
-            },
-            props: {
-              isRoot: true,
-              ignoreHooks: true,
-            },
+              incomingRequestMonitorHeartbeatCheckedAt:
+                OneUptimeDate.getCurrentDate(),
+              incomingMonitorRequest: JSON.parse(
+                JSON.stringify(incomingMonitorRequest),
+              ) as IncomingMonitorRequest,
+            } as any,
           });
 
           logger.debug(
-            `${dataToProcess.monitorId.toString()} - Monitor Server Response Updated`,
-          );
-        } else {
-          logger.debug(
-            `${dataToProcess.monitorId.toString()} - Skipping Monitor Server Response persist (cron re-evaluation).`,
+            `${dataToProcess.monitorId.toString()} - Monitor Incoming Request Updated`,
           );
         }
-      }
 
-      if (incomingMonitorRequest) {
-        logger.debug(
-          `${dataToProcess.monitorId.toString()} - Incoming request received at ${incomingMonitorRequest.incomingRequestReceivedAt}`,
-        );
+        hasPersistedMonitorData = true;
+      };
 
-        await MonitorService.updateOneById({
-          id: monitor.id!,
-          data: {
-            incomingRequestMonitorHeartbeatCheckedAt:
-              OneUptimeDate.getCurrentDate(),
-            incomingMonitorRequest: JSON.parse(
-              JSON.stringify(incomingMonitorRequest),
-            ) as IncomingMonitorRequest,
-          } as any,
-          props: {
-            isRoot: true,
-            ignoreHooks: true,
-          },
-        });
-
-        logger.debug(
-          `${dataToProcess.monitorId.toString()} - Monitor Incoming Request Updated`,
-        );
-      }
-
-      hasPersistedMonitorData = true;
-    };
-
-    logger.debug(
-      `${dataToProcess.monitorId.toString()} - Saving monitor metrics`,
-    );
-
-    try {
-      await MonitorMetricUtil.saveMonitorMetrics({
-        monitorId: monitor.id!,
-        projectId: monitor.projectId!,
-        dataToProcess: dataToProcess,
-        probeName: probeName || undefined,
-        monitorName: monitorName || undefined,
-      });
-    } catch (err) {
-      logger.error("Unable to save metrics");
-      logger.error(err);
-    }
-
-    logger.debug(
-      `${dataToProcess.monitorId.toString()} - Monitor metrics saved`,
-    );
-
-    const monitorSteps: MonitorSteps = monitor.monitorSteps!;
-
-    if (
-      !monitorSteps.data?.monitorStepsInstanceArray ||
-      monitorSteps.data?.monitorStepsInstanceArray.length === 0
-    ) {
       logger.debug(
-        `${dataToProcess.monitorId.toString()} - No monitoring steps.`,
+        `${dataToProcess.monitorId.toString()} - Saving monitor metrics`,
       );
-      await persistLatestMonitorPayload();
 
-      MonitorLogUtil.saveMonitorLog({
-        monitorId: monitor.id!,
-        projectId: monitor.projectId!,
-        dataToProcess: dataToProcess,
-      });
-      return response;
-    }
+      try {
+        await MonitorMetricUtil.saveMonitorMetrics({
+          monitorId: monitor.id!,
+          projectId: monitor.projectId!,
+          dataToProcess: dataToProcess,
+          probeName: probeName || undefined,
+          monitorName: monitorName || undefined,
+        });
+      } catch (err) {
+        logger.error("Unable to save metrics");
+        logger.error(err);
+      }
 
-    logger.debug(
-      `${dataToProcess.monitorId.toString()} - Auto resolving criteria instances.`,
-    );
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} - Monitor metrics saved`,
+      );
 
-    const criteriaInstances: Array<MonitorCriteriaInstance> =
-      monitorSteps.data.monitorStepsInstanceArray
-        .map((step: MonitorStep) => {
-          return step.data?.monitorCriteria;
-        })
-        .filter((criteria: MonitorCriteria | undefined) => {
-          return Boolean(criteria);
-        })
-        .map((criteria: MonitorCriteria | undefined) => {
-          return [...(criteria?.data?.monitorCriteriaInstanceArray || [])];
-        })
-        .flat();
-
-    const autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
-      Array<string>
-    > = {};
-
-    const criteriaInstanceMap: Dictionary<MonitorCriteriaInstance> = {};
-
-    for (const criteriaInstance of criteriaInstances) {
-      criteriaInstanceMap[criteriaInstance.data?.id || ""] = criteriaInstance;
+      /*
+       * `monitorSteps` is optional on the model. When a monitor has none
+       * configured, `monitor.monitorSteps` is undefined and the previous
+       * non-null assertion (`!`) was a lie — `monitorSteps.data` then threw
+       * "Cannot read properties of null (reading 'data')" inside the probe
+       * ingest worker. Guard the value itself and take the existing
+       * "no monitoring steps" early return.
+       */
+      const monitorSteps: MonitorSteps | undefined = monitor.monitorSteps;
 
       if (
-        criteriaInstance.data?.incidents &&
-        criteriaInstance.data?.incidents.length > 0
+        !monitorSteps ||
+        !monitorSteps.data?.monitorStepsInstanceArray ||
+        monitorSteps.data?.monitorStepsInstanceArray.length === 0
       ) {
-        for (const incidentTemplate of criteriaInstance.data!.incidents) {
-          if (incidentTemplate.autoResolveIncident) {
-            if (
-              !autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-                criteriaInstance.data.id.toString()
-              ]
-            ) {
-              autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-                criteriaInstance.data.id.toString()
-              ] = [];
-            }
-
-            autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-              criteriaInstance.data.id.toString()
-            ]?.push(incidentTemplate.id);
-          }
-        }
-      }
-    }
-
-    // alerts.
-
-    const autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<
-      Array<string>
-    > = {};
-
-    const criteriaInstanceAlertMap: Dictionary<MonitorCriteriaInstance> = {};
-
-    for (const criteriaInstance of criteriaInstances) {
-      criteriaInstanceAlertMap[criteriaInstance.data?.id || ""] =
-        criteriaInstance;
-
-      if (
-        criteriaInstance.data?.alerts &&
-        criteriaInstance.data?.alerts.length > 0
-      ) {
-        for (const alertTemplate of criteriaInstance.data!.alerts) {
-          if (alertTemplate.autoResolveAlert) {
-            if (
-              !autoResolveCriteriaInstanceIdAlertIdsDictionary[
-                criteriaInstance.data.id.toString()
-              ]
-            ) {
-              autoResolveCriteriaInstanceIdAlertIdsDictionary[
-                criteriaInstance.data.id.toString()
-              ] = [];
-            }
-
-            autoResolveCriteriaInstanceIdAlertIdsDictionary[
-              criteriaInstance.data.id.toString()
-            ]?.push(alertTemplate.id);
-          }
-        }
-      }
-    }
-
-    const monitorStep: MonitorStep | undefined =
-      monitorSteps.data.monitorStepsInstanceArray[0];
-
-    logger.debug(`Monitor Step: ${monitorStep ? monitorStep.id : "undefined"}`);
-
-    if ((dataToProcess as ProbeMonitorResponse).monitorStepId) {
-      monitorSteps.data.monitorStepsInstanceArray.find(
-        (monitorStep: MonitorStep) => {
-          return (
-            monitorStep.id.toString() ===
-            (dataToProcess as ProbeMonitorResponse).monitorStepId.toString()
-          );
-        },
-      );
-      logger.debug(
-        `Found Monitor Step ID: ${(dataToProcess as ProbeMonitorResponse).monitorStepId}`,
-      );
-    }
-
-    if (!monitorStep) {
-      logger.debug("No steps found, ignoring everything.");
-      await persistLatestMonitorPayload();
-
-      MonitorLogUtil.saveMonitorLog({
-        monitorId: monitor.id!,
-        projectId: monitor.projectId!,
-        dataToProcess: dataToProcess,
-      });
-      return response;
-    }
-
-    // now process the monitor step
-    response.ingestedMonitorStepId = monitorStep.id;
-    logger.debug(`Ingested Monitor Step ID: ${monitorStep.id}`);
-
-    //find next monitor step after this one.
-    const nextMonitorStepIndex: number =
-      monitorSteps.data.monitorStepsInstanceArray.findIndex(
-        (step: MonitorStep) => {
-          return step.id.toString() === monitorStep.id.toString();
-        },
-      );
-
-    response.nextMonitorStepId =
-      monitorSteps.data.monitorStepsInstanceArray[nextMonitorStepIndex + 1]?.id;
-
-    logger.debug(`Next Monitor Step ID: ${response.nextMonitorStepId}`);
-
-    // now process probe response monitors
-    logger.debug(
-      `${dataToProcess.monitorId.toString()} - Processing monitor step...`,
-    );
-
-    response = await MonitorCriteriaEvaluator.processMonitorStep({
-      dataToProcess: dataToProcess,
-      monitorStep: monitorStep,
-      monitor: monitor,
-      probeApiIngestResponse: response,
-      evaluationSummary: evaluationSummary,
-    });
-
-    // Check probe agreement for probe-based monitors
-    if (
-      monitor.monitorType &&
-      MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
-    ) {
-      const probeAgreementResult: ProbeAgreementResult =
-        await MonitorResourceUtil.checkProbeAgreement({
-          monitor: monitor,
-          monitorStep: monitorStep,
-          currentCriteriaMetId: response.criteriaMetId || null,
-          currentRootCause: response.rootCause || null,
-        });
-
-      // Add probe agreement event to evaluation summary
-      evaluationSummary.events.push({
-        type: "probe-agreement",
-        title: "Probe Agreement Check",
-        message: probeAgreementResult.hasAgreement
-          ? `Probe agreement reached: ${probeAgreementResult.agreementCount}/${probeAgreementResult.requiredCount} probes agree (${probeAgreementResult.totalActiveProbes} active probes total).`
-          : `Probe agreement not reached: ${probeAgreementResult.agreementCount}/${probeAgreementResult.requiredCount} probes agree (${probeAgreementResult.totalActiveProbes} active probes total). Skipping status change.`,
-        at: OneUptimeDate.getCurrentDate(),
-      });
-
-      if (!probeAgreementResult.hasAgreement) {
         logger.debug(
-          `${dataToProcess.monitorId.toString()} - Probe agreement not met. ${probeAgreementResult.agreementCount}/${probeAgreementResult.requiredCount} probes agree. Skipping status change.`,
+          `${dataToProcess.monitorId.toString()} - No monitoring steps.`,
         );
-
-        // Release lock and return early - no status change
-        if (mutex) {
-          try {
-            await Semaphore.release(mutex);
-          } catch (err) {
-            logger.error(err);
-          }
-        }
-
         await persistLatestMonitorPayload();
 
         MonitorLogUtil.saveMonitorLog({
@@ -571,273 +446,577 @@ export default class MonitorResourceUtil {
           projectId: monitor.projectId!,
           dataToProcess: dataToProcess,
         });
-
-        response.evaluationSummary = evaluationSummary;
         return response;
       }
 
-      // Use the agreed criteria result
-      response.criteriaMetId = probeAgreementResult.agreedCriteriaId
-        ? probeAgreementResult.agreedCriteriaId
-        : undefined;
-      response.rootCause = probeAgreementResult.agreedRootCause;
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} - Auto resolving criteria instances.`,
+      );
 
-      // Add probe names in agreement to the root cause
+      const criteriaInstances: Array<MonitorCriteriaInstance> =
+        monitorSteps.data.monitorStepsInstanceArray
+          .map((step: MonitorStep) => {
+            return step.data?.monitorCriteria;
+          })
+          .filter((criteria: MonitorCriteria | undefined) => {
+            return Boolean(criteria);
+          })
+          .map((criteria: MonitorCriteria | undefined) => {
+            return [...(criteria?.data?.monitorCriteriaInstanceArray || [])];
+          })
+          .flat();
+
+      const autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
+        Array<string>
+      > = {};
+
+      const criteriaInstanceMap: Dictionary<MonitorCriteriaInstance> = {};
+
+      for (const criteriaInstance of criteriaInstances) {
+        criteriaInstanceMap[criteriaInstance.data?.id || ""] = criteriaInstance;
+
+        if (
+          criteriaInstance.data?.incidents &&
+          criteriaInstance.data?.incidents.length > 0
+        ) {
+          for (const incidentTemplate of criteriaInstance.data!.incidents) {
+            if (incidentTemplate.autoResolveIncident) {
+              if (
+                !autoResolveCriteriaInstanceIdIncidentIdsDictionary[
+                  criteriaInstance.data.id.toString()
+                ]
+              ) {
+                autoResolveCriteriaInstanceIdIncidentIdsDictionary[
+                  criteriaInstance.data.id.toString()
+                ] = [];
+              }
+
+              autoResolveCriteriaInstanceIdIncidentIdsDictionary[
+                criteriaInstance.data.id.toString()
+              ]?.push(incidentTemplate.id);
+            }
+          }
+        }
+      }
+
+      // alerts.
+
+      const autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<
+        Array<string>
+      > = {};
+
+      const criteriaInstanceAlertMap: Dictionary<MonitorCriteriaInstance> = {};
+
+      for (const criteriaInstance of criteriaInstances) {
+        criteriaInstanceAlertMap[criteriaInstance.data?.id || ""] =
+          criteriaInstance;
+
+        if (
+          criteriaInstance.data?.alerts &&
+          criteriaInstance.data?.alerts.length > 0
+        ) {
+          for (const alertTemplate of criteriaInstance.data!.alerts) {
+            if (alertTemplate.autoResolveAlert) {
+              if (
+                !autoResolveCriteriaInstanceIdAlertIdsDictionary[
+                  criteriaInstance.data.id.toString()
+                ]
+              ) {
+                autoResolveCriteriaInstanceIdAlertIdsDictionary[
+                  criteriaInstance.data.id.toString()
+                ] = [];
+              }
+
+              autoResolveCriteriaInstanceIdAlertIdsDictionary[
+                criteriaInstance.data.id.toString()
+              ]?.push(alertTemplate.id);
+            }
+          }
+        }
+      }
+
+      const monitorStep: MonitorStep | undefined =
+        monitorSteps.data.monitorStepsInstanceArray[0];
+
+      logger.debug(
+        `Monitor Step: ${monitorStep ? monitorStep.id : "undefined"}`,
+      );
+
+      if ((dataToProcess as ProbeMonitorResponse).monitorStepId) {
+        monitorSteps.data.monitorStepsInstanceArray.find(
+          (monitorStep: MonitorStep) => {
+            return (
+              monitorStep.id.toString() ===
+              (dataToProcess as ProbeMonitorResponse).monitorStepId.toString()
+            );
+          },
+        );
+        logger.debug(
+          `Found Monitor Step ID: ${(dataToProcess as ProbeMonitorResponse).monitorStepId}`,
+        );
+      }
+
+      if (!monitorStep) {
+        logger.debug("No steps found, ignoring everything.");
+        await persistLatestMonitorPayload();
+
+        MonitorLogUtil.saveMonitorLog({
+          monitorId: monitor.id!,
+          projectId: monitor.projectId!,
+          dataToProcess: dataToProcess,
+        });
+        return response;
+      }
+
+      // now process the monitor step
+      response.ingestedMonitorStepId = monitorStep.id;
+      logger.debug(`Ingested Monitor Step ID: ${monitorStep.id}`);
+
+      //find next monitor step after this one.
+      const nextMonitorStepIndex: number =
+        monitorSteps.data.monitorStepsInstanceArray.findIndex(
+          (step: MonitorStep) => {
+            return step.id.toString() === monitorStep.id.toString();
+          },
+        );
+
+      response.nextMonitorStepId =
+        monitorSteps.data.monitorStepsInstanceArray[
+          nextMonitorStepIndex + 1
+        ]?.id;
+
+      logger.debug(`Next Monitor Step ID: ${response.nextMonitorStepId}`);
+
+      // now process probe response monitors
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} - Processing monitor step...`,
+      );
+
+      response = await MonitorCriteriaEvaluator.processMonitorStep({
+        dataToProcess: dataToProcess,
+        monitorStep: monitorStep,
+        monitor: monitor,
+        probeApiIngestResponse: response,
+        evaluationSummary: evaluationSummary,
+      });
+
+      // Check probe agreement for probe-based monitors
       if (
-        response.rootCause &&
-        probeAgreementResult.agreedProbeNames.length > 0
+        monitor.monitorType &&
+        MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
       ) {
-        response.rootCause += `
+        const probeAgreementResult: ProbeAgreementResult =
+          await MonitorResourceUtil.checkProbeAgreement({
+            monitor: monitor,
+            monitorStep: monitorStep,
+            currentCriteriaMetId: response.criteriaMetId || null,
+            currentRootCause: response.rootCause || null,
+          });
+
+        // Add probe agreement event to evaluation summary
+        evaluationSummary.events.push({
+          type: "probe-agreement",
+          title: "Probe Agreement Check",
+          message: probeAgreementResult.hasAgreement
+            ? `Probe agreement reached: ${probeAgreementResult.agreementCount}/${probeAgreementResult.requiredCount} probes agree (${probeAgreementResult.totalActiveProbes} active probes total).`
+            : `Probe agreement not reached: ${probeAgreementResult.agreementCount}/${probeAgreementResult.requiredCount} probes agree (${probeAgreementResult.totalActiveProbes} active probes total). Skipping status change.`,
+          at: OneUptimeDate.getCurrentDate(),
+        });
+
+        if (!probeAgreementResult.hasAgreement) {
+          logger.debug(
+            `${dataToProcess.monitorId.toString()} - Probe agreement not met. ${probeAgreementResult.agreementCount}/${probeAgreementResult.requiredCount} probes agree. Skipping status change.`,
+          );
+
+          // Release lock and return early - no status change
+          await releaseMutex();
+
+          await persistLatestMonitorPayload();
+
+          MonitorLogUtil.saveMonitorLog({
+            monitorId: monitor.id!,
+            projectId: monitor.projectId!,
+            dataToProcess: dataToProcess,
+          });
+
+          response.evaluationSummary = evaluationSummary;
+          return response;
+        }
+
+        // Use the agreed criteria result
+        response.criteriaMetId = probeAgreementResult.agreedCriteriaId
+          ? probeAgreementResult.agreedCriteriaId
+          : undefined;
+        response.rootCause = probeAgreementResult.agreedRootCause;
+
+        // Add probe names in agreement to the root cause
+        if (
+          response.rootCause &&
+          probeAgreementResult.agreedProbeNames.length > 0
+        ) {
+          response.rootCause += `
 **Probes in Agreement**: ${probeAgreementResult.agreedProbeNames.join(", ")}
 `;
-      }
-    }
-
-    if (response.criteriaMetId && response.rootCause) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} - Criteria met: ${
-          response.criteriaMetId
-        }`,
-      );
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} - Root cause: ${
-          response.rootCause
-        }`,
-      );
-
-      let telemetryQuery: TelemetryQuery | undefined = undefined;
-
-      if (dataToProcess && (dataToProcess as LogMonitorResponse).logQuery) {
-        telemetryQuery = {
-          telemetryQuery: (dataToProcess as LogMonitorResponse).logQuery,
-          telemetryType: TelemetryType.Log,
-          metricViewData: null,
-        };
-        logger.debug(
-          `${dataToProcess.monitorId.toString()} - Log query found.`,
-        );
+        }
       }
 
-      if (dataToProcess && (dataToProcess as TraceMonitorResponse).spanQuery) {
-        telemetryQuery = {
-          telemetryQuery: (dataToProcess as TraceMonitorResponse).spanQuery,
-          telemetryType: TelemetryType.Trace,
-          metricViewData: null,
-        };
-        logger.debug(
-          `${dataToProcess.monitorId.toString()} - Span query found.`,
-        );
-      }
-
+      /*
+       * Incoming Request / webhook grouped resolution (event-driven). A
+       * payload can explicitly mark keys as resolved (e.g. Grafana
+       * status=resolved). Resolve exactly those keys' incidents — never by
+       * absence. Runs regardless of whether a firing criteria matched, so a
+       * pure "resolved" webhook still closes the right incident. No-op
+       * unless a criteria has incidentGrouping configured.
+       */
       if (
-        dataToProcess &&
-        (dataToProcess as MetricMonitorResponse).metricViewConfig &&
-        (dataToProcess as MetricMonitorResponse).startAndEndDate
+        monitor.monitorType === MonitorType.IncomingRequest &&
+        criteriaInstances.some((criteriaInstance: MonitorCriteriaInstance) => {
+          return IncomingRequestIncidentGrouping.isGroupingConfigured(
+            criteriaInstance,
+          );
+        })
       ) {
-        telemetryQuery = {
-          telemetryQuery: null,
-          telemetryType: TelemetryType.Metric,
-          metricViewData: {
-            startAndEndDate:
-              (dataToProcess as MetricMonitorResponse).startAndEndDate || null,
-            queryConfigs: (dataToProcess as MetricMonitorResponse)
-              .metricViewConfig.queryConfigs,
-            formulaConfigs: (dataToProcess as MetricMonitorResponse)
-              .metricViewConfig.formulaConfigs,
-          },
-        };
-        logger.debug(
-          `${dataToProcess.monitorId.toString()} - Span query found.`,
-        );
+        const resolvedFingerprints: Array<string> =
+          IncomingRequestIncidentGrouping.collectResolvedFingerprints({
+            dataToProcess: dataToProcess,
+            criteriaInstances: criteriaInstances,
+          });
+
+        if (resolvedFingerprints.length > 0) {
+          await MonitorIncident.resolveSeriesIncidentsByFingerprint({
+            monitor: monitor,
+            fingerprints: resolvedFingerprints,
+            rootCause: "Incoming request reported this key as resolved.",
+            dataToProcess: dataToProcess,
+            autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+            evaluationSummary: evaluationSummary,
+          });
+
+          await MonitorAlert.resolveSeriesAlertsByFingerprint({
+            monitor: monitor,
+            fingerprints: resolvedFingerprints,
+            rootCause: "Incoming request reported this key as resolved.",
+            dataToProcess: dataToProcess,
+            autoResolveCriteriaInstanceIdAlertIdsDictionary,
+            evaluationSummary: evaluationSummary,
+          });
+        }
       }
 
-      if (
-        dataToProcess &&
-        (dataToProcess as ExceptionMonitorResponse).exceptionQuery
-      ) {
-        const exceptionResponse: ExceptionMonitorResponse =
-          dataToProcess as ExceptionMonitorResponse;
-        telemetryQuery = {
-          telemetryQuery: exceptionResponse.exceptionQuery,
-          telemetryType: TelemetryType.Exception,
-          metricViewData: null,
-        };
-
+      if (response.criteriaMetId && response.rootCause) {
         logger.debug(
-          `${dataToProcess.monitorId.toString()} - Exception query found.`,
+          `${dataToProcess.monitorId.toString()} - Criteria met: ${
+            response.criteriaMetId
+          }`,
         );
-      }
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - Root cause: ${
+            response.rootCause
+          }`,
+        );
 
-      const matchedCriteriaInstance: MonitorCriteriaInstance =
-        criteriaInstanceMap[response.criteriaMetId!]!;
+        let telemetryQuery: TelemetryQuery | undefined = undefined;
 
-      const monitorStatusTimelineChange: MonitorStatusTimeline | null =
-        await MonitorStatusTimelineUtil.updateMonitorStatusTimeline({
+        if (dataToProcess && (dataToProcess as LogMonitorResponse).logQuery) {
+          telemetryQuery = {
+            telemetryQuery: (dataToProcess as LogMonitorResponse).logQuery,
+            telemetryType: TelemetryType.Log,
+            metricViewData: null,
+          };
+          logger.debug(
+            `${dataToProcess.monitorId.toString()} - Log query found.`,
+          );
+        }
+
+        if (
+          dataToProcess &&
+          (dataToProcess as TraceMonitorResponse).spanQuery
+        ) {
+          telemetryQuery = {
+            telemetryQuery: (dataToProcess as TraceMonitorResponse).spanQuery,
+            telemetryType: TelemetryType.Trace,
+            metricViewData: null,
+          };
+          logger.debug(
+            `${dataToProcess.monitorId.toString()} - Span query found.`,
+          );
+        }
+
+        if (
+          dataToProcess &&
+          (dataToProcess as MetricMonitorResponse).metricViewConfig &&
+          (dataToProcess as MetricMonitorResponse).startAndEndDate
+        ) {
+          telemetryQuery = {
+            telemetryQuery: null,
+            telemetryType: TelemetryType.Metric,
+            metricViewData: {
+              startAndEndDate:
+                (dataToProcess as MetricMonitorResponse).startAndEndDate ||
+                null,
+              queryConfigs: (dataToProcess as MetricMonitorResponse)
+                .metricViewConfig.queryConfigs,
+              formulaConfigs: (dataToProcess as MetricMonitorResponse)
+                .metricViewConfig.formulaConfigs,
+            },
+          };
+          logger.debug(
+            `${dataToProcess.monitorId.toString()} - Span query found.`,
+          );
+        }
+
+        if (
+          dataToProcess &&
+          (dataToProcess as ExceptionMonitorResponse).exceptionQuery
+        ) {
+          const exceptionResponse: ExceptionMonitorResponse =
+            dataToProcess as ExceptionMonitorResponse;
+          telemetryQuery = {
+            telemetryQuery: exceptionResponse.exceptionQuery,
+            telemetryType: TelemetryType.Exception,
+            metricViewData: null,
+          };
+
+          logger.debug(
+            `${dataToProcess.monitorId.toString()} - Exception query found.`,
+          );
+        }
+
+        const matchedCriteriaInstance: MonitorCriteriaInstance =
+          criteriaInstanceMap[response.criteriaMetId!]!;
+
+        const monitorStatusTimelineChange: MonitorStatusTimeline | null =
+          await MonitorStatusTimelineUtil.updateMonitorStatusTimeline({
+            monitor: monitor,
+            rootCause: response.rootCause,
+            dataToProcess: dataToProcess,
+            criteriaInstance: matchedCriteriaInstance,
+            props: {
+              telemetryQuery: telemetryQuery,
+            },
+          });
+
+        if (monitorStatusTimelineChange) {
+          const changedStatusName: string | null = await getMonitorStatusName(
+            matchedCriteriaInstance.data?.monitorStatusId ||
+              monitorStatusTimelineChange.monitorStatusId,
+          );
+
+          evaluationSummary.events.push({
+            type: "monitor-status-changed",
+            title: "Monitor status updated",
+            message: changedStatusName
+              ? `Monitor status changed to "${changedStatusName}" because criteria "${matchedCriteriaInstance.data?.name || "Unnamed criteria"}" was met.`
+              : `Monitor status changed because criteria "${matchedCriteriaInstance.data?.name || "Unnamed criteria"}" was met.`,
+            relatedCriteriaId: matchedCriteriaInstance.data?.id,
+            at: OneUptimeDate.getCurrentDate(),
+          });
+        }
+
+        /*
+         * For grouped metric monitors, work out which breaching series
+         * belong to a resource that is currently inside an ongoing
+         * scheduled maintenance window. Those series are suppressed
+         * below so the monitor keeps alerting on the rest. Computed once
+         * and shared by both the incident and alert paths. Cheap on the
+         * common path: no per-series matches, or no ongoing maintenance,
+         * returns an empty set after at most one query.
+         */
+        const suppressedSeriesFingerprints: Set<string> =
+          await MonitorMaintenanceSuppression.getSuppressedSeriesFingerprints({
+            projectId: monitor.projectId!,
+            matchesPerSeries: response.perSeriesMatches,
+          });
+
+        await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
           monitor: monitor,
           rootCause: response.rootCause,
           dataToProcess: dataToProcess,
+          autoResolveCriteriaInstanceIdIncidentIdsDictionary,
           criteriaInstance: matchedCriteriaInstance,
+          evaluationSummary: evaluationSummary,
           props: {
             telemetryQuery: telemetryQuery,
           },
+          matchesPerSeries: response.perSeriesMatches,
+          suppressedSeriesFingerprints,
+          /*
+           * Incoming-request grouping is event-driven: a webhook describes
+           * only the keys in its payload, so absence from this tick is not
+           * recovery. Skip the snapshot absence-resolve pass; grouped
+           * incidents are resolved explicitly via the resolution block
+           * above. Per-key create + dedupe still run from matchesPerSeries.
+           */
+          disableSeriesAbsenceResolution:
+            monitor.monitorType === MonitorType.IncomingRequest,
         });
 
-      if (monitorStatusTimelineChange) {
-        const changedStatusName: string | null = await getMonitorStatusName(
-          matchedCriteriaInstance.data?.monitorStatusId ||
-            monitorStatusTimelineChange.monitorStatusId,
-        );
-
-        evaluationSummary.events.push({
-          type: "monitor-status-changed",
-          title: "Monitor status updated",
-          message: changedStatusName
-            ? `Monitor status changed to "${changedStatusName}" because criteria "${matchedCriteriaInstance.data?.name || "Unnamed criteria"}" was met.`
-            : `Monitor status changed because criteria "${matchedCriteriaInstance.data?.name || "Unnamed criteria"}" was met.`,
-          relatedCriteriaId: matchedCriteriaInstance.data?.id,
-          at: OneUptimeDate.getCurrentDate(),
-        });
-      }
-
-      await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
-        monitor: monitor,
-        rootCause: response.rootCause,
-        dataToProcess: dataToProcess,
-        autoResolveCriteriaInstanceIdIncidentIdsDictionary,
-        criteriaInstance: matchedCriteriaInstance,
-        evaluationSummary: evaluationSummary,
-        props: {
-          telemetryQuery: telemetryQuery,
-        },
-        matchesPerSeries: response.perSeriesMatches,
-      });
-
-      await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
-        monitor: monitor,
-        rootCause: response.rootCause,
-        dataToProcess: dataToProcess,
-        autoResolveCriteriaInstanceIdAlertIdsDictionary,
-        criteriaInstance: criteriaInstanceAlertMap[response.criteriaMetId!]!,
-        evaluationSummary: evaluationSummary,
-        props: {
-          telemetryQuery: telemetryQuery,
-        },
-        matchesPerSeries: response.perSeriesMatches,
-      });
-    } else if (
-      !response.criteriaMetId &&
-      monitorSteps.data.defaultMonitorStatusId &&
-      monitor.currentMonitorStatusId?.toString() !==
-        monitorSteps.data.defaultMonitorStatusId.toString()
-    ) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} - No criteria met. Change to default status.`,
-      );
-
-      await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
-        monitorId: monitor.id!,
-        autoResolveCriteriaInstanceIdIncidentIdsDictionary,
-        rootCause: "No monitoring criteria met. Change to default status.",
-        criteriaInstance: null, // no criteria met!
-        dataToProcess: dataToProcess,
-        evaluationSummary: evaluationSummary,
-      });
-
-      await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
-        monitorId: monitor.id!,
-        autoResolveCriteriaInstanceIdAlertIdsDictionary,
-        rootCause: "No monitoring criteria met. Change to default status.",
-        criteriaInstance: null, // no criteria met!
-        dataToProcess: dataToProcess,
-        evaluationSummary: evaluationSummary,
-      });
-
-      // get last monitor status timeline.
-      const lastMonitorStatusTimeline: MonitorStatusTimeline | null =
-        await MonitorStatusTimelineService.findOneBy({
-          query: {
-            monitorId: monitor.id!,
-            projectId: monitor.projectId!,
-          },
-          select: {
-            _id: true,
-            monitorStatusId: true,
-          },
-          sort: {
-            startsAt: SortOrder.Descending,
-          },
+        await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+          monitor: monitor,
+          rootCause: response.rootCause,
+          dataToProcess: dataToProcess,
+          autoResolveCriteriaInstanceIdAlertIdsDictionary,
+          criteriaInstance: criteriaInstanceAlertMap[response.criteriaMetId!]!,
+          evaluationSummary: evaluationSummary,
           props: {
-            isRoot: true,
+            telemetryQuery: telemetryQuery,
           },
+          matchesPerSeries: response.perSeriesMatches,
+          suppressedSeriesFingerprints,
+          /*
+           * Incoming-request grouping is event-driven (see the incident
+           * create call above): skip the snapshot absence-resolve pass for
+           * webhooks; grouped alerts are resolved explicitly via the
+           * resolution block above. Per-key create + dedupe still run.
+           */
+          disableSeriesAbsenceResolution:
+            monitor.monitorType === MonitorType.IncomingRequest,
         });
-
-      if (
-        lastMonitorStatusTimeline &&
-        lastMonitorStatusTimeline.monitorStatusId &&
-        lastMonitorStatusTimeline.monitorStatusId.toString() ===
+      } else if (
+        !response.criteriaMetId &&
+        monitorSteps.data.defaultMonitorStatusId &&
+        monitor.currentMonitorStatusId?.toString() !==
           monitorSteps.data.defaultMonitorStatusId.toString()
       ) {
-        /*
-         * status is same as last status. do not create new status timeline.
-         * do nothing! status is same as last status.
-         */
-      } else {
-        // if no criteria is met then update monitor to default state.
-        const monitorStatusTimeline: MonitorStatusTimeline =
-          new MonitorStatusTimeline();
-        monitorStatusTimeline.monitorId = monitor.id!;
-        monitorStatusTimeline.monitorStatusId =
-          monitorSteps.data.defaultMonitorStatusId!;
-        monitorStatusTimeline.projectId = monitor.projectId!;
-        monitorStatusTimeline.isOwnerNotified = true; // no need to notify owner as this is default status.
-        monitorStatusTimeline.statusChangeLog = JSON.parse(
-          JSON.stringify(dataToProcess),
-        );
-        monitorStatusTimeline.rootCause =
-          "No monitoring criteria met. Change to default status. ";
-
-        await MonitorStatusTimelineService.create({
-          data: monitorStatusTimeline,
-          props: {
-            isRoot: true,
-          },
-        });
         logger.debug(
-          `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`,
+          `${dataToProcess.monitorId.toString()} - No criteria met. Change to default status.`,
         );
 
-        const defaultStatusName: string | null = await getMonitorStatusName(
-          monitorSteps.data.defaultMonitorStatusId,
-        );
-
-        evaluationSummary.events.push({
-          type: "monitor-status-changed",
-          title: "Monitor status reverted",
-          message: defaultStatusName
-            ? `Monitor status reverted to "${defaultStatusName}" because no monitoring criteria were met.`
-            : "Monitor status reverted to its default state because no monitoring criteria were met.",
-          at: OneUptimeDate.getCurrentDate(),
+        await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+          monitorId: monitor.id!,
+          autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+          rootCause: "No monitoring criteria met. Change to default status.",
+          criteriaInstance: null, // no criteria met!
+          dataToProcess: dataToProcess,
+          evaluationSummary: evaluationSummary,
+          /*
+           * Event-driven grouping: for incoming-request monitors, never
+           * absence-resolve per-key (seriesFingerprint) incidents on the
+           * no-criteria-met path — a heartbeat tick or a rejected webhook
+           * must not bulk-close grouped incidents. They resolve only via
+           * the explicit resolution block above. Non-grouped incoming
+           * incidents have no seriesFingerprint, so they still resolve
+           * normally; non-incoming-request types are unaffected (flag false).
+           */
+          disableSeriesAbsenceResolution:
+            monitor.monitorType === MonitorType.IncomingRequest,
         });
+
+        await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+          monitorId: monitor.id!,
+          autoResolveCriteriaInstanceIdAlertIdsDictionary,
+          rootCause: "No monitoring criteria met. Change to default status.",
+          criteriaInstance: null, // no criteria met!
+          dataToProcess: dataToProcess,
+          evaluationSummary: evaluationSummary,
+          disableSeriesAbsenceResolution:
+            monitor.monitorType === MonitorType.IncomingRequest,
+        });
+
+        // get last monitor status timeline.
+        const lastMonitorStatusTimeline: MonitorStatusTimeline | null =
+          await MonitorStatusTimelineService.findOneBy({
+            query: {
+              monitorId: monitor.id!,
+              projectId: monitor.projectId!,
+            },
+            select: {
+              _id: true,
+              monitorStatusId: true,
+            },
+            sort: {
+              startsAt: SortOrder.Descending,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (
+          lastMonitorStatusTimeline &&
+          lastMonitorStatusTimeline.monitorStatusId &&
+          lastMonitorStatusTimeline.monitorStatusId.toString() ===
+            monitorSteps.data.defaultMonitorStatusId.toString()
+        ) {
+          /*
+           * status is same as last status. do not create new status timeline.
+           * do nothing! status is same as last status.
+           */
+        } else {
+          // if no criteria is met then update monitor to default state.
+          const monitorStatusTimeline: MonitorStatusTimeline =
+            new MonitorStatusTimeline();
+          monitorStatusTimeline.monitorId = monitor.id!;
+          monitorStatusTimeline.monitorStatusId =
+            monitorSteps.data.defaultMonitorStatusId!;
+          monitorStatusTimeline.projectId = monitor.projectId!;
+          monitorStatusTimeline.isOwnerNotified = true; // no need to notify owner as this is default status.
+          monitorStatusTimeline.statusChangeLog = JSON.parse(
+            JSON.stringify(dataToProcess),
+          );
+          monitorStatusTimeline.rootCause =
+            "No monitoring criteria met. Change to default status. ";
+
+          try {
+            await MonitorStatusTimelineService.create({
+              data: monitorStatusTimeline,
+              props: {
+                isRoot: true,
+              },
+            });
+            logger.debug(
+              `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`,
+            );
+          } catch (err) {
+            /*
+             * Idempotent concurrency race (see MonitorStatusTimeline.ts): a
+             * concurrent result already moved the monitor to this default status,
+             * so onBeforeCreate's dedupe check throws this exact BadDataException.
+             * Treat as a no-op at debug level rather than failing the job. Match the
+             * exact message so unrelated BadDataExceptions still propagate.
+             */
+            if (
+              err instanceof BadDataException &&
+              err.message ===
+                "Monitor Status cannot be same as previous status."
+            ) {
+              logger.debug(
+                `${dataToProcess.monitorId.toString()} - Monitor status already at default; skipping duplicate status timeline (concurrent race).`,
+              );
+            } else {
+              throw err;
+            }
+          }
+
+          const defaultStatusName: string | null = await getMonitorStatusName(
+            monitorSteps.data.defaultMonitorStatusId,
+          );
+
+          evaluationSummary.events.push({
+            type: "monitor-status-changed",
+            title: "Monitor status reverted",
+            message: defaultStatusName
+              ? `Monitor status reverted to "${defaultStatusName}" because no monitoring criteria were met.`
+              : "Monitor status reverted to its default state because no monitoring criteria were met.",
+            at: OneUptimeDate.getCurrentDate(),
+          });
+        }
       }
+
+      await releaseMutex();
+
+      await persistLatestMonitorPayload();
+
+      MonitorLogUtil.saveMonitorLog({
+        monitorId: monitor.id!,
+        projectId: monitor.projectId!,
+        dataToProcess: dataToProcess,
+      });
+
+      return response;
+    } finally {
+      await releaseMutex();
     }
-
-    if (mutex) {
-      try {
-        await Semaphore.release(mutex);
-      } catch (err) {
-        logger.error(err);
-      }
-    }
-
-    await persistLatestMonitorPayload();
-
-    MonitorLogUtil.saveMonitorLog({
-      monitorId: monitor.id!,
-      projectId: monitor.projectId!,
-      dataToProcess: dataToProcess,
-    });
-
-    return response;
   }
 
   @CaptureSpan()

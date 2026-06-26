@@ -5,10 +5,8 @@ import MetricService from "../../Services/MetricService";
 import GlobalConfigService from "../../Services/GlobalConfigService";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import DataToProcess from "./DataToProcess";
-import {
-  MetricPointType,
-  ServiceType,
-} from "../../../Models/AnalyticsModels/Metric";
+import { MetricPointType } from "../../../Models/AnalyticsModels/Metric";
+import ServiceType from "../../../Types/Telemetry/ServiceType";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
 import BasicInfrastructureMetrics, {
   NetworkInterfaceMetrics,
@@ -134,12 +132,11 @@ export default class MonitorMetricUtil {
     );
 
     return {
-      _id: ObjectID.generate().toString(),
+      _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: ingestionTimestamp,
-      updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
-      serviceId: data.monitorId.toString(),
-      serviceType: ServiceType.Monitor,
+      primaryEntityId: data.monitorId.toString(),
+      primaryEntityType: ServiceType.Monitor,
       name: data.metricName,
       aggregationTemporality: null,
       metricPointType: data.metricPointType || MetricPointType.Sum,

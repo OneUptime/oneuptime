@@ -1,0 +1,349 @@
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import DashboardTraceChartComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTraceChartComponent";
+import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
+import API from "Common/UI/Utils/API/API";
+import URL from "Common/Types/API/URL";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { JSONObject } from "Common/Types/JSON";
+import { APP_API_URL } from "Common/UI/Config";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import JSONFunctions from "Common/Types/JSONFunctions";
+import DashboardResourceList from "../Utils/DashboardResourceList";
+import {
+  TimeseriesRow,
+  buildTraceAnalyticsRequest,
+  formatCount,
+  formatDurationMs,
+  formatTickTime,
+  isDurationMetric,
+  pivotTimeseries,
+} from "./TraceChartData";
+
+export interface ComponentProps extends DashboardBaseComponentProps {
+  component: DashboardTraceChartComponent;
+}
+
+const CHART_COLORS: Array<string> = [
+  "#6366f1",
+  "#ec4899",
+  "#10b981",
+  "#f59e0b",
+  "#06b6d4",
+  "#8b5cf6",
+  "#f43f5e",
+  "#14b8a6",
+  "#64748b",
+  "#84cc16",
+];
+
+const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const [rows, setRows] = useState<Array<TimeseriesRow>>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Staleness guard — see TracesAnalyticsView for rationale.
+  const requestSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
+
+  const metric: string = props.component.arguments.metric || "count";
+  const isDuration: boolean = isDurationMetric(metric);
+  const groupByAttribute: string | undefined =
+    props.component.arguments.groupByAttribute?.trim() || undefined;
+
+  const fetchData: () => Promise<void> = useCallback(async () => {
+    const requestSequence: number = ++requestSequenceRef.current;
+    const isStale: () => boolean = (): boolean => {
+      return requestSequence !== requestSequenceRef.current;
+    };
+
+    /*
+     * The trace analytics endpoint requires an authenticated project
+     * session — public dashboards have neither.
+     */
+    if (DashboardResourceList.isPublic()) {
+      setIsLoading(false);
+      setError("Trace charts are not available on public dashboards.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    const startAndEndDate: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(
+        props.dashboardStartAndEndDate,
+      );
+
+    if (!startAndEndDate.startValue || !startAndEndDate.endValue) {
+      setIsLoading(false);
+      setError("Please select a valid start and end date.");
+      return;
+    }
+
+    try {
+      const requestData: JSONObject = buildTraceAnalyticsRequest({
+        arguments: props.component.arguments,
+        startTime: startAndEndDate.startValue,
+        endTime: startAndEndDate.endValue,
+      });
+
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            "/telemetry/traces/analytics",
+          ),
+          data: requestData,
+          headers: {
+            ...ModelAPI.getCommonHeaders(),
+          },
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      if (isStale()) {
+        return;
+      }
+      const data: unknown = response.data["data"] || [];
+      setRows(data as Array<TimeseriesRow>);
+      setError(null);
+    } catch (err: unknown) {
+      if (isStale()) {
+        return;
+      }
+      setError(API.getFriendlyErrorMessage(err as Error));
+    }
+
+    if (!isStale()) {
+      setIsLoading(false);
+    }
+  }, [
+    props.dashboardStartAndEndDate,
+    metric,
+    groupByAttribute,
+    props.component.arguments.spanNameContains,
+    props.component.arguments.attributeFilters,
+    props.component.arguments.topLimit,
+    props.component.arguments.includeChildSpans,
+  ]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData, props.refreshTick]);
+
+  const { pivotedData, seriesKeys } = useMemo(() => {
+    return pivotTimeseries(rows, metric);
+  }, [rows, metric]);
+
+  const valueFormatter: (value: number) => string = isDuration
+    ? formatDurationMs
+    : formatCount;
+
+  const renderChart: () => ReactElement = (): ReactElement => {
+    const sharedAxes: ReactElement = (
+      <>
+        <CartesianGrid
+          strokeDasharray="none"
+          stroke="#f1f5f9"
+          vertical={false}
+        />
+        <XAxis
+          dataKey="time"
+          tickFormatter={formatTickTime}
+          tick={{ fontSize: 10, fill: "#94a3b8" }}
+          axisLine={{ stroke: "#e2e8f0" }}
+          tickLine={false}
+          minTickGap={40}
+          interval="preserveStartEnd"
+          dy={4}
+        />
+        <YAxis
+          tick={{ fontSize: 10, fill: "#94a3b8" }}
+          axisLine={false}
+          tickLine={false}
+          width={56}
+          allowDecimals={isDuration}
+          tickFormatter={valueFormatter}
+        />
+        <Tooltip
+          formatter={(value: unknown): string => {
+            return valueFormatter(Number(value));
+          }}
+          labelFormatter={(label: unknown): string => {
+            return formatTickTime(String(label ?? ""));
+          }}
+          contentStyle={{ fontSize: "11px" }}
+        />
+      </>
+    );
+
+    if (isDuration) {
+      if (seriesKeys.length === 1) {
+        return (
+          <AreaChart
+            data={pivotedData}
+            margin={{ top: 6, right: 12, bottom: 2, left: 0 }}
+          >
+            {sharedAxes}
+            <Area
+              dataKey={seriesKeys[0] || "value"}
+              stroke={CHART_COLORS[0]!}
+              strokeWidth={2}
+              fill="rgba(99,102,241,0.08)"
+              dot={false}
+              connectNulls={true}
+              isAnimationActive={false}
+            />
+          </AreaChart>
+        );
+      }
+      return (
+        <LineChart
+          data={pivotedData}
+          margin={{ top: 6, right: 12, bottom: 2, left: 0 }}
+        >
+          {sharedAxes}
+          {seriesKeys.map((key: string, index: number) => {
+            return (
+              <Line
+                key={key}
+                dataKey={key}
+                stroke={CHART_COLORS[index % CHART_COLORS.length]!}
+                strokeWidth={1.75}
+                dot={false}
+                connectNulls={true}
+                isAnimationActive={false}
+              />
+            );
+          })}
+        </LineChart>
+      );
+    }
+
+    return (
+      <BarChart
+        data={pivotedData}
+        margin={{ top: 6, right: 12, bottom: 2, left: 0 }}
+        barCategoryGap="18%"
+        barGap={0}
+      >
+        {sharedAxes}
+        {seriesKeys.map((key: string, index: number) => {
+          return (
+            <Bar
+              key={key}
+              dataKey={key}
+              stackId="group"
+              fill={CHART_COLORS[index % CHART_COLORS.length]!}
+              isAnimationActive={false}
+              maxBarSize={28}
+            />
+          );
+        })}
+      </BarChart>
+    );
+  };
+
+  return (
+    <div className="flex h-full w-full flex-col">
+      {props.component.arguments.title && (
+        <div className="mb-1 px-1 text-sm font-medium text-gray-700">
+          {props.component.arguments.title}
+        </div>
+      )}
+      {seriesKeys.length > 1 && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-1 pb-1">
+          {seriesKeys.map((key: string, index: number) => {
+            return (
+              <div key={key} className="flex items-center gap-1">
+                <span
+                  className="inline-block h-2 w-2 rounded-[2px]"
+                  style={{
+                    backgroundColor: CHART_COLORS[index % CHART_COLORS.length],
+                  }}
+                />
+                <span className="max-w-[180px] truncate text-[10px] text-gray-500">
+                  {key}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div className="min-h-0 flex-1">
+        {isLoading && (
+          <div className="flex h-full items-center justify-center">
+            <ComponentLoader />
+          </div>
+        )}
+        {!isLoading && error && <ErrorMessage message={error} />}
+        {!isLoading && !error && pivotedData.length === 0 && (
+          <div className="flex h-full items-center justify-center text-xs text-gray-400">
+            No data for the selected time range
+          </div>
+        )}
+        {!isLoading && !error && pivotedData.length > 0 && (
+          <ResponsiveContainer width="100%" height="100%">
+            {renderChart()}
+          </ResponsiveContainer>
+        )}
+      </div>
+    </div>
+  );
+};
+
+function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
+  if (
+    prev.componentId.toString() !== next.componentId.toString() ||
+    prev.refreshTick !== next.refreshTick ||
+    prev.isEditMode !== next.isEditMode ||
+    prev.isSelected !== next.isSelected ||
+    prev.dashboardComponentWidthInPx !== next.dashboardComponentWidthInPx ||
+    prev.dashboardComponentHeightInPx !== next.dashboardComponentHeightInPx
+  ) {
+    return false;
+  }
+
+  if (
+    !JSONFunctions.deepEqual(
+      prev.dashboardStartAndEndDate,
+      next.dashboardStartAndEndDate,
+    )
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(
+    prev.component.arguments,
+    next.component.arguments,
+  );
+}
+
+export default React.memo(DashboardTraceChartComponentElement, arePropsEqual);

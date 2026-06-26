@@ -2,30 +2,22 @@ import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/S
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 
 /**
- * Get available template variables documentation based on event type and notification method.
- * Returns markdown formatted documentation for use in forms and views.
+ * Returns markdown documentation listing the template variables available for
+ * the given event type. The actual default-template content is rendered
+ * separately in the form (see SubscriberNotificationTemplateDefaults), so this
+ * function focuses on the variable reference table only.
  */
 export const getSubscriberNotificationTemplateVariablesDocumentation: (
   eventType: StatusPageSubscriberNotificationEventType | undefined,
   notificationMethod?: StatusPageSubscriberNotificationMethod | undefined,
 ) => string = (
   eventType: StatusPageSubscriberNotificationEventType | undefined,
-  notificationMethod?: StatusPageSubscriberNotificationMethod | undefined,
+  _notificationMethod?: StatusPageSubscriberNotificationMethod | undefined,
 ): string => {
   const commonVariablesRows: string = `| \`{{statusPageName}}\` | Name of the status page |
 | \`{{statusPageUrl}}\` | URL of the status page |
 | \`{{unsubscribeUrl}}\` | URL for subscribers to unsubscribe from notifications |
 | \`{{resourcesAffected}}\` | List of affected resources/monitors |`;
-
-  const isEmail: boolean =
-    notificationMethod === StatusPageSubscriberNotificationMethod.Email;
-  const isSMS: boolean =
-    notificationMethod === StatusPageSubscriberNotificationMethod.SMS;
-  const isSlack: boolean =
-    notificationMethod === StatusPageSubscriberNotificationMethod.Slack;
-  const isTeams: boolean =
-    notificationMethod ===
-    StatusPageSubscriberNotificationMethod.MicrosoftTeams;
 
   if (!eventType) {
     return `**Available Template Variables**
@@ -38,41 +30,25 @@ ${commonVariablesRows}`;
   }
 
   let eventSpecificRows: string = "";
-  let exampleSubject: string = "";
-  let exampleEmailBody: string = "";
-  let exampleSMSBody: string = "";
-  let exampleSlackBody: string = "";
-  let exampleTeamsBody: string = "";
 
   switch (eventType) {
+    case StatusPageSubscriberNotificationEventType.SubscriberSubscriptionConfirmation:
+      eventSpecificRows = `| \`{{confirmationUrl}}\` | URL the subscriber clicks to confirm their subscription |`;
+      break;
+
+    case StatusPageSubscriberNotificationEventType.SubscriberSubscribed:
+      eventSpecificRows = `| \`{{statusPageUrl}}\` | URL of the status page (also covered by the common variables above) |`;
+      break;
+
+    case StatusPageSubscriberNotificationEventType.SubscriberManageSubscription:
+      eventSpecificRows = `| \`{{manageSubscriptionUrl}}\` | URL the subscriber uses to manage or unsubscribe from notifications |`;
+      break;
+
     case StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated:
       eventSpecificRows = `| \`{{incidentTitle}}\` | Title of the incident |
 | \`{{incidentDescription}}\` | Description of the incident |
 | \`{{incidentSeverity}}\` | Severity level of the incident |
 | \`{{detailsUrl}}\` | URL to view incident details |`;
-      exampleSubject = "{{statusPageName}}: {{incidentTitle}}";
-      exampleEmailBody = `<h2>{{incidentTitle}}</h2>
-<p>{{incidentDescription}}</p>
-<p><strong>Severity:</strong> {{incidentSeverity}}</p>
-<p><strong>Affected Resources:</strong> {{resourcesAffected}}</p>
-<p><a href="{{detailsUrl}}">View Details</a></p>`;
-      exampleSMSBody = `{{statusPageName}}: {{incidentTitle}} - {{incidentSeverity}}. {{incidentDescription}} Details: {{detailsUrl}}`;
-      exampleSlackBody = `**{{incidentTitle}}**
-
-{{incidentDescription}}
-
-**Severity:** {{incidentSeverity}}
-**Affected Resources:** {{resourcesAffected}}
-
-[View Details]({{detailsUrl}})`;
-      exampleTeamsBody = `**{{incidentTitle}}**
-
-{{incidentDescription}}
-
-**Severity:** {{incidentSeverity}}
-**Affected Resources:** {{resourcesAffected}}
-
-[View Details]({{detailsUrl}})`;
       break;
 
     case StatusPageSubscriberNotificationEventType.SubscriberIncidentStateChanged:
@@ -81,27 +57,6 @@ ${commonVariablesRows}`;
 | \`{{incidentSeverity}}\` | Severity level of the incident |
 | \`{{incidentState}}\` | Current state of the incident (e.g., Investigating, Identified, Resolved) |
 | \`{{detailsUrl}}\` | URL to view incident details |`;
-      exampleSubject =
-        "{{statusPageName}}: {{incidentTitle}} - {{incidentState}}";
-      exampleEmailBody = `<h2>{{incidentTitle}}</h2>
-<p>Status changed to: <strong>{{incidentState}}</strong></p>
-<p>{{incidentDescription}}</p>
-<p><a href="{{detailsUrl}}">View Details</a></p>`;
-      exampleSMSBody = `{{statusPageName}}: {{incidentTitle}} is now {{incidentState}}. Details: {{detailsUrl}}`;
-      exampleSlackBody = `**{{incidentTitle}}**
-
-Status changed to: **{{incidentState}}**
-
-{{incidentDescription}}
-
-[View Details]({{detailsUrl}})`;
-      exampleTeamsBody = `**{{incidentTitle}}**
-
-Status changed to: **{{incidentState}}**
-
-{{incidentDescription}}
-
-[View Details]({{detailsUrl}})`;
       break;
 
     case StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated:
@@ -111,47 +66,19 @@ Status changed to: **{{incidentState}}**
 | \`{{postedAt}}\` | Date and time when the note was posted |
 | \`{{note}}\` | Content of the note |
 | \`{{detailsUrl}}\` | URL to view incident details |`;
-      exampleSubject = "{{statusPageName}}: Update on {{incidentTitle}}";
-      exampleEmailBody = `<h2>Update: {{incidentTitle}}</h2>
-<p><strong>Posted:</strong> {{postedAt}}</p>
-<p>{{note}}</p>
-<p><a href="{{detailsUrl}}">View Details</a></p>`;
-      exampleSMSBody = `{{statusPageName}}: Update on {{incidentTitle}} - {{note}} Details: {{detailsUrl}}`;
-      exampleSlackBody = `**Update: {{incidentTitle}}**
+      break;
 
-**Posted:** {{postedAt}}
-
-{{note}}
-
-[View Details]({{detailsUrl}})`;
-      exampleTeamsBody = `**Update: {{incidentTitle}}**
-
-**Posted:** {{postedAt}}
-
-{{note}}
-
-[View Details]({{detailsUrl}})`;
+    case StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished:
+      eventSpecificRows = `| \`{{incidentTitle}}\` | Title of the incident |
+| \`{{incidentSeverity}}\` | Severity level of the incident |
+| \`{{postmortemNote}}\` | Postmortem summary content |
+| \`{{detailsUrl}}\` | URL to view the postmortem |`;
       break;
 
     case StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated:
       eventSpecificRows = `| \`{{announcementTitle}}\` | Title of the announcement |
 | \`{{announcementDescription}}\` | Description/content of the announcement |
 | \`{{detailsUrl}}\` | URL to view announcement details |`;
-      exampleSubject = "{{statusPageName}}: {{announcementTitle}}";
-      exampleEmailBody = `<h2>📢 {{announcementTitle}}</h2>
-<p>{{announcementDescription}}</p>
-<p><a href="{{detailsUrl}}">View Announcement</a></p>`;
-      exampleSMSBody = `{{statusPageName}}: {{announcementTitle}} - {{announcementDescription}} Details: {{detailsUrl}}`;
-      exampleSlackBody = `**{{announcementTitle}}**
-
-{{announcementDescription}}
-
-[View Announcement]({{detailsUrl}})`;
-      exampleTeamsBody = `**{{announcementTitle}}**
-
-{{announcementDescription}}
-
-[View Announcement]({{detailsUrl}})`;
       break;
 
     case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceCreated:
@@ -160,30 +87,6 @@ Status changed to: **{{incidentState}}**
 | \`{{scheduledStartTime}}\` | When the maintenance is scheduled to start |
 | \`{{scheduledEndTime}}\` | When the maintenance is scheduled to end |
 | \`{{detailsUrl}}\` | URL to view scheduled maintenance details |`;
-      exampleSubject =
-        "{{statusPageName}}: Scheduled Maintenance - {{scheduledMaintenanceTitle}}";
-      exampleEmailBody = `<h2>🔧 {{scheduledMaintenanceTitle}}</h2>
-<p>{{scheduledMaintenanceDescription}}</p>
-<p><strong>Start:</strong> {{scheduledStartTime}}</p>
-<p><strong>End:</strong> {{scheduledEndTime}}</p>
-<p><a href="{{detailsUrl}}">View Details</a></p>`;
-      exampleSMSBody = `{{statusPageName}}: Maintenance scheduled - {{scheduledMaintenanceTitle}}. Start: {{scheduledStartTime}}, End: {{scheduledEndTime}}. Details: {{detailsUrl}}`;
-      exampleSlackBody = `**{{scheduledMaintenanceTitle}}**
-
-{{scheduledMaintenanceDescription}}
-
-**Start:** {{scheduledStartTime}}
-**End:** {{scheduledEndTime}}
-
-[View Details]({{detailsUrl}})`;
-      exampleTeamsBody = `**{{scheduledMaintenanceTitle}}**
-
-{{scheduledMaintenanceDescription}}
-
-**Start:** {{scheduledStartTime}}
-**End:** {{scheduledEndTime}}
-
-[View Details]({{detailsUrl}})`;
       break;
 
     case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceStateChanged:
@@ -191,27 +94,6 @@ Status changed to: **{{incidentState}}**
 | \`{{scheduledMaintenanceDescription}}\` | Description of the scheduled maintenance |
 | \`{{scheduledMaintenanceState}}\` | Current state (e.g., Scheduled, In Progress, Completed) |
 | \`{{detailsUrl}}\` | URL to view scheduled maintenance details |`;
-      exampleSubject =
-        "{{statusPageName}}: {{scheduledMaintenanceTitle}} - {{scheduledMaintenanceState}}";
-      exampleEmailBody = `<h2>🔧 {{scheduledMaintenanceTitle}}</h2>
-<p>Status changed to: <strong>{{scheduledMaintenanceState}}</strong></p>
-<p>{{scheduledMaintenanceDescription}}</p>
-<p><a href="{{detailsUrl}}">View Details</a></p>`;
-      exampleSMSBody = `{{statusPageName}}: {{scheduledMaintenanceTitle}} is now {{scheduledMaintenanceState}}. Details: {{detailsUrl}}`;
-      exampleSlackBody = `**{{scheduledMaintenanceTitle}}**
-
-Status changed to: **{{scheduledMaintenanceState}}**
-
-{{scheduledMaintenanceDescription}}
-
-[View Details]({{detailsUrl}})`;
-      exampleTeamsBody = `**{{scheduledMaintenanceTitle}}**
-
-Status changed to: **{{scheduledMaintenanceState}}**
-
-{{scheduledMaintenanceDescription}}
-
-[View Details]({{detailsUrl}})`;
       break;
 
     case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated:
@@ -220,27 +102,6 @@ Status changed to: **{{scheduledMaintenanceState}}**
 | \`{{postedAt}}\` | Date and time when the note was posted |
 | \`{{note}}\` | Content of the note |
 | \`{{detailsUrl}}\` | URL to view scheduled maintenance details |`;
-      exampleSubject =
-        "{{statusPageName}}: Update on {{scheduledMaintenanceTitle}}";
-      exampleEmailBody = `<h2>Update: {{scheduledMaintenanceTitle}}</h2>
-<p><strong>Posted:</strong> {{postedAt}}</p>
-<p>{{note}}</p>
-<p><a href="{{detailsUrl}}">View Details</a></p>`;
-      exampleSMSBody = `{{statusPageName}}: Update on {{scheduledMaintenanceTitle}} - {{note}} Details: {{detailsUrl}}`;
-      exampleSlackBody = `**Update: {{scheduledMaintenanceTitle}}**
-
-**Posted:** {{postedAt}}
-
-{{note}}
-
-[View Details]({{detailsUrl}})`;
-      exampleTeamsBody = `**Update: {{scheduledMaintenanceTitle}}**
-
-**Posted:** {{postedAt}}
-
-{{note}}
-
-[View Details]({{detailsUrl}})`;
       break;
 
     case StatusPageSubscriberNotificationEventType.SubscriberEpisodeCreated:
@@ -248,29 +109,6 @@ Status changed to: **{{scheduledMaintenanceState}}**
 | \`{{episodeDescription}}\` | Description of the incident |
 | \`{{episodeSeverity}}\` | Severity level of the incident |
 | \`{{detailsUrl}}\` | URL to view incident details |`;
-      exampleSubject = "{{statusPageName}}: {{episodeTitle}}";
-      exampleEmailBody = `<h2>{{episodeTitle}}</h2>
-<p>{{episodeDescription}}</p>
-<p><strong>Severity:</strong> {{episodeSeverity}}</p>
-<p><strong>Affected Resources:</strong> {{resourcesAffected}}</p>
-<p><a href="{{detailsUrl}}">View Details</a></p>`;
-      exampleSMSBody = `{{statusPageName}}: {{episodeTitle}} - {{episodeSeverity}}. {{episodeDescription}} Details: {{detailsUrl}}`;
-      exampleSlackBody = `**{{episodeTitle}}**
-
-{{episodeDescription}}
-
-**Severity:** {{episodeSeverity}}
-**Affected Resources:** {{resourcesAffected}}
-
-[View Details]({{detailsUrl}})`;
-      exampleTeamsBody = `**{{episodeTitle}}**
-
-{{episodeDescription}}
-
-**Severity:** {{episodeSeverity}}
-**Affected Resources:** {{resourcesAffected}}
-
-[View Details]({{detailsUrl}})`;
       break;
 
     case StatusPageSubscriberNotificationEventType.SubscriberEpisodeStateChanged:
@@ -278,27 +116,6 @@ Status changed to: **{{scheduledMaintenanceState}}**
 | \`{{episodeSeverity}}\` | Severity level of the incident |
 | \`{{episodeState}}\` | Current state of the incident (e.g., Investigating, Identified, Resolved) |
 | \`{{detailsUrl}}\` | URL to view incident details |`;
-      exampleSubject =
-        "{{statusPageName}}: {{episodeTitle}} - {{episodeState}}";
-      exampleEmailBody = `<h2>{{episodeTitle}}</h2>
-<p>Status changed to: <strong>{{episodeState}}</strong></p>
-<p><strong>Severity:</strong> {{episodeSeverity}}</p>
-<p><a href="{{detailsUrl}}">View Details</a></p>`;
-      exampleSMSBody = `{{statusPageName}}: {{episodeTitle}} is now {{episodeState}}. Details: {{detailsUrl}}`;
-      exampleSlackBody = `**{{episodeTitle}}**
-
-Status changed to: **{{episodeState}}**
-
-**Severity:** {{episodeSeverity}}
-
-[View Details]({{detailsUrl}})`;
-      exampleTeamsBody = `**{{episodeTitle}}**
-
-Status changed to: **{{episodeState}}**
-
-**Severity:** {{episodeSeverity}}
-
-[View Details]({{detailsUrl}})`;
       break;
 
     case StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteCreated:
@@ -306,22 +123,53 @@ Status changed to: **{{episodeState}}**
 | \`{{episodeSeverity}}\` | Severity level of the incident |
 | \`{{note}}\` | Content of the note |
 | \`{{detailsUrl}}\` | URL to view incident details |`;
-      exampleSubject = "{{statusPageName}}: Update on {{episodeTitle}}";
-      exampleEmailBody = `<h2>Update: {{episodeTitle}}</h2>
-<p>{{note}}</p>
-<p><a href="{{detailsUrl}}">View Details</a></p>`;
-      exampleSMSBody = `{{statusPageName}}: Update on {{episodeTitle}} - {{note}} Details: {{detailsUrl}}`;
-      exampleSlackBody = `**Update: {{episodeTitle}}**
-
-{{note}}
-
-[View Details]({{detailsUrl}})`;
-      exampleTeamsBody = `**Update: {{episodeTitle}}**
-
-{{note}}
-
-[View Details]({{detailsUrl}})`;
       break;
+
+    case StatusPageSubscriberNotificationEventType.SubscriberReport:
+      /*
+       * The report email is rendered through the full Handlebars engine, so it
+       * exposes a structured `report` object (not flat scalars) and supports
+       * loops, conditionals and partials. Return a dedicated doc rather than the
+       * common flat-variable table.
+       */
+      return `**Available Template Variables** - The report template is rendered with Handlebars, so you can use loops and conditionals in addition to \`{{variableName}}\` substitution.
+
+| Variable | Description |
+|----------|-------------|
+| \`{{statusPageName}}\` | Name of the status page |
+| \`{{statusPageUrl}}\` | URL of the status page |
+| \`{{detailsUrl}}\` | URL to view the full status page |
+| \`{{unsubscribeUrl}}\` | URL for subscribers to unsubscribe from notifications |
+| \`{{subscriberEmailNotificationFooterText}}\` | Custom footer text configured for the status page |
+| \`{{report.reportDates}}\` | The reporting period (e.g. "14 days (01 Jul - 14 Jul)") |
+| \`{{report.averageUptimePercent}}\` | Average uptime across all resources (e.g. "99.95%") |
+| \`{{report.totalDowntimeInHoursAndMinutes}}\` | Total downtime in the period |
+| \`{{report.totalIncidents}}\` | Total number of incidents in the period |
+| \`{{report.totalResources}}\` | Number of resources on the status page |
+| \`{{report.resources}}\` | Array of per-resource breakdown rows (loop over this) |
+
+**Per-resource fields** (available inside \`{{#each report.resources}}\`):
+
+| Variable | Description |
+|----------|-------------|
+| \`{{this.resourceName}}\` | Name of the resource/monitor |
+| \`{{this.uptimePercentAsString}}\` | Uptime for the resource (e.g. "99.9%") |
+| \`{{this.downtimeInHoursAndMinutes}}\` | Downtime for the resource |
+| \`{{this.totalIncidentCount}}\` | Number of incidents for the resource |
+
+**Example — loop and conditional:**
+
+\`\`\`handlebars
+{{#if report.totalResources}}
+  {{#each report.resources}}
+    {{this.resourceName}}: {{this.uptimePercentAsString}} uptime
+  {{/each}}
+{{else}}
+  No resources to report this period.
+{{/if}}
+\`\`\`
+
+You may also use OneUptime's email partials (e.g. \`{{> Start this}}\`, \`{{> Footer this}}\`, \`{{> End this}}\`) if you want the standard chrome.`;
 
     default:
       return `**Available Template Variables**
@@ -329,49 +177,10 @@ Status changed to: **{{episodeState}}**
 Please select an event type to see available variables.`;
   }
 
-  // Build example section based on notification method
-  let exampleSection: string = "";
-
-  if (isSMS) {
-    exampleSection = `**Example SMS:**
-\`${exampleSMSBody}\``;
-  } else if (isEmail) {
-    exampleSection = `**Example Email Subject:** \`${exampleSubject}\`
-
-**Example Email Body:**
-\`\`\`html
-${exampleEmailBody}
-\`\`\``;
-  } else if (isSlack) {
-    exampleSection = `**Example Slack Message:**
-\`\`\`
-${exampleSlackBody}
-\`\`\`
-
-_Note: Use standard Markdown syntax (\`**text**\` for bold, \`[text](url)\` for links). It will be automatically converted to Slack's format._`;
-  } else if (isTeams) {
-    exampleSection = `**Example Microsoft Teams Message:**
-\`\`\`
-${exampleTeamsBody}
-\`\`\`
-
-_Note: Microsoft Teams uses Markdown syntax. Use \`**text**\` for bold and \`[text](url)\` for links._`;
-  } else {
-    // Default fallback - show email example
-    exampleSection = `**Example Email Subject:** \`${exampleSubject}\`
-
-**Example Email Body:**
-\`\`\`html
-${exampleEmailBody}
-\`\`\``;
-  }
-
   return `**Available Template Variables** - Use these variables in your template with the \`{{variableName}}\` syntax.
 
 | Variable | Description |
 |----------|-------------|
 ${commonVariablesRows}
-${eventSpecificRows}
-
-${exampleSection}`;
+${eventSpecificRows}`;
 };

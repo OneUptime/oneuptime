@@ -5,8 +5,10 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -22,6 +24,7 @@ import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
+@CanAccessIfCanReadOn("workflow")
 @TableBillingAccessControl({
   create: PlanType.Growth,
   read: PlanType.Growth,
@@ -40,9 +43,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.WorkflowManager,
+    Permission.WorkflowAdmin,
+    Permission.WorkflowMember,
+    Permission.WorkflowViewer,
     Permission.ReadWorkflowVariable,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -56,6 +60,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   ],
 })
 @CrudApiEndpoint(new Route("/workflow-variable"))
+@OwnedThrough("workflowId", Workflow)
 @Entity({
   name: "WorkflowVariable",
 })
@@ -79,9 +84,10 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -117,9 +123,10 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -149,9 +156,10 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -188,9 +196,10 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -221,9 +230,10 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -257,9 +267,10 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -312,9 +323,10 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -344,9 +356,10 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -383,9 +396,10 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -409,9 +423,10 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -445,9 +460,10 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

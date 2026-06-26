@@ -3,7 +3,10 @@ import AIAgentTask from "../../Models/DatabaseModels/AIAgentTask";
 import AIAgentTaskTelemetryException from "../../Models/DatabaseModels/AIAgentTaskTelemetryException";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import TelemetryExceptionService, {
+  DashboardServiceSummary,
+  DashboardSummaryResult,
   Service as TelemetryExceptionServiceType,
 } from "../Services/TelemetryExceptionService";
 import AIAgentTaskTelemetryExceptionService from "../Services/AIAgentTaskTelemetryExceptionService";
@@ -21,6 +24,7 @@ import AIAgentTaskStatus, {
   AIAgentTaskStatusHelper,
 } from "../../Types/AI/AIAgentTaskStatus";
 import QueryHelper from "../Types/Database/QueryHelper";
+import { JSONArray, JSONObject } from "../../Types/JSON";
 
 export default class TelemetryExceptionAPI extends BaseAPI<
   TelemetryException,
@@ -53,6 +57,23 @@ export default class TelemetryExceptionAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getAIAgentTaskForException(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Aggregated dashboard summary for the Exceptions overview page.
+     * Returns counts, top/recent exceptions, and per-service summaries
+     * in a single round-trip with one SQL GROUP BY for service aggregation.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/dashboard-summary`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getDashboardSummary(req, res);
         } catch (err) {
           next(err);
         }
@@ -164,6 +185,51 @@ export default class TelemetryExceptionAPI extends BaseAPI<
           : undefined,
         createdAt: task.createdAt,
       },
+    });
+  }
+
+  private async getDashboardSummary(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    const summary: DashboardSummaryResult =
+      await this.service.getDashboardSummary(props);
+
+    const topExceptionsJson: JSONArray = BaseModel.toJSONArray(
+      summary.topExceptions,
+      TelemetryException,
+    );
+
+    const recentExceptionsJson: JSONArray = BaseModel.toJSONArray(
+      summary.recentExceptions,
+      TelemetryException,
+    );
+
+    const serviceSummariesJson: JSONArray = summary.serviceSummaries.map(
+      (entry: DashboardServiceSummary): JSONObject => {
+        /*
+         * serviceId is polymorphic; the client resolves the display name
+         * per serviceType (no Service relation to serialize anymore).
+         */
+        return {
+          primaryEntityId: entry.primaryEntityId,
+          primaryEntityType: entry.primaryEntityType,
+          unresolvedCount: entry.unresolvedCount,
+          totalOccurrences: entry.totalOccurrences,
+        };
+      },
+    );
+
+    return Response.sendJsonObjectResponse(req, res, {
+      unresolvedCount: summary.unresolvedCount,
+      resolvedCount: summary.resolvedCount,
+      archivedCount: summary.archivedCount,
+      topExceptions: topExceptionsJson,
+      recentExceptions: recentExceptionsJson,
+      serviceSummaries: serviceSummariesJson,
     });
   }
 }

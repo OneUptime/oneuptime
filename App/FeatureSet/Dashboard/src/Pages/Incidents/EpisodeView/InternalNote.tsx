@@ -29,6 +29,9 @@ const EpisodeInternalNote: FunctionComponent<PageComponentProps> = (
         id="table-episode-internal-note"
         userPreferencesKey="episode-internal-note-table"
         name="Episode > Internal Note"
+        saveFilterProps={{
+          tableId: "incident-episode-internal-note-table",
+        }}
         isDeleteable={true}
         showViewIdButton={true}
         isCreateable={true}

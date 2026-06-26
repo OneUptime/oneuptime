@@ -13,7 +13,13 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import { getSubscriberNotificationTemplateVariablesDocumentation } from "../../../Utils/SubscriberNotificationTemplateVariables";
+import {
+  DefaultSubscriberNotificationTemplate,
+  getDefaultSubscriberNotificationTemplate,
+  getDefaultTemplateLanguage,
+} from "../../../Utils/SubscriberNotificationTemplateDefaults";
 
 const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -49,6 +55,9 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
         modelType={StatusPageSubscriberNotificationTemplate}
         id={`subscriber-notification-templates-table-${notificationMethod.toLowerCase().replace(/\s+/g, "-")}`}
         userPreferencesKey={`subscriber-notification-templates-table-${notificationMethod.toLowerCase().replace(/\s+/g, "-")}`}
+        saveFilterProps={{
+          tableId: `subscriber-notification-templates-table-${notificationMethod.toLowerCase().replace(/\s+/g, "-")}`,
+        }}
         name={`Settings > Subscriber Notification Templates > ${notificationMethod}`}
         isDeleteable={false}
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
@@ -116,13 +125,62 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             title: "Event Type",
             stepId: "template-settings",
             description:
-              "Select the type of event this template will be used for",
+              "Select the type of event this template will be used for. The default template for this event will be loaded as a starting point.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
               StatusPageSubscriberNotificationEventType,
             ),
             required: true,
             placeholder: "Select Event Type",
+            onChange: (
+              value: any,
+              currentFormValues: FormValues<StatusPageSubscriberNotificationTemplate>,
+              setNewFormValues: (
+                values: FormValues<StatusPageSubscriberNotificationTemplate>,
+              ) => void,
+            ): void => {
+              const selectedEventType:
+                | StatusPageSubscriberNotificationEventType
+                | undefined = value as
+                | StatusPageSubscriberNotificationEventType
+                | undefined;
+              if (!selectedEventType) {
+                return;
+              }
+              const defaults: DefaultSubscriberNotificationTemplate | null =
+                getDefaultSubscriberNotificationTemplate(
+                  selectedEventType,
+                  notificationMethod,
+                );
+              if (!defaults) {
+                return;
+              }
+              const currentBody: string =
+                (currentFormValues.templateBody as string | undefined) || "";
+              const currentSubject: string =
+                (currentFormValues.emailSubject as string | undefined) || "";
+              /*
+               * Only seed empty fields so we never clobber edits the user has
+               * already made.
+               */
+              const updated: FormValues<StatusPageSubscriberNotificationTemplate> =
+                {
+                  ...currentFormValues,
+                  eventType: selectedEventType,
+                };
+              if (currentBody.trim() === "") {
+                updated.templateBody = defaults.body;
+              }
+              if (
+                notificationMethod ===
+                  StatusPageSubscriberNotificationMethod.Email &&
+                defaults.subject &&
+                currentSubject.trim() === ""
+              ) {
+                updated.emailSubject = defaults.subject;
+              }
+              setNewFormValues(updated);
+            },
           },
           ...(notificationMethod ===
           StatusPageSubscriberNotificationMethod.Email
@@ -168,14 +226,59 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
                 | undefined = values.eventType as
                 | StatusPageSubscriberNotificationEventType
                 | undefined;
+              const defaults: DefaultSubscriberNotificationTemplate | null =
+                getDefaultSubscriberNotificationTemplate(
+                  eventType,
+                  notificationMethod,
+                );
+              const language: string =
+                getDefaultTemplateLanguage(notificationMethod);
               return (
-                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 mt-4">
-                  <MarkdownViewer
-                    text={getSubscriberNotificationTemplateVariablesDocumentation(
-                      eventType,
-                      notificationMethod,
-                    )}
-                  />
+                <div className="mt-4 space-y-4">
+                  {defaults && (
+                    <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                      <div className="text-sm font-semibold text-indigo-900 mb-1">
+                        Default Template
+                      </div>
+                      <p className="text-xs text-indigo-700 mb-3">
+                        This is the default {notificationMethod} template that
+                        is sent when no custom template is configured. It has
+                        been pre-filled above so you can tweak the wording,
+                        translate it, or use it as a starting point. Hover over
+                        the snippet to copy it.
+                      </p>
+                      {defaults.subject && (
+                        <div className="mb-3">
+                          <div className="text-xs font-medium text-indigo-900 mb-1">
+                            Default Subject
+                          </div>
+                          <CodeBlock
+                            code={defaults.subject}
+                            language="text"
+                            maxHeight="80px"
+                          />
+                        </div>
+                      )}
+                      <div>
+                        <div className="text-xs font-medium text-indigo-900 mb-1">
+                          Default Body
+                        </div>
+                        <CodeBlock
+                          code={defaults.body}
+                          language={language}
+                          maxHeight="320px"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <MarkdownViewer
+                      text={getSubscriberNotificationTemplateVariablesDocumentation(
+                        eventType,
+                        notificationMethod,
+                      )}
+                    />
+                  </div>
                 </div>
               );
             },

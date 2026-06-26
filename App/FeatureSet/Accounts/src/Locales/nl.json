@@ -86,7 +86,9 @@
     "selectProjectSubtitle": "Selecteer het project waarop u wilt inloggen.",
     "noConfigForEmail": "Geen SSO-configuratie gevonden voor e-mail: {{email}}",
     "emailRequired": "E-mail is vereist om deze actie uit te voeren",
-    "defaultProjectName": "Project"
+    "defaultProjectName": "Project",
+    "globalProvidersTitle": "Aanmelden met uw organisatie",
+    "globalProvidersDivider": "Of ga verder met e-mail"
   },
   "verifyEmail": {
     "successTitle": "Uw e-mail is geverifieerd.",
@@ -104,5 +106,7 @@
       "title": "Pagina niet gevonden",
       "description": "De pagina die u zoekt bestaat niet."
     }
-  }
+  },
+  "Acme, Inc.": "Acme, Inc.",
+  "Jeff Smith": "Jeff Smith"
 }

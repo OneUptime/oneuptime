@@ -48,7 +48,12 @@ const Tooltip: FunctionComponent<ComponentProps> = (
       {...animationProps}
       aria={{
         content: "describedby",
-        expanded: "auto",
+        /*
+         * Tippy's default ("auto") stamps aria-expanded onto the trigger, but our
+         * triggers are often plain non-interactive elements (e.g. uptime bars) whose
+         * role does not support aria-expanded (WCAG 4.1.2). Disable it.
+         */
+        expanded: false,
       }}
     >
       {props.children}

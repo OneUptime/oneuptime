@@ -1,0 +1,295 @@
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageComponentProps from "../PageComponentProps";
+import Route from "Common/Types/API/Route";
+import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import Label from "Common/Models/DatabaseModels/Label";
+import LabelsElement from "Common/UI/Components/Label/Labels";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { Green, Red } from "Common/Types/BrandColors";
+import AppLink from "../../Components/AppLink/AppLink";
+import ObjectID from "Common/Types/ObjectID";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import ResourceDocumentationCard from "../../Components/TelemetryResource/ResourceDocumentationCard";
+import { getServerlessDocMarkdown } from "../../Components/TelemetryResource/documentationMarkdown";
+
+const ServerlessFunctions: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
+  const [count, setCount] = useState<number | null>(null);
+  const [error, setError] = useState<string>("");
+
+  const { archiveBulkActions } = useBulkArchiveActions<ServerlessFunction>({
+    modelType: ServerlessFunction,
+  });
+
+  useEffect(() => {
+    ModelAPI.count({
+      modelType: ServerlessFunction,
+      query: {},
+    })
+      .then(setCount)
+      .catch((err: Error) => {
+        setError(API.getFriendlyMessage(err));
+      });
+  }, []);
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
+
+  if (count === null) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (count === 0) {
+    return (
+      <Fragment>
+        <ResourceDocumentationCard
+          title="Getting Started with Serverless Functions"
+          description="No serverless functions connected yet. Instrument a function with OpenTelemetry using the guide below — it appears here automatically once the first telemetry arrives."
+          buildMarkdown={getServerlessDocMarkdown}
+        />
+      </Fragment>
+    );
+  }
+
+  return (
+    <Fragment>
+      <ModelTable<ServerlessFunction>
+        modelType={ServerlessFunction}
+        id="serverless-functions-table"
+        userPreferencesKey="serverless-functions-table"
+        query={{
+          isArchived: false,
+        }}
+        isDeleteable={false}
+        isEditable={false}
+        isCreateable={true}
+        isViewable={true}
+        bulkActions={{
+          buttons: [...archiveBulkActions],
+        }}
+        showRefreshButton={true}
+        showViewIdButton={true}
+        name="Serverless Functions"
+        searchableFields={["name", "description"]}
+        selectMoreFields={{
+          functionIdentifier: true,
+          cloudPlatform: true,
+          cloudProvider: true,
+          cloudRegion: true,
+          functionVersion: true,
+        }}
+        cardProps={{
+          title: "Serverless Functions",
+          description:
+            "Serverless / FaaS functions auto-discovered from OpenTelemetry that carries faas.name (or a serverless cloud.platform like aws_lambda).",
+        }}
+        formFields={[
+          {
+            field: {
+              name: true,
+            },
+            title: "Name",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "checkout-handler",
+          },
+          {
+            field: {
+              functionIdentifier: true,
+            },
+            title: "Function Identifier",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "checkout-handler",
+            description:
+              "This should match the faas.name attribute reported by the OTel collector.",
+          },
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "Handles checkout events",
+          },
+          {
+            field: {
+              labels: true,
+            },
+            title: "Labels",
+            description:
+              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Label,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Labels",
+          },
+        ]}
+        filters={[
+          {
+            field: {
+              name: true,
+            },
+            title: "Name",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              functionIdentifier: true,
+            },
+            title: "Function Identifier",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              cloudPlatform: true,
+            },
+            title: "Cloud Platform",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              lastSeenAt: true,
+            },
+            title: "Last Seen",
+            type: FieldType.Date,
+          },
+        ]}
+        columns={[
+          {
+            field: {
+              name: true,
+            },
+            title: "Name",
+            type: FieldType.Element,
+            getElement: (item: ServerlessFunction): ReactElement => {
+              const id: string = (item.functionIdentifier as string) || "";
+              const name: string = (item.name as string) || "";
+              const showId: boolean = id !== "" && id !== name;
+              const route: Route = RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW] as Route,
+                {
+                  modelId: new ObjectID(item._id as string),
+                },
+              );
+              return (
+                <div className="min-w-0">
+                  <AppLink
+                    to={route}
+                    className="text-sm font-medium text-gray-900 truncate hover:underline"
+                  >
+                    {name || "—"}
+                  </AppLink>
+                  {showId && (
+                    <div className="text-xs text-gray-500 font-mono truncate">
+                      {id}
+                    </div>
+                  )}
+                </div>
+              );
+            },
+          },
+          {
+            field: {
+              cloudPlatform: true,
+            },
+            title: "Platform",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: ServerlessFunction): ReactElement => {
+              const platform: string = (item.cloudPlatform as string) || "";
+              const region: string = (item.cloudRegion as string) || "";
+              if (!platform && !region) {
+                return <span className="text-sm text-gray-400">—</span>;
+              }
+              return (
+                <div className="text-sm text-gray-700">
+                  <span className="font-mono">{platform || "unknown"}</span>
+                  {region && (
+                    <span className="ml-1.5 text-xs text-gray-500">
+                      {region}
+                    </span>
+                  )}
+                </div>
+              );
+            },
+          },
+          {
+            field: {
+              otelCollectorStatus: true,
+            },
+            title: "Status",
+            type: FieldType.Element,
+            getElement: (item: ServerlessFunction): ReactElement => {
+              const isConnected: boolean =
+                item.otelCollectorStatus === "connected";
+              return (
+                <Pill
+                  text={isConnected ? "Connected" : "Disconnected"}
+                  color={isConnected ? Green : Red}
+                />
+              );
+            },
+          },
+          {
+            field: {
+              lastSeenAt: true,
+            },
+            title: "Last Seen",
+            type: FieldType.DateTime,
+          },
+          {
+            field: {
+              labels: {
+                name: true,
+                color: true,
+              },
+            },
+            title: "Labels",
+            type: FieldType.EntityArray,
+            hideOnMobile: true,
+            getElement: (item: ServerlessFunction): ReactElement => {
+              return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+        ]}
+        onViewPage={(item: ServerlessFunction): Promise<Route> => {
+          return Promise.resolve(
+            new Route(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW] as Route,
+                {
+                  modelId: item._id,
+                },
+              ).toString(),
+            ),
+          );
+        }}
+      />
+    </Fragment>
+  );
+};
+
+export default ServerlessFunctions;

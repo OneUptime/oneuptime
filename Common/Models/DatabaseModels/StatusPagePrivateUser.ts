@@ -5,6 +5,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
@@ -39,7 +40,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.StatusPageManager,
+    Permission.StatusPageAdmin,
+    Permission.StatusPageMember,
     Permission.CreateStatusPagePrivateUser,
   ],
   read: [
@@ -47,22 +49,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.StatusPageManager,
+    Permission.StatusPageAdmin,
+    Permission.StatusPageMember,
+    Permission.StatusPageViewer,
     Permission.ReadStatusPagePrivateUser,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.StatusPageManager,
+    Permission.StatusPageAdmin,
+    Permission.StatusPageMember,
     Permission.DeleteStatusPagePrivateUser,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.StatusPageManager,
+    Permission.StatusPageAdmin,
+    Permission.StatusPageMember,
     Permission.EditStatusPagePrivateUser,
   ],
 })
@@ -81,6 +86,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.User,
   tableDescription: " Manage private users on your status page",
 })
+@OwnedThrough("statusPageId", StatusPage)
 @Entity({
   name: "StatusPagePrivateUser",
 })
@@ -90,7 +96,8 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPagePrivateUser,
     ],
     read: [
@@ -98,9 +105,10 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -130,7 +138,8 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPagePrivateUser,
     ],
     read: [
@@ -138,9 +147,10 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -164,7 +174,8 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPagePrivateUser,
     ],
     read: [
@@ -172,9 +183,10 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -205,7 +217,8 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPagePrivateUser,
     ],
     read: [
@@ -213,9 +226,10 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -238,7 +252,8 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPagePrivateUser,
     ],
     read: [
@@ -246,15 +261,17 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.EditStatusPagePrivateUser,
     ],
   })
@@ -276,7 +293,8 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPagePrivateUser,
     ],
     read: [
@@ -284,15 +302,17 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.EditStatusPagePrivateUser,
     ],
   })
@@ -357,7 +377,8 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPagePrivateUser,
     ],
     read: [
@@ -365,9 +386,10 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -398,7 +420,8 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPagePrivateUser,
     ],
     read: [
@@ -406,9 +429,10 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -432,9 +456,10 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -466,7 +491,8 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPagePrivateUser,
     ],
     read: [
@@ -474,9 +500,10 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

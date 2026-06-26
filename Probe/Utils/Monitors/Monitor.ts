@@ -19,6 +19,9 @@ import MonitorStepDnsMonitor from "Common/Types/Monitor/MonitorStepDnsMonitor";
 import DomainMonitorUtil from "./MonitorTypes/DomainMonitor";
 import DomainMonitorResponse from "Common/Types/Monitor/DomainMonitor/DomainMonitorResponse";
 import MonitorStepDomainMonitor from "Common/Types/Monitor/MonitorStepDomainMonitor";
+import DnssecMonitorUtil from "./MonitorTypes/DnssecMonitor";
+import DnssecMonitorResponse from "Common/Types/Monitor/DnssecMonitor/DnssecMonitorResponse";
+import MonitorStepDnssecMonitor from "Common/Types/Monitor/MonitorStepDnssecMonitor";
 import ExternalStatusPageMonitorUtil from "./MonitorTypes/ExternalStatusPageMonitor";
 import ExternalStatusPageMonitorResponse from "Common/Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import MonitorStepExternalStatusPageMonitor from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
@@ -30,7 +33,11 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
-import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorStep, {
+  clampMonitorRequestTimeoutInMs,
+  clampMonitorRetryCount,
+  DEFAULT_MONITOR_REQUEST_TIMEOUT_IN_MS,
+} from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
@@ -41,6 +48,7 @@ import API from "Common/Utils/API";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
+import TelemetryContext from "Common/Server/Utils/Telemetry/TelemetryContext";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ObjectID from "Common/Types/ObjectID";
@@ -69,6 +77,25 @@ export default class MonitorUtil {
   }
 
   public static async probeMonitorTest(
+    monitorTest: MonitorTest,
+  ): Promise<Array<ProbeMonitorResponse | null>> {
+    /*
+     * Seed telemetry context so every span/log for this test check carries the
+     * monitor + project identity.
+     */
+    return TelemetryContext.runWithContext(
+      {
+        monitorId: monitorTest.id?.toString(),
+        projectId: monitorTest.projectId?.toString(),
+        monitorType: monitorTest.monitorType?.toString(),
+      },
+      () => {
+        return this.probeMonitorTestInternal(monitorTest);
+      },
+    );
+  }
+
+  private static async probeMonitorTestInternal(
     monitorTest: MonitorTest,
   ): Promise<Array<ProbeMonitorResponse | null>> {
     const results: Array<ProbeMonitorResponse | null> = [];
@@ -123,6 +150,25 @@ export default class MonitorUtil {
   }
 
   public static async probeMonitor(
+    monitor: Monitor,
+  ): Promise<Array<ProbeMonitorResponse | null>> {
+    /*
+     * Seed telemetry context so every span/log for this check carries the
+     * monitor + project identity.
+     */
+    return TelemetryContext.runWithContext(
+      {
+        monitorId: monitor.id?.toString(),
+        projectId: monitor.projectId?.toString(),
+        monitorType: monitor.monitorType?.toString(),
+      },
+      () => {
+        return this.probeMonitorInternal(monitor);
+      },
+    );
+  }
+
+  private static async probeMonitorInternal(
     monitor: Monitor,
   ): Promise<Array<ProbeMonitorResponse | null>> {
     const results: Array<ProbeMonitorResponse | null> = [];
@@ -288,6 +334,26 @@ export default class MonitorUtil {
       return result;
     }
 
+    /*
+     * Per-step request timeout (capped at the user-facing max). Falls back
+     * to the global default when the user hasn't configured one.
+     */
+    const requestTimeoutInMs: number =
+      monitorStep.data.requestTimeoutInMs !== undefined &&
+      monitorStep.data.requestTimeoutInMs !== null
+        ? clampMonitorRequestTimeoutInMs(monitorStep.data.requestTimeoutInMs)
+        : DEFAULT_MONITOR_REQUEST_TIMEOUT_IN_MS;
+
+    /*
+     * Per-step retry count (capped at the user-facing max). Falls back to
+     * the probe-wide default (env var) when the user hasn't configured one.
+     */
+    const retryCount: number =
+      monitorStep.data.retryCount !== undefined &&
+      monitorStep.data.retryCount !== null
+        ? clampMonitorRetryCount(monitorStep.data.retryCount)
+        : PROBE_MONITOR_RETRY_LIMIT;
+
     if (monitorType === MonitorType.Ping || monitorType === MonitorType.IP) {
       if (!monitorStep.data?.monitorDestination) {
         return result;
@@ -302,9 +368,9 @@ export default class MonitorUtil {
           monitorStep.data?.monitorDestination,
           new Port(80), // use port 80 by default.
           {
-            retry: PROBE_MONITOR_RETRY_LIMIT,
+            retry: retryCount,
             monitorId: monitorId,
-            timeout: new PositiveNumber(60000), // 60 seconds
+            timeout: new PositiveNumber(requestTimeoutInMs),
           },
         );
 
@@ -316,13 +382,15 @@ export default class MonitorUtil {
         result.isTimeout = response.isTimeout;
         result.responseTimeInMs = response.responseTimeInMS?.toNumber();
         result.failureCause = response.failureCause;
+        result.probeAttempts = response.probeAttempts;
+        result.totalAttempts = response.totalAttempts;
       } else {
         const response: PingResponse | null = await PingMonitor.ping(
           monitorStep.data?.monitorDestination,
           {
-            retry: PROBE_MONITOR_RETRY_LIMIT,
+            retry: retryCount,
             monitorId: monitorId,
-            timeout: new PositiveNumber(60000), // 60 seconds
+            timeout: new PositiveNumber(requestTimeoutInMs),
           },
         );
 
@@ -334,6 +402,8 @@ export default class MonitorUtil {
         result.isTimeout = response.isTimeout;
         result.responseTimeInMs = response.responseTimeInMS?.toNumber();
         result.failureCause = response.failureCause;
+        result.probeAttempts = response.probeAttempts;
+        result.totalAttempts = response.totalAttempts;
       }
     }
 
@@ -358,9 +428,9 @@ export default class MonitorUtil {
         monitorStep.data?.monitorDestination,
         monitorStep.data.monitorDestinationPort,
         {
-          retry: PROBE_MONITOR_RETRY_LIMIT,
+          retry: retryCount,
           monitorId: monitorId,
-          timeout: new PositiveNumber(60000), // 60 seconds
+          timeout: new PositiveNumber(requestTimeoutInMs),
         },
       );
 
@@ -372,6 +442,8 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMS?.toNumber();
       result.failureCause = response.failureCause;
       result.isTimeout = response.isTimeout;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.SyntheticMonitor) {
@@ -436,9 +508,9 @@ export default class MonitorUtil {
       const response: SslResponse | null = await SSLMonitor.ping(
         monitorStep.data?.monitorDestination as URL,
         {
-          retry: PROBE_MONITOR_RETRY_LIMIT,
+          retry: retryCount,
           monitorId: monitorId,
-          timeout: new PositiveNumber(60000), // 60 seconds
+          timeout: new PositiveNumber(requestTimeoutInMs),
         },
       );
 
@@ -452,6 +524,8 @@ export default class MonitorUtil {
       result.sslResponse = {
         ...response,
       };
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.Website) {
@@ -470,9 +544,16 @@ export default class MonitorUtil {
         {
           isHeadRequest: MonitorUtil.isHeadRequest(monitorStep),
           monitorId: monitorId,
-          retry: PROBE_MONITOR_RETRY_LIMIT,
-          timeout: new PositiveNumber(60000), // 60 seconds
+          retry: retryCount,
+          timeout: new PositiveNumber(requestTimeoutInMs),
           doNotFollowRedirects: monitorStep.data?.doNotFollowRedirects || false,
+          allowSelfSignedCertificates:
+            monitorStep.data?.allowSelfSignedCertificates || false,
+          tlsClientCertificate:
+            monitorStep.data?.tlsClientCertificate || undefined,
+          tlsClientKey: monitorStep.data?.tlsClientKey || undefined,
+          tlsClientKeyPassphrase:
+            monitorStep.data?.tlsClientKeyPassphrase || undefined,
         },
       );
 
@@ -488,6 +569,8 @@ export default class MonitorUtil {
       result.failureCause = response.failureCause;
       result.isTimeout = response.isTimeout;
       result.requestFailedDetails = response.requestFailedDetails;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.API) {
@@ -516,9 +599,16 @@ export default class MonitorUtil {
         requestBody: requestBody || undefined,
         monitorId: monitorId,
         requestType: monitorStep.data?.requestType || HTTPMethod.GET,
-        retry: PROBE_MONITOR_RETRY_LIMIT,
-        timeout: new PositiveNumber(60000), // 60 seconds
+        retry: retryCount,
+        timeout: new PositiveNumber(requestTimeoutInMs),
         doNotFollowRedirects: monitorStep.data?.doNotFollowRedirects || false,
+        allowSelfSignedCertificates:
+          monitorStep.data?.allowSelfSignedCertificates || false,
+        tlsClientCertificate:
+          monitorStep.data?.tlsClientCertificate || undefined,
+        tlsClientKey: monitorStep.data?.tlsClientKey || undefined,
+        tlsClientKeyPassphrase:
+          monitorStep.data?.tlsClientKeyPassphrase || undefined,
       });
 
       if (!response) {
@@ -533,6 +623,8 @@ export default class MonitorUtil {
       result.responseCode = response.statusCode;
       result.failureCause = response.failureCause;
       result.requestFailedDetails = response.requestFailedDetails;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.SNMP) {
@@ -571,6 +663,8 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.snmpResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.DNS) {
@@ -604,6 +698,8 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.dnsResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.Domain) {
@@ -636,6 +732,42 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.domainResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
+    }
+
+    if (monitorType === MonitorType.DNSSEC) {
+      if (!monitorStep.data?.dnssecMonitor) {
+        result.failureCause = "DNSSEC configuration not specified";
+        return result;
+      }
+
+      const dnssecConfig: MonitorStepDnssecMonitor =
+        monitorStep.data.dnssecMonitor;
+
+      if (!dnssecConfig.domainName) {
+        result.failureCause = "DNSSEC domain name not specified";
+        return result;
+      }
+
+      const response: DnssecMonitorResponse | null =
+        await DnssecMonitorUtil.query(dnssecConfig, {
+          retry: PROBE_MONITOR_RETRY_LIMIT,
+          monitorId: monitorId,
+          timeout: dnssecConfig.timeout || 10000,
+        });
+
+      if (!response) {
+        return null;
+      }
+
+      result.isOnline = response.isOnline;
+      result.isTimeout = response.isTimeout;
+      result.responseTimeInMs = response.responseTimeInMs;
+      result.failureCause = response.failureCause;
+      result.dnssecResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.ExternalStatusPage) {
@@ -669,6 +801,8 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.externalStatusPageResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     // update the monitoredAt time to the current time.

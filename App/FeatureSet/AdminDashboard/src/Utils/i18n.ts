@@ -22,7 +22,8 @@ import sv from "../Locales/sv.json";
 import ru from "../Locales/ru.json";
 import ja from "../Locales/ja.json";
 import ko from "../Locales/ko.json";
-import zh from "../Locales/zh.json";
+import zhCN from "../Locales/zh-CN.json";
+import zhTW from "../Locales/zh-TW.json";
 import hi from "../Locales/hi.json";
 
 export type SupportedLanguage = AdminDashboardLanguage;
@@ -31,7 +32,56 @@ export const SUPPORTED_LANGUAGES: Array<SupportedLanguage> =
   SUPPORTED_ADMIN_DASHBOARD_LANGUAGES;
 
 export const DEFAULT_LANGUAGE: string = DEFAULT_ADMIN_DASHBOARD_LANGUAGE;
-export const LANGUAGE_STORAGE_KEY: string = "adminDashboardLang";
+export const LANGUAGE_STORAGE_KEY: string = "oneuptimeLang";
+
+/*
+ * Backward-compat: the language code "zh" was renamed to "zh-CN" when
+ * Traditional Chinese ("zh-TW") was added. Rewrite any legacy stored value so
+ * existing users keep their Simplified Chinese setting.
+ */
+if (
+  typeof window !== "undefined" &&
+  window.localStorage &&
+  window.localStorage.getItem(LANGUAGE_STORAGE_KEY) === "zh"
+) {
+  window.localStorage.setItem(LANGUAGE_STORAGE_KEY, "zh-CN");
+}
+
+/*
+ * Browsers report Chinese in many forms (zh, zh-CN, zh-SG, zh-Hans-CN,
+ * zh-TW, zh-HK, zh-MO, zh-Hant-HK, ...). Map them onto our two supported
+ * variants so detection actually resolves to a loaded resource instead of
+ * falling back to English. Also collapse regional variants of other
+ * languages (e.g. "es-ES" -> "es") whose resources we ship under the bare
+ * language code.
+ */
+const convertDetectedLanguage: (lng: string) => string = (
+  lng: string,
+): string => {
+  if (!lng) {
+    return lng;
+  }
+  const lower: string = lng.toLowerCase();
+  if (
+    lower === "zh-tw" ||
+    lower === "zh-hk" ||
+    lower === "zh-mo" ||
+    lower === "zh-hant" ||
+    lower.startsWith("zh-hant-")
+  ) {
+    return "zh-TW";
+  }
+  if (lower === "zh" || lower.startsWith("zh-") || lower.startsWith("zh_")) {
+    return "zh-CN";
+  }
+  if (lng.includes("-") || lng.includes("_")) {
+    const langPart: string = lng.split(/[-_]/)[0]!.toLowerCase();
+    if (SUPPORTED_ADMIN_DASHBOARD_LANGUAGE_CODES.includes(langPart)) {
+      return langPart;
+    }
+  }
+  return lng;
+};
 
 i18n
   .use(LanguageDetector)
@@ -51,13 +101,13 @@ i18n
       ru: { translation: ru },
       ja: { translation: ja },
       ko: { translation: ko },
-      zh: { translation: zh },
+      "zh-CN": { translation: zhCN },
+      "zh-TW": { translation: zhTW },
       hi: { translation: hi },
     },
     fallbackLng: DEFAULT_LANGUAGE,
     supportedLngs: SUPPORTED_ADMIN_DASHBOARD_LANGUAGE_CODES,
-    load: "languageOnly",
-    nonExplicitSupportedLngs: true,
+    load: "currentOnly",
     interpolation: {
       escapeValue: false,
     },
@@ -65,6 +115,7 @@ i18n
       order: ["localStorage", "navigator", "htmlTag"],
       lookupLocalStorage: LANGUAGE_STORAGE_KEY,
       caches: ["localStorage"],
+      convertDetectedLanguage,
     },
   });
 

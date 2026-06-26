@@ -184,18 +184,45 @@ class BaseAPI extends API {
     err: HTTPErrorResponse | Exception | unknown,
   ): string {
     if (err instanceof HTTPErrorResponse) {
-      if (err.statusCode === 502) {
+      if (err.statusCode === 502 || err.statusCode === 504) {
         return "Error connecting to server. Please try again in few minutes.";
       }
 
-      if (err.statusCode === 504) {
-        return "Error connecting to server. Please try again in few minutes.";
-      }
-
-      return err.message;
+      return err.message || "Server Error. Please try again";
     }
 
-    return err?.toString() || "Server Error. Please try again";
+    if (err instanceof Error) {
+      return err.message || "Server Error. Please try again";
+    }
+
+    if (typeof err === "string") {
+      return err || "Server Error. Please try again";
+    }
+
+    /*
+     * Never surface a raw object as "[object Object]" — pull a message
+     * out of it (gateways/proxies often send `{ message }` or `{ error }`)
+     * or stringify it so the UI shows something actionable.
+     */
+    if (err && typeof err === "object") {
+      const obj: { message?: unknown; error?: unknown } = err as {
+        message?: unknown;
+        error?: unknown;
+      };
+      if (typeof obj.message === "string" && obj.message) {
+        return obj.message;
+      }
+      if (typeof obj.error === "string" && obj.error) {
+        return obj.error;
+      }
+      try {
+        return JSON.stringify(err);
+      } catch {
+        return "Server Error. Please try again";
+      }
+    }
+
+    return "Server Error. Please try again";
   }
 }
 

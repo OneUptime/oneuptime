@@ -8,6 +8,7 @@ import SortOrder, {
 } from "../../../Types/BaseDatabase/SortOrder";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
+import useTranslateValue from "../../Utils/Translation";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
@@ -31,6 +32,7 @@ type TableHeaderFunction = <T extends GenericObject>(
 const TableHeader: TableHeaderFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   // Track mobile view for responsive behavior
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
@@ -56,12 +58,16 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
       <tr>
         {props.enableDragAndDrop && (
           <th scope="col">
-            <span className="sr-only">Drag to reorder</span>
+            <span className="sr-only">
+              {translateString("Drag to reorder")}
+            </span>
           </th>
         )}
         {props.isBulkActionsEnabled && (
           <th scope="col">
-            <span className="sr-only">Select all items</span>
+            <span className="sr-only">
+              {translateString("Select all items")}
+            </span>
             <div className="ml-5">
               <CheckboxElement
                 disabled={!props.hasTableItems}
@@ -128,7 +134,7 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                       : "justify-start"
                   }`}
                 >
-                  {column.title}
+                  {translateString(column.title) ?? column.title}
                   {canSort &&
                     props.sortBy === column.key &&
                     props.sortOrder === SortOrder.Ascending && (

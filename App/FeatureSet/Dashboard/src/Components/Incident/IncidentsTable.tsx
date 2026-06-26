@@ -1,10 +1,12 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import MonitorsElement from "../../Components/Monitor/Monitors";
+import AffectedResourcesCell from "../AffectedResources/AffectedResourcesCell";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentElement from "./Incident";
+import AppLink from "../AppLink/AppLink";
 import { Black } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -17,18 +19,31 @@ import {
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import Query from "Common/Types/BaseDatabase/Query";
+import Search from "Common/Types/BaseDatabase/Search";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
+import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
-import Label from "Common/Models/DatabaseModels/Label";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
+import OwnersCell from "../ResourceOwners/OwnersCell";
+import useResourceOwners, {
+  ResourceFacet,
+  buildEntityFacetQuery,
+} from "../ResourceOwners/useResourceOwners";
+import {
+  FilterChipDropdownOption,
+  FilterOperator,
+} from "../ResourceOwners/FilterChipDropdown";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import buildAffectedResourcesFacet from "../AffectedResources/buildAffectedResourcesFacet";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -77,6 +92,174 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Incident>({ modelType: Incident });
+
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<Incident>({
+      ownerUserModelType: IncidentOwnerUser,
+      ownerTeamModelType: IncidentOwnerTeam,
+      resourceIdField: "incidentId",
+    });
+
+  const incidentExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "currentIncidentState",
+      label: "State",
+      icon: IconProp.Flag,
+      isMultiSelect: true,
+      searchPlaceholder: "Search states...",
+      loadOptions: async (
+        projectId: ObjectID,
+        searchTerm: string,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        const query: Query<IncidentState> = {
+          projectId: projectId,
+        } as Query<IncidentState>;
+        if (searchTerm.trim()) {
+          (query as unknown as Record<string, unknown>)["name"] = new Search(
+            searchTerm.trim(),
+          );
+        }
+        const result: ListResult<IncidentState> =
+          await ModelAPI.getList<IncidentState>({
+            modelType: IncidentState,
+            query: query,
+            limit: 50,
+            skip: 0,
+            select: { _id: true, name: true, order: true, color: true },
+            sort: { order: SortOrder.Ascending },
+          });
+        return result.data.map((s: IncidentState) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
+          };
+        });
+      },
+      resolveOptions: async (
+        projectId: ObjectID,
+        values: Array<string>,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        if (values.length === 0) {
+          return [];
+        }
+        const result: ListResult<IncidentState> =
+          await ModelAPI.getList<IncidentState>({
+            modelType: IncidentState,
+            query: {
+              projectId: projectId,
+              _id: new Includes(values),
+            } as Query<IncidentState>,
+            limit: values.length,
+            skip: 0,
+            select: { _id: true, name: true, color: true },
+            sort: {},
+          });
+        return result.data.map((s: IncidentState) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
+          };
+        });
+      },
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEntityFacetQuery(values, operator, true);
+      },
+    },
+    {
+      key: "incidentSeverity",
+      label: "Severity",
+      icon: IconProp.Fire,
+      isMultiSelect: true,
+      searchPlaceholder: "Search severities...",
+      loadOptions: async (
+        projectId: ObjectID,
+        searchTerm: string,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        const query: Query<IncidentSeverity> = {
+          projectId: projectId,
+        } as Query<IncidentSeverity>;
+        if (searchTerm.trim()) {
+          (query as unknown as Record<string, unknown>)["name"] = new Search(
+            searchTerm.trim(),
+          );
+        }
+        const result: ListResult<IncidentSeverity> =
+          await ModelAPI.getList<IncidentSeverity>({
+            modelType: IncidentSeverity,
+            query: query,
+            limit: 50,
+            skip: 0,
+            select: { _id: true, name: true, order: true, color: true },
+            sort: { order: SortOrder.Ascending },
+          });
+        return result.data.map((s: IncidentSeverity) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
+          };
+        });
+      },
+      resolveOptions: async (
+        projectId: ObjectID,
+        values: Array<string>,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        if (values.length === 0) {
+          return [];
+        }
+        const result: ListResult<IncidentSeverity> =
+          await ModelAPI.getList<IncidentSeverity>({
+            modelType: IncidentSeverity,
+            query: {
+              projectId: projectId,
+              _id: new Includes(values),
+            } as Query<IncidentSeverity>,
+            limit: values.length,
+            skip: 0,
+            select: { _id: true, name: true, color: true },
+            sort: {},
+          });
+        return result.data.map((s: IncidentSeverity) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
+          };
+        });
+      },
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEntityFacetQuery(values, operator, true);
+      },
+    },
+    buildAffectedResourcesFacet<Incident>({
+      parentModelType: Incident,
+    }),
+  ];
+
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<Incident>({
+    persistKey: props.saveFilterProps?.tableId,
+    ownerUserModelType: IncidentOwnerUser,
+    ownerTeamModelType: IncidentOwnerTeam,
+    resourceIdField: "incidentId",
+    showLabelsFacet: true,
+    extraFacets: incidentExtraFacets,
+  });
 
   // Fetch incident states on mount
   useEffect(() => {
@@ -292,6 +475,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           buttons: [
             getBulkChangeStateAction(),
             ...labelBulkActions,
+            ...ownerBulkActions,
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
@@ -300,7 +484,13 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         id="incidents-table"
         isDeleteable={false}
         showCreateForm={false}
-        query={props.query || {}}
+        topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery(props.query)}
+        onFetchSuccess={(data: Array<Incident>) => {
+          onResourcesFetched(data);
+        }}
         isEditable={false}
         isCreateable={false}
         isViewable={true}
@@ -314,6 +504,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         createVerb="Declare"
         noItemsMessage={props.noItemsMessage || "No incidents found."}
         showRefreshButton={true}
+        searchableFields={["title", "description"]}
         showViewIdButton={true}
         viewPageRoute={RouteUtil.populateRouteParams(
           RouteMap[PageMap.INCIDENTS]!,
@@ -342,89 +533,47 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              incidentSeverity: {
-                name: true,
-              },
-            },
-            title: "Severity",
-            type: FieldType.Entity,
-
-            filterEntityType: IncidentSeverity,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              currentIncidentState: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "State",
-            type: FieldType.Entity,
-
-            filterEntityType: IncidentState,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              monitors: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-            },
-            title: "Monitors Affected",
-            type: FieldType.EntityArray,
-
-            filterEntityType: Monitor,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
               declaredAt: true,
             },
             title: "Declared",
             type: FieldType.Date,
           },
-          {
-            field: {
-              labels: {
-                name: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
         ]}
         selectMoreFields={{
           incidentNumberWithPrefix: true,
+          isPrivate: true,
+          /*
+           * The Resources Affected column lists several M2M relations under one
+           * `field` block, but BaseModelTable only auto-selects the FIRST key
+           * of each column.field. Include the remaining relations explicitly
+           * so all attached resources actually load.
+           */
+          hosts: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+          kubernetesClusters: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+          dockerHosts: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+          podmanHosts: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+          services: {
+            name: true,
+            _id: true,
+            projectId: true,
+            serviceColor: true,
+          },
         }}
         columns={[
           {
@@ -438,10 +587,38 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 return <>-</>;
               }
 
+              const numberLabel: string =
+                item.incidentNumberWithPrefix || `#${item.incidentNumber}`;
+
+              const numberContent: ReactElement = item._id ? (
+                <AppLink
+                  className="hover:underline"
+                  to={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.INCIDENT_VIEW] as Route,
+                    {
+                      modelId: new ObjectID(item._id as string),
+                    },
+                  )}
+                >
+                  <span>{numberLabel}</span>
+                </AppLink>
+              ) : (
+                <span>{numberLabel}</span>
+              );
+
               return (
-                <>
-                  {item.incidentNumberWithPrefix || `#${item.incidentNumber}`}
-                </>
+                <span className="inline-flex items-center">
+                  {numberContent}
+                  {item.isPrivate === true && (
+                    <span
+                      title="Private incident — visible only to its owners, project admins, and project owners"
+                      className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200 align-middle"
+                    >
+                      <Icon icon={IconProp.Lock} className="w-3 h-3" />
+                      Private
+                    </span>
+                  )}
+                </span>
               );
             },
           },
@@ -506,18 +683,58 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             },
           },
           {
+            /*
+             * Unified "Resources Affected" cell — mirrors the form's single
+             * picker. Pulls monitors + hosts + k8s + docker in one selection
+             * so the row shows whatever the user actually attached.
+             */
             field: {
               monitors: {
                 name: true,
                 _id: true,
                 projectId: true,
               },
+              hosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              kubernetesClusters: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              dockerHosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              podmanHosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              services: {
+                name: true,
+                _id: true,
+                projectId: true,
+                serviceColor: true,
+              },
             },
-            title: "Monitors Affected",
+            title: "Resources Affected",
             type: FieldType.EntityArray,
 
             getElement: (item: Incident): ReactElement => {
-              return <MonitorsElement monitors={item["monitors"] || []} />;
+              return (
+                <AffectedResourcesCell
+                  monitors={item.monitors || []}
+                  hosts={item.hosts || []}
+                  kubernetesClusters={item.kubernetesClusters || []}
+                  dockerHosts={item.dockerHosts || []}
+                  podmanHosts={item.podmanHosts || []}
+                  services={item.services || []}
+                />
+              );
             },
           },
           {
@@ -541,6 +758,22 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             getElement: (item: Incident): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Incident): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}
@@ -624,6 +857,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       )}
 
       {labelBulkActionModals}
+      {ownerBulkActionModals}
 
       {showBulkStateChangeModal && (
         <BasicFormModal

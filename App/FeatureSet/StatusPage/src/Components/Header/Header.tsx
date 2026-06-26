@@ -15,6 +15,7 @@ import React, {
 export interface ComponentProps {
   links: Array<Link>;
   logo?: File | undefined;
+  logoAltText?: string | undefined;
   onLogoClicked: () => void;
 }
 
@@ -87,6 +88,7 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
                 <div id="status-page-logo" className="flex h-12 mt-2">
                   <Logo
                     file={props.logo}
+                    alt={props.logoAltText}
                     onClick={() => {
                       props.onLogoClicked();
                     }}

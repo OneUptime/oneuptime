@@ -1,0 +1,234 @@
+import RunbookAgentInstallInstructions from "../../Components/RunbookAgent/InstallInstructions";
+import PageComponentProps from "../PageComponentProps";
+import ProjectUtil from "Common/UI/Utils/Project";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import IconProp from "Common/Types/Icon/IconProp";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { IconType } from "Common/UI/Components/Icon/Icon";
+import LabelsElement from "Common/UI/Components/Label/Labels";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import Label from "Common/Models/DatabaseModels/Label";
+import RunbookAgent, {
+  RunbookAgentConnectionStatus,
+} from "Common/Models/DatabaseModels/RunbookAgent";
+import OneUptimeDate from "Common/Types/Date";
+import ObjectID from "Common/Types/ObjectID";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
+
+const RunbookAgentsPage: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
+  const [showSetupAgent, setShowSetupAgent] = useState<RunbookAgent | null>(
+    null,
+  );
+
+  return (
+    <Fragment>
+      <ModelTable<RunbookAgent>
+        modelType={RunbookAgent}
+        id="runbook-agents-table"
+        userPreferencesKey="runbook-agents-table"
+        saveFilterProps={{
+          tableId: "runbook-agents-table",
+        }}
+        name="Runbook Agents"
+        query={{
+          projectId: ProjectUtil.getCurrentProjectId()!,
+        }}
+        isDeleteable={true}
+        isEditable={true}
+        isCreateable={true}
+        isViewable={true}
+        showRefreshButton={true}
+        cardProps={{
+          title: "Runbook Agents",
+          description:
+            "Self-hosted agents that execute Bash and JavaScript runbook steps in your own infrastructure. Each step picks the agent that should run it.",
+        }}
+        selectMoreFields={{
+          _id: true,
+          key: true,
+        }}
+        noItemsMessage={
+          "No runbook agents yet. Create one, then run the Docker command on a host inside your infrastructure."
+        }
+        viewPageRoute={Navigation.getCurrentRoute()}
+        formFields={[
+          {
+            field: { name: true },
+            title: "Name",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "prod-eu-runbook-agent",
+            validation: { minLength: 2 },
+          },
+          {
+            field: { description: true },
+            title: "Description",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder:
+              "Runs inside the production EU cluster. Can reach internal services.",
+          },
+          {
+            field: { labels: true },
+            title: "Labels",
+            description:
+              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Label,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Labels",
+          },
+        ]}
+        searchableFields={["name", "description"]}
+        actionButtons={[
+          {
+            title: "Show setup instructions",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            onClick: async (
+              item: RunbookAgent,
+              onCompleteAction: VoidFunction,
+              onError: ErrorFunction,
+            ) => {
+              try {
+                setShowSetupAgent(item);
+                onCompleteAction();
+              } catch (err) {
+                onCompleteAction();
+                onError(err as Error);
+              }
+            },
+          },
+        ]}
+        filters={[
+          {
+            field: { name: true },
+            title: "Name",
+            type: FieldType.Text,
+          },
+          {
+            title: "Labels",
+            type: FieldType.EntityArray,
+            field: {
+              labels: {
+                name: true,
+                color: true,
+              },
+            },
+            filterEntityType: Label,
+            filterQuery: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
+          },
+        ]}
+        columns={[
+          {
+            field: { name: true },
+            title: "Name",
+            type: FieldType.Text,
+          },
+          {
+            field: { description: true },
+            title: "Description",
+            type: FieldType.Text,
+          },
+          {
+            field: { connectionStatus: true },
+            title: "Status",
+            type: FieldType.Element,
+            getElement: (item: RunbookAgent): ReactElement => {
+              const isConnected: boolean =
+                item.connectionStatus ===
+                RunbookAgentConnectionStatus.Connected;
+              return (
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`inline-block w-2 h-2 rounded-full ${
+                      isConnected ? "bg-emerald-500" : "bg-red-500"
+                    }`}
+                  />
+                  <span
+                    className={`text-sm font-medium ${
+                      isConnected ? "text-emerald-700" : "text-red-700"
+                    }`}
+                  >
+                    {isConnected ? "Connected" : "Disconnected"}
+                  </span>
+                </div>
+              );
+            },
+          },
+          {
+            field: { lastAlive: true },
+            title: "Last Seen",
+            type: FieldType.Element,
+            getElement: (item: RunbookAgent): ReactElement => {
+              if (!item.lastAlive) {
+                return <span className="text-gray-500">Never</span>;
+              }
+              return <span>{OneUptimeDate.fromNow(item.lastAlive)}</span>;
+            },
+          },
+          {
+            field: {
+              labels: {
+                name: true,
+                color: true,
+              },
+            },
+            title: "Labels",
+            type: FieldType.EntityArray,
+            getElement: (item: RunbookAgent): ReactElement => {
+              return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+        ]}
+      />
+
+      {showSetupAgent ? (
+        <Modal
+          title="Runbook Agent setup"
+          icon={IconProp.Terminal}
+          iconType={IconType.Info}
+          modalWidth={ModalWidth.Medium}
+          submitButtonText="Done"
+          submitButtonStyleType={ButtonStyleType.PRIMARY}
+          onSubmit={() => {
+            setShowSetupAgent(null);
+          }}
+          onClose={() => {
+            setShowSetupAgent(null);
+          }}
+          closeButtonText="Close"
+        >
+          <RunbookAgentInstallInstructions
+            agentId={new ObjectID(showSetupAgent._id!.toString())}
+            agentKey={(showSetupAgent.key as string) || ""}
+          />
+        </Modal>
+      ) : (
+        <></>
+      )}
+    </Fragment>
+  );
+};
+
+export default RunbookAgentsPage;

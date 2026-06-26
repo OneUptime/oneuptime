@@ -4,6 +4,7 @@ import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "../../Models/DatabaseModels/AlertEpisodeMember";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
@@ -60,6 +61,28 @@ export class Service extends DatabaseService<Model> {
     // Set addedAt if not provided
     if (!createBy.data.addedAt) {
       createBy.data.addedAt = OneUptimeDate.getCurrentDate();
+    }
+
+    /*
+     * If this is the very first alert in the episode (the founder), the
+     * "episode created" notification already covers it. Mark the member as
+     * "already notified" so the AlertAdded-to-episode cron skips it. This
+     * avoids double-notifying owners when an episode is born with its first
+     * alert.
+     */
+    if (createBy.data.isOwnerNotifiedOfAlertAdded === undefined) {
+      const existingMemberCount: PositiveNumber = await this.countBy({
+        query: {
+          alertEpisodeId: createBy.data.alertEpisodeId,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (existingMemberCount.toNumber() === 0) {
+        createBy.data.isOwnerNotifiedOfAlertAdded = true;
+      }
     }
 
     return { createBy, carryForward: null };

@@ -114,12 +114,38 @@ export default class MonitorStatusTimelineUtil {
       );
       monitorStatusTimeline.rootCause = input.rootCause;
 
-      return await MonitorStatusTimelineService.create({
-        data: monitorStatusTimeline,
-        props: {
-          isRoot: true,
-        },
-      });
+      try {
+        return await MonitorStatusTimelineService.create({
+          data: monitorStatusTimeline,
+          props: {
+            isRoot: true,
+          },
+        });
+      } catch (err) {
+        /*
+         * Concurrency race: two probe/ingest results for the same monitor can be
+         * processed near-simultaneously (the per-monitor mutexes in
+         * MonitorResourceUtil.monitorResource and MonitorStatusTimeline.create can
+         * time out under load and fall through unlocked). Both see the same prior
+         * status and both try to write the same new status row. The
+         * MonitorStatusTimelineService.onBeforeCreate dedupe check then throws this
+         * exact BadDataException for the loser of the race. This is an idempotent
+         * no-op (the desired status is already the current status), so swallow it at
+         * debug level instead of failing the job and logging a full ERROR stack.
+         * Match the exact message so unrelated BadDataExceptions still propagate.
+         */
+        if (
+          err instanceof BadDataException &&
+          err.message === "Monitor Status cannot be same as previous status."
+        ) {
+          logger.debug(
+            `${input.monitor.id?.toString()} - Monitor status already equals desired status; skipping duplicate status timeline (concurrent race).`,
+          );
+          return null;
+        }
+
+        throw err;
+      }
     }
 
     return null;

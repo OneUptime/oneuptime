@@ -26,6 +26,7 @@ import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigDat
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
+import YScaleMaxMin from "Common/UI/Components/Charts/Types/YAxis/YAxisMaxMin";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import ChartReferenceLineProps from "Common/UI/Components/Charts/Types/ReferenceLineProps";
@@ -56,7 +57,6 @@ export interface ComponentProps {
   metricResults: Array<AggregatedResult>;
   metricTypes: Array<MetricType>;
   hideCard?: boolean | undefined;
-  heightInPx?: number | undefined;
   chartCssClass?: string | undefined;
 }
 
@@ -274,7 +274,7 @@ function renderSeriesControls(input: {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+      <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
         {visibleForChips.length === 0 ? (
           <div className="py-1 text-xs italic text-gray-400">
             No series match &ldquo;{controls.searchQuery}&rdquo;
@@ -568,6 +568,20 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             }
           : undefined;
 
+      /*
+       * Optional per-datapoint value transform (e.g. divide K8s CPU
+       * cores by the node's allocatable CPU to get a true percentage).
+       * Reads grouped attributes off the datapoint, so it must run
+       * before the series points are built.
+       */
+      const transformPointValue: (item: AggregatedModel) => number = (
+        item: AggregatedModel,
+      ): number => {
+        return queryConfig.transformValue
+          ? queryConfig.transformValue(item.value, item)
+          : item.value;
+      };
+
       if (effectiveGetSeries) {
         for (const item of props.metricResults[index]!.data) {
           const series: ChartSeries = effectiveGetSeries(item);
@@ -582,7 +596,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           if (existingSeries) {
             existingSeries.data.push({
               x: OneUptimeDate.fromString(item.timestamp),
-              y: item.value,
+              y: transformPointValue(item),
             });
           } else {
             const newSeries: SeriesPoint = {
@@ -590,7 +604,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               data: [
                 {
                   x: OneUptimeDate.fromString(item.timestamp),
-                  y: item.value,
+                  y: transformPointValue(item),
                 },
               ],
             };
@@ -608,7 +622,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             (result: AggregatedModel) => {
               return {
                 x: OneUptimeDate.fromString(result.timestamp),
-                y: result.value,
+                y: transformPointValue(result),
               };
             },
           ),
@@ -668,6 +682,25 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       );
       const unit: string =
         queryConfig.metricAliasData?.legendUnit || metricType?.unit || "";
+      const queryMetricName: string =
+        queryConfig.metricQueryData.filterData.metricName?.toString() || "";
+      const formatterOptions: { metricName: string } = {
+        metricName: queryMetricName,
+      };
+      /*
+       * Show "%" on the y-axis legend for any percent-like metric — both
+       * OTel ratio names (`.utilization`, `.ratio`, …) reported with unit "1"
+       * and explicit percent units like "%", "percent", "percentage", "pct".
+       * Otherwise keep the raw unit code so other axes (e.g. "By", "ms") look
+       * unchanged.
+       */
+      const isFractionScale: boolean =
+        unit === "1" && ValueFormatter.isFractionMetric(queryMetricName);
+      const isPercentChart: boolean =
+        isFractionScale || ValueFormatter.isPercentUnit(unit);
+      const yAxisLegend: string = isPercentChart ? "%" : unit;
+      let yAxisMin: YScaleMaxMin = "auto";
+      let yAxisMax: YScaleMaxMin = "auto";
 
       // Build reference lines from thresholds
       const referenceLines: Array<ChartReferenceLineProps> = [];
@@ -678,7 +711,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       ) {
         referenceLines.push({
           value: queryConfig.warningThreshold,
-          label: `Warning: ${ValueFormatter.formatValue(queryConfig.warningThreshold, unit)}`,
+          label: `Warning: ${ValueFormatter.formatValue(queryConfig.warningThreshold, unit, formatterOptions)}`,
           color: "#f59e0b", // amber
         });
       }
@@ -689,7 +722,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       ) {
         referenceLines.push({
           value: queryConfig.criticalThreshold,
-          label: `Critical: ${ValueFormatter.formatValue(queryConfig.criticalThreshold, unit)}`,
+          label: `Critical: ${ValueFormatter.formatValue(queryConfig.criticalThreshold, unit, formatterOptions)}`,
           color: "#ef4444", // red
         });
       }
@@ -834,6 +867,51 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             })
           : undefined;
 
+      /*
+       * Soft 0–100% range computed from the currently visible series, so
+       * hiding the dominant series via the legend rescales the axis to
+       * what's actually on screen instead of staying anchored to the
+       * peak of a hidden line. Default to the full percent scale so 25%
+       * reads like 25% of the axis (not a peak). If a visible series
+       * exceeds 100% — e.g. summed-across-cores or mis-tagged data —
+       * expand to fit so nothing clips. If the visible data sits well
+       * below 100% — e.g. a near-empty 120 GB disk at ~2% — auto-fit
+       * to the data so the line is visible instead of hugging the bottom.
+       * Negative values pull the floor below 0. The baseline differs by
+       * data scale: utilization metrics live in [0, 1], explicit percent
+       * units live in [0, 100].
+       */
+      if (isPercentChart) {
+        const baseline: number = isFractionScale ? 1 : 100;
+        let observedMax: number = Number.NEGATIVE_INFINITY;
+        let observedMin: number = 0;
+        let hasFinitePoint: boolean = false;
+        for (const series of displayableSeries) {
+          for (const point of series.data) {
+            if (typeof point.y === "number" && Number.isFinite(point.y)) {
+              hasFinitePoint = true;
+              if (point.y > observedMax) {
+                observedMax = point.y;
+              }
+              if (point.y < observedMin) {
+                observedMin = point.y;
+              }
+            }
+          }
+        }
+        if (!hasFinitePoint) {
+          yAxisMax = baseline;
+          yAxisMin = 0;
+        } else if (observedMax < baseline * 0.25) {
+          const headroom: number = observedMax > 0 ? observedMax * 0.25 : 0;
+          yAxisMax = observedMax + headroom;
+          yAxisMin = observedMin;
+        } else {
+          yAxisMax = Math.max(observedMax, baseline);
+          yAxisMin = observedMin;
+        }
+      }
+
       const chart: Chart = {
         id: chartId,
         type: chartType,
@@ -862,7 +940,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             },
           },
           yAxis: {
-            legend: unit,
+            legend: yAxisLegend,
             options: {
               type: YAxisType.Number,
               formatter: (value: number) => {
@@ -870,11 +948,15 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                   return queryConfig.yAxisValueFormatter(value);
                 }
 
-                return ValueFormatter.formatValue(value, unit);
+                return ValueFormatter.formatValue(
+                  value,
+                  unit,
+                  formatterOptions,
+                );
               },
               precision: YAxisPrecision.NoDecimals,
-              max: "auto",
-              min: "auto",
+              max: yAxisMax,
+              min: yAxisMin,
             },
           },
           curve: ChartCurve.MONOTONE,
@@ -1042,7 +1124,6 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     <ChartGroup
       charts={getCharts()}
       hideCard={props.hideCard}
-      heightInPx={props.heightInPx}
       chartCssClass={props.chartCssClass}
     />
   );

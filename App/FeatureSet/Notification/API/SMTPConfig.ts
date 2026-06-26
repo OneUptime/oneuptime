@@ -3,12 +3,11 @@ import Email from "Common/Types/Email";
 import EmailMessage from "Common/Types/Email/EmailMessage";
 import EmailServer from "Common/Types/Email/EmailServer";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
-import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
+import MailTransportType from "Common/Types/Email/MailTransportType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import URL from "Common/Types/API/URL";
 import ProjectSMTPConfigService from "Common/Server/Services/ProjectSmtpConfigService";
 import Express, {
   ExpressRequest,
@@ -46,6 +45,7 @@ router.post(
           },
           select: {
             _id: true,
+            transportType: true,
             hostname: true,
             port: true,
             username: true,
@@ -91,29 +91,27 @@ router.post(
         body: "",
       };
 
-      // Get auth type, default to UsernamePassword for backward compatibility
-      const authType: SMTPAuthenticationType =
-        (config.authType as SMTPAuthenticationType) ||
-        SMTPAuthenticationType.UsernamePassword;
+      /*
+       * Delegate validation + conversion to the shared service so the test
+       * path always matches the runtime path.
+       */
+      const mailServer: EmailServer | undefined =
+        ProjectSMTPConfigService.toEmailServer(config);
 
-      const mailServer: EmailServer = {
-        id: config.id!,
-        host: config.hostname!,
-        port: config.port!,
-        username: config.username,
-        password: config.password,
-        fromEmail: config.fromEmail!,
-        fromName: config.fromName!,
-        secure: Boolean(config.secure),
-        authType: authType,
-        clientId: config.clientId,
-        clientSecret: config.clientSecret,
-        tokenUrl: config.tokenUrl ? URL.fromString(config.tokenUrl) : undefined,
-        scope: config.scope,
-        oauthProviderType: config.oauthProviderType as
-          | OAuthProviderType
-          | undefined,
-      };
+      if (!mailServer) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "smtp-config could not be converted to mail server config",
+          ),
+        );
+      }
+
+      const transportType: MailTransportType =
+        mailServer.transportType || MailTransportType.SMTP;
+      const authType: SMTPAuthenticationType =
+        mailServer.authType || SMTPAuthenticationType.UsernamePassword;
 
       try {
         await MailService.send(mail, {
@@ -124,10 +122,20 @@ router.post(
       } catch (err) {
         logger.error(err, getLogAttributesFromRequest(req as RequestLike));
 
-        // Provide more specific error messages based on auth type
+        /*
+         * Microsoft Graph errors already include actionable text from the
+         * provider — just pass them through.
+         */
+        if (transportType === MailTransportType.MicrosoftGraph) {
+          throw new BadDataException(
+            "Microsoft Graph send failed: " +
+              (err instanceof Error ? err.message : String(err)),
+          );
+        }
+
         if (authType === SMTPAuthenticationType.OAuth) {
           throw new BadDataException(
-            "Cannot send email with OAuth authentication. Please verify: 1) Your Client ID, Client Secret, Token URL, and Scope are correct, 2) Your OAuth application has the required permissions, 3) Admin consent has been granted if required by your provider. Error: " +
+            "Cannot send email with OAuth authentication. Please verify: 1) Your Client ID, Client Secret, Token URL, and Scope are correct, 2) Your OAuth application has the required permissions, 3) Admin consent has been granted if required by your provider. If your Microsoft 365 tenant has SMTP AUTH disabled, switch Transport to 'Microsoft Graph' instead. Error: " +
               (err instanceof Error ? err.message : String(err)),
           );
         }

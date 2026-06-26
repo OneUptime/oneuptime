@@ -1,20 +1,17 @@
 import ApiKeyService from "../Services/ApiKeyService";
 import GlobalConfigService from "../Services/GlobalConfigService";
 import UserService from "../Services/UserService";
-import QueryHelper from "../Types/Database/QueryHelper";
 import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
   OneUptimeRequest,
 } from "../Utils/Express";
-import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { UserTenantAccessPermission } from "../../Types/Permission";
 import UserType from "../../Types/UserType";
-import ApiKey from "../../Models/DatabaseModels/ApiKey";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import User from "../../Models/DatabaseModels/User";
 import APIKeyAccessPermission from "../Utils/APIKey/AccessPermission";
@@ -89,62 +86,43 @@ export default class ProjectMiddleware {
         );
       }
 
-      let apiKeyModel: ApiKey | null = null;
+      /*
+       * Cached lookup — see ApiKeyService.findApiKey. Hot path for any
+       * automated caller hitting the API by key.
+       */
+      const apiKeyRow: { id: ObjectID; projectId: ObjectID } | null =
+        await ApiKeyService.findApiKey(apiKey);
 
-      if (apiKey) {
-        apiKeyModel = await ApiKeyService.findOneBy({
-          query: {
-            apiKey: apiKey,
-            expiresAt: QueryHelper.greaterThan(OneUptimeDate.getCurrentDate()),
-          },
-          select: {
-            _id: true,
-            projectId: true,
-          },
-          props: { isRoot: true },
-        });
+      if (apiKeyRow) {
+        tenantId = apiKeyRow.projectId;
 
-        if (apiKeyModel) {
-          tenantId = apiKeyModel?.projectId || null;
+        (req as OneUptimeRequest).tenantId = tenantId;
+        (req as OneUptimeRequest).userType = UserType.API;
 
-          if (!tenantId) {
-            throw new BadDataException("Invalid API Key");
-          }
+        /*
+         * TODO: Add API key permissions.
+         */
+        (req as OneUptimeRequest).userGlobalAccessPermission =
+          await APIKeyAccessPermission.getDefaultApiGlobalPermission(tenantId);
 
-          (req as OneUptimeRequest).tenantId = tenantId;
+        const userTenantAccessPermission: UserTenantAccessPermission | null =
+          await APIKeyAccessPermission.getApiTenantAccessPermission(
+            tenantId,
+            apiKeyRow.id,
+          );
 
-          if (apiKeyModel) {
-            (req as OneUptimeRequest).userType = UserType.API;
-            /*
-             * TODO: Add API key permissions.
-             * (req as OneUptimeRequest).permissions =
-             *     apiKeyModel.permissions || [];
-             */
-            (req as OneUptimeRequest).userGlobalAccessPermission =
-              await APIKeyAccessPermission.getDefaultApiGlobalPermission(
-                tenantId,
-              );
+        if (userTenantAccessPermission) {
+          (req as OneUptimeRequest).userTenantAccessPermission = {};
+          (
+            (req as OneUptimeRequest)
+              .userTenantAccessPermission as Dictionary<UserTenantAccessPermission>
+          )[tenantId.toString()] = userTenantAccessPermission;
 
-            const userTenantAccessPermission: UserTenantAccessPermission | null =
-              await APIKeyAccessPermission.getApiTenantAccessPermission(
-                tenantId,
-                apiKeyModel.id!,
-              );
-
-            if (userTenantAccessPermission) {
-              (req as OneUptimeRequest).userTenantAccessPermission = {};
-              (
-                (req as OneUptimeRequest)
-                  .userTenantAccessPermission as Dictionary<UserTenantAccessPermission>
-              )[tenantId.toString()] = userTenantAccessPermission;
-
-              return next();
-            }
-          }
+          return next();
         }
       }
 
-      if (!apiKeyModel) {
+      if (!apiKeyRow) {
         // check master key.
         const masterKeyGlobalConfig: GlobalConfig | null =
           await GlobalConfigService.findOneBy({

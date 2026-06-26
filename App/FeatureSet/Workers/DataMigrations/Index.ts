@@ -21,6 +21,7 @@ import AddTelemetryServiceColor from "./AddTelemetryServiceColor";
 import AddUnitColumnToMetricsTable from "./AddUnitColumnToMetricsTable";
 import ChangeLogSeverityColumnTypeFromTextToNumber from "./ChangeLogSeverityColumnTypeFromTextToNumber";
 import ChangeMetricColumnTypeToDecimal from "./ChangeMetricColumnTypesToDecimal";
+import ConvertAnalyticsTablesToCluster from "./ConvertAnalyticsTablesToCluster";
 import DataMigrationBase from "./DataMigrationBase";
 import GenerateNewCertsForStatusPage from "./GenerateNewCertsForStatusPage";
 import MigrateDefaultUserNotificationRule from "./MigrateDefaultUserNotificationRule";
@@ -37,6 +38,7 @@ import MoveTelemetryServiceTokenToTelemetryIngestionKey from "./MoveTelemetrySer
 import AddDefaultAlertSeverityAndStateToExistingProjects from "./AddDefaultAlertSeverityAndStateToExistingProjects";
 import RefreshDefaultUserNotificationSetting from "./RefreshUserNotificationSetting";
 import AddServiceTypeColumnToMetricsTable from "./AddServiceTypeColumnToMetricTable";
+import AddServiceTypeColumnToTelemetryTables from "./AddServiceTypeColumnToTelemetryTables";
 import AddIsSubscriptionConfirmedToSubscribers from "./AddIsSubscriptionConfirmedToSubscribers";
 import AddIncidentNumber from "./AddIncidentNumber";
 import RenameRuleTypeInUserNotificationRule from "./RenameRuleTypeInUserNotificationRule";
@@ -66,6 +68,26 @@ import AddMetricMinuteAggregateMaterializedView from "./AddMetricMinuteAggregate
 import RebuildMetricMinuteAggregateMaterializedView from "./RebuildMetricMinuteAggregateMaterializedView";
 import AddAttributeKeysSkipIndexToTelemetryTables from "./AddAttributeKeysSkipIndexToTelemetryTables";
 import AddMetricMinuteAggregateByHostMaterializedView from "./AddMetricMinuteAggregateByHostMaterializedView";
+import AddMetricBaselineHourlyMV from "./AddMetricBaselineHourlyMV";
+import AddIdAndTimestampsToMVTargetTables from "./AddIdAndTimestampsToMVTargetTables";
+import ExtendMetricBaselineHourlyTTL from "./ExtendMetricBaselineHourlyTTL";
+import AddTelemetryStorageCompression from "./AddTelemetryStorageCompression";
+import MigrateTelemetryToV3PrimaryEntityId from "./MigrateTelemetryToV3PrimaryEntityId";
+import AddTtlOnlyDropPartsToTelemetryV3 from "./AddTtlOnlyDropPartsToTelemetryV3";
+import AddGorillaCodecToMetricValues from "./AddGorillaCodecToMetricValues";
+import AddUInt64TimestampsToTelemetryV3 from "./AddUInt64TimestampsToTelemetryV3";
+import AddUInt64ToRemainingTelemetryColumns from "./AddUInt64ToRemainingTelemetryColumns";
+import DropUpdatedAtFromTelemetryTables from "./DropUpdatedAtFromTelemetryTables";
+import AddEntityKeysToTelemetryTables from "./AddEntityKeysToTelemetryTables";
+import AddScalarEntityKeysToTelemetryTables from "./AddScalarEntityKeysToTelemetryTables";
+import MaterializeEntityKeysIndexOnTelemetryTables from "./MaterializeEntityKeysIndexOnTelemetryTables";
+import AddZstdCodecToTelemetryIdColumns from "./AddZstdCodecToTelemetryIdColumns";
+import AddTelemetryV3ColumnCodecs from "./AddTelemetryV3ColumnCodecs";
+import RebuildMetricBaselineHourlyWithBFloat16Quantiles from "./RebuildMetricBaselineHourlyWithBFloat16Quantiles";
+import AddDedupWindowToTelemetryTables from "./AddDedupWindowToTelemetryTables";
+import DropUnusedTelemetryTables from "./DropUnusedTelemetryTables";
+import RebuildMetricAggTablesMissingPrimaryEntityId from "./RebuildMetricAggTablesMissingPrimaryEntityId";
+import DropPreclusteredAnalyticsBackupTables from "./DropPreclusteredAnalyticsBackupTables";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -136,6 +158,71 @@ const DataMigrations: Array<DataMigrationBase> = [
   new RebuildMetricMinuteAggregateMaterializedView(),
   new AddAttributeKeysSkipIndexToTelemetryTables(),
   new AddMetricMinuteAggregateByHostMaterializedView(),
+  new AddMetricBaselineHourlyMV(),
+  new AddIdAndTimestampsToMVTargetTables(),
+  new ExtendMetricBaselineHourlyTTL(),
+  new AddServiceTypeColumnToTelemetryTables(),
+  new AddTelemetryStorageCompression(),
+  new MigrateTelemetryToV3PrimaryEntityId(),
+  new AddTtlOnlyDropPartsToTelemetryV3(),
+  new AddGorillaCodecToMetricValues(),
+  new AddUInt64TimestampsToTelemetryV3(),
+  new AddUInt64ToRemainingTelemetryColumns(),
+  new DropUpdatedAtFromTelemetryTables(),
+  new AddEntityKeysToTelemetryTables(),
+  /*
+   * ClickHouse storage hardening — ordering constraints:
+   *   - All of these need the V3 tables (MigrateTelemetryToV3PrimaryEntityId)
+   *     and the MV-target _id columns (AddIdAndTimestampsToMVTargetTables).
+   *   - MaterializeEntityKeysIndexOnTelemetryTables needs idx_entity_keys
+   *     (AddEntityKeysToTelemetryTables, directly above).
+   *   - AddZstdCodecToTelemetryIdColumns runs before the baseline rebuild so
+   *     it never touches the table that one drops and recreates.
+   *
+   * There is deliberately NO V2 -> V3 historical data copy in this chain:
+   * the cut is forward-only and operators carry history forward manually
+   * if they want it (App/FeatureSet/Docs/Content/en/installation/upgrading.md ('Upgrading from OneUptime 10 → 11')).
+   */
+  new AddScalarEntityKeysToTelemetryTables(),
+  new MaterializeEntityKeysIndexOnTelemetryTables(),
+  new AddZstdCodecToTelemetryIdColumns(),
+  new AddTelemetryV3ColumnCodecs(),
+  new RebuildMetricBaselineHourlyWithBFloat16Quantiles(),
+  new AddDedupWindowToTelemetryTables(),
+  /*
+   * Ordered after MigrateTelemetryToV3PrimaryEntityId: the pre-V3 tables
+   * must already be superseded (never the live generation) when they are
+   * dropped. Operators who want the optional V2 history copy rename the
+   * tables to `…_backup` BEFORE upgrading (see the v11 upgrade guide).
+   */
+  new DropUnusedTelemetryTables(),
+  /*
+   * Repairs MetricItemAggMV1m / MetricBaselineHourly on installs that
+   * drifted across the V3 cut and never gained `primaryEntityId` (the
+   * earlier rebuild guards key off proxy signals, not the column itself).
+   * Gated on the real column, so it is a clean no-op on healthy installs.
+   * Ordered last: it depends only on the current models, and the targets
+   * must already be the live V3 generation by the time it runs.
+   */
+  new RebuildMetricAggTablesMissingPrimaryEntityId(),
+  /*
+   * Reclaims the `<table>_preclustered` ClickHouse backups left by a single-node
+   * -> cluster conversion (the boot schema-sync renames the legacy table aside
+   * before swapping in the Distributed wrapper). Telemetry history is forward-only
+   * across the conversion, so the abandoned backups are dropped to free their
+   * disk rather than left as a standing "un-backfilled history" warning. A clean
+   * no-op on installs that never converted. Ordered right before the conversion
+   * migration; both run after every schema migration is already in place.
+   */
+  new DropPreclusteredAnalyticsBackupTables(),
+  /*
+   * Cluster conversion. Runs only when CLICKHOUSE_CLUSTER_NAME is set (a no-op
+   * otherwise) and after every legacy ClickHouse migration has been baselined,
+   * so the analytics tables are at their current model schema before being
+   * converted in place to the sharded + replicated (Distributed over local
+   * ReplicatedMergeTree) layout. Must stay last.
+   */
+  new ConvertAnalyticsTablesToCluster(),
 ];
 
 export default DataMigrations;

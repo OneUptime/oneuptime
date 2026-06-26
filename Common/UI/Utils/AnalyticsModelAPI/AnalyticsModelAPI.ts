@@ -84,7 +84,7 @@ export default class ModelAPI {
     let apiUrl: URL | null = apiUrlOverride || null;
 
     if (!apiUrl) {
-      const apiPath: Route | null = model.crudApiPath;
+      const apiPath: Route | undefined = model.crudApiPath;
       if (!apiPath) {
         throw new BadDataException(
           "This model does not support create or update operations.",
@@ -137,7 +137,7 @@ export default class ModelAPI {
     let apiUrl: URL | null = requestOptions?.overrideRequestUrl || null;
 
     if (!apiUrl) {
-      const apiPath: Route | null = model.crudApiPath;
+      const apiPath: Route | undefined = model.crudApiPath;
       if (!apiPath) {
         throw new BadDataException(
           "This model does not support create or update operations.",
@@ -197,7 +197,7 @@ export default class ModelAPI {
     const { modelType, aggregateBy, requestOptions } = data;
 
     const model: TAnalyticsBaseModel = new modelType();
-    const apiPath: Route | null = model.crudApiPath;
+    const apiPath: Route | undefined = model.crudApiPath;
     if (!apiPath) {
       throw new BadDataException(
         "This model does not support aggregate operations.",
@@ -264,7 +264,7 @@ export default class ModelAPI {
     } = data;
 
     const model: TAnalyticsBaseModel = new modelType();
-    const apiPath: Route | null = model.crudApiPath;
+    const apiPath: Route | undefined = model.crudApiPath;
     if (!apiPath) {
       throw new BadDataException(
         "This model does not support list operations.",
@@ -315,6 +315,7 @@ export default class ModelAPI {
         count: result.count,
         skip: result.skip,
         limit: result.limit,
+        hasMore: result.hasMore,
       };
     }
 
@@ -329,7 +330,7 @@ export default class ModelAPI {
     requestOptions?: RequestOptions | undefined,
   ): Promise<number> {
     const model: TAnalyticsBaseModel = new modelType();
-    const apiPath: Route | null = model.crudApiPath;
+    const apiPath: Route | undefined = model.crudApiPath;
     if (!apiPath) {
       throw new BadDataException(
         "This model does not support list operations.",
@@ -405,7 +406,7 @@ export default class ModelAPI {
   }): Promise<TAnalyticsBaseModel | null> {
     const { modelType, id, select, requestOptions } = data;
 
-    const apiPath: Route | null = new modelType().crudApiPath;
+    const apiPath: Route | undefined = new modelType().crudApiPath;
     if (!apiPath) {
       throw new BadDataException("This model does not support get operations.");
     }
@@ -468,7 +469,7 @@ export default class ModelAPI {
   }): Promise<void> {
     const { modelType, id, requestOptions } = data;
 
-    const apiPath: Route | null = new modelType().crudApiPath;
+    const apiPath: Route | undefined = new modelType().crudApiPath;
     if (!apiPath) {
       throw new BadDataException(
         "This model does not support delete operations.",

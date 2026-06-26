@@ -65,6 +65,13 @@ deployment:
   disableDeployments: false
   # Default replica count for all deployments
   replicaCount: 1
+  # Global default for the per-pod Postgres connection-pool ceiling
+  # (DATABASE_MAX_OPEN_CONNECTIONS) on the Postgres-connecting deployments
+  # (app, worker, nginx). Empty = use the app's built-in default (50). Each
+  # service can override via <service>.databaseMaxOpenConnections. Lower this
+  # when fronting Postgres with pgbouncer (session mode) or a connection-capped
+  # managed DB, so pods don't each hold 50 server connections.
+  databaseMaxOpenConnections:
   # Update strategy type for all deployments
   updateStrategy:
     type: RollingUpdate
@@ -82,6 +89,10 @@ nginx:
   # OneUptime ships with its own ingress gateway container, so Kubernetes Ingress resources are not required.
   enabled: true
   replicaCount: 1
+  # Override the per-pod Postgres pool ceiling (DATABASE_MAX_OPEN_CONNECTIONS)
+  # for the ingress gateway. It only reads cert/domain rows, so a small value
+  # is plenty. Empty = inherit deployment.databaseMaxOpenConnections.
+  databaseMaxOpenConnections:
   disableTelemetryCollection: false
   disableAutoscaler: false
   listenAddress: ""
@@ -137,7 +148,12 @@ postgresql:
       listen_addresses = '*'
       port = 5432
       # Core tuning (adjust as needed)
-      max_connections = 100
+      # max_connections must exceed (DATABASE_MAX_OPEN_CONNECTIONS x number of
+      # Postgres-connecting pods) plus headroom for replication, superuser, and
+      # boot migrations. The app's default per-pod pool is 50, so 500 comfortably
+      # supports a small/medium fleet directly, or a pgbouncer defaultPoolSize of
+      # 400 in front. Raise it (and pod memory) for larger deployments.
+      max_connections = 500
       shared_buffers = 128MB
     # pg_hba.conf rules. These enable password auth (md5) from any host/IP.
     # Tighten these for production to your pod/service/network CIDRs.
@@ -147,6 +163,72 @@ postgresql:
       # Allow all IPv4 and IPv6 clients with md5 password auth
       host    all             all             0.0.0.0/0               md5
       host    all             all             ::/0                    md5
+
+# =============================================================================
+# Operator-managed PostgreSQL (opt-in). A SEPARATE top-level object — NOT nested
+# under "postgresql" above. When postgresOperator.cnpg.enabled is true:
+#   * the postgresql StatefulSet / Service / ConfigMaps above are NOT rendered;
+#   * an operator-managed CloudNativePG "Cluster" is created instead;
+#   * the CloudNativePG operator is installed as a bundled chart dependency
+#     (gated by this flag — see Chart.yaml; tune the operator itself under the
+#     top-level "cloudnative-pg:" section at the bottom of this file).
+#
+# The OneUptime app connects as the "postgres" superuser (drop-in replacement
+# for the StatefulSet). This object is self-contained — it does not read any
+# postgresql.* values. "cnpg" is nested so other operators can be added later.
+#
+# NOTE: enabling this bootstraps a FRESH, empty cluster (initdb). It does NOT
+# migrate data from an existing StatefulSet — see HelmChart/Docs/Postgres.md.
+postgresOperator:
+  cnpg:
+    enabled: false
+    # 1 = single primary. >1 = primary + (N-1) hot standbys for HA.
+    instances: 1
+    # Synchronous (quorum) replication. 0 = async streaming (default).
+    # When > 0, every commit waits for this many standbys to confirm the write
+    # (zero data loss on failover). Requires instances >= synchronousReplicas + 1
+    # (ideally + 2, so writes don't block when a single standby is unavailable).
+    synchronousReplicas: 0
+    # PostgreSQL operand image. Pin a specific minor for production
+    imageName: "ghcr.io/cloudnative-pg/postgresql:latest"
+    # Application database and its owner role, created at bootstrap.
+    database: oneuptimedb
+    owner: oneuptime
+    # postgres superuser password. Auto-generated if empty; preserved on upgrade.
+    postgresPassword:
+    persistence:
+      size: 25Gi
+      storageClass: ""
+    # Extra postgresql.conf parameters. CloudNativePG manages everything else.
+    # max_connections sized like the StatefulSet path above: 500 supports a
+    # small/medium fleet (default per-pod pool 50) directly or behind pgbouncer.
+    parameters:
+      max_connections: "500"
+      shared_buffers: "128MB"
+    resources: {}
+    nodeSelector: {}
+    tolerations: []
+    # Advanced: extra CloudNativePG AffinityConfiguration fields merged into
+    # spec.affinity (e.g. podAntiAffinityType, topologyKey).
+    affinity: {}
+    # Scheduled volume-snapshot backups (native — no object store / WAL archiving).
+    #
+    # NOTE: CloudNativePG does NOT auto-prune volume snapshots (retentionPolicy is an
+    # object-store-only, deprecated feature). Old snapshots accumulate until deleted —
+    # prune them externally, or use object-store backups (Barman Cloud Plugin) for
+    # automatic retention + point-in-time recovery.
+    backup:
+      enabled: false
+      # 6-field cron WITH a leading seconds field (CNPG/robfig format, not k8s CronJob).
+      # Default: daily at 03:00.
+      schedule: "0 0 3 * * *"
+      # Take a backup immediately when the schedule is first created.
+      immediate: true
+      # CSI VolumeSnapshotClass to use. Empty = the driver's default class.
+      volumeSnapshotClassName: ""
+      # Online (hot) snapshot — no downtime. false = cold snapshot (fences a standby;
+      # on a single-instance cluster this briefly stops the primary).
+      online: true
 
 clickhouse:
   enabled: true
@@ -268,7 +350,306 @@ clickhouse:
                 </interval>
             </default>
         </quotas>
+        <!--
+          Cluster + embedded-Keeper. OneUptime's analytics schema is always
+          ReplicatedMergeTree + Distributed, so this single StatefulSet node runs
+          an embedded Keeper and a 1-node "oneuptime" cluster. Multi-node HA /
+          sharding is the Altinity operator path (clickhouseOperator.altinity),
+          which manages its own Keeper + macros and ignores this block.
+        -->
+        <keeper_server>
+            <tcp_port>9181</tcp_port>
+            <server_id>1</server_id>
+            <log_storage_path>/var/lib/clickhouse/coordination/log</log_storage_path>
+            <snapshot_storage_path>/var/lib/clickhouse/coordination/snapshots</snapshot_storage_path>
+            <coordination_settings>
+                <operation_timeout_ms>10000</operation_timeout_ms>
+                <session_timeout_ms>30000</session_timeout_ms>
+                <raft_logs_level>warning</raft_logs_level>
+            </coordination_settings>
+            <raft_configuration>
+                <server>
+                    <id>1</id>
+                    <hostname>localhost</hostname>
+                    <port>9234</port>
+                </server>
+            </raft_configuration>
+        </keeper_server>
+        <zookeeper>
+            <node>
+                <host>localhost</host>
+                <port>9181</port>
+            </node>
+        </zookeeper>
+        <macros>
+            <shard>01</shard>
+            <replica>replica-1</replica>
+            <cluster>oneuptime</cluster>
+        </macros>
+        <remote_servers>
+            <oneuptime>
+                <shard>
+                    <internal_replication>true</internal_replication>
+                    <replica>
+                        <host>localhost</host>
+                        <port>9000</port>
+                    </replica>
+                </shard>
+            </oneuptime>
+        </remote_servers>
     </clickhouse>
+
+# =============================================================================
+# Operator-managed ClickHouse (opt-in). A SEPARATE top-level object — NOT nested
+# under "clickhouse" above. When clickhouseOperator.altinity.enabled is true:
+#   * the clickhouse StatefulSet / Service / ConfigMap above are NOT rendered;
+#   * an operator-managed "ClickHouseInstallation" (CHI) is created instead;
+#   * the Altinity ClickHouse operator is installed as a bundled chart dependency
+#     (gated by this flag — see Chart.yaml; tune the operator itself under the
+#     top-level "altinity-clickhouse-operator:" section at the bottom of this file);
+#   * a bundled ClickHouse Keeper ensemble is created (coordination for replication).
+#
+# The OneUptime app connects as the "oneuptime" user (drop-in replacement for the
+# StatefulSet). This object is self-contained — it does not read any clickhouse.*
+# values. "altinity" is nested so other operators can be added later.
+#
+# NOTE: enabling this bootstraps a FRESH, empty ClickHouse. It does NOT migrate
+# data from an existing StatefulSet — see HelmChart/Docs/Clickhouse.md.
+clickhouseOperator:
+  altinity:
+    enabled: false
+    # ClickHouse operand image. Pin a specific version for production.
+    image:
+      repository: clickhouse/clickhouse-server
+      tag: latest
+      pullPolicy: IfNotPresent
+    # Cluster topology. shardsCount distributes data; replicasCount adds copies for
+    # HA. replicasCount > 1 requires a coordinator — keeper.enabled (below) provides
+    # one. Scaling is online: change these and `helm upgrade`.
+    #
+    # When this operator path is enabled the OneUptime app runs in cluster mode:
+    # the analytics schema is created as Distributed tables over local
+    # ReplicatedMergeTree tables (CLICKHOUSE_CLUSTER_NAME is set to `name` below).
+    # `name` MUST match the cluster created in the ClickHouseInstallation.
+    cluster:
+      name: oneuptime
+      shardsCount: 1
+      replicasCount: 1
+      # Optional: override the Distributed sharding-key expression. Empty uses the
+      # app default cityHash64(projectId), which co-locates a project's rows — and
+      # therefore all spans of a trace — on a single shard.
+      shardingKey: ""
+    # The application user the OneUptime app authenticates as.
+    auth:
+      username: oneuptime
+      # Auto-generated if empty; preserved on upgrade.
+      password:
+    # Application database (created by the app's migrations, same as the StatefulSet).
+    database: oneuptime
+    # Root CHI service type the app connects to.
+    service:
+      type: ClusterIP
+    persistence:
+      size: 25Gi
+      storageClass: ""
+    resources: {}
+    nodeSelector: {}
+    tolerations: []
+    # Advanced: a Kubernetes Affinity merged into the ClickHouse pod template.
+    affinity: {}
+    # Optional: override global security contexts just for the ClickHouse pod/container.
+    podSecurityContext: {}
+    containerSecurityContext: {}
+    # Server settings rendered into config.d. Slash-separated keys become nested XML
+    # (logger/level -> <logger><level>…). Defaults preserve the built-in deployment's
+    # extra wire protocols (MySQL/Postgres ports).
+    #
+    # IMPORTANT: do NOT add per-system-log `*_log/partition_by` or `*_log/ttl` keys here.
+    # The Altinity operator already defines the system-log tables (query_log, trace_log,
+    # part_log, metric_log, …) with an explicit MergeTree <engine> that includes a bounded
+    # (~30d) TTL. ClickHouse 25.7+ rejects a system table that has BOTH an <engine> and a
+    # separate <partition_by>/<ttl> ("If 'engine' is specified … partition_by doesn't make
+    # sense", BAD_ARGUMENTS), which crash-loops the server on boot. If you need different
+    # system-log retention, override the whole table via a `files` entry (replace="1" with
+    # your own <engine>), not via these settings.
+    settings:
+      mysql_port: "9004"
+      postgresql_port: "9005"
+      logger/level: warning
+      merge_tree/max_suspicious_broken_parts: "1000"
+    # Advanced: raw config files dropped into the server config (map of filename -> content).
+    # By default we disable processors_profile_log entirely: OneUptime does not use it and it
+    # ballooned to 500+ GiB on the standalone deployment. This mirrors the built-in
+    # StatefulSet config (<processors_profile_log remove="1"/>). Remove this entry to keep the
+    # operator's default (bounded ~30d TTL) instead.
+    files:
+      config.d/disable-profile-log.xml: |
+        <clickhouse>
+          <processors_profile_log remove="1"/>
+        </clickhouse>
+    # Bundled ClickHouse Keeper — coordination service required for replication.
+    # Adds keeper.replicas extra pods. Set keeper.replicas to 1 for non-HA/testing,
+    # 3 (or 5) for a production quorum. Disable if you set zookeeper.nodes below.
+    keeper:
+      enabled: true
+      replicas: 3
+      image:
+        repository: clickhouse/clickhouse-keeper
+        tag: latest-alpine
+        pullPolicy: IfNotPresent
+      persistence:
+        size: 10Gi
+        storageClass: ""
+      resources: {}
+      nodeSelector: {}
+      tolerations: []
+      affinity: {}
+    # Bring-your-own ZooKeeper / ClickHouse Keeper. When set, the bundled keeper above
+    # is NOT rendered and the CHI points at these nodes instead.
+    #   nodes:
+    #     - host: zookeeper-0.zk.svc.cluster.local
+    #       port: 2181
+    zookeeper:
+      nodes: []
+
+# =============================================================================
+# Database migrations (dedicated Job — enabled by default).
+#
+# Schema + data migrations run ONCE per release in a dedicated pre-upgrade /
+# post-install Job (App/Migrate.ts), connecting directly to the backend. The
+# runtime app/worker/nginx pods are gated off (RUN_DATABASE_MIGRATIONS_ON_BOOT=
+# false), so the data-migration session advisory lock never runs on a pooled
+# connection — which is the prerequisite for safely setting
+# pgbouncer.poolMode=transaction. See HelmChart/Docs/Postgres.md.
+#
+# Set enabled: false to fall back to the legacy model where every pod runs
+# migrations on boot (serialized by the advisory lock). That fallback is NOT
+# compatible with pgbouncer.poolMode=transaction (the chart rejects that combo).
+#
+# Behavior: deploys gate on the migration Job (cleaner, atomic, no cross-pod
+# race). An init container waits for the database first, so a fresh install does
+# not race the bundled Postgres / CNPG bootstrap; on a very slow first-time
+# cluster bootstrap you may need a longer `helm upgrade --install --timeout`.
+# The advisory lock stays in the code — it still protects the boot path used by
+# docker-compose and enabled: false installs.
+migrate:
+  enabled: true
+  # Whether the deploy WAITS for migrations:
+  #   false (default): migrations run as an async background Job (both install and
+  #     upgrade) — helm returns immediately and pods roll while migrations run.
+  #     Non-blocking deploys, BUT pods may run before migrations finish, so keep
+  #     your migrations backward-compatible (expand/contract: new code must
+  #     tolerate the old schema). On a FRESH install the app pods come up against
+  #     an un-migrated database and stay unready (likely CrashLoopBackOff) until
+  #     the Job finishes creating the schema — they self-heal once it does.
+  #   true: migrations run as a BLOCKING Helm hook (post-install on install,
+  #     pre-upgrade on upgrade) — the deploy waits before rolling new pods, so new
+  #     code never hits an un-migrated schema.
+  # Note: `helm upgrade --wait` waits for the async Job too, so don't pass --wait
+  # if you want it non-blocking.
+  hook: false
+  # Auto-clean finished async Jobs after this many seconds (hook: false only).
+  ttlSecondsAfterFinished: 86400
+  # Job retries (handles the DB not being ready yet on a fresh install).
+  backoffLimit: 6
+  # Optional hard timeout for the whole migration run (seconds). Empty = none.
+  activeDeadlineSeconds:
+  resources: {}
+  # Placement for the one-shot migration Job. It talks to Postgres over the
+  # network, so it should NOT co-locate with the database tier — keep it on the
+  # app pool, off any over-packed/tainted DB nodes (these fall back to the
+  # chart-wide nodeSelector/tolerations/affinity when left empty).
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  # Optional PriorityClass so the migration run isn't preempted under pressure.
+  priorityClassName: ""
+
+# =============================================================================
+# PgBouncer connection pooler (opt-in). Orthogonal to the Postgres backend:
+# when enabled it fronts WHICHEVER of the three is active — the built-in
+# postgresql StatefulSet, the postgresOperator CNPG cluster, or externalPostgres
+# (managed RDS / Cloud SQL / Neon / Azure). The app/worker/ingress pods then
+# point DATABASE_HOST/DATABASE_PORT at this pooler instead of directly at the DB.
+#
+# Most valuable in front of a managed/external Postgres, whose max_connections
+# is capped by instance size and usually cannot be raised cheaply.
+#
+# Pool mode is TRANSACTION by default: it returns a backend connection to the
+# pool after every transaction, so many mostly-idle client connections share a
+# small set of backend connections — the real connection reduction. This is safe
+# here because migrate.enabled=true above runs migrations in a dedicated Job, so
+# the data-migration session advisory lock never runs on a pooled connection
+# (OneUptime's runtime traffic uses no other session-level Postgres features).
+# If you set migrate.enabled=false, you MUST also set poolMode=session — the
+# chart rejects transaction+no-migrate-Job at render time. See HelmChart/Docs/Postgres.md.
+pgbouncer:
+  enabled: false
+  image:
+    repository: edoburu/pgbouncer
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  # session | transaction | statement.
+  #   transaction (default): biggest connection reduction; requires
+  #     migrate.enabled=true (the default).
+  #   session: a backend connection is held for the whole client session — less
+  #     reduction, but tolerates session-level features; use it with
+  #     migrate.enabled=false.
+  #   statement: unsupported (breaks multi-statement transactions).
+  poolMode: transaction
+  # Max client (app-side) connections pgbouncer accepts. Set comfortably above
+  # the sum of every app/worker/ingress pool (DATABASE_MAX_OPEN_CONNECTIONS,
+  # default 50 each).
+  maxClientConn: 10000
+  # Max backend connections pgbouncer opens per (user,db). In the default
+  # TRANSACTION mode this is the cap on concurrent IN-FLIGHT transactions, so it
+  # can be far smaller than the fleet's open-connection count (idle clients hold
+  # no backend connection) — the source of the real connection reduction. In
+  # SESSION mode it instead caps concurrent open sessions and must cover them.
+  # Keep it under the backend's max_connections. Default 400 leaves ~100 of the
+  # stock max_connections=500 for replication, superuser, and migrations; in
+  # transaction mode you can usually run far below 400. Raise this and the
+  # backend max_connections together for very high concurrency.
+  defaultPoolSize: 400
+  # Server connections kept warm even when idle (faster first query; useful for
+  # remote managed DBs). 0 = open lazily.
+  minPoolSize: 0
+  # Hard ceiling on total server connections to the backend across all pools.
+  # Kept under the stock max_connections=500 so the pooler can never starve
+  # replication/superuser/migrations. 0 = unlimited (bounded only by
+  # defaultPoolSize per pool). Raise alongside the backend max_connections.
+  maxDbConnections: 450
+  # Close server connections idle longer than this (seconds).
+  serverIdleTimeoutSeconds: 600
+  # Startup parameters the app sends that pgbouncer must accept (otherwise it
+  # rejects the connection with a FATAL "unsupported startup parameter"). The
+  # node-postgres driver sends statement_timeout and idle_in_transaction_session_timeout
+  # as protocol-level startup parameters (from DATABASE_STATEMENT_TIMEOUT_MS /
+  # DATABASE_IDLE_IN_TRANSACTION_TIMEOUT_MS), and idle_session_timeout via "options".
+  # pgbouncer ACCEPTS and IGNORES these — it does NOT forward them to the backend,
+  # so those server-side GUCs are not applied through the pooler. The app's
+  # client-side query_timeout (DATABASE_QUERY_TIMEOUT_MS) still aborts slow queries.
+  # For server-side statement_timeout enforcement, set it on the backend (e.g.
+  # CNPG parameters, or `ALTER DATABASE oneuptimedb SET statement_timeout=...`).
+  ignoreStartupParameters: "extra_float_digits,options,statement_timeout,idle_in_transaction_session_timeout,lock_timeout,idle_session_timeout"
+  # TLS from pgbouncer to the Postgres backend. When fronting an externalPostgres
+  # with ssl.enabled, this auto-defaults to "require" and verifies against
+  # externalPostgres.ssl.ca (if provided). Override the mode here: disable |
+  # allow | prefer | require | verify-ca | verify-full. Leave blank to
+  # auto-derive (no TLS for in-cluster backends, require for external+ssl).
+  serverTls:
+    sslmode: ""
+  service:
+    type: ClusterIP
+    port: 6432
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  # Optional: override global security contexts just for the pgbouncer pod/container
+  podSecurityContext: {}
+  containerSecurityContext: {}
 
 redis:
   enabled: true
@@ -281,7 +662,8 @@ redis:
       passwordKey:
   image:
     repository: redis
-    tag: latest
+    # Use the alpine variant. The debian-based redis:latest image carries unfixable CVEs; alpine is a drop-in replacement.
+    tag: alpine
     pullPolicy: IfNotPresent
   master:
     service:
@@ -312,6 +694,33 @@ autoscaling:
   maxReplicas: 100
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
+
+# Pod Disruption Budgets for the stateless OneUptime deployments (app, worker,
+# nginx, home, ai-agent, probes, pgbouncer). A PDB caps how many pods the
+# cluster may take down at once during *voluntary* disruptions — node drains,
+# rolling node-pool upgrades, and cluster-autoscaler scale-down — so an upgrade
+# can't evict every replica of a service simultaneously. It has no effect on
+# involuntary disruptions (node crash, OOM kill).
+#
+# Disabled by default. When enabled, the defaults below (maxUnavailable: 1) are
+# safe even at replicaCount: 1 — the lone pod can still be evicted, so node
+# drains never wedge — and start limiting disruption to one pod at a time the
+# moment you scale a service out. Each service can override these under
+# "<service>.podDisruptionBudget". PDBs only provide real protection once a
+# service runs more than one replica, so scale the services you need to keep
+# available (e.g. nginx, app) before relying on this.
+#
+# Set EITHER minAvailable OR maxUnavailable (the Kubernetes PDB spec allows only
+# one). If both resolve to a value, minAvailable wins. Both accept an integer or
+# a percentage string like "50%". The single-replica databases (postgresql,
+# redis, clickhouse) are intentionally excluded — a PDB there would imply HA
+# they don't provide; the multi-replica clickhouse-keeper ships its own PDB.
+podDisruptionBudget:
+  enabled: false
+  # Minimum pods that must stay available. Leave empty to use maxUnavailable.
+  minAvailable: ""
+  # Maximum pods that may be unavailable at once during a voluntary disruption.
+  maxUnavailable: 1
 
 nodeEnvironment: production
 
@@ -375,6 +784,14 @@ incidents:
 alerts:
   disableAutomaticCreation: false
 
+# Telemetry ingestion controls
+# Set disableIngestion to true to reject all incoming OpenTelemetry traces /
+# metrics / logs / profiles (HTTP + gRPC), Fluentd logs, Syslog logs, and
+# Pyroscope profiles. Endpoints stay reachable and return success quickly so
+# clients do not retry, but no data is queued or persisted.
+telemetry:
+  disableIngestion: false
+
 # If you would like to attach status page to custom domains use this setting.
 # For example, lets say you would like the status page to be hosted on status.yourcompany.com, then
 # 1. Create a A record in your DNS provider with the name "oneuptime.yourcompany.com" and value to Public IP of the server oneuptime is deployed on.
@@ -434,6 +851,13 @@ probes:
       pollingInterval: 30
       # Cooldown period after scaling (in seconds)
       cooldownPeriod: 300
+      # Fallback used when KEDA cannot read the metrics-api endpoint
+      # (e.g. all pods are down). Prevents HPA from flapping between
+      # min/max when the metric goes <unknown>. Set replicas to 0 to disable.
+      # Note: only applies to the metrics-api trigger, not cpu/memory.
+      fallback:
+        failureThreshold: 3
+        replicas: 1
     resources: {}
     nodeSelector: {}
     podSecurityContext: {}
@@ -474,6 +898,13 @@ probes:
   #   pollingInterval: 30
   #   # Cooldown period after scaling (in seconds)
   #   cooldownPeriod: 300
+  #   # Fallback used when KEDA cannot read the metrics-api endpoint
+  #   # (e.g. all pods are down). Prevents HPA from flapping between
+  #   # min/max when the metric goes <unknown>. Set replicas to 0 to disable.
+  #   # Note: only applies to the metrics-api trigger, not cpu/memory.
+  #   fallback:
+  #     failureThreshold: 3
+  #     replicas: 1
 
 testServer:
   replicaCount: 1
@@ -597,6 +1028,11 @@ externalClickhouse:
   port:
   username:
   password:
+  ## OneUptime's analytics schema is always a sharded + replicated cluster. Set
+  ## this to the name of the cluster you defined in your external ClickHouse
+  ## (<remote_servers>), with Keeper/ZooKeeper configured for ReplicatedMergeTree.
+  ## Defaults to "oneuptime".
+  clusterName: oneuptime
   # If you're using an existing secret for the password, please use this instead of password.
   existingSecret:
     name:
@@ -660,12 +1096,24 @@ home:
 app:
   enabled: true
   replicaCount: 1
+  # Override the per-pod Postgres pool ceiling (DATABASE_MAX_OPEN_CONNECTIONS)
+  # for this service. Empty = inherit deployment.databaseMaxOpenConnections.
+  databaseMaxOpenConnections:
   workerConcurrency: 100
   # Max concurrent telemetry ingestion jobs processed by each pod
   telemetryConcurrency: 100
   disableTelemetryCollection: false
   enableProfiling: false
   disableAutoscaler: false
+  # Per-service Pod Disruption Budget override. Any key omitted here falls back
+  # to the global podDisruptionBudget block above. Every stateless service
+  # (worker, nginx, home, aiAgent, probes.<key>, pgbouncer) accepts the same
+  # block. Uncomment to customise just this service, e.g. keep at least one
+  # replica available instead of the global maxUnavailable:
+  # podDisruptionBudget:
+  #   enabled: true
+  #   minAvailable: 1
+  #   maxUnavailable: ""
   ports:
     http: 3002
     grpc: 4317
@@ -691,6 +1139,72 @@ app:
     pollingInterval: 30
     # Cooldown period after scaling (in seconds)
     cooldownPeriod: 300
+    # Fallback used when KEDA cannot read the metrics-api endpoint
+    # (e.g. all app pods are down). Prevents HPA from flapping between
+    # min/max when the queue-size metric goes <unknown>, which would otherwise
+    # cause a cascading outage. Set replicas to 0 to disable.
+    # Note: only applies to the metrics-api trigger, not cpu/memory.
+    fallback:
+      failureThreshold: 3
+      replicas: 2
+
+# Dedicated worker deployment (opt-in). When enabled, the `app` pods set
+# DISABLE_QUEUE_WORKERS=true and stop consuming BullMQ queues, and this
+# deployment drains them instead — so heavy telemetry/background processing
+# never stalls API requests on the shared event loop. It runs the same image
+# as `app` (no external ingress, no gRPC), scaled on combined queue depth
+# (worker + workflow + telemetry) via KEDA.
+# NOTE: with the split enabled the worker is REQUIRED for ALL background work
+# (notifications, incident/alert state, telemetry ingestion) — keep
+# keda.minReplicas >= 1. Also set app.keda.targetCPUUtilizationPercentage (and
+# app.resources.requests.cpu) so the api tier still autoscales, since its
+# queue-size trigger is disabled in split mode.
+worker:
+  enabled: false
+  replicaCount: 1
+  # Override the per-pod Postgres pool ceiling (DATABASE_MAX_OPEN_CONNECTIONS)
+  # for this service. Empty = inherit deployment.databaseMaxOpenConnections.
+  # The worker fans out widely under KEDA, so this is the most impactful one
+  # to lower when pooling — N worker pods each open up to this many connections.
+  databaseMaxOpenConnections:
+  workerConcurrency: 100
+  # Max concurrent telemetry ingestion jobs processed by each worker pod.
+  # This is the telemetry hot path; tune it together with pod CPU/memory.
+  telemetryConcurrency: 100
+  disableTelemetryCollection: false
+  enableProfiling: false
+  disableAutoscaler: false
+  ports:
+    http: 3002
+  resources:
+  nodeSelector: {}
+  podSecurityContext: {}
+  hostAliases: []
+  containerSecurityContext: {}
+  # KEDA autoscaling based on combined queue depth (worker + workflow + telemetry)
+  keda:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    # Scale up when combined queue size (worker + workflow + telemetry) exceeds this threshold
+    queueSizeThreshold: 10
+    # Scale up when average CPU utilization exceeds this percentage (0 to disable).
+    # If enabled, worker.resources.requests.cpu must also be set.
+    targetCPUUtilizationPercentage: 0
+    # Scale up when average memory utilization exceeds this percentage (0 to disable).
+    # If enabled, worker.resources.requests.memory must also be set.
+    targetMemoryUtilizationPercentage: 0
+    # Polling interval for metrics (in seconds)
+    pollingInterval: 30
+    # Cooldown period after scaling (in seconds)
+    cooldownPeriod: 300
+    # Fallback used when KEDA cannot read the metrics-api endpoint
+    # (e.g. all worker pods are down). Prevents HPA from flapping between
+    # min/max when the queue-size metric goes <unknown>. Set replicas to 0 to disable.
+    # Note: only applies to the metrics-api trigger, not cpu/memory.
+    fallback:
+      failureThreshold: 3
+      replicas: 2
 
 # AI Agent Configuration
 # Deploy this to run an AI Agent within your Kubernetes cluster
@@ -723,6 +1237,13 @@ aiAgent:
     pollingInterval: 30
     # Cooldown period after scaling (in seconds)
     cooldownPeriod: 300
+    # Fallback used when KEDA cannot read the metrics-api endpoint
+    # (e.g. all pods are down). Prevents HPA from flapping between
+    # min/max when the metric goes <unknown>. Set replicas to 0 to disable.
+    # Note: only applies to the metrics-api trigger, not cpu/memory.
+    fallback:
+      failureThreshold: 3
+      replicas: 1
 
 slackApp:
   clientId:
@@ -781,3 +1302,25 @@ queueDashboard:
 
 keda:
   enabled: true
+
+# CloudNativePG operator — bundled dependency. Installed ONLY when
+# postgresOperator.cnpg.enabled is true (see the condition in Chart.yaml).
+# Full operator values: https://github.com/cloudnative-pg/charts/tree/main/charts/cloudnative-pg
+cloudnative-pg:
+  # Install the CloudNativePG CRDs together with the operator.
+  crds:
+    create: true
+  # Operator controller replicas.
+  replicaCount: 1
+
+# Altinity ClickHouse operator — bundled dependency. Installed ONLY when
+# clickhouseOperator.altinity.enabled is true (see the condition in Chart.yaml).
+# The operator is cluster-scoped and installs its CRDs via pre-install/pre-upgrade
+# Helm hooks. Full operator values: https://github.com/Altinity/clickhouse-operator/tree/master/deploy/helm/clickhouse-operator
+altinity-clickhouse-operator:
+  # The operator manages ClickHouse using its own "clickhouse_operator" user. Override
+  # these for production (the password is otherwise a well-known default).
+  secret:
+    create: true
+    username: clickhouse_operator
+    password: clickhouse_operator_password

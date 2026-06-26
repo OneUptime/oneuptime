@@ -28,11 +28,18 @@ import ObjectID from "../../Types/ObjectID";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import Model from "../../Models/DatabaseModels/StatusPageSubscriber";
+import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import PositiveNumber from "../../Types/PositiveNumber";
 import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
+import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
+import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import NumberUtil from "../../Utils/Number";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageSubscriberWebhookUtil from "../Utils/StatusPageSubscriberWebhook";
+import StatusPageSubscriberNotificationTemplateService, {
+  Service as StatusPageSubscriberNotificationTemplateServiceClass,
+} from "./StatusPageSubscriberNotificationTemplateService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -534,6 +541,43 @@ Stay informed about service availability! 🚀`;
         });
     }
 
+    // if generic webhook URL is provided and sendYouHaveSubscribedMessage is true, then ping the webhook with the subscription event.
+    if (
+      createdItem.subscriberWebhook &&
+      createdItem.sendYouHaveSubscribedMessage
+    ) {
+      logger.debug("Sending webhook notification for new subscriber.", {
+        projectId: createdItem.projectId?.toString(),
+      } as LogAttributes);
+
+      StatusPageSubscriberWebhookUtil.sendWebhookNotification({
+        webhookUrl: URL.fromString(createdItem.subscriberWebhook.toString()),
+        payload: {
+          eventType: "SubscriberSubscribed",
+          statusPageId: createdItem.statusPageId.toString(),
+          statusPageName: statusPageName,
+          statusPageUrl: statusPageURL,
+          unsubscribeUrl: unsubscribeLink,
+          data: {
+            message: `You have been subscribed to ${statusPageName}.`,
+          },
+        },
+      })
+        .then(() => {
+          logger.debug("Webhook notification sent successfully.", {
+            projectId: createdItem.projectId?.toString(),
+          } as LogAttributes);
+        })
+        .catch((err: Error) => {
+          logger.error("Error sending webhook notification:", {
+            projectId: createdItem.projectId?.toString(),
+          } as LogAttributes);
+          logger.error(err, {
+            projectId: createdItem.projectId?.toString(),
+          } as LogAttributes);
+        });
+    }
+
     // if Microsoft Teams incoming webhook is provided and sendYouHaveSubscribedMessage is true, then send a message to the Teams channel.
     if (
       createdItem.microsoftTeamsIncomingWebhookUrl &&
@@ -640,6 +684,7 @@ Stay informed about service availability! 🚀`;
         name: true,
         smtpConfig: {
           _id: true,
+          transportType: true,
           hostname: true,
           port: true,
           username: true,
@@ -718,40 +763,98 @@ Stay informed about service availability! 🚀`;
         statusPageSubscriberId: data.subscriberId?.toString(),
       } as LogAttributes);
 
-      MailService.sendMail(
-        {
-          toEmail: subscriber.subscriberEmail,
-          templateType: EmailTemplateType.ConfirmStatusPageSubscription,
-          vars: {
-            statusPageName: statusPageName,
-            logoUrl:
-              statusPage.logoFileId && statusPageIdString
-                ? new URL(httpProtocol, host)
-                    .addRoute(StatusPageApiRoute)
-                    .addRoute(`/logo/${statusPageIdString}`)
-                    .toString()
-                : "",
-            statusPageUrl: statusPageURL,
-            isPublicStatusPage: statusPage.isPublicStatusPage
-              ? "true"
-              : "false",
-            confirmationUrl: confirmSubscriptionLink,
-            unsubscribeUrl: unsubscribeUrl,
+      const customTemplate: StatusPageSubscriberNotificationTemplate | null =
+        await StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+          {
+            statusPageId: statusPage.id!,
+            eventType:
+              StatusPageSubscriberNotificationEventType.SubscriberSubscriptionConfirmation,
+            notificationMethod: StatusPageSubscriberNotificationMethod.Email,
           },
-          subject: "Confirm your subscription to " + statusPageName,
-        },
-        {
-          projectId: subscriber.projectId,
-          mailServer: ProjectSMTPConfigService.toEmailServer(
-            statusPage.smtpConfig,
-          ),
-          statusPageId: statusPage.id!,
-        },
-      ).catch((err: Error) => {
-        logger.error(err, {
-          projectId: subscriber.projectId?.toString(),
-        } as LogAttributes);
-      });
+        );
+
+      const templateVariables: Record<string, string> = {
+        statusPageName: statusPageName,
+        statusPageUrl: statusPageURL,
+        confirmationUrl: confirmSubscriptionLink,
+        unsubscribeUrl: unsubscribeUrl,
+      };
+
+      if (customTemplate?.templateBody && statusPage.smtpConfig) {
+        /*
+         * Use custom template only when custom SMTP is configured (matches the
+         * pattern used elsewhere — without custom SMTP we keep the styled
+         * OneUptime default so emails still look right out-of-the-box).
+         */
+        const compiledBody: string =
+          StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+            customTemplate.templateBody,
+            templateVariables,
+          );
+        const compiledSubject: string = customTemplate.emailSubject
+          ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+              customTemplate.emailSubject,
+              templateVariables,
+            )
+          : "Confirm your subscription to " + statusPageName;
+
+        MailService.sendMail(
+          {
+            toEmail: subscriber.subscriberEmail,
+            templateType: EmailTemplateType.BlankTemplate,
+            vars: {
+              body: compiledBody,
+            },
+            subject: compiledSubject,
+          },
+          {
+            projectId: subscriber.projectId,
+            mailServer: ProjectSMTPConfigService.toEmailServer(
+              statusPage.smtpConfig,
+            ),
+            statusPageId: statusPage.id!,
+          },
+        ).catch((err: Error) => {
+          logger.error(err, {
+            projectId: subscriber.projectId?.toString(),
+          } as LogAttributes);
+        });
+      } else {
+        MailService.sendMail(
+          {
+            toEmail: subscriber.subscriberEmail,
+            templateType: EmailTemplateType.ConfirmStatusPageSubscription,
+            vars: {
+              statusPageName: statusPageName,
+              logoUrl:
+                statusPage.logoFileId && statusPageIdString
+                  ? new URL(httpProtocol, host)
+                      .addRoute(StatusPageApiRoute)
+                      .addRoute(`/logo/${statusPageIdString}`)
+                      .toString()
+                  : "",
+              statusPageUrl: statusPageURL,
+              isPublicStatusPage: statusPage.isPublicStatusPage
+                ? "true"
+                : "false",
+              confirmationUrl: confirmSubscriptionLink,
+              unsubscribeUrl: unsubscribeUrl,
+            },
+            subject: "Confirm your subscription to " + statusPageName,
+          },
+          {
+            projectId: subscriber.projectId,
+            mailServer: ProjectSMTPConfigService.toEmailServer(
+              statusPage.smtpConfig,
+            ),
+            statusPageId: statusPage.id!,
+          },
+        ).catch((err: Error) => {
+          logger.error(err, {
+            projectId: subscriber.projectId?.toString(),
+          } as LogAttributes);
+        });
+      }
       logger.debug("Confirmation email sent.", {
         statusPageSubscriberId: data.subscriberId?.toString(),
       } as LogAttributes);
@@ -813,6 +916,7 @@ Stay informed about service availability! 🚀`;
         name: true,
         smtpConfig: {
           _id: true,
+          transportType: true,
           hostname: true,
           port: true,
           username: true,
@@ -885,42 +989,95 @@ Stay informed about service availability! 🚀`;
       logger.debug("Subscriber has an email and ID.", {
         statusPageSubscriberId: data.subscriberId?.toString(),
       } as LogAttributes);
-      MailService.sendMail(
-        {
-          toEmail: subscriber.subscriberEmail,
-          templateType: EmailTemplateType.SubscribedToStatusPage,
-          vars: {
-            statusPageName: statusPageName,
-            logoUrl:
-              statusPage.logoFileId && statusPageIdString
-                ? new URL(httpProtocol, host)
-                    .addRoute(StatusPageApiRoute)
-                    .addRoute(`/logo/${statusPageIdString}`)
-                    .toString()
-                : "",
-            statusPageUrl: statusPageURL,
-            isPublicStatusPage: statusPage.isPublicStatusPage
-              ? "true"
-              : "false",
-            unsubscribeUrl: unsubscribeLink,
+
+      const customTemplate: StatusPageSubscriberNotificationTemplate | null =
+        await StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+          {
+            statusPageId: statusPage.id!,
+            eventType:
+              StatusPageSubscriberNotificationEventType.SubscriberSubscribed,
+            notificationMethod: StatusPageSubscriberNotificationMethod.Email,
           },
-          subject: "You have been subscribed to " + statusPageName,
-        },
-        {
-          projectId: subscriber.projectId,
-          mailServer: ProjectSMTPConfigService.toEmailServer(
-            statusPage.smtpConfig,
-          ),
-          statusPageId: statusPage.id!,
-        },
-      ).catch((err: Error) => {
-        logger.error("Error sending subscription email:", {
-          projectId: subscriber.projectId?.toString(),
-        } as LogAttributes);
-        logger.error(err, {
-          projectId: subscriber.projectId?.toString(),
-        } as LogAttributes);
-      });
+        );
+
+      const templateVariables: Record<string, string> = {
+        statusPageName: statusPageName,
+        statusPageUrl: statusPageURL,
+        unsubscribeUrl: unsubscribeLink,
+      };
+
+      if (customTemplate?.templateBody && statusPage.smtpConfig) {
+        const compiledBody: string =
+          StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+            customTemplate.templateBody,
+            templateVariables,
+          );
+        const compiledSubject: string = customTemplate.emailSubject
+          ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+              customTemplate.emailSubject,
+              templateVariables,
+            )
+          : "You have been subscribed to " + statusPageName;
+
+        MailService.sendMail(
+          {
+            toEmail: subscriber.subscriberEmail,
+            templateType: EmailTemplateType.BlankTemplate,
+            vars: {
+              body: compiledBody,
+            },
+            subject: compiledSubject,
+          },
+          {
+            projectId: subscriber.projectId,
+            mailServer: ProjectSMTPConfigService.toEmailServer(
+              statusPage.smtpConfig,
+            ),
+            statusPageId: statusPage.id!,
+          },
+        ).catch((err: Error) => {
+          logger.error(err, {
+            projectId: subscriber.projectId?.toString(),
+          } as LogAttributes);
+        });
+      } else {
+        MailService.sendMail(
+          {
+            toEmail: subscriber.subscriberEmail,
+            templateType: EmailTemplateType.SubscribedToStatusPage,
+            vars: {
+              statusPageName: statusPageName,
+              logoUrl:
+                statusPage.logoFileId && statusPageIdString
+                  ? new URL(httpProtocol, host)
+                      .addRoute(StatusPageApiRoute)
+                      .addRoute(`/logo/${statusPageIdString}`)
+                      .toString()
+                  : "",
+              statusPageUrl: statusPageURL,
+              isPublicStatusPage: statusPage.isPublicStatusPage
+                ? "true"
+                : "false",
+              unsubscribeUrl: unsubscribeLink,
+            },
+            subject: "You have been subscribed to " + statusPageName,
+          },
+          {
+            projectId: subscriber.projectId,
+            mailServer: ProjectSMTPConfigService.toEmailServer(
+              statusPage.smtpConfig,
+            ),
+            statusPageId: statusPage.id!,
+          },
+        ).catch((err: Error) => {
+          logger.error("Error sending subscription email:", {
+            projectId: subscriber.projectId?.toString(),
+          } as LogAttributes);
+          logger.error(err, {
+            projectId: subscriber.projectId?.toString(),
+          } as LogAttributes);
+        });
+      }
       logger.debug("Subscription email sent successfully.", {
         statusPageSubscriberId: data.subscriberId?.toString(),
       } as LogAttributes);
@@ -1192,6 +1349,7 @@ Stay informed about service availability! 🚀`;
         allowSubscribersToChooseEventTypes: true,
         smtpConfig: {
           _id: true,
+          transportType: true,
           hostname: true,
           port: true,
           username: true,
@@ -1226,6 +1384,69 @@ Stay informed about service availability! 🚀`;
     logger.debug(statusPages, {} as LogAttributes);
 
     return statusPages;
+  }
+
+  @CaptureSpan()
+  public async testSubscriberWebhook(data: {
+    webhookUrl: string;
+    statusPageId: ObjectID;
+  }): Promise<void> {
+    // basic validation - must be a valid URL
+    let parsedUrl: URL;
+    try {
+      parsedUrl = URL.fromString(data.webhookUrl);
+    } catch {
+      throw new BadDataException("Invalid Webhook URL");
+    }
+
+    // get the status page info
+    const statusPage: StatusPage | null = await StatusPageService.findOneById({
+      id: data.statusPageId,
+      props: {
+        isRoot: true,
+      },
+      select: {
+        name: true,
+        pageTitle: true,
+        projectId: true,
+        _id: true,
+      },
+    });
+
+    if (!statusPage) {
+      throw new BadDataException("Status page not found");
+    }
+
+    const statusPageName: string =
+      statusPage.pageTitle || statusPage.name || "Status Page";
+    const statusPageURL: string = await StatusPageService.getStatusPageURL(
+      statusPage.id!,
+    );
+
+    try {
+      await StatusPageSubscriberWebhookUtil.sendWebhookNotification({
+        webhookUrl: parsedUrl,
+        payload: {
+          eventType: "TestNotification",
+          statusPageId: statusPage.id!.toString(),
+          statusPageName: statusPageName,
+          statusPageUrl: statusPageURL,
+          unsubscribeUrl: "",
+          data: {
+            message:
+              "This is a test notification from OneUptime. Your webhook is configured correctly.",
+          },
+        },
+      });
+    } catch (error) {
+      logger.error("Error sending test webhook notification:", {
+        projectId: statusPage?.projectId?.toString(),
+      } as LogAttributes);
+      logger.error(error, {
+        projectId: statusPage?.projectId?.toString(),
+      } as LogAttributes);
+      throw error;
+    }
   }
 
   @CaptureSpan()

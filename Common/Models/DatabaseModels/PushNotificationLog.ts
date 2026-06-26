@@ -39,7 +39,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectMember,
     Permission.Viewer,
     Permission.ReadPushLog,
-    Permission.ReadAllProjectResources,
   ],
   delete: [],
   update: [],
@@ -70,7 +69,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -104,7 +102,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -132,7 +129,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -159,7 +155,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -186,7 +181,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -213,7 +207,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -240,7 +233,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -267,7 +259,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -296,7 +287,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -330,7 +320,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -358,7 +347,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -392,7 +380,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -420,7 +407,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -454,7 +440,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -482,7 +467,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -516,7 +500,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -544,7 +527,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -578,7 +560,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -607,7 +588,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -641,7 +621,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -669,7 +648,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -703,7 +681,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -732,7 +709,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -767,7 +743,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -796,7 +771,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -832,7 +806,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -861,7 +834,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -896,7 +868,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -925,7 +896,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -959,7 +929,6 @@ export default class PushNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

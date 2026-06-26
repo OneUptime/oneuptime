@@ -135,6 +135,54 @@ export default class TelemetryUtil {
     };
   }
 
+  /*
+   * Cross-cutting resource stamps. Spread alongside the service stamp on
+   * every analytics row so a single ClickHouse query can find "all
+   * telemetry from host X" / "from docker host Y" / "from cluster Z"
+   * regardless of which Service the row primarily belongs to. Without
+   * these, host context would only be queryable as the raw OTel
+   * `resource.host.name` string with no stable id link.
+   */
+  public static getAttributesForHostIdAndHostName(data: {
+    hostId: ObjectID;
+    hostName: string;
+  }): Dictionary<AttributeType> {
+    return {
+      "oneuptime.host.id": data.hostId.toString(),
+      "oneuptime.host.name": data.hostName,
+    };
+  }
+
+  public static getAttributesForDockerHostIdAndHostName(data: {
+    dockerHostId: ObjectID;
+    hostName: string;
+  }): Dictionary<AttributeType> {
+    return {
+      "oneuptime.docker.host.id": data.dockerHostId.toString(),
+      "oneuptime.docker.host.name": data.hostName,
+    };
+  }
+
+  public static getAttributesForPodmanHostIdAndHostName(data: {
+    podmanHostId: ObjectID;
+    hostName: string;
+  }): Dictionary<AttributeType> {
+    return {
+      "oneuptime.podman.host.id": data.podmanHostId.toString(),
+      "oneuptime.podman.host.name": data.hostName,
+    };
+  }
+
+  public static getAttributesForKubernetesClusterIdAndName(data: {
+    kubernetesClusterId: ObjectID;
+    clusterName: string;
+  }): Dictionary<AttributeType> {
+    return {
+      "oneuptime.kubernetes.cluster.id": data.kubernetesClusterId.toString(),
+      "oneuptime.kubernetes.cluster.name": data.clusterName,
+    };
+  }
+
   @CaptureSpan()
   public static getAttributes(data: {
     prefixKeysWithString: string;

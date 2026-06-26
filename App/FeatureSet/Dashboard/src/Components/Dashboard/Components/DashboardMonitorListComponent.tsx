@@ -9,8 +9,11 @@ import DashboardMonitorListComponent from "Common/Types/Dashboard/DashboardCompo
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListViewMode,
 } from "./DashboardResourceListBase";
+import { HoneycombTile } from "./DashboardResourceHoneycomb";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import DashboardResourceList from "../Utils/DashboardResourceList";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -44,6 +47,8 @@ const DashboardMonitorListComponentElement: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const maxRows: number = props.component.arguments.maxRows || 25;
+  const viewMode: ResourceListViewMode =
+    props.component.arguments.viewMode === "honeycomb" ? "honeycomb" : "list";
   const statusFilter: string | undefined =
     props.component.arguments.statusFilter;
   const monitorStatusIds: Array<string> | undefined =
@@ -61,7 +66,7 @@ const DashboardMonitorListComponentElement: FunctionComponent<
     setIsLoading(true);
 
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    if (!projectId) {
+    if (!DashboardResourceList.isPublic() && !projectId) {
       setIsLoading(false);
       setError("No project selected.");
       return;
@@ -99,6 +104,7 @@ const DashboardMonitorListComponentElement: FunctionComponent<
 
       const listResult: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
         modelType: Monitor,
+        requestOptions: DashboardResourceList.getRequestOptions("monitor"),
         query: query,
         limit: maxRows,
         skip: 0,
@@ -134,6 +140,36 @@ const DashboardMonitorListComponentElement: FunctionComponent<
   useEffect(() => {
     fetchMonitors();
   }, [fetchMonitors, props.refreshTick]);
+
+  const honeycombTiles: Array<HoneycombTile> = monitors.map(
+    (monitor: Monitor): HoneycombTile => {
+      const monitorId: string = (monitor._id as string) || "";
+      const name: string = (monitor.name as string) || "Unnamed";
+      const statusName: string =
+        (monitor.currentMonitorStatus?.name as string) || "Unknown";
+      const statusColor: Color | undefined = monitor.currentMonitorStatus
+        ?.color as Color | undefined;
+      const monitorType: string = (monitor.monitorType as string) || "—";
+
+      const detailRoute: Route | undefined = monitorId
+        ? RouteUtil.populateRouteParams(
+            RouteMap[PageMap.MONITOR_VIEW] as Route,
+            { modelId: new ObjectID(monitorId) },
+          )
+        : undefined;
+
+      return {
+        id: monitorId || name,
+        status: statusName,
+        color: statusColor ? statusColor.toString() : "#9ca3af",
+        route: detailRoute,
+        tooltip: {
+          title: name,
+          details: [{ label: "Type", value: monitorType }],
+        },
+      };
+    },
+  );
 
   const rows: Array<ReactElement> = monitors.map(
     (monitor: Monitor): ReactElement => {
@@ -201,6 +237,8 @@ const DashboardMonitorListComponentElement: FunctionComponent<
       isEmpty={monitors.length === 0}
       emptyMessage="No monitors found"
       emptyIcon={IconProp.AltGlobe}
+      viewMode={viewMode}
+      honeycombTiles={honeycombTiles}
     >
       {rows}
     </DashboardResourceListBase>

@@ -12,6 +12,7 @@ export default interface Filter<T extends GenericObject> {
   onJsonKeySelected?: ((key: string) => void) | undefined;
   isLoadingJsonKeys?: boolean | undefined;
   loadingJsonValueKeys?: Array<string> | undefined;
+  onJsonValueSearch?: ((key: string, searchText: string) => void) | undefined;
   jsonEnableOperators?: boolean | undefined;
   isAdvancedFilter?: boolean | undefined;
 }

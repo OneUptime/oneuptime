@@ -86,7 +86,9 @@
     "selectProjectSubtitle": "Selecione o projeto no qual deseja fazer login.",
     "noConfigForEmail": "Nenhuma configuração de SSO encontrada para o e-mail: {{email}}",
     "emailRequired": "E-mail é obrigatório para realizar esta ação",
-    "defaultProjectName": "Projeto"
+    "defaultProjectName": "Projeto",
+    "globalProvidersTitle": "Entre com sua organização",
+    "globalProvidersDivider": "Ou continue com e-mail"
   },
   "verifyEmail": {
     "successTitle": "Seu e-mail foi verificado.",
@@ -104,5 +106,7 @@
       "title": "Página não encontrada",
       "description": "A página que você está procurando não existe."
     }
-  }
+  },
+  "Acme, Inc.": "Acme, Inc.",
+  "Jeff Smith": "Jeff Smith"
 }

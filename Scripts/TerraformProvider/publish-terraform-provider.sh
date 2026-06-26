@@ -28,6 +28,7 @@ TEST_RELEASE=false
 SKIP_TESTS=false
 FORCE=false
 RELEASE_ALREADY_EXISTS=false
+TAG_ALREADY_EXISTS=false
 
 # Function to print colored output
 print_status() {
@@ -313,11 +314,21 @@ push_to_repository() {
         remote_url="https://github.com/$GITHUB_ORG/$PROVIDER_REPO.git"
     fi
 
-    # Save generated files to a temporary location
+    # Save generated files to a temporary location.
+    # Exclude build artifacts (especially the ~60MB compiled provider binary at
+    # the repo root) so they never get staged when we copy the files back. If
+    # they slip in here, .gitignore alone won't help because the binary was
+    # previously committed and stays tracked across resets.
     print_status "Saving generated files temporarily..."
     local temp_dir=$(mktemp -d)
     cp -r . "$temp_dir/"
-    rm -rf "$temp_dir/.git" 2>/dev/null || true
+    rm -rf \
+        "$temp_dir/.git" \
+        "$temp_dir/dist" \
+        "$temp_dir/builds" \
+        "$temp_dir/terraform-provider-oneuptime" \
+        "$temp_dir/terraform-provider-oneuptime.exe" \
+        2>/dev/null || true
 
     # Initialize or reset git repository
     if [[ ! -d ".git" ]]; then
@@ -339,10 +350,13 @@ push_to_repository() {
         git remote set-url origin "$remote_url"
     fi
 
-    # Fetch remote to get the latest state
+    # Fetch remote to get the latest state.
+    # Use --depth=1 so we don't pull down the full history (which currently
+    # carries large committed binaries from older runs and made the fetch take
+    # ~9 minutes). We only need the tip to compute the diff for the new commit.
     print_status "Fetching remote repository..."
     local remote_exists=false
-    if git fetch origin master 2>/dev/null; then
+    if git fetch --depth=1 origin master 2>/dev/null; then
         remote_exists=true
         print_status "Remote repository exists, resetting to origin/master..."
         git reset --hard origin/master
@@ -384,8 +398,16 @@ push_to_repository() {
     done
 
     # Remove any previously-tracked build output from the index so it won't be
-    # recommitted (files stay on disk for the subsequent GoReleaser step).
-    git rm -r --cached --ignore-unmatch dist builds 2>/dev/null || true
+    # recommitted (files stay on disk for the subsequent GoReleaser step). The
+    # ~60MB compiled provider binary at the repo root was getting re-committed
+    # on every run because .gitignore alone can't exclude an already-tracked
+    # file — it has to be untracked here first.
+    git rm -r --cached --ignore-unmatch \
+        dist \
+        builds \
+        terraform-provider-oneuptime \
+        terraform-provider-oneuptime.exe \
+        2>/dev/null || true
 
     # Stage all generated files
     print_status "Staging generated files..."
@@ -434,13 +456,22 @@ Changes include:
             print_warning "Tag v$VERSION exists on remote, force mode enabled - will overwrite"
         else
             print_warning "Tag v$VERSION already exists on remote repository"
-            print_warning "Skipping publishing as this version has already been published"
-            print_status "Use --force flag to overwrite if needed"
-            # Exit gracefully - this is not an error, just means the version was already published
-            exit 0
+            print_warning "Code and tag are already published; will NOT re-push them."
+            print_status "Continuing so release assets can be (re)built and uploaded to heal the release."
+            print_status "Use --force flag to overwrite the code/tag if needed"
+            TAG_ALREADY_EXISTS=true
+            # Do NOT exit here. A previous run may have pushed the tag but failed
+            # before GoReleaser produced the archives (leaving a release with no
+            # assets). We still want create_github_release() to build and upload
+            # the assets. GoReleaser derives the version from the git tag at HEAD,
+            # so make sure a local tag exists even though we won't push it.
+            if ! git tag -l | grep -q "^v$VERSION$"; then
+                git tag -a "v$VERSION" -m "Release v$VERSION"
+            fi
+            return
         fi
     fi
-    
+
     git tag -a "v$VERSION" -m "Release v$VERSION"
 
     # Push to remote repository
@@ -506,9 +537,16 @@ create_github_release() {
 
     if [[ "$release_exists" == true ]]; then
         print_warning "GitHub release v$VERSION already exists. Skipping release creation."
+        print_status "Will still (re)build and upload assets so the release ends up complete."
         RELEASE_ALREADY_EXISTS=true
-        return
     fi
+
+    # Only create the GitHub release when it does not already exist. Either way we
+    # fall through to the GoReleaser asset build + upload below, so a release that
+    # a previous run created but never finished populating (e.g. the build OOMed
+    # before producing archives) gets healed when the job is re-run. The upload
+    # step uses --clobber, so re-uploading existing assets is safe and idempotent.
+    if [[ "$release_exists" == false ]]; then
 
     # Create release notes
     local release_notes_file="release-notes-v$VERSION.md"
@@ -627,8 +665,11 @@ EOF
     # Clean up
     rm -f "$release_notes_file"
 
+    fi  # end: create release only when it did not already exist
+
     # Use GoReleaser to build archives, checksums, and sign if available
-    # Otherwise fall back to manual process
+    # Otherwise fall back to manual process. This runs whether or not the release
+    # already existed, so missing assets are always (re)built and uploaded.
     if command -v goreleaser &> /dev/null && [[ -f "$PROVIDER_FRAMEWORK_DIR/.goreleaser.yml" ]]; then
         goreleaser_release_assets
     else
@@ -689,8 +730,17 @@ goreleaser_release_assets() {
 
     # GoReleaser builds archives + checksums + signs in one parallelized step
     # We use --skip=publish since we already created the release and upload separately
+    #
+    # --parallelism 1 forces GoReleaser to cross-compile one target at a time.
+    # The generated provider is a single ~600K-line `package provider`, so each
+    # Go compilation is memory-heavy. GoReleaser defaults parallelism to the CPU
+    # count (4 on GitHub's ubuntu-latest), which compiles 4 targets at once and
+    # exhausts the runner's 16GB RAM -> the host kills the runner mid-build
+    # ("The runner has received a shutdown signal" / exit 143). Serializing the
+    # builds keeps peak memory to a single compile and prevents the OOM.
     goreleaser release \
         --clean \
+        --parallelism 1 \
         --skip=publish \
         --config .goreleaser.yml
 
@@ -705,8 +755,26 @@ goreleaser_release_assets() {
         exit 1
     fi
 
+    # GoReleaser lists the Terraform Registry manifest in SHA256SUMS (via
+    # checksum.extra_files in .goreleaser.yml) but does NOT copy it into dist/.
+    # Place it in dist/ under the exact name that appears in SHA256SUMS so it is
+    # uploaded and its hash matches the checksum entry. The Terraform Registry
+    # needs this manifest to negotiate the plugin protocol version - without it,
+    # `terraform init` fails even when every archive/checksum/signature is present.
+    if [[ -f "terraform-registry-manifest.json" ]]; then
+        cp "terraform-registry-manifest.json" \
+            "$dist_dir/terraform-provider-${PROVIDER_NAME}_${VERSION}_manifest.json"
+        print_status "Staged registry manifest as terraform-provider-${PROVIDER_NAME}_${VERSION}_manifest.json"
+    else
+        print_error "terraform-registry-manifest.json not found in $PROVIDER_FRAMEWORK_DIR"
+        print_error "The provider generator must emit it; otherwise the release is missing the Registry manifest."
+        exit 1
+    fi
+
     local files_uploaded=0
-    for file in "$dist_dir"/*.zip "$dist_dir"/*SHA256SUMS* "$dist_dir"/*.sig "$dist_dir"/*.json; do
+    # Glob *_manifest.json (not *.json) so GoReleaser's internal artifacts.json /
+    # metadata.json are not uploaded as release assets.
+    for file in "$dist_dir"/*.zip "$dist_dir"/*SHA256SUMS* "$dist_dir"/*.sig "$dist_dir"/*_manifest.json; do
         if [[ -f "$file" ]]; then
             local filename=$(basename "$file")
             print_status "Uploading $filename..."
@@ -727,6 +795,14 @@ goreleaser_release_assets() {
             files_uploaded=$((files_uploaded + 1))
         fi
     done
+
+    # Fail loudly if nothing was uploaded. Otherwise a GoReleaser run that produced
+    # no matching artifacts would let the job exit 0 with an empty release - the exact
+    # "green but no assets" failure mode this script is meant to prevent.
+    if [[ "$files_uploaded" -eq 0 ]]; then
+        print_error "GoReleaser produced no release assets to upload (dist/ had no zip/SHA256SUMS/sig/manifest files)"
+        exit 1
+    fi
 
     print_success "Uploaded $files_uploaded release assets via GoReleaser"
 }
@@ -997,14 +1073,18 @@ show_summary() {
     echo ""
 
     if [[ "$RELEASE_ALREADY_EXISTS" == true ]]; then
-        print_warning "GitHub release v$VERSION already existed. Skipped release creation and registry publishing."
+        print_warning "GitHub release v$VERSION already existed. Skipped release creation, but (re)built and uploaded assets."
         echo "✓ Generated Terraform provider"
         echo "✓ Ran tests (if not skipped)"
-        echo "✓ Pushed code to terraform-provider-oneuptime repository"
-        echo "✗ Release creation skipped"
-        echo "✗ Terraform Registry publish skipped"
+        if [[ "$TAG_ALREADY_EXISTS" == true ]]; then
+            echo "• Code/tag already published — not re-pushed"
+        else
+            echo "✓ Pushed code to terraform-provider-oneuptime repository"
+        fi
+        echo "• Release creation skipped (release already existed)"
+        echo "✓ (Re)built and uploaded release assets (archives, checksums, signatures)"
         echo ""
-        print_status "If you need to update the existing release, delete it first or rerun with --force."
+        print_status "Assets were healed on this run. To recreate the release from scratch, delete it first or rerun with --force."
         return
     fi
     

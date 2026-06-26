@@ -1,4 +1,4 @@
-import BadRequestException from "../../Types/Exception/BadRequestException";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ProductType from "../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../Types/ObjectID";
 import {
@@ -7,7 +7,6 @@ import {
   NextFunction,
 } from "../../Server/Utils/Express";
 import TelemetryIngestionKeyService from "../../Server/Services/TelemetryIngestionKeyService";
-import TelemetryIngestionKey from "../../Models/DatabaseModels/TelemetryIngestionKey";
 import Response from "../Utils/Response";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -27,8 +26,6 @@ export default class TelemetryIngest {
   ): Promise<void> {
     try {
       // check header.
-
-      const isOpenTelemetryAPI: boolean = req.path.includes("/otlp/v1");
 
       let oneuptimeToken: string | undefined = req.headers[
         "x-oneuptime-token"
@@ -54,73 +51,49 @@ export default class TelemetryIngest {
           getLogAttributesFromRequest(req as any),
         );
 
-        if (isOpenTelemetryAPI) {
-          /*
-           * then accept the response and return success.
-           * do not return error because it causes Otel to retry the request.
-           */
-          return Response.sendEmptySuccessResponse(req, res);
-        }
-
-        throw new BadRequestException("Missing header: x-oneuptime-token");
-      }
-
-      let projectId: ObjectID | undefined = undefined;
-
-      const token: TelemetryIngestionKey | null =
-        await TelemetryIngestionKeyService.findOneBy({
-          query: {
-            secretKey: new ObjectID(oneuptimeToken?.toString() || ""),
-          },
-          select: {
-            projectId: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-      if (!token) {
-        logger.error(
-          "Invalid service token: " + oneuptimeToken,
-          getLogAttributesFromRequest(req as any),
-        );
-
-        if (isOpenTelemetryAPI) {
-          /*
-           * then accept the response and return success.
-           * do not return error because it causes Otel to retry the request.
-           */
-          return Response.sendEmptySuccessResponse(req, res);
-        }
-
-        throw new BadRequestException(
-          "Invalid service token: " + oneuptimeToken,
+        /*
+         * 401 is deliberate: the OTLP spec classifies it as
+         * non-retryable, so compliant SDKs / collectors surface the
+         * error in their own logs instead of retry-storming. A silent
+         * 200 here would make the client believe the data landed and
+         * leave the user staring at empty dashboards with no clue why.
+         */
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException(
+            "Missing ingestion token. Send your OneUptime telemetry ingestion key in the x-oneuptime-token header.",
+          ),
         );
       }
 
-      projectId = token.projectId as ObjectID;
+      const projectId: ObjectID | null =
+        await TelemetryIngestionKeyService.getProjectIdFromSecretKey(
+          oneuptimeToken.toString(),
+        );
 
       if (!projectId) {
         logger.error(
-          "Project ID not found for service token: " + oneuptimeToken,
+          "Invalid service token: " + oneuptimeToken,
           getLogAttributesFromRequest(req as any),
         );
 
-        if (isOpenTelemetryAPI) {
-          /*
-           * then accept the response and return success.
-           * do not return error because it causes Otel to retry the request.
-           */
-          return Response.sendEmptySuccessResponse(req, res);
-        }
-
-        throw new BadRequestException(
-          "Project ID not found for service token: " + oneuptimeToken,
+        /*
+         * 401 is deliberate (see the missing-token branch above): a
+         * silent 200 drops the payload while the client believes the
+         * export succeeded. The token value is logged server-side but
+         * intentionally not echoed back in the response body.
+         */
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException(
+            "Invalid ingestion token. Send a valid OneUptime telemetry ingestion key in the x-oneuptime-token header.",
+          ),
         );
       }
 
-      (req as TelemetryRequest).projectId = projectId as ObjectID;
+      (req as TelemetryRequest).projectId = projectId;
 
       // Tag span with project context for telemetry ingestion observability
       SpanUtil.addAttributesToCurrentSpan({

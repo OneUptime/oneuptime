@@ -13,6 +13,8 @@ export interface HistogramBucket {
 export interface FacetValue {
   value: string;
   count: number;
+  // Server-resolved display name (e.g. serviceId → service name).
+  displayName?: string | undefined;
 }
 
 export type FacetData = Record<string, Array<FacetValue>>;

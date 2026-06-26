@@ -1,4 +1,5 @@
 import TelemetryIngest from "Common/Server/Middleware/TelemetryIngest";
+import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -15,6 +16,9 @@ import TelemetryQueueService from "../Services/Queue/TelemetryQueueService";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import { JSONObject } from "Common/Types/JSON";
+import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
+import StatusCode from "Common/Types/API/StatusCode";
+import ObjectID from "Common/Types/ObjectID";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -94,6 +98,7 @@ const ingestMetricsMiddleware: (
 
 router.post(
   "/otlp/v1/traces",
+  TelemetryIngestionDisabled.middleware,
   OpenTelemetryRequestMiddleware.parseBody,
   ingestMetricsMiddleware("traces"),
   OpenTelemetryRequestMiddleware.getProductType,
@@ -109,6 +114,7 @@ router.post(
 
 router.post(
   "/otlp/v1/metrics",
+  TelemetryIngestionDisabled.middleware,
   OpenTelemetryRequestMiddleware.parseBody,
   ingestMetricsMiddleware("metrics"),
   OpenTelemetryRequestMiddleware.getProductType,
@@ -124,6 +130,7 @@ router.post(
 
 router.post(
   "/otlp/v1/logs",
+  TelemetryIngestionDisabled.middleware,
   OpenTelemetryRequestMiddleware.parseBody,
   ingestMetricsMiddleware("logs"),
   OpenTelemetryRequestMiddleware.getProductType,
@@ -139,6 +146,7 @@ router.post(
 
 router.post(
   "/otlp/v1/profiles",
+  TelemetryIngestionDisabled.middleware,
   OpenTelemetryRequestMiddleware.parseBody,
   ingestMetricsMiddleware("profiles"),
   OpenTelemetryRequestMiddleware.getProductType,
@@ -149,6 +157,83 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     return OtelProfilesIngestService.ingestProfiles(req, res, next);
+  },
+);
+
+/**
+ * Ingestion-key validation endpoint.
+ *
+ * The /otlp/v1/{traces,metrics,logs,profiles} ingest endpoints above answer
+ * 401 for a missing/invalid token (non-retryable per the OTLP spec, so
+ * compliant collectors log it instead of retry-storming), but that error is
+ * easy to miss in collector logs and impossible to see from an install
+ * script.
+ *
+ * This endpoint exists so an agent, install script, or human can ask "is my
+ * token actually accepted?" and get a REAL answer:
+ *   200 { valid: true,  projectId }  — token resolves to a project
+ *   401 { valid: false }             — token missing / malformed / unknown / revoked
+ *
+ * It performs no ingestion and writes nothing. The token is read only from a
+ * header (never a query string) so it can't leak into access logs. Ingestion
+ * tokens are 122-bit random UUIDs, so this is not a useful brute-force oracle;
+ * unknown tokens are additionally negative-cached by the service below.
+ */
+router.get(
+  "/otlp/v1/validate",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const token: string | undefined =
+        (req.headers["x-oneuptime-token"] as string | undefined) ||
+        (req.headers["x-oneuptime-service-token"] as string | undefined) ||
+        (req.headers["x-oneuptime-ingestion-key"] as string | undefined);
+
+      if (!token) {
+        return Response.sendJsonObjectResponse(
+          req,
+          res,
+          {
+            tokenProvided: false,
+            valid: false,
+            message:
+              "No ingestion token provided. Send it in the x-oneuptime-token header.",
+          },
+          { statusCode: new StatusCode(401) },
+        );
+      }
+
+      const projectId: ObjectID | null =
+        await TelemetryIngestionKeyService.getProjectIdFromSecretKey(
+          token.toString(),
+        );
+
+      if (!projectId) {
+        return Response.sendJsonObjectResponse(
+          req,
+          res,
+          {
+            tokenProvided: true,
+            valid: false,
+            message:
+              "This ingestion token is unknown or has been revoked. Create or copy a live key from Project Settings > Telemetry Ingestion Keys, then re-deploy the agent with it.",
+          },
+          { statusCode: new StatusCode(401) },
+        );
+      }
+
+      return Response.sendJsonObjectResponse(req, res, {
+        tokenProvided: true,
+        valid: true,
+        projectId: projectId.toString(),
+        message: "Ingestion token is valid.",
+      });
+    } catch (err) {
+      return next(err);
+    }
   },
 );
 

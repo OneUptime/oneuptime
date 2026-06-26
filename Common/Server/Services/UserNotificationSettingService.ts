@@ -4,6 +4,7 @@ import logger from "../Utils/Logger";
 import CallService from "./CallService";
 import DatabaseService from "./DatabaseService";
 import MailService from "./MailService";
+import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import SmsService from "./SmsService";
 import TeamMemberService from "./TeamMemberService";
 import TelegramService from "./TelegramService";
@@ -12,7 +13,9 @@ import UserEmailService from "./UserEmailService";
 import UserSmsService from "./UserSmsService";
 import PushNotificationService from "./PushNotificationService";
 import UserTelegramService from "./UserTelegramService";
+import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
+import WebhookService from "./WebhookService";
 import WhatsAppService from "./WhatsAppService";
 import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -26,14 +29,17 @@ import PushNotificationMessage from "../../Types/PushNotification/PushNotificati
 import TelegramMessage, {
   TelegramMessagePayload,
 } from "../../Types/Telegram/TelegramMessage";
+import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import WhatsAppMessage, {
   WhatsAppMessagePayload,
 } from "../../Types/WhatsApp/WhatsAppMessage";
+import { JSONObject } from "../../Types/JSON";
 import UserCall from "../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../Models/DatabaseModels/UserEmail";
 import UserNotificationSetting from "../../Models/DatabaseModels/UserNotificationSetting";
 import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
+import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { appendRecipientToWhatsAppMessage } from "../Utils/WhatsAppTemplateUtil";
@@ -89,6 +95,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           alertByTelegram: true,
           alertByCall: true,
           alertByPush: true,
+          alertByWebhook: true,
         },
         props: {
           isRoot: true,
@@ -145,6 +152,15 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         }
       }
 
+      /*
+       * If the project has a default Twilio config set, all SMS and Calls
+       * sent to project team members will use it instead of the global config.
+       */
+      const projectTwilioConfig: TwilioConfig | undefined =
+        await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+          data.projectId,
+        );
+
       if (notificationSettings.alertBySMS) {
         const userSmses: Array<UserSMS> = await UserSmsService.findBy({
           query: {
@@ -170,6 +186,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             },
             {
               projectId: data.projectId,
+              customTwilioConfig: projectTwilioConfig,
               incidentId: data.incidentId,
               alertId: data.alertId,
               alertEpisodeId: data.alertEpisodeId,
@@ -378,6 +395,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             },
             {
               projectId: data.projectId,
+              customTwilioConfig: projectTwilioConfig,
               incidentId: data.incidentId,
               alertId: data.alertId,
               alertEpisodeId: data.alertEpisodeId,
@@ -424,6 +442,96 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         ).catch((err: Error) => {
           logger.error(err);
         });
+      }
+
+      if (notificationSettings.alertByWebhook) {
+        const userWebhooks: Array<UserWebhook> =
+          await UserWebhookService.findBy({
+            query: {
+              userId: data.userId,
+              projectId: data.projectId,
+            },
+            select: {
+              webhookUrl: true,
+              secret: true,
+              name: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const webhookPayload: JSONObject = {
+          eventType: data.eventType,
+          timestamp: new Date().toISOString(),
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+          subject: data.emailEnvelope?.subject || "",
+          message: data.smsMessage?.message || "",
+        };
+
+        if (data.incidentId) {
+          webhookPayload["incidentId"] = data.incidentId.toString();
+        }
+        if (data.alertId) {
+          webhookPayload["alertId"] = data.alertId.toString();
+        }
+        if (data.monitorId) {
+          webhookPayload["monitorId"] = data.monitorId.toString();
+        }
+        if (data.scheduledMaintenanceId) {
+          webhookPayload["scheduledMaintenanceId"] =
+            data.scheduledMaintenanceId.toString();
+        }
+        if (data.statusPageId) {
+          webhookPayload["statusPageId"] = data.statusPageId.toString();
+        }
+        if (data.statusPageAnnouncementId) {
+          webhookPayload["statusPageAnnouncementId"] =
+            data.statusPageAnnouncementId.toString();
+        }
+        if (data.onCallPolicyId) {
+          webhookPayload["onCallPolicyId"] = data.onCallPolicyId.toString();
+        }
+        if (data.onCallPolicyEscalationRuleId) {
+          webhookPayload["onCallPolicyEscalationRuleId"] =
+            data.onCallPolicyEscalationRuleId.toString();
+        }
+
+        for (const userWebhook of userWebhooks) {
+          if (!userWebhook.webhookUrl) {
+            continue;
+          }
+
+          WebhookService.sendWebhook(
+            {
+              url: userWebhook.webhookUrl,
+              eventType: data.eventType,
+              payload: webhookPayload,
+              secret: userWebhook.secret,
+            },
+            {
+              projectId: data.projectId,
+              incidentId: data.incidentId,
+              alertId: data.alertId,
+              monitorId: data.monitorId,
+              scheduledMaintenanceId: data.scheduledMaintenanceId,
+              statusPageId: data.statusPageId,
+              statusPageAnnouncementId: data.statusPageAnnouncementId,
+              userId: data.userId,
+              teamId: data.teamId,
+              onCallPolicyId: data.onCallPolicyId,
+              onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
+              onCallDutyPolicyExecutionLogTimelineId:
+                data.onCallDutyPolicyExecutionLogTimelineId,
+              onCallScheduleId: data.onCallScheduleId,
+            },
+          ).catch((err: Error) => {
+            logger.error(err);
+          });
+        }
       }
     }
   }
@@ -598,6 +706,12 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       projectId,
       NotificationSettingEventType.SEND_ALERT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
     );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_ALERT_ADDED_TO_EPISODE_OWNER_NOTIFICATION,
+    );
   }
 
   private async addIncidentEpisodeNotificationSettings(
@@ -614,6 +728,12 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       userId,
       projectId,
       NotificationSettingEventType.SEND_INCIDENT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_INCIDENT_ADDED_TO_EPISODE_OWNER_NOTIFICATION,
     );
   }
 

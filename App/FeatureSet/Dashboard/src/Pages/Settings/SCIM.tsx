@@ -18,12 +18,16 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useMemo,
   useState,
 } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import ProjectSCIMLogsTable from "../../Components/SCIMLogs/ProjectSCIMLogsTable";
+import EnterpriseFeatureUpgrade, {
+  isEnterpriseFeatureEligible,
+} from "../../Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
 
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -38,6 +42,47 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
   const [resetError, setResetError] = useState<string>("");
   const [showResetErrorModal, setShowResetErrorModal] =
     useState<boolean>(false);
+
+  const isEnterpriseEligible: boolean = useMemo(() => {
+    return isEnterpriseFeatureEligible();
+  }, []);
+
+  if (!isEnterpriseEligible) {
+    return (
+      <EnterpriseFeatureUpgrade
+        title="SCIM User Provisioning"
+        description="Automate user provisioning via SCIM."
+        featureName="SCIM User Provisioning"
+        featureDescription="Provision and deprovision users automatically from your identity provider — Okta, Azure AD, OneLogin and any other SCIM 2.0 system."
+        benefits={[
+          {
+            icon: IconProp.User,
+            title: "Automatic provisioning",
+            subtitle:
+              "Users created in your IdP are added to OneUptime without manual invites.",
+          },
+          {
+            icon: IconProp.Lock,
+            title: "Automatic deprovisioning",
+            subtitle:
+              "Disable a user in your IdP and access here is removed at the same time.",
+          },
+          {
+            icon: IconProp.ShieldCheck,
+            title: "Group sync",
+            subtitle:
+              "Map IdP groups to teams to keep on-call rosters and permissions accurate.",
+          },
+          {
+            icon: IconProp.ClipboardDocumentList,
+            title: "SCIM activity logs",
+            subtitle:
+              "See every provisioning event so you can debug sync issues quickly.",
+          },
+        ]}
+      />
+    );
+  }
   const [showResetSuccessModal, setShowResetSuccessModal] =
     useState<boolean>(false);
   const [newBearerToken, setNewBearerToken] = useState<string>("");
@@ -81,9 +126,13 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 }}
                 id="scim-table"
                 name="Settings > Project SCIM"
+                saveFilterProps={{
+                  tableId: "settings-project-scim-table",
+                }}
                 isDeleteable={true}
                 isEditable={true}
                 isCreateable={true}
+                showRefreshButton={true}
                 cardProps={{
                   title: "SCIM (System for Cross-domain Identity Management)",
                   description:

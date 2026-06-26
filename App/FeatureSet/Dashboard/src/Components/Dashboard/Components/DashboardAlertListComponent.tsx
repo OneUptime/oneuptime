@@ -9,8 +9,11 @@ import DashboardAlertListComponent from "Common/Types/Dashboard/DashboardCompone
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListViewMode,
 } from "./DashboardResourceListBase";
+import { HoneycombTile } from "./DashboardResourceHoneycomb";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import DashboardResourceList from "../Utils/DashboardResourceList";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -46,6 +49,8 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const maxRows: number = props.component.arguments.maxRows || 25;
+  const viewMode: ResourceListViewMode =
+    props.component.arguments.viewMode === "honeycomb" ? "honeycomb" : "list";
   const stateFilter: string | undefined = props.component.arguments.stateFilter;
   const severityIds: Array<string> | undefined =
     props.component.arguments.severityIds;
@@ -65,7 +70,7 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
     setIsLoading(true);
 
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    if (!projectId) {
+    if (!DashboardResourceList.isPublic() && !projectId) {
       setIsLoading(false);
       setError("No project selected.");
       return;
@@ -113,6 +118,7 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
 
       const listResult: ListResult<Alert> = await ModelAPI.getList<Alert>({
         modelType: Alert,
+        requestOptions: DashboardResourceList.getRequestOptions("alert"),
         query: query,
         limit: maxRows,
         skip: 0,
@@ -153,6 +159,46 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     fetchAlerts();
   }, [fetchAlerts, props.refreshTick]);
+
+  const honeycombTiles: Array<HoneycombTile> = alerts.map(
+    (alert: Alert): HoneycombTile => {
+      const alertId: string = (alert._id as string) || "";
+      const title: string = (alert.title as string) || "Untitled";
+      const stateName: string =
+        (alert.currentAlertState?.name as string) || "—";
+      const stateColor: Color | undefined = alert.currentAlertState?.color as
+        | Color
+        | undefined;
+      const severityName: string = (alert.alertSeverity?.name as string) || "—";
+      const severityColor: Color | undefined = alert.alertSeverity?.color as
+        | Color
+        | undefined;
+
+      const route: Route | undefined = alertId
+        ? RouteUtil.populateRouteParams(RouteMap[PageMap.ALERT_VIEW] as Route, {
+            modelId: new ObjectID(alertId),
+          })
+        : undefined;
+
+      return {
+        id: alertId || title,
+        status: stateName,
+        color: severityColor
+          ? severityColor.toString()
+          : stateColor
+            ? stateColor.toString()
+            : "#9ca3af",
+        route: route,
+        tooltip: {
+          title: title,
+          details: [
+            { label: "State", value: stateName },
+            { label: "Severity", value: severityName },
+          ],
+        },
+      };
+    },
+  );
 
   const rows: Array<ReactElement> = alerts.map((alert: Alert): ReactElement => {
     const alertId: string = (alert._id as string) || "";
@@ -235,6 +281,8 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
       isEmpty={alerts.length === 0}
       emptyMessage="No alerts found"
       emptyIcon={IconProp.Alert}
+      viewMode={viewMode}
+      honeycombTiles={honeycombTiles}
     >
       {rows}
     </DashboardResourceListBase>

@@ -1,17 +1,30 @@
 import AlertEpisode from "./AlertEpisode";
 import AlertSeverity from "./AlertSeverity";
 import AlertState from "./AlertState";
+import CephCluster from "./CephCluster";
+import DockerHost from "./DockerHost";
+import DockerResource from "./DockerResource";
+import PodmanHost from "./PodmanHost";
+import PodmanResource from "./PodmanResource";
 import Host from "./Host";
+import KubernetesCluster from "./KubernetesCluster";
+import KubernetesContainer from "./KubernetesContainer";
+import KubernetesResource from "./KubernetesResource";
 import Label from "./Label";
 import Monitor from "./Monitor";
 import MonitorStatus from "./MonitorStatus";
 import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Probe from "./Probe";
 import Project from "./Project";
+import ProxmoxCluster from "./ProxmoxCluster";
+import IoTFleet from "./IoTFleet";
+import DockerSwarmCluster from "./DockerSwarmCluster";
+import Service from "./Service";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OperationalResource from "../../Types/Database/AccessControl/OperationalResource";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -42,6 +55,7 @@ import {
 import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 
+@OperationalResource()
 @EnableDocumentation()
 @EnableMCP()
 @AccessControlColumn("labels")
@@ -52,7 +66,8 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.AlertManager,
+    Permission.AlertAdmin,
+    Permission.AlertMember,
     Permission.CreateAlert,
   ],
   read: [
@@ -60,22 +75,25 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.AlertManager,
+    Permission.AlertAdmin,
+    Permission.AlertMember,
+    Permission.AlertViewer,
     Permission.ReadAlert,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.AlertManager,
+    Permission.AlertAdmin,
+    Permission.AlertMember,
     Permission.DeleteAlert,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.AlertManager,
+    Permission.AlertAdmin,
+    Permission.AlertMember,
     Permission.EditAlert,
   ],
 })
@@ -102,13 +120,15 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
     delete: true,
   },
 })
+@Index(["projectId", "currentAlertStateId"]) // Active-alert counters on dashboard
 export default class Alert extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -116,9 +136,10 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -148,7 +169,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -156,9 +178,10 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -183,7 +206,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -191,15 +215,17 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlert,
     ],
   })
@@ -224,7 +250,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -232,15 +259,17 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlert,
     ],
   })
@@ -264,7 +293,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -272,9 +302,10 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -305,7 +336,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -313,9 +345,10 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -385,7 +418,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -393,15 +427,17 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlert,
     ],
   })
@@ -432,7 +468,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -440,18 +477,21 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlert,
     ],
   })
+  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Monitor ID",
@@ -469,7 +509,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -477,15 +518,17 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlert,
     ],
   })
@@ -520,7 +563,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -528,15 +572,17 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlert,
     ],
   })
@@ -571,7 +617,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -579,15 +626,668 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: KubernetesCluster,
+    title: "Kubernetes Clusters",
+    description: "List of Kubernetes clusters affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return KubernetesCluster;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertKubernetesCluster",
+    inverseJoinColumn: {
+      name: "kubernetesClusterId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public kubernetesClusters?: Array<KubernetesCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: KubernetesResource,
+    title: "Kubernetes Resources",
+    description:
+      "List of Kubernetes resources (pods, deployments, nodes, etc.) affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return KubernetesResource;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertKubernetesResource",
+    inverseJoinColumn: {
+      name: "kubernetesResourceId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public kubernetesResources?: Array<KubernetesResource> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: KubernetesContainer,
+    title: "Kubernetes Containers",
+    description: "List of Kubernetes containers affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return KubernetesContainer;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertKubernetesContainer",
+    inverseJoinColumn: {
+      name: "kubernetesContainerId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public kubernetesContainers?: Array<KubernetesContainer> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: DockerHost,
+    title: "Docker Hosts",
+    description: "List of Docker hosts affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return DockerHost;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertDockerHost",
+    inverseJoinColumn: {
+      name: "dockerHostId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public dockerHosts?: Array<DockerHost> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: PodmanHost,
+    title: "Podman Hosts",
+    description: "List of Podman hosts affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return PodmanHost;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertPodmanHost",
+    inverseJoinColumn: {
+      name: "podmanHostId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public podmanHosts?: Array<PodmanHost> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: ProxmoxCluster,
+    title: "Proxmox Clusters",
+    description: "List of Proxmox clusters affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return ProxmoxCluster;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertProxmoxCluster",
+    inverseJoinColumn: {
+      name: "proxmoxClusterId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public proxmoxClusters?: Array<ProxmoxCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: IoTFleet,
+    title: "IoT Fleets",
+    description: "List of IoT fleets affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return IoTFleet;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertIoTFleet",
+    inverseJoinColumn: {
+      name: "iotFleetId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public iotFleets?: Array<IoTFleet> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: DockerSwarmCluster,
+    title: "Docker Swarm Clusters",
+    description: "List of Docker Swarm clusters affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return DockerSwarmCluster;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertDockerSwarmCluster",
+    inverseJoinColumn: {
+      name: "dockerSwarmClusterId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public dockerSwarmClusters?: Array<DockerSwarmCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: CephCluster,
+    title: "Ceph Clusters",
+    description: "List of Ceph clusters affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return CephCluster;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertCephCluster",
+    inverseJoinColumn: {
+      name: "cephClusterId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public cephClusters?: Array<CephCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: DockerResource,
+    title: "Docker Resources",
+    description:
+      "List of Docker resources (containers, images, networks, volumes) affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return DockerResource;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertDockerResource",
+    inverseJoinColumn: {
+      name: "dockerResourceId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public dockerResources?: Array<DockerResource> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: PodmanResource,
+    title: "Podman Resources",
+    description:
+      "List of Podman resources (containers, images, networks, volumes) affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return PodmanResource;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertPodmanResource",
+    inverseJoinColumn: {
+      name: "podmanResourceId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public podmanResources?: Array<PodmanResource> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Service,
+    title: "Services",
+    description: "List of services affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return Service;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertService",
+    inverseJoinColumn: {
+      name: "serviceId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public services?: Array<Service> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlert,
     ],
   })
@@ -623,7 +1323,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -631,15 +1332,17 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlert,
     ],
   })
@@ -669,7 +1372,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -677,15 +1381,17 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlert,
     ],
   })
@@ -711,7 +1417,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -719,15 +1426,17 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlert,
     ],
   })
@@ -757,7 +1466,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -765,15 +1475,17 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlert,
     ],
   })
@@ -797,7 +1509,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -805,9 +1518,10 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -836,7 +1550,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -844,15 +1559,17 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlert,
     ],
   })
@@ -875,7 +1592,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -883,15 +1601,17 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlert,
     ],
   })
@@ -915,9 +1635,10 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -944,7 +1665,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -952,9 +1674,10 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -980,9 +1703,10 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1006,9 +1730,10 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1034,9 +1759,10 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1062,9 +1788,10 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1089,9 +1816,10 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1124,9 +1852,10 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1153,9 +1882,10 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1178,7 +1908,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -1186,15 +1917,17 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlert,
     ],
   })
@@ -1217,7 +1950,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -1225,15 +1959,17 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlert,
     ],
   })
@@ -1255,7 +1991,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -1263,9 +2000,10 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1293,9 +2031,10 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1339,7 +2078,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -1347,15 +2087,17 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlert,
     ],
   })
@@ -1385,7 +2127,8 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlert,
     ],
     read: [
@@ -1393,15 +2136,17 @@ export default class Alert extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlert,
     ],
   })
@@ -1418,4 +2163,48 @@ export default class Alert extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public alertEpisodeId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Is Private?",
+    description:
+      "If true, this alert is only visible to its owners (users in 'owner users' and members of 'owner teams'), project admins, and project owners.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+    nullable: true,
+  })
+  public isPrivate?: boolean = undefined;
 }

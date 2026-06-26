@@ -80,29 +80,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       ],
     },
     {
-      title: "Users and Teams",
-      items: [
-        {
-          link: {
-            title: "Users",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_USERS] as Route,
-            ),
-          },
-          icon: IconProp.User,
-        },
-        {
-          link: {
-            title: "Teams",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_TEAMS] as Route,
-            ),
-          },
-          icon: IconProp.Team,
-        },
-      ],
-    },
-    {
       title: "Notifications",
       items: [
         {
@@ -185,15 +162,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       items: [
         {
           link: {
-            title: "Probes",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_PROBES] as Route,
-            ),
-          },
-          icon: IconProp.Signal,
-        },
-        {
-          link: {
             title: "Domains",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_DOMAINS] as Route,
@@ -229,6 +197,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             title: "SSO",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_SSO] as Route,
+            ),
+          },
+          icon: IconProp.Lock,
+        },
+        {
+          link: {
+            title: "OIDC",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_OIDC] as Route,
             ),
           },
           icon: IconProp.Lock,

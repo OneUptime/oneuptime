@@ -50,6 +50,17 @@ Monitor the availability and response time of your online services from multiple
 
 ![Monitoring](/Home/Static/img/readme/monitoring.png?raw=true)
 
+### 🖥️ Infrastructure Monitoring
+
+Monitor the platforms your services run on — from bare-metal servers to hypervisors and distributed storage — with copy-paste, OpenTelemetry-based agents (plus ready-made alert templates for Kubernetes, Docker, Proxmox, and Ceph):
+
+- **Servers & VMs** — host metrics (CPU, memory, disk, network, processes) and logs from Linux, macOS, and Windows hosts. [Docs →](/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
+- **Kubernetes** — one `helm install` ships node, pod, container, and cluster metrics, events, logs, and eBPF-powered traces and service maps. [Docs →](/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
+- **Docker** — a single agent container auto-discovers every container on the host and ships metrics and logs. [Docs →](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
+- **Podman** — a single agent container auto-discovers every container on the host (via Podman's Docker-compatible socket) and ships metrics and logs. [Docs →](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
+- **Proxmox** — one agent per cluster covers nodes, VMs and containers, storage, HA resource state, backup-job coverage, and storage replication health. [Docs →](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **Ceph** — cluster health with a drill-down into active health checks, capacity usage and growth forecast, OSD/pool/PG/monitor visibility, and cluster logs. [Docs →](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+
 ### 📋 Status Pages
 
 Communicate with your customers and stakeholders during downtime or maintenance. Create a custom-branded status page that shows the current status and history of your services.
@@ -114,9 +125,9 @@ By using OneUptime Cloud, you also support the continued development of the open
 ### Self-Hosted Installation
 
 - **[Kubernetes with Helm](https://artifacthub.io/packages/helm/oneuptime/oneuptime)** - Recommended for production
-- **[Docker Compose](/App/FeatureSet/Docs/Content/installation/docker-compose.md)** - Single-node install (not recommended for production)
-- **[Local Development](/App/FeatureSet/Docs/Content/installation/local-development.md)** - For contributors
-- **[Upgrade Guide](/App/FeatureSet/Docs/Content/installation/upgrading.md)** - Upgrade existing installations
+- **[Docker Compose](/App/FeatureSet/Docs/Content/en/installation/docker-compose.md)** - Single-node install (not recommended for production)
+- **[Local Development](/App/FeatureSet/Docs/Content/en/installation/local-development.md)** - For contributors
+- **[Upgrade Guide](/App/FeatureSet/Docs/Content/en/installation/upgrading.md)** - Upgrade existing installations
 
 ---
 
@@ -140,9 +151,9 @@ curl -sSL https://oneuptime.com/install.sh | bash
 
 For detailed installation guides, see:
 - [Kubernetes with Helm](https://artifacthub.io/packages/helm/oneuptime/oneuptime) (recommended for production)
-- [Docker Compose](/App/FeatureSet/Docs/Content/installation/docker-compose.md)
-- [Local Development](/App/FeatureSet/Docs/Content/installation/local-development.md)
-- [Upgrade Guide](/App/FeatureSet/Docs/Content/installation/upgrading.md)
+- [Docker Compose](/App/FeatureSet/Docs/Content/en/installation/docker-compose.md)
+- [Local Development](/App/FeatureSet/Docs/Content/en/installation/local-development.md)
+- [Upgrade Guide](/App/FeatureSet/Docs/Content/en/installation/upgrading.md)
 
 ---
 

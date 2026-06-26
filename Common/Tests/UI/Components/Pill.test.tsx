@@ -52,6 +52,10 @@ describe("<Pill />", () => {
     const { container } = render(
       <Pill text="Love" color={color} icon={IconProp.Label} />,
     );
-    expect(container.querySelector('[role="icon"]')).not.toBeNull();
+    /*
+     * The icon renders an inline <svg>. (It no longer uses the invalid
+     * role="icon" ARIA role, which was removed for WCAG 4.1.2 compliance.)
+     */
+    expect(container.querySelector("svg")).not.toBeNull();
   });
 });

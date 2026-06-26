@@ -89,12 +89,11 @@ flowchart LR
 
 | Option | When Enabled | When Disabled |
 |--------|-------------|---------------|
-| **Group By Service** | Incidents from monitors in different services → separate episodes | Incidents can be grouped regardless of service |
 | **Group By Monitor** | Incidents from different monitors → separate episodes | Incidents from any monitor can be grouped together |
 | **Group By Severity** | Incidents with different severities → separate episodes | Incidents of any severity can be grouped together |
 | **Group By Incident Title** | Incidents with different titles → separate episodes | Incidents with any title can be grouped together |
-
-> **Note:** Monitors can be attached to Services. A Service can have multiple monitors. Group By Service is useful when you want to group all incidents from a service together regardless of which specific monitor triggered them.
+| **Group By Incident Labels** | Incidents with different sets of labels → separate episodes (exact set match) | Incident labels are ignored for grouping |
+| **Group By Monitor Labels** | Incidents whose monitors have different sets of labels → separate episodes (exact set match) | Monitor labels are ignored for grouping |
 
 #### Default Behavior
 
@@ -150,6 +149,9 @@ const IncidentGroupingRulesPage: FunctionComponent<
         id="incident-grouping-rules-table"
         name="Settings > Incident Grouping Rules"
         userPreferencesKey="incident-grouping-rules-table"
+        saveFilterProps={{
+          tableId: "incident-grouping-rules-table",
+        }}
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
@@ -246,10 +248,12 @@ const IncidentGroupingRulesPage: FunctionComponent<
           {
             title: "Match Criteria",
             id: "match-criteria",
+            columns: 2,
           },
           {
             title: "Group By",
             id: "group-by",
+            columns: 2,
           },
           {
             title: "Time Settings",
@@ -270,6 +274,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
           {
             title: "On-Call & Ownership",
             id: "on-call-ownership",
+            columns: 2,
           },
         ]}
         formFields={[
@@ -326,6 +331,9 @@ const IncidentGroupingRulesPage: FunctionComponent<
             },
             title: "Monitors",
             stepId: "match-criteria",
+            sectionTitle: "Match by Attributes",
+            sectionDescription:
+              "Filter incidents by which monitor produced them and their severity/labels. Leave a filter empty to skip it.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
               type: Monitor,
@@ -333,8 +341,6 @@ const IncidentGroupingRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            description:
-              "Only group incidents from these monitors. Leave empty to match incidents from any monitor.",
             placeholder: "Select Monitors (optional)",
           },
           {
@@ -350,8 +356,6 @@ const IncidentGroupingRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            description:
-              "Only group incidents with these severities. Leave empty to match incidents of any severity.",
             placeholder: "Select Severities (optional)",
           },
           {
@@ -367,8 +371,6 @@ const IncidentGroupingRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            description:
-              "Only group incidents that have at least one of these labels attached to them. Leave empty to match incidents regardless of incident labels.",
             placeholder: "Select Incident Labels (optional)",
           },
           {
@@ -384,8 +386,6 @@ const IncidentGroupingRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            description:
-              "Only group incidents from monitors that have at least one of these labels. Leave empty to match incidents regardless of monitor labels.",
             placeholder: "Select Monitor Labels (optional)",
           },
           {
@@ -394,11 +394,12 @@ const IncidentGroupingRulesPage: FunctionComponent<
             },
             title: "Incident Title Pattern",
             stepId: "match-criteria",
+            sectionTitle: "Match by Pattern",
+            sectionDescription:
+              "Case-insensitive regex matched against incident and monitor text.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "CPU.*high",
-            description:
-              "Regular expression pattern to match incident titles. Leave empty to match any title. Example: 'CPU.*high' matches titles containing 'CPU' followed by 'high'.",
           },
           {
             field: {
@@ -409,8 +410,6 @@ const IncidentGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "timeout|connection refused",
-            description:
-              "Regular expression pattern to match incident descriptions. Leave empty to match any description. Example: 'timeout|connection refused' matches descriptions containing either phrase.",
           },
           {
             field: {
@@ -421,8 +420,6 @@ const IncidentGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "prod-.*|api-server-.*",
-            description:
-              "Regular expression pattern to match monitor names. Leave empty to match any monitor. Example: 'prod-.*' matches monitors starting with 'prod-'.",
           },
           {
             field: {
@@ -433,21 +430,8 @@ const IncidentGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "production|critical",
-            description:
-              "Regular expression pattern to match monitor descriptions. Leave empty to match any description.",
           },
           // Group By Fields
-          {
-            field: {
-              groupByService: true,
-            },
-            title: "Group By Service",
-            stepId: "group-by",
-            fieldType: FormFieldSchemaType.Checkbox,
-            required: false,
-            description:
-              "When enabled, incidents from monitors belonging to different services will be grouped into separate episodes. Monitors can be attached to services, and a service can have multiple monitors.",
-          },
           {
             field: {
               groupByMonitor: true,
@@ -480,6 +464,28 @@ const IncidentGroupingRulesPage: FunctionComponent<
             required: false,
             description:
               "When enabled, incidents with different titles will be grouped into separate episodes. When disabled, incidents with any title can be grouped together.",
+          },
+          {
+            field: {
+              groupByIncidentLabels: true,
+            },
+            title: "Group By Incident Labels",
+            stepId: "group-by",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "When enabled, incidents with different sets of labels will be grouped into separate episodes (exact set match). When disabled, incident labels are ignored for grouping.",
+          },
+          {
+            field: {
+              groupByMonitorLabels: true,
+            },
+            title: "Group By Monitor Labels",
+            stepId: "group-by",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "When enabled, incidents whose monitors have different sets of labels will be grouped into separate episodes (exact set match). When disabled, monitor labels are ignored for grouping.",
           },
           // Time Settings Fields
           {
@@ -736,6 +742,9 @@ const IncidentGroupingRulesPage: FunctionComponent<
             },
             title: "On-Call Duty Policies",
             stepId: "on-call-ownership",
+            sectionTitle: "Policies to Execute",
+            sectionDescription:
+              "On-call policies to fire when an episode is created by this rule.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
               type: OnCallDutyPolicy,
@@ -743,9 +752,8 @@ const IncidentGroupingRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            description:
-              "On-call policies to execute when an episode is created with this rule.",
             placeholder: "Select On-Call Policies",
+            spanFullRow: true,
           },
           {
             field: {
@@ -753,6 +761,9 @@ const IncidentGroupingRulesPage: FunctionComponent<
             },
             title: "Default Assign To Team",
             stepId: "on-call-ownership",
+            sectionTitle: "Default Assignees",
+            sectionDescription:
+              "The team and user new episodes are assigned to by default. Both are optional.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: Team,
@@ -760,8 +771,6 @@ const IncidentGroupingRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            description:
-              "Default team to assign episodes created by this rule.",
             placeholder: "Select Team",
           },
           {
@@ -777,8 +786,6 @@ const IncidentGroupingRulesPage: FunctionComponent<
               );
             },
             required: false,
-            description:
-              "Default user to assign episodes created by this rule.",
             placeholder: "Select User",
           },
         ]}

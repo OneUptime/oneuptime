@@ -42,7 +42,7 @@ export const HOST_INSTALL_METHODS: Array<HostInstallMethodOption> = [
   {
     key: "windows",
     label: "Windows",
-    description: "MSI installer, registered as a Windows service.",
+    description: "OneUptime Host Collector, registered as a Windows service.",
   },
   {
     key: "kubernetes",
@@ -147,6 +147,34 @@ service:
       processors: [resourcedetection, batch]
       exporters: [otlphttp/oneuptime]
 \`\`\`
+
+## Optional — Auto-tag this host with project labels
+
+Any resource attribute prefixed with \`oneuptime.label.\` is promoted to a project Label and attached to the host (and to the telemetry service emitted from this collector). Pattern: \`oneuptime.label.<dimension>=<value>\` becomes a label named \`<dimension>:<value>\`.
+
+Add a \`resource\` processor and reference it from the metrics pipeline:
+
+\`\`\`yaml
+processors:
+  resource/oneuptime-labels:
+    attributes:
+      - key: oneuptime.label.team
+        value: payments
+        action: upsert
+      - key: oneuptime.label.env
+        value: production
+        action: upsert
+      - key: oneuptime.label.region
+        value: us-east-1
+        action: upsert
+
+service:
+  pipelines:
+    metrics:
+      processors: [resourcedetection, resource/oneuptime-labels, batch]
+\`\`\`
+
+The host above shows up tagged \`team:payments\`, \`env:production\`, and \`region:us-east-1\`. Labels are matched case-insensitively, so an existing manually-created \`Production\` label is reused rather than duplicated. Labels added manually in the OneUptime UI are never removed by the collector.
 `;
 }
 
@@ -192,10 +220,12 @@ Logs: \`docker logs -f otel-collector\`.
 ## Step 2 — Install the .deb package (Debian / Ubuntu)
 
 \`\`\`bash
-VERSION=0.115.0
+# Resolve the latest released version from GitHub (or pin a specific one, e.g. VERSION=0.151.0)
+VERSION=$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/open-telemetry/opentelemetry-collector-releases/releases/latest)
+VERSION=\${VERSION##*/v}
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
 
-curl -L -o /tmp/otelcol-contrib.deb \\
+curl -fL -o /tmp/otelcol-contrib.deb \\
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v\${VERSION}/otelcol-contrib_\${VERSION}_linux_\${ARCH}.deb
 sudo dpkg -i /tmp/otelcol-contrib.deb
 
@@ -207,7 +237,7 @@ sudo systemctl status otelcol-contrib
 
 Logs: \`sudo journalctl -u otelcol-contrib -f\`.
 
-Releases are published at <https://github.com/open-telemetry/opentelemetry-collector-releases/releases>. Replace the \`VERSION\` value with the latest tag.
+All releases are listed at <https://github.com/open-telemetry/opentelemetry-collector-releases/releases> if you need to pin a specific version.
 
 > **Note for native installs:** Unlike Docker, the package install reads \`/proc\` and \`/sys\` directly — no \`HOST_PROC\` env vars or \`/hostfs\` mount required. The systemd unit shipped with the package runs as root, so the \`process\` scraper can see processes owned by other users.
 `;
@@ -217,10 +247,12 @@ Releases are published at <https://github.com/open-telemetry/opentelemetry-colle
 ## Step 2 — Install the .rpm package (RHEL / Fedora / CentOS / Amazon Linux)
 
 \`\`\`bash
-VERSION=0.115.0
+# Resolve the latest released version from GitHub (or pin a specific one, e.g. VERSION=0.151.0)
+VERSION=$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/open-telemetry/opentelemetry-collector-releases/releases/latest)
+VERSION=\${VERSION##*/v}
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
-curl -L -o /tmp/otelcol-contrib.rpm \\
+curl -fL -o /tmp/otelcol-contrib.rpm \\
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v\${VERSION}/otelcol-contrib_\${VERSION}_linux_\${ARCH}.rpm
 sudo rpm -Uvh /tmp/otelcol-contrib.rpm
 
@@ -242,10 +274,12 @@ Logs: \`sudo journalctl -u otelcol-contrib -f\`.
 Use this when packages aren't available — Alpine, NixOS, locked-down servers, or container base images you want to instrument from outside.
 
 \`\`\`bash
-VERSION=0.115.0
+# Resolve the latest released version from GitHub (or pin a specific one, e.g. VERSION=0.151.0)
+VERSION=$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/open-telemetry/opentelemetry-collector-releases/releases/latest)
+VERSION=\${VERSION##*/v}
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
-curl -L -o /tmp/otelcol.tar.gz \\
+curl -fL -o /tmp/otelcol.tar.gz \\
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v\${VERSION}/otelcol-contrib_\${VERSION}_linux_\${ARCH}.tar.gz
 
 sudo mkdir -p /opt/otelcol-contrib
@@ -304,35 +338,56 @@ Logs: \`tail -F $(brew --prefix)/var/log/opentelemetry-collector.log\` (path var
 
     case "windows":
       return `
-## Step 2 — Install on Windows (MSI)
+## Step 2 — Install on Windows (OneUptime Host Collector)
+
+On Windows, install the **OneUptime Host Collector** — a prebuilt OpenTelemetry Collector that bundles the \`windows_service\` receiver (which powers the host **Services** tab and is *not* in the upstream \`otelcol-contrib\` build). It's a drop-in collector that runs the same \`config.yaml\` from Step 1.
 
 Run from an elevated PowerShell prompt:
 
 \`\`\`powershell
-$VERSION = "0.115.0"
-$msi = "$env:TEMP\\otelcol-contrib.msi"
+# Download the latest OneUptime Host Collector for Windows (amd64; use _arm64.zip on ARM)
+$dest = "C:\\Program Files\\OneUptimeHostCollector"
+$zip  = "$env:TEMP\\oneuptime-host-collector.zip"
+New-Item -ItemType Directory -Force -Path $dest | Out-Null
+Invoke-WebRequest -Uri "https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-host-collector_windows_amd64.zip" -OutFile $zip
+Expand-Archive -Path $zip -DestinationPath $dest -Force
 
-Invoke-WebRequest \`
-  -Uri "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_\${VERSION}_windows_amd64.msi" \`
-  -OutFile $msi
+# Use the config.yaml you saved in Step 1
+Copy-Item config.yaml "$dest\\config.yaml" -Force
 
-Start-Process msiexec.exe -ArgumentList "/i", "$msi", "/quiet" -Wait
-
-# Drop your config into the install dir
-Copy-Item config.yaml "C:\\Program Files\\OpenTelemetry Collector Contrib\\config.yaml" -Force
-
-# (Re)start the service that the installer registered
-Restart-Service otelcol-contrib
-Get-Service otelcol-contrib
+# Register and start it as a Windows service (runs as LocalSystem)
+sc.exe create "OneUptimeHostCollector" binPath= "\\"$dest\\oneuptime-host-collector.exe\\" --config=\\"$dest\\config.yaml\\"" start= auto DisplayName= "OneUptime Host Collector"
+sc.exe start "OneUptimeHostCollector"
 \`\`\`
 
-Logs are written to the Windows Application event log under source \`otelcol-contrib\`. Tail with:
+Logs are written to the Windows Application event log; view them in **Event Viewer → Windows Logs → Application**.
+
+> **Note:** The service runs as \`LocalSystem\` so it can read every Windows service. On Windows the \`load\` scraper only emulates a load average from the *Processor Queue Length* counter (it starts at 0); if it can't read the counter it is logged and skipped, so the rest of the \`hostmetrics\` config runs unchanged. Prefer the upstream collector or building your own? See the [Host OpenTelemetry Collector docs](https://oneuptime.com/docs/telemetry/host-otel-collector).
+
+## Step 3 — Enable the Windows Services tab
+
+The OneUptime Host Collector from Step 2 already includes the \`windows_service\` receiver — turn it on by adding it to your \`config.yaml\` and the metrics pipeline, then restart the service:
+
+\`\`\`yaml
+receivers:
+  windows_service:
+    collection_interval: 30s
+    # Collect every service by default. To cut volume / avoid access-denied
+    # noise, list only the ones you care about:
+    # include_services: [Spooler, W3SVC, MSSQLSERVER]
+
+service:
+  pipelines:
+    metrics:
+      # Add windows_service alongside the hostmetrics receiver from Step 1.
+      receivers: [hostmetrics, windows_service]
+\`\`\`
 
 \`\`\`powershell
-Get-WinEvent -ProviderName otelcol-contrib -MaxEvents 50 | Format-Table -AutoSize -Wrap
+Restart-Service OneUptimeHostCollector
 \`\`\`
 
-> **Note:** The MSI registers \`otelcol-contrib\` as a Windows service that starts automatically on boot. The \`load\` scraper isn't supported on Windows — the rest of the \`hostmetrics\` config above runs unchanged.
+The receiver is **Windows-only** and **alpha**. Once metrics arrive, the host **Services** tab populates automatically with each service's running state and startup type.
 `;
 
     case "kubernetes":

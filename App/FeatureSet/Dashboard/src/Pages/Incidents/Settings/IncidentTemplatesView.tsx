@@ -1,5 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import MonitorsElement from "../../../Components/Monitor/Monitors";
+import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import TeamElement from "../../../Components/Team/Team";
 import UserElement from "../../../Components/User/User";
@@ -26,6 +26,16 @@ import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemp
 import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import Service from "Common/Models/DatabaseModels/Service";
+import Host from "Common/Models/DatabaseModels/Host";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import AffectedResourcesPicker, {
+  isAffectedResourcesPayload,
+} from "../../../Components/AffectedResources/AffectedResourcesPicker";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Team from "Common/Models/DatabaseModels/Team";
@@ -55,10 +65,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           {
             title: "Incident Details",
             id: "incident-details",
-          },
-          {
-            title: "Resources Affected",
-            id: "resources-affected",
           },
           {
             title: "On-Call",
@@ -153,22 +159,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           {
             field: {
-              monitors: true,
-            },
-            title: "Monitors affected",
-            stepId: "resources-affected",
-            description: "Select monitors affected by this incident.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Monitor,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Monitors affected",
-          },
-          {
-            field: {
               onCallDutyPolicies: true,
             },
             title: "On-Call Policy",
@@ -183,23 +173,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             required: false,
             placeholder: "Select on-call policies",
-          },
-          {
-            field: {
-              changeMonitorStatusTo: true,
-            },
-            title: "Change Monitor Status to ",
-            stepId: "resources-affected",
-            description:
-              "This will change the status of all the monitors attached to this incident.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: MonitorStatus,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Monitor Status",
           },
           {
             field: {
@@ -300,19 +273,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             {
               field: {
-                monitors: {
-                  name: true,
-                  _id: true,
-                },
-              },
-              title: "Monitors Affected",
-              fieldType: FieldType.Element,
-              getElement: (item: IncidentTemplate): ReactElement => {
-                return <MonitorsElement monitors={item["monitors"] || []} />;
-              },
-            },
-            {
-              field: {
                 onCallDutyPolicies: {
                   name: true,
                   _id: true,
@@ -353,11 +313,192 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
       />
 
+      <CardModelDetail<IncidentTemplate>
+        name="Affected Resources"
+        cardProps={{
+          title: "Affected Resources",
+          description:
+            "Monitors, hosts, Kubernetes clusters, Docker hosts, and services that incidents created from this template should pre-populate.",
+        }}
+        isEditable={true}
+        formFields={[
+          {
+            field: {
+              monitors: true,
+            },
+            title: "",
+            description:
+              "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            getCustomElement: (
+              values: FormValues<IncidentTemplate>,
+              elementProps: CustomElementProps,
+            ) => {
+              return (
+                <AffectedResourcesPicker
+                  monitors={values.monitors as Array<Monitor>}
+                  hosts={values.hosts as Array<Host>}
+                  kubernetesClusters={
+                    values.kubernetesClusters as Array<KubernetesCluster>
+                  }
+                  dockerHosts={values.dockerHosts as Array<DockerHost>}
+                  podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                  services={values.services as Array<Service>}
+                  onChange={(payload: unknown) => {
+                    elementProps.onChange?.(payload);
+                  }}
+                />
+              );
+            },
+            onChange: (
+              value: unknown,
+              currentValues: FormValues<IncidentTemplate>,
+              setNewFormValues: (values: FormValues<IncidentTemplate>) => void,
+            ) => {
+              if (isAffectedResourcesPayload(value)) {
+                const payload: typeof value = value;
+                queueMicrotask(() => {
+                  setNewFormValues({
+                    ...currentValues,
+                    monitors: payload.monitors,
+                    hosts: payload.hosts,
+                    kubernetesClusters: payload.kubernetesClusters,
+                    dockerHosts: payload.dockerHosts,
+                    podmanHosts: payload.podmanHosts,
+                    services: payload.services,
+                  } as FormValues<IncidentTemplate>);
+                });
+              }
+            },
+          },
+          /*
+           * Hidden registrations so ModelForm.getSelectFields includes
+           * hosts/kubernetesClusters/dockerHosts/services on load and submit.
+           */
+          {
+            field: { hosts: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { kubernetesClusters: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { dockerHosts: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { podmanHosts: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { services: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: {
+              changeMonitorStatusTo: true,
+            },
+            title: "Change Monitor Status to ",
+            description:
+              "This will change the status of all the monitors attached to this incident.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: MonitorStatus,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Monitor Status",
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: IncidentTemplate,
+          id: "model-detail-incident-template-affected-resources",
+          fields: [
+            {
+              field: {
+                monitors: {
+                  name: true,
+                  _id: true,
+                },
+                hosts: {
+                  name: true,
+                  _id: true,
+                },
+                kubernetesClusters: {
+                  name: true,
+                  _id: true,
+                },
+                dockerHosts: {
+                  name: true,
+                  _id: true,
+                },
+                podmanHosts: {
+                  name: true,
+                  _id: true,
+                },
+                services: {
+                  name: true,
+                  _id: true,
+                  serviceColor: true,
+                },
+              },
+              title: "",
+              fieldType: FieldType.Element,
+              getElement: (item: IncidentTemplate): ReactElement => {
+                return (
+                  <AffectedResourcesDisplay
+                    monitors={item.monitors || []}
+                    hosts={item.hosts || []}
+                    kubernetesClusters={item.kubernetesClusters || []}
+                    dockerHosts={item.dockerHosts || []}
+                    podmanHosts={item.podmanHosts || []}
+                    services={item.services || []}
+                  />
+                );
+              },
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
       <ModelTable<IncidentTemplateOwnerTeam>
         modelType={IncidentTemplateOwnerTeam}
         id="table-incident-owner-team"
         userPreferencesKey="incident-owner-team-table"
         name="Incident Template > Owner Team"
+        saveFilterProps={{
+          tableId: "incident-template-owner-team-table",
+        }}
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -445,6 +586,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="table-incident-owner-team"
         name="Incident > Owner Team"
         userPreferencesKey="incident-owner-user-table"
+        saveFilterProps={{
+          tableId: "incident-template-owner-user-table",
+        }}
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

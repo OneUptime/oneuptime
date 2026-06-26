@@ -2,24 +2,24 @@
 
 /**
  * Universal Service Worker Generator for OneUptime Services
- * 
+ *
  * This script can be used by any OneUptime service to generate
  * a service worker from a template with dynamic versioning.
- * 
+ *
  * Usage:
  *   node generate-service-worker.js [template-path] [output-path]
- * 
+ *
  * Example:
  *   node generate-service-worker.js sw.js.template public/sw.js
  */
 
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
 
 // Default values
-const DEFAULT_APP_VERSION = '1.0.0';
-const DEFAULT_GIT_SHA = 'local';
+const DEFAULT_APP_VERSION = "1.0.0";
+const DEFAULT_GIT_SHA = "local";
 
 /**
  * Get app version from environment or package.json
@@ -29,13 +29,13 @@ function getAppVersion(packageJsonPath) {
   if (process.env.APP_VERSION) {
     return process.env.APP_VERSION;
   }
-  
+
   // Fallback to package.json version
   try {
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
     return packageJson.version || DEFAULT_APP_VERSION;
   } catch (error) {
-    console.warn('Could not read package.json, using default version');
+    console.warn("Could not read package.json, using default version");
     return DEFAULT_APP_VERSION;
   }
 }
@@ -48,16 +48,18 @@ function getGitSha() {
   if (process.env.GIT_SHA) {
     return process.env.GIT_SHA.substring(0, 8); // Short SHA
   }
-  
+
   // Try to get from git command if available
   try {
-    const { execSync } = require('child_process');
-    const gitSha = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+    const { execSync } = require("child_process");
+    const gitSha = execSync("git rev-parse --short HEAD", {
+      encoding: "utf8",
+    }).trim();
     return gitSha;
   } catch (error) {
     // Fallback to timestamp-based hash for local development
     const timestamp = Date.now().toString();
-    const hash = crypto.createHash('md5').update(timestamp).digest('hex');
+    const hash = crypto.createHash("md5").update(timestamp).digest("hex");
     return hash.substring(0, 8);
   }
 }
@@ -65,34 +67,38 @@ function getGitSha() {
 /**
  * Generate service worker from template
  */
-function generateServiceWorker(templatePath, outputPath, serviceName = 'OneUptime') {
+function generateServiceWorker(
+  templatePath,
+  outputPath,
+  serviceName = "OneUptime",
+) {
   // Check if template exists
   if (!fs.existsSync(templatePath)) {
-    console.error('❌ Service worker template not found:', templatePath);
+    console.error("❌ Service worker template not found:", templatePath);
     process.exit(1);
   }
-  
+
   // Read template
-  const template = fs.readFileSync(templatePath, 'utf8');
-  
+  const template = fs.readFileSync(templatePath, "utf8");
+
   // Get version information
-  const packageJsonPath = path.join(path.dirname(templatePath), 'package.json');
+  const packageJsonPath = path.join(path.dirname(templatePath), "package.json");
   const appVersion = getAppVersion(packageJsonPath);
   const gitSha = getGitSha();
   const buildTimestamp = new Date().toISOString();
-  
+
   console.log(`🔧 Generating service worker for ${serviceName}...`);
   console.log(`   App Version: ${appVersion}`);
   console.log(`   Git SHA: ${gitSha}`);
   console.log(`   Build Time: ${buildTimestamp}`);
-  
+
   // Replace placeholders
   const generatedContent = template
     .replace(/\{\{APP_VERSION\}\}/g, appVersion)
     .replace(/\{\{GIT_SHA\}\}/g, gitSha)
     .replace(/\{\{BUILD_TIMESTAMP\}\}/g, buildTimestamp)
     .replace(/\{\{SERVICE_NAME\}\}/g, serviceName);
-  
+
   // Add generation comment at the top
   const header = `/*
  * Generated Service Worker for ${serviceName}
@@ -106,37 +112,41 @@ function generateServiceWorker(templatePath, outputPath, serviceName = 'OneUptim
  */
 
 `;
-  
+
   const finalContent = header + generatedContent;
-  
+
   // Ensure output directory exists
   const outputDir = path.dirname(outputPath);
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
-  
+
   // Write generated service worker
-  fs.writeFileSync(outputPath, finalContent, 'utf8');
-  
-  console.log('✅ Service worker generated successfully:', outputPath);
+  fs.writeFileSync(outputPath, finalContent, "utf8");
+
+  console.log("✅ Service worker generated successfully:", outputPath);
   console.log(`   Cache version: oneuptime-v${appVersion}-${gitSha}`);
 }
 
 // Command line interface
 if (require.main === module) {
   const args = process.argv.slice(2);
-  const templatePath = args[0] || 'sw.js.template';
-  const outputPath = args[1] || 'public/sw.js';
+  const templatePath = args[0] || "sw.js.template";
+  const outputPath = args[1] || "public/sw.js";
   const serviceName = args[2] || path.basename(process.cwd());
-  
+
   try {
     // Resolve paths relative to current working directory
     const resolvedTemplatePath = path.resolve(templatePath);
     const resolvedOutputPath = path.resolve(outputPath);
-    
-    generateServiceWorker(resolvedTemplatePath, resolvedOutputPath, serviceName);
+
+    generateServiceWorker(
+      resolvedTemplatePath,
+      resolvedOutputPath,
+      serviceName,
+    );
   } catch (error) {
-    console.error('❌ Failed to generate service worker:', error.message);
+    console.error("❌ Failed to generate service worker:", error.message);
     process.exit(1);
   }
 }

@@ -6,12 +6,21 @@ import Sort from "../../Types/AnalyticsDatabase/Sort";
 import UpdateBy from "../../Types/AnalyticsDatabase/UpdateBy";
 import logger from "../Logger";
 import { SQL, Statement } from "./Statement";
+import {
+  adaptTableSettingsForStorage,
+  getDistributedEngine,
+  getStorageEngine,
+  getStorageTableName,
+  onClusterClause,
+} from "./ClusterConfig";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import CommonModel, {
   Record as AnalyticsRecord,
   RecordValue,
 } from "../../../Models/AnalyticsModels/AnalyticsBaseModel/CommonModel";
 import AnalyticsTableColumn, {
+  ColumnCodecConfig,
+  ColumnCodecValue,
   SkipIndexType,
 } from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
@@ -20,6 +29,8 @@ import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import ObjectID from "../../../Types/ObjectID";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
@@ -29,6 +40,7 @@ import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import NotContains from "../../../Types/BaseDatabase/NotContains";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import Search from "../../../Types/BaseDatabase/Search";
+import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import StartsWith from "../../../Types/BaseDatabase/StartsWith";
 import EndsWith from "../../../Types/BaseDatabase/EndsWith";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -41,6 +53,20 @@ import AggregateBy, {
 } from "../../Types/AnalyticsDatabase/AggregateBy";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import { getPercentileLevel } from "../../../Types/BaseDatabase/AggregationType";
+
+/**
+ * Value carried under the synthetic query key "entityScope": the
+ * entity-membership read with an attribute OR-fallback. Rows stamped with
+ * `entityKeys` are matched via the bloom-indexed membership column; rows
+ * ingested before the column existed (empty array, no backfill by decision)
+ * still match via the resource attribute. See
+ * Internal/Docs/OpenTelemetryEntities.md (phase-4 read-switch).
+ */
+export interface EntityScopeQueryValue {
+  entityKeys: Array<string>;
+  attributeKey: string;
+  attributeValue: string;
+}
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   public model!: TBaseModel;
@@ -60,16 +86,28 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     const setStatement: Statement = this.toSetStatement(updateBy.data);
     const whereStatement: Statement = this.toWhereStatement(updateBy.query);
 
+    /*
+     * `ALTER TABLE … UPDATE` is a mutation and cannot target a Distributed
+     * table, so in cluster mode it runs against the local storage table and is
+     * dispatched to every shard via ON CLUSTER (replicated within each shard by
+     * Keeper). onClusterClause() is appended as RAW SQL — it is not an
+     * identifier and must not become a {pN:Identifier} parameter — and is empty
+     * in single-node mode, leaving the original statement unchanged.
+     */
     /* eslint-disable prettier/prettier */
     const statement: Statement = SQL`
-            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
-              this.model.tableName
-            }
-            UPDATE `
+            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${getStorageTableName(
+              this.model.tableName,
+            )}`
+      .append(onClusterClause())
+      .append(
+        SQL`
+            UPDATE `,
+      )
       .append(setStatement)
       .append(
         SQL`
-            WHERE TRUE `
+            WHERE TRUE `,
       )
       .append(whereStatement);
     /* eslint-enable prettier/prettier */
@@ -175,8 +213,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     return record;
   }
 
-  private escapeStringLiteral(raw: string): string {
+  private escapeStringLiteral(raw: string | undefined | null): string {
     // escape String literal based on https://clickhouse.com/docs/en/sql-reference/syntax#string
+    if (raw === undefined || raw === null) {
+      return "''";
+    }
     return `'${raw.replace(/'|\\/g, "\\$&")}'`;
   }
 
@@ -261,6 +302,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     if (column.type === TableColumnType.LongNumber) {
       value = `CAST(${this.escapeStringLiteral(value.toString())} AS Int128)`;
+    }
+
+    if (column.type === TableColumnType.UInt64) {
+      value = `CAST(${this.escapeStringLiteral(value.toString())} AS UInt64)`;
     }
 
     if (column.type === TableColumnType.BigNumber) {
@@ -356,6 +401,139 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     let first: boolean = true;
     for (const key in query) {
       const value: any = query[key];
+
+      /*
+       * MultiSearch is a synthetic operator that fans out into an ILIKE OR
+       * across multiple columns — it does not correspond to `key` itself, so
+       * we resolve column metadata per field below.
+       */
+      if (value instanceof MultiSearch) {
+        const ms: MultiSearch = value;
+        if (!ms.value || ms.fields.length === 0) {
+          continue;
+        }
+
+        const resolvedColumns: Array<AnalyticsTableColumn> = [];
+        for (const field of ms.fields) {
+          const col: AnalyticsTableColumn | null =
+            this.model.getTableColumn(field);
+          if (col) {
+            resolvedColumns.push(col);
+          }
+        }
+
+        if (resolvedColumns.length === 0) {
+          continue;
+        }
+
+        if (first) {
+          first = false;
+          whereStatement.append(SQL`AND (`);
+        } else {
+          whereStatement.append(SQL` AND (`);
+        }
+
+        let isFirstCol: boolean = true;
+        for (const col of resolvedColumns) {
+          if (isFirstCol) {
+            isFirstCol = false;
+          } else {
+            whereStatement.append(SQL` OR `);
+          }
+          whereStatement.append(
+            SQL`${col.key} ILIKE ${{
+              value: new Search<string>(ms.value),
+              type: col.type,
+            }}`,
+          );
+        }
+
+        whereStatement.append(SQL`)`);
+        continue;
+      }
+
+      /*
+       * "entityScope" is a synthetic query key (not a column):
+       * { entityKeys, attributeKey, attributeValue } compiles to
+       *   (hasAny(entityKeys, [...]) OR attributes['k'] = 'v')
+       * so new rows ride the bloom-indexed `entityKeys` membership column
+       * while pre-column rows (empty array — no backfill by decision) still
+       * match via the resource attribute. Both sides are parameter-bound:
+       * the array exactly like the Includes/hasAny path above, the
+       * attribute lookup exactly like the map-equality fast path below.
+       * Ignored (no predicate, no throw) for models without an
+       * `entityKeys` Array(String) column.
+       */
+      if (key === "entityScope") {
+        const scope: EntityScopeQueryValue | undefined = value as
+          | EntityScopeQueryValue
+          | undefined;
+
+        const entityKeysColumn: AnalyticsTableColumn | null =
+          this.model.getTableColumn("entityKeys");
+
+        if (
+          !scope ||
+          !entityKeysColumn ||
+          entityKeysColumn.type !== TableColumnType.ArrayText
+        ) {
+          continue;
+        }
+
+        const scopeEntityKeys: Array<string> = scope.entityKeys || [];
+
+        const attributesColumn: AnalyticsTableColumn | null =
+          this.model.getTableColumn("attributes");
+        const hasAttributeFallback: boolean =
+          Boolean(scope.attributeKey) &&
+          Boolean(attributesColumn) &&
+          attributesColumn!.type === TableColumnType.MapStringString;
+
+        if (scopeEntityKeys.length === 0 && !hasAttributeFallback) {
+          continue;
+        }
+
+        if (first) {
+          first = false;
+        } else {
+          whereStatement.append(SQL` `);
+        }
+
+        if (scopeEntityKeys.length > 0 && hasAttributeFallback) {
+          whereStatement.append(
+            SQL`AND (hasAny(${entityKeysColumn.key}, ${{
+              value: scopeEntityKeys,
+              type: TableColumnType.ArrayText,
+            }}) OR ${attributesColumn!.key}[${{
+              value: scope.attributeKey,
+              type: TableColumnType.Text,
+            }}] = ${{
+              value: String(scope.attributeValue ?? ""),
+              type: TableColumnType.Text,
+            }})`,
+          );
+        } else if (scopeEntityKeys.length > 0) {
+          whereStatement.append(
+            SQL`AND hasAny(${entityKeysColumn.key}, ${{
+              value: scopeEntityKeys,
+              type: TableColumnType.ArrayText,
+            }})`,
+          );
+        } else {
+          whereStatement.append(
+            SQL`AND ${attributesColumn!.key}[${{
+              value: scope.attributeKey,
+              type: TableColumnType.Text,
+            }}] = ${{
+              value: String(scope.attributeValue ?? ""),
+              type: TableColumnType.Text,
+            }}`,
+          );
+        }
+
+        continue;
+      }
+
       const tableColumn: AnalyticsTableColumn | null =
         this.model.getTableColumn(key);
 
@@ -435,6 +613,29 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             type: tableColumn.type,
           }}`,
         );
+      } else if (
+        value instanceof Includes &&
+        tableColumn.type === TableColumnType.ArrayText
+      ) {
+        /*
+         * Array(String) membership (e.g. `entityKeys` / `attributeKeys`):
+         * `hasAny(col, [v1, v2])` — true when the row's array contains any
+         * of the values. Repurposes Includes for array columns, where the
+         * scalar `col IN (...)` form is invalid. The bloom_filter skip index
+         * on these columns prunes granules for this predicate. An empty
+         * Includes drops to no predicate (mirrors the map-Includes behavior),
+         * never `hasAny(col, [])`.
+         */
+        const arrayIncludeValues: Array<string> =
+          ((value as Includes).values as Array<string>) || [];
+        if (arrayIncludeValues.length > 0) {
+          whereStatement.append(
+            SQL`AND hasAny(${key}, ${{
+              value: arrayIncludeValues,
+              type: TableColumnType.ArrayText,
+            }})`,
+          );
+        }
       } else if (value instanceof Includes) {
         whereStatement.append(
           SQL`AND ${key} IN ${{
@@ -654,6 +855,64 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               }}]) <= ${{
                 value: Number((mapEntry as LessThanOrEqual<any>).value),
                 type: TableColumnType.Number,
+              }}`,
+            );
+            continue;
+          }
+
+          /*
+           * Multi-value selection (dashboard variables, ad-hoc filters):
+           * an empty `Includes` would expand to `IN ()`, which ClickHouse
+           * treats as "match nothing" and is never the user's intent
+           * here — skip the predicate instead so a cleared multi-select
+           * behaves like "All".
+           */
+          if (mapEntry instanceof Includes) {
+            const includesValues: Array<string> = (
+              (mapEntry as Includes).values || []
+            ).map((v: string | ObjectID | number) => {
+              return String(v);
+            });
+            if (includesValues.length === 0) {
+              continue;
+            }
+            whereStatement.append(
+              SQL`AND ${key}[${{
+                value: mapKey,
+                type: TableColumnType.Text,
+              }}] IN ${{
+                value: new Includes(includesValues),
+                type: TableColumnType.Text,
+              }}`,
+            );
+            continue;
+          }
+
+          /*
+           * Multi-value exclusion (IncludesNone / "is none of"):
+           * `attributes['k'] NOT IN (...)`. Map subscript returns '' for a
+           * missing key, so (like NotEqual above) rows lacking the attribute
+           * pass the NOT IN test, which matches "the value is none of these".
+           * An empty IncludesNone is treated as "All" — skip the predicate
+           * rather than emit `NOT IN ()`. Values bind via a fresh `Includes`
+           * since Statement only types `Includes` as Array(String).
+           */
+          if (mapEntry instanceof IncludesNone) {
+            const excludeValues: Array<string> = (
+              (mapEntry as IncludesNone).values || []
+            ).map((v: string | ObjectID | number) => {
+              return String(v);
+            });
+            if (excludeValues.length === 0) {
+              continue;
+            }
+            whereStatement.append(
+              SQL`AND ${key}[${{
+                value: mapKey,
+                type: TableColumnType.Text,
+              }}] NOT IN ${{
+                value: new Includes(excludeValues),
+                type: TableColumnType.Text,
               }}`,
             );
             continue;
@@ -880,9 +1139,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   ): Promise<Statement> {
     const statement: string = `ALTER TABLE ${
       this.database.getDatasourceOptions().database
-    }.${
-      this.model.tableName
-    } RENAME COLUMN IF EXISTS ${oldColumnName} TO ${newColumnName}`;
+    }.${getStorageTableName(
+      this.model.tableName,
+    )} RENAME COLUMN IF EXISTS ${oldColumnName} TO ${newColumnName}`;
 
     return SQL`${statement}`;
   }
@@ -908,21 +1167,13 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       columns
         .append(keyStatement)
         .append(SQL` `)
-        .append(
-          column.required
-            ? this.toColumnType(column.type)
-            : SQL`Nullable(`
-                .append(this.toColumnType(column.type))
-                .append(SQL`)`),
-        );
+        .append(this.toFullColumnType(column));
 
       // Append CODEC if specified
       if (column.codec) {
-        const codecStr: string =
-          column.codec.level !== undefined
-            ? `${column.codec.codec}(${column.codec.level})`
-            : column.codec.codec;
-        columns.append(` CODEC(${codecStr})`);
+        columns.append(
+          ` CODEC(${StatementGenerator.buildCodecString(column.codec)})`,
+        );
       }
     }
 
@@ -971,6 +1222,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       Int32: TableColumnType.Number,
       Int64: TableColumnType.BigNumber,
       Int128: TableColumnType.LongNumber,
+      UInt64: TableColumnType.UInt64,
       Float32: TableColumnType.Decimal,
       Float64: TableColumnType.Decimal,
       DateTime: TableColumnType.Date,
@@ -985,7 +1237,23 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     }[clickhouseType];
   }
 
-  public toColumnType(type: TableColumnType): Statement {
+  /**
+   * ClickHouse type fragment for a column. The full column object is
+   * passed in (not just the type) because parameterized types like
+   * `AggregateFunction(...)` need to read additional fields off the
+   * column. Scalar types ignore the rest of the column.
+   */
+  public toColumnType(column: AnalyticsTableColumn): Statement {
+    if (column.type === TableColumnType.AggregateFunction) {
+      const def: string | undefined = column.aggregateFunctionDefinition;
+      if (!def) {
+        throw new BadDataException(
+          `Column ${column.key} is AggregateFunction but missing aggregateFunctionDefinition.`,
+        );
+      }
+      return SQL`AggregateFunction(`.append(def).append(SQL`)`);
+    }
+
     const statement: Statement | undefined = {
       [TableColumnType.Text]: SQL`String`,
       [TableColumnType.ObjectID]: SQL`String`,
@@ -1005,15 +1273,62 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       [TableColumnType.LongNumber]: SQL`Int128`,
       [TableColumnType.BigNumber]: SQL`Int64`,
       [TableColumnType.MapStringString]: SQL`Map(String, String)`,
-    }[type];
+      [TableColumnType.UInt8]: SQL`UInt8`,
+      [TableColumnType.UInt64]: SQL`UInt64`,
+    }[column.type];
 
     if (!statement) {
       throw new BadDataException(
-        `Unknown column type: ${type}. Please add support for this column type.`,
+        `Unknown column type: ${column.type}. Please add support for this column type.`,
       );
     }
 
     return statement;
+  }
+
+  /**
+   * Full ClickHouse type for a column, including the Nullable and
+   * LowCardinality wrappers. Wrapping order matters:
+   * `LowCardinality(Nullable(String))` — LowCardinality is the outermost
+   * wrapper. AggregateFunction columns are never wrapped (ClickHouse rejects
+   * `Nullable(AggregateFunction(...))`, and the engine already handles the
+   * empty initial state).
+   */
+  public toFullColumnType(column: AnalyticsTableColumn): Statement {
+    const isAggregateFunction: boolean =
+      column.type === TableColumnType.AggregateFunction;
+
+    let typeStatement: Statement = this.toColumnType(column);
+
+    if (!(column.required || isAggregateFunction)) {
+      typeStatement = SQL`Nullable(`.append(typeStatement).append(SQL`)`);
+    }
+
+    if (column.isLowCardinality && !isAggregateFunction) {
+      typeStatement = SQL`LowCardinality(`.append(typeStatement).append(SQL`)`);
+    }
+
+    return typeStatement;
+  }
+
+  /**
+   * Renders a column's codec into the string that goes inside CODEC(...).
+   * Accepts a single codec or an ordered pipeline; the pipeline is joined
+   * with ", " so [{codec:"DoubleDelta"},{codec:"ZSTD",level:1}] becomes
+   * "DoubleDelta, ZSTD(1)".
+   */
+  public static buildCodecString(codec: ColumnCodecValue): string {
+    const specs: Array<ColumnCodecConfig> = Array.isArray(codec)
+      ? codec
+      : [codec];
+
+    return specs
+      .map((spec: ColumnCodecConfig) => {
+        return spec.level !== undefined
+          ? `${spec.codec}(${spec.level})`
+          : spec.codec;
+      })
+      .join(", ");
   }
 
   public toDoesColumnExistStatement(columnName: string): string {
@@ -1035,26 +1350,34 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     columnDef
       .append(column.key)
       .append(SQL` `)
-      .append(
-        column.required
-          ? this.toColumnType(column.type)
-          : SQL`Nullable(`
-              .append(this.toColumnType(column.type))
-              .append(SQL`)`),
-      );
+      .append(this.toFullColumnType(column));
 
     if (column.codec) {
-      const codecStr: string =
-        column.codec.level !== undefined
-          ? `${column.codec.codec}(${column.codec.level})`
-          : column.codec.codec;
-      columnDef.append(` CODEC(${codecStr})`);
+      columnDef.append(
+        ` CODEC(${StatementGenerator.buildCodecString(column.codec)})`,
+      );
     }
 
+    /*
+     * ON CLUSTER is appended as RAW SQL right after the table reference. The
+     * analytics schema is ALWAYS a sharded + replicated cluster (see
+     * ClusterConfig: a single node is just a "cluster of one"). A bare
+     * `ALTER … ADD COLUMN` reaches only the shard the client is connected to —
+     * Keeper replicates within a shard but never across shards — so the column
+     * lands on one shard and a later scatter-gather read through the Distributed
+     * wrapper hits a shard that lacks it and fails with
+     * "Missing columns: '<col>'" (Code 47 UNKNOWN_IDENTIFIER). ON CLUSTER also
+     * makes this ADD COLUMN wait for cluster-wide completion, so the separate
+     * `ADD INDEX` that addColumnInDatabase issues next never races a column that
+     * has not yet propagated to the node the index DDL lands on.
+     */
     const statement: Statement = SQL`
-            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
-              this.model.tableName
-            } ADD COLUMN IF NOT EXISTS `.append(columnDef);
+            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${getStorageTableName(
+              this.model.tableName,
+            )}`
+      .append(onClusterClause())
+      .append(" ADD COLUMN IF NOT EXISTS ")
+      .append(columnDef);
 
     logger.debug(`${this.model.tableName} Add Column Statement`);
     logger.debug(statement);
@@ -1083,8 +1406,14 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     const databaseName: string = this.database.getDatasourceOptions().database!;
     const statement: Statement = new Statement();
+    /*
+     * ON CLUSTER (raw SQL) so the skip index is added on every shard, matching
+     * toAddColumnStatement. A bare ADD INDEX only reaches the connected shard,
+     * and if the column it references has not propagated to that node yet it
+     * fails with "Missing columns: '<col>'" (Code 47).
+     */
     statement.append(
-      `ALTER TABLE ${databaseName}.${this.model.tableName} ADD INDEX IF NOT EXISTS ${idx.name} ${columnExpr} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`,
+      `ALTER TABLE ${databaseName}.${getStorageTableName(this.model.tableName)}${onClusterClause()} ADD INDEX IF NOT EXISTS ${idx.name} ${columnExpr} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`,
     );
 
     logger.debug(`${this.model.tableName} Add Skip Index Statement`);
@@ -1095,7 +1424,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
   public toDropSkipIndexStatement(indexName: string): string {
     const databaseName: string = this.database.getDatasourceOptions().database!;
-    const statement: string = `ALTER TABLE ${databaseName}.${this.model.tableName} DROP INDEX IF EXISTS ${indexName}`;
+    const statement: string = `ALTER TABLE ${databaseName}.${getStorageTableName(this.model.tableName)}${onClusterClause()} DROP INDEX IF EXISTS ${indexName}`;
 
     logger.debug(`${this.model.tableName} Drop Skip Index Statement`);
     logger.debug(statement);
@@ -1105,7 +1434,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
   public toDropColumnStatement(columnName: string): string {
     const statement: string = `ALTER TABLE ${this.database.getDatasourceOptions()
-      .database!}.${this.model.tableName} DROP COLUMN IF EXISTS ${columnName}`;
+      .database!}.${getStorageTableName(
+      this.model.tableName,
+    )}${onClusterClause()} DROP COLUMN IF EXISTS ${columnName}`;
 
     logger.debug(`${this.model.tableName} Drop Column Statement`);
     logger.debug(statement);
@@ -1120,16 +1451,40 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     );
 
     /*
-     * special case - ClickHouse does not support using a query parameter
-     * to specify the table engine
+     * special case - ClickHouse does not support using a query parameter to
+     * specify the table name, engine, or ON CLUSTER clause, so these are
+     * interpolated as raw SQL (the SQL tag only parameterizes ${{value,type}}
+     * objects, not plain string interpolations).
+     *
+     * In cluster mode this builds the LOCAL storage table
+     * (`<tableName>Local` with a Replicated* engine) `ON CLUSTER '<name>'`; the
+     * app-facing Distributed table is created separately via
+     * toDistributedTableCreateStatement(). In single-node mode it builds the
+     * model's own table with its plain engine, exactly as before.
      */
-    const tableEngineStatement: string = this.model.tableEngine;
+    const tableEngineStatement: string = getStorageEngine(
+      this.model.tableEngine,
+    );
+
+    const storageTableName: string = getStorageTableName(this.model.tableName);
+
+    const onCluster: string = onClusterClause();
 
     const partitionKey: string = this.model.partitionKey;
 
     const statement: Statement = SQL`
-            CREATE TABLE IF NOT EXISTS ${databaseName}.${this.model.tableName}
-            (\n`
+            CREATE TABLE IF NOT EXISTS ${databaseName}.${storageTableName}`
+      /*
+       * ON CLUSTER is appended as RAW SQL — the SQL tag turns every ${..}
+       * interpolation into a {pN:Identifier} parameter, which would wrongly
+       * quote the whole " ON CLUSTER '<name>'" clause as a single identifier.
+       * onCluster is "" in single-node mode, so this is a no-op there.
+       */
+      .append(onCluster)
+      .append(
+        SQL`
+            (\n`,
+      )
       .append(columnsStatement)
       .append(
         SQL`
@@ -1167,9 +1522,52 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       statement.append(`\nTTL ${this.model.ttlExpression}`);
     }
 
+    /*
+     * Append table-level SETTINGS if specified (e.g. ttl_only_drop_parts = 1
+     * so TTL drops whole time-partitions instead of rewriting parts). In
+     * cluster mode the non-replicated dedup window is rewritten to its
+     * replicated equivalent so insert idempotency survives.
+     */
+    const tableSettings: string | undefined = adaptTableSettingsForStorage(
+      this.model.tableSettings,
+    );
+    if (tableSettings) {
+      statement.append(`\nSETTINGS ${tableSettings}`);
+    }
+
     /* eslint-enable prettier/prettier */
 
     logger.debug(`${this.model.tableName} Table Create Statement`);
+    logger.debug(statement);
+
+    return statement;
+  }
+
+  /*
+   * The app-facing Distributed table that wraps the model's local storage table.
+   * Built with `AS <db>.<local>` so its column layout is copied from — and stays
+   * identical to — the local table, and with `CREATE OR REPLACE` so re-running it
+   * every boot atomically re-syncs the wrapper after a column is reconciled onto
+   * the local table (the Distributed table holds no data, so the replace is cheap
+   * and lossless). The Distributed engine routes writes by the model's sharding
+   * key and scatter-gathers reads across all shards.
+   */
+  public toDistributedTableCreateStatement(): Statement {
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+    const distributedTableName: string = this.model.tableName;
+    const localTableName: string = getStorageTableName(this.model.tableName);
+    const onCluster: string = onClusterClause();
+    const distributedEngine: string = getDistributedEngine(
+      localTableName,
+      this.model.shardingKey,
+    );
+
+    const statement: Statement = new Statement();
+    statement.append(
+      `CREATE OR REPLACE TABLE ${databaseName}.${distributedTableName}${onCluster} AS ${databaseName}.${localTableName} ENGINE = ${distributedEngine}`,
+    );
+
+    logger.debug(`${this.model.tableName} Distributed Table Create Statement`);
     logger.debug(statement);
 
     return statement;

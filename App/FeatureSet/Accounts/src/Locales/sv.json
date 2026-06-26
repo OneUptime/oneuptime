@@ -86,7 +86,9 @@
     "selectProjectSubtitle": "Välj projektet du vill logga in på.",
     "noConfigForEmail": "Ingen SSO-konfiguration hittades för e-posten: {{email}}",
     "emailRequired": "E-post krävs för att utföra denna åtgärd",
-    "defaultProjectName": "Projekt"
+    "defaultProjectName": "Projekt",
+    "globalProvidersTitle": "Logga in med din organisation",
+    "globalProvidersDivider": "Eller fortsätt med e-post"
   },
   "verifyEmail": {
     "successTitle": "Din e-post är verifierad.",
@@ -104,5 +106,7 @@
       "title": "Sidan hittades inte",
       "description": "Sidan du letar efter finns inte."
     }
-  }
+  },
+  "Acme, Inc.": "Acme, Inc.",
+  "Jeff Smith": "Jeff Smith"
 }

@@ -10,6 +10,9 @@ export enum ComponentInputType {
   Decimal = "Decimal",
   MetricsQueryConfig = "MetricsQueryConfig",
   MetricsQueryConfigs = "MetricsQueryConfigs",
+  MetricsFormulaConfigs = "MetricsFormulaConfigs",
+  TableColumns = "TableColumns",
+  TableGroupBy = "TableGroupBy",
   LongText = "Long Text",
   Dropdown = "Dropdown",
   MultiSelectDropdown = "MultiSelectDropdown",
@@ -27,6 +30,10 @@ export enum EntityFilterModelType {
   Label = "Label",
   KubernetesCluster = "KubernetesCluster",
   DockerHost = "DockerHost",
+  PodmanHost = "PodmanHost",
+  ProxmoxCluster = "ProxmoxCluster",
+  CephCluster = "CephCluster",
+  DockerSwarmCluster = "DockerSwarmCluster",
 }
 
 export interface ComponentArgumentSection {

@@ -22,6 +22,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
+import ExportModelCard from "Common/UI/Components/ImportExport/ExportModelCard";
 import { APP_API_URL } from "Common/UI/Config";
 
 const StatusPageAdvancedOptions: FunctionComponent<
@@ -214,6 +215,10 @@ const StatusPageAdvancedOptions: FunctionComponent<
             </div>
           </div>
         </Card>
+
+        <div className="mt-5">
+          <ExportModelCard modelId={modelId} modelType={StatusPage} />
+        </div>
 
         {showRegenerateTokenModal && (
           <ConfirmModal

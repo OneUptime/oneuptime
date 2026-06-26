@@ -51,14 +51,14 @@ const MonitorCustomMetrics: FunctionComponent<ComponentProps> = (
         /*
          * Query ClickHouse for recent metrics belonging to this monitor
          * with names starting with "custom.monitor."
-         * monitorId is stored as serviceId in the Metric table.
+         * monitorId is stored as primaryEntityId in the Metric table.
          */
         const listResult: ListResult<Metric> =
           await AnalyticsModelAPI.getList<Metric>({
             modelType: Metric,
             query: {
               projectId: ProjectUtil.getCurrentProjectId()!,
-              serviceId: props.monitorId,
+              primaryEntityId: props.monitorId,
               name: new Search("custom.monitor.") as any,
               time: new InBetween(
                 OneUptimeDate.addRemoveDays(

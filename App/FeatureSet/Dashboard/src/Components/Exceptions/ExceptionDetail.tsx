@@ -1,4 +1,8 @@
 import Service from "Common/Models/DatabaseModels/Service";
+import ObjectID from "Common/Types/ObjectID";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
+import ProjectUtil from "Common/UI/Utils/Project";
+import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import { JSONObject } from "Common/Types/JSON";
 import Card from "Common/UI/Components/Card/Card";
 import Detail from "Common/UI/Components/Detail/Detail";
@@ -16,7 +20,10 @@ export interface ComponentProps {
   lastSeenAt?: Date | undefined;
   occuranceCount?: number | undefined;
   attributes?: JSONObject | undefined;
-  telemetryService?: Service | undefined;
+  primaryEntityId?: ObjectID | undefined;
+  primaryEntityType?: ServiceType | undefined;
+  // The project's Services, for resolving a real OpenTelemetry primaryEntityId.
+  services?: Array<Service> | undefined;
   firstSeenInRelease?: string | undefined;
   lastSeenInRelease?: string | undefined;
   environment?: string | undefined;
@@ -128,14 +135,40 @@ const ExceptionDetail: FunctionComponent<ComponentProps> = (
     });
   }
 
-  if (props.telemetryService) {
+  /*
+   * Resolve the resource this exception belongs to from its polymorphic
+   * (primaryEntityId, primaryEntityType): a real Service renders as a linked
+   * ServiceElement; the unattributed bucket renders as a non-linked
+   * synthetic "Unknown Service"; Host / DockerHost / KubernetesCluster
+   * render as a typed label. The bare "Unknown" fallback is omitted.
+   */
+  const serviceField: ReactElement | null = ((): ReactElement | null => {
+    const { service, label } = TelemetryServiceUtil.resolveTelemetryResource({
+      primaryEntityId: props.primaryEntityId,
+      primaryEntityType: props.primaryEntityType,
+      services: props.services || [],
+      projectId: ProjectUtil.getCurrentProjectId(),
+    });
+
+    if (service) {
+      return <ServiceElement service={service} />;
+    }
+
+    if (label && label !== "Unknown") {
+      return <div className="text-gray-700">{label}</div>;
+    }
+
+    return null;
+  })();
+
+  if (serviceField) {
     fields.push({
-      key: "telemetryService",
+      key: "primaryEntityId",
       title: "Telemetry Service",
-      description: "The service that this exception was received from.",
+      description: "The resource that this exception was received from.",
       fieldType: FieldType.Element,
       getElement: () => {
-        return <ServiceElement service={props.telemetryService!} />;
+        return serviceField;
       },
     });
   }

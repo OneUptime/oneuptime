@@ -29,6 +29,70 @@ Usage:
   {{- printf "%s/%s/%s:%s" $values.image.registry $values.image.repository $imageName (include "oneuptime.image.tag" (dict "Values" $values)) -}}
 {{- end -}}
 
+{{/*
+Resolve the REAL Postgres backend (built-in StatefulSet, CloudNativePG, or
+externalPostgres) — never the pgbouncer pooler. These are what pgbouncer points
+its upstream at, and what the app points at directly when pgbouncer is disabled.
+*/}}
+{{- define "oneuptime.postgres.backendHost" -}}
+{{- if .Values.postgresOperator.cnpg.enabled -}}
+{{ .Release.Name }}-postgresql-cnpg-rw.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }}
+{{- else if .Values.postgresql.enabled -}}
+{{ .Release.Name }}-postgresql.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }}
+{{- else -}}
+{{ .Values.externalPostgres.host }}
+{{- end -}}
+{{- end -}}
+
+{{- define "oneuptime.postgres.backendPort" -}}
+{{- if .Values.postgresOperator.cnpg.enabled -}}
+5432
+{{- else if .Values.postgresql.enabled -}}
+{{ .Values.postgresql.primary.service.ports.postgresql }}
+{{- else -}}
+{{ .Values.externalPostgres.port }}
+{{- end -}}
+{{- end -}}
+
+{{- define "oneuptime.postgres.backendUser" -}}
+{{- if or .Values.postgresOperator.cnpg.enabled .Values.postgresql.enabled -}}
+postgres
+{{- else -}}
+{{ .Values.externalPostgres.username }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Emit the backend Postgres password as a PGB_DB_PASSWORD env entry, sourced from
+the same secret the app uses (auto-generated for the StatefulSet/CNPG, or the
+externalPostgres password / existingSecret). Used by the pgbouncer pod to build
+its userlist at startup.
+*/}}
+{{- define "oneuptime.postgres.backendPasswordEnv" -}}
+- name: PGB_DB_PASSWORD
+  {{- if .Values.postgresOperator.cnpg.enabled }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ printf "%s-postgresql-cnpg-superuser" .Release.Name }}
+      key: password
+  {{- else if .Values.postgresql.enabled }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ printf "%s-postgresql" .Release.Name }}
+      key: postgres-password
+  {{- else if .Values.externalPostgres.existingSecret.name }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.externalPostgres.existingSecret.name }}
+      key: {{ .Values.externalPostgres.existingSecret.passwordKey }}
+  {{- else }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ printf "%s-external-postgres" .Release.Name }}
+      key: password
+  {{- end }}
+{{- end -}}
+
 {{- define "oneuptime.env.common" }}
 {{- $isEnterpriseEdition := eq (default "community-edition" $.Values.image.type) "enterprise-edition" }}
 {{- $provisionSSL := false -}}
@@ -253,21 +317,29 @@ Usage:
   {{- end }}
   {{- end }}
 
+{{- $chAltinity := $.Values.clickhouseOperator.altinity }}
 - name: CLICKHOUSE_USER
-  {{- if $.Values.clickhouse.enabled }}
+  {{- if $chAltinity.enabled }}
+  value: {{ $chAltinity.auth.username | default "oneuptime" }}
+  {{- else if $.Values.clickhouse.enabled }}
   value: {{ $.Values.clickhouse.auth.username }}
   {{- else }}
   value: {{ $.Values.externalClickhouse.username }}
   {{- end }}
 
 - name: CLICKHOUSE_IS_HOST_HTTPS
-  {{- if $.Values.clickhouse.enabled }}
+  {{- if or $chAltinity.enabled $.Values.clickhouse.enabled }}
   value: {{ false | squote }}
   {{- else }}
   value: {{ $.Values.externalClickhouse.isHostHttps | squote }}
   {{- end }}
 - name: CLICKHOUSE_PASSWORD
-  {{- if $.Values.clickhouse.enabled }}
+  {{- if $chAltinity.enabled }}
+  valueFrom:
+    secretKeyRef:
+        name: {{ printf "%s-clickhouse-altinity" $.Release.Name }}
+        key: admin-password
+  {{- else if $.Values.clickhouse.enabled }}
   valueFrom:
     secretKeyRef:
         {{- if .Values.clickhouse.auth.existingSecret.name }}
@@ -292,27 +364,58 @@ Usage:
   {{- end }}
   {{- end }}
 - name: CLICKHOUSE_HOST
-  {{- if $.Values.clickhouse.enabled }}
+  {{- if $chAltinity.enabled }}
+  value: {{ $.Release.Name }}-clickhouse-altinity.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+  {{- else if $.Values.clickhouse.enabled }}
   value: {{ $.Release.Name }}-clickhouse.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
   {{- else }}
   value: {{ $.Values.externalClickhouse.host }}
   {{- end }}
 - name: CLICKHOUSE_PORT
-  {{- if $.Values.clickhouse.enabled }}
+  {{- if $chAltinity.enabled }}
+  value: {{ printf "%s" "8123" | squote }}
+  {{- else if $.Values.clickhouse.enabled }}
   value: {{ printf "%s" $.Values.clickhouse.service.ports.http | squote }}
   {{- else }}
   value: {{ $.Values.externalClickhouse.port | quote }}
   {{- end }}
 - name: CLICKHOUSE_DATABASE
-  {{- if $.Values.clickhouse.enabled }}
+  {{- if $chAltinity.enabled }}
+  value: {{ $chAltinity.database | default "oneuptime" | squote }}
+  {{- else if $.Values.clickhouse.enabled }}
   value: {{ printf "oneuptime" | squote}}
   {{- else }}
   value: {{ $.Values.externalClickhouse.database }}
   {{- end }}
+# Cluster name. OneUptime's analytics schema ALWAYS runs as a sharded +
+# replicated cluster (Distributed over local ReplicatedMergeTree, ON CLUSTER).
+# The name must match the cluster defined in the ClickHouse config:
+#   - operator path: the CHI cluster (clickhouseOperator.altinity.cluster.name);
+#   - built-in StatefulSet: the "oneuptime" 1-node cluster + embedded Keeper in
+#     clickhouse.configuration;
+#   - external ClickHouse: the cluster you defined there (externalClickhouse.clusterName).
+# The ConvertAnalyticsTablesToCluster data-migration converts any existing
+# single-node data in place on boot.
+- name: CLICKHOUSE_CLUSTER_NAME
+  {{- if $chAltinity.enabled }}
+  value: {{ $chAltinity.cluster.name | default "oneuptime" | squote }}
+  {{- else if $.Values.clickhouse.enabled }}
+  value: "oneuptime"
+  {{- else }}
+  value: {{ $.Values.externalClickhouse.clusterName | default "oneuptime" | squote }}
+  {{- end }}
+{{- if $chAltinity.enabled }}
+{{- with $chAltinity.cluster.shardingKey }}
+# Optional GLOBAL override of the Distributed sharding-key expression (default:
+# each model's own key — cityHash64(traceId) for spans, the series for metrics).
+- name: CLICKHOUSE_SHARDING_KEY
+  value: {{ . | squote }}
+{{- end }}
+{{- end }}
 
 
-## REDIS SSL BLOCK
-{{- if $.Values.clickhouse.enabled }}
+## CLICKHOUSE SSL BLOCK
+{{- if or $chAltinity.enabled $.Values.clickhouse.enabled }}
 # do nothing here.
 {{- else }}
 {{- if $.Values.externalClickhouse.tls.enabled }}
@@ -436,27 +539,41 @@ Usage:
 {{- end }}
 
 # Postgres configuration
+{{- $cnpg := $.Values.postgresOperator.cnpg }}
 
 - name: DATABASE_HOST
-  {{- if $.Values.postgresql.enabled }}
+  {{- if and $.Values.pgbouncer.enabled (not $.DirectPostgres) }}
+  value: {{ $.Release.Name }}-pgbouncer.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+  {{- else if $cnpg.enabled }}
+  value: {{ $.Release.Name }}-postgresql-cnpg-rw.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+  {{- else if $.Values.postgresql.enabled }}
   value: {{ $.Release.Name }}-postgresql.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
   {{- else }}
   value: {{ $.Values.externalPostgres.host }}
   {{- end }}
 - name: DATABASE_PORT
-  {{- if $.Values.postgresql.enabled }}
+  {{- if and $.Values.pgbouncer.enabled (not $.DirectPostgres) }}
+  value: {{ $.Values.pgbouncer.service.port | quote }}
+  {{- else if $cnpg.enabled }}
+  value: '5432'
+  {{- else if $.Values.postgresql.enabled }}
   value: {{ printf "%s" $.Values.postgresql.primary.service.ports.postgresql | squote }}
   {{- else }}
   value: {{ $.Values.externalPostgres.port | quote }}
   {{- end }}
 - name: DATABASE_USERNAME
-  {{- if $.Values.postgresql.enabled }}
+  {{- if or $cnpg.enabled $.Values.postgresql.enabled }}
   value: postgres
   {{- else }}
   value: {{ $.Values.externalPostgres.username }}
   {{- end }}
 - name: DATABASE_PASSWORD
-  {{- if $.Values.postgresql.enabled }}
+  {{- if $cnpg.enabled }}
+  valueFrom:
+    secretKeyRef:
+        name: {{ printf "%s-postgresql-cnpg-superuser" $.Release.Name }}
+        key: password
+  {{- else if $.Values.postgresql.enabled }}
   valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "postgresql"  }}
@@ -476,16 +593,39 @@ Usage:
   {{- end }}
   {{- end }}
 - name: DATABASE_NAME
-  {{- if $.Values.postgresql.enabled }}
+  {{- if $cnpg.enabled }}
+  value: {{ $cnpg.database | default "oneuptimedb" }}
+  {{- else if $.Values.postgresql.enabled }}
   value: {{ $.Values.postgresql.auth.database }}
   {{- else }}
   value: {{ $.Values.externalPostgres.database }}
   {{- end }}
+{{- if .DatabaseMaxOpenConnections }}
+# Per-pod node-postgres pool ceiling. Resolved per service at the call site
+# (service override | deployment.databaseMaxOpenConnections | unset). Unset
+# falls back to the app's built-in default (50). Lower this to make a
+# connection-pooled / capped backend (e.g. pgbouncer in session mode, or a
+# managed DB) effective — see HelmChart/Docs/Postgres.md.
+- name: DATABASE_MAX_OPEN_CONNECTIONS
+  value: {{ .DatabaseMaxOpenConnections | quote }}
+{{- end }}
+{{- if and $.Values.migrate.enabled (not $.DirectPostgres) }}
+# A dedicated migrate Job owns schema + data migrations, so runtime pods must
+# NOT run them on boot — this keeps the data-migration session advisory lock
+# off the pooled runtime connection, which is what makes pgbouncer
+# transaction-mode pooling safe. (The migrate Job sets DirectPostgres, so it is
+# excluded here and runs migrations itself.)
+- name: RUN_DATABASE_MIGRATIONS_ON_BOOT
+  value: "false"
+{{- end }}
 
 
 ## DATABASE SSL BLOCK
-{{- if $.Values.postgresql.enabled }}
-# do nothing here.
+{{- if or $cnpg.enabled $.Values.postgresql.enabled (and $.Values.pgbouncer.enabled (not $.DirectPostgres)) }}
+# do nothing here. (With pgbouncer in front, the app -> pgbouncer hop is
+# in-cluster plaintext; pgbouncer originates TLS to the backend instead. A
+# DirectPostgres consumer — the migrate Job — falls through to the external
+# SSL env below so it can talk TLS straight to a managed backend.)
 {{- else }}
 {{- if $.Values.externalPostgres.ssl.enabled }}
 
@@ -529,6 +669,9 @@ Usage:
 
 - name: DISABLE_AUTOMATIC_ALERT_CREATION
   value: {{ $.Values.alerts.disableAutomaticCreation | squote }}
+
+- name: DISABLE_TELEMETRY_INGESTION
+  value: {{ default false $.Values.telemetry.disableIngestion | squote }}
 
 - name: WORKFLOW_SCRIPT_TIMEOUT_IN_MS
   value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
@@ -782,6 +925,63 @@ spec:
 {{- end }}
 
 
+{{/*
+PodDisruptionBudget template for a stateless deployment.
+
+Merges the global ".Values.podDisruptionBudget" defaults with an optional
+per-service override object, then renders a policy/v1 PodDisruptionBudget that
+selects the deployment by its "app: <release>-<service>" label (the same label
+the Deployment uses, so the names line up across resource kinds).
+
+minAvailable takes precedence over maxUnavailable when both resolve to a value
+(the PDB spec permits only one). Empty / null values are treated as unset, so a
+service can switch from the default maxUnavailable to minAvailable just by
+setting minAvailable in its override. If neither resolves, nothing is rendered.
+
+Usage:
+  include "oneuptime.pdb" (dict
+    "ServiceName" "app"
+    "Override" $.Values.app.podDisruptionBudget
+    "Release" $.Release
+    "Values" $.Values)
+*/}}
+{{- define "oneuptime.pdb" -}}
+{{- $g := .Values.podDisruptionBudget | default dict -}}
+{{- $o := .Override | default dict -}}
+{{- $enabled := $g.enabled -}}
+{{- if hasKey $o "enabled" -}}{{- $enabled = $o.enabled -}}{{- end -}}
+{{- if $enabled -}}
+{{- $minAvailable := $g.minAvailable -}}
+{{- $maxUnavailable := $g.maxUnavailable -}}
+{{- if hasKey $o "minAvailable" -}}{{- $minAvailable = $o.minAvailable -}}{{- end -}}
+{{- if hasKey $o "maxUnavailable" -}}{{- $maxUnavailable = $o.maxUnavailable -}}{{- end -}}
+{{- $hasMin := and (not (kindIs "invalid" $minAvailable)) (ne ($minAvailable | toString) "") -}}
+{{- $hasMax := and (not (kindIs "invalid" $maxUnavailable)) (ne ($maxUnavailable | toString) "") -}}
+{{- if or $hasMin $hasMax }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name $.ServiceName }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" $.Release.Name $.ServiceName }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+spec:
+  {{- if $hasMin }}
+  minAvailable: {{ $minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ $maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ printf "%s-%s" $.Release.Name $.ServiceName }}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+
 {{- define "oneuptime.pvc" }}
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -825,6 +1025,11 @@ spec:
   maxReplicaCount: {{ .MetricsConfig.maxReplicas }}
   pollingInterval: {{ .MetricsConfig.pollingInterval }}
   cooldownPeriod: {{ .MetricsConfig.cooldownPeriod }}
+  {{- if and .MetricsConfig.fallback (gt (int .MetricsConfig.fallback.replicas) 0) }}
+  fallback:
+    failureThreshold: {{ .MetricsConfig.fallback.failureThreshold | default 3 }}
+    replicas: {{ .MetricsConfig.fallback.replicas }}
+  {{- end }}
   advanced:
     horizontalPodAutoscalerConfig:
       behavior:

@@ -17,6 +17,7 @@ export default class IncidentEpisodeWorkspaceMessages {
     incidentEpisodeId: ObjectID;
     episodeNumber: number;
     episodeNumberWithPrefix?: string;
+    isPrivate?: boolean;
   }): Promise<{
     channelsCreated: NotificationRuleWorkspaceChannel[];
   } | null> {
@@ -31,6 +32,7 @@ export default class IncidentEpisodeWorkspaceMessages {
           notificationRuleEventType: NotificationRuleEventType.IncidentEpisode,
           channelNameSiffix:
             data.episodeNumberWithPrefix || data.episodeNumber.toString(),
+          ...(data.isPrivate ? { isPrivate: true } : {}),
         },
       );
     } catch (err) {

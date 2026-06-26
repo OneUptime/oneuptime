@@ -65,7 +65,7 @@ interface ContextLog {
   time: string;
   severity: string;
   body: string;
-  serviceId: string;
+  primaryEntityId: string;
 }
 
 const prepareBody: (body: string | undefined) => PreparedBody = (
@@ -106,7 +106,7 @@ function parseContextRow(row: JSONObject): ContextLog {
     time: String(row["time"] || ""),
     severity: String(row["severityText"] || "Unspecified"),
     body: String(row["body"] || ""),
-    serviceId: String(row["serviceId"] || ""),
+    primaryEntityId: String(row["primaryEntityId"] || ""),
   };
 }
 
@@ -121,9 +121,10 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
   const [contextLoaded, setContextLoaded] = useState<boolean>(false);
 
   const variant: "floating" | "embedded" = props.variant || "floating";
-  const serviceId: string = props.log.serviceId?.toString() || "";
-  const service: Service | undefined = props.serviceMap[serviceId];
-  const serviceName: string = service?.name || serviceId || "Unknown service";
+  const primaryEntityId: string = props.log.primaryEntityId?.toString() || "";
+  const service: Service | undefined = props.serviceMap[primaryEntityId];
+  const serviceName: string =
+    service?.name || primaryEntityId || "Unknown service";
   const serviceColor: string =
     (service?.serviceColor && service?.serviceColor.toString()) || "#64748b";
 
@@ -214,7 +215,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
 
   const loadContext: () => Promise<void> =
     useCallback(async (): Promise<void> => {
-      if (!props.projectId || !serviceId || !props.log.time) {
+      if (!props.projectId || !primaryEntityId || !props.log.time) {
         setContextError("Missing project or service information for context.");
         return;
       }
@@ -230,7 +231,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
             ),
             data: {
               logId: props.log.getColumnValue("_id")?.toString() || "",
-              serviceId: serviceId,
+              primaryEntityId: primaryEntityId,
               time: props.log.time
                 ? OneUptimeDate.toString(props.log.time)
                 : "",
@@ -260,7 +261,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
       } finally {
         setContextLoading(false);
       }
-    }, [props.projectId, serviceId, props.log]);
+    }, [props.projectId, primaryEntityId, props.log]);
 
   useEffect(() => {
     if (activeTab === "context" && !contextLoaded && !contextLoading) {
@@ -622,7 +623,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                   time: props.log.time ? props.log.time.toString() : "",
                   severity: props.log.severityText?.toString() || "Unspecified",
                   body: props.log.body || "",
-                  serviceId: serviceId,
+                  primaryEntityId: primaryEntityId,
                 },
                 true,
               )}

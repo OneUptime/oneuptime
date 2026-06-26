@@ -4,14 +4,17 @@ import CodeExampleGenerator, {
 } from "../Utils/CodeExampleGenerator";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
+import { buildRenderContext } from "../Utils/RenderContext";
 import PageNotFoundServiceHandler from "./PageNotFound";
 import { AppApiRoute } from "Common/ServiceRoute";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import {
   getTableColumns,
   TableColumnMetadata,
 } from "Common/Types/Database/TableColumn";
+import TableColumnType from "Common/Types/Database/TableColumnType";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -41,6 +44,8 @@ interface ApiCodeExamples {
   create: CodeExamples;
   update: CodeExamples;
   delete: CodeExamples;
+  // Analytics-only endpoint (group-by/sum/percentiles over time buckets).
+  aggregate?: CodeExamples;
 }
 
 // Helper function to get a default example value based on column type
@@ -314,6 +319,87 @@ function generateApiCodeExamples(
   };
 }
 
+/*
+ * Analytics (ClickHouse) models store their schema as an array of
+ * AnalyticsTableColumn rather than reflected TypeORM metadata, so
+ * getTableColumns() (which reads decorator metadata) returns nothing for
+ * them. Project the analytics columns into the same TableColumnMetadata
+ * shape the model page already knows how to render.
+ */
+function getAnalyticsTableColumnsForDocumentation(
+  model: AnalyticsBaseModel,
+): Dictionary<TableColumnMetadata> {
+  const dict: Dictionary<TableColumnMetadata> = {};
+
+  for (const column of model.tableColumns) {
+    dict[column.key] = {
+      title: column.title,
+      description: column.description,
+      required: column.required,
+      /*
+       * Analytics and Postgres use distinct TableColumnType enums; the
+       * doc view only renders this as a label, so a string-level cast is
+       * safe.
+       */
+      type: column.type as unknown as TableColumnType,
+    };
+  }
+
+  return dict;
+}
+
+/*
+ * Build a representative request body for the analytics-only /aggregate
+ * endpoint. Picks the model's indexed timestamp column and the first
+ * numeric column so the example is valid against the real schema.
+ */
+function generateAggregateCodeExamples(
+  apiPath: string,
+  model: AnalyticsBaseModel,
+): CodeExamples {
+  const timestampColumn: string = model.defaultSortColumn || "createdAt";
+
+  const numericTypeHints: Array<string> = [
+    "number",
+    "decimal",
+    "int",
+    "long",
+    "float",
+    "double",
+  ];
+
+  let valueColumn: string = timestampColumn;
+  for (const column of model.tableColumns) {
+    const typeStr: string = (column.type?.toString() || "").toLowerCase();
+    if (
+      numericTypeHints.some((hint: string) => {
+        return typeStr.includes(hint);
+      })
+    ) {
+      valueColumn = column.key;
+      break;
+    }
+  }
+
+  return CodeExampleGenerator.generate({
+    method: "POST",
+    endpoint: `${apiPath}/aggregate`,
+    body: {
+      aggregateBy: {
+        aggregationType: "Count",
+        aggregateColumnName: valueColumn,
+        aggregationTimestampColumnName: timestampColumn,
+        startTimestamp: "2024-01-15T00:00:00.000Z",
+        endTimestamp: "2024-01-16T00:00:00.000Z",
+        query: {},
+        limit: 100,
+        skip: 0,
+      },
+    },
+    description: "Aggregate items into time buckets",
+  });
+}
+
 // Get all resources and resource dictionary
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 const DataTypes: Array<DataTypeDocumentation> = DataTypeUtil.getDataTypes();
@@ -333,6 +419,7 @@ export default class ServiceHandler {
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
+    const ctx: ReturnType<typeof buildRenderContext> = buildRenderContext(req);
     let pageTitle: string = "";
     let pageDescription: string = "";
     let page: string | undefined = req.params["page"];
@@ -358,10 +445,16 @@ export default class ServiceHandler {
 
     page = "model";
 
-    // Get table columns for current resource
-    const tableColumns: Dictionary<TableColumnMetadata> = getTableColumns(
-      currentResource.model,
-    );
+    const isAnalytics: boolean = currentResource.isAnalytics;
+    const model: BaseModel | AnalyticsBaseModel = currentResource.model;
+
+    /*
+     * Get table columns for current resource. Analytics models carry their
+     * own column metadata; Postgres models expose it via reflection.
+     */
+    const tableColumns: Dictionary<TableColumnMetadata> = isAnalytics
+      ? getAnalyticsTableColumnsForDocumentation(model as AnalyticsBaseModel)
+      : getTableColumns(model as BaseModel);
 
     // Filter out columns with no access
     for (const key in tableColumns) {
@@ -429,27 +522,36 @@ export default class ServiceHandler {
     pageData["description"] = currentResource.model.tableDescription;
     pageData["columns"] = tableColumns;
 
+    /*
+     * Postgres models expose record permissions as `*RecordPermissions`
+     * fields; Analytics models expose them via `get*Permissions()`.
+     */
+    const readPermissions: Array<Permission> = isAnalytics
+      ? (model as AnalyticsBaseModel).getReadPermissions()
+      : (model as BaseModel).readRecordPermissions;
+    const updatePermissions: Array<Permission> = isAnalytics
+      ? (model as AnalyticsBaseModel).getUpdatePermissions()
+      : (model as BaseModel).updateRecordPermissions;
+    const deletePermissions: Array<Permission> = isAnalytics
+      ? (model as AnalyticsBaseModel).getDeletePermissions()
+      : (model as BaseModel).deleteRecordPermissions;
+    const createPermissions: Array<Permission> = isAnalytics
+      ? (model as AnalyticsBaseModel).getCreatePermissions()
+      : (model as BaseModel).createRecordPermissions;
+
     pageData["tablePermissions"] = {
-      read: currentResource.model.readRecordPermissions.map(
-        (permission: Permission) => {
-          return PermissionDictionary[permission];
-        },
-      ),
-      update: currentResource.model.updateRecordPermissions.map(
-        (permission: Permission) => {
-          return PermissionDictionary[permission];
-        },
-      ),
-      delete: currentResource.model.deleteRecordPermissions.map(
-        (permission: Permission) => {
-          return PermissionDictionary[permission];
-        },
-      ),
-      create: currentResource.model.createRecordPermissions.map(
-        (permission: Permission) => {
-          return PermissionDictionary[permission];
-        },
-      ),
+      read: readPermissions.map((permission: Permission) => {
+        return PermissionDictionary[permission];
+      }),
+      update: updatePermissions.map((permission: Permission) => {
+        return PermissionDictionary[permission];
+      }),
+      delete: deletePermissions.map((permission: Permission) => {
+        return PermissionDictionary[permission];
+      }),
+      create: createPermissions.map((permission: Permission) => {
+        return PermissionDictionary[permission];
+      }),
     };
 
     // Cache the list request data
@@ -608,7 +710,20 @@ export default class ServiceHandler {
       exampleObjects,
       exampleObjectID,
     );
+
+    /*
+     * Analytics models additionally expose an /aggregate endpoint. Gate
+     * both the example and the rendered section on this flag.
+     */
+    if (isAnalytics) {
+      codeExamples.aggregate = generateAggregateCodeExamples(
+        apiPath,
+        model as AnalyticsBaseModel,
+      );
+    }
+
     pageData["codeExamples"] = codeExamples;
+    pageData["showAggregate"] = isAnalytics;
 
     // Check if the current resource is a master admin API
     pageData["isMasterAdminApiDocs"] =
@@ -623,6 +738,10 @@ export default class ServiceHandler {
       enableGoogleTagManager: IsBillingEnabled,
       pageDescription: pageDescription,
       pageData: pageData,
+      lang: ctx.lang,
+      t: ctx.t,
+      supportedLanguages: ctx.supportedLanguages,
+      currentPath: ctx.currentPath,
     });
   }
 }

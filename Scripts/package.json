@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/scripts",
-  "version": "1.0.0",
+  "version": "11.3.6",
   "description": "",
   "repository": {
     "type": "git",
@@ -19,10 +19,11 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^6.3.1",
-    "@types/jest": "^27.5.2",
+    "@types/jest": "^28.1.4",
     "@types/node": "^17.0.22",
-    "jest": "^27.5.1",
-    "ts-jest": "^27.1.4"
+    "jest": "^28.1.1",
+    "ts-jest": "^28.0.5",
+    "typescript": "^5.9.2"
   },
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
   "license": "Apache-2.0"

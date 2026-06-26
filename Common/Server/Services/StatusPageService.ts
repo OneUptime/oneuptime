@@ -1,4 +1,5 @@
 import DatabaseConfig from "../DatabaseConfig";
+import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -11,6 +12,8 @@ import DatabaseService from "./DatabaseService";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectService, { CurrentPlan } from "./ProjectService";
 import StatusPageDomainService from "./StatusPageDomainService";
+import StatusPageLabelRuleEngineService from "./StatusPageLabelRuleEngineService";
+import StatusPageOwnerRuleEngineService from "./StatusPageOwnerRuleEngineService";
 import StatusPageOwnerTeamService from "./StatusPageOwnerTeamService";
 import StatusPageOwnerUserService from "./StatusPageOwnerUserService";
 import TeamMemberService from "./TeamMemberService";
@@ -42,6 +45,10 @@ import StatusPageSubscriberService from "./StatusPageSubscriberService";
 import StatusPageSubscriber from "../../Models/DatabaseModels/StatusPageSubscriber";
 import MailService from "./MailService";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
+import StatusPageSubscriberNotificationTemplateService from "./StatusPageSubscriberNotificationTemplateService";
+import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
+import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
+import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import { StatusPageApiRoute } from "../../ServiceRoute";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
@@ -85,8 +92,29 @@ export interface StatusPageReport {
 }
 
 export class Service extends DatabaseService<StatusPage> {
+  /*
+   * Caches the resolved status page URL per statusPageId. `getStatusPageURL`
+   * is called inside per-subscriber notification loops (see
+   * `StatusPageSubscriberService`), where a single batch can fire N×
+   * Postgres lookups against `StatusPageDomain`. SSL-provisioned custom
+   * domains change rarely (provisioning takes minutes), so a 60s staleness
+   * window is acceptable. Callers that need stronger consistency can call
+   * `clearStatusPageUrlCache` after writes to the underlying domain.
+   */
+  private statusPageUrlCache: InMemoryTTLCache<string> = new InMemoryTTLCache(
+    10_000,
+  );
+
   public constructor() {
     super(StatusPage);
+  }
+
+  public clearStatusPageUrlCache(statusPageId?: ObjectID): void {
+    if (statusPageId) {
+      this.statusPageUrlCache.delete(statusPageId.toString());
+      return;
+    }
+    this.statusPageUrlCache.clear();
   }
 
   public static getDefaultEmailFooterText(): string {
@@ -222,6 +250,34 @@ export class Service extends DatabaseService<StatusPage> {
           statusPageId: createdItem.id?.toString(),
         } as LogAttributes);
       });
+    }
+
+    /*
+     * Apply label rules first so rule-added labels are persisted before owner
+     * rules run. Owner rules re-fetch labels from the DB, so this lets owner
+     * rules key on rule-added labels.
+     */
+    if (createdItem.projectId && createdItem.id) {
+      Promise.resolve()
+        .then(async () => {
+          await StatusPageLabelRuleEngineService.applyRulesToStatusPage(
+            createdItem,
+          );
+        })
+        .then(async () => {
+          await StatusPageOwnerRuleEngineService.applyRulesToStatusPage(
+            createdItem,
+          );
+        })
+        .catch((error: Error) => {
+          logger.error(
+            `Error applying status page rules in StatusPageService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              statusPageId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        });
     }
 
     return createdItem;
@@ -625,6 +681,12 @@ export class Service extends DatabaseService<StatusPage> {
 
   @CaptureSpan()
   public async getStatusPageURL(statusPageId: ObjectID): Promise<string> {
+    const cacheKey: string = statusPageId.toString();
+    const cached: string | undefined = this.statusPageUrlCache.get(cacheKey);
+    if (cached !== undefined) {
+      return cached;
+    }
+
     const domain: StatusPageDomain | null =
       await StatusPageDomainService.findOneBy({
         query: {
@@ -654,6 +716,8 @@ export class Service extends DatabaseService<StatusPage> {
         .addRoute("/status-page/" + statusPageId.toString())
         .toString();
     }
+
+    this.statusPageUrlCache.set(cacheKey, statusPageURL, 60_000);
 
     return statusPageURL;
   }
@@ -807,6 +871,25 @@ export class Service extends DatabaseService<StatusPage> {
       historyDays: statuspage.reportDataInDays || 14,
     });
 
+    /*
+     * Look up a custom report email template for this status page (if any).
+     * When present (and a custom SMTP is configured, mirroring the gating used
+     * for other subscriber notifications), the subscriber receives the custom
+     * template instead of the built-in StatusPageSubscriberReport.hbs. The
+     * custom body is rendered through Handlebars on the notification side
+     * (templateType omitted => MailService compiles the body string with the
+     * same `report` vars, helpers and partials), so it supports loops/
+     * conditionals such as {{#each report.resources}}.
+     */
+    const customReportEmailTemplate: StatusPageSubscriberNotificationTemplate | null =
+      await StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+        {
+          statusPageId: statuspage.id!,
+          eventType: StatusPageSubscriberNotificationEventType.SubscriberReport,
+          notificationMethod: StatusPageSubscriberNotificationMethod.Email,
+        },
+      );
+
     type SendEmailFunction = (
       email: Email,
       unsubscribeUrl: URL | null,
@@ -818,33 +901,53 @@ export class Service extends DatabaseService<StatusPage> {
     ): Promise<void> => {
       // send email here.
 
-      MailService.sendMail(
-        {
-          toEmail: email,
-          templateType: EmailTemplateType.StatusPageSubscriberReport,
-          vars: {
-            statusPageName: statusPageName,
-            subscriberEmailNotificationFooterText:
-              Service.getSubscriberEmailFooterText(statuspage),
-            statusPageUrl: statusPageURL,
-            detailsUrl: statusPageURL,
-            hasResources: report.totalResources > 0 ? "true" : "false",
-            report: report as any,
-            logoUrl:
-              statuspage.logoFileId && statusPageIdString
-                ? new URL(httpProtocol, host)
-                    .addRoute(StatusPageApiRoute)
-                    .addRoute(`/logo/${statusPageIdString}`)
-                    .toString()
-                : "",
-            isPublicStatusPage: statuspage.isPublicStatusPage
-              ? "true"
-              : "false",
+      const vars: Dictionary<string | JSONObject> = {
+        statusPageName: statusPageName,
+        subscriberEmailNotificationFooterText:
+          Service.getSubscriberEmailFooterText(statuspage),
+        statusPageUrl: statusPageURL,
+        detailsUrl: statusPageURL,
+        hasResources: report.totalResources > 0 ? "true" : "false",
+        report: report as any,
+        logoUrl:
+          statuspage.logoFileId && statusPageIdString
+            ? new URL(httpProtocol, host)
+                .addRoute(StatusPageApiRoute)
+                .addRoute(`/logo/${statusPageIdString}`)
+                .toString()
+            : "",
+        isPublicStatusPage: statuspage.isPublicStatusPage ? "true" : "false",
 
-            unsubscribeUrl: unsubscribeUrl?.toString() || "",
-          },
-          subject: "[Report] " + statusPageName,
-        },
+        unsubscribeUrl: unsubscribeUrl?.toString() || "",
+      };
+
+      /*
+       * Use the custom template only when a custom SMTP is configured for the
+       * status page, matching the gating used by the other subscriber
+       * notifications (e.g. Incident). Custom-authored HTML is then sent from
+       * the customer's own mail server rather than the shared servers.
+       */
+      const useCustomTemplate: boolean = Boolean(
+        customReportEmailTemplate?.templateBody && statuspage.smtpConfig,
+      );
+
+      MailService.sendMail(
+        useCustomTemplate
+          ? {
+              toEmail: email,
+              // templateType omitted => body is compiled as a Handlebars string.
+              body: customReportEmailTemplate!.templateBody!,
+              vars: vars,
+              subject: customReportEmailTemplate!.emailSubject
+                ? customReportEmailTemplate!.emailSubject
+                : "[Report] " + statusPageName,
+            }
+          : {
+              toEmail: email,
+              templateType: EmailTemplateType.StatusPageSubscriberReport,
+              vars: vars,
+              subject: "[Report] " + statusPageName,
+            },
         {
           mailServer: ProjectSMTPConfigService.toEmailServer(
             statuspage.smtpConfig,
@@ -1187,11 +1290,16 @@ export class Service extends DatabaseService<StatusPage> {
           statusPageGroupId: true,
           statusPageGroup: {
             name: true,
+            viewMode: true,
+            rowAxisLabel: true,
+            columnAxisLabel: true,
           },
           monitorId: true,
           displayTooltip: true,
           displayDescription: true,
           displayName: true,
+          rowAxisValue: true,
+          columnAxisValue: true,
           monitor: {
             _id: true,
             currentMonitorStatusId: true,

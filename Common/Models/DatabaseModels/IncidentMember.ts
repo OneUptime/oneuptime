@@ -5,7 +5,9 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -21,13 +23,15 @@ import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
+@CanAccessIfCanReadOn("incident")
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
     Permission.CreateIncidentMember,
   ],
   read: [
@@ -35,22 +39,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
+    Permission.IncidentViewer,
     Permission.ReadIncidentMember,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
     Permission.DeleteIncidentMember,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
     Permission.EditIncidentMember,
   ],
 })
@@ -68,6 +75,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.Call,
   tableDescription: "Assign users with specific roles to incidents.",
 })
+@OwnedThrough("incidentId", Incident)
 @Entity({
   name: "IncidentMember",
 })
@@ -78,7 +86,8 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentMember,
     ],
     read: [
@@ -86,9 +95,10 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentMember,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -119,7 +129,8 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentMember,
     ],
     read: [
@@ -127,9 +138,10 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentMember,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -154,7 +166,8 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentMember,
     ],
     read: [
@@ -162,9 +175,10 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentMember,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -195,7 +209,8 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentMember,
     ],
     read: [
@@ -203,9 +218,10 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentMember,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -230,7 +246,8 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentMember,
     ],
     read: [
@@ -238,9 +255,10 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentMember,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -271,7 +289,8 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentMember,
     ],
     read: [
@@ -279,9 +298,10 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentMember,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -306,7 +326,8 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentMember,
     ],
     read: [
@@ -314,15 +335,17 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentMember,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.EditIncidentMember,
     ],
   })
@@ -353,7 +376,8 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentMember,
     ],
     read: [
@@ -361,15 +385,17 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentMember,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.EditIncidentMember,
     ],
   })
@@ -394,7 +420,8 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentMember,
     ],
     read: [
@@ -402,15 +429,17 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentMember,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.EditIncidentMember,
     ],
   })
@@ -433,7 +462,8 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentMember,
     ],
     read: [
@@ -441,9 +471,10 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentMember,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -475,7 +506,8 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentMember,
     ],
     read: [
@@ -483,9 +515,10 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentMember,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -510,9 +543,10 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentMember,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -547,9 +581,10 @@ export default class IncidentMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentMember,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -572,6 +607,15 @@ export default class IncidentMember extends BaseModel {
     read: [],
     update: [],
   })
+  /*
+   * Indexed because `IncidentMembers/SendMemberAddedNotification`
+   * cron polls `WHERE isMemberNotified = false` every minute. Without
+   * the index the cron does a full table scan that grows with every
+   * incident-member assignment ever made. Matches the indexing
+   * pattern used by the sibling `isOwnerNotified` flag on state
+   * timeline tables.
+   */
+  @Index()
   @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,

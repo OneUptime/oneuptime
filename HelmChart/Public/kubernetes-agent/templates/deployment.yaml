@@ -21,6 +21,10 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/configmap-deployment.yaml") . | sha256sum }}
     spec:
       serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
+      {{- if and .Values.debug.enabled .Values.debug.shareProcessNamespace }}
+      # Lets the debug sidecar see the collector's processes (ps, /proc, strace).
+      shareProcessNamespace: true
+      {{- end }}
       containers:
         - name: otel-collector
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -34,6 +38,14 @@ spec:
                   fieldPath: spec.nodeName
             - name: CLUSTER_NAME
               value: {{ .Values.clusterName | quote }}
+            {{- with .Values.deployment.resources.limits.memory }}
+            # Go runtime soft memory limit — see templates/daemonset.yaml.
+            # Derived from .Values.deployment.resources.limits.memory so the
+            # GC reclaims as the heap nears the cgroup limit. Only set when a
+            # memory limit is configured.
+            - name: GOMEMLIMIT
+              value: {{ include "kubernetes-agent.gomemlimit" . | quote }}
+            {{- end }}
             - name: ONEUPTIME_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -43,6 +55,14 @@ spec:
             - name: health
               containerPort: 13133
               protocol: TCP
+            {{- if .Values.ebpf.enabled }}
+            - name: otlp-http
+              containerPort: 4318
+              protocol: TCP
+            - name: otlp-grpc
+              containerPort: 4317
+              protocol: TCP
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /
@@ -61,6 +81,9 @@ spec:
             - name: config
               mountPath: /etc/otel
               readOnly: true
+        {{- if .Values.debug.enabled }}
+        {{- include "kubernetes-agent.debugContainer" . | nindent 8 }}
+        {{- end }}
       volumes:
         - name: config
           configMap:

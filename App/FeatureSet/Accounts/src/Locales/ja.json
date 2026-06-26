@@ -86,7 +86,9 @@
     "selectProjectSubtitle": "ログインしたいプロジェクトを選択してください。",
     "noConfigForEmail": "メールアドレスのSSO設定が見つかりません：{{email}}",
     "emailRequired": "このアクションを実行するにはメールアドレスが必要です",
-    "defaultProjectName": "プロジェクト"
+    "defaultProjectName": "プロジェクト",
+    "globalProvidersTitle": "組織アカウントでサインイン",
+    "globalProvidersDivider": "またはメールで続行"
   },
   "verifyEmail": {
     "successTitle": "メールが確認されました。",
@@ -104,5 +106,7 @@
       "title": "ページが見つかりません",
       "description": "お探しのページは存在しません。"
     }
-  }
+  },
+  "Acme, Inc.": "Acme, Inc.",
+  "Jeff Smith": "Jeff Smith"
 }

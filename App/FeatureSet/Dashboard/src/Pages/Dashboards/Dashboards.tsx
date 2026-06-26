@@ -1,18 +1,16 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ProjectUtil from "Common/UI/Utils/Project";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import Route from "Common/Types/API/Route";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
-import Page from "Common/UI/Components/Page/Page";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
+import DashboardOwnerTeam from "Common/Models/DatabaseModels/DashboardOwnerTeam";
+import DashboardOwnerUser from "Common/Models/DatabaseModels/DashboardOwnerUser";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useCallback,
@@ -20,14 +18,14 @@ import React, {
 } from "react";
 import DashboardElement from "../../Components/Dashboard/DashboardElement";
 import DashboardTemplateCard from "../../Components/Dashboard/DashboardTemplateCard";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import {
   DashboardTemplates,
   DashboardTemplateType,
   DashboardTemplate,
 } from "Common/Types/Dashboard/DashboardTemplates";
 import { JSONObject } from "Common/Types/JSON";
-import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -39,6 +37,29 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Dashboard>({ modelType: Dashboard });
 
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<Dashboard>({
+      ownerUserModelType: DashboardOwnerUser,
+      ownerTeamModelType: DashboardOwnerTeam,
+      resourceIdField: "dashboardId",
+    });
+
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<Dashboard>({
+    persistKey: "all-dashboards-table",
+    ownerUserModelType: DashboardOwnerUser,
+    ownerTeamModelType: DashboardOwnerTeam,
+    resourceIdField: "dashboardId",
+    showLabelsFacet: true,
+  });
+
   const handleTemplateClick: (type: DashboardTemplateType) => void =
     useCallback((type: DashboardTemplateType): void => {
       setSelectedTemplate(type);
@@ -47,21 +68,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
     }, []);
 
   return (
-    <Page
-      title={"Dashboards"}
-      breadcrumbLinks={[
-        {
-          title: "Project",
-          to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
-        },
-        {
-          title: "Dashboards",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.DASHBOARDS] as Route,
-          ),
-        },
-      ]}
-    >
+    <Fragment>
       {showTemplateModal ? (
         <Modal
           title="Create from Template"
@@ -95,13 +102,27 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       <ModelTable<Dashboard>
         modelType={Dashboard}
+        enableJsonImportExport={true}
         id="dashboard-table"
         userPreferencesKey="dashboards-table"
+        topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<Dashboard>) => {
+          onResourcesFetched(data);
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
+        onCreateClick={() => {
+          setShowTemplateModal(true);
+        }}
+        onCreateEditModalClose={() => {
+          setShowCreateForm(false);
+        }}
         bulkActions={{
-          buttons: [...labelBulkActions],
+          buttons: [...labelBulkActions, ...ownerBulkActions],
         }}
         name="Dashboards"
         isViewable={true}
@@ -109,16 +130,6 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Dashboards",
           description: "Here is a list of dashboards for this project.",
-          buttons: [
-            {
-              title: "Create from Template",
-              buttonStyle: ButtonStyleType.OUTLINE,
-              onClick: () => {
-                setShowTemplateModal(true);
-              },
-              icon: IconProp.Add,
-            },
-          ],
         }}
         showViewIdButton={true}
         noItemsMessage={"No dashboards found."}
@@ -163,6 +174,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
           tableId: "all-dashboards-table",
         }}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
           {
@@ -178,24 +190,6 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Description",
             type: FieldType.LongText,
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
           },
         ]}
         columns={[
@@ -233,10 +227,27 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
             },
           },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Dashboard): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
+          },
         ]}
       />
       {labelBulkActionModals}
-    </Page>
+      {ownerBulkActionModals}
+    </Fragment>
   );
 };
 

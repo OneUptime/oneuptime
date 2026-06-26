@@ -20,6 +20,9 @@ const IncidentPostmortemTemplates: FunctionComponent<PageComponentProps> = (
         isDeleteable={false}
         createEditModalWidth={ModalWidth.Large}
         userPreferencesKey="incident-postmortem-templates-table"
+        saveFilterProps={{
+          tableId: "incident-postmortem-templates-table",
+        }}
         isEditable={false}
         isCreateable={true}
         isViewable={true}

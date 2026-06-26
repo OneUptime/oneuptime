@@ -19,6 +19,7 @@ enum ComponentID {
   SendEmail = "send-email",
   IfElse = "if-else",
   WorkflowRun = "workflow-run",
+  Sleep = "sleep",
 }
 
 export default ComponentID;

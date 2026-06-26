@@ -1,4 +1,7 @@
 {
+  "a11y": {
+    "skipToMainContent": "मुख्य सामग्री पर जाएं"
+  },
   "common": {
     "save": "सहेजें",
     "cancel": "रद्द करें",
@@ -110,10 +113,10 @@
       "title": "ईमेल द्वारा सदस्यता लें",
       "description": "हमारे सभी अपडेट इस ईमेल पते पर भेजे जाएँगे।",
       "yourEmail": "आपका ईमेल",
-      "placeholder": "subscriber@company.com",
+      "placeholder": "subscriber@kampani.com",
       "managePrompt": "कृपया वह ईमेल दर्ज करें जिससे आपने सदस्यता ली है",
       "manageDescription": "हम आपको इस ईमेल पर एक प्रबंधन लिंक भेजेंगे।",
-      "managePlaceholder": "email@yourcompany.com"
+      "managePlaceholder": "email@aapkikampani.com"
     },
     "sms": {
       "title": "एसएमएस द्वारा सदस्यता लें",
@@ -128,7 +131,7 @@
       "description": "हमारे सभी अपडेट इस Slack वेबहुक पर भेजे जाएँगे।",
       "workspaceName": "Slack कार्यक्षेत्र का नाम",
       "workspaceNameDescription": "सत्यापन के लिए अपने Slack कार्यक्षेत्र का नाम दर्ज करें।",
-      "workspaceNamePlaceholder": "my-company-workspace",
+      "workspaceNamePlaceholder": "meri-kampani-workspace",
       "webhookUrl": "Slack इनकमिंग वेबहुक URL",
       "webhookUrlDescription": "स्थिति पृष्ठ के अपडेट इस Slack वेबहुक पर भेजे जाएँगे।",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
@@ -140,12 +143,19 @@
       "description": "हमारे सभी अपडेट इस Teams वेबहुक पर भेजे जाएँगे।",
       "workspaceName": "Microsoft Teams कार्यक्षेत्र का नाम",
       "workspaceNameDescription": "सत्यापन के लिए अपने Microsoft Teams कार्यक्षेत्र का नाम दर्ज करें।",
-      "workspaceNamePlaceholder": "my-company-workspace",
+      "workspaceNamePlaceholder": "meri-kampani-workspace",
       "webhookUrl": "Microsoft Teams इनकमिंग वेबहुक URL",
       "webhookUrlDescription": "स्थिति पृष्ठ के अपडेट इस Teams वेबहुक पर भेजे जाएँगे।",
       "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
       "managePrompt": "कृपया वह Microsoft Teams कार्यक्षेत्र का नाम दर्ज करें जिससे आपने सदस्यता ली है",
       "manageDescription": "हम इस कार्यक्षेत्र पर एक प्रबंधन लिंक भेजेंगे।"
+    },
+    "webhook": {
+      "title": "वेबहुक के माध्यम से सदस्यता लें",
+      "description": "हमारे सभी अपडेट इस वेबहुक URL पर JSON POST अनुरोधों के रूप में भेजे जाएँगे।",
+      "webhookUrl": "वेबहुक URL",
+      "webhookUrlDescription": "प्रत्येक स्थिति पृष्ठ ईवेंट पर इस URL को एक JSON POST अनुरोध भेजा जाएगा।",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
     },
     "resources": {
       "all": "सभी संसाधनों की सदस्यता लें",
@@ -163,6 +173,7 @@
       "title": "सदस्यता अपडेट करें",
       "description": "आप यहाँ अपनी सदस्यता प्राथमिकताएँ अपडेट कर सकते हैं या सदस्यता समाप्त कर सकते हैं।",
       "saved": "आपके परिवर्तन सहेजे गए हैं।",
+      "submit": "सदस्यता अपडेट करें",
       "unsubscribe": "सदस्यता समाप्त करें",
       "unsubscribeDescription": "यदि आप सभी संसाधनों से सदस्यता समाप्त करना चाहते हैं तो कृपया इसे चुनें।"
     },
@@ -244,5 +255,19 @@
     "ongoing": "जारी",
     "ended": "समाप्त",
     "completed": "पूर्ण"
-  }
+  },
+  "Subscriber ID is required": "सब्सक्राइबर ID आवश्यक है",
+  "Token is required": "टोकन आवश्यक है",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} {{minLength}} वर्णों से कम नहीं हो सकता।",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} {{maxLength}} वर्णों से अधिक नहीं हो सकता।",
+  "{{field}} should not have spaces.": "{{field}} में रिक्त स्थान नहीं होने चाहिए।",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} में केवल अक्षर, संख्याएँ, हाइफ़न (-) और अंडरस्कोर (_) हो सकते हैं।",
+  "{{field}} should not have numbers.": "{{field}} में संख्याएँ नहीं होनी चाहिए।",
+  "{{field}} should be a future date.": "{{field}} भविष्य की तारीख होनी चाहिए।",
+  "{{field}} should be a number.": "{{field}} एक संख्या होनी चाहिए।",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} {{maxValue}} से अधिक नहीं होना चाहिए।",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} {{minValue}} से कम नहीं होना चाहिए।",
+  "{{field}} is required.": "{{field}} आवश्यक है।",
+  "{{field}} should match {{matchField}}": "{{field}} को {{matchField}} से मेल खाना चाहिए",
+  "Email is not valid.": "ईमेल मान्य नहीं है।"
 }

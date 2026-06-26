@@ -6,9 +6,13 @@ import AnalyticsTableColumn, {
   SkipIndexType,
 } from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import OperationalResource from "../../Types/Database/AccessControl/OperationalResource";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import Service from "../DatabaseModels/Service";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 
 export enum SpanKind {
   Server = "SPAN_KIND_SERVER",
@@ -42,6 +46,8 @@ export interface SpanLink {
   attributes?: JSONObject;
 }
 
+@OperationalResource()
+@OwnedThrough("primaryEntityId", Service, { includeProjectScope: true })
 export default class Span extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
@@ -56,43 +62,96 @@ export default class Span extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [],
       },
     });
 
-    const serviceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceId",
-      title: "Service ID",
-      description: "ID of the Service which created the log",
-      required: true,
-      type: TableColumnType.ObjectID,
-      accessControl: {
-        read: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.ReadTelemetryServiceTraces,
-        ],
-        create: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.CreateTelemetryServiceTraces,
-        ],
-        update: [],
-      },
-    });
+    const primaryEntityIdColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "primaryEntityId",
+        title: "Service ID",
+        description:
+          "ID of the resource the span belongs to (Service / Host / DockerHost / KubernetesCluster / Monitor — disambiguated by primaryEntityType)",
+        required: true,
+        type: TableColumnType.ObjectID,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryServiceTraces,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryServiceTraces,
+          ],
+          update: [],
+        },
+      });
+
+    const primaryEntityTypeColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "primaryEntityType",
+        isLowCardinality: true,
+        title: "Service Type",
+        description:
+          "Discriminator for primaryEntityId — tells the read side which resource table to dispatch to",
+        required: false,
+        type: TableColumnType.Text,
+        skipIndex: {
+          name: "idx_service_type",
+          type: SkipIndexType.Set,
+          params: [10],
+          granularity: 4,
+        },
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryServiceTraces,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryServiceTraces,
+          ],
+          update: [],
+        },
+      });
 
     const startTimeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "startTime",
+      codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Start Time",
       description: "When did the span start?",
       required: true,
@@ -102,12 +161,18 @@ export default class Span extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [],
@@ -116,6 +181,13 @@ export default class Span extends AnalyticsBaseModel {
 
     const endTimeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "endTime",
+      /*
+       * Plain ZSTD, deliberately NOT DoubleDelta: rows sort by startTime,
+       * so consecutive endTime deltas jump with span duration and the
+       * double-delta transform inflates instead of shrinking (measured
+       * ~2.9x vs ~4-6x for plain ZSTD on endTimeUnixNano, same data).
+       */
+      codec: { codec: "ZSTD", level: 1 },
       title: "End Time",
       description: "When did the span end?",
       required: true,
@@ -125,12 +197,18 @@ export default class Span extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [],
@@ -143,19 +221,25 @@ export default class Span extends AnalyticsBaseModel {
         title: "Start Time in Unix Nano",
         description: "When did the span start?",
         required: true,
-        type: TableColumnType.LongNumber,
-        codec: { codec: "ZSTD", level: 1 },
+        type: TableColumnType.UInt64,
+        codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
         accessControl: {
           read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
             Permission.ReadTelemetryServiceTraces,
           ],
           create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
             Permission.CreateTelemetryServiceTraces,
           ],
           update: [],
@@ -168,6 +252,11 @@ export default class Span extends AnalyticsBaseModel {
         title: "Duration in Unix Nano",
         description: "How long did the span last?",
         required: true,
+        /*
+         * Kept as LongNumber (Int128): it is aggregated as
+         * AggregateFunction(avg, Int128) in proj_agg_by_service, which
+         * ClickHouse cannot convert to UInt64 in place.
+         */
         type: TableColumnType.LongNumber,
         codec: { codec: "ZSTD", level: 1 },
         accessControl: {
@@ -175,12 +264,18 @@ export default class Span extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
             Permission.ReadTelemetryServiceTraces,
           ],
           create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
             Permission.CreateTelemetryServiceTraces,
           ],
           update: [],
@@ -193,19 +288,31 @@ export default class Span extends AnalyticsBaseModel {
         title: "End Time",
         description: "When did the span end?",
         required: true,
-        type: TableColumnType.LongNumber,
+        type: TableColumnType.UInt64,
+        /*
+         * Plain ZSTD, deliberately NOT DoubleDelta: rows sort by
+         * startTime, so endTime deltas jump with span duration and
+         * double-delta inflates (measured compression ratio ~2.9 with
+         * DoubleDelta vs ~4-6x plain ZSTD).
+         */
         codec: { codec: "ZSTD", level: 1 },
         accessControl: {
           read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
             Permission.ReadTelemetryServiceTraces,
           ],
           create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
             Permission.CreateTelemetryServiceTraces,
           ],
           update: [],
@@ -230,12 +337,18 @@ export default class Span extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [],
@@ -260,12 +373,18 @@ export default class Span extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [],
@@ -290,12 +409,18 @@ export default class Span extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [],
@@ -313,12 +438,18 @@ export default class Span extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [],
@@ -327,6 +458,7 @@ export default class Span extends AnalyticsBaseModel {
 
     const attributesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "attributes",
+      codec: { codec: "ZSTD", level: 3 },
       title: "Attributes",
       description: "Attributes",
       required: true,
@@ -337,12 +469,18 @@ export default class Span extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [],
@@ -351,6 +489,7 @@ export default class Span extends AnalyticsBaseModel {
 
     const attributeKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "attributeKeys",
+      codec: { codec: "ZSTD", level: 3 },
       title: "Attribute Keys",
       description: "Attribute keys extracted from attributes",
       required: true,
@@ -367,17 +506,119 @@ export default class Span extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [],
       },
     });
+
+    const entityKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "entityKeys",
+      codec: { codec: "ZSTD", level: 3 },
+      title: "Entity Keys",
+      description:
+        "Stable keys of every OpenTelemetry entity (service, host, k8s.pod, container, ...) this signal belongs to. A superset that includes the primary entity. Enables cross-cutting membership queries via has(entityKeys, :key).",
+      required: true,
+      defaultValue: [],
+      type: TableColumnType.ArrayText,
+      skipIndex: {
+        name: "idx_entity_keys",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    /*
+     * Scalar per-entity-type key columns — denormalized single-value
+     * siblings of `entityKeys`. Each holds the 16-hex key (see
+     * Common/Utils/Telemetry/EntityKey) of the row's entity of that type,
+     * or '' when the resource carries no such entity (non-Nullable String,
+     * so old rows read the type default ''). Unlike the array column, a
+     * scalar equality predicate is usable as an MV/sort key and gets a
+     * cheaper bloom-filter probe; only the high-traffic keys
+     * (service/host/k8s.pod) carry skip indexes. Stamped at ingest by the
+     * same extractor that fills `entityKeys`; never part of identity.
+     */
+    const scalarEntityKeyColumns: Array<AnalyticsTableColumn> = [
+      {
+        key: "serviceEntityKey",
+        title: "Service Entity Key",
+        indexName: "idx_service_entity_key",
+      },
+      {
+        key: "hostEntityKey",
+        title: "Host Entity Key",
+        indexName: "idx_host_entity_key",
+      },
+      {
+        key: "k8sPodEntityKey",
+        title: "Kubernetes Pod Entity Key",
+        indexName: "idx_k8s_pod_entity_key",
+      },
+      { key: "k8sNodeEntityKey", title: "Kubernetes Node Entity Key" },
+      { key: "k8sClusterEntityKey", title: "Kubernetes Cluster Entity Key" },
+      { key: "containerEntityKey", title: "Container Entity Key" },
+    ].map(
+      (def: {
+        key: string;
+        title: string;
+        indexName?: string | undefined;
+      }): AnalyticsTableColumn => {
+        return new AnalyticsTableColumn({
+          key: def.key,
+          title: def.title,
+          description:
+            "Scalar entity key for this entity type (see entityKeys); '' when the resource has no entity of this type.",
+          required: true,
+          defaultValue: "",
+          type: TableColumnType.Text,
+          codec: { codec: "ZSTD", level: 1 },
+          skipIndex: def.indexName
+            ? {
+                name: def.indexName,
+                type: SkipIndexType.BloomFilter,
+                params: [0.01],
+                granularity: 1,
+              }
+            : undefined,
+          accessControl: entityKeysColumn.accessControl,
+        });
+      },
+    );
 
     const eventsColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "events",
@@ -392,12 +633,18 @@ export default class Span extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [],
@@ -417,12 +664,18 @@ export default class Span extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [],
@@ -446,12 +699,18 @@ export default class Span extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [],
@@ -470,12 +729,18 @@ export default class Span extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [],
@@ -484,6 +749,7 @@ export default class Span extends AnalyticsBaseModel {
 
     const nameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "name",
+      codec: { codec: "ZSTD", level: 3 },
       title: "Name",
       description: "Name of the span",
       required: false,
@@ -499,12 +765,18 @@ export default class Span extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [],
@@ -513,6 +785,7 @@ export default class Span extends AnalyticsBaseModel {
 
     const kindColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "kind",
+      isLowCardinality: true,
       title: "Kind",
       description: "Kind of the span",
       required: false,
@@ -528,12 +801,18 @@ export default class Span extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [],
@@ -559,12 +838,18 @@ export default class Span extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [],
@@ -590,20 +875,213 @@ export default class Span extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [],
       },
     });
 
+    /*
+     * First-class LLM / GenAI / AI-agent columns. Denormalized at ingest from
+     * gen_ai.* (and OpenLLMetry/OpenInference) span attributes so LLM calls can
+     * be listed, filtered, and aggregated (tokens/cost/latency) cheaply without
+     * scanning the attributes map. See Common/Server/Utils/Telemetry/LlmSpan.ts.
+     */
+    const llmColumnAccessControl: {
+      read: Array<Permission>;
+      create: Array<Permission>;
+      update: Array<Permission>;
+    } = {
+      read: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.Viewer,
+        Permission.TelemetryAdmin,
+        Permission.TelemetryMember,
+        Permission.TelemetryViewer,
+        Permission.ReadTelemetryServiceTraces,
+      ],
+      create: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.TelemetryAdmin,
+        Permission.TelemetryMember,
+        Permission.CreateTelemetryServiceTraces,
+      ],
+      update: [],
+    };
+
+    const isLlmSpanColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "isLlmSpan",
+      title: "Is LLM Span",
+      description:
+        "Whether this span is an LLM / GenAI / AI-agent operation, populated at ingest time for fast filtering of AI calls",
+      required: true,
+      defaultValue: false,
+      type: TableColumnType.Boolean,
+      skipIndex: {
+        name: "idx_is_llm_span",
+        type: SkipIndexType.Set,
+        params: [2],
+        granularity: 4,
+      },
+      accessControl: llmColumnAccessControl,
+    });
+
+    const llmSystemColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "llmSystem",
+      isLowCardinality: true,
+      title: "LLM System",
+      description:
+        "GenAI provider / system, e.g. openai, anthropic, aws.bedrock (gen_ai.system)",
+      required: false,
+      type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_llm_system",
+        type: SkipIndexType.Set,
+        params: [100],
+        granularity: 4,
+      },
+      accessControl: llmColumnAccessControl,
+    });
+
+    const llmOperationColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "llmOperation",
+      isLowCardinality: true,
+      title: "LLM Operation",
+      description:
+        "GenAI operation, e.g. chat, embeddings, execute_tool, invoke_agent (gen_ai.operation.name)",
+      required: false,
+      type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_llm_operation",
+        type: SkipIndexType.Set,
+        params: [100],
+        granularity: 4,
+      },
+      accessControl: llmColumnAccessControl,
+    });
+
+    const llmRequestModelColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "llmRequestModel",
+        isLowCardinality: true,
+        title: "LLM Request Model",
+        description: "Model requested by the caller (gen_ai.request.model)",
+        required: false,
+        type: TableColumnType.Text,
+        skipIndex: {
+          name: "idx_llm_request_model",
+          type: SkipIndexType.Set,
+          params: [1000],
+          granularity: 4,
+        },
+        accessControl: llmColumnAccessControl,
+      });
+
+    const llmResponseModelColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "llmResponseModel",
+        isLowCardinality: true,
+        title: "LLM Response Model",
+        description:
+          "Model the provider actually served (gen_ai.response.model)",
+        required: false,
+        type: TableColumnType.Text,
+        accessControl: llmColumnAccessControl,
+      });
+
+    const llmAgentNameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "llmAgentName",
+      codec: { codec: "ZSTD", level: 1 },
+      title: "LLM Agent Name",
+      description:
+        "Name of the agent for agent-framework spans (gen_ai.agent.name)",
+      required: false,
+      type: TableColumnType.Text,
+      accessControl: llmColumnAccessControl,
+    });
+
+    const llmToolNameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "llmToolName",
+      codec: { codec: "ZSTD", level: 1 },
+      title: "LLM Tool Name",
+      description:
+        "Name of the tool invoked for tool-call spans (gen_ai.tool.name)",
+      required: false,
+      type: TableColumnType.Text,
+      accessControl: llmColumnAccessControl,
+    });
+
+    const llmInputTokensColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
+      {
+        key: "llmInputTokens",
+        title: "LLM Input Tokens",
+        description: "Input/prompt token count (gen_ai.usage.input_tokens)",
+        required: true,
+        defaultValue: 0,
+        type: TableColumnType.Number,
+        accessControl: llmColumnAccessControl,
+      },
+    );
+
+    const llmOutputTokensColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "llmOutputTokens",
+        title: "LLM Output Tokens",
+        description:
+          "Output/completion token count (gen_ai.usage.output_tokens)",
+        required: true,
+        defaultValue: 0,
+        type: TableColumnType.Number,
+        accessControl: llmColumnAccessControl,
+      });
+
+    const llmTotalTokensColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
+      {
+        key: "llmTotalTokens",
+        title: "LLM Total Tokens",
+        description:
+          "Total token count (gen_ai.usage.total_tokens, or input + output)",
+        required: true,
+        defaultValue: 0,
+        type: TableColumnType.Number,
+        accessControl: llmColumnAccessControl,
+      },
+    );
+
+    const llmCostColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "llmCost",
+      title: "LLM Cost (USD)",
+      description:
+        "Cost of this LLM call in USD. Only populated when the instrumentation reports it (gen_ai.usage.cost); OneUptime does not compute pricing.",
+      required: true,
+      defaultValue: 0,
+      /*
+       * Decimal (ClickHouse Double) — cost is fractional; an Int column would
+       * reject the fractional JSONEachRow value and poison the whole batch.
+       */
+      type: TableColumnType.Decimal,
+      accessControl: llmColumnAccessControl,
+    });
+
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
+      codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Retention Date",
       description:
         "Date after which this row is eligible for TTL deletion, computed at ingest time as startTime + service.retainTelemetryDataForDays",
@@ -618,35 +1096,49 @@ export default class Span extends AnalyticsBaseModel {
       singularName: "Span",
       pluralName: "Spans",
       crudApiPath: new Route("/span"),
+      enableDocumentation: true,
+      tableDescription:
+        "OpenTelemetry distributed-tracing spans. Each span is one operation within a trace; query and aggregate them to analyze latency and errors.",
       accessControl: {
         read: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.EditTelemetryServiceTraces,
         ],
         delete: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.DeleteTelemetryServiceTraces,
         ],
       },
       tableColumns: [
         projectIdColumn,
-        serviceIdColumn,
+        primaryEntityIdColumn,
+        primaryEntityTypeColumn,
         startTimeColumn,
         endTimeColumn,
         startTimeUnixNanoColumn,
@@ -658,6 +1150,8 @@ export default class Span extends AnalyticsBaseModel {
         traceStateColumn,
         attributesColumn,
         attributeKeysColumn,
+        entityKeysColumn,
+        ...scalarEntityKeyColumns,
         eventsColumn,
         linksColumn,
         statusCodeColumn,
@@ -666,29 +1160,48 @@ export default class Span extends AnalyticsBaseModel {
         kindColumn,
         hasExceptionColumn,
         isRootSpanColumn,
+        isLlmSpanColumn,
+        llmSystemColumn,
+        llmOperationColumn,
+        llmRequestModelColumn,
+        llmResponseModelColumn,
+        llmAgentNameColumn,
+        llmToolNameColumn,
+        llmInputTokensColumn,
+        llmOutputTokensColumn,
+        llmTotalTokensColumn,
+        llmCostColumn,
         retentionDateColumn,
       ],
       projections: [
         {
           name: "proj_agg_by_service",
           query:
-            "SELECT projectId, serviceId, toStartOfMinute(startTime) AS minute, count() AS cnt, avg(durationUnixNano) AS avg_duration, quantile(0.99)(durationUnixNano) AS p99_duration GROUP BY projectId, serviceId, minute",
+            "SELECT projectId, primaryEntityId, toStartOfMinute(startTime) AS minute, count() AS cnt, avg(durationUnixNano) AS avg_duration, quantile(0.99)(durationUnixNano) AS p99_duration GROUP BY projectId, primaryEntityId, minute",
         },
         {
           name: "proj_trace_by_id",
           query:
-            "SELECT projectId, traceId, startTime, serviceId, spanId, parentSpanId, name, durationUnixNano, statusCode, hasException ORDER BY (projectId, traceId, startTime)",
+            "SELECT projectId, traceId, startTime, primaryEntityId, spanId, parentSpanId, name, durationUnixNano, statusCode, hasException ORDER BY (projectId, traceId, startTime)",
         },
         {
           name: "proj_hist_by_minute",
           query:
-            "SELECT projectId, toStartOfMinute(startTime) AS minute, serviceId, statusCode, isRootSpan, count() AS cnt GROUP BY projectId, minute, serviceId, statusCode, isRootSpan",
+            "SELECT projectId, toStartOfMinute(startTime) AS minute, primaryEntityId, statusCode, isRootSpan, count() AS cnt GROUP BY projectId, minute, primaryEntityId, statusCode, isRootSpan",
         },
       ],
-      sortKeys: ["projectId", "startTime", "serviceId", "traceId"],
-      primaryKeys: ["projectId", "startTime", "serviceId", "traceId"],
-      partitionKey: "sipHash64(projectId) % 16",
+      sortKeys: ["projectId", "startTime", "primaryEntityId", "traceId"],
+      primaryKeys: ["projectId", "startTime", "primaryEntityId", "traceId"],
+      partitionKey: "toYYYYMMDD(startTime)",
+      /*
+       * Shard by traceId: high-cardinality so a big project spreads evenly, and
+       * it keeps every span of a trace on one shard for a fast single-trace view.
+       */
+      shardingKey: "cityHash64(traceId)",
+      tableSettings:
+        "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",
+      defaultSortColumn: "startTime",
     });
   }
 
@@ -740,12 +1253,20 @@ export default class Span extends AnalyticsBaseModel {
     this.setColumnValue("projectId", v);
   }
 
-  public get serviceId(): ObjectID | undefined {
-    return this.getColumnValue("serviceId") as ObjectID | undefined;
+  public get primaryEntityId(): ObjectID | undefined {
+    return this.getColumnValue("primaryEntityId") as ObjectID | undefined;
   }
 
-  public set serviceId(v: ObjectID | undefined) {
-    this.setColumnValue("serviceId", v);
+  public set primaryEntityId(v: ObjectID | undefined) {
+    this.setColumnValue("primaryEntityId", v);
+  }
+
+  public get primaryEntityType(): ServiceType | undefined {
+    return this.getColumnValue("primaryEntityType") as ServiceType | undefined;
+  }
+
+  public set primaryEntityType(v: ServiceType | undefined) {
+    this.setColumnValue("primaryEntityType", v);
   }
 
   public get startTime(): Date | undefined {
@@ -812,6 +1333,14 @@ export default class Span extends AnalyticsBaseModel {
     this.setColumnValue("attributeKeys", v);
   }
 
+  public get entityKeys(): Array<string> | undefined {
+    return this.getColumnValue("entityKeys") as Array<string> | undefined;
+  }
+
+  public set entityKeys(v: Array<string> | undefined) {
+    this.setColumnValue("entityKeys", v);
+  }
+
   public get events(): Array<SpanEvent> | undefined {
     return this.getColumnValue("events") as Array<SpanEvent> | undefined;
   }
@@ -866,5 +1395,93 @@ export default class Span extends AnalyticsBaseModel {
 
   public set retentionDate(v: Date | undefined) {
     this.setColumnValue("retentionDate", v);
+  }
+
+  public get isLlmSpan(): boolean | undefined {
+    return this.getColumnValue("isLlmSpan") as boolean | undefined;
+  }
+
+  public set isLlmSpan(v: boolean | undefined) {
+    this.setColumnValue("isLlmSpan", v);
+  }
+
+  public get llmSystem(): string | undefined {
+    return this.getColumnValue("llmSystem") as string | undefined;
+  }
+
+  public set llmSystem(v: string | undefined) {
+    this.setColumnValue("llmSystem", v);
+  }
+
+  public get llmOperation(): string | undefined {
+    return this.getColumnValue("llmOperation") as string | undefined;
+  }
+
+  public set llmOperation(v: string | undefined) {
+    this.setColumnValue("llmOperation", v);
+  }
+
+  public get llmRequestModel(): string | undefined {
+    return this.getColumnValue("llmRequestModel") as string | undefined;
+  }
+
+  public set llmRequestModel(v: string | undefined) {
+    this.setColumnValue("llmRequestModel", v);
+  }
+
+  public get llmResponseModel(): string | undefined {
+    return this.getColumnValue("llmResponseModel") as string | undefined;
+  }
+
+  public set llmResponseModel(v: string | undefined) {
+    this.setColumnValue("llmResponseModel", v);
+  }
+
+  public get llmAgentName(): string | undefined {
+    return this.getColumnValue("llmAgentName") as string | undefined;
+  }
+
+  public set llmAgentName(v: string | undefined) {
+    this.setColumnValue("llmAgentName", v);
+  }
+
+  public get llmToolName(): string | undefined {
+    return this.getColumnValue("llmToolName") as string | undefined;
+  }
+
+  public set llmToolName(v: string | undefined) {
+    this.setColumnValue("llmToolName", v);
+  }
+
+  public get llmInputTokens(): number | undefined {
+    return this.getColumnValue("llmInputTokens") as number | undefined;
+  }
+
+  public set llmInputTokens(v: number | undefined) {
+    this.setColumnValue("llmInputTokens", v);
+  }
+
+  public get llmOutputTokens(): number | undefined {
+    return this.getColumnValue("llmOutputTokens") as number | undefined;
+  }
+
+  public set llmOutputTokens(v: number | undefined) {
+    this.setColumnValue("llmOutputTokens", v);
+  }
+
+  public get llmTotalTokens(): number | undefined {
+    return this.getColumnValue("llmTotalTokens") as number | undefined;
+  }
+
+  public set llmTotalTokens(v: number | undefined) {
+    this.setColumnValue("llmTotalTokens", v);
+  }
+
+  public get llmCost(): number | undefined {
+    return this.getColumnValue("llmCost") as number | undefined;
+  }
+
+  public set llmCost(v: number | undefined) {
+    this.setColumnValue("llmCost", v);
   }
 }

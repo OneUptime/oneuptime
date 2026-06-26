@@ -1,9 +1,14 @@
 import MasterPage from "./Components/MasterPage/MasterPage";
 import Init from "./Pages/Init/Init";
+import Health from "./Pages/Health/Index";
 import Logout from "./Pages/Logout/Logout";
 import Projects from "./Pages/Projects/Index";
 import SettingsAPIKey from "./Pages/Settings/APIKey/Index";
 import SettingsAuthentication from "./Pages/Settings/Authentication/Index";
+import SettingsGlobalSSO from "./Pages/Settings/GlobalSSO/Index";
+import SettingsGlobalSSOView from "./Pages/Settings/GlobalSSO/View";
+import SettingsGlobalOIDC from "./Pages/Settings/GlobalOIDC/Index";
+import SettingsGlobalOIDCView from "./Pages/Settings/GlobalOIDC/View";
 import SettingsDataRetention from "./Pages/Settings/DataRetention/Index";
 import SettingsCallSMS from "./Pages/Settings/CallSMS/Index";
 import SettingsWhatsApp from "./Pages/Settings/WhatsApp/Index";
@@ -65,6 +70,11 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.INIT]?.toString() || ""}
           element={<Init />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.HEALTH]?.toString() || ""}
+          element={<Health />}
         />
 
         <PageRoute
@@ -170,6 +180,26 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.SETTINGS_AUTHENTICATION]?.toString() || ""}
           element={<SettingsAuthentication />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.SETTINGS_GLOBAL_SSO]?.toString() || ""}
+          element={<SettingsGlobalSSO />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.SETTINGS_GLOBAL_SSO_VIEW]?.toString() || ""}
+          element={<SettingsGlobalSSOView />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.SETTINGS_GLOBAL_OIDC]?.toString() || ""}
+          element={<SettingsGlobalOIDC />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.SETTINGS_GLOBAL_OIDC_VIEW]?.toString() || ""}
+          element={<SettingsGlobalOIDCView />}
         />
 
         <PageRoute

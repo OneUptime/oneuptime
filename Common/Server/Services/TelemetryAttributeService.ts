@@ -35,10 +35,20 @@ type TelemetryAttributesCacheEntry = {
 
 export class TelemetryAttributeService {
   private static readonly ATTRIBUTES_LIMIT: number = 5000;
-  private static readonly ROW_SCAN_LIMIT: number = 10000;
   private static readonly CACHE_NAMESPACE: string = "telemetry-attributes";
-  private static readonly CACHE_STALE_AFTER_MINUTES: number = 5;
-  private static readonly LOOKBACK_WINDOW_IN_DAYS: number = 30;
+  /*
+   * Attribute keys change rarely. Cache for an hour so the (still O(seconds))
+   * ClickHouse scan only runs once per project per hour rather than on every
+   * dashboard / metrics-explorer load.
+   */
+  private static readonly CACHE_STALE_AFTER_MINUTES: number = 60;
+  /*
+   * The previous 30-day window forced a 100M+ row scan with an in-CTE
+   * ORDER BY time DESC that pushed this query to 30-60s on busy projects.
+   * Attribute keys rotate slowly, so a 1-day window covers virtually every
+   * active key while keeping the scan tractable.
+   */
+  private static readonly LOOKBACK_WINDOW_IN_DAYS: number = 1;
 
   private getTelemetrySource(
     telemetryType: TelemetryType,
@@ -247,74 +257,64 @@ export class TelemetryAttributeService {
       TelemetryAttributeService.getLookbackStartDate();
 
     /*
-     * If the source has a denormalized attributeKeys array column, prefer it
-     * (avoids materializing every row's map). Otherwise fall back to
-     * mapKeys(attributes) — slower but works for tables that don't carry
-     * the precomputed array (e.g. ExceptionInstance).
+     * Two notable choices here:
+     *
+     * 1. We aggregate with `groupUniqArrayArray` (or `mapKeys`+`groupUniqArray`
+     *    for tables that lack the denormalized array column) instead of
+     *    `arrayJoin` + outer `DISTINCT`. That avoids materializing one row
+     *    per attribute key across millions of source rows.
+     *
+     * 2. The previous implementation wrapped the scan in
+     *    `ORDER BY time DESC LIMIT 10000` to "cap" the work. With `arrayJoin`
+     *    that LIMIT applied AFTER expansion so it didn't actually bound rows
+     *    read, but it did force ClickHouse to sort every matching row by
+     *    time — the dominant cost on busy projects. Bounded by lookback
+     *    instead, the aggregate-and-flatten approach finishes in seconds.
      */
     const statement: Statement = data.attributeKeysColumn
       ? SQL`
-      WITH filtered AS (
-        SELECT arrayJoin(
-            if(
-              empty(${data.attributeKeysColumn}),
-              mapKeys(${data.attributesColumn}),
-              ${data.attributeKeysColumn}
-            )
-          ) AS attribute
-        FROM ${data.tableName}
-        WHERE projectId = ${{
-          type: TableColumnType.ObjectID,
-          value: data.projectId,
-        }}
-          AND (
-            NOT empty(${data.attributeKeysColumn}) OR
-            NOT empty(${data.attributesColumn})
-          )
-          AND ${data.timeColumn} >= ${{
-            type: TableColumnType.Date,
-            value: lookbackStartDate,
-          }}`
+      SELECT arrayDistinct(arrayFlatten(groupUniqArrayArray(${data.attributeKeysColumn}))) AS keys
+      FROM ${data.tableName}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }}
+        AND NOT empty(${data.attributeKeysColumn})
+        AND ${data.timeColumn} >= ${{
+          type: TableColumnType.Date,
+          value: lookbackStartDate,
+        }}`
       : SQL`
-      WITH filtered AS (
-        SELECT arrayJoin(mapKeys(${data.attributesColumn})) AS attribute
-        FROM ${data.tableName}
-        WHERE projectId = ${{
-          type: TableColumnType.ObjectID,
-          value: data.projectId,
-        }}
-          AND NOT empty(${data.attributesColumn})
-          AND ${data.timeColumn} >= ${{
-            type: TableColumnType.Date,
-            value: lookbackStartDate,
-          }}`;
+      SELECT groupUniqArray(arrayJoin(mapKeys(${data.attributesColumn}))) AS keys
+      FROM ${data.tableName}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }}
+        AND NOT empty(${data.attributesColumn})
+        AND ${data.timeColumn} >= ${{
+          type: TableColumnType.Date,
+          value: lookbackStartDate,
+        }}`;
 
     if (data.metricName) {
       statement.append(
         SQL`
-          AND name = ${{
-            type: TableColumnType.Text,
-            value: data.metricName,
-          }}`,
+        AND name = ${{
+          type: TableColumnType.Text,
+          value: data.metricName,
+        }}`,
       );
     }
 
+    /*
+     * Cap runtime below the ClickHouse client's 58s request_timeout so a
+     * slow scan on a large project can't hold a pool connection for the
+     * full timeout. 'break' returns partial keys, which is fine for an
+     * attribute-key picker (matches the findBy / aggregation read paths).
+     */
     statement.append(
-      SQL`
-        ORDER BY ${data.timeColumn} DESC
-        LIMIT ${{
-          type: TableColumnType.Number,
-          value: TelemetryAttributeService.ROW_SCAN_LIMIT,
-        }}
-      )
-      SELECT DISTINCT attribute
-      FROM filtered
-      WHERE attribute IS NOT NULL AND attribute != ''
-      ORDER BY attribute ASC
-      LIMIT ${{
-        type: TableColumnType.Number,
-        value: TelemetryAttributeService.ATTRIBUTES_LIMIT,
-      }}`,
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
     );
 
     return statement;
@@ -341,17 +341,29 @@ export class TelemetryAttributeService {
     }>();
 
     const rows: Array<JSONObject> = response.data || [];
+    const firstRow: JSONObject | undefined = rows[0];
+    const rawKeys: unknown = firstRow ? firstRow["keys"] : null;
 
-    const attributeKeys: Array<string> = rows
-      .map((row: JSONObject) => {
-        const attribute: unknown = row["attribute"];
+    if (!Array.isArray(rawKeys)) {
+      return [];
+    }
+
+    const attributeKeys: Array<string> = rawKeys
+      .map((attribute: unknown): string | null => {
         return typeof attribute === "string" ? attribute.trim() : null;
       })
       .filter((attribute: string | null): attribute is string => {
         return Boolean(attribute);
       });
 
-    return Array.from(new Set(attributeKeys));
+    const distinctKeys: Array<string> = Array.from(new Set(attributeKeys));
+    distinctKeys.sort((a: string, b: string): number => {
+      return a.localeCompare(b);
+    });
+    if (distinctKeys.length > TelemetryAttributeService.ATTRIBUTES_LIMIT) {
+      distinctKeys.length = TelemetryAttributeService.ATTRIBUTES_LIMIT;
+    }
+    return distinctKeys;
   }
 
   private static readonly ATTRIBUTE_VALUES_LIMIT: number = 100;
@@ -362,6 +374,7 @@ export class TelemetryAttributeService {
     telemetryType: TelemetryType;
     metricName?: string | undefined;
     attributeKey: string;
+    searchText?: string | undefined;
   }): Promise<string[]> {
     const source: TelemetrySource | null = this.getTelemetrySource(
       data.telemetryType,
@@ -376,15 +389,17 @@ export class TelemetryAttributeService {
       source,
       metricName: data.metricName,
       attributeKey: data.attributeKey,
+      searchText: data.searchText,
     });
   }
 
-  private static async fetchAttributeValuesFromDatabase(data: {
+  private static buildAttributeValuesStatement(data: {
     projectId: ObjectID;
     source: TelemetrySource;
     metricName?: string | undefined;
     attributeKey: string;
-  }): Promise<Array<string>> {
+    searchText?: string | undefined;
+  }): Statement {
     const lookbackStartDate: Date =
       TelemetryAttributeService.getLookbackStartDate();
 
@@ -417,6 +432,26 @@ export class TelemetryAttributeService {
       );
     }
 
+    /*
+     * Case-insensitive substring filter so the value autocomplete keeps
+     * narrowing server-side as the user types. Without it only the first
+     * ATTRIBUTE_VALUES_LIMIT values (alphabetically) are ever reachable,
+     * which hides matches on high-cardinality keys (host.name, url, ...).
+     * Mirrors the ILIKE idiom used for bodySearchText / nameSearchText.
+     */
+    if (data.searchText && data.searchText.trim().length > 0) {
+      statement.append(
+        SQL`
+        AND ${data.source.attributesColumn}[${{
+          type: TableColumnType.Text,
+          value: data.attributeKey,
+        }}] ILIKE ${{
+          type: TableColumnType.Text,
+          value: `%${data.searchText.trim()}%`,
+        }}`,
+      );
+    }
+
     statement.append(
       SQL`
       ORDER BY attributeValue ASC
@@ -425,6 +460,29 @@ export class TelemetryAttributeService {
         value: TelemetryAttributeService.ATTRIBUTE_VALUES_LIMIT,
       }}`,
     );
+
+    /*
+     * Cap runtime below the client's 58s request_timeout. This value
+     * autocomplete runs per keystroke and scans a Map subscript, so a
+     * pathological key/project must not hold a pool connection; 'break'
+     * returns partial values, acceptable for autocomplete.
+     */
+    statement.append(
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+    );
+
+    return statement;
+  }
+
+  private static async fetchAttributeValuesFromDatabase(data: {
+    projectId: ObjectID;
+    source: TelemetrySource;
+    metricName?: string | undefined;
+    attributeKey: string;
+    searchText?: string | undefined;
+  }): Promise<Array<string>> {
+    const statement: Statement =
+      TelemetryAttributeService.buildAttributeValuesStatement(data);
 
     const dbResult: Results = await data.source.service.executeQuery(statement);
     const response: DbJSONResponse = await dbResult.json<{

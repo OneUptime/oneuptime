@@ -1,20 +1,34 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import MonitorsElement from "../Monitor/Monitors";
+import AffectedResourcesCell from "../AffectedResources/AffectedResourcesCell";
 import StatusPagesElement from "../StatusPage/StatusPagesElement";
+import AppLink from "../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
-import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
+import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import OwnersCell from "../ResourceOwners/OwnersCell";
+import buildAffectedResourcesFacet from "../AffectedResources/buildAffectedResourcesFacet";
+import useResourceOwners, {
+  ResourceFacet,
+  buildEntityFacetQuery,
+} from "../ResourceOwners/useResourceOwners";
+import {
+  FilterChipDropdownOption,
+  FilterOperator,
+} from "../ResourceOwners/FilterChipDropdown";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -26,6 +40,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import Search from "Common/Types/BaseDatabase/Search";
 import API from "Common/UI/Utils/API/API";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
@@ -83,6 +98,105 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     useBulkLabelActions<ScheduledMaintenance>({
       modelType: ScheduledMaintenance,
     });
+
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<ScheduledMaintenance>({
+      ownerUserModelType: ScheduledMaintenanceOwnerUser,
+      ownerTeamModelType: ScheduledMaintenanceOwnerTeam,
+      resourceIdField: "scheduledMaintenanceId",
+    });
+
+  const scheduledMaintenanceExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "currentScheduledMaintenanceState",
+      label: "State",
+      icon: IconProp.Flag,
+      isMultiSelect: true,
+      searchPlaceholder: "Search states...",
+      loadOptions: async (
+        projectId: ObjectID,
+        searchTerm: string,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        const query: Query<ScheduledMaintenanceState> = {
+          projectId: projectId,
+        } as Query<ScheduledMaintenanceState>;
+        if (searchTerm.trim()) {
+          (query as unknown as Record<string, unknown>)["name"] = new Search(
+            searchTerm.trim(),
+          );
+        }
+        const result: ListResult<ScheduledMaintenanceState> =
+          await ModelAPI.getList<ScheduledMaintenanceState>({
+            modelType: ScheduledMaintenanceState,
+            query: query,
+            limit: 50,
+            skip: 0,
+            select: { _id: true, name: true, order: true, color: true },
+            sort: { order: SortOrder.Ascending },
+          });
+        return result.data.map((s: ScheduledMaintenanceState) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
+          };
+        });
+      },
+      resolveOptions: async (
+        projectId: ObjectID,
+        values: Array<string>,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        if (values.length === 0) {
+          return [];
+        }
+        const result: ListResult<ScheduledMaintenanceState> =
+          await ModelAPI.getList<ScheduledMaintenanceState>({
+            modelType: ScheduledMaintenanceState,
+            query: {
+              projectId: projectId,
+              _id: new Includes(values),
+            } as Query<ScheduledMaintenanceState>,
+            limit: values.length,
+            skip: 0,
+            select: { _id: true, name: true, color: true },
+            sort: {},
+          });
+        return result.data.map((s: ScheduledMaintenanceState) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
+          };
+        });
+      },
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEntityFacetQuery(values, operator, true);
+      },
+    },
+    buildAffectedResourcesFacet<ScheduledMaintenance>({
+      parentModelType: ScheduledMaintenance,
+    }),
+  ];
+
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<ScheduledMaintenance>({
+    persistKey: props.saveFilterProps?.tableId,
+    ownerUserModelType: ScheduledMaintenanceOwnerUser,
+    ownerTeamModelType: ScheduledMaintenanceOwnerTeam,
+    resourceIdField: "scheduledMaintenanceId",
+    showLabelsFacet: true,
+    extraFacets: scheduledMaintenanceExtraFacets,
+  });
 
   // Fetch scheduled maintenance states on mount
   useEffect(() => {
@@ -302,11 +416,18 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           buttons: [
             getBulkChangeStateAction(),
             ...labelBulkActions,
+            ...ownerBulkActions,
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
         isDeleteable={false}
-        query={props.query || {}}
+        topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery(props.query)}
+        onFetchSuccess={(data: Array<ScheduledMaintenance>) => {
+          onResourcesFetched(data);
+        }}
         isEditable={false}
         isCreateable={false}
         isViewable={true}
@@ -325,6 +446,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
         showViewIdButton={true}
         viewButtonText="View Event"
         showRefreshButton={true}
+        searchableFields={["title", "description"]}
         viewPageRoute={props.viewPageRoute}
         filters={[
           {
@@ -347,23 +469,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             },
             title: "Title",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              currentScheduledMaintenanceState: {
-                name: true,
-              },
-            },
-            title: "Current State",
-            type: FieldType.Entity,
-            filterEntityType: ScheduledMaintenanceState,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
           },
           {
             field: {
@@ -424,27 +529,41 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             title: "Ends At",
             type: FieldType.Date,
           },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
         ]}
         selectMoreFields={{
           scheduledMaintenanceNumberWithPrefix: true,
+          /*
+           * The Resources Affected column lists several M2M relations under one
+           * `field` block, but BaseModelTable only auto-selects the FIRST key
+           * of each column.field. Include the remaining relations explicitly
+           * so all attached resources actually load.
+           */
+          hosts: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+          kubernetesClusters: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+          dockerHosts: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+          podmanHosts: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+          services: {
+            name: true,
+            _id: true,
+            projectId: true,
+            serviceColor: true,
+          },
         }}
         columns={[
           {
@@ -458,12 +577,27 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 return <>-</>;
               }
 
-              return (
-                <>
-                  {item.scheduledMaintenanceNumberWithPrefix ||
-                    `#${item.scheduledMaintenanceNumber}`}
-                </>
-              );
+              const numberLabel: string =
+                item.scheduledMaintenanceNumberWithPrefix ||
+                `#${item.scheduledMaintenanceNumber}`;
+
+              if (item._id) {
+                return (
+                  <AppLink
+                    className="hover:underline"
+                    to={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route,
+                      {
+                        modelId: new ObjectID(item._id as string),
+                      },
+                    )}
+                  >
+                    <span>{numberLabel}</span>
+                  </AppLink>
+                );
+              }
+
+              return <span>{numberLabel}</span>;
             },
           },
           {
@@ -500,19 +634,55 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           },
 
           {
+            // Unified "Resources Affected" cell mirroring the form picker.
             field: {
               monitors: {
                 name: true,
                 _id: true,
                 projectId: true,
               },
+              hosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              kubernetesClusters: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              dockerHosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              podmanHosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              services: {
+                name: true,
+                _id: true,
+                projectId: true,
+                serviceColor: true,
+              },
             },
-            title: "Monitors Affected",
+            title: "Resources Affected",
             type: FieldType.EntityArray,
             hideOnMobile: true,
 
             getElement: (item: ScheduledMaintenance): ReactElement => {
-              return <MonitorsElement monitors={item["monitors"] || []} />;
+              return (
+                <AffectedResourcesCell
+                  monitors={item.monitors || []}
+                  hosts={item.hosts || []}
+                  kubernetesClusters={item.kubernetesClusters || []}
+                  dockerHosts={item.dockerHosts || []}
+                  podmanHosts={item.podmanHosts || []}
+                  services={item.services || []}
+                />
+              );
             },
           },
           {
@@ -562,6 +732,22 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
 
             getElement: (item: ScheduledMaintenance): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: ScheduledMaintenance): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}
@@ -651,6 +837,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       )}
 
       {labelBulkActionModals}
+      {ownerBulkActionModals}
 
       {showBulkStateChangeModal && (
         <BasicFormModal

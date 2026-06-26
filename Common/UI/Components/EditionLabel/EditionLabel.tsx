@@ -45,6 +45,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const [validationError, setValidationError] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [isValidating, setIsValidating] = useState<boolean>(false);
+  const [isChangingLicense, setIsChangingLicense] = useState<boolean>(false);
   const licenseInputEditedRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
@@ -318,6 +319,22 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     setIsDialogOpen(false);
     setValidationError("");
     setSuccessMessage("");
+    setIsChangingLicense(false);
+  };
+
+  const handleStartChangingLicense: () => void = () => {
+    setIsChangingLicense(true);
+    setValidationError("");
+    setSuccessMessage("");
+    setLicenseKeyInput("");
+    licenseInputEditedRef.current = true;
+  };
+
+  const handleCancelChangingLicense: () => void = () => {
+    setIsChangingLicense(false);
+    setValidationError("");
+    licenseInputEditedRef.current = false;
+    setLicenseKeyInput(globalConfig?.enterpriseLicenseKey || "");
   };
 
   const handlePrimaryAction: () => void = () => {
@@ -371,6 +388,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         licenseInputEditedRef.current = false;
         setLicenseKeyInput((payload["licenseKey"] as string) || trimmedKey);
         setSuccessMessage("License validated successfully.");
+        setIsChangingLicense(false);
 
         await fetchGlobalConfig();
       } catch (err) {
@@ -396,8 +414,10 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const shouldShowEnterpriseValidationButton: boolean =
-    IS_ENTERPRISE_EDITION && !licenseValid;
+  const showLicenseKeyInput: boolean =
+    IS_ENTERPRISE_EDITION && (!licenseValid || isChangingLicense);
+
+  const shouldShowEnterpriseValidationButton: boolean = showLicenseKeyInput;
 
   const modalSubmitButtonText: string | undefined = IS_ENTERPRISE_EDITION
     ? shouldShowEnterpriseValidationButton
@@ -442,7 +462,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         type="button"
         onClick={openDialog}
         className={`${pillClassName} ${props.className ? props.className : ""}`}
-        aria-label={`${editionName} details`}
+        /*
+         * Accessible name must include the visible text (WCAG 2.5.3 Label in
+         * Name) so voice-control users can activate it by the words they see
+         * ("{editionName}" and "{ctaLabel}", e.g. "Learn more").
+         */
+        aria-label={`${editionName}, ${ctaLabel}`}
       >
         {showAlertedPill && (
           <Icon
@@ -613,6 +638,20 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
                 {!configError &&
                   !isConfigLoading &&
+                  licenseValid &&
+                  !isChangingLicense && (
+                    <div className="-ml-3">
+                      <Button
+                        title="Change license key"
+                        icon={IconProp.Edit}
+                        buttonStyle={ButtonStyleType.NORMAL}
+                        onClick={handleStartChangingLicense}
+                      />
+                    </div>
+                  )}
+
+                {!configError &&
+                  !isConfigLoading &&
                   !licenseValid &&
                   globalConfig?.enterpriseLicenseKey && (
                     <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -632,11 +671,13 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                       <Alert type={AlertType.SUCCESS} title={successMessage} />
                     )}
 
-                    {!licenseValid && (
+                    {showLicenseKeyInput && (
                       <>
                         <div>
                           <label className="text-sm font-medium text-gray-700">
-                            License Key
+                            {isChangingLicense
+                              ? "New License Key"
+                              : "License Key"}
                           </label>
                           <Input
                             value={licenseKeyInput}
@@ -656,18 +697,34 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                           />
                         )}
 
-                        <p className="text-xs text-gray-500">
-                          You have installed Enterprise Edition of OneUptime.
-                          You need to validate your license key. Need a license
-                          key? Contact our sales team at{" "}
-                          <a
-                            href="mailto:sales@oneuptime.com"
-                            className="font-medium text-indigo-600 hover:text-indigo-700"
-                          >
-                            sales@oneuptime.com
-                          </a>
-                          .
-                        </p>
+                        {isChangingLicense ? (
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs text-gray-500">
+                              Enter the new enterprise license key and validate
+                              it to replace the current one. Your existing
+                              license stays active until the new key is
+                              validated.
+                            </p>
+                            <Button
+                              title="Cancel"
+                              buttonStyle={ButtonStyleType.NORMAL}
+                              onClick={handleCancelChangingLicense}
+                            />
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-500">
+                            You have installed Enterprise Edition of OneUptime.
+                            You need to validate your license key. Need a
+                            license key? Contact our sales team at{" "}
+                            <a
+                              href="mailto:sales@oneuptime.com"
+                              className="font-medium text-indigo-600 hover:text-indigo-700"
+                            >
+                              sales@oneuptime.com
+                            </a>
+                            .
+                          </p>
+                        )}
                       </>
                     )}
                   </>

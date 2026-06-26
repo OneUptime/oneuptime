@@ -39,6 +39,7 @@ import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelA
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Select from "Common/Types/BaseDatabase/Select";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -177,7 +178,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
           parentSpanId: true,
           spanId: true,
           kind: true,
-          serviceId: true,
+          primaryEntityId: true,
           durationUnixNano: true,
           statusCode: true,
         };
@@ -356,8 +357,17 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               className="text-blue-600 hover:text-blue-800 text-[11px] font-medium"
               onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
-                const profilesRoute: Route = RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.PROFILES] as Route,
+                /*
+                 * Deep-link into the raw-profiles list filtered to this
+                 * trace — landing on the unfiltered overview would force
+                 * the user to re-find the trace by hand.
+                 */
+                const traceId: string =
+                  span.traceId?.toString() || props.traceId;
+                const profilesRoute: Route = new Route(
+                  `${RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.PROFILES_INSIGHTS] as Route,
+                  ).toString()}?traceId=${traceId}`,
                 );
                 Navigation.navigate(profilesRoute, {
                   openInNewTab: true,
@@ -471,7 +481,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
     const telemetryService: Service | undefined = telemetryServices.find(
       (service: Service) => {
-        return service._id?.toString() === rootSpan.serviceId?.toString();
+        return service._id?.toString() === rootSpan.primaryEntityId?.toString();
       },
     );
 
@@ -644,10 +654,10 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     const serviceIdsInTrace: Set<string> = new Set(
       spans
         .filter((s: Span) => {
-          return Boolean(s.serviceId);
+          return Boolean(s.primaryEntityId);
         })
         .map((s: Span) => {
-          return s.serviceId!.toString();
+          return s.primaryEntityId!.toString();
         }),
     );
     return telemetryServices.filter((svc: Service) => {
@@ -655,12 +665,12 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     });
   }, [telemetryServices, spans]);
 
-  // Map serviceId -> { total, error }
+  // Map primaryEntityId -> { total, error }
   const serviceSpanStats: Record<string, { total: number; error: number }> =
     React.useMemo(() => {
       const stats: Record<string, { total: number; error: number }> = {};
       for (const span of spans) {
-        const id: string | undefined = span.serviceId?.toString();
+        const id: string | undefined = span.primaryEntityId?.toString();
         if (!id) {
           continue;
         }
@@ -673,6 +683,38 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       }
       return stats;
     }, [spans]);
+
+  /*
+   * Telemetry without a service.name is tagged with the projectId
+   * (ServiceType.Unknown) and has no Service row. When a span in this
+   * trace references it, fold a synthetic "Unknown Service" into the
+   * resolved service list so the existing primaryEntityId -> Service lookups
+   * (filter chips, span rows, search) render it instead of a blank
+   * name. Idempotent and returns the same array reference when nothing
+   * is unattributed, so this does not trigger an extra render.
+   */
+  React.useEffect(() => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    if (!projectId) {
+      return;
+    }
+    const referencedServiceIds: Set<string> = new Set(
+      spans
+        .map((span: Span) => {
+          return span.primaryEntityId?.toString() || "";
+        })
+        .filter((id: string) => {
+          return Boolean(id);
+        }),
+    );
+    setServices((previousServices: Service[]) => {
+      return TelemetryServiceUtil.withUnknownServiceIfReferenced({
+        services: previousServices,
+        referencedServiceIds,
+        projectId,
+      });
+    });
+  }, [spans]);
 
   // Prune selected services if they disappear (new fetch)
   React.useEffect(() => {
@@ -702,8 +744,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     }
     if (selectedServiceIds.length > 0) {
       filtered = filtered.filter((s: Span): boolean => {
-        return s.serviceId
-          ? selectedServiceIds.includes(s.serviceId.toString())
+        return s.primaryEntityId
+          ? selectedServiceIds.includes(s.primaryEntityId.toString())
           : false;
       });
     }
@@ -721,7 +763,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         // Match against service name
         const service: Service | undefined = telemetryServices.find(
           (svc: Service) => {
-            return svc._id?.toString() === s.serviceId?.toString();
+            return svc._id?.toString() === s.primaryEntityId?.toString();
           },
         );
         if (service?.name?.toLowerCase().includes(searchLower)) {
@@ -759,7 +801,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         startTimeUnixNano: s.startTimeUnixNano!,
         endTimeUnixNano: s.endTimeUnixNano!,
         durationUnixNano: s.durationUnixNano!,
-        serviceId: s.serviceId?.toString(),
+        primaryEntityId: s.primaryEntityId?.toString(),
         name: s.name,
       };
     });
@@ -778,7 +820,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         startTimeUnixNano: s.startTimeUnixNano!,
         endTimeUnixNano: s.endTimeUnixNano!,
         durationUnixNano: s.durationUnixNano!,
-        serviceId: s.serviceId?.toString(),
+        primaryEntityId: s.primaryEntityId?.toString(),
         name: s.name,
       };
     });
@@ -815,8 +857,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       if (span.statusCode === SpanStatus.Error) {
         errorCount++;
       }
-      if (span.serviceId) {
-        serviceIds.add(span.serviceId.toString());
+      if (span.primaryEntityId) {
+        serviceIds.add(span.primaryEntityId.toString());
       }
     }
 
@@ -924,7 +966,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       allRows = displaySpans.map((span: Span) => {
         const telemetryService: Service | undefined = telemetryServices.find(
           (service: Service) => {
-            return service._id?.toString() === span.serviceId?.toString();
+            return service._id?.toString() === span.primaryEntityId?.toString();
           },
         );
         return {
@@ -1453,7 +1495,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                 {serviceBreakdown.map((breakdown: ServiceBreakdown) => {
                   const service: Service | undefined = telemetryServices.find(
                     (s: Service) => {
-                      return s._id?.toString() === breakdown.serviceId;
+                      return s._id?.toString() === breakdown.primaryEntityId;
                     },
                   );
                   const serviceName: string = service?.name || "Unknown";
@@ -1467,7 +1509,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
                   return (
                     <div
-                      key={breakdown.serviceId}
+                      key={breakdown.primaryEntityId}
                       className="flex items-center space-x-2"
                     >
                       <span
@@ -1592,7 +1634,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
             const telemetryService: Service | undefined =
               telemetryServices.find((service: Service) => {
                 return (
-                  service._id?.toString() === selectedSpan.serviceId?.toString()
+                  service._id?.toString() ===
+                  selectedSpan.primaryEntityId?.toString()
                 );
               });
 

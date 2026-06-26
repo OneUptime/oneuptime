@@ -33,7 +33,23 @@ export default class AnalyticsBaseModel extends CommonModel {
     pluralName: string;
     tableEngine?: AnalyticsTableEngine | undefined;
     tableColumns: Array<AnalyticsTableColumn>;
-    crudApiPath: Route;
+    /*
+     * REST CRUD API base path. Optional — internal-only tables (e.g.
+     * MV target tables that no UI ever queries directly) may omit it.
+     * Models without a `crudApiPath` are skipped by the API and MCP
+     * tool generators.
+     */
+    crudApiPath?: Route | undefined;
+    /*
+     * When true, this model is published in the public REST API Reference
+     * (/reference). Mirrors @EnableDocumentation() on Postgres models —
+     * having a crudApiPath alone is not enough; documentation is an
+     * explicit opt-in so internal-only tables stay private.
+     */
+    enableDocumentation?: boolean | undefined;
+    // Human-readable summary shown on the model's API Reference page.
+    tableDescription?: string | undefined;
+    isMasterAdminApiDocs?: boolean | undefined;
     allowAccessIfSubscriptionIsUnpaid?: boolean | undefined;
     tableBillingAccessControl?: TableBillingAccessControl | undefined;
     accessControl?: TableAccessControl | undefined;
@@ -42,10 +58,35 @@ export default class AnalyticsBaseModel extends CommonModel {
     enableWorkflowOn?: EnableWorkflowOn | undefined;
     enableRealtimeEventsOn?: EnableRealtimeEventsOn | undefined;
     partitionKey: string;
+    /*
+     * Sharding-key EXPRESSION for the Distributed table created in cluster
+     * mode (e.g. "cityHash64(traceId)"). Pick a HIGH-cardinality column so a
+     * single big project/tenant spreads evenly across shards, and co-locate
+     * what you read/aggregate together (a trace's spans, a metric series).
+     * Correctness never depends on this — the Distributed table fans reads out
+     * to every shard regardless — it is purely a distribution/locality choice.
+     * Falls back to cityHash64(projectId) when unset.
+     *
+     * MUST evaluate to a NON-nullable integer: ClickHouse rejects a Distributed
+     * sharding expression of type Nullable(...). Wrap nullable columns, e.g.
+     * cityHash64(ifNull(traceId, '')).
+     */
+    shardingKey?: string | undefined;
+    tableSettings?: string | undefined;
     projections?: Array<Projection> | undefined;
     materializedViews?: Array<MaterializedView> | undefined;
     enableMCP?: boolean | undefined;
     ttlExpression?: string | undefined; // e.g. "retentionDate DELETE"
+    /*
+     * Column that `findBy` falls back to when the caller doesn't
+     * specify a `sort`. Defaults to `createdAt` (matching the legacy
+     * behavior), but heavy analytics tables should override this to
+     * a column that participates in their ClickHouse sort key so the
+     * default list query streams from the index instead of doing a
+     * full sort. Examples: Log/MonitorLog/ExceptionInstance => "time",
+     * Span/Profile => "startTime", AuditLog => "createdAt".
+     */
+    defaultSortColumn?: string | undefined;
   }) {
     super({
       tableColumns: data.tableColumns,
@@ -66,6 +107,12 @@ export default class AnalyticsBaseModel extends CommonModel {
         description: "ID of this object",
         required: true,
         type: TableColumnType.ObjectID,
+        /*
+         * Ids are UUIDv7 (time-ordered — see ObjectID.generateTimeOrdered),
+         * so consecutive rows share their 48-bit timestamp prefix and ZSTD
+         * compresses them well; random v4 ids were incompressible.
+         */
+        codec: { codec: "ZSTD", level: 1 },
       }),
     );
 
@@ -74,16 +121,6 @@ export default class AnalyticsBaseModel extends CommonModel {
         key: "createdAt",
         title: "Created",
         description: "Date and Time when the object was created.",
-        required: true,
-        type: TableColumnType.Date,
-      }),
-    );
-
-    columns.push(
-      new AnalyticsTableColumn({
-        key: "updatedAt",
-        title: "Updated",
-        description: "Date and Time when the object was updated.",
         required: true,
         type: TableColumnType.Date,
       }),
@@ -144,12 +181,40 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.accessControl = data.accessControl;
     this.enableWorkflowOn = data.enableWorkflowOn;
     this.crudApiPath = data.crudApiPath;
+    this.enableDocumentation = data.enableDocumentation || false;
+    this.tableDescription = data.tableDescription || "";
+    this.isMasterAdminApiDocs = data.isMasterAdminApiDocs || false;
     this.enableRealtimeEventsOn = data.enableRealtimeEventsOn;
     this.partitionKey = data.partitionKey;
+    this.shardingKey = data.shardingKey;
+    this.tableSettings = data.tableSettings;
     this.projections = data.projections || [];
     this.materializedViews = data.materializedViews || [];
     this.enableMCP = data.enableMCP || false;
     this.ttlExpression = data.ttlExpression || "";
+
+    /*
+     * Validate the override matches the schema. We deliberately do
+     * NOT require the column to be in `sortKeys` — it must just
+     * exist on the table; the caller picks a column they know is
+     * indexed (typically the timestamp column at position 2 of the
+     * sort key, after `projectId`).
+     */
+    if (data.defaultSortColumn) {
+      const column: AnalyticsTableColumn | undefined = columns.find(
+        (column: AnalyticsTableColumn) => {
+          return column.key === data.defaultSortColumn;
+        },
+      );
+      if (!column) {
+        throw new BadDataException(
+          "defaultSortColumn " +
+            data.defaultSortColumn +
+            " is not part of tableColumns",
+        );
+      }
+      this.defaultSortColumn = data.defaultSortColumn;
+    }
   }
 
   private _enableWorkflowOn: EnableWorkflowOn | undefined;
@@ -200,12 +265,44 @@ export default class AnalyticsBaseModel extends CommonModel {
     this._partitionKey = v;
   }
 
+  private _shardingKey: string | undefined = undefined;
+  public get shardingKey(): string | undefined {
+    return this._shardingKey;
+  }
+  public set shardingKey(v: string | undefined) {
+    this._shardingKey = v;
+  }
+
+  private _tableSettings: string | undefined = undefined;
+  public get tableSettings(): string | undefined {
+    return this._tableSettings;
+  }
+  public set tableSettings(v: string | undefined) {
+    this._tableSettings = v;
+  }
+
   private _sortKeys: Array<string> = [];
   public get sortKeys(): Array<string> {
     return this._sortKeys;
   }
   public set sortKeys(v: Array<string>) {
     this._sortKeys = v;
+  }
+
+  /*
+   * Column that `AnalyticsDatabaseService._findBy` falls back to
+   * when the caller didn't pass a `sort`. `createdAt` (the historical
+   * default) is not part of the ClickHouse sort key on heavy
+   * analytics tables (Log/Span/Metric/...), so a default list query
+   * over those tables triggers a full sort. Per-model overrides
+   * point at a column that participates in the sort key.
+   */
+  private _defaultSortColumn: string = "createdAt";
+  public get defaultSortColumn(): string {
+    return this._defaultSortColumn;
+  }
+  public set defaultSortColumn(v: string) {
+    this._defaultSortColumn = v;
   }
 
   private _singularName: string = "";
@@ -252,12 +349,36 @@ export default class AnalyticsBaseModel extends CommonModel {
     this._tableName = v;
   }
 
-  private _crudApiPath!: Route;
-  public get crudApiPath(): Route {
+  private _crudApiPath: Route | undefined;
+  public get crudApiPath(): Route | undefined {
     return this._crudApiPath;
   }
-  public set crudApiPath(v: Route) {
+  public set crudApiPath(v: Route | undefined) {
     this._crudApiPath = v;
+  }
+
+  private _enableDocumentation: boolean = false;
+  public get enableDocumentation(): boolean {
+    return this._enableDocumentation;
+  }
+  public set enableDocumentation(v: boolean) {
+    this._enableDocumentation = v;
+  }
+
+  private _tableDescription: string = "";
+  public get tableDescription(): string {
+    return this._tableDescription;
+  }
+  public set tableDescription(v: string) {
+    this._tableDescription = v;
+  }
+
+  private _isMasterAdminApiDocs: boolean = false;
+  public get isMasterAdminApiDocs(): boolean {
+    return this._isMasterAdminApiDocs;
+  }
+  public set isMasterAdminApiDocs(v: boolean) {
+    this._isMasterAdminApiDocs = v;
   }
 
   private _projections: Array<Projection> = [];
@@ -376,15 +497,15 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.setColumnValue("createdAt", v);
   }
 
-  public get updatedAt(): Date | undefined {
-    return this.getColumnValue("updatedAt") as Date | undefined;
-  }
-
-  public set updatedAt(v: Date | undefined) {
-    this.setColumnValue("updatedAt", v);
-  }
-
   public getAPIDocumentationPath(): string {
+    /*
+     * Prefer the public CRUD API slug (e.g. "/logs" -> "logs") so the
+     * docs URL and the in-app "API Docs" link mirror the real endpoint,
+     * rather than the internal ClickHouse table name (e.g. "LogItemV2").
+     */
+    if (this.crudApiPath) {
+      return this.crudApiPath.toString().replace(/^\/+/, "");
+    }
     return Text.pascalCaseToDashes(this.tableName);
   }
 

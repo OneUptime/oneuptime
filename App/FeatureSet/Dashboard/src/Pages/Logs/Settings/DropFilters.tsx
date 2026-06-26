@@ -1,13 +1,19 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
+import LogDropFilterAction from "Common/Types/Log/LogDropFilterAction";
 import ProjectUtil from "Common/UI/Utils/Project";
+import FilterQueryBuilderField from "../../../Components/FilterQueryBuilder/FilterQueryBuilderField";
+import LogFilterConfig from "../../../Components/FilterQueryBuilder/LogFilterConfig";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const documentationMarkdown: string = `
@@ -45,11 +51,11 @@ Filter queries determine which logs this drop filter applies to.
 |----------|---------|-------------|
 | \`=\` | \`severityText = 'DEBUG'\` | Exact match |
 | \`!=\` | \`severityText != 'ERROR'\` | Not equal |
-| \`LIKE\` | \`body LIKE '%healthcheck%'\` | Pattern match (\`%\` = wildcard) |
+| \`LIKE\` | \`body LIKE 'healthcheck'\` | Substring match (use \`%\` for SQL-style wildcards) |
 | \`IN\` | \`severityText IN ('DEBUG', 'TRACE')\` | Match any value in list |
 | \`AND\` / \`OR\` | \`severityText = 'DEBUG' AND attributes.source = 'loadbalancer'\` | Combine conditions |
 
-**Available fields:** \`severityText\`, \`body\`, \`serviceId\`, \`attributes.<key>\`
+**Available fields:** \`severityText\`, \`body\`, \`primaryEntityId\`, \`attributes.<key>\`
 
 ---
 
@@ -61,7 +67,7 @@ Filter queries determine which logs this drop filter applies to.
 - **Result:** All debug-level logs are discarded before storage
 
 #### Example 2: Sample verbose health check logs
-- **Filter Query:** \`body LIKE '%healthcheck%' AND severityText = 'INFO'\`
+- **Filter Query:** \`body LIKE 'healthcheck' AND severityText = 'INFO'\`
 - **Action:** Sample
 - **Sample Percentage:** 5
 - **Result:** Only 5% of health check info logs are kept — enough to spot trends without the noise
@@ -96,6 +102,7 @@ const LogDropFilters: FunctionComponent<
       isEditable={false}
       isCreateable={true}
       isViewable={true}
+      createEditModalWidth={ModalWidth.Large}
       sortBy="sortOrder"
       sortOrder={SortOrder.Ascending}
       enableDragAndDrop={true}
@@ -116,12 +123,34 @@ const LogDropFilters: FunctionComponent<
         samplePercentage: true,
       }}
       viewPageRoute={Navigation.getCurrentRoute()}
+      createInitialValues={{
+        isEnabled: true,
+        action: LogDropFilterAction.Drop,
+      }}
+      onBeforeCreate={async (item: LogDropFilter) => {
+        if (!item.sortOrder) {
+          item.sortOrder = 1;
+        }
+        if (!item.action) {
+          item.action = LogDropFilterAction.Drop;
+        }
+        if (item.isEnabled === undefined || item.isEnabled === null) {
+          item.isEnabled = true;
+        }
+        return item;
+      }}
+      formSteps={[
+        { title: "Basic Info", id: "basic-info" },
+        { title: "Filter Conditions", id: "filter-conditions" },
+        { title: "Action", id: "action" },
+      ]}
       formFields={[
         {
           field: {
             name: true,
           },
           title: "Name",
+          stepId: "basic-info",
           fieldType: FormFieldSchemaType.Text,
           required: true,
           placeholder: "e.g. Drop Debug Logs",
@@ -134,12 +163,81 @@ const LogDropFilters: FunctionComponent<
             description: true,
           },
           title: "Description",
+          stepId: "basic-info",
           fieldType: FormFieldSchemaType.LongText,
           required: false,
           placeholder: "Describe what this filter does.",
         },
+        {
+          field: {
+            isEnabled: true,
+          },
+          title: "Enabled",
+          stepId: "basic-info",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+        },
+        {
+          field: {
+            filterQuery: true,
+          },
+          title: "Filter Query",
+          stepId: "filter-conditions",
+          description:
+            "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.",
+          fieldType: FormFieldSchemaType.CustomComponent,
+          required: true,
+          getCustomElement: (
+            values: FormValues<LogDropFilter>,
+            fieldProps: CustomElementProps,
+          ): ReactElement => {
+            return (
+              <FilterQueryBuilderField
+                initialValue={(values.filterQuery as string) || ""}
+                onChange={(value: string) => {
+                  if (fieldProps.onChange) {
+                    fieldProps.onChange(value);
+                  }
+                }}
+                error={fieldProps.error}
+                config={LogFilterConfig}
+              />
+            );
+          },
+        },
+        {
+          field: {
+            action: true,
+          },
+          title: "Action",
+          stepId: "action",
+          description:
+            "Drop permanently discards matching logs. Sample keeps a percentage of them.",
+          fieldType: FormFieldSchemaType.Dropdown,
+          required: true,
+          dropdownOptions: [
+            { label: "Drop", value: LogDropFilterAction.Drop },
+            { label: "Sample", value: LogDropFilterAction.Sample },
+          ],
+        },
+        {
+          field: {
+            samplePercentage: true,
+          },
+          title: "Sample Percentage",
+          stepId: "action",
+          description:
+            "Only applies when Action is Sample. Percentage of matching logs to keep (e.g. 10 = keep 10%, discard 90%).",
+          fieldType: FormFieldSchemaType.Number,
+          required: false,
+          placeholder: "e.g. 10",
+          showIf: (values: FormValues<LogDropFilter>): boolean => {
+            return values.action === LogDropFilterAction.Sample;
+          },
+        },
       ]}
       showRefreshButton={true}
+      searchableFields={["name", "description"]}
       showViewIdButton={true}
       filters={[
         {

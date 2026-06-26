@@ -124,18 +124,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.MicrosoftTeams}
         />
 
-        {/* <SideMenuItem
-                    link={{
-                        title: 'Webhook Subscribers',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
-                            ] as Route,
-                             {modelId: props.modelId}
-                    ),
-                    }}
-                    icon={IconProp.Webhook}
-                /> */}
+        <SideMenuItem
+          link={{
+            title: "Webhook Subscribers",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Webhook}
+        />
 
         <SideMenuItem
           link={{
@@ -273,6 +271,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             title: "SSO",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.STATUS_PAGE_VIEW_SSO] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Lock}
+        />
+
+        <SideMenuItem
+          link={{
+            title: "OIDC",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGE_VIEW_OIDC] as Route,
               { modelId: props.modelId },
             ),
           }}

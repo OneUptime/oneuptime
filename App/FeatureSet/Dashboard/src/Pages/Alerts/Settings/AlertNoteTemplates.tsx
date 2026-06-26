@@ -4,6 +4,7 @@ import PageComponentProps from "../../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
@@ -17,10 +18,14 @@ const AlertNoteTemplates: FunctionComponent<PageComponentProps> = (
         id="alert-templates-table"
         name="Settings > Alert Templates"
         userPreferencesKey="alert-templates-table"
+        saveFilterProps={{
+          tableId: "alert-note-templates-table",
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        createEditModalWidth={ModalWidth.Large}
         cardProps={{
           title: "Private Note Templates for Alerts",
           description:

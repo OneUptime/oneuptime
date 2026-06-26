@@ -1,5 +1,6 @@
 import DatabaseService from "./DatabaseService";
 import EmailServer from "../../Types/Email/EmailServer";
+import MailTransportType from "../../Types/Email/MailTransportType";
 import SMTPAuthenticationType from "../../Types/Email/SMTPAuthenticationType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import URL from "../../Types/API/URL";
@@ -21,17 +22,28 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Project SMTP config id is not set");
     }
 
-    if (!projectSmtpConfig.hostname) {
-      throw new BadDataException("Project SMTP config host is not set");
-    }
+    const transportType: MailTransportType =
+      projectSmtpConfig.transportType || MailTransportType.SMTP;
 
-    if (!projectSmtpConfig.port) {
-      throw new BadDataException("Project SMTP config port is not set");
-    }
-
-    // Get auth type, default to UsernamePassword for backward compatibility
+    /*
+     * Get auth type, default to UsernamePassword for backward compatibility.
+     * Microsoft Graph always uses OAuth (Client Credentials) regardless of what
+     * the user picked — but we still let the existing OAuth validation apply.
+     */
     const authType: SMTPAuthenticationType =
-      projectSmtpConfig.authType || SMTPAuthenticationType.UsernamePassword;
+      transportType === MailTransportType.MicrosoftGraph
+        ? SMTPAuthenticationType.OAuth
+        : projectSmtpConfig.authType || SMTPAuthenticationType.UsernamePassword;
+
+    if (transportType === MailTransportType.SMTP) {
+      if (!projectSmtpConfig.hostname) {
+        throw new BadDataException("Project SMTP config host is not set");
+      }
+
+      if (!projectSmtpConfig.port) {
+        throw new BadDataException("Project SMTP config port is not set");
+      }
+    }
 
     // Validate based on auth type
     if (authType === SMTPAuthenticationType.UsernamePassword) {
@@ -43,7 +55,14 @@ export class Service extends DatabaseService<Model> {
         throw new BadDataException("Project SMTP config password is not set");
       }
     } else if (authType === SMTPAuthenticationType.OAuth) {
-      if (!projectSmtpConfig.username) {
+      /*
+       * For Microsoft Graph, username is optional — we fall back to fromEmail
+       * as the sender mailbox. For SMTP+XOAUTH2, username is required.
+       */
+      if (
+        transportType === MailTransportType.SMTP &&
+        !projectSmtpConfig.username
+      ) {
         throw new BadDataException(
           "Project SMTP config username (email address) is not set for OAuth",
         );
@@ -85,6 +104,7 @@ export class Service extends DatabaseService<Model> {
 
     return {
       id: projectSmtpConfig.id!,
+      transportType: transportType,
       host: projectSmtpConfig.hostname,
       port: projectSmtpConfig.port,
       username: projectSmtpConfig.username,

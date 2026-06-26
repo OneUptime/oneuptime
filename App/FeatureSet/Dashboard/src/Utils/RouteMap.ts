@@ -21,6 +21,10 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_SETTINGS_SECRETS]: "settings/secrets",
   [PageMap.MONITORS_SETTINGS_TEMPLATES]: "settings/templates",
   [PageMap.MONITORS_SETTINGS_TEMPLATES_VIEW]: `settings/templates/${RouteParams.ModelID}`,
+  [PageMap.MONITORS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.MONITORS_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.MONITORS_SETTINGS_PROBES]: "settings/probes",
+  [PageMap.MONITORS_SETTINGS_PROBE_VIEW]: `settings/probes/${RouteParams.ModelID}`,
 
   [PageMap.MONITOR_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.MONITOR_VIEW_INTERVAL]: `${RouteParams.ModelID}/interval`,
@@ -43,18 +47,21 @@ export const MonitorsRoutePath: Dictionary<string> = {
 export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SERVICE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
-  [PageMap.SERVICE_VIEW_DEPENDENCIES]: `${RouteParams.ModelID}/dependencies`,
   [PageMap.SERVICE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.SERVICE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
-  [PageMap.SERVICE_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
-  [PageMap.SERVICE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
-  [PageMap.SERVICE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.SERVICE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.SERVICE_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.SERVICE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.SERVICE_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
   [PageMap.SERVICE_VIEW_EXCEPTIONS]: `${RouteParams.ModelID}/exceptions`,
   [PageMap.SERVICE_VIEW_CODE_REPOSITORIES]: `${RouteParams.ModelID}/code-repositories`,
+  [PageMap.SERVICE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.SERVICE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.SERVICE_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.SERVICE_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.SERVICE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.SERVICE_ARCHIVED]: `archived`,
 };
 
 export const CodeRepositoryRoutePath: Dictionary<string> = {
@@ -93,13 +100,25 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_VPAS]: `${RouteParams.ModelID}/vpas`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL]: `${RouteParams.ModelID}/vpas/${RouteParams.SubModelID}`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS]: `${RouteParams.ModelID}/events`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE]: `${RouteParams.ModelID}/control-plane`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_MESH]: `${RouteParams.ModelID}/service-mesh`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.KUBERNETES_DOCUMENTATION]: `documentation`,
+  [PageMap.KUBERNETES_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.KUBERNETES_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.KUBERNETES_ARCHIVED]: `archived`,
 };
 
 export const DockerRoutePath: Dictionary<string> = {
@@ -108,25 +127,204 @@ export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_HOST_VIEW_CONTAINER_DETAIL]: `${RouteParams.ModelID}/containers/${RouteParams.SubModelID}`,
   [PageMap.DOCKER_HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.DOCKER_HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.DOCKER_HOST_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.DOCKER_HOST_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
+  [PageMap.DOCKER_HOST_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.DOCKER_HOST_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
   [PageMap.DOCKER_HOST_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.DOCKER_HOST_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.DOCKER_HOST_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.DOCKER_HOST_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.DOCKER_HOST_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.DOCKER_DOCUMENTATION]: `documentation`,
+  [PageMap.DOCKER_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.DOCKER_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.DOCKER_ARCHIVED]: `archived`,
+};
+
+export const PodmanRoutePath: Dictionary<string> = {
+  [PageMap.PODMAN_HOST_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.PODMAN_HOST_VIEW_CONTAINERS]: `${RouteParams.ModelID}/containers`,
+  [PageMap.PODMAN_HOST_VIEW_CONTAINER_DETAIL]: `${RouteParams.ModelID}/containers/${RouteParams.SubModelID}`,
+  [PageMap.PODMAN_HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.PODMAN_HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.PODMAN_HOST_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.PODMAN_HOST_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
+  [PageMap.PODMAN_HOST_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.PODMAN_HOST_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.PODMAN_HOST_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.PODMAN_HOST_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.PODMAN_HOST_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.PODMAN_HOST_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.PODMAN_HOST_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.PODMAN_DOCUMENTATION]: `documentation`,
+  [PageMap.PODMAN_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.PODMAN_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.PODMAN_ARCHIVED]: `archived`,
+};
+
+export const ProxmoxRoutePath: Dictionary<string> = {
+  [PageMap.PROXMOX_CLUSTER_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_NODES]: `${RouteParams.ModelID}/nodes`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_NODE_DETAIL]: `${RouteParams.ModelID}/nodes/${RouteParams.SubModelID}`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_GUESTS]: `${RouteParams.ModelID}/guests`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_GUEST_DETAIL]: `${RouteParams.ModelID}/guests/${RouteParams.SubModelID}`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_STORAGE]: `${RouteParams.ModelID}/storage`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_STORAGE_DETAIL]: `${RouteParams.ModelID}/storage/${RouteParams.SubModelID}`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.PROXMOX_DOCUMENTATION]: `documentation`,
+  [PageMap.PROXMOX_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.PROXMOX_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.PROXMOX_ARCHIVED]: `archived`,
+};
+
+export const IoTRoutePath: Dictionary<string> = {
+  [PageMap.IOT_FLEET_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.IOT_FLEET_VIEW_DEVICES]: `${RouteParams.ModelID}/devices`,
+  [PageMap.IOT_FLEET_VIEW_DEVICE_DETAIL]: `${RouteParams.ModelID}/devices/${RouteParams.SubModelID}`,
+  [PageMap.IOT_FLEET_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.IOT_FLEET_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.IOT_FLEET_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.IOT_FLEET_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.IOT_FLEET_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.IOT_FLEET_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.IOT_FLEET_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.IOT_FLEET_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.IOT_FLEET_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.IOT_FLEET_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.IOT_DOCUMENTATION]: `documentation`,
+  [PageMap.IOT_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.IOT_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.IOT_ARCHIVED]: `archived`,
+};
+
+export const DockerSwarmRoutePath: Dictionary<string> = {
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODES]: `${RouteParams.ModelID}/nodes`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODE_DETAIL]: `${RouteParams.ModelID}/nodes/${RouteParams.SubModelID}`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICES]: `${RouteParams.ModelID}/services`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICE_DETAIL]: `${RouteParams.ModelID}/services/${RouteParams.SubModelID}`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASKS]: `${RouteParams.ModelID}/tasks`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASK_DETAIL]: `${RouteParams.ModelID}/tasks/${RouteParams.SubModelID}`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_STACKS]: `${RouteParams.ModelID}/stacks`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_NETWORKS]: `${RouteParams.ModelID}/networks`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SECRETS]: `${RouteParams.ModelID}/secrets`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_CONFIGS]: `${RouteParams.ModelID}/configs`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_VOLUMES]: `${RouteParams.ModelID}/volumes`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.DOCKER_SWARM_DOCUMENTATION]: `documentation`,
+  [PageMap.DOCKER_SWARM_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.DOCKER_SWARM_ARCHIVED]: `archived`,
+};
+
+export const CephRoutePath: Dictionary<string> = {
+  [PageMap.CEPH_CLUSTER_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.CEPH_CLUSTER_VIEW_OSDS]: `${RouteParams.ModelID}/osds`,
+  [PageMap.CEPH_CLUSTER_VIEW_OSD_DETAIL]: `${RouteParams.ModelID}/osds/${RouteParams.SubModelID}`,
+  [PageMap.CEPH_CLUSTER_VIEW_POOLS]: `${RouteParams.ModelID}/pools`,
+  [PageMap.CEPH_CLUSTER_VIEW_POOL_DETAIL]: `${RouteParams.ModelID}/pools/${RouteParams.SubModelID}`,
+  [PageMap.CEPH_CLUSTER_VIEW_DAEMONS]: `${RouteParams.ModelID}/daemons`,
+  [PageMap.CEPH_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
+  [PageMap.CEPH_CLUSTER_VIEW_CLUSTER_LOG]: `${RouteParams.ModelID}/cluster-log`,
+  [PageMap.CEPH_CLUSTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.CEPH_CLUSTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.CEPH_CLUSTER_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.CEPH_CLUSTER_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.CEPH_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.CEPH_CLUSTER_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.CEPH_CLUSTER_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.CEPH_CLUSTER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.CEPH_CLUSTER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.CEPH_CLUSTER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.CEPH_DOCUMENTATION]: `documentation`,
+  [PageMap.CEPH_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.CEPH_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.CEPH_ARCHIVED]: `archived`,
 };
 
 export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.HOST_VIEW_PROCESSES]: `${RouteParams.ModelID}/processes`,
+  [PageMap.HOST_VIEW_PROCESS_VIEW]: `${RouteParams.ModelID}/processes/${RouteParams.SubModelID}`,
+  [PageMap.HOST_VIEW_SERVICES]: `${RouteParams.ModelID}/services`,
   [PageMap.HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.HOST_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.HOST_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
   [PageMap.HOST_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.HOST_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.HOST_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
   [PageMap.HOST_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.HOST_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.HOST_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.HOST_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.HOST_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.HOST_DOCUMENTATION]: `documentation`,
+  [PageMap.HOST_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.HOST_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.HOST_ARCHIVED]: `archived`,
+};
+
+export const ServerlessRoutePath: Dictionary<string> = {
+  [PageMap.SERVERLESS_FUNCTION_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES]: `${RouteParams.ModelID}/instances`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.SERVERLESS_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.SERVERLESS_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.SERVERLESS_ARCHIVED]: `archived`,
+};
+
+export const CloudRoutePath: Dictionary<string> = {
+  [PageMap.CLOUD_RESOURCE_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.CLOUD_RESOURCE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.CLOUD_RESOURCE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.CLOUD_RESOURCE_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.CLOUD_RESOURCE_VIEW_INSTANCES]: `${RouteParams.ModelID}/instances`,
+  [PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.CLOUD_RESOURCE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.CLOUD_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.CLOUD_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.CLOUD_ARCHIVED]: `archived`,
+};
+
+export const RumRoutePath: Dictionary<string> = {
+  [PageMap.RUM_APPLICATION_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.RUM_APPLICATION_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.RUM_APPLICATION_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.RUM_APPLICATION_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.RUM_APPLICATION_VIEW_CLIENTS]: `${RouteParams.ModelID}/clients`,
+  [PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.RUM_APPLICATION_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.RUM_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.RUM_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.RUM_ARCHIVED]: `archived`,
 };
 
 export const WorkflowRoutePath: Dictionary<string> = {
@@ -137,7 +335,28 @@ export const WorkflowRoutePath: Dictionary<string> = {
   [PageMap.WORKFLOW_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.WORKFLOW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.WORKFLOW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.WORKFLOW_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.WORKFLOW_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.WORKFLOW_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.WORKFLOWS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.WORKFLOWS_SETTINGS_LABEL_RULES]: "settings/label-rules",
+};
+
+export const RunbookRoutePath: Dictionary<string> = {
+  [PageMap.RUNBOOKS_EXECUTIONS]: "executions",
+  [PageMap.RUNBOOKS_AGENTS]: "settings/agents",
+  [PageMap.RUNBOOKS_AGENT_VIEW]: `settings/agents/${RouteParams.ModelID}`,
+  [PageMap.RUNBOOKS_SECRETS]: "settings/secrets",
+  [PageMap.RUNBOOK_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.RUNBOOK_VIEW_STEPS]: `${RouteParams.ModelID}/steps`,
+  [PageMap.RUNBOOK_VIEW_EXECUTIONS]: `${RouteParams.ModelID}/executions`,
+  [PageMap.RUNBOOK_VIEW_EXECUTION]: `${RouteParams.ModelID}/executions/${RouteParams.SubModelID}`,
+  [PageMap.RUNBOOK_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.RUNBOOK_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.RUNBOOK_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.RUNBOOK_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.RUNBOOKS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.RUNBOOKS_SETTINGS_LABEL_RULES]: "settings/label-rules",
 };
 
 export const AIAgentTasksRoutePath: Dictionary<string> = {
@@ -191,6 +410,15 @@ export const ProfilesRoutePath: Dictionary<string> = {
   [PageMap.PROFILES_DOCUMENTATION]: "documentation",
 };
 
+export const EntitiesRoutePath: Dictionary<string> = {
+  [PageMap.ENTITIES]: "overview",
+  [PageMap.ENTITIES_VIEW]: ":modelId",
+};
+
+export const TopologyRoutePath: Dictionary<string> = {
+  [PageMap.TOPOLOGY]: "overview",
+};
+
 export const ExceptionsRoutePath: Dictionary<string> = {
   [PageMap.EXCEPTIONS]: "overview",
   [PageMap.EXCEPTIONS_OVERVIEW]: "overview",
@@ -202,6 +430,13 @@ export const ExceptionsRoutePath: Dictionary<string> = {
   [PageMap.EXCEPTIONS_DOCUMENTATION]: "documentation",
 };
 
+export const LlmRoutePath: Dictionary<string> = {
+  [PageMap.LLM]: "overview",
+  [PageMap.LLM_OVERVIEW]: "overview",
+  [PageMap.LLM_CALLS]: "calls",
+  [PageMap.LLM_DOCUMENTATION]: "documentation",
+};
+
 export const DashboardsRoutePath: Dictionary<string> = {
   [PageMap.DASHBOARD_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.DASHBOARD_VIEW_OVERVIEW]: `${RouteParams.ModelID}/overview`,
@@ -210,6 +445,10 @@ export const DashboardsRoutePath: Dictionary<string> = {
   [PageMap.DASHBOARD_VIEW_BRANDING]: `${RouteParams.ModelID}/branding`,
   [PageMap.DASHBOARD_VIEW_AUTHENTICATION_SETTINGS]: `${RouteParams.ModelID}/authentication-settings`,
   [PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS]: `${RouteParams.ModelID}/custom-domains`,
+  [PageMap.DASHBOARD_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.DASHBOARD_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.DASHBOARDS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.DASHBOARDS_SETTINGS_LABEL_RULES]: "settings/label-rules",
 };
 
 export const StatusPagesRoutePath: Dictionary<string> = {
@@ -225,6 +464,8 @@ export const StatusPagesRoutePath: Dictionary<string> = {
     "settings/subscriber-notification-templates",
   [PageMap.STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW]: `settings/subscriber-notification-templates/${RouteParams.ModelID}`,
   [PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
+  [PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES]: "settings/label-rules",
   [PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS]: `announcements/${RouteParams.ModelID}/notification-logs`,
   [PageMap.ANNOUNCEMENT_VIEW_DELETE]: `announcements/${RouteParams.ModelID}/delete`,
   [PageMap.STATUS_PAGE_VIEW]: `${RouteParams.ModelID}`,
@@ -249,6 +490,7 @@ export const StatusPagesRoutePath: Dictionary<string> = {
   [PageMap.STATUS_PAGE_VIEW_EMBEDDED]: `${RouteParams.ModelID}/embedded`,
   [PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS]: `${RouteParams.ModelID}/subscriber-settings`,
   [PageMap.STATUS_PAGE_VIEW_SSO]: `${RouteParams.ModelID}/sso`,
+  [PageMap.STATUS_PAGE_VIEW_OIDC]: `${RouteParams.ModelID}/oidc`,
   [PageMap.STATUS_PAGE_VIEW_SCIM]: `${RouteParams.ModelID}/scim`,
   [PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS]: `${RouteParams.ModelID}/custom-code`,
   [PageMap.STATUS_PAGE_VIEW_RESOURCES]: `${RouteParams.ModelID}/resources`,
@@ -284,6 +526,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENT_EPISODE_VIEW_PUBLIC_NOTE]: `episodes/${RouteParams.ModelID}/public-notes`,
   [PageMap.INCIDENT_EPISODE_VIEW_MEMBERS]: `episodes/${RouteParams.ModelID}/members`,
   [PageMap.INCIDENT_EPISODE_VIEW_SETTINGS]: `episodes/${RouteParams.ModelID}/settings`,
+  [PageMap.INCIDENT_EPISODE_VIEW_AUDIT_LOGS]: `episodes/${RouteParams.ModelID}/audit-logs`,
   [PageMap.INCIDENT_EPISODE_DOCS]: "episodes/documentation",
 
   // Incident Settings
@@ -298,6 +541,11 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES_VIEW]: `settings/postmortem-templates/${RouteParams.ModelID}`,
   [PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
   [PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]: "settings/grouping-rules",
+  [PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES]: "settings/on-call-rules",
+  [PageMap.INCIDENTS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES]: "settings/privacy-rules",
+  [PageMap.INCIDENTS_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
   [PageMap.INCIDENTS_SETTINGS_SLA_RULES]: "settings/sla-rules",
   [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
   [PageMap.INCIDENTS_SETTINGS_MORE]: "settings/more",
@@ -320,6 +568,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENT_VIEW_PUBLIC_NOTE]: `${RouteParams.ModelID}/public-notes`,
   [PageMap.INCIDENT_VIEW_SLA]: `${RouteParams.ModelID}/sla`,
   [PageMap.INCIDENT_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.INCIDENT_VIEW_RUNBOOKS]: `${RouteParams.ModelID}/runbooks`,
 };
 
 export const AlertsRoutePath: Dictionary<string> = {
@@ -351,6 +600,11 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES_VIEW]: `settings/note-templates/${RouteParams.ModelID}`,
   [PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
   [PageMap.ALERTS_SETTINGS_GROUPING_RULES]: "settings/grouping-rules",
+  [PageMap.ALERTS_SETTINGS_ON_CALL_RULES]: "settings/on-call-rules",
+  [PageMap.ALERTS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.ALERTS_SETTINGS_PRIVACY_RULES]: "settings/privacy-rules",
+  [PageMap.ALERTS_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.ALERTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
   [PageMap.ALERTS_SETTINGS_MORE]: "settings/more",
 
   [PageMap.ALERT_VIEW]: `${RouteParams.ModelID}`,
@@ -365,6 +619,9 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERT_VIEW_REMEDIATION]: `${RouteParams.ModelID}/remediation`,
   [PageMap.ALERT_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
   [PageMap.ALERT_VIEW_INTERNAL_NOTE]: `${RouteParams.ModelID}/internal-notes`,
+  [PageMap.ALERT_VIEW_RUNBOOKS]: `${RouteParams.ModelID}/runbooks`,
+  [PageMap.ALERT_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.ALERT_EPISODE_VIEW_AUDIT_LOGS]: `episodes/${RouteParams.ModelID}/audit-logs`,
 };
 
 export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
@@ -385,6 +642,12 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES_VIEW]: `settings/note-templates/${RouteParams.ModelID}`,
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CUSTOM_FIELDS]:
     "settings/custom-fields",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULES]:
+    "settings/owner-rules",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULES]:
+    "settings/label-rules",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES]:
+    "settings/runbook-rules",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE]: "settings/more",
 
   [PageMap.SCHEDULED_MAINTENANCE_VIEW]: `${RouteParams.ModelID}`,
@@ -398,6 +661,8 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_NOTIFICATION_LOGS]: `${RouteParams.ModelID}/notification-logs`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai-logs`,
+  [PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS]: `${RouteParams.ModelID}/runbooks`,
+  [PageMap.SCHEDULED_MAINTENANCE_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
 };
 
 export const SettingsRoutePath: Dictionary<string> = {
@@ -419,18 +684,12 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_DOMAINS]: "domains",
   [PageMap.SETTINGS_FEATURE_FLAGS]: "feature-flags",
   [PageMap.SETTINGS_SSO]: "sso",
+  [PageMap.SETTINGS_OIDC]: "oidc",
   [PageMap.SETTINGS_SCIM]: "scim",
-  [PageMap.SETTINGS_TEAMS]: "teams",
-  [PageMap.SETTINGS_USERS]: "users",
-  [PageMap.SETTINGS_USER_VIEW]: `users/${RouteParams.ModelID}`,
-
   [PageMap.SETTINGS_BILLING]: "billing",
   [PageMap.SETTINGS_BILLING_INVOICES]: "invoices",
   [PageMap.SETTINGS_USAGE_HISTORY]: "usage-history",
-  [PageMap.SETTINGS_TEAM_VIEW]: `teams/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_PROBE_VIEW]: `probes/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_LABELS]: "labels",
-  [PageMap.SETTINGS_PROBES]: "probes",
   [PageMap.SETTINGS_AI_AGENTS]: "ai-agents",
   [PageMap.SETTINGS_AI_AGENT_VIEW]: `ai-agents/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_LLM_PROVIDERS]: "llm-provider",
@@ -438,15 +697,40 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_AI_BILLING]: "ai-credits",
 };
 
+export const UsersRoutePath: Dictionary<string> = {
+  [PageMap.USER_CUSTOM_FIELDS]: "custom-fields",
+
+  [PageMap.USER_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.USER_VIEW_TEAMS]: `${RouteParams.ModelID}/teams`,
+  [PageMap.USER_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
+  [PageMap.USER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+};
+
+export const TeamsRoutePath: Dictionary<string> = {
+  [PageMap.TEAM_CUSTOM_FIELDS]: "custom-fields",
+
+  [PageMap.TEAM_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.TEAM_VIEW_MEMBERS]: `${RouteParams.ModelID}/members`,
+  [PageMap.TEAM_VIEW_PERMISSIONS]: `${RouteParams.ModelID}/permissions`,
+  [PageMap.TEAM_VIEW_BLOCK_PERMISSIONS]: `${RouteParams.ModelID}/block-permissions`,
+  [PageMap.TEAM_VIEW_COMPLIANCE]: `${RouteParams.ModelID}/compliance`,
+  [PageMap.TEAM_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
+  [PageMap.TEAM_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+};
+
 export const OnCallDutyRoutePath: Dictionary<string> = {
   [PageMap.ON_CALL_DUTY_SCHEDULES]: "schedules",
 
   // On-Call Duty Settings
   [PageMap.ON_CALL_DUTY_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
+  [PageMap.ON_CALL_DUTY_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.ON_CALL_DUTY_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW]: `schedules/${RouteParams.ModelID}`,
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_DELETE]: `schedules/${RouteParams.ModelID}/delete`,
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS]: `schedules/${RouteParams.ModelID}/layers`,
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_NOTIFICATION_LOGS]: `schedules/${RouteParams.ModelID}/notification-logs`,
+  [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_OWNERS]: `schedules/${RouteParams.ModelID}/owners`,
+  [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_AUDIT_LOGS]: `schedules/${RouteParams.ModelID}/audit-logs`,
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS]: `schedules/${RouteParams.ModelID}/settings`,
   [PageMap.ON_CALL_DUTY_POLICIES]: "policies",
   [PageMap.ON_CALL_DUTY_POLICY_VIEW]: `policies/${RouteParams.ModelID}`,
@@ -457,6 +741,7 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_NOTIFICATION_LOGS]: `policies/${RouteParams.ModelID}/notification-logs`,
   //owners
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_OWNERS]: `policies/${RouteParams.ModelID}/owners`,
+  [PageMap.ON_CALL_DUTY_POLICY_VIEW_AUDIT_LOGS]: `policies/${RouteParams.ModelID}/audit-logs`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION]: `policies/${RouteParams.ModelID}/escalation`,
   [PageMap.ON_CALL_DUTY_EXECUTION_LOGS]: "execution-logs",
   [PageMap.ON_CALLDUTY_USER_TIME_LOGS]: "user-time-logs",
@@ -475,6 +760,8 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION]: `incoming-call-policies/${RouteParams.ModelID}/escalation`,
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOGS]: `incoming-call-policies/${RouteParams.ModelID}/logs`,
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOG_VIEW]: `incoming-call-policies/${RouteParams.ModelID}/logs/${RouteParams.SubModelID}`,
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_OWNERS]: `incoming-call-policies/${RouteParams.ModelID}/owners`,
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_AUDIT_LOGS]: `incoming-call-policies/${RouteParams.ModelID}/audit-logs`,
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_SETTINGS]: `incoming-call-policies/${RouteParams.ModelID}/settings`,
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DELETE]: `incoming-call-policies/${RouteParams.ModelID}/delete`,
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DOCS]: `incoming-call-policies/${RouteParams.ModelID}/docs`,
@@ -487,6 +774,7 @@ export const MonitorGroupRoutePath: Dictionary<string> = {
   [PageMap.MONITOR_GROUP_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.MONITOR_GROUP_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.MONITOR_GROUP_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
+  [PageMap.MONITOR_GROUP_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
 };
 
 export const UserSettingsRoutePath: Dictionary<string> = {
@@ -714,6 +1002,30 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.MONITORS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.MONITORS_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.MONITORS_SETTINGS_PROBES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_SETTINGS_PROBES]
+    }`,
+  ),
+
+  [PageMap.MONITORS_SETTINGS_PROBE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_SETTINGS_PROBE_VIEW]
+    }`,
+  ),
+
   [PageMap.ALERTS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/*`,
   ),
@@ -816,6 +1128,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ALERT_VIEW_RUNBOOKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW_RUNBOOKS]
+    }`,
+  ),
+
   // Alert Settings Routes
   [PageMap.ALERTS_SETTINGS_STATE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
@@ -850,6 +1168,36 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ALERTS_SETTINGS_GROUPING_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_GROUPING_RULES]
+    }`,
+  ),
+
+  [PageMap.ALERTS_SETTINGS_ON_CALL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_ON_CALL_RULES]
+    }`,
+  ),
+
+  [PageMap.ALERTS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.ALERTS_SETTINGS_RUNBOOK_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_RUNBOOK_RULES]
+    }`,
+  ),
+
+  [PageMap.ALERTS_SETTINGS_PRIVACY_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_PRIVACY_RULES]
+    }`,
+  ),
+
+  [PageMap.ALERTS_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_LABEL_RULES]
     }`,
   ),
 
@@ -935,6 +1283,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ALERT_EPISODE_DOCS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERT_EPISODE_DOCS]
+    }`,
+  ),
+
+  [PageMap.ALERT_EPISODE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_EPISODE_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.ALERT_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW_AUDIT_LOGS]
     }`,
   ),
 
@@ -1068,6 +1428,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENT_EPISODE_DOCS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENT_EPISODE_DOCS]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_EPISODE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_EPISODE_VIEW_AUDIT_LOGS]
     }`,
   ),
 
@@ -1211,6 +1577,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.INCIDENT_VIEW_RUNBOOKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_RUNBOOKS]
+    }`,
+  ),
+
   // Incident Settings Routes
   [PageMap.INCIDENTS_SETTINGS_STATE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
@@ -1269,6 +1641,36 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_LABEL_RULES]
     }`,
   ),
 
@@ -1410,6 +1812,22 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+      ScheduledMaintenanceEventsRoutePath[
+        PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS
+      ]
+    }`,
+  ),
+
+  [PageMap.SCHEDULED_MAINTENANCE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+      ScheduledMaintenanceEventsRoutePath[
+        PageMap.SCHEDULED_MAINTENANCE_VIEW_AUDIT_LOGS
+      ]
+    }`,
+  ),
+
   [PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
       ScheduledMaintenanceEventsRoutePath[
@@ -1468,6 +1886,30 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+      ScheduledMaintenanceEventsRoutePath[
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULES
+      ]
+    }`,
+  ),
+
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+      ScheduledMaintenanceEventsRoutePath[
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES
+      ]
+    }`,
+  ),
+
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+      ScheduledMaintenanceEventsRoutePath[
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULES
+      ]
+    }`,
+  ),
+
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
       ScheduledMaintenanceEventsRoutePath[
@@ -1482,9 +1924,21 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.SERVICES]: new Route(`/dashboard/${RouteParams.ProjectID}/service`),
 
-  // Root-level Service pages
-  [PageMap.SERVICE_DEPENDENCY_GRAPH]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service/dependency-graph`,
+  // Service Settings Routes
+  [PageMap.SERVICE_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+  [PageMap.SERVICE_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+  [PageMap.SERVICE_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_ARCHIVED]
+    }`,
   ),
 
   [PageMap.SERVICE_VIEW]: new Route(
@@ -1499,12 +1953,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SERVICE_VIEW_DEPENDENCIES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service/${
-      ServiceRoutePath[PageMap.SERVICE_VIEW_DEPENDENCIES]
-    }`,
-  ),
-
   [PageMap.SERVICE_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW_DELETE]
@@ -1514,24 +1962,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVICE_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW_SETTINGS]
-    }`,
-  ),
-
-  [PageMap.SERVICE_VIEW_MONITORS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service/${
-      ServiceRoutePath[PageMap.SERVICE_VIEW_MONITORS]
-    }`,
-  ),
-
-  [PageMap.SERVICE_VIEW_INCIDENTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service/${
-      ServiceRoutePath[PageMap.SERVICE_VIEW_INCIDENTS]
-    }`,
-  ),
-
-  [PageMap.SERVICE_VIEW_ALERTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service/${
-      ServiceRoutePath[PageMap.SERVICE_VIEW_ALERTS]
     }`,
   ),
 
@@ -1568,6 +1998,30 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVICE_VIEW_CODE_REPOSITORIES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW_CODE_REPOSITORIES]
+    }`,
+  ),
+
+  [PageMap.SERVICE_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.SERVICE_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.SERVICE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_AUDIT_LOGS]
     }`,
   ),
 
@@ -1783,6 +2237,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS]
+    }`,
+  ),
+
   [PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE]
@@ -1792,6 +2252,48 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_MESH]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_MESH]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_PROFILES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_PROFILES]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]
     }`,
   ),
 
@@ -1819,9 +2321,32 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.KUBERNETES_CLUSTER_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.KUBERNETES_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_DOCUMENTATION]
+    }`,
+  ),
+
+  // Kubernetes Settings Routes
+  [PageMap.KUBERNETES_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+  [PageMap.KUBERNETES_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+  [PageMap.KUBERNETES_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_ARCHIVED]
     }`,
   ),
 
@@ -1865,6 +2390,36 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DOCKER_HOST_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW_PROFILES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_PROFILES]
+    }`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
   [PageMap.DOCKER_HOST_VIEW_OWNERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker/${
       DockerRoutePath[PageMap.DOCKER_HOST_VIEW_OWNERS]
@@ -1889,9 +2444,715 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DOCKER_HOST_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.DOCKER_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker/${
       DockerRoutePath[PageMap.DOCKER_DOCUMENTATION]
+    }`,
+  ),
+
+  // Docker Settings Routes
+  [PageMap.DOCKER_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+  [PageMap.DOCKER_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+  [PageMap.DOCKER_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_ARCHIVED]
+    }`,
+  ),
+
+  // Podman
+
+  [PageMap.PODMAN_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/*`,
+  ),
+
+  [PageMap.PODMAN_HOSTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_CONTAINERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_CONTAINERS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_CONTAINER_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_CONTAINER_DETAIL]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_PROFILES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_PROFILES]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_DOCUMENTATION]
+    }`,
+  ),
+
+  // Podman Settings Routes
+  [PageMap.PODMAN_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+  [PageMap.PODMAN_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+  [PageMap.PODMAN_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_ARCHIVED]
+    }`,
+  ),
+
+  // Proxmox
+
+  [PageMap.PROXMOX_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/*`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_NODES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_NODES]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_NODE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_NODE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_GUESTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_GUESTS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_GUEST_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_GUEST_DETAIL]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_STORAGE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_STORAGE]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_STORAGE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_STORAGE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+  [PageMap.PROXMOX_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_ARCHIVED]
+    }`,
+  ),
+
+  // IoT
+
+  [PageMap.IOT_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/iot/*`),
+
+  [PageMap.IOT_FLEETS]: new Route(`/dashboard/${RouteParams.ProjectID}/iot`),
+
+  [PageMap.IOT_FLEET_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_DEVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_DEVICES]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_DEVICE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_DEVICE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.IOT_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.IOT_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.IOT_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+  [PageMap.IOT_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_ARCHIVED]
+    }`,
+  ),
+
+  // Docker Swarm
+
+  [PageMap.DOCKER_SWARM_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/*`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODES]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICES]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASKS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASK_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASK_DETAIL]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_STACKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_STACKS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_NETWORKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_NETWORKS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SECRETS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_SECRETS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_CONFIGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_CONFIGS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_VOLUMES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_VOLUMES]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[
+        PageMap.DOCKER_SWARM_CLUSTER_VIEW_SCHEDULED_MAINTENANCE
+      ]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+  [PageMap.DOCKER_SWARM_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_ARCHIVED]
+    }`,
+  ),
+
+  // Ceph
+
+  [PageMap.CEPH_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/ceph/*`),
+
+  [PageMap.CEPH_CLUSTERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_OSDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_OSDS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_OSD_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_OSD_DETAIL]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_POOLS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_POOLS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_POOL_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_POOL_DETAIL]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_DAEMONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_DAEMONS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_CLUSTER_LOG]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_CLUSTER_LOG]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.CEPH_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.CEPH_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.CEPH_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+  [PageMap.CEPH_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_ARCHIVED]
     }`,
   ),
 
@@ -1919,9 +3180,33 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.HOST_VIEW_PROCESS_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_PROCESS_VIEW]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_SERVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_SERVICES]
+    }`,
+  ),
+
   [PageMap.HOST_VIEW_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/host/${
       HostRoutePath[PageMap.HOST_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_PROFILES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_PROFILES]
     }`,
   ),
 
@@ -1934,6 +3219,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.HOST_VIEW_ALERTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/host/${
       HostRoutePath[PageMap.HOST_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_SCHEDULED_MAINTENANCE]
     }`,
   ),
 
@@ -1961,9 +3252,234 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.HOST_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.HOST_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/host/${
       HostRoutePath[PageMap.HOST_DOCUMENTATION]
+    }`,
+  ),
+
+  // Host Settings Routes
+  [PageMap.HOST_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+  [PageMap.HOST_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+  [PageMap.HOST_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_ARCHIVED]
+    }`,
+  ),
+
+  // Serverless Functions
+  [PageMap.SERVERLESS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/*`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+  [PageMap.SERVERLESS_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  // Cloud Resources
+  [PageMap.CLOUD_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/*`,
+  ),
+
+  [PageMap.CLOUD_RESOURCES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_INSTANCES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_INSTANCES]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.CLOUD_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+  [PageMap.CLOUD_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.CLOUD_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  // Real User Monitoring
+  [PageMap.RUM_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/rum/*`),
+
+  [PageMap.RUM_APPLICATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_CLIENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_CLIENTS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.RUM_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+  [PageMap.RUM_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.RUM_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_SETTINGS_OWNER_RULES]
     }`,
   ),
 
@@ -2016,6 +3532,26 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/dashboards/${
       DashboardsRoutePath[PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS]
+    }`,
+  ),
+  [PageMap.DASHBOARD_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARD_VIEW_OWNERS]
+    }`,
+  ),
+  [PageMap.DASHBOARD_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARD_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+  [PageMap.DASHBOARDS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARDS_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+  [PageMap.DASHBOARDS_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARDS_SETTINGS_LABEL_RULES]
     }`,
   ),
 
@@ -2197,6 +3733,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.STATUS_PAGE_VIEW_OIDC]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_OIDC]
+    }`,
+  ),
+
   [PageMap.STATUS_PAGE_VIEW_SCIM]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_SCIM]
@@ -2283,6 +3825,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
   [PageMap.AUTOMATION_SCRIPTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/automation-scripts/`,
   ),
@@ -2325,6 +3879,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS]
@@ -2361,6 +3927,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_OWNERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_POLICY_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_VIEW_AUDIT_LOGS]
     }`,
   ),
 
@@ -2434,6 +4006,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ON_CALL_DUTY_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
   // Incoming Call Policy Routes
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
@@ -2465,6 +4049,20 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[
         PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOG_VIEW
+      ]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[
+        PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_AUDIT_LOGS
       ]
     }`,
   ),
@@ -2750,6 +4348,98 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  // Users Routes (top-level)
+  [PageMap.USERS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/*`,
+  ),
+
+  [PageMap.USERS]: new Route(`/dashboard/${RouteParams.ProjectID}/users`),
+
+  [PageMap.USER_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/${
+      UsersRoutePath[PageMap.USER_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.USER_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/${
+      UsersRoutePath[PageMap.USER_VIEW]
+    }`,
+  ),
+
+  [PageMap.USER_VIEW_TEAMS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/${
+      UsersRoutePath[PageMap.USER_VIEW_TEAMS]
+    }`,
+  ),
+
+  [PageMap.USER_VIEW_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/${
+      UsersRoutePath[PageMap.USER_VIEW_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.USER_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/${
+      UsersRoutePath[PageMap.USER_VIEW_DELETE]
+    }`,
+  ),
+
+  // Teams Routes (top-level)
+  [PageMap.TEAMS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/*`,
+  ),
+
+  [PageMap.TEAMS]: new Route(`/dashboard/${RouteParams.ProjectID}/teams`),
+
+  [PageMap.TEAM_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.TEAM_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_VIEW]
+    }`,
+  ),
+
+  [PageMap.TEAM_VIEW_MEMBERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_VIEW_MEMBERS]
+    }`,
+  ),
+
+  [PageMap.TEAM_VIEW_PERMISSIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_VIEW_PERMISSIONS]
+    }`,
+  ),
+
+  [PageMap.TEAM_VIEW_BLOCK_PERMISSIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_VIEW_BLOCK_PERMISSIONS]
+    }`,
+  ),
+
+  [PageMap.TEAM_VIEW_COMPLIANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_VIEW_COMPLIANCE]
+    }`,
+  ),
+
+  [PageMap.TEAM_VIEW_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_VIEW_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.TEAM_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_VIEW_DELETE]
+    }`,
+  ),
+
   // Settings Routes
   [PageMap.SETTINGS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/*`,
@@ -2860,27 +4550,15 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SETTINGS_OIDC]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_OIDC]
+    }`,
+  ),
+
   [PageMap.SETTINGS_SCIM]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_SCIM]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_TEAMS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_TEAMS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_USERS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_USERS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_USER_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_USER_VIEW]
     }`,
   ),
 
@@ -2902,29 +4580,10 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SETTINGS_TEAM_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_TEAM_VIEW]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_PROBE_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_PROBE_VIEW]
-    }`,
-  ),
-
   // labels.
   [PageMap.SETTINGS_LABELS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_LABELS]
-    }`,
-  ),
-
-  // Probes.
-  [PageMap.SETTINGS_PROBES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_PROBES]
     }`,
   ),
 
@@ -3015,6 +4674,106 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.WORKFLOW_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/workflows/${
+      WorkflowRoutePath[PageMap.WORKFLOW_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.WORKFLOW_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/workflows/${
+      WorkflowRoutePath[PageMap.WORKFLOW_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.WORKFLOWS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/workflows/${
+      WorkflowRoutePath[PageMap.WORKFLOWS_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.WORKFLOWS_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/workflows/${
+      WorkflowRoutePath[PageMap.WORKFLOWS_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  // runbooks.
+  [PageMap.RUNBOOKS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/*`,
+  ),
+  [PageMap.RUNBOOKS]: new Route(`/dashboard/${RouteParams.ProjectID}/runbooks`),
+  [PageMap.RUNBOOKS_EXECUTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOKS_EXECUTIONS]
+    }`,
+  ),
+  [PageMap.RUNBOOKS_AGENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOKS_AGENTS]
+    }`,
+  ),
+  [PageMap.RUNBOOKS_AGENT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOKS_AGENT_VIEW]
+    }`,
+  ),
+  [PageMap.RUNBOOKS_SECRETS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOKS_SECRETS]
+    }`,
+  ),
+  [PageMap.RUNBOOK_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOK_VIEW]
+    }`,
+  ),
+  [PageMap.RUNBOOK_VIEW_STEPS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOK_VIEW_STEPS]
+    }`,
+  ),
+  [PageMap.RUNBOOK_VIEW_EXECUTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOK_VIEW_EXECUTIONS]
+    }`,
+  ),
+  [PageMap.RUNBOOK_VIEW_EXECUTION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOK_VIEW_EXECUTION]
+    }`,
+  ),
+  [PageMap.RUNBOOK_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOK_VIEW_OWNERS]
+    }`,
+  ),
+  [PageMap.RUNBOOK_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOK_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+  [PageMap.RUNBOOK_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOK_VIEW_SETTINGS]
+    }`,
+  ),
+  [PageMap.RUNBOOK_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOK_VIEW_DELETE]
+    }`,
+  ),
+  [PageMap.RUNBOOKS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOKS_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+  [PageMap.RUNBOOKS_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOKS_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
   // logout.
   [PageMap.LOGOUT]: new Route(`/dashboard/logout`),
 
@@ -3047,6 +4806,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITOR_GROUP_VIEW_OWNERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitor-groups/${
       MonitorGroupRoutePath[PageMap.MONITOR_GROUP_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.MONITOR_GROUP_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitor-groups/${
+      MonitorGroupRoutePath[PageMap.MONITOR_GROUP_VIEW_AUDIT_LOGS]
     }`,
   ),
 
@@ -3103,6 +4868,58 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.EXCEPTIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/exceptions/${
       ExceptionsRoutePath[PageMap.EXCEPTIONS]
+    }`,
+  ),
+
+  [PageMap.LLM_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/llm/*`),
+
+  [PageMap.LLM]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/llm/${LlmRoutePath[PageMap.LLM]}`,
+  ),
+
+  [PageMap.LLM_OVERVIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/llm/${
+      LlmRoutePath[PageMap.LLM_OVERVIEW]
+    }`,
+  ),
+
+  [PageMap.LLM_CALLS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/llm/${LlmRoutePath[PageMap.LLM_CALLS]}`,
+  ),
+
+  [PageMap.LLM_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/llm/${
+      LlmRoutePath[PageMap.LLM_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.ENTITIES_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/entities/*`,
+  ),
+
+  [PageMap.ENTITIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/entities/${
+      EntitiesRoutePath[PageMap.ENTITIES]
+    }`,
+  ),
+
+  [PageMap.ENTITIES_VIEW_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/entities`,
+  ),
+
+  [PageMap.ENTITIES_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/entities/${
+      EntitiesRoutePath[PageMap.ENTITIES_VIEW]
+    }`,
+  ),
+
+  [PageMap.TOPOLOGY_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/topology/*`,
+  ),
+
+  [PageMap.TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/topology/${
+      TopologyRoutePath[PageMap.TOPOLOGY]
     }`,
   ),
 

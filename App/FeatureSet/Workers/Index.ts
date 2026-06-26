@@ -35,6 +35,7 @@ import "./Jobs/AlertEpisode/AutoResolve";
 import "./Jobs/AlertEpisode/ResolveInactiveEpisodes";
 
 // Alert Episode Owners
+import "./Jobs/AlertEpisodeOwners/SendAlertAddedNotification";
 import "./Jobs/AlertEpisodeOwners/SendCreatedResourceNotification";
 import "./Jobs/AlertEpisodeOwners/SendNotePostedNotification";
 import "./Jobs/AlertEpisodeOwners/SendOwnerAddedNotification";
@@ -53,6 +54,7 @@ import "./Jobs/IncidentEpisodePublicNote/SendNotificationToSubscribers";
 
 // Incident Episode Owners
 import "./Jobs/IncidentEpisodeOwners/SendCreatedResourceNotification";
+import "./Jobs/IncidentEpisodeOwners/SendIncidentAddedNotification";
 import "./Jobs/IncidentEpisodeOwners/SendNotePostedNotification";
 import "./Jobs/IncidentEpisodeOwners/SendOwnerAddedNotification";
 import "./Jobs/IncidentEpisodeOwners/SendStateChangeNotification";
@@ -142,8 +144,35 @@ import "./Jobs/Kubernetes/CleanupStaleResources";
 // Docker inventory cleanup + cached count refresh.
 import "./Jobs/Docker/CleanupStaleResources";
 
+// Podman inventory cleanup + cached count refresh.
+import "./Jobs/Podman/CleanupStaleResources";
+
 // Host disconnection sweeper.
 import "./Jobs/Host/CleanupStaleHosts";
+
+// Proxmox cluster disconnection sweeper + inventory cleanup.
+import "./Jobs/Proxmox/CleanupStaleResources";
+
+// Ceph cluster disconnection sweeper + inventory cleanup.
+import "./Jobs/Ceph/CleanupStaleResources";
+
+// Docker Swarm cluster disconnection sweeper + inventory cleanup.
+import "./Jobs/DockerSwarm/CleanupStaleResources";
+
+// IoT fleet disconnection sweeper + inventory cleanup.
+import "./Jobs/IoT/CleanupStaleResources";
+
+// Telemetry entity registry: TTL prune + span-derived service map edges.
+import "./Jobs/TelemetryEntity/PruneStaleEntities";
+import "./Jobs/TelemetryEntity/ComputeServiceDependencies";
+
+/*
+ * NOTE: there is deliberately no in-app V2 -> V3 historical telemetry
+ * copy. The V3 cut is forward-only (decision 2026-06-11): V3 tables start
+ * fresh, history ages in over the retention window, and operators who
+ * want to carry history forward run the documented clickhouse-client
+ * queries instead — see App/FeatureSet/Docs/Content/en/installation/upgrading.md ('Upgrading from OneUptime 10 → 11').
+ */
 
 /*
  * Metric retention is handled by ClickHouse TTL on Metric.retentionDate
@@ -174,8 +203,10 @@ import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import logger from "Common/Server/Utils/Logger";
 import {
+  DisableQueueWorkers,
   EnableQueueDashboard,
   QueueDashboardSecret,
+  RunDatabaseMigrationsOnBoot,
 } from "Common/Server/EnvironmentConfig";
 import { WORKER_CONCURRENCY } from "./Config";
 import MetricsAPI from "./API/Metrics";
@@ -201,36 +232,98 @@ const WorkersFeatureSet: FeatureSet = {
       // expose metrics endpoint used by KEDA
       app.use(["/worker", "/"], MetricsAPI);
 
-      // run async database migrations
-      RunDatabaseMigrations().catch((err: Error) => {
-        logger.error("Error running database migrations", {
-          service: "workers",
+      /*
+       * Schema sync (ClickHouse createTables + createMaterializedViews) AND the
+       * Postgres/ClickHouse data migrations are all owned by the dedicated
+       * migrate Job whenever one is deployed. Helm sets
+       * RUN_DATABASE_MIGRATIONS_ON_BOOT=false on runtime (app/worker) pods so the
+       * Job — not every replica — runs them (also required for PgBouncer
+       * transaction-mode pooling: the data-migration session advisory lock must
+       * not run on a pooled runtime connection). So gate ALL of it behind the
+       * same flag.
+       *
+       * Why schema sync is gated too (not just data migrations): every analytics
+       * DDL statement is `ON CLUSTER`. If each booting replica re-issues it, a
+       * degraded / unreachable ClickHouse cluster makes the awaited DDL time out
+       * and (because init re-throws) crash-loops the ENTIRE app + worker tier —
+       * turning a ClickHouse problem into a full outage. With it gated off,
+       * runtime pods issue no boot DDL: only the migrate Job does, and it fails
+       * loudly where it belongs while the runtime tier stays up.
+       *
+       * Trade-off (accepted): the migrate Job is non-blocking by default
+       * (migrate.hook=false), so on a fresh install / schema-adding upgrade there
+       * is a window where pods are up but the tables/MVs don't exist yet —
+       * telemetry inserts transiently fail with UNKNOWN_TABLE and retry until the
+       * Job finishes. This is the same model Postgres schema already follows, and
+       * the boot self-heal of a wiped ClickHouse volume likewise becomes "re-run
+       * the migrate Job".
+       *
+       * Deployments WITHOUT a dedicated migrate Job leave the flag at its default
+       * (true) and keep the original behavior: every boot reconciles the schema
+       * (idempotent CREATE ... IF NOT EXISTS + drift checks) and runs migrations.
+       *
+       * createTables() + createMaterializedViews() are awaited BEFORE the
+       * fire-and-forget data migrations so migration ALTERs against model-owned
+       * tables never race table creation (UNKNOWN_TABLE). The data migration run
+       * stays fire-and-forget so a long migration never blocks the listener,
+       * probes, queues, or cron scheduling.
+       */
+      if (RunDatabaseMigrationsOnBoot) {
+        // create tables + materialized views in the analytics database
+        await AnalyticsTableManagement.createTables();
+        await AnalyticsTableManagement.createMaterializedViews();
+
+        RunDatabaseMigrations().catch((err: Error) => {
+          logger.error("Error running database migrations", {
+            service: "workers",
+          });
+          logger.error(err, { service: "workers" });
         });
-        logger.error(err, { service: "workers" });
-      });
+      } else {
+        /*
+         * RUN_DATABASE_MIGRATIONS_ON_BOOT=false: a dedicated migrate Job owns
+         * ClickHouse schema sync + data migrations. Log it so a transient
+         * UNKNOWN_TABLE right after a fresh install/upgrade (pod Ready before the
+         * non-blocking Job has created the tables) is recognizable as expected,
+         * not a bug. Steady-state pods are unaffected — the tables already exist.
+         */
+        logger.info(
+          "RUN_DATABASE_MIGRATIONS_ON_BOOT=false: skipping boot ClickHouse schema sync + data migrations; the migrate Job owns them. This pod becomes Ready without issuing ON CLUSTER DDL.",
+        );
+      }
 
-      // create tables in analytics database
-      await AnalyticsTableManagement.createTables();
+      /*
+       * Job process. Skipped in the "api" role (DISABLE_QUEUE_WORKERS=true) —
+       * the dedicated worker deployment drains the Worker queue (cron jobs,
+       * notifications, incident/alert state reconciliation, etc.). Cron
+       * scheduling above still runs in both roles; it only writes idempotent
+       * repeatable-job definitions to Redis and populates JobDictionary.
+       */
+      if (DisableQueueWorkers) {
+        logger.info(
+          "DISABLE_QUEUE_WORKERS=true — Worker queue consumer not registered (api role).",
+          { service: "workers" },
+        );
+      } else {
+        QueueWorker.getWorker(
+          QueueName.Worker,
+          async (job: QueueJob) => {
+            const name: string = job.name;
 
-      // Job process.
-      QueueWorker.getWorker(
-        QueueName.Worker,
-        async (job: QueueJob) => {
-          const name: string = job.name;
+            logger.debug("Running Job: " + name, { service: "workers" });
 
-          logger.debug("Running Job: " + name, { service: "workers" });
+            const funcToRun: PromiseVoidFunction =
+              JobDictionary.getJobFunction(name);
 
-          const funcToRun: PromiseVoidFunction =
-            JobDictionary.getJobFunction(name);
+            const timeoutInMs: number = JobDictionary.getTimeoutInMs(name);
 
-          const timeoutInMs: number = JobDictionary.getTimeoutInMs(name);
-
-          if (funcToRun) {
-            await QueueWorker.runJobWithTimeout(timeoutInMs, funcToRun);
-          }
-        },
-        { concurrency: WORKER_CONCURRENCY },
-      );
+            if (funcToRun) {
+              await QueueWorker.runJobWithTimeout(timeoutInMs, funcToRun);
+            }
+          },
+          { concurrency: WORKER_CONCURRENCY },
+        );
+      }
     } catch (err) {
       logger.error("App Init Failed:", { service: "workers" });
       logger.error(err, { service: "workers" });

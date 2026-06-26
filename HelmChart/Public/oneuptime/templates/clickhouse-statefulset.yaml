@@ -1,4 +1,4 @@
-{{- if .Values.clickhouse.enabled }}
+{{- if and .Values.clickhouse.enabled (not .Values.clickhouseOperator.altinity.enabled) }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -30,6 +30,11 @@ spec:
         app.kubernetes.io/part-of: clickhouse
         app.kubernetes.io/managed-by: {{ .Release.Service }}
         shard: "0"
+      annotations:
+        # Roll the pod when clickhouse.configuration changes — a ConfigMap edit alone
+        # never restarts a StatefulSet, and config.xml is baked at pod start by the
+        # init container (keeper_server is not hot-reloadable).
+        checksum/config: {{ include (print $.Template.BasePath "/clickhouse-configmap.yaml") . | sha256sum }}
     spec:
       serviceAccountName: {{ .Release.Name }}-clickhouse
       {{- with .Values.clickhouse.nodeSelector }}

@@ -29,8 +29,16 @@ import SpanService from "Common/Server/Services/SpanService";
 import MetricMonitorResponse, {
   KubernetesResourceBreakdown,
   KubernetesAffectedResource,
+  ProxmoxResourceBreakdown,
+  ProxmoxAffectedResource,
+  CephResourceBreakdown,
+  CephAffectedResource,
+  DockerSwarmResourceBreakdown,
+  DockerSwarmAffectedResource,
 } from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
-import MonitorStepMetricMonitor from "Common/Types/Monitor/MonitorStepMetricMonitor";
+import MonitorStepMetricMonitor, {
+  MonitorStepMetricMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -66,10 +74,39 @@ import MonitorStepKubernetesMonitor, {
 import MonitorStepDockerMonitor, {
   DockerContainerFilters,
 } from "Common/Types/Monitor/MonitorStepDockerMonitor";
+import MonitorStepHostMonitor from "Common/Types/Monitor/MonitorStepHostMonitor";
+import MonitorStepPodmanMonitor, {
+  PodmanContainerFilters,
+} from "Common/Types/Monitor/MonitorStepPodmanMonitor";
+import MonitorStepProxmoxMonitor, {
+  ProxmoxResourceFilters,
+  ProxmoxResourceScope,
+} from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
+import MonitorStepCephMonitor, {
+  CephResourceFilters,
+} from "Common/Types/Monitor/MonitorStepCephMonitor";
+import MonitorStepDockerSwarmMonitor, {
+  DockerSwarmResourceFilters,
+} from "Common/Types/Monitor/MonitorStepDockerSwarmMonitor";
+import MonitorStepIoTMonitor, {
+  IoTDeviceFilters,
+} from "Common/Types/Monitor/MonitorStepIoTMonitor";
 import {
   getKubernetesMetricByMetricName,
   KubernetesMetricDefinition,
 } from "Common/Types/Monitor/KubernetesMetricCatalog";
+import {
+  getProxmoxMetricByMetricName,
+  ProxmoxMetricDefinition,
+} from "Common/Types/Monitor/ProxmoxMetricCatalog";
+import {
+  getCephMetricByMetricName,
+  CephMetricDefinition,
+} from "Common/Types/Monitor/CephMetricCatalog";
+import {
+  getDockerSwarmMetricByMetricName,
+  DockerSwarmMetricDefinition,
+} from "Common/Types/Monitor/DockerSwarmMetricCatalog";
 import { JSONObject } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
@@ -95,6 +132,12 @@ RunCron(
           MonitorType.Profiles,
           MonitorType.Kubernetes,
           MonitorType.Docker,
+          MonitorType.Host,
+          MonitorType.Podman,
+          MonitorType.DockerSwarm,
+          MonitorType.Proxmox,
+          MonitorType.Ceph,
+          MonitorType.IoTDevice,
         ]),
         telemetryMonitorNextMonitorAt:
           DatabaseQueryHelper.lessThanEqualToOrNull(
@@ -167,6 +210,13 @@ RunCron(
       >
     > = [];
 
+    /*
+     * Tracks which monitor each promise in monitorResponses belongs to
+     * (same index). Monitors without steps are skipped above, so
+     * telemetryMonitors cannot be used to attribute failures by index.
+     */
+    const evaluatedMonitors: Array<Monitor> = [];
+
     for (const monitor of telemetryMonitors) {
       try {
         if (
@@ -190,6 +240,7 @@ RunCron(
             projectId: monitor.projectId!,
           }),
         );
+        evaluatedMonitors.push(monitor);
       } catch (error) {
         const attrs: LogAttributes = {
           projectId: monitor.projectId?.toString(),
@@ -202,16 +253,53 @@ RunCron(
       }
     }
 
-    const responses: Array<
-      | LogMonitorResponse
-      | TraceMonitorResponse
-      | MetricMonitorResponse
-      | ExceptionMonitorResponse
-      | ProfileMonitorResponse
-    > = await Promise.all(monitorResponses);
+    /*
+     * Settle every evaluation instead of failing fast. A single rejected
+     * evaluation (e.g. a monitor step missing its type-specific config)
+     * must not abort criteria evaluation for every other monitor in this
+     * tick — telemetryMonitorLastMonitorAt has already been stamped above,
+     * so a skipped evaluation would not be retried until the next tick.
+     */
+    const settledResponses: Array<
+      PromiseSettledResult<
+        | LogMonitorResponse
+        | TraceMonitorResponse
+        | MetricMonitorResponse
+        | ExceptionMonitorResponse
+        | ProfileMonitorResponse
+      >
+    > = await Promise.allSettled(monitorResponses);
 
-    for (const response of responses) {
-      MonitorResourceUtil.monitorResource(response);
+    for (const [index, settledResponse] of settledResponses.entries()) {
+      const evaluatedMonitor: Monitor | undefined = evaluatedMonitors[index];
+
+      if (settledResponse.status === "rejected") {
+        const attrs: LogAttributes = {
+          projectId: evaluatedMonitor?.projectId?.toString(),
+        };
+        logger.error(
+          `Error while evaluating telemetry monitor: ${evaluatedMonitor?.id?.toString()}`,
+          attrs,
+        );
+        logger.error(settledResponse.reason, attrs);
+        continue;
+      }
+
+      /*
+       * Fire-and-forget per monitor (we intentionally do not await each
+       * evaluation serially). monitorResource() can reject — notably it now
+       * throws when the per-monitor lock is contended so the work is retried
+       * rather than run unlocked — so attach a catch to keep one monitor's
+       * failure from surfacing as an unhandled promise rejection.
+       */
+      MonitorResourceUtil.monitorResource(settledResponse.value).catch(
+        (err: Error) => {
+          logger.error(
+            `Error while processing telemetry monitor resource: ${evaluatedMonitor?.id?.toString()}`,
+          );
+          logger.error(err);
+        },
+      );
     }
   },
 );
@@ -695,6 +783,54 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
     });
   }
 
+  if (monitorType === MonitorType.Host) {
+    return monitorHost({
+      monitorStep,
+      monitorId,
+      projectId,
+    });
+  }
+
+  if (monitorType === MonitorType.Podman) {
+    return monitorPodman({
+      monitorStep,
+      monitorId,
+      projectId,
+    });
+  }
+
+  if (monitorType === MonitorType.Proxmox) {
+    return monitorProxmox({
+      monitorStep,
+      monitorId,
+      projectId,
+    });
+  }
+
+  if (monitorType === MonitorType.DockerSwarm) {
+    return monitorDockerSwarm({
+      monitorStep,
+      monitorId,
+      projectId,
+    });
+  }
+
+  if (monitorType === MonitorType.Ceph) {
+    return monitorCeph({
+      monitorStep,
+      monitorId,
+      projectId,
+    });
+  }
+
+  if (monitorType === MonitorType.IoTDevice) {
+    return monitorIoT({
+      monitorStep,
+      monitorId,
+      projectId,
+    });
+  }
+
   throw new BadDataException("Monitor type is not supported");
 };
 
@@ -769,11 +905,15 @@ const monitorMetric: MonitorMetricFunction = async (data: {
   );
 
   for (const queryConfig of metricMonitorConfig.metricViewConfig.queryConfigs) {
-    const query: Query<Metric> = {
-      projectId: data.projectId,
-      time: startAndEndDate,
-      name: queryConfig.metricQueryData.filterData.metricName,
-    };
+    const query: Query<Metric> =
+      MonitorStepMetricMonitorUtil.applyEntityScopeToQuery(
+        {
+          projectId: data.projectId,
+          time: startAndEndDate,
+          name: queryConfig.metricQueryData.filterData.metricName,
+        },
+        metricMonitorConfig,
+      );
 
     if (
       queryConfig.metricQueryData &&
@@ -893,6 +1033,19 @@ const monitorMetric: MonitorMetricFunction = async (data: {
         })
       : undefined;
 
+  /*
+   * Re-serialise the native-units Map to a plain dictionary so it
+   * survives any cross-process boundary the response may cross (queue
+   * payloads, JSON serialization, etc). The criteria evaluator uses
+   * this as a fallback when the user didn't pick an explicit
+   * `legendUnit` — without it, a metric whose native unit is the OTel
+   * dimensionless "1" can't be compared against a "%" threshold.
+   */
+  const nativeUnitsByMetricNameDict: { [key: string]: string } = {};
+  for (const [name, unit] of nativeUnitsByMetricName.entries()) {
+    nativeUnitsByMetricNameDict[name] = unit;
+  }
+
   return {
     projectId: data.projectId,
     metricViewConfig: metricMonitorConfig.metricViewConfig,
@@ -900,6 +1053,7 @@ const monitorMetric: MonitorMetricFunction = async (data: {
     metricResult: resultsWithFormulas,
     monitorId: data.monitorId,
     seriesBreakdown: seriesBreakdown,
+    nativeUnitsByMetricName: nativeUnitsByMetricNameDict,
   };
 };
 
@@ -1481,6 +1635,1412 @@ const monitorDocker: MonitorDockerFunction = async (data: {
     metricViewConfig: dockerMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     metricResult: resultsWithFormulas,
+    seriesBreakdown: seriesBreakdown,
+    monitorId: data.monitorId,
+  };
+};
+
+type MonitorHostFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<MetricMonitorResponse>;
+
+const monitorHost: MonitorHostFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<MetricMonitorResponse> => {
+  const hostMonitorConfig: MonitorStepHostMonitor | undefined =
+    data.monitorStep.data?.hostMonitor;
+
+  if (!hostMonitorConfig) {
+    throw new BadDataException("Host monitor config is missing");
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      hostMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    );
+
+  const finalResult: Array<AggregatedResult> = [];
+
+  const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
+    hostMonitorConfig.metricViewConfig.queryConfigs,
+  );
+
+  for (const queryConfig of hostMonitorConfig.metricViewConfig.queryConfigs) {
+    const metricName: string =
+      (queryConfig.metricQueryData.filterData.metricName as string) || "";
+
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: startAndEndDate,
+      name: metricName,
+    };
+
+    // Start with any user-defined attribute filters
+    const attributes: Dictionary<string> = {};
+
+    if (
+      queryConfig.metricQueryData &&
+      queryConfig.metricQueryData.filterData &&
+      queryConfig.metricQueryData.filterData.attributes &&
+      Object.keys(queryConfig.metricQueryData.filterData.attributes).length > 0
+    ) {
+      Object.assign(
+        attributes,
+        queryConfig.metricQueryData.filterData.attributes,
+      );
+    }
+
+    /*
+     * Scope by host only. Host system.* metrics are host-level, so there is
+     * no container.runtime / container.name / container.image filter — unlike
+     * the Docker monitor which scopes containers on the host.
+     */
+    if (hostMonitorConfig.hostIdentifier) {
+      attributes["resource.host.name"] = hostMonitorConfig.hostIdentifier;
+    }
+
+    if (Object.keys(attributes).length > 0) {
+      query.attributes = attributes;
+    }
+
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
+
+    let aggregatedResults: AggregatedResult;
+
+    if (groupByAttributeKeys.length > 0) {
+      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      aggregatedResults = aggregatePerSeriesFromRawMetrics({
+        rawMetrics: rawMetricsForAgg,
+        attributeKeys: groupByAttributeKeys,
+        aggregationType,
+      });
+    } else {
+      aggregatedResults = await MetricService.aggregateBy({
+        query: query,
+        aggregationType,
+        aggregateColumnName: "value",
+        aggregationTimestampColumnName: "time",
+        startTimestamp:
+          (startAndEndDate?.startValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
+        endTimestamp:
+          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        groupBy: queryConfig.metricQueryData.groupBy,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    logger.debug("Host monitor aggregated results", {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
+
+    finalResult.push(aggregatedResults);
+  }
+
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: hostMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: hostMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: hostMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs: hostMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: resultsInDisplayUnit,
+    projectId: data.projectId,
+  });
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    groupByAttributeKeys.length > 0
+      ? buildSeriesBreakdown({
+          queryConfigs: hostMonitorConfig.metricViewConfig.queryConfigs,
+          formulaConfigs:
+            hostMonitorConfig.metricViewConfig.formulaConfigs || [],
+          perQueryResults: resultsInDisplayUnit,
+          attributeKeys: groupByAttributeKeys,
+          projectId: data.projectId,
+        })
+      : undefined;
+
+  return {
+    projectId: data.projectId,
+    metricViewConfig: hostMonitorConfig.metricViewConfig,
+    startAndEndDate: startAndEndDate,
+    metricResult: resultsWithFormulas,
+    seriesBreakdown: seriesBreakdown,
+    monitorId: data.monitorId,
+  };
+};
+
+type MonitorPodmanFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<MetricMonitorResponse>;
+
+const monitorPodman: MonitorPodmanFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<MetricMonitorResponse> => {
+  const podmanMonitorConfig: MonitorStepPodmanMonitor | undefined =
+    data.monitorStep.data?.podmanMonitor;
+
+  if (!podmanMonitorConfig) {
+    throw new BadDataException("Podman monitor config is missing");
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      podmanMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    );
+
+  const finalResult: Array<AggregatedResult> = [];
+
+  const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
+    podmanMonitorConfig.metricViewConfig.queryConfigs,
+  );
+
+  for (const queryConfig of podmanMonitorConfig.metricViewConfig.queryConfigs) {
+    const metricName: string =
+      (queryConfig.metricQueryData.filterData.metricName as string) || "";
+
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: startAndEndDate,
+      name: metricName,
+    };
+
+    // Start with any user-defined attribute filters
+    const attributes: Dictionary<string> = {};
+
+    if (
+      queryConfig.metricQueryData &&
+      queryConfig.metricQueryData.filterData &&
+      queryConfig.metricQueryData.filterData.attributes &&
+      Object.keys(queryConfig.metricQueryData.filterData.attributes).length > 0
+    ) {
+      Object.assign(
+        attributes,
+        queryConfig.metricQueryData.filterData.attributes,
+      );
+    }
+
+    // Add Podman-specific attribute filters
+    if (podmanMonitorConfig.hostIdentifier) {
+      attributes["resource.host.name"] = podmanMonitorConfig.hostIdentifier;
+    }
+
+    // Always filter by Podman runtime
+    attributes["resource.container.runtime"] = "podman";
+
+    if (podmanMonitorConfig.containerFilters) {
+      const containerFilters: PodmanContainerFilters =
+        podmanMonitorConfig.containerFilters;
+
+      if (containerFilters.containerName) {
+        attributes["resource.container.name"] = containerFilters.containerName;
+      }
+
+      if (containerFilters.containerImage) {
+        attributes["resource.container.image.name"] =
+          containerFilters.containerImage;
+      }
+    }
+
+    if (Object.keys(attributes).length > 0) {
+      query.attributes = attributes;
+    }
+
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
+
+    let aggregatedResults: AggregatedResult;
+
+    if (groupByAttributeKeys.length > 0) {
+      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      aggregatedResults = aggregatePerSeriesFromRawMetrics({
+        rawMetrics: rawMetricsForAgg,
+        attributeKeys: groupByAttributeKeys,
+        aggregationType,
+      });
+    } else {
+      aggregatedResults = await MetricService.aggregateBy({
+        query: query,
+        aggregationType,
+        aggregateColumnName: "value",
+        aggregationTimestampColumnName: "time",
+        startTimestamp:
+          (startAndEndDate?.startValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
+        endTimestamp:
+          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        groupBy: queryConfig.metricQueryData.groupBy,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    logger.debug("Podman monitor aggregated results", {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
+
+    finalResult.push(aggregatedResults);
+  }
+
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: podmanMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: podmanMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: podmanMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs: podmanMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: resultsInDisplayUnit,
+    projectId: data.projectId,
+  });
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    groupByAttributeKeys.length > 0
+      ? buildSeriesBreakdown({
+          queryConfigs: podmanMonitorConfig.metricViewConfig.queryConfigs,
+          formulaConfigs:
+            podmanMonitorConfig.metricViewConfig.formulaConfigs || [],
+          perQueryResults: resultsInDisplayUnit,
+          attributeKeys: groupByAttributeKeys,
+          projectId: data.projectId,
+        })
+      : undefined;
+
+  return {
+    projectId: data.projectId,
+    metricViewConfig: podmanMonitorConfig.metricViewConfig,
+    startAndEndDate: startAndEndDate,
+    metricResult: resultsWithFormulas,
+    seriesBreakdown: seriesBreakdown,
+    monitorId: data.monitorId,
+  };
+};
+
+type MonitorProxmoxFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<MetricMonitorResponse>;
+
+const monitorProxmox: MonitorProxmoxFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<MetricMonitorResponse> => {
+  const proxmoxMonitorConfig: MonitorStepProxmoxMonitor | undefined =
+    data.monitorStep.data?.proxmoxMonitor;
+
+  if (!proxmoxMonitorConfig) {
+    throw new BadDataException("Proxmox monitor config is missing");
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      proxmoxMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    );
+
+  const finalResult: Array<AggregatedResult> = [];
+  let proxmoxResourceBreakdown: ProxmoxResourceBreakdown | undefined =
+    undefined;
+
+  const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
+    proxmoxMonitorConfig.metricViewConfig.queryConfigs,
+  );
+
+  for (const queryConfig of proxmoxMonitorConfig.metricViewConfig
+    .queryConfigs) {
+    const metricName: string =
+      (queryConfig.metricQueryData.filterData.metricName as string) || "";
+
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: startAndEndDate,
+      name: metricName,
+    };
+
+    // Start with any user-defined attribute filters
+    const attributes: Dictionary<string> = {};
+
+    if (
+      queryConfig.metricQueryData &&
+      queryConfig.metricQueryData.filterData &&
+      queryConfig.metricQueryData.filterData.attributes &&
+      Object.keys(queryConfig.metricQueryData.filterData.attributes).length > 0
+    ) {
+      Object.assign(
+        attributes,
+        queryConfig.metricQueryData.filterData.attributes,
+      );
+    }
+
+    /*
+     * Always scope to the cluster via the `proxmox.cluster.name`
+     * resource attribute the Proxmox Agent stamps on every batch.
+     */
+    if (proxmoxMonitorConfig.clusterIdentifier) {
+      attributes["resource.proxmox.cluster.name"] =
+        proxmoxMonitorConfig.clusterIdentifier;
+    }
+
+    /*
+     * Proxmox-specific resource filters. pve-exporter keeps resource
+     * identity in datapoint labels (stored unprefixed): every metric
+     * carries an `id` label (`node/pve1`, `qemu/100`, `lxc/101`,
+     * `storage/local`) which the agent's OTTL transform splits into the
+     * `pve.scope` / `pve.type` / `pve.id` datapoint attributes. The
+     * `name` label only exists on the pve_*_info metadata series, so
+     * filters never target it. guestId (an exact raw `id` value) wins
+     * over the other filters; nodeName scopes to the node's OWN series
+     * via pve.scope + pve.id equality (for nodes, pve.id IS the node
+     * name).
+     */
+    if (proxmoxMonitorConfig.resourceFilters) {
+      const resourceFilters: ProxmoxResourceFilters =
+        proxmoxMonitorConfig.resourceFilters;
+
+      if (resourceFilters.guestId) {
+        attributes["id"] = resourceFilters.guestId;
+      } else if (resourceFilters.nodeName) {
+        attributes["pve.scope"] = ProxmoxResourceScope.Node;
+        attributes["pve.id"] = resourceFilters.nodeName;
+      } else {
+        if (resourceFilters.scope) {
+          attributes["pve.scope"] = resourceFilters.scope;
+        }
+
+        if (resourceFilters.pveId) {
+          attributes["pve.id"] = resourceFilters.pveId;
+        }
+      }
+    }
+
+    if (Object.keys(attributes).length > 0) {
+      query.attributes = attributes;
+    }
+
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
+
+    let aggregatedResults: AggregatedResult;
+
+    if (groupByAttributeKeys.length > 0) {
+      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      aggregatedResults = aggregatePerSeriesFromRawMetrics({
+        rawMetrics: rawMetricsForAgg,
+        attributeKeys: groupByAttributeKeys,
+        aggregationType,
+      });
+    } else {
+      aggregatedResults = await MetricService.aggregateBy({
+        query: query,
+        aggregationType,
+        aggregateColumnName: "value",
+        aggregationTimestampColumnName: "time",
+        startTimestamp:
+          (startAndEndDate?.startValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
+        endTimestamp:
+          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        groupBy: queryConfig.metricQueryData.groupBy,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    logger.debug("Proxmox monitor aggregated results", {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
+
+    finalResult.push(aggregatedResults);
+
+    // Fetch raw metrics to extract per-resource Proxmox context
+    try {
+      const rawMetrics: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: 100,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (rawMetrics.length > 0) {
+        const affectedResourcesMap: Map<string, ProxmoxAffectedResource> =
+          new Map();
+
+        for (const metric of rawMetrics) {
+          const metricAttrs: JSONObject =
+            (metric.attributes as JSONObject) || {};
+          const resourceId: string | undefined = metricAttrs["id"] as
+            | string
+            | undefined;
+          const resourceName: string | undefined = metricAttrs["name"] as
+            | string
+            | undefined;
+          const nodeName: string | undefined = metricAttrs["node"] as
+            | string
+            | undefined;
+          const scope: string | undefined = metricAttrs["pve.scope"] as
+            | string
+            | undefined;
+          const resourceType: string | undefined = metricAttrs["pve.type"] as
+            | string
+            | undefined;
+
+          // Build unique key for deduplication
+          const resourceKey: string = [
+            resourceId || "",
+            resourceName || "",
+            nodeName || "",
+          ].join("|");
+
+          const metricValue: number =
+            typeof metric.value === "number"
+              ? metric.value
+              : Number(metric.value) || 0;
+
+          // Keep the highest value per resource
+          const existing: ProxmoxAffectedResource | undefined =
+            affectedResourcesMap.get(resourceKey);
+          if (!existing || metricValue > existing.metricValue) {
+            affectedResourcesMap.set(resourceKey, {
+              resourceId: resourceId || undefined,
+              resourceName: resourceName || undefined,
+              resourceType: resourceType || undefined,
+              scope: scope || undefined,
+              nodeName: nodeName || undefined,
+              metricValue: metricValue,
+            });
+          }
+        }
+
+        const metricDef: ProxmoxMetricDefinition | undefined =
+          getProxmoxMetricByMetricName(metricName);
+
+        proxmoxResourceBreakdown = {
+          clusterName: proxmoxMonitorConfig.clusterIdentifier,
+          metricName: metricName,
+          metricFriendlyName: metricDef?.friendlyName || metricName,
+          affectedResources: Array.from(affectedResourcesMap.values()),
+          attributes: attributes,
+        };
+      }
+    } catch (err) {
+      logger.error("Failed to fetch Proxmox resource breakdown", {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      });
+      logger.error(err, {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      });
+    }
+  }
+
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: proxmoxMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: proxmoxMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: proxmoxMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs: proxmoxMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: resultsInDisplayUnit,
+    projectId: data.projectId,
+  });
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    groupByAttributeKeys.length > 0
+      ? buildSeriesBreakdown({
+          queryConfigs: proxmoxMonitorConfig.metricViewConfig.queryConfigs,
+          formulaConfigs:
+            proxmoxMonitorConfig.metricViewConfig.formulaConfigs || [],
+          perQueryResults: resultsInDisplayUnit,
+          attributeKeys: groupByAttributeKeys,
+          projectId: data.projectId,
+        })
+      : undefined;
+
+  return {
+    projectId: data.projectId,
+    metricViewConfig: proxmoxMonitorConfig.metricViewConfig,
+    startAndEndDate: startAndEndDate,
+    metricResult: resultsWithFormulas,
+    proxmoxResourceBreakdown: proxmoxResourceBreakdown,
+    seriesBreakdown: seriesBreakdown,
+    monitorId: data.monitorId,
+  };
+};
+
+type MonitorIoTFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<MetricMonitorResponse>;
+
+const monitorIoT: MonitorIoTFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<MetricMonitorResponse> => {
+  const iotMonitorConfig: MonitorStepIoTMonitor | undefined =
+    data.monitorStep.data?.iotMonitor;
+
+  if (!iotMonitorConfig) {
+    throw new BadDataException("IoT monitor config is missing");
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      iotMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    );
+
+  const finalResult: Array<AggregatedResult> = [];
+
+  const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
+    iotMonitorConfig.metricViewConfig.queryConfigs,
+  );
+
+  for (const queryConfig of iotMonitorConfig.metricViewConfig.queryConfigs) {
+    const metricName: string =
+      (queryConfig.metricQueryData.filterData.metricName as string) || "";
+
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: startAndEndDate,
+      name: metricName,
+    };
+
+    // Start with any user-defined attribute filters
+    const attributes: Dictionary<string> = {};
+
+    if (
+      queryConfig.metricQueryData &&
+      queryConfig.metricQueryData.filterData &&
+      queryConfig.metricQueryData.filterData.attributes &&
+      Object.keys(queryConfig.metricQueryData.filterData.attributes).length > 0
+    ) {
+      Object.assign(
+        attributes,
+        queryConfig.metricQueryData.filterData.attributes,
+      );
+    }
+
+    /*
+     * Always scope to the fleet via the `iot.fleet.name` resource
+     * attribute the IoT agent / gateway stamps on every batch.
+     */
+    if (iotMonitorConfig.fleetIdentifier) {
+      attributes["resource.iot.fleet.name"] = iotMonitorConfig.fleetIdentifier;
+    }
+
+    /*
+     * IoT-specific resource filters. Device-level data metrics carry a
+     * `device.id` datapoint label and the agent-stamped `iot.scope` /
+     * `iot.device.type` datapoint attributes (stored unprefixed). The
+     * deviceId filter pins an exact device; deviceType / scope narrow to
+     * a class of devices.
+     */
+    if (iotMonitorConfig.resourceFilters) {
+      const resourceFilters: IoTDeviceFilters =
+        iotMonitorConfig.resourceFilters;
+
+      if (resourceFilters.deviceId) {
+        attributes["device.id"] = resourceFilters.deviceId;
+      }
+
+      if (resourceFilters.deviceType) {
+        attributes["iot.device.type"] = resourceFilters.deviceType;
+      }
+
+      if (resourceFilters.scope) {
+        attributes["iot.scope"] = resourceFilters.scope;
+      }
+    }
+
+    if (Object.keys(attributes).length > 0) {
+      query.attributes = attributes;
+    }
+
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
+
+    let aggregatedResults: AggregatedResult;
+
+    if (groupByAttributeKeys.length > 0) {
+      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      aggregatedResults = aggregatePerSeriesFromRawMetrics({
+        rawMetrics: rawMetricsForAgg,
+        attributeKeys: groupByAttributeKeys,
+        aggregationType,
+      });
+    } else {
+      aggregatedResults = await MetricService.aggregateBy({
+        query: query,
+        aggregationType,
+        aggregateColumnName: "value",
+        aggregationTimestampColumnName: "time",
+        startTimestamp:
+          (startAndEndDate?.startValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
+        endTimestamp:
+          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        groupBy: queryConfig.metricQueryData.groupBy,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    logger.debug("IoT monitor aggregated results", {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
+
+    finalResult.push(aggregatedResults);
+  }
+
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: iotMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: iotMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: iotMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs: iotMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: resultsInDisplayUnit,
+    projectId: data.projectId,
+  });
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    groupByAttributeKeys.length > 0
+      ? buildSeriesBreakdown({
+          queryConfigs: iotMonitorConfig.metricViewConfig.queryConfigs,
+          formulaConfigs:
+            iotMonitorConfig.metricViewConfig.formulaConfigs || [],
+          perQueryResults: resultsInDisplayUnit,
+          attributeKeys: groupByAttributeKeys,
+          projectId: data.projectId,
+        })
+      : undefined;
+
+  return {
+    projectId: data.projectId,
+    metricViewConfig: iotMonitorConfig.metricViewConfig,
+    startAndEndDate: startAndEndDate,
+    metricResult: resultsWithFormulas,
+    seriesBreakdown: seriesBreakdown,
+    monitorId: data.monitorId,
+  };
+};
+
+type MonitorDockerSwarmFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<MetricMonitorResponse>;
+
+const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<MetricMonitorResponse> => {
+  const dockerSwarmMonitorConfig: MonitorStepDockerSwarmMonitor | undefined =
+    data.monitorStep.data?.dockerSwarmMonitor;
+
+  if (!dockerSwarmMonitorConfig) {
+    throw new BadDataException("Docker Swarm monitor config is missing");
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      dockerSwarmMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    );
+
+  const finalResult: Array<AggregatedResult> = [];
+  let dockerSwarmResourceBreakdown: DockerSwarmResourceBreakdown | undefined =
+    undefined;
+
+  const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
+    dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
+  );
+
+  for (const queryConfig of dockerSwarmMonitorConfig.metricViewConfig
+    .queryConfigs) {
+    const metricName: string =
+      (queryConfig.metricQueryData.filterData.metricName as string) || "";
+
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: startAndEndDate,
+      name: metricName,
+    };
+
+    // Start with any user-defined attribute filters
+    const attributes: Dictionary<string> = {};
+
+    if (
+      queryConfig.metricQueryData &&
+      queryConfig.metricQueryData.filterData &&
+      queryConfig.metricQueryData.filterData.attributes &&
+      Object.keys(queryConfig.metricQueryData.filterData.attributes).length > 0
+    ) {
+      Object.assign(
+        attributes,
+        queryConfig.metricQueryData.filterData.attributes,
+      );
+    }
+
+    /*
+     * Always scope to the cluster via the `docker.swarm.cluster.name`
+     * RESOURCE attribute the OneUptime Docker Swarm Agent stamps on every
+     * batch (stored `resource.`-prefixed in ClickHouse). This is the ONLY
+     * resource attribute the agent stamps — there is intentionally no
+     * `container.runtime` filter here (the Docker Swarm agent does not
+     * stamp it; adding one would match zero rows).
+     */
+    if (dockerSwarmMonitorConfig.clusterIdentifier) {
+      attributes["resource.docker.swarm.cluster.name"] =
+        dockerSwarmMonitorConfig.clusterIdentifier;
+    }
+
+    /*
+     * Docker Swarm resource filters. The docker_stats receiver keeps
+     * container identity in datapoint labels (stored unprefixed):
+     * `container.name` (a Swarm task's container is
+     * `<service>.<slot>.<taskid>`) and `container.image.name`. The
+     * node/service hints map to the `docker.swarm.node.name` /
+     * `docker.swarm.service.name` datapoint attributes when the agent
+     * stamps them.
+     */
+    if (dockerSwarmMonitorConfig.resourceFilters) {
+      const resourceFilters: DockerSwarmResourceFilters =
+        dockerSwarmMonitorConfig.resourceFilters;
+
+      if (resourceFilters.containerName) {
+        attributes["container.name"] = resourceFilters.containerName;
+      }
+
+      if (resourceFilters.containerImage) {
+        attributes["container.image.name"] = resourceFilters.containerImage;
+      }
+
+      if (resourceFilters.nodeName) {
+        attributes["docker.swarm.node.name"] = resourceFilters.nodeName;
+      }
+
+      if (resourceFilters.serviceName) {
+        attributes["docker.swarm.service.name"] = resourceFilters.serviceName;
+      }
+    }
+
+    if (Object.keys(attributes).length > 0) {
+      query.attributes = attributes;
+    }
+
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
+
+    let aggregatedResults: AggregatedResult;
+
+    if (groupByAttributeKeys.length > 0) {
+      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      aggregatedResults = aggregatePerSeriesFromRawMetrics({
+        rawMetrics: rawMetricsForAgg,
+        attributeKeys: groupByAttributeKeys,
+        aggregationType,
+      });
+    } else {
+      aggregatedResults = await MetricService.aggregateBy({
+        query: query,
+        aggregationType,
+        aggregateColumnName: "value",
+        aggregationTimestampColumnName: "time",
+        startTimestamp:
+          (startAndEndDate?.startValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
+        endTimestamp:
+          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        groupBy: queryConfig.metricQueryData.groupBy,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    logger.debug("Docker Swarm monitor aggregated results", {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
+
+    finalResult.push(aggregatedResults);
+
+    // Fetch raw metrics to extract per-resource Docker Swarm context
+    try {
+      const rawMetrics: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: 100,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (rawMetrics.length > 0) {
+        const affectedResourcesMap: Map<string, DockerSwarmAffectedResource> =
+          new Map();
+
+        for (const metric of rawMetrics) {
+          const metricAttrs: JSONObject =
+            (metric.attributes as JSONObject) || {};
+          const containerName: string | undefined = metricAttrs[
+            "container.name"
+          ] as string | undefined;
+          const containerImage: string | undefined = metricAttrs[
+            "container.image.name"
+          ] as string | undefined;
+          const nodeName: string | undefined = metricAttrs[
+            "docker.swarm.node.name"
+          ] as string | undefined;
+          const serviceName: string | undefined = metricAttrs[
+            "docker.swarm.service.name"
+          ] as string | undefined;
+
+          // Build unique key for deduplication
+          const resourceKey: string = [
+            containerName || "",
+            containerImage || "",
+            nodeName || "",
+            serviceName || "",
+          ].join("|");
+
+          const metricValue: number =
+            typeof metric.value === "number"
+              ? metric.value
+              : Number(metric.value) || 0;
+
+          // Keep the highest value per resource
+          const existing: DockerSwarmAffectedResource | undefined =
+            affectedResourcesMap.get(resourceKey);
+          if (!existing || metricValue > existing.metricValue) {
+            affectedResourcesMap.set(resourceKey, {
+              containerName: containerName || undefined,
+              containerImage: containerImage || undefined,
+              nodeName: nodeName || undefined,
+              serviceName: serviceName || undefined,
+              metricValue: metricValue,
+            });
+          }
+        }
+
+        const metricDef: DockerSwarmMetricDefinition | undefined =
+          getDockerSwarmMetricByMetricName(metricName);
+
+        dockerSwarmResourceBreakdown = {
+          clusterName: dockerSwarmMonitorConfig.clusterIdentifier,
+          metricName: metricName,
+          metricFriendlyName: metricDef?.friendlyName || metricName,
+          affectedResources: Array.from(affectedResourcesMap.values()),
+          attributes: attributes,
+        };
+      }
+    } catch (err) {
+      logger.error("Failed to fetch Docker Swarm resource breakdown", {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      });
+      logger.error(err, {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      });
+    }
+  }
+
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs:
+      dockerSwarmMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: resultsInDisplayUnit,
+    projectId: data.projectId,
+  });
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    groupByAttributeKeys.length > 0
+      ? buildSeriesBreakdown({
+          queryConfigs: dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
+          formulaConfigs:
+            dockerSwarmMonitorConfig.metricViewConfig.formulaConfigs || [],
+          perQueryResults: resultsInDisplayUnit,
+          attributeKeys: groupByAttributeKeys,
+          projectId: data.projectId,
+        })
+      : undefined;
+
+  return {
+    projectId: data.projectId,
+    metricViewConfig: dockerSwarmMonitorConfig.metricViewConfig,
+    startAndEndDate: startAndEndDate,
+    metricResult: resultsWithFormulas,
+    dockerSwarmResourceBreakdown: dockerSwarmResourceBreakdown,
+    seriesBreakdown: seriesBreakdown,
+    monitorId: data.monitorId,
+  };
+};
+
+type MonitorCephFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<MetricMonitorResponse>;
+
+const monitorCeph: MonitorCephFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<MetricMonitorResponse> => {
+  const cephMonitorConfig: MonitorStepCephMonitor | undefined =
+    data.monitorStep.data?.cephMonitor;
+
+  if (!cephMonitorConfig) {
+    throw new BadDataException("Ceph monitor config is missing");
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      cephMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    );
+
+  const finalResult: Array<AggregatedResult> = [];
+  let cephResourceBreakdown: CephResourceBreakdown | undefined = undefined;
+
+  const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
+    cephMonitorConfig.metricViewConfig.queryConfigs,
+  );
+
+  for (const queryConfig of cephMonitorConfig.metricViewConfig.queryConfigs) {
+    const metricName: string =
+      (queryConfig.metricQueryData.filterData.metricName as string) || "";
+
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: startAndEndDate,
+      name: metricName,
+    };
+
+    // Start with any user-defined attribute filters
+    const attributes: Dictionary<string> = {};
+
+    if (
+      queryConfig.metricQueryData &&
+      queryConfig.metricQueryData.filterData &&
+      queryConfig.metricQueryData.filterData.attributes &&
+      Object.keys(queryConfig.metricQueryData.filterData.attributes).length > 0
+    ) {
+      Object.assign(
+        attributes,
+        queryConfig.metricQueryData.filterData.attributes,
+      );
+    }
+
+    /*
+     * Always scope to the cluster via the `ceph.cluster.name`
+     * resource attribute the Ceph Agent stamps on every batch.
+     */
+    if (cephMonitorConfig.clusterIdentifier) {
+      attributes["resource.ceph.cluster.name"] =
+        cephMonitorConfig.clusterIdentifier;
+    }
+
+    /*
+     * Ceph-specific resource filters. The mgr prometheus module keeps
+     * daemon / pool identity in datapoint labels (stored unprefixed):
+     * `ceph_daemon` (e.g. "osd.3", "mon.a") on daemon metrics and
+     * `pool_id` on pool data series. The pool name exists only on the
+     * ceph_pool_metadata series, so it is never an equality filter
+     * here — filter by pool_id and join the metadata series when a
+     * display name is needed.
+     */
+    if (cephMonitorConfig.resourceFilters) {
+      const resourceFilters: CephResourceFilters =
+        cephMonitorConfig.resourceFilters;
+
+      if (resourceFilters.osdId) {
+        attributes["ceph_daemon"] = resourceFilters.osdId;
+      }
+
+      if (resourceFilters.poolId) {
+        attributes["pool_id"] = resourceFilters.poolId;
+      }
+    }
+
+    if (Object.keys(attributes).length > 0) {
+      query.attributes = attributes;
+    }
+
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
+
+    let aggregatedResults: AggregatedResult;
+
+    if (groupByAttributeKeys.length > 0) {
+      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      aggregatedResults = aggregatePerSeriesFromRawMetrics({
+        rawMetrics: rawMetricsForAgg,
+        attributeKeys: groupByAttributeKeys,
+        aggregationType,
+      });
+    } else {
+      aggregatedResults = await MetricService.aggregateBy({
+        query: query,
+        aggregationType,
+        aggregateColumnName: "value",
+        aggregationTimestampColumnName: "time",
+        startTimestamp:
+          (startAndEndDate?.startValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
+        endTimestamp:
+          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        groupBy: queryConfig.metricQueryData.groupBy,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    logger.debug("Ceph monitor aggregated results", {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
+
+    finalResult.push(aggregatedResults);
+
+    // Fetch raw metrics to extract per-resource Ceph context
+    try {
+      const rawMetrics: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: 100,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (rawMetrics.length > 0) {
+        const affectedResourcesMap: Map<string, CephAffectedResource> =
+          new Map();
+
+        for (const metric of rawMetrics) {
+          const metricAttrs: JSONObject =
+            (metric.attributes as JSONObject) || {};
+          const daemon: string | undefined = metricAttrs["ceph_daemon"] as
+            | string
+            | undefined;
+          const poolIdRaw: unknown = metricAttrs["pool_id"];
+          const poolId: string | undefined =
+            poolIdRaw !== undefined && poolIdRaw !== null
+              ? String(poolIdRaw)
+              : undefined;
+          const poolName: string | undefined = metricAttrs["name"] as
+            | string
+            | undefined;
+          const hostname: string | undefined = metricAttrs["hostname"] as
+            | string
+            | undefined;
+
+          // Build unique key for deduplication
+          const resourceKey: string = [
+            daemon || "",
+            poolId || "",
+            poolName || "",
+            hostname || "",
+          ].join("|");
+
+          const metricValue: number =
+            typeof metric.value === "number"
+              ? metric.value
+              : Number(metric.value) || 0;
+
+          // Keep the highest value per resource
+          const existing: CephAffectedResource | undefined =
+            affectedResourcesMap.get(resourceKey);
+          if (!existing || metricValue > existing.metricValue) {
+            affectedResourcesMap.set(resourceKey, {
+              daemon: daemon || undefined,
+              poolId: poolId || undefined,
+              poolName: poolName || undefined,
+              hostname: hostname || undefined,
+              metricValue: metricValue,
+            });
+          }
+        }
+
+        const metricDef: CephMetricDefinition | undefined =
+          getCephMetricByMetricName(metricName);
+
+        cephResourceBreakdown = {
+          clusterName: cephMonitorConfig.clusterIdentifier,
+          metricName: metricName,
+          metricFriendlyName: metricDef?.friendlyName || metricName,
+          affectedResources: Array.from(affectedResourcesMap.values()),
+          attributes: attributes,
+        };
+      }
+    } catch (err) {
+      logger.error("Failed to fetch Ceph resource breakdown", {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      });
+      logger.error(err, {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      });
+    }
+  }
+
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: cephMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: cephMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: cephMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs: cephMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: resultsInDisplayUnit,
+    projectId: data.projectId,
+  });
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    groupByAttributeKeys.length > 0
+      ? buildSeriesBreakdown({
+          queryConfigs: cephMonitorConfig.metricViewConfig.queryConfigs,
+          formulaConfigs:
+            cephMonitorConfig.metricViewConfig.formulaConfigs || [],
+          perQueryResults: resultsInDisplayUnit,
+          attributeKeys: groupByAttributeKeys,
+          projectId: data.projectId,
+        })
+      : undefined;
+
+  return {
+    projectId: data.projectId,
+    metricViewConfig: cephMonitorConfig.metricViewConfig,
+    startAndEndDate: startAndEndDate,
+    metricResult: resultsWithFormulas,
+    cephResourceBreakdown: cephResourceBreakdown,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
   };

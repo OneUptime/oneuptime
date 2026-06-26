@@ -8,6 +8,7 @@ import {
   ComponentInputType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+import { getViewModeArgument } from "./DashboardListSharedArgs";
 
 const DisplaySection: ComponentArgumentSection = {
   name: "Display Options",
@@ -65,6 +66,10 @@ export default class DashboardTraceListComponentUtil extends DashboardBaseCompon
       placeholder: "50",
       section: DisplaySection,
     });
+
+    componentArguments.push(
+      getViewModeArgument<DashboardTraceListComponent>(DisplaySection),
+    );
 
     componentArguments.push({
       name: "Status",

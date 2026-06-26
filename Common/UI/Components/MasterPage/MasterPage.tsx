@@ -15,6 +15,12 @@ export interface ComponentProps {
   className?: string | undefined;
   hideHeader?: boolean | undefined;
   makeTopSectionUnstick?: boolean | undefined;
+  /*
+   * Set when the consumer renders its own <main id="main-content"> landmark
+   * and skip link inside children (e.g. the status page), so this component
+   * does not add a second, nested main landmark or a duplicate skip link.
+   */
+  disableMainContentWrapper?: boolean | undefined;
 }
 
 const MasterPage: FunctionComponent<ComponentProps> = (
@@ -42,6 +48,19 @@ const MasterPage: FunctionComponent<ComponentProps> = (
     <React.Fragment>
       {isOnline && (
         <div className={props.className}>
+          {/*
+           * Skip link so keyboard and screen-reader users can bypass the
+           * repeated header/navigation and jump straight to the page content
+           * (WCAG 2.4.1 Bypass Blocks). Visually hidden until focused.
+           */}
+          {!props.disableMainContentWrapper && (
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-indigo-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:shadow-lg"
+            >
+              Skip to main content
+            </a>
+          )}
           <div
             className={props.makeTopSectionUnstick ? "" : "sticky top-0 z-10"}
           >
@@ -53,7 +72,22 @@ const MasterPage: FunctionComponent<ComponentProps> = (
             />
           </div>
 
-          {props.children}
+          {props.disableMainContentWrapper ? (
+            props.children
+          ) : (
+            <main
+              id="main-content"
+              tabIndex={-1}
+              /*
+               * grow so the main content fills the remaining vertical space in
+               * the flex column, keeping the page top-aligned and pinning the
+               * footer to the bottom even when the content is short.
+               */
+              className="grow focus:outline-none"
+            >
+              {props.children}
+            </main>
+          )}
 
           {props.footer && props.footer}
         </div>

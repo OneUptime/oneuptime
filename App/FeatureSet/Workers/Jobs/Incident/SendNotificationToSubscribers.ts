@@ -38,6 +38,7 @@ import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 
 RunCron(
@@ -232,6 +233,20 @@ RunCron(
           `Loaded ${statusPages.length} status page(s) for incident ${incident.id}.`,
         );
 
+        /*
+         * Pre-compute markdown conversions for incident.description once per
+         * incident. These values do not vary per status page or per subscriber,
+         * so memoizing here avoids N redundant markdown parses during fan-out.
+         * For a status page with 100k subscribers, this turns 100k markdown
+         * parses into 1.
+         */
+        const incidentDescriptionHtml: string = await Markdown.convertToHTML(
+          incident.description || "",
+          MarkdownContentType.Email,
+        );
+        const incidentDescriptionPlainText: string =
+          Markdown.convertToPlainText(incident.description || "");
+
         let notificationSentToAtLeastOneSubscriber: boolean = false;
 
         for (const statuspage of statusPages) {
@@ -289,49 +304,50 @@ RunCron(
             );
 
             // Fetch custom templates for this status page (if any)
-            const [emailTemplate, smsTemplate, slackTemplate, teamsTemplate]: [
-              StatusPageSubscriberNotificationTemplate | null,
-              StatusPageSubscriberNotificationTemplate | null,
-              StatusPageSubscriberNotificationTemplate | null,
-              StatusPageSubscriberNotificationTemplate | null,
-            ] = await Promise.all([
-              StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
-                {
-                  statusPageId: statuspage.id!,
-                  eventType:
-                    StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
-                  notificationMethod:
-                    StatusPageSubscriberNotificationMethod.Email,
-                },
-              ),
-              StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
-                {
-                  statusPageId: statuspage.id!,
-                  eventType:
-                    StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
-                  notificationMethod:
-                    StatusPageSubscriberNotificationMethod.SMS,
-                },
-              ),
-              StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
-                {
-                  statusPageId: statuspage.id!,
-                  eventType:
-                    StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
-                  notificationMethod:
-                    StatusPageSubscriberNotificationMethod.Slack,
-                },
-              ),
-              StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
-                {
-                  statusPageId: statuspage.id!,
-                  eventType:
-                    StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
-                  notificationMethod:
-                    StatusPageSubscriberNotificationMethod.MicrosoftTeams,
-                },
-              ),
-            ]);
+            const [
+              emailTemplate,
+              smsTemplate,
+              slackTemplate,
+              teamsTemplate,
+            ]: Array<StatusPageSubscriberNotificationTemplate | null> =
+              await Promise.all([
+                StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                  {
+                    statusPageId: statuspage.id!,
+                    eventType:
+                      StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+                    notificationMethod:
+                      StatusPageSubscriberNotificationMethod.Email,
+                  },
+                ),
+                StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                  {
+                    statusPageId: statuspage.id!,
+                    eventType:
+                      StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+                    notificationMethod:
+                      StatusPageSubscriberNotificationMethod.SMS,
+                  },
+                ),
+                StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                  {
+                    statusPageId: statuspage.id!,
+                    eventType:
+                      StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+                    notificationMethod:
+                      StatusPageSubscriberNotificationMethod.Slack,
+                  },
+                ),
+                StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                  {
+                    statusPageId: statuspage.id!,
+                    eventType:
+                      StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+                    notificationMethod:
+                      StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+                  },
+                ),
+              ]);
 
             // Prepare template variables for custom templates
             const templateVariables: Record<string, string> = {
@@ -344,12 +360,13 @@ RunCron(
               incidentDescription: incident.description || "",
             };
 
-            // Prepare SMS-specific template variables with plain text (no HTML/Markdown)
+            /*
+             * Prepare SMS-specific template variables with plain text (no HTML/Markdown).
+             * Uses the memoized plain-text conversion computed once per incident above.
+             */
             const smsTemplateVariables: Record<string, string> = {
               ...templateVariables,
-              incidentDescription: Markdown.convertToPlainText(
-                incident.description || "",
-              ),
+              incidentDescription: incidentDescriptionPlainText,
             };
 
             for (const subscriber of subscribers) {
@@ -460,10 +477,7 @@ RunCron(
                           incidentSeverity:
                             incident.incidentSeverity?.name || " - ",
                           incidentTitle: incident.title || "",
-                          incidentDescription: await Markdown.convertToHTML(
-                            incident.description || "",
-                            MarkdownContentType.Email,
-                          ),
+                          incidentDescription: incidentDescriptionHtml,
                           unsubscribeUrl: unsubscribeUrl,
 
                           subscriberEmailNotificationFooterText:
@@ -611,6 +625,38 @@ RunCron(
                   });
                   logger.debug(
                     `Microsoft Teams notification queued for subscriber ${subscriber._id}.`,
+                  );
+                }
+
+                if (subscriber.subscriberWebhook) {
+                  logger.debug(
+                    `Queueing webhook notification to subscriber ${subscriber._id}.`,
+                  );
+
+                  StatusPageSubscriberWebhookUtil.sendWebhookNotification({
+                    webhookUrl: subscriber.subscriberWebhook,
+                    payload: {
+                      eventType: "IncidentCreated",
+                      statusPageId: statuspage.id!.toString(),
+                      statusPageName: statusPageName,
+                      statusPageUrl: statusPageURL,
+                      unsubscribeUrl: unsubscribeUrl,
+                      data: {
+                        incidentId: incident.id?.toString() || "",
+                        incidentNumber:
+                          incident.incidentNumber?.toString() || "",
+                        incidentTitle: incident.title || "",
+                        incidentDescription: incident.description || "",
+                        incidentSeverity: incident.incidentSeverity?.name || "",
+                        resourcesAffected: resourcesAffectedString,
+                        detailsUrl: incidentDetailsUrl,
+                      },
+                    },
+                  }).catch((err: Error) => {
+                    logger.error(err);
+                  });
+                  logger.debug(
+                    `Webhook notification queued for subscriber ${subscriber._id}.`,
                   );
                 }
               } catch (err) {

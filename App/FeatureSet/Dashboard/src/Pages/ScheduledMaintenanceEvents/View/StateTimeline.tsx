@@ -56,6 +56,9 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
         modelType={ScheduledMaintenanceStateTimeline}
         id="table-scheduledMaintenance-status-timeline"
         userPreferencesKey="scheduled-maintenance-status-timeline-table"
+        saveFilterProps={{
+          tableId: "scheduled-maintenance-status-timeline-table",
+        }}
         name="Scheduled Maintenance Events > State Timeline"
         isDeleteable={true}
         isCreateable={true}

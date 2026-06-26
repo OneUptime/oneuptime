@@ -1,3 +1,4 @@
+import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export enum AlertBannerType {
@@ -44,6 +45,8 @@ const bannerStyles: Record<
 const AlertBanner: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const translatedTitle: string = translateString(props.title) ?? props.title;
   const styles: { container: string; dot: string; title: string } =
     bannerStyles[props.type];
 
@@ -56,7 +59,7 @@ const AlertBanner: FunctionComponent<ComponentProps> = (
         <div className="flex items-center gap-3">
           <span className={`inline-flex h-3 w-3 rounded-full ${styles.dot}`} />
           <span className={`text-lg font-semibold ${styles.title}`}>
-            {props.title}
+            {translatedTitle}
           </span>
         </div>
         {props.rightElement && <div>{props.rightElement}</div>}

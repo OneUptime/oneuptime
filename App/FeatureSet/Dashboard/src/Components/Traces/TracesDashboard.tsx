@@ -9,6 +9,7 @@ import React, {
 import Service from "Common/Models/DatabaseModels/Service";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import API from "Common/Utils/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -53,7 +54,7 @@ interface ServiceTraceSummary {
 interface RecentTrace {
   traceId: string;
   name: string;
-  serviceId: string;
+  primaryEntityId: string;
   startTime: Date;
   statusCode: SpanStatus;
   durationNano: number;
@@ -145,7 +146,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
               traceId: true,
               spanId: true,
               parentSpanId: true,
-              serviceId: true,
+              primaryEntityId: true,
               name: true,
               startTime: true,
               statusCode: true,
@@ -159,17 +160,37 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           }),
         ]);
 
-        const loadedServices: Array<Service> = servicesResult.data || [];
-        setServices(loadedServices);
-
         const allSpans: Array<Span> = spansResult.data || [];
+
+        /*
+         * Telemetry without a service.name is tagged with the projectId
+         * (ServiceType.Unknown) and has no Service row. Surface it under
+         * a synthetic "Unknown Service" so it still shows in the service
+         * health table — but only when some span actually references it.
+         */
+        const referencedServiceIds: Set<string> = new Set(
+          allSpans
+            .map((span: Span) => {
+              return span.primaryEntityId?.toString() || "";
+            })
+            .filter((id: string) => {
+              return Boolean(id);
+            }),
+        );
+        const loadedServices: Array<Service> =
+          TelemetryServiceUtil.withUnknownServiceIfReferenced({
+            services: servicesResult.data || [],
+            referencedServiceIds,
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          });
+        setServices(loadedServices);
 
         // Build per-service summaries
         const summaryMap: Map<string, ServiceTraceSummary> = new Map();
 
         for (const service of loadedServices) {
-          const serviceId: string = service.id?.toString() || "";
-          summaryMap.set(serviceId, {
+          const primaryEntityId: string = service.id?.toString() || "";
+          summaryMap.set(primaryEntityId, {
             service,
             totalTraces: 0,
             errorTraces: 0,
@@ -189,25 +210,26 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
         const allDurations: Array<number> = [];
 
         for (const span of allSpans) {
-          const serviceId: string = span.serviceId?.toString() || "";
+          const primaryEntityId: string =
+            span.primaryEntityId?.toString() || "";
           const traceId: string = span.traceId?.toString() || "";
           const duration: number = (span.durationUnixNano as number) || 0;
           const summary: ServiceTraceSummary | undefined =
-            summaryMap.get(serviceId);
+            summaryMap.get(primaryEntityId);
 
           if (duration > 0) {
             allDurations.push(duration);
           }
 
           if (summary) {
-            if (!serviceTraceIds.has(serviceId)) {
-              serviceTraceIds.set(serviceId, new Set());
+            if (!serviceTraceIds.has(primaryEntityId)) {
+              serviceTraceIds.set(primaryEntityId, new Set());
             }
-            if (!serviceErrorTraceIds.has(serviceId)) {
-              serviceErrorTraceIds.set(serviceId, new Set());
+            if (!serviceErrorTraceIds.has(primaryEntityId)) {
+              serviceErrorTraceIds.set(primaryEntityId, new Set());
             }
 
-            const traceSet: Set<string> = serviceTraceIds.get(serviceId)!;
+            const traceSet: Set<string> = serviceTraceIds.get(primaryEntityId)!;
             if (!traceSet.has(traceId)) {
               traceSet.add(traceId);
               summary.totalTraces += 1;
@@ -219,7 +241,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
 
             if (span.statusCode === SpanStatus.Error) {
               const errorSet: Set<string> =
-                serviceErrorTraceIds.get(serviceId)!;
+                serviceErrorTraceIds.get(primaryEntityId)!;
               if (!errorSet.has(traceId)) {
                 errorSet.add(traceId);
                 summary.errorTraces += 1;
@@ -242,7 +264,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             allTraces.push({
               traceId,
               name: span.name?.toString() || "Unknown",
-              serviceId,
+              primaryEntityId,
               startTime: span.startTime
                 ? OneUptimeDate.fromString(span.startTime)
                 : new Date(),
@@ -260,7 +282,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             errorTraces.push({
               traceId,
               name: span.name?.toString() || "Unknown",
-              serviceId,
+              primaryEntityId,
               startTime: span.startTime
                 ? OneUptimeDate.fromString(span.startTime)
                 : new Date(),
@@ -333,11 +355,11 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
     void loadDashboard();
   }, [loadDashboard]);
 
-  const getServiceName: (serviceId: string) => string = (
-    serviceId: string,
+  const getServiceName: (primaryEntityId: string) => string = (
+    primaryEntityId: string,
   ): string => {
     const service: Service | undefined = services.find((s: Service) => {
-      return s.id?.toString() === serviceId;
+      return s.id?.toString() === primaryEntityId;
     });
     return service?.name?.toString() || "Unknown";
   };
@@ -630,14 +652,23 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                     <td className="px-5 py-3.5 text-right">
                       <AppLink
                         className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-                        to={RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.SERVICE_VIEW_TRACES] as Route,
-                          {
-                            modelId: new ObjectID(
-                              summary.service._id as string,
-                            ),
-                          },
-                        )}
+                        to={
+                          TelemetryServiceUtil.isUnknownServiceId(
+                            summary.service._id as string | undefined,
+                            ProjectUtil.getCurrentProjectId(),
+                          )
+                            ? (RouteUtil.populateRouteParams(
+                                RouteMap[PageMap.TRACES] as Route,
+                              ) as Route)
+                            : RouteUtil.populateRouteParams(
+                                RouteMap[PageMap.SERVICE_VIEW_TRACES] as Route,
+                                {
+                                  modelId: new ObjectID(
+                                    summary.service._id as string,
+                                  ),
+                                },
+                              )
+                        }
                       >
                         View
                       </AppLink>
@@ -713,7 +744,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                               {trace.name}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {getServiceName(trace.serviceId)}
+                              {getServiceName(trace.primaryEntityId)}
                             </p>
                           </div>
                         </div>
@@ -775,7 +806,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                               {trace.name}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {getServiceName(trace.serviceId)}
+                              {getServiceName(trace.primaryEntityId)}
                             </p>
                           </div>
                         </div>

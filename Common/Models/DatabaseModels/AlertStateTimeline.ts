@@ -5,6 +5,7 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -29,7 +30,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.AlertManager,
+    Permission.AlertAdmin,
+    Permission.AlertMember,
     Permission.CreateAlertStateTimeline,
   ],
   read: [
@@ -37,22 +39,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.AlertManager,
+    Permission.AlertAdmin,
+    Permission.AlertMember,
+    Permission.AlertViewer,
     Permission.ReadAlertStateTimeline,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.AlertManager,
+    Permission.AlertAdmin,
+    Permission.AlertMember,
     Permission.DeleteAlertStateTimeline,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.AlertManager,
+    Permission.AlertAdmin,
+    Permission.AlertMember,
     Permission.EditAlertStateTimeline,
   ],
 })
@@ -63,6 +68,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   read: true,
 })
 @CrudApiEndpoint(new Route("/alert-state-timeline"))
+@OwnedThrough("alertId", Alert)
 @Entity({
   name: "AlertStateTimeline",
 })
@@ -81,7 +87,8 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertStateTimeline,
     ],
     read: [
@@ -89,9 +96,10 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -122,7 +130,8 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertStateTimeline,
     ],
     read: [
@@ -130,9 +139,10 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -157,7 +167,8 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertStateTimeline,
     ],
     read: [
@@ -165,9 +176,10 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -198,7 +210,8 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertStateTimeline,
     ],
     read: [
@@ -206,9 +219,10 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -232,7 +246,8 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertStateTimeline,
     ],
     read: [
@@ -240,9 +255,10 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -274,7 +290,8 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertStateTimeline,
     ],
     read: [
@@ -282,9 +299,10 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -355,7 +373,8 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertStateTimeline,
     ],
     read: [
@@ -363,15 +382,17 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlertStateTimeline,
     ],
   })
@@ -402,7 +423,8 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertStateTimeline,
     ],
     read: [
@@ -410,15 +432,17 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.EditAlertStateTimeline,
     ],
   })
@@ -445,9 +469,10 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -477,9 +502,10 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -506,7 +532,8 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertStateTimeline,
     ],
     read: [
@@ -514,9 +541,10 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -542,7 +570,8 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertStateTimeline,
     ],
     read: [
@@ -550,9 +579,10 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -575,7 +605,8 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertStateTimeline,
     ],
     read: [
@@ -583,9 +614,10 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

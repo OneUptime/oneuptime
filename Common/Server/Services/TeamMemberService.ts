@@ -28,6 +28,7 @@ import SubscriptionPlan, {
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Email from "../../Types/Email";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
+import Name from "../../Types/Name";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -37,8 +38,19 @@ import User from "../../Models/DatabaseModels/User";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
 import ProjectSCIMService from "./ProjectSCIMService";
+import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 
 export class TeamMemberService extends DatabaseService<TeamMember> {
+  /*
+   * Caches the user's accepted team memberships per project. Auth middleware
+   * calls this on every authenticated request to evaluate the `Owned`
+   * permission scope; without the cache it's a Postgres findBy per request.
+   * 60s of staleness on team membership changes is acceptable; we also
+   * invalidate proactively when team membership writes happen.
+   */
+  private teamIdsForUserCache: InMemoryTTLCache<Array<string>> =
+    new InMemoryTTLCache(10_000);
+
   public constructor() {
     super(TeamMember);
   }
@@ -114,6 +126,15 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     if (createBy.miscDataProps && createBy.miscDataProps["email"]) {
       const email: Email = new Email(createBy.miscDataProps["email"] as string);
 
+      /*
+       * Optional name supplied on the invite form. Used only to set the name on
+       * a brand-new user, or to backfill an existing user who has no name yet —
+       * we never overwrite a name the user has already set.
+       */
+      const nameValue: string | undefined = createBy.miscDataProps["name"]
+        ? (createBy.miscDataProps["name"] as string).trim()
+        : undefined;
+
       let user: User | null = await UserService.findByEmail(email, {
         isRoot: true,
       });
@@ -122,13 +143,40 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
 
       if (!user) {
         isNewUser = true;
+
         user = await UserService.createByEmail({
           email,
-          name: undefined, // name is not required for now.
+          name: nameValue ? new Name(nameValue) : undefined,
           props: {
             isRoot: true,
           },
         });
+      } else if (nameValue) {
+        /*
+         * User already exists. Backfill their name only if they don't have one
+         * yet; if they already have a name, leave it untouched.
+         */
+        const existingUser: User | null = await UserService.findOneById({
+          id: user.id!,
+          select: {
+            name: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (existingUser && !existingUser.name?.toString()) {
+          await UserService.updateOneById({
+            id: user.id!,
+            data: {
+              name: new Name(nameValue),
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        }
       }
 
       createBy.data.userId = user.id!;
@@ -215,6 +263,14 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<void> {
+    /*
+     * Invalidate the in-process cache of this user's team memberships in
+     * this project — membership just changed.
+     */
+    this.teamIdsForUserCache.delete(
+      `${userId.toString()}:${projectId.toString()}`,
+    );
+
     /// Refresh tokens.
     await AccessTokenService.refreshUserGlobalAccessPermission(userId);
 
@@ -533,6 +589,61 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         },
       });
     }
+  }
+
+  /*
+   * Returns the IDs of teams the given user has accepted membership in,
+   * scoped to a single project. Used by the `Owned` permission scope to
+   * resolve "any of the user's teams owns this resource."
+   */
+  @CaptureSpan()
+  public async getTeamIdsForUser(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<Array<ObjectID>> {
+    const cacheKey: string = `${userId.toString()}:${projectId.toString()}`;
+    const cached: Array<string> | undefined =
+      this.teamIdsForUserCache.get(cacheKey);
+    if (cached !== undefined) {
+      return cached.map((id: string) => {
+        return new ObjectID(id);
+      });
+    }
+
+    const members: Array<TeamMember> = await this.findBy({
+      query: {
+        userId: userId,
+        projectId: projectId,
+        hasAcceptedInvitation: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        teamId: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+    });
+
+    const teamIds: Array<ObjectID> = [];
+    const seen: Set<string> = new Set<string>();
+    for (const member of members) {
+      const id: ObjectID | undefined = member.teamId;
+      if (id && !seen.has(id.toString())) {
+        seen.add(id.toString());
+        teamIds.push(id);
+      }
+    }
+
+    this.teamIdsForUserCache.set(
+      cacheKey,
+      teamIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+      60_000,
+    );
+    return teamIds;
   }
 }
 

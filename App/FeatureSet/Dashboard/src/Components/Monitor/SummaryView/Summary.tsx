@@ -13,6 +13,8 @@ import Probe from "Common/Models/DatabaseModels/Probe";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import TelemetryMonitorSummary from "./Types/TelemetryMonitorSummary";
 import MonitorEvaluationSummary from "Common/Types/Monitor/MonitorEvaluationSummary";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
 
 export interface ComponentProps {
   probeMonitorResponses?: Array<MonitorStepProbeResponse> | undefined;
@@ -23,6 +25,7 @@ export interface ComponentProps {
   serverMonitorResponse?: ServerMonitorResponse | undefined;
   probes?: Array<Probe>;
   monitorType: MonitorType;
+  monitorSteps?: MonitorSteps | undefined;
   telemetryMonitorSummary?: TelemetryMonitorSummary | undefined;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
 }
@@ -46,10 +49,32 @@ const Summary: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
+  const validMonitorStepIds: Set<string> | null = (() => {
+    const stepsArray: Array<MonitorStep> | undefined =
+      props.monitorSteps?.data?.monitorStepsInstanceArray;
+
+    if (!stepsArray) {
+      return null;
+    }
+
+    const ids: Set<string> = new Set();
+    for (const step of stepsArray) {
+      const id: string | undefined = step.data?.id;
+      if (id) {
+        ids.add(id.toString());
+      }
+    }
+    return ids;
+  })();
+
   const probeResponses: Array<ProbeMonitorResponse> = [];
 
   for (const probeResponse of props.probeMonitorResponses || []) {
     for (const monitorStepId in probeResponse) {
+      if (validMonitorStepIds && !validMonitorStepIds.has(monitorStepId)) {
+        continue;
+      }
+
       const probeMonitorResponse: ProbeMonitorResponse = probeResponse[
         monitorStepId
       ] as ProbeMonitorResponse;

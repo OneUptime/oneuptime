@@ -13,6 +13,22 @@ export class RangeStartAndEndDateTimeUtil {
   ): InBetween<Date> {
     const currentDate: Date = OneUptimeDate.getCurrentDate();
 
+    // 5 mins.
+    if (dashboardStartAndEndDate.range === TimeRange.PAST_FIVE_MINS) {
+      return new InBetween<Date>(
+        OneUptimeDate.addRemoveMinutes(currentDate, -5),
+        currentDate,
+      );
+    }
+
+    // 15 mins.
+    if (dashboardStartAndEndDate.range === TimeRange.PAST_FIFTEEN_MINS) {
+      return new InBetween<Date>(
+        OneUptimeDate.addRemoveMinutes(currentDate, -15),
+        currentDate,
+      );
+    }
+
     // 30 mins.
     if (dashboardStartAndEndDate.range === TimeRange.PAST_THIRTY_MINS) {
       return new InBetween<Date>(

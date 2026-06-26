@@ -1,15 +1,19 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyOwnerTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerTeam";
+import OnCallDutyPolicyOwnerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
 const OnCallDutyPage: FunctionComponent<
   PageComponentProps
@@ -17,12 +21,46 @@ const OnCallDutyPage: FunctionComponent<
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<OnCallDutyPolicy>({ modelType: OnCallDutyPolicy });
 
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<OnCallDutyPolicy>({
+      ownerUserModelType: OnCallDutyPolicyOwnerUser,
+      ownerTeamModelType: OnCallDutyPolicyOwnerTeam,
+      resourceIdField: "onCallDutyPolicyId",
+    });
+
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<OnCallDutyPolicy>({
+    persistKey: "on-call-policies-table",
+    ownerUserModelType: OnCallDutyPolicyOwnerUser,
+    ownerTeamModelType: OnCallDutyPolicyOwnerTeam,
+    resourceIdField: "onCallDutyPolicyId",
+    showLabelsFacet: true,
+  });
+
   return (
     <Fragment>
       <ModelTable<OnCallDutyPolicy>
         modelType={OnCallDutyPolicy}
+        enableJsonImportExport={true}
         id="on-call-duty-table"
         userPreferencesKey="on-call-duty-table"
+        topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<OnCallDutyPolicy>) => {
+          onResourcesFetched(data);
+        }}
+        saveFilterProps={{
+          tableId: "on-call-policies-table",
+        }}
         isDeleteable={false}
         name="On-Call > Policies"
         showViewIdButton={true}
@@ -30,7 +68,7 @@ const OnCallDutyPage: FunctionComponent<
         isCreateable={true}
         isViewable={true}
         bulkActions={{
-          buttons: [...labelBulkActions],
+          buttons: [...labelBulkActions, ...ownerBulkActions],
         }}
         cardProps={{
           title: "On-Call Duty Policies",
@@ -79,6 +117,7 @@ const OnCallDutyPage: FunctionComponent<
           },
         ]}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
           {
@@ -95,25 +134,6 @@ const OnCallDutyPage: FunctionComponent<
             },
             title: "Description",
             type: FieldType.LongText,
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
           },
         ]}
         columns={[
@@ -146,9 +166,26 @@ const OnCallDutyPage: FunctionComponent<
               return <LabelsElement labels={item["labels"] || []} />;
             },
           },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: OnCallDutyPolicy): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
+          },
         ]}
       />
       {labelBulkActionModals}
+      {ownerBulkActionModals}
     </Fragment>
   );
 };

@@ -30,11 +30,11 @@ Drop filters let you **discard or sample spans before they are stored**, reducin
 
 ### Filter Query Syntax
 
-**Available fields:** \`name\`, \`kind\`, \`statusCode\`, \`serviceId\`, \`attributes.<key>\`
+**Available fields:** \`name\`, \`kind\`, \`statusCode\`, \`primaryEntityId\`, \`attributes.<key>\`
 
 ### Examples
 
-- **Drop healthcheck spans:** \`name LIKE '%healthcheck%'\` (action: Drop)
+- **Drop healthcheck spans:** \`name LIKE 'healthcheck'\` (action: Drop)
 - **Sample successful CRUD:** \`kind = 'SPAN_KIND_CLIENT' AND statusCode = 1\` (action: Sample, 10%)
 `;
 
@@ -189,6 +189,7 @@ const TraceDropFilters: FunctionComponent<
         },
       ]}
       showRefreshButton={true}
+      searchableFields={["name", "description"]}
       showViewIdButton={true}
       filters={[
         {

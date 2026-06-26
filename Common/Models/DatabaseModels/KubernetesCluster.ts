@@ -19,6 +19,7 @@ import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import {
   Column,
   Entity,
@@ -37,7 +38,8 @@ import {
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.SettingsManager,
+    Permission.SettingsAdmin,
+    Permission.SettingsMember,
     Permission.CreateKubernetesCluster,
   ],
   read: [
@@ -45,22 +47,25 @@ import {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.SettingsManager,
+    Permission.SettingsAdmin,
+    Permission.SettingsMember,
+    Permission.SettingsViewer,
     Permission.ReadKubernetesCluster,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.SettingsManager,
+    Permission.SettingsAdmin,
+    Permission.SettingsMember,
     Permission.DeleteKubernetesCluster,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.SettingsManager,
+    Permission.SettingsAdmin,
+    Permission.SettingsMember,
     Permission.EditKubernetesCluster,
   ],
 })
@@ -73,6 +78,7 @@ import {
  * update) race in findOrCreateByClusterIdentifier and create duplicate rows.
  */
 @Index(["projectId", "clusterIdentifier"], { unique: true })
+@Index(["projectId", "isArchived"])
 @TableMetadata({
   tableName: "KubernetesCluster",
   singularName: "Kubernetes Cluster",
@@ -90,7 +96,8 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
       Permission.CreateKubernetesCluster,
     ],
     read: [
@@ -98,9 +105,10 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -130,7 +138,8 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
       Permission.CreateKubernetesCluster,
     ],
     read: [
@@ -138,9 +147,10 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -164,7 +174,8 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
       Permission.CreateKubernetesCluster,
     ],
     read: [
@@ -172,15 +183,17 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
       Permission.EditKubernetesCluster,
     ],
   })
@@ -207,9 +220,10 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -233,7 +247,8 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
       Permission.CreateKubernetesCluster,
     ],
     read: [
@@ -241,15 +256,17 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
       Permission.EditKubernetesCluster,
     ],
   })
@@ -273,7 +290,8 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
       Permission.CreateKubernetesCluster,
     ],
     read: [
@@ -281,15 +299,17 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
       Permission.EditKubernetesCluster,
     ],
   })
@@ -316,7 +336,8 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
       Permission.CreateKubernetesCluster,
     ],
     read: [
@@ -324,15 +345,17 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
       Permission.EditKubernetesCluster,
     ],
   })
@@ -360,9 +383,10 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -394,9 +418,44 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditKubernetesCluster,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Agent Version",
+    description:
+      "Version of the OneUptime Kubernetes agent reporting telemetry, as self-reported via the oneuptime.agent.version resource attribute",
+    example: "1.0.0",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public agentVersion?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
     ],
     update: [
       Permission.ProjectOwner,
@@ -424,9 +483,10 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -453,9 +513,10 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -482,9 +543,10 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -509,7 +571,8 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
       Permission.CreateKubernetesCluster,
     ],
     read: [
@@ -517,9 +580,10 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -550,7 +614,8 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
       Permission.CreateKubernetesCluster,
     ],
     read: [
@@ -558,9 +623,10 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -578,15 +644,149 @@ export default class KubernetesCluster extends BaseModel {
   public createdByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateKubernetesCluster,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditKubernetesCluster,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Is Archived",
+    description:
+      "Is this Kubernetes cluster archived? Archived Kubernetes clusters are hidden from lists but keep collecting telemetry.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isArchived?: boolean = undefined;
+
+  @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Archived At",
+    description: "When was this Kubernetes cluster archived?",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public archivedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "archivedByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Archived by User",
+    description:
+      "Relation to User who archived this object (if this object was archived by a User)",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "archivedByUserId" })
+  public archivedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Archived by User ID",
+    description:
+      "User ID who archived this object (if this object was archived by a User)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public archivedByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
     ],
     update: [],
   })
@@ -620,9 +820,10 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -644,7 +845,8 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
       Permission.CreateKubernetesCluster,
     ],
     read: [
@@ -652,15 +854,17 @@ export default class KubernetesCluster extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
       Permission.EditKubernetesCluster,
     ],
   })
@@ -690,4 +894,86 @@ export default class KubernetesCluster extends BaseModel {
     },
   })
   public labels?: Array<Label> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateKubernetesCluster,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditKubernetesCluster,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Retain Telemetry Data For Days",
+    description:
+      "Number of days to retain telemetry data for this Kubernetes cluster. Leave blank to use the project-wide default.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+    unique: false,
+  })
+  public retainTelemetryDataForDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateKubernetesCluster,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditKubernetesCluster,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Telemetry Data Retention Overrides",
+    description:
+      "Per-pillar retention overrides for this Kubernetes cluster (logs by severity, traces by status, metrics, profiles). Unset fields fall back to the cluster default, then the project's retention settings.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public telemetryRetentionConfig?: TelemetryRetentionConfig = undefined;
 }

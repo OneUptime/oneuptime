@@ -4,10 +4,12 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
+import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ProjectService from "./ProjectService";
 import SmsService from "./SmsService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Text from "../../Types/Text";
@@ -88,7 +90,17 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * If the project has its own default Twilio config, OneUptime does not
+     * charge the project's SMS balance, so the low-balance check does not apply.
+     */
+    const projectTwilioConfig: TwilioConfig | undefined =
+      await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+        createBy.data.projectId!,
+      );
+
     if (
+      !projectTwilioConfig &&
       (project.smsOrCallCurrentBalanceInUSDCents as number) <= 100 &&
       IsBillingEnabled
     ) {
@@ -159,7 +171,17 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * If the project has its own default Twilio config, OneUptime does not
+     * charge the project's SMS balance, so the low-balance check does not apply.
+     */
+    const projectTwilioConfig: TwilioConfig | undefined =
+      await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+        item.projectId!,
+      );
+
     if (
+      !projectTwilioConfig &&
       (project.smsOrCallCurrentBalanceInUSDCents as number) <= 100 &&
       IsBillingEnabled
     ) {
@@ -185,20 +207,27 @@ export class Service extends DatabaseService<Model> {
   }
 
   public sendVerificationCode(item: Model): void {
-    // send verification sms.
-    SmsService.sendSms(
-      {
-        to: item.phone!,
-        message:
-          "This message is from OneUptime. Your verification code is " +
-          item.verificationCode,
-      },
-      {
-        projectId: item.projectId,
-        isSensitive: true,
-        userId: item.userId!,
-      },
-    ).catch((err: Error) => {
+    (async () => {
+      const projectTwilioConfig: TwilioConfig | undefined =
+        await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+          item.projectId,
+        );
+
+      await SmsService.sendSms(
+        {
+          to: item.phone!,
+          message:
+            "This message is from OneUptime. Your verification code is " +
+            item.verificationCode,
+        },
+        {
+          projectId: item.projectId,
+          customTwilioConfig: projectTwilioConfig,
+          isSensitive: true,
+          userId: item.userId!,
+        },
+      );
+    })().catch((err: Error) => {
       logger.error(err);
     });
   }

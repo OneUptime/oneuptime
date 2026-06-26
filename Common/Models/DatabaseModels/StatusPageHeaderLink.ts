@@ -5,6 +5,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -30,7 +31,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.StatusPageManager,
+    Permission.StatusPageAdmin,
+    Permission.StatusPageMember,
     Permission.CreateStatusPageHeaderLink,
   ],
   read: [
@@ -38,22 +40,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.StatusPageManager,
+    Permission.StatusPageAdmin,
+    Permission.StatusPageMember,
+    Permission.StatusPageViewer,
     Permission.ReadStatusPageHeaderLink,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.StatusPageManager,
+    Permission.StatusPageAdmin,
+    Permission.StatusPageMember,
     Permission.DeleteStatusPageHeaderLink,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.StatusPageManager,
+    Permission.StatusPageAdmin,
+    Permission.StatusPageMember,
     Permission.EditStatusPageHeaderLink,
   ],
 })
@@ -71,6 +76,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.ArrowCircleUp,
   tableDescription: "Manage header links on your status page",
 })
+@OwnedThrough("statusPageId", StatusPage)
 @Entity({
   name: "StatusPageHeaderLink",
 })
@@ -85,7 +91,8 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPageHeaderLink,
     ],
     read: [
@@ -93,9 +100,10 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageHeaderLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -125,7 +133,8 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPageHeaderLink,
     ],
     read: [
@@ -133,9 +142,10 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageHeaderLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -160,7 +170,8 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPageHeaderLink,
     ],
     read: [
@@ -168,9 +179,10 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageHeaderLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -201,7 +213,8 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPageHeaderLink,
     ],
     read: [
@@ -209,9 +222,10 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageHeaderLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -235,7 +249,8 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPageHeaderLink,
     ],
     read: [
@@ -243,15 +258,17 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageHeaderLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.EditStatusPageHeaderLink,
     ],
   })
@@ -274,7 +291,8 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPageHeaderLink,
     ],
     read: [
@@ -282,15 +300,17 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageHeaderLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.EditStatusPageHeaderLink,
     ],
   })
@@ -314,7 +334,8 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPageHeaderLink,
     ],
     read: [
@@ -322,9 +343,10 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageHeaderLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -355,7 +377,8 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPageHeaderLink,
     ],
     read: [
@@ -363,9 +386,10 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageHeaderLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -390,9 +414,10 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageHeaderLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -424,7 +449,8 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPageHeaderLink,
     ],
     read: [
@@ -432,15 +458,17 @@ export default class StatusPageHeaderLink extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageHeaderLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.EditStatusPageHeaderLink,
     ],
   })

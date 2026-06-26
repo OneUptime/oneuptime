@@ -8,7 +8,7 @@ describe("alert tests", () => {
   test("it should render all props passed", () => {
     const handleClick: undefined | (() => void) = jest.fn();
     const handleClose: (() => void) | undefined = jest.fn();
-    render(
+    const { container } = render(
       <Alert
         title="title"
         strongTitle="strong"
@@ -18,8 +18,8 @@ describe("alert tests", () => {
       />,
     );
 
-    const icon: HTMLElement = screen.getByRole("icon");
-    expect(icon).toBeInTheDocument();
+    // The alert icon renders an inline <svg> (no role="icon"; WCAG 4.1.2).
+    expect(container.querySelector("svg")).not.toBeNull();
 
     const alert: HTMLElement = screen.getByRole("alert");
     expect(alert).toBeInTheDocument();
@@ -34,30 +34,38 @@ describe("alert tests", () => {
     expect(handleClose).toBeCalled();
   });
   test("it should show icon when alert type is equal to success", () => {
-    render(<Alert dataTestId="test-id" type={AlertType.SUCCESS} />);
-    const icon: HTMLElement = screen.getByRole("icon");
-    expect(icon).toBeInTheDocument();
+    const { container } = render(
+      <Alert dataTestId="test-id" type={AlertType.SUCCESS} />,
+    );
+    // The alert icon renders an inline <svg> (no role="icon"; WCAG 4.1.2).
+    expect(container.querySelector("svg")).not.toBeNull();
     const testId: HTMLElement = screen.getByTestId("test-id");
     expect(testId).toHaveClass("rounded-md bg-gray-700 p-4");
   });
   test("it should show icon when alert type is equal to info", () => {
-    render(<Alert dataTestId="test-id" type={AlertType.INFO} />);
-    const icon: HTMLElement = screen.getByRole("icon");
-    expect(icon).toBeInTheDocument();
+    const { container } = render(
+      <Alert dataTestId="test-id" type={AlertType.INFO} />,
+    );
+    // The alert icon renders an inline <svg> (no role="icon"; WCAG 4.1.2).
+    expect(container.querySelector("svg")).not.toBeNull();
     const testId: HTMLElement = screen.getByTestId("test-id");
     expect(testId).toHaveClass("rounded-md bg-gray-700 p-4");
   });
   test("it should show icon when alert type is equal to warning", () => {
-    render(<Alert dataTestId="test-id" type={AlertType.WARNING} />);
-    const icon: HTMLElement = screen.getByRole("icon");
-    expect(icon).toBeInTheDocument();
+    const { container } = render(
+      <Alert dataTestId="test-id" type={AlertType.WARNING} />,
+    );
+    // The alert icon renders an inline <svg> (no role="icon"; WCAG 4.1.2).
+    expect(container.querySelector("svg")).not.toBeNull();
     const testId: HTMLElement = screen.getByTestId("test-id");
     expect(testId).toHaveClass("rounded-md bg-gray-700 p-4");
   });
   test("it should show icon when alert type is equal to danger", () => {
-    render(<Alert dataTestId="test-id" type={AlertType.DANGER} />);
-    const icon: HTMLElement = screen.getByRole("icon");
-    expect(icon).toBeInTheDocument();
+    const { container } = render(
+      <Alert dataTestId="test-id" type={AlertType.DANGER} />,
+    );
+    // The alert icon renders an inline <svg> (no role="icon"; WCAG 4.1.2).
+    expect(container.querySelector("svg")).not.toBeNull();
     const testId: HTMLElement = screen.getByTestId("test-id");
     expect(testId).toHaveClass("rounded-md bg-red-700 p-4");
   });

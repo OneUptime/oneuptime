@@ -1,4 +1,4 @@
-Request Headers: 
+Request Headers:
 
 ApiKey: {secret-api-key}
 ProjectID: {project-id}
@@ -6,7 +6,7 @@ ProjectID: {project-id}
 Request Body:
 
 {
-    "data": {
-        // properties to update as JSON.
-    }
+"data": {
+// properties to update as JSON.
+}
 }

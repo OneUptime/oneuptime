@@ -21,6 +21,9 @@ const AIAgentTaskPullRequestsPage: FunctionComponent<
     <ModelTable<AIAgentTaskPullRequest>
       modelType={AIAgentTaskPullRequest}
       id="ai-agent-task-pull-requests-table"
+      saveFilterProps={{
+        tableId: "ai-agent-task-pull-requests-table",
+      }}
       isDeleteable={false}
       isEditable={false}
       isCreateable={false}

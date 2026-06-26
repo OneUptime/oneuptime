@@ -13,6 +13,9 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<WorkflowVariable>
         modelType={WorkflowVariable}
         id="status-page-table"
+        saveFilterProps={{
+          tableId: "workflow-variables-table",
+        }}
         isDeleteable={true}
         isEditable={false}
         isCreateable={true}
@@ -43,7 +46,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
               minLength: 2,
               noSpaces: true,
               noSpecialCharacters: true,
-              noNumbers: true,
             },
           },
           {
@@ -76,6 +78,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         filters={[
           {
             field: {

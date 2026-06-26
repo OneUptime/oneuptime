@@ -4,6 +4,7 @@ import {
   getGlobalSMTPConfig,
   getSendgridConfig,
 } from "../Config";
+import MicrosoftGraphMailProvider from "./MailProviders/MicrosoftGraphMailProvider";
 import SMTPOAuthService from "./SMTPOAuthService";
 import SendgridMail, { ClientResponse, MailDataRequired } from "@sendgrid/mail";
 import Hostname from "Common/Types/API/Hostname";
@@ -14,6 +15,7 @@ import Email from "Common/Types/Email";
 import EmailMessage from "Common/Types/Email/EmailMessage";
 import EmailServer from "Common/Types/Email/EmailServer";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import MailTransportType from "Common/Types/Email/MailTransportType";
 import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -50,8 +52,20 @@ class TransporterPool {
     requireTLS: boolean;
     mode: "implicit-tls" | "starttls" | "plain";
   } {
+    /*
+     * host/port/secure are optional on EmailServer to support HTTP-API
+     * transports. This pool only handles SMTP — callers must have routed
+     * non-SMTP transports elsewhere before reaching here.
+     */
+    if (!emailServer.host || !emailServer.port) {
+      throw new BadDataException(
+        "SMTP transport requires Hostname and Port. " +
+          "If you intended to use Microsoft Graph, set Transport to 'Microsoft Graph'.",
+      );
+    }
+
     const portNumber: number = emailServer.port.toNumber();
-    const wantsSecureConnection: boolean = emailServer.secure;
+    const wantsSecureConnection: boolean = Boolean(emailServer.secure);
     const isImplicitTLSPort: boolean = portNumber === 465;
 
     const secureConnection: boolean = isImplicitTLSPort;
@@ -78,8 +92,10 @@ class TransporterPool {
     const { portNumber, mode } = this.resolveConnectionSettings(emailServer);
     const username: string = emailServer.username || "noauth";
     const authType: string = emailServer.authType || "password";
+    // resolveConnectionSettings has already guarded that host is defined.
+    const host: string = emailServer.host!.toString();
 
-    return `${emailServer.host.toString()}:${portNumber}:${username}:${mode}:${authType}`;
+    return `${host}:${portNumber}:${username}:${mode}:${authType}`;
   }
 
   public static async getTransporter(
@@ -159,7 +175,7 @@ class TransporterPool {
 
     // Use nodemailer's built-in XOAUTH2 support
     return nodemailer.createTransport({
-      host: emailServer.host.toString(),
+      host: emailServer.host!.toString(),
       port: portNumber,
       secure: secureConnection,
       requireTLS,
@@ -206,7 +222,7 @@ class TransporterPool {
     // For SMTPAuthenticationType.None, auth remains undefined
 
     return nodemailer.createTransport({
-      host: emailServer.host.toString(),
+      host: emailServer.host!.toString(),
       port: portNumber,
       secure: secureConnection,
       requireTLS,
@@ -258,10 +274,13 @@ class TransporterPool {
 
 export default class MailService {
   public static isSMTPConfigValid(obj: JSONObject): boolean {
-    if (!obj["SMTP_USERNAME"]) {
-      logger.error("SMTP_USERNAME env var not found");
-      return false;
-    }
+    /*
+     * SMTP_TRANSPORT_TYPE is optional. Absent → 'SMTP' (back-compat: existing
+     * callers that don't send this key get identical behavior to before).
+     */
+    const transportType: MailTransportType =
+      (obj["SMTP_TRANSPORT_TYPE"] as MailTransportType) ||
+      MailTransportType.SMTP;
 
     if (!obj["SMTP_EMAIL"]) {
       logger.error("SMTP_EMAIL env var not found");
@@ -280,29 +299,46 @@ export default class MailService {
       return false;
     }
 
-    if (!obj["SMTP_PORT"]) {
-      logger.error("SMTP_PORT env var not found");
-      return false;
+    /*
+     * Host/port/username are SMTP-only. Microsoft Graph posts to graph.microsoft.com
+     * directly and uses OAuth credentials, not SMTP AUTH.
+     */
+    if (transportType === MailTransportType.SMTP) {
+      if (!obj["SMTP_USERNAME"]) {
+        logger.error("SMTP_USERNAME env var not found");
+        return false;
+      }
+
+      if (!obj["SMTP_PORT"]) {
+        logger.error("SMTP_PORT env var not found");
+        return false;
+      }
+
+      if (!Port.isValid(obj["SMTP_PORT"].toString())) {
+        logger.error("SMTP_PORT " + obj["SMTP_HOST"] + " env var not valid");
+        return false;
+      }
+
+      if (!obj["SMTP_HOST"]) {
+        logger.error("SMTP_HOST env var not found");
+        return false;
+      }
+
+      if (!Hostname.isValid(obj["SMTP_HOST"].toString())) {
+        logger.error("SMTP_HOST env var " + obj["SMTP_HOST"] + "  not valid");
+        return false;
+      }
     }
 
-    if (!Port.isValid(obj["SMTP_PORT"].toString())) {
-      logger.error("SMTP_PORT " + obj["SMTP_HOST"] + " env var not valid");
-      return false;
-    }
-
-    if (!obj["SMTP_HOST"]) {
-      logger.error("SMTP_HOST env var not found");
-      return false;
-    }
-
-    if (!Hostname.isValid(obj["SMTP_HOST"].toString())) {
-      logger.error("SMTP_HOST env var " + obj["SMTP_HOST"] + "  not valid");
-      return false;
-    }
-
+    /*
+     * Microsoft Graph always uses OAuth (Client Credentials). For SMTP, the
+     * auth type is configurable.
+     */
     const authType: SMTPAuthenticationType =
-      (obj["SMTP_AUTH_TYPE"] as SMTPAuthenticationType) ||
-      SMTPAuthenticationType.UsernamePassword;
+      transportType === MailTransportType.MicrosoftGraph
+        ? SMTPAuthenticationType.OAuth
+        : (obj["SMTP_AUTH_TYPE"] as SMTPAuthenticationType) ||
+          SMTPAuthenticationType.UsernamePassword;
 
     if (authType === SMTPAuthenticationType.UsernamePassword) {
       if (!obj["SMTP_PASSWORD"]) {
@@ -339,19 +375,30 @@ export default class MailService {
       throw new BadDataException("SMTP Config is not valid");
     }
 
+    const transportType: MailTransportType =
+      (obj["SMTP_TRANSPORT_TYPE"] as MailTransportType) ||
+      MailTransportType.SMTP;
+
     const authType: SMTPAuthenticationType =
-      (obj["SMTP_AUTH_TYPE"] as SMTPAuthenticationType) ||
-      SMTPAuthenticationType.UsernamePassword;
+      transportType === MailTransportType.MicrosoftGraph
+        ? SMTPAuthenticationType.OAuth
+        : (obj["SMTP_AUTH_TYPE"] as SMTPAuthenticationType) ||
+          SMTPAuthenticationType.UsernamePassword;
 
     return {
       id:
         obj && obj["SMTP_ID"]
           ? new ObjectID(obj["SMTP_ID"].toString())
           : undefined,
+      transportType: transportType,
       username: obj["SMTP_USERNAME"]?.toString() || undefined,
       password: obj["SMTP_PASSWORD"]?.toString() || undefined,
-      host: new Hostname(obj["SMTP_HOST"]?.toString() as string),
-      port: new Port(obj["SMTP_PORT"]?.toString() as string),
+      host: obj["SMTP_HOST"]
+        ? new Hostname(obj["SMTP_HOST"].toString())
+        : undefined,
+      port: obj["SMTP_PORT"]
+        ? new Port(obj["SMTP_PORT"].toString())
+        : undefined,
       fromEmail: new Email(obj["SMTP_EMAIL"]?.toString() as string),
       fromName: obj["SMTP_FROM_NAME"]?.toString() as string,
       secure:
@@ -461,6 +508,18 @@ export default class MailService {
       timeout?: number | undefined;
     },
   ): Promise<void> {
+    /*
+     * Dispatch on transport type. HTTP-API transports (Microsoft Graph today,
+     * Gmail/SES tomorrow) bypass nodemailer and the SMTP connection pool — they
+     * are stateless HTTP and have their own auth/retry concerns.
+     */
+    if (
+      options.emailServer.transportType === MailTransportType.MicrosoftGraph
+    ) {
+      await this.transportViaMicrosoftGraph(mail, options.emailServer);
+      return;
+    }
+
     const mailer: Transporter = await this.createMailer(options.emailServer, {
       timeout: options.timeout,
     });
@@ -512,6 +571,43 @@ export default class MailService {
       // Always release the connection slot
       TransporterPool.releaseConnection(options.emailServer);
     }
+  }
+
+  private static async transportViaMicrosoftGraph(
+    mail: EmailMessage,
+    emailServer: EmailServer,
+  ): Promise<void> {
+    const provider: MicrosoftGraphMailProvider =
+      new MicrosoftGraphMailProvider();
+
+    let lastError: unknown;
+    const maxRetries: number = 3;
+
+    for (let attempt: number = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await provider.send(mail, emailServer);
+        return;
+      } catch (error) {
+        lastError = error;
+        logger.error(`Microsoft Graph send attempt ${attempt} failed:`);
+        logger.error(error);
+
+        if (attempt === maxRetries) {
+          break;
+        }
+
+        // Exponential backoff with jitter, same shape as SMTP path.
+        const baseWaitTime: number = Math.pow(2, attempt - 1) * 1000;
+        const jitter: number = Math.random() * 1000;
+        const waitTime: number = baseWaitTime + jitter;
+
+        await new Promise<void>((resolve: (value: void) => void) => {
+          setTimeout(resolve, waitTime);
+        });
+      }
+    }
+
+    throw lastError;
   }
 
   public static async send(

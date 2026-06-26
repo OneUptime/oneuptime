@@ -1,6 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import CurrentStatusElement from "../../Components/MonitorGroup/CurrentStatus";
-import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DashboardSideMenu from "../Monitor/SideMenu";
@@ -11,18 +10,45 @@ import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
+import MonitorGroupOwnerTeam from "Common/Models/DatabaseModels/MonitorGroupOwnerTeam";
+import MonitorGroupOwnerUser from "Common/Models/DatabaseModels/MonitorGroupOwnerUser";
 import React, { FunctionComponent, ReactElement } from "react";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
 const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<MonitorGroup>({ modelType: MonitorGroup });
+
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<MonitorGroup>({
+      ownerUserModelType: MonitorGroupOwnerUser,
+      ownerTeamModelType: MonitorGroupOwnerTeam,
+      resourceIdField: "monitorGroupId",
+    });
+
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<MonitorGroup>({
+    persistKey: "monitor-groups-table",
+    ownerUserModelType: MonitorGroupOwnerUser,
+    ownerTeamModelType: MonitorGroupOwnerTeam,
+    resourceIdField: "monitorGroupId",
+    showLabelsFacet: true,
+  });
 
   return (
     <Page
@@ -51,16 +77,27 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
     >
       <ModelTable<MonitorGroup>
         modelType={MonitorGroup}
+        enableJsonImportExport={true}
         name="Monitor Groups"
         id="monitors-group-table"
         userPreferencesKey="monitor-groups-table"
+        topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<MonitorGroup>) => {
+          onResourcesFetched(data);
+        }}
+        saveFilterProps={{
+          tableId: "monitor-groups-table",
+        }}
         isDeleteable={false}
         showViewIdButton={true}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
         bulkActions={{
-          buttons: [...labelBulkActions],
+          buttons: [...labelBulkActions, ...ownerBulkActions],
         }}
         cardProps={{
           title: "Monitor Groups",
@@ -94,6 +131,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
         ]}
         viewPageRoute={Navigation.getCurrentRoute()}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         filters={[
           {
             field: {
@@ -101,25 +139,6 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
             },
             title: "Group Name",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
           },
         ]}
         columns={[
@@ -163,9 +182,26 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
               return <LabelsElement labels={item["labels"] || []} />;
             },
           },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: MonitorGroup): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
+          },
         ]}
       />
       {labelBulkActionModals}
+      {ownerBulkActionModals}
     </Page>
   );
 };

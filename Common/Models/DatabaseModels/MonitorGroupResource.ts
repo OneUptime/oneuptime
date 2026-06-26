@@ -5,6 +5,7 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -28,7 +29,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.MonitorManager,
+    Permission.MonitorAdmin,
+    Permission.MonitorMember,
     Permission.CreateMonitorGroupResource,
   ],
   read: [
@@ -36,22 +38,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.MonitorManager,
+    Permission.MonitorAdmin,
+    Permission.MonitorMember,
+    Permission.MonitorViewer,
     Permission.ReadMonitorGroupResource,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.MonitorManager,
+    Permission.MonitorAdmin,
+    Permission.MonitorMember,
     Permission.DeleteMonitorGroupResource,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.MonitorManager,
+    Permission.MonitorAdmin,
+    Permission.MonitorMember,
     Permission.EditMonitorGroupResource,
   ],
 })
@@ -69,6 +74,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.AltGlobe,
   tableDescription: "Add monitors to your monitor group",
 })
+@OwnedThrough("monitorId", Monitor)
 @Entity({
   name: "MonitorGroupResource",
 })
@@ -78,7 +84,8 @@ export default class MonitorGroupResource extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateMonitorGroupResource,
     ],
     read: [
@@ -86,9 +93,10 @@ export default class MonitorGroupResource extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorGroupResource,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -119,7 +127,8 @@ export default class MonitorGroupResource extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateMonitorGroupResource,
     ],
     read: [
@@ -127,9 +136,10 @@ export default class MonitorGroupResource extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorGroupResource,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -154,7 +164,8 @@ export default class MonitorGroupResource extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateMonitorGroupResource,
     ],
     read: [
@@ -162,9 +173,10 @@ export default class MonitorGroupResource extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorGroupResource,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -196,7 +208,8 @@ export default class MonitorGroupResource extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateMonitorGroupResource,
     ],
     read: [
@@ -204,9 +217,10 @@ export default class MonitorGroupResource extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorGroupResource,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -230,7 +244,8 @@ export default class MonitorGroupResource extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateMonitorGroupResource,
     ],
     read: [
@@ -238,15 +253,17 @@ export default class MonitorGroupResource extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorGroupResource,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.EditMonitorGroupResource,
     ],
   })
@@ -277,7 +294,8 @@ export default class MonitorGroupResource extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateMonitorGroupResource,
     ],
     read: [
@@ -285,15 +303,17 @@ export default class MonitorGroupResource extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorGroupResource,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.EditMonitorGroupResource,
     ],
   })
@@ -317,7 +337,8 @@ export default class MonitorGroupResource extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateMonitorGroupResource,
     ],
     read: [
@@ -325,9 +346,10 @@ export default class MonitorGroupResource extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorGroupResource,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -359,7 +381,8 @@ export default class MonitorGroupResource extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateMonitorGroupResource,
     ],
     read: [
@@ -367,9 +390,10 @@ export default class MonitorGroupResource extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorGroupResource,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

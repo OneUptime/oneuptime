@@ -6,9 +6,13 @@ import AnalyticsTableColumn, {
   SkipIndexType,
 } from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import OperationalResource from "../../Types/Database/AccessControl/OperationalResource";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import Service from "../DatabaseModels/Service";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 
 export enum AggregationTemporality {
   Delta = "Delta",
@@ -23,13 +27,8 @@ export enum MetricPointType {
   Summary = "Summary",
 }
 
-export enum ServiceType {
-  OpenTelemetry = "OpenTelemetry",
-  Monitor = "Monitor",
-  Alert = "Alert",
-  Incident = "Incident",
-}
-
+@OperationalResource()
+@OwnedThrough("primaryEntityId", Service, { includeProjectScope: true })
 export default class Metric extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
@@ -44,12 +43,18 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
@@ -57,62 +62,78 @@ export default class Metric extends AnalyticsBaseModel {
     });
 
     // this can also be the monitor id or the telemetry service id.
-    const serviceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceId",
-      title: "Service ID",
-      description: "ID of the Service which created the Metric",
-      required: true,
-      type: TableColumnType.ObjectID,
-      accessControl: {
-        read: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.ReadTelemetryServiceLog,
-        ],
-        create: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.CreateTelemetryServiceLog,
-        ],
-        update: [],
-      },
-    });
+    const primaryEntityIdColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "primaryEntityId",
+        title: "Service ID",
+        description: "ID of the Service which created the Metric",
+        required: true,
+        type: TableColumnType.ObjectID,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      });
 
     // this can also be the monitor id or the telemetry service id.
-    const serviceTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceType",
-      title: "Service Type",
-      description: "Type of the service that this telemetry belongs to",
-      required: false,
-      type: TableColumnType.Text,
-      skipIndex: {
-        name: "idx_service_type",
-        type: SkipIndexType.Set,
-        params: [5],
-        granularity: 4,
-      },
-      accessControl: {
-        read: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.ReadTelemetryServiceLog,
-        ],
-        create: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.CreateTelemetryServiceLog,
-        ],
-        update: [],
-      },
-    });
+    const primaryEntityTypeColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "primaryEntityType",
+        isLowCardinality: true,
+        title: "Service Type",
+        description: "Type of the service that this telemetry belongs to",
+        required: false,
+        type: TableColumnType.Text,
+        skipIndex: {
+          name: "idx_service_type",
+          type: SkipIndexType.Set,
+          params: [5],
+          granularity: 4,
+        },
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      });
 
     // add name and description
     const nameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "name",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Name",
       description: "Name of the Metric",
       required: true,
@@ -128,12 +149,18 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
@@ -143,6 +170,8 @@ export default class Metric extends AnalyticsBaseModel {
     const aggregationTemporalityColumn: AnalyticsTableColumn =
       new AnalyticsTableColumn({
         key: "aggregationTemporality",
+        // Enum-shaped (Delta / Cumulative / Unspecified) — dictionary-encode.
+        isLowCardinality: true,
         title: "Aggregation Temporality",
         description: "Aggregation Temporality of this Metric",
         required: false,
@@ -152,12 +181,18 @@ export default class Metric extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
             Permission.ReadTelemetryServiceLog,
           ],
           create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
             Permission.CreateTelemetryServiceLog,
           ],
           update: [],
@@ -167,6 +202,7 @@ export default class Metric extends AnalyticsBaseModel {
     const metricPointTypeColumn: AnalyticsTableColumn =
       new AnalyticsTableColumn({
         key: "metricPointType",
+        isLowCardinality: true,
         title: "Metric Point Type",
         description: "Metric Point Type of this Metric",
         required: false,
@@ -182,12 +218,18 @@ export default class Metric extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
             Permission.ReadTelemetryServiceLog,
           ],
           create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
             Permission.CreateTelemetryServiceLog,
           ],
           update: [],
@@ -197,6 +239,7 @@ export default class Metric extends AnalyticsBaseModel {
     // this is end time.
     const timeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "time",
+      codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Time",
       description: "When did the Metric happen?",
       required: true,
@@ -206,12 +249,18 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
@@ -220,6 +269,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const startTimeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "startTime",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Start Time",
       description: "When did the Metric happen?",
       required: false,
@@ -229,12 +279,18 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
@@ -244,21 +300,28 @@ export default class Metric extends AnalyticsBaseModel {
     // end time.
     const timeUnixNanoColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "timeUnixNano",
+      codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Time (in Unix Nano)",
       description: "When did the Metric happen?",
       required: true,
-      type: TableColumnType.LongNumber,
+      type: TableColumnType.UInt64,
       accessControl: {
         read: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
@@ -268,21 +331,28 @@ export default class Metric extends AnalyticsBaseModel {
     const startTimeUnixNanoColumn: AnalyticsTableColumn =
       new AnalyticsTableColumn({
         key: "startTimeUnixNano",
+        codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
         title: "Start Time (in Unix Nano)",
         description: "When did the Metric happen?",
         required: false,
-        type: TableColumnType.LongNumber,
+        type: TableColumnType.UInt64,
         accessControl: {
           read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
             Permission.ReadTelemetryServiceLog,
           ],
           create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
             Permission.CreateTelemetryServiceLog,
           ],
           update: [],
@@ -291,6 +361,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const attributesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "attributes",
+      codec: { codec: "ZSTD", level: 3 },
       title: "Attributes",
       description: "Attributes",
       required: true,
@@ -301,20 +372,124 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
       },
     });
 
+    const entityKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "entityKeys",
+      codec: { codec: "ZSTD", level: 3 },
+      title: "Entity Keys",
+      description:
+        "Stable keys of every OpenTelemetry entity (service, host, k8s.pod, container, ...) this signal belongs to. A superset that includes the primary entity. Enables cross-cutting membership queries via has(entityKeys, :key).",
+      required: true,
+      defaultValue: [],
+      type: TableColumnType.ArrayText,
+      skipIndex: {
+        name: "idx_entity_keys",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    /*
+     * Scalar per-entity-type key columns — denormalized single-value
+     * siblings of `entityKeys`. Each holds the 16-hex key (see
+     * Common/Utils/Telemetry/EntityKey) of the row's entity of that type,
+     * or '' when the resource carries no such entity (non-Nullable String,
+     * so old rows read the type default ''). Unlike the array column, a
+     * scalar equality predicate is usable as an MV/sort key (the per-host
+     * minute rollup `MetricItemAggMV1mByHostV2` groups by `hostEntityKey`)
+     * and gets a cheaper bloom-filter probe; only the high-traffic keys
+     * (service/host/k8s.pod) carry skip indexes. Stamped at ingest by the
+     * same extractor that fills `entityKeys`; never part of identity.
+     */
+    const scalarEntityKeyColumns: Array<AnalyticsTableColumn> = [
+      {
+        key: "serviceEntityKey",
+        title: "Service Entity Key",
+        indexName: "idx_service_entity_key",
+      },
+      {
+        key: "hostEntityKey",
+        title: "Host Entity Key",
+        indexName: "idx_host_entity_key",
+      },
+      {
+        key: "k8sPodEntityKey",
+        title: "Kubernetes Pod Entity Key",
+        indexName: "idx_k8s_pod_entity_key",
+      },
+      { key: "k8sNodeEntityKey", title: "Kubernetes Node Entity Key" },
+      { key: "k8sClusterEntityKey", title: "Kubernetes Cluster Entity Key" },
+      { key: "containerEntityKey", title: "Container Entity Key" },
+    ].map(
+      (def: {
+        key: string;
+        title: string;
+        indexName?: string | undefined;
+      }): AnalyticsTableColumn => {
+        return new AnalyticsTableColumn({
+          key: def.key,
+          title: def.title,
+          description:
+            "Scalar entity key for this entity type (see entityKeys); '' when the resource has no entity of this type.",
+          required: true,
+          defaultValue: "",
+          type: TableColumnType.Text,
+          codec: { codec: "ZSTD", level: 1 },
+          skipIndex: def.indexName
+            ? {
+                name: def.indexName,
+                type: SkipIndexType.BloomFilter,
+                params: [0.01],
+                granularity: 1,
+              }
+            : undefined,
+          accessControl: entityKeysColumn.accessControl,
+        });
+      },
+    );
+
     const attributeKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "attributeKeys",
+      codec: { codec: "ZSTD", level: 3 },
       title: "Attribute Keys",
       description: "Attribute keys extracted from attributes",
       required: true,
@@ -331,12 +506,18 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
@@ -354,12 +535,18 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
@@ -368,6 +555,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const countColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "count",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Count",
       description: "Count",
       required: false,
@@ -377,12 +565,18 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
@@ -391,6 +585,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const sumColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "sum",
+      codec: [{ codec: "Gorilla" }, { codec: "ZSTD", level: 1 }],
       title: "Sum",
       description: "Sum",
       required: false,
@@ -400,12 +595,18 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
@@ -414,6 +615,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const valueColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "value",
+      codec: [{ codec: "Gorilla" }, { codec: "ZSTD", level: 1 }],
       title: "Value",
       description: "Value",
       required: false,
@@ -423,12 +625,18 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
@@ -437,6 +645,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const minColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "min",
+      codec: [{ codec: "Gorilla" }, { codec: "ZSTD", level: 1 }],
       title: "Min",
       description: "Min",
       required: false,
@@ -446,12 +655,18 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
@@ -460,6 +675,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const maxColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "max",
+      codec: [{ codec: "Gorilla" }, { codec: "ZSTD", level: 1 }],
       title: "Max",
       description: "Max",
       required: false,
@@ -469,12 +685,18 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
@@ -483,6 +705,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const bucketCountsColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "bucketCounts",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Bucket Counts",
       description: "Bucket Counts",
       required: true,
@@ -493,12 +716,18 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
@@ -508,6 +737,7 @@ export default class Metric extends AnalyticsBaseModel {
     const explicitBoundsColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
       {
         key: "explicitBounds",
+        codec: { codec: "ZSTD", level: 1 },
         title: "Explicit Bounds",
         description:
           "Upper bounds (exclusive of the +inf overflow bucket) for each explicit-bucket histogram bucket. Stored as Float64 so sub-integer boundaries (e.g. 0.005, 0.01) survive ingest — the previous Array(Int64) representation silently truncated those to 0.",
@@ -519,12 +749,18 @@ export default class Metric extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
             Permission.ReadTelemetryServiceLog,
           ],
           create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
             Permission.CreateTelemetryServiceLog,
           ],
           update: [],
@@ -540,6 +776,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const scaleColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "scale",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Scale",
       description:
         "ExponentialHistogram resolution. base = 2^(2^-scale); bucket index `i` covers (base^i, base^(i+1)].",
@@ -550,12 +787,18 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
@@ -564,6 +807,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const zeroCountColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "zeroCount",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Zero Count",
       description:
         "ExponentialHistogram count of values within the zero region (|v| <= zeroThreshold).",
@@ -574,12 +818,18 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
@@ -589,6 +839,7 @@ export default class Metric extends AnalyticsBaseModel {
     const positiveOffsetColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
       {
         key: "positiveOffset",
+        codec: { codec: "ZSTD", level: 1 },
         title: "Positive Bucket Offset",
         description:
           "Bucket index of the first entry in positiveBucketCounts (ExponentialHistogram).",
@@ -599,12 +850,18 @@ export default class Metric extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
             Permission.ReadTelemetryServiceLog,
           ],
           create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
             Permission.CreateTelemetryServiceLog,
           ],
           update: [],
@@ -615,6 +872,7 @@ export default class Metric extends AnalyticsBaseModel {
     const positiveBucketCountsColumn: AnalyticsTableColumn =
       new AnalyticsTableColumn({
         key: "positiveBucketCounts",
+        codec: { codec: "ZSTD", level: 1 },
         title: "Positive Bucket Counts",
         description:
           "Counts for the positive range of an ExponentialHistogram, indexed from positiveOffset.",
@@ -626,12 +884,18 @@ export default class Metric extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
             Permission.ReadTelemetryServiceLog,
           ],
           create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
             Permission.CreateTelemetryServiceLog,
           ],
           update: [],
@@ -641,6 +905,7 @@ export default class Metric extends AnalyticsBaseModel {
     const negativeOffsetColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
       {
         key: "negativeOffset",
+        codec: { codec: "ZSTD", level: 1 },
         title: "Negative Bucket Offset",
         description:
           "Bucket index of the first entry in negativeBucketCounts (ExponentialHistogram).",
@@ -651,12 +916,18 @@ export default class Metric extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
             Permission.ReadTelemetryServiceLog,
           ],
           create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
             Permission.CreateTelemetryServiceLog,
           ],
           update: [],
@@ -667,6 +938,7 @@ export default class Metric extends AnalyticsBaseModel {
     const negativeBucketCountsColumn: AnalyticsTableColumn =
       new AnalyticsTableColumn({
         key: "negativeBucketCounts",
+        codec: { codec: "ZSTD", level: 1 },
         title: "Negative Bucket Counts",
         description:
           "Counts for the negative range of an ExponentialHistogram, indexed from negativeOffset.",
@@ -678,12 +950,18 @@ export default class Metric extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
             Permission.ReadTelemetryServiceLog,
           ],
           create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
             Permission.CreateTelemetryServiceLog,
           ],
           update: [],
@@ -700,6 +978,7 @@ export default class Metric extends AnalyticsBaseModel {
     const summaryQuantilesColumn: AnalyticsTableColumn =
       new AnalyticsTableColumn({
         key: "summaryQuantiles",
+        codec: { codec: "ZSTD", level: 1 },
         title: "Summary Quantiles",
         description:
           "Quantile percentages in [0,1] for a Summary metric (parallel to summaryValues).",
@@ -711,12 +990,18 @@ export default class Metric extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
             Permission.ReadTelemetryServiceLog,
           ],
           create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
             Permission.CreateTelemetryServiceLog,
           ],
           update: [],
@@ -725,6 +1010,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const summaryValuesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "summaryValues",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Summary Values",
       description:
         "Values corresponding to each quantile in summaryQuantiles for a Summary metric.",
@@ -736,12 +1022,18 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
@@ -750,6 +1042,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const traceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "traceId",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Trace ID",
       description:
         "Trace ID from an exemplar associated with this metric data point",
@@ -766,12 +1059,18 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
@@ -780,6 +1079,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const spanIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "spanId",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Span ID",
       description:
         "Span ID from an exemplar associated with this metric data point",
@@ -796,12 +1096,18 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceLog,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceLog,
         ],
         update: [],
@@ -810,6 +1116,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
+      codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Retention Date",
       description:
         "Date after which this row is eligible for TTL deletion, computed at ingest time as time + service.retainTelemetryDataForDays",
@@ -824,36 +1131,49 @@ export default class Metric extends AnalyticsBaseModel {
       singularName: "Metric",
       pluralName: "Metrics",
       crudApiPath: new Route("/metrics"),
+      enableDocumentation: true,
+      tableDescription:
+        "OpenTelemetry metric data points. Query and aggregate time-series telemetry for dashboards, alerts, and analysis.",
       accessControl: {
         read: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.EditTelemetryServiceTraces,
         ],
         delete: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.DeleteTelemetryServiceTraces,
         ],
       },
       tableColumns: [
         projectIdColumn,
-        serviceIdColumn,
-        serviceTypeColumn,
+        primaryEntityIdColumn,
+        primaryEntityTypeColumn,
         nameColumn,
         aggregationTemporalityColumn,
         metricPointTypeColumn,
@@ -863,6 +1183,8 @@ export default class Metric extends AnalyticsBaseModel {
         startTimeUnixNanoColumn,
         attributesColumn,
         attributeKeysColumn,
+        entityKeysColumn,
+        ...scalarEntityKeyColumns,
         isMonotonicColumn,
         countColumn,
         sumColumn,
@@ -884,10 +1206,29 @@ export default class Metric extends AnalyticsBaseModel {
         retentionDateColumn,
       ],
       projections: [],
-      sortKeys: ["projectId", "name", "serviceId", "time"],
-      primaryKeys: ["projectId", "name", "serviceId", "time"],
-      partitionKey: "sipHash64(projectId) % 16",
+      sortKeys: ["projectId", "name", "primaryEntityId", "time"],
+      primaryKeys: ["projectId", "name", "primaryEntityId", "time"],
+      partitionKey: "toYYYYMMDD(time)",
+      /*
+       * Shard by the metric series (projectId, name, primaryEntityId): spreads a
+       * big project's many series across shards, and co-locates each series on
+       * one shard so the minute/hour rollup MVs aggregate per-shard cleanly
+       * (the MV GROUP BY starts with these columns).
+       */
+      shardingKey: "cityHash64(projectId, name, primaryEntityId)",
+      tableSettings:
+        "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",
+      /*
+       * `time` is the 4th column of the Metric sort key (after
+       * projectId + name + primaryEntityId). A list query that filters
+       * by name (the typical "metric detail" drilldown) can still
+       * stream from the index when sorting by `time DESC`. With
+       * no name filter the sort is less efficient but still far
+       * better than the legacy `createdAt DESC` fallback, which
+       * isn't in the sort key at all.
+       */
+      defaultSortColumn: "time",
     });
   }
 
@@ -899,12 +1240,12 @@ export default class Metric extends AnalyticsBaseModel {
     this.setColumnValue("projectId", v);
   }
 
-  public get serviceId(): ObjectID | undefined {
-    return this.getColumnValue("serviceId") as ObjectID | undefined;
+  public get primaryEntityId(): ObjectID | undefined {
+    return this.getColumnValue("primaryEntityId") as ObjectID | undefined;
   }
 
-  public get serviceType(): ServiceType | undefined {
-    return this.getColumnValue("serviceType") as ServiceType | undefined;
+  public get primaryEntityType(): ServiceType | undefined {
+    return this.getColumnValue("primaryEntityType") as ServiceType | undefined;
   }
 
   public get name(): string | undefined {
@@ -943,12 +1284,12 @@ export default class Metric extends AnalyticsBaseModel {
     this.setColumnValue("isMonotonic", v);
   }
 
-  public set serviceId(v: ObjectID | undefined) {
-    this.setColumnValue("serviceId", v);
+  public set primaryEntityId(v: ObjectID | undefined) {
+    this.setColumnValue("primaryEntityId", v);
   }
 
-  public set serviceType(v: ServiceType | undefined) {
-    this.setColumnValue("serviceType", v);
+  public set primaryEntityType(v: ServiceType | undefined) {
+    this.setColumnValue("primaryEntityType", v);
   }
 
   public get time(): Date | undefined {
@@ -973,6 +1314,14 @@ export default class Metric extends AnalyticsBaseModel {
 
   public set attributeKeys(v: Array<string> | undefined) {
     this.setColumnValue("attributeKeys", v);
+  }
+
+  public get entityKeys(): Array<string> | undefined {
+    return this.getColumnValue("entityKeys") as Array<string> | undefined;
+  }
+
+  public set entityKeys(v: Array<string> | undefined) {
+    this.setColumnValue("entityKeys", v);
   }
 
   public get startTime(): Date | undefined {

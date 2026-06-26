@@ -9,6 +9,7 @@ import {
   EntityFilterModelType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+import { getViewModeArgument } from "./DashboardListSharedArgs";
 
 const DisplaySection: ComponentArgumentSection = {
   name: "Display Options",
@@ -65,6 +66,10 @@ export default class DashboardDockerImageListComponentUtil extends DashboardBase
       placeholder: "25",
       section: DisplaySection,
     });
+
+    args.push(
+      getViewModeArgument<DashboardDockerImageListComponent>(DisplaySection),
+    );
 
     args.push({
       name: "Hosts",

@@ -84,6 +84,14 @@ export enum CheckOn {
   DomainStatusCode = "Domain Status Code",
   DomainIsExpired = "Domain Is Expired",
 
+  // DNSSEC monitors.
+  DnssecChainValid = "DNSSEC Chain Is Valid",
+  DnssecDnskeyExists = "DNSSEC DNSKEY Record Exists",
+  DnssecDsExists = "DNSSEC DS Record Exists At Parent",
+  DnssecSignatureExpiresInDays = "DNSSEC Signature Expires In Days",
+  DnssecResolverConsensus = "DNSSEC Resolver Consensus (AD Flag)",
+  DnssecNameserverConsistent = "DNSSEC Nameservers Are Consistent",
+
   // External Status Page monitors.
   ExternalStatusPageIsOnline = "External Status Page Is Online",
   ExternalStatusPageOverallStatus = "External Status Page Overall Status",
@@ -129,6 +137,32 @@ export enum NoDataPolicy {
   Trigger = "Trigger",
 }
 
+export enum AnomalyDetectionSensitivity {
+  Low = "Low",
+  Medium = "Medium",
+  High = "High",
+}
+
+export enum AnomalyDetectionMethod {
+  /** Rolling mean ± N × population standard deviation. Default. */
+  MeanStddev = "Mean & Std Dev",
+  /**
+   * Rolling median ± N × MAD (Median Absolute Deviation × 1.4826).
+   * Robust to skew (latency tails). Phase E — schema is already ready
+   * but the evaluator wires it up later.
+   */
+  MedianMad = "Median & MAD",
+}
+
+export interface MetricAnomalyDetectionOptions {
+  sensitivity?: AnomalyDetectionSensitivity | undefined;
+  method?: AnomalyDetectionMethod | undefined;
+  /** Days of history to compute the baseline over. Defaults to 14. */
+  windowDays?: number | undefined;
+  /** Minimum samples per (hour-of-week) cell to trust the baseline. */
+  minSamples?: number | undefined;
+}
+
 export interface MetricMonitorOptions {
   metricAlias?: string | undefined;
   metricAggregationType?: EvaluateOverTimeType | undefined;
@@ -145,6 +179,11 @@ export interface MetricMonitorOptions {
    * be in the metric's native unit (backward compatible).
    */
   thresholdUnit?: string | undefined;
+  /*
+   * Configuration for anomaly-based filter types (AnomalouslyHigh /
+   * AnomalouslyLow / Anomalous). Ignored for static-threshold filters.
+   */
+  anomalyDetection?: MetricAnomalyDetectionOptions | undefined;
 }
 
 export enum EvaluateOverTimeMinutes {
@@ -202,20 +241,57 @@ export enum FilterType {
   EvaluatesToTrue = "Evaluates To True",
   IsExecuting = "Is Executing",
   IsNotExecuting = "Is Not Executing",
+  /*
+   * Anomaly-detection filter types. The "value" field is unused —
+   * sensitivity and method live in metricMonitorOptions.anomalyDetection.
+   * The evaluator compares the aggregated metric to the same-hour-of-
+   * week baseline computed by the MetricBaselineHourly MV.
+   */
+  AnomalouslyHigh = "Anomalously High",
+  AnomalouslyLow = "Anomalously Low",
+  Anomalous = "Anomalous",
 }
 
 export class CriteriaFilterUtil {
+  /**
+   * Whether the filter is anomaly-based. Anomaly filters skip the
+   * static threshold value/unit fields and instead read sensitivity
+   * from metricMonitorOptions.anomalyDetection.
+   */
+  public static isAnomalyFilterType(
+    filterType: FilterType | undefined,
+  ): boolean {
+    return (
+      filterType === FilterType.AnomalouslyHigh ||
+      filterType === FilterType.AnomalouslyLow ||
+      filterType === FilterType.Anomalous
+    );
+  }
+
   public static hasValueField(data: {
     checkOn: CheckOn;
     filterType: FilterType | undefined;
   }): boolean {
     const { checkOn } = data;
 
+    /*
+     * Anomaly filters carry sensitivity in metricMonitorOptions
+     * (not in `value`), so suppress the threshold input.
+     */
+    if (CriteriaFilterUtil.isAnomalyFilterType(data.filterType)) {
+      return false;
+    }
+
     if (
       checkOn === CheckOn.IsOnline ||
       checkOn === CheckOn.SnmpIsOnline ||
       checkOn === CheckOn.DnsIsOnline ||
       checkOn === CheckOn.DomainIsExpired ||
+      checkOn === CheckOn.DnssecChainValid ||
+      checkOn === CheckOn.DnssecDnskeyExists ||
+      checkOn === CheckOn.DnssecDsExists ||
+      checkOn === CheckOn.DnssecResolverConsensus ||
+      checkOn === CheckOn.DnssecNameserverConsistent ||
       checkOn === CheckOn.ExternalStatusPageIsOnline
     ) {
       return false;
@@ -327,6 +403,12 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
     metricAggregationType: Zod.string().optional(),
     onNoDataPolicy: Zod.string().optional(),
     thresholdUnit: Zod.string().optional(),
+    anomalyDetection: Zod.object({
+      sensitivity: Zod.string().optional(),
+      method: Zod.string().optional(),
+      windowDays: Zod.number().optional(),
+      minSamples: Zod.number().optional(),
+    }).optional(),
   }).optional(),
   snmpMonitorOptions: Zod.object({
     oid: Zod.string().optional(),

@@ -128,6 +128,9 @@ const MonitorProbes: FunctionComponent<
         userPreferencesKey="monitor-probes-table"
         id="probes-table"
         name="Monitor > Monitor Probes"
+        saveFilterProps={{
+          tableId: "monitor-view-probes-table",
+        }}
         isDeleteable={false}
         isEditable={true}
         isCreateable={true}

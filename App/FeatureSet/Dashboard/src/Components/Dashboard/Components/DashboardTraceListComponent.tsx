@@ -7,12 +7,20 @@ import React, {
 } from "react";
 import DashboardTraceListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTraceListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
+import DashboardResourceListBase, {
+  ResourceListColumn,
+  ResourceListViewMode,
+} from "./DashboardResourceListBase";
+import {
+  HoneycombLegendItem,
+  HoneycombTile,
+} from "./DashboardResourceHoneycomb";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import DashboardResourceList from "../Utils/DashboardResourceList";
 import API from "Common/UI/Utils/API/API";
-import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -24,6 +32,25 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTraceListComponent;
 }
+
+const COLUMNS: Array<ResourceListColumn> = [
+  { label: "Span Name", widthPct: "35%" },
+  { label: "Duration", widthPct: "20%" },
+  { label: "Status", widthPct: "15%" },
+  { label: "Time", widthPct: "30%" },
+];
+
+const STATUS_COLORS: Record<number, { color: string; label: string }> = {
+  [SpanStatus.Ok]: { color: "#10b981", label: "Ok" },
+  [SpanStatus.Error]: { color: "#ef4444", label: "Error" },
+  [SpanStatus.Unset]: { color: "#9ca3af", label: "Unset" },
+};
+
+const HONEYCOMB_LEGEND: Array<HoneycombLegendItem> = [
+  { label: "Ok", color: STATUS_COLORS[SpanStatus.Ok]!.color },
+  { label: "Error", color: STATUS_COLORS[SpanStatus.Error]!.color },
+  { label: "Unset", color: STATUS_COLORS[SpanStatus.Unset]!.color },
+];
 
 type StatusStyle = {
   label: string;
@@ -83,6 +110,8 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
   const maxRows: number = props.component.arguments.maxRows || 50;
   const statusFilter: string | undefined =
     props.component.arguments.statusFilter;
+  const viewMode: ResourceListViewMode =
+    props.component.arguments.viewMode === "honeycomb" ? "honeycomb" : "list";
 
   const fetchTraces: () => Promise<void> = useCallback(async () => {
     setIsLoading(true);
@@ -125,16 +154,16 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
             traceId: true,
             spanId: true,
             kind: true,
-            serviceId: true,
+            primaryEntityId: true,
           },
           sort: {
             startTime: SortOrder.Descending,
           },
-          requestOptions: {},
+          requestOptions: DashboardResourceList.getRequestOptions("span"),
         });
 
       setSpans(listResult.data);
-      setError("");
+      setError(null);
     } catch (err: unknown) {
       setError(API.getFriendlyErrorMessage(err as Error));
     }
@@ -146,150 +175,95 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
     fetchTraces();
   }, [fetchTraces, props.refreshTick]);
 
-  if (isLoading && spans.length === 0) {
-    return (
-      <div className="h-full flex flex-col animate-pulse">
-        <div className="h-3 w-24 bg-gray-100 rounded mb-3"></div>
-        <div className="flex-1 space-y-2">
-          <div className="flex gap-4">
-            <div className="h-3 w-32 bg-gray-100 rounded"></div>
-            <div className="h-3 w-16 bg-gray-100 rounded"></div>
-            <div className="h-3 w-12 bg-gray-100 rounded ml-auto"></div>
-          </div>
-          {Array.from({ length: 5 }).map((_: unknown, i: number) => {
-            return (
-              <div
-                key={i}
-                className="flex gap-4"
-                style={{ opacity: 1 - i * 0.15 }}
-              >
-                <div className="h-3 w-28 bg-gray-50 rounded"></div>
-                <div className="h-3 w-14 bg-gray-50 rounded"></div>
-                <div className="h-3 w-10 bg-gray-50 rounded ml-auto"></div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
+  const honeycombTiles: Array<HoneycombTile> = spans.map(
+    (span: Span, index: number): HoneycombTile => {
+      const statusCode: number =
+        (span.statusCode as number) || SpanStatus.Unset;
+      const statusInfo: { color: string; label: string } =
+        STATUS_COLORS[statusCode] || STATUS_COLORS[SpanStatus.Unset]!;
+      const durationNano: number = (span.durationUnixNano as number) || 0;
+      const startTime: Date | undefined = span.startTime
+        ? OneUptimeDate.fromString(span.startTime as unknown as string)
+        : undefined;
+      const id: string =
+        (span.spanId as string) || (span.traceId as string) || `${index}`;
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center w-full h-full gap-2">
-        <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center">
-          <div className="h-5 w-5 text-gray-300">
-            <Icon icon={IconProp.Activity} />
-          </div>
-        </div>
-        <p className="text-xs text-gray-400 text-center max-w-48">{error}</p>
-      </div>
-    );
-  }
+      return {
+        id: id,
+        status: statusInfo.label,
+        color: statusInfo.color,
+        tooltip: {
+          title: (span.name as string) || "—",
+          details: [
+            { label: "Duration", value: formatDuration(durationNano) },
+            {
+              label: "Time",
+              value: startTime
+                ? OneUptimeDate.getDateAsLocalFormattedString(startTime, true)
+                : "—",
+            },
+          ],
+        },
+      };
+    },
+  );
+
+  const rows: Array<ReactElement> = spans.map(
+    (span: Span, index: number): ReactElement => {
+      const statusCode: number =
+        (span.statusCode as number) || SpanStatus.Unset;
+      const statusStyle: StatusStyle = getStatusStyle(statusCode);
+      const durationNano: number = (span.durationUnixNano as number) || 0;
+      const startTime: Date | undefined = span.startTime
+        ? OneUptimeDate.fromString(span.startTime as unknown as string)
+        : undefined;
+
+      return (
+        <tr
+          key={index}
+          className="hover:bg-gray-50/50 transition-colors duration-100 group"
+        >
+          <td className="px-3 py-2 text-xs text-gray-700 font-mono truncate">
+            {(span.name as string) || "—"}
+          </td>
+          <td className="px-3 py-2 text-xs text-gray-600 tabular-nums font-medium">
+            {formatDuration(durationNano)}
+          </td>
+          <td className="px-3 py-2">
+            <span
+              className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border ${statusStyle.textClass} ${statusStyle.bgClass}`}
+              style={{ fontSize: "10px" }}
+            >
+              {statusStyle.label}
+            </span>
+          </td>
+          <td className="px-3 py-2 text-xs text-gray-500 tabular-nums">
+            {startTime
+              ? OneUptimeDate.getDateAsLocalFormattedString(startTime, true)
+              : "—"}
+          </td>
+        </tr>
+      );
+    },
+  );
 
   return (
-    <div
-      className="h-full overflow-auto flex flex-col"
-      style={{
-        opacity: isLoading ? 0.5 : 1,
-        transition: "opacity 0.2s ease-in-out",
-      }}
+    <DashboardResourceListBase
+      title={props.component.arguments.title}
+      pluralLabel="traces"
+      columns={COLUMNS}
+      count={spans.length}
+      isLoading={isLoading}
+      error={error}
+      isEmpty={spans.length === 0}
+      emptyMessage="No traces found"
+      emptyIcon={IconProp.Activity}
+      viewMode={viewMode}
+      honeycombTiles={honeycombTiles}
+      honeycombLegend={HONEYCOMB_LEGEND}
     >
-      {props.component.arguments.title && (
-        <div className="flex items-center justify-between mb-2 px-1">
-          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-            {props.component.arguments.title}
-          </span>
-          <span className="text-xs text-gray-300 tabular-nums">
-            {spans.length} traces
-          </span>
-        </div>
-      )}
-      <div className="flex-1 overflow-auto rounded-md border border-gray-100">
-        <table className="w-full text-sm text-left">
-          <thead className="text-xs text-gray-400 uppercase bg-gray-50/80 sticky top-0 border-b border-gray-100">
-            <tr>
-              <th
-                className="px-3 py-2.5 font-medium tracking-wider"
-                style={{ width: "35%" }}
-              >
-                Span Name
-              </th>
-              <th
-                className="px-3 py-2.5 font-medium tracking-wider"
-                style={{ width: "20%" }}
-              >
-                Duration
-              </th>
-              <th
-                className="px-3 py-2.5 font-medium tracking-wider"
-                style={{ width: "15%" }}
-              >
-                Status
-              </th>
-              <th
-                className="px-3 py-2.5 font-medium tracking-wider"
-                style={{ width: "30%" }}
-              >
-                Time
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {spans.map((span: Span, index: number) => {
-              const statusCode: number =
-                (span.statusCode as number) || SpanStatus.Unset;
-              const statusStyle: StatusStyle = getStatusStyle(statusCode);
-              const durationNano: number =
-                (span.durationUnixNano as number) || 0;
-              const startTime: Date | undefined = span.startTime
-                ? OneUptimeDate.fromString(span.startTime as unknown as string)
-                : undefined;
-
-              return (
-                <tr
-                  key={index}
-                  className="hover:bg-gray-50/50 transition-colors duration-100 group"
-                >
-                  <td className="px-3 py-2 text-xs text-gray-700 font-mono truncate">
-                    {(span.name as string) || "—"}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-gray-600 tabular-nums font-medium">
-                    {formatDuration(durationNano)}
-                  </td>
-                  <td className="px-3 py-2">
-                    <span
-                      className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border ${statusStyle.textClass} ${statusStyle.bgClass}`}
-                      style={{ fontSize: "10px" }}
-                    >
-                      {statusStyle.label}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-xs text-gray-500 tabular-nums">
-                    {startTime
-                      ? OneUptimeDate.getDateAsLocalFormattedString(
-                          startTime,
-                          true,
-                        )
-                      : "—"}
-                  </td>
-                </tr>
-              );
-            })}
-            {spans.length === 0 && (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="px-4 py-8 text-center text-gray-400 text-sm"
-                >
-                  No traces found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+      {rows}
+    </DashboardResourceListBase>
   );
 };
 

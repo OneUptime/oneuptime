@@ -7,9 +7,11 @@ import DatabaseService from "./DatabaseService";
 import IncidentService from "./IncidentService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import MailService from "./MailService";
+import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ShortLinkService from "./ShortLinkService";
 import SmsService from "./SmsService";
 import TelegramService from "./TelegramService";
+import WebhookService from "./WebhookService";
 import WhatsAppService from "./WhatsAppService";
 import UserEmailService from "./UserEmailService";
 import UserOnCallLogService from "./UserOnCallLogService";
@@ -28,12 +30,14 @@ import Email from "../../Types/Email";
 import EmailMessage from "../../Types/Email/EmailMessage";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { JSONObject } from "../../Types/JSON";
 import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleType";
 import ObjectID from "../../Types/ObjectID";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import Phone from "../../Types/Phone";
 import SMS from "../../Types/SMS/SMS";
 import TelegramMessage from "../../Types/Telegram/TelegramMessage";
+import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import WhatsAppMessage from "../../Types/WhatsApp/WhatsAppMessage";
 import {
   renderWhatsAppTemplate,
@@ -78,6 +82,7 @@ export interface NotificationMethodDescriptor {
   userWhatsAppId?: ObjectID;
   userTelegramId?: ObjectID;
   userPushId?: ObjectID;
+  userWebhookId?: ObjectID;
 }
 
 export class Service extends DatabaseService<Model> {
@@ -173,6 +178,11 @@ export class Service extends DatabaseService<Model> {
           telegramUserHandle: true,
           isVerified: true,
         },
+        userWebhook: {
+          webhookUrl: true,
+          name: true,
+          secret: true,
+        },
         userEmail: {
           email: true,
           isVerified: true,
@@ -191,6 +201,16 @@ export class Service extends DatabaseService<Model> {
     if (!notificationRuleItem) {
       throw new BadDataException("Notification rule item not found.");
     }
+
+    /*
+     * If the project has a default Twilio config set, use it for all
+     * team-member SMS and Calls in this rule. Otherwise the global config
+     * is used by the notification service.
+     */
+    const projectTwilioConfig: TwilioConfig | undefined =
+      await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+        options.projectId,
+      );
 
     const logTimelineItem: UserOnCallLogTimeline = new UserOnCallLogTimeline();
     logTimelineItem.projectId = options.projectId;
@@ -592,6 +612,7 @@ export class Service extends DatabaseService<Model> {
 
         SmsService.sendSms(smsMessage, {
           projectId: alert.projectId,
+          customTwilioConfig: projectTwilioConfig,
           userOnCallLogTimelineId: updatedLog.id!,
           alertId: alert.id!,
           userId: notificationRuleItem.userId!,
@@ -645,6 +666,7 @@ export class Service extends DatabaseService<Model> {
 
         SmsService.sendSms(smsMessage, {
           projectId: incident.projectId,
+          customTwilioConfig: projectTwilioConfig,
           userOnCallLogTimelineId: updatedLog.id!,
           incidentId: incident.id!,
           userId: notificationRuleItem.userId!,
@@ -695,6 +717,7 @@ export class Service extends DatabaseService<Model> {
 
         SmsService.sendSms(smsMessage, {
           projectId: alertEpisode.projectId,
+          customTwilioConfig: projectTwilioConfig,
           userOnCallLogTimelineId: updatedLog.id!,
           alertEpisodeId: alertEpisode.id!,
           userId: notificationRuleItem.userId!,
@@ -1082,6 +1105,202 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
+    // send webhook.
+    if (notificationRuleItem.userWebhook?.webhookUrl) {
+      const webhookUrl: string = notificationRuleItem.userWebhook.webhookUrl;
+      const webhookSecret: string | undefined =
+        notificationRuleItem.userWebhook.secret;
+      const userWebhookId: ObjectID = notificationRuleItem.userWebhook.id!;
+
+      const dispatchWebhook: (params: {
+        eventType: string;
+        payload: JSONObject;
+        entityId?: ObjectID;
+        entityKind: "alert" | "incident" | "alertEpisode" | "incidentEpisode";
+      }) => Promise<void> = async (params: {
+        eventType: string;
+        payload: JSONObject;
+        entityId?: ObjectID;
+        entityKind: "alert" | "incident" | "alertEpisode" | "incidentEpisode";
+      }): Promise<void> => {
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending webhook to ${webhookUrl}.`;
+        logTimelineItem.userWebhookId = userWebhookId;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const callbacksByKind: {
+          alert?: { alertId?: ObjectID };
+          incident?: { incidentId?: ObjectID };
+        } = {};
+        if (params.entityKind === "alert" && params.entityId) {
+          callbacksByKind.alert = { alertId: params.entityId };
+        } else if (params.entityKind === "incident" && params.entityId) {
+          callbacksByKind.incident = { incidentId: params.entityId };
+        }
+
+        WebhookService.sendWebhook(
+          {
+            url: webhookUrl,
+            eventType: params.eventType,
+            payload: params.payload,
+            secret: webhookSecret,
+          },
+          {
+            projectId: options.projectId,
+            userOnCallLogTimelineId: updatedLog.id!,
+            userId: notificationRuleItem.userId!,
+            onCallPolicyId: options.onCallPolicyId,
+            onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+            teamId: options.userBelongsToTeamId,
+            onCallDutyPolicyExecutionLogTimelineId:
+              options.onCallDutyPolicyExecutionLogTimelineId,
+            onCallScheduleId: options.onCallScheduleId,
+            ...callbacksByKind.alert,
+            ...callbacksByKind.incident,
+          },
+        ).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending webhook.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      };
+
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.AlertCreated &&
+        alert
+      ) {
+        await dispatchWebhook({
+          eventType: "on-call.alert.created",
+          entityKind: "alert",
+          entityId: alert.id!,
+          payload: {
+            eventType: "on-call.alert.created",
+            timestamp: new Date().toISOString(),
+            projectId: alert.projectId?.toString() || "",
+            userId: notificationRuleItem.userId!.toString(),
+            alert: {
+              id: alert.id?.toString() || "",
+              title: alert.title || "",
+              description: alert.description || "",
+              alertNumber: alert.alertNumber || null,
+              alertNumberWithPrefix: alert.alertNumberWithPrefix || null,
+              severity: alert.alertSeverity?.name || null,
+              state: alert.currentAlertState?.name || null,
+            },
+            onCallPolicyId: options.onCallPolicyId?.toString() || null,
+            onCallPolicyEscalationRuleId:
+              options.onCallPolicyEscalationRuleId?.toString() || null,
+          },
+        });
+      }
+
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.IncidentCreated &&
+        incident
+      ) {
+        await dispatchWebhook({
+          eventType: "on-call.incident.created",
+          entityKind: "incident",
+          entityId: incident.id!,
+          payload: {
+            eventType: "on-call.incident.created",
+            timestamp: new Date().toISOString(),
+            projectId: incident.projectId?.toString() || "",
+            userId: notificationRuleItem.userId!.toString(),
+            incident: {
+              id: incident.id?.toString() || "",
+              title: incident.title || "",
+              description: incident.description || "",
+              incidentNumber: incident.incidentNumber || null,
+              incidentNumberWithPrefix:
+                incident.incidentNumberWithPrefix || null,
+              severity: incident.incidentSeverity?.name || null,
+              state: incident.currentIncidentState?.name || null,
+            },
+            onCallPolicyId: options.onCallPolicyId?.toString() || null,
+            onCallPolicyEscalationRuleId:
+              options.onCallPolicyEscalationRuleId?.toString() || null,
+          },
+        });
+      }
+
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.AlertEpisodeCreated &&
+        alertEpisode
+      ) {
+        await dispatchWebhook({
+          eventType: "on-call.alertEpisode.created",
+          entityKind: "alertEpisode",
+          payload: {
+            eventType: "on-call.alertEpisode.created",
+            timestamp: new Date().toISOString(),
+            projectId: alertEpisode.projectId?.toString() || "",
+            userId: notificationRuleItem.userId!.toString(),
+            alertEpisode: {
+              id: alertEpisode.id?.toString() || "",
+              title: alertEpisode.title || "",
+              description: alertEpisode.description || "",
+              episodeNumber: alertEpisode.episodeNumber || null,
+              episodeNumberWithPrefix:
+                alertEpisode.episodeNumberWithPrefix || null,
+              severity: alertEpisode.alertSeverity?.name || null,
+              state: alertEpisode.currentAlertState?.name || null,
+            },
+            onCallPolicyId: options.onCallPolicyId?.toString() || null,
+            onCallPolicyEscalationRuleId:
+              options.onCallPolicyEscalationRuleId?.toString() || null,
+          },
+        });
+      }
+
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.IncidentEpisodeCreated &&
+        incidentEpisode
+      ) {
+        await dispatchWebhook({
+          eventType: "on-call.incidentEpisode.created",
+          entityKind: "incidentEpisode",
+          payload: {
+            eventType: "on-call.incidentEpisode.created",
+            timestamp: new Date().toISOString(),
+            projectId: incidentEpisode.projectId?.toString() || "",
+            userId: notificationRuleItem.userId!.toString(),
+            incidentEpisode: {
+              id: incidentEpisode.id?.toString() || "",
+              title: incidentEpisode.title || "",
+              description: incidentEpisode.description || "",
+              episodeNumber: incidentEpisode.episodeNumber || null,
+              episodeNumberWithPrefix:
+                incidentEpisode.episodeNumberWithPrefix || null,
+              severity: incidentEpisode.incidentSeverity?.name || null,
+              state: incidentEpisode.currentIncidentState?.name || null,
+            },
+            onCallPolicyId: options.onCallPolicyId?.toString() || null,
+            onCallPolicyEscalationRuleId:
+              options.onCallPolicyEscalationRuleId?.toString() || null,
+          },
+        });
+      }
+    }
+
     // send call.
     if (
       notificationRuleItem.userCall?.phone &&
@@ -1117,6 +1336,7 @@ export class Service extends DatabaseService<Model> {
 
         CallService.makeCall(callRequest, {
           projectId: alert.projectId,
+          customTwilioConfig: projectTwilioConfig,
           userOnCallLogTimelineId: updatedLog.id!,
           alertId: alert.id!,
           userId: notificationRuleItem.userId!,
@@ -1169,6 +1389,7 @@ export class Service extends DatabaseService<Model> {
 
         CallService.makeCall(callRequest, {
           projectId: incident.projectId,
+          customTwilioConfig: projectTwilioConfig,
           userOnCallLogTimelineId: updatedLog.id!,
           incidentId: incident.id!,
           userId: notificationRuleItem.userId!,
@@ -1219,6 +1440,7 @@ export class Service extends DatabaseService<Model> {
 
         CallService.makeCall(callRequest, {
           projectId: alertEpisode.projectId,
+          customTwilioConfig: projectTwilioConfig,
           userOnCallLogTimelineId: updatedLog.id!,
           alertEpisodeId: alertEpisode.id!,
           userId: notificationRuleItem.userId!,
@@ -1616,7 +1838,7 @@ export class Service extends DatabaseService<Model> {
       to: to,
       data: [
         {
-          sayMessage: "This is a call from OneUptime",
+          sayMessage: "This is a call from One Uptime",
         },
         {
           sayMessage: "A new alert has been created",
@@ -1672,7 +1894,7 @@ export class Service extends DatabaseService<Model> {
       to: to,
       data: [
         {
-          sayMessage: "This is a call from OneUptime",
+          sayMessage: "This is a call from One Uptime",
         },
         {
           sayMessage: "A new incident has been created",
@@ -1729,7 +1951,7 @@ export class Service extends DatabaseService<Model> {
       to: to,
       data: [
         {
-          sayMessage: "This is a call from OneUptime",
+          sayMessage: "This is a call from One Uptime",
         },
         {
           sayMessage: "A new alert episode has been created",
@@ -2631,12 +2853,14 @@ export class Service extends DatabaseService<Model> {
       !createBy.data.userWhatsAppId &&
       !createBy.data.userTelegram &&
       !createBy.data.userTelegramId &&
+      !createBy.data.userWebhook &&
+      !createBy.data.userWebhookId &&
       !createBy.data.userEmailId &&
       !createBy.data.userPushId &&
       !createBy.data.userPush
     ) {
       throw new BadDataException(
-        "Call, SMS, WhatsApp, Telegram, Email, or Push notification is required",
+        "Call, SMS, WhatsApp, Telegram, Webhook, Email, or Push notification is required",
       );
     }
 
@@ -2701,6 +2925,9 @@ export class Service extends DatabaseService<Model> {
     if (descriptor.userTelegramId) {
       rule.userTelegramId = descriptor.userTelegramId;
     }
+    if (descriptor.userWebhookId) {
+      rule.userWebhookId = descriptor.userWebhookId;
+    }
     if (descriptor.userPushId) {
       rule.userPushId = descriptor.userPushId;
     }
@@ -2724,6 +2951,9 @@ export class Service extends DatabaseService<Model> {
     }
     if (descriptor.userTelegramId) {
       query["userTelegramId"] = descriptor.userTelegramId;
+    }
+    if (descriptor.userWebhookId) {
+      query["userWebhookId"] = descriptor.userWebhookId;
     }
     if (descriptor.userPushId) {
       query["userPushId"] = descriptor.userPushId;

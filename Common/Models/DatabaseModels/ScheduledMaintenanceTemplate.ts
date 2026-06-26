@@ -1,8 +1,13 @@
+import DockerHost from "./DockerHost";
+import PodmanHost from "./PodmanHost";
+import Host from "./Host";
+import KubernetesCluster from "./KubernetesCluster";
 import Label from "./Label";
 import Monitor from "./Monitor";
 import MonitorStatus from "./MonitorStatus";
 import Project from "./Project";
 import ScheduledMaintenanceState from "./ScheduledMaintenanceState";
+import Service from "./Service";
 import StatusPage from "./StatusPage";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -53,7 +58,8 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.ScheduledMaintenanceManager,
+    Permission.ScheduledMaintenanceAdmin,
+    Permission.ScheduledMaintenanceMember,
     Permission.CreateScheduledMaintenanceTemplate,
   ],
   read: [
@@ -61,22 +67,25 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.ScheduledMaintenanceManager,
+    Permission.ScheduledMaintenanceAdmin,
+    Permission.ScheduledMaintenanceMember,
+    Permission.ScheduledMaintenanceViewer,
     Permission.ReadScheduledMaintenanceTemplate,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.ScheduledMaintenanceManager,
+    Permission.ScheduledMaintenanceAdmin,
+    Permission.ScheduledMaintenanceMember,
     Permission.DeleteScheduledMaintenanceTemplate,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.ScheduledMaintenanceManager,
+    Permission.ScheduledMaintenanceAdmin,
+    Permission.ScheduledMaintenanceMember,
     Permission.EditScheduledMaintenanceTemplate,
   ],
 })
@@ -104,7 +113,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -112,9 +122,10 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -144,7 +155,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -152,9 +164,10 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -179,7 +192,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -187,15 +201,17 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceTemplate,
     ],
   })
@@ -219,7 +235,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -227,15 +244,17 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceTemplate,
     ],
   })
@@ -260,7 +279,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -268,15 +288,17 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceTemplate,
     ],
   })
@@ -301,7 +323,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -309,15 +332,17 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceTemplate,
     ],
   })
@@ -344,9 +369,10 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -372,7 +398,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -380,9 +407,10 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -413,7 +441,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -421,9 +450,10 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -493,7 +523,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -501,15 +532,17 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceTemplate,
     ],
   })
@@ -544,7 +577,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -552,15 +586,292 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Host,
+    title: "Hosts",
+    description:
+      "List of hosts to pre-populate on scheduled maintenance events created from this template.",
+  })
+  @ManyToMany(
+    () => {
+      return Host;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceTemplateHost",
+    inverseJoinColumn: {
+      name: "hostId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceTemplateId",
+      referencedColumnName: "_id",
+    },
+  })
+  public hosts?: Array<Host> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: KubernetesCluster,
+    title: "Kubernetes Clusters",
+    description:
+      "List of Kubernetes clusters to pre-populate on scheduled maintenance events created from this template.",
+  })
+  @ManyToMany(
+    () => {
+      return KubernetesCluster;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceTemplateKubernetesCluster",
+    inverseJoinColumn: {
+      name: "kubernetesClusterId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceTemplateId",
+      referencedColumnName: "_id",
+    },
+  })
+  public kubernetesClusters?: Array<KubernetesCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: DockerHost,
+    title: "Docker Hosts",
+    description:
+      "List of Docker hosts to pre-populate on scheduled maintenance events created from this template.",
+  })
+  @ManyToMany(
+    () => {
+      return DockerHost;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceTemplateDockerHost",
+    inverseJoinColumn: {
+      name: "dockerHostId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceTemplateId",
+      referencedColumnName: "_id",
+    },
+  })
+  public dockerHosts?: Array<DockerHost> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: PodmanHost,
+    title: "Podman Hosts",
+    description:
+      "List of Podman hosts to pre-populate on scheduled maintenance events created from this template.",
+  })
+  @ManyToMany(
+    () => {
+      return PodmanHost;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceTemplatePodmanHost",
+    inverseJoinColumn: {
+      name: "podmanHostId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceTemplateId",
+      referencedColumnName: "_id",
+    },
+  })
+  public podmanHosts?: Array<PodmanHost> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Service,
+    title: "Services",
+    description:
+      "List of services to pre-populate on scheduled maintenance events created from this template.",
+  })
+  @ManyToMany(
+    () => {
+      return Service;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceTemplateService",
+    inverseJoinColumn: {
+      name: "serviceId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceTemplateId",
+      referencedColumnName: "_id",
+    },
+  })
+  public services?: Array<Service> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceTemplate,
     ],
   })
@@ -595,7 +906,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -603,15 +915,17 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceTemplate,
     ],
   })
@@ -647,7 +961,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -655,9 +970,10 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -687,7 +1003,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -695,15 +1012,17 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceTemplate,
     ],
   })
@@ -737,7 +1056,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -745,15 +1065,17 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceTemplate,
     ],
   })
@@ -775,7 +1097,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -783,15 +1106,17 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceTemplate,
     ],
   })
@@ -813,7 +1138,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -821,15 +1147,17 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceTemplate,
     ],
   })
@@ -844,7 +1172,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -852,15 +1181,17 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceTemplate,
     ],
   })
@@ -882,7 +1213,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -890,15 +1222,17 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceNoteTemplate,
     ],
   })
@@ -920,7 +1254,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -928,15 +1263,17 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceNoteTemplate,
     ],
   })
@@ -961,7 +1298,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -969,15 +1307,17 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceNoteTemplate,
     ],
   })
@@ -1001,7 +1341,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -1009,15 +1350,17 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceNoteTemplate,
     ],
   })
@@ -1042,7 +1385,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -1050,15 +1394,17 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceNoteTemplate,
     ],
   })
@@ -1083,7 +1429,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -1091,15 +1438,17 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceTemplate,
     ],
   })
@@ -1126,7 +1475,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
@@ -1134,15 +1484,17 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ScheduledMaintenanceManager,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceTemplate,
     ],
   })

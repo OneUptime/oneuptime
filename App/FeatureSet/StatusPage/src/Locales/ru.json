@@ -1,4 +1,7 @@
 {
+  "a11y": {
+    "skipToMainContent": "Перейти к основному содержанию"
+  },
   "common": {
     "save": "Сохранить",
     "cancel": "Отмена",
@@ -100,7 +103,7 @@
     "subscribedSuccessfully": "Вы успешно подписаны.",
     "emailSentCheckSpam": "Письмо со ссылкой отправлено на ваш адрес электронной почты. Если вы не видите его, пожалуйста, проверьте папку со спамом.",
     "menu": {
-      "email": "Email",
+      "email": "Эл. почта",
       "sms": "SMS",
       "slack": "Slack",
       "microsoftTeams": "MS Teams",
@@ -128,8 +131,8 @@
       "description": "Все наши обновления будут отправляться в этот Slack-webhook.",
       "workspaceName": "Название рабочего пространства Slack",
       "workspaceNameDescription": "Введите название вашего рабочего пространства Slack для проверки.",
-      "workspaceNamePlaceholder": "my-company-workspace",
-      "webhookUrl": "Slack Incoming Webhook URL",
+      "workspaceNamePlaceholder": "рабочая-область-моей-компании",
+      "webhookUrl": "URL входящего веб-перехватчика Slack",
       "webhookUrlDescription": "Обновления страницы статуса будут отправляться в этот Slack-webhook.",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "managePrompt": "Пожалуйста, введите название рабочего пространства Slack, с которым вы подписались",
@@ -140,12 +143,19 @@
       "description": "Все наши обновления будут отправляться в этот Teams-webhook.",
       "workspaceName": "Название рабочего пространства Microsoft Teams",
       "workspaceNameDescription": "Введите название вашего рабочего пространства Microsoft Teams для проверки.",
-      "workspaceNamePlaceholder": "my-company-workspace",
-      "webhookUrl": "Microsoft Teams Incoming Webhook URL",
+      "workspaceNamePlaceholder": "рабочая-область-моей-компании",
+      "webhookUrl": "URL входящего веб-перехватчика Microsoft Teams",
       "webhookUrlDescription": "Обновления страницы статуса будут отправляться в этот Teams-webhook.",
       "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
       "managePrompt": "Пожалуйста, введите название рабочего пространства Microsoft Teams, с которым вы подписались",
       "manageDescription": "Мы отправим вам ссылку для управления подпиской в это рабочее пространство."
+    },
+    "webhook": {
+      "title": "Подписаться через webhook",
+      "description": "Все наши обновления будут отправлены в виде JSON POST-запросов на этот URL webhook.",
+      "webhookUrl": "URL webhook",
+      "webhookUrlDescription": "При каждом событии страницы статуса на этот URL будет отправлен JSON POST-запрос.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
     },
     "resources": {
       "all": "Подписаться на все ресурсы",
@@ -163,6 +173,7 @@
       "title": "Обновить подписку",
       "description": "Здесь вы можете обновить настройки подписки или отписаться.",
       "saved": "Ваши изменения сохранены.",
+      "submit": "Обновить подписку",
       "unsubscribe": "Отписаться",
       "unsubscribeDescription": "Выберите этот параметр, если хотите отписаться от всех ресурсов."
     },
@@ -173,7 +184,7 @@
   },
   "accounts": {
     "shared": {
-      "email": "Email",
+      "email": "Эл. почта",
       "password": "Пароль",
       "newPassword": "Новый пароль",
       "confirmPassword": "Подтвердите пароль",
@@ -244,5 +255,19 @@
     "ongoing": "В процессе",
     "ended": "Завершено",
     "completed": "Завершено"
-  }
+  },
+  "Subscriber ID is required": "Требуется ID подписчика",
+  "Token is required": "Требуется токен",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} не может содержать менее {{minLength}} символов.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} не может содержать более {{maxLength}} символов.",
+  "{{field}} should not have spaces.": "{{field}} не должно содержать пробелов.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} может содержать только буквы, цифры, дефисы (-) и подчёркивания (_).",
+  "{{field}} should not have numbers.": "{{field}} не должно содержать цифр.",
+  "{{field}} should be a future date.": "{{field}} должно быть датой в будущем.",
+  "{{field}} should be a number.": "{{field}} должно быть числом.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} не может быть больше {{maxValue}}.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} не может быть меньше {{minValue}}.",
+  "{{field}} is required.": "{{field}} обязательно для заполнения.",
+  "{{field}} should match {{matchField}}": "{{field}} должно совпадать с {{matchField}}",
+  "Email is not valid.": "Электронная почта недействительна."
 }

@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/probe",
-  "version": "1.0.0",
+  "version": "11.3.6",
   "description": "",
   "repository": {
     "type": "git",
@@ -8,7 +8,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "start": "export NODE_OPTIONS='--max-old-space-size=8096' && node --require ts-node/register Index.ts",
+    "start": "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && node --no-node-snapshot --require ts-node/register Index.ts",
     "compile": "tsc",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
     "dev": "npx nodemon",
@@ -30,7 +30,7 @@
     "https-proxy-agent": "^7.0.5",
     "net-snmp": "^3.26.1",
     "ping": "^0.4.4",
-    "playwright": "^1.58.0",
+    "playwright": "^1.60.0",
     "ts-node": "^10.9.1",
     "whois-json": "^2.0.4"
   },
@@ -40,7 +40,7 @@
     "@types/node": "^17.0.31",
     "@types/whois-json": "^2.0.4",
     "jest": "^28.1.0",
-    "nodemon": "^2.0.20",
+    "nodemon": "^3.1.14",
     "ts-jest": "^28.0.2"
   }
 }

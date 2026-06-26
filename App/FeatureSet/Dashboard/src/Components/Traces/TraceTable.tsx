@@ -35,6 +35,7 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Service from "Common/Models/DatabaseModels/Service";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ServiceElement from "../Service/ServiceElement";
+import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 
@@ -127,7 +128,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
     }
 
     if (modelId) {
-      baseQuery.serviceId = modelId;
+      baseQuery.primaryEntityId = modelId;
     }
 
     if (activeTab === "root") {
@@ -165,7 +166,23 @@ const TraceTable: FunctionComponent<ComponentProps> = (
           },
         });
 
-      setServices(telemetryServicesResponse.data || []);
+      /*
+       * Traces without a service.name are tagged with the projectId
+       * (ServiceType.Unknown) and have no Service row. Add a synthetic
+       * "Unknown Service" so those rows resolve to a labelled entry and
+       * users can filter the list to them.
+       */
+      const loadedServices: Array<Service> =
+        telemetryServicesResponse.data || [];
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      setServices(
+        projectId
+          ? [
+              ...loadedServices,
+              TelemetryServiceUtil.getUnknownService(projectId),
+            ]
+          : loadedServices,
+      );
     } catch (err) {
       setPageError(API.getFriendlyErrorMessage(err as Error));
     } finally {
@@ -305,23 +322,37 @@ const TraceTable: FunctionComponent<ComponentProps> = (
           sortBy="startTime"
           sortOrder={SortOrder.Descending}
           onViewPage={(span: Span) => {
+            let route: Route;
+
             if (modelId) {
-              return Promise.resolve(
-                new Route(viewRoute.toString()).addRoute(
-                  span.traceId!.toString(),
-                ),
+              route = new Route(viewRoute.toString()).addRoute(
+                span.traceId!.toString(),
+              );
+            } else {
+              route = RouteUtil.populateRouteParams(
+                RouteMap[PageMap.TRACE_VIEW]!,
+                {
+                  modelId: span.traceId!.toString(),
+                },
               );
             }
-            return Promise.resolve(
-              RouteUtil.populateRouteParams(RouteMap[PageMap.TRACE_VIEW]!, {
-                modelId: span.traceId!.toString(),
-              }),
-            );
+
+            /*
+             * Pass the clicked span so the trace explorer can highlight and
+             * scroll to it.
+             */
+            if (span.spanId) {
+              route = new Route(route.toString()).addQueryParams({
+                spanId: span.spanId.toString(),
+              });
+            }
+
+            return Promise.resolve(route);
           }}
           filters={[
             {
               field: {
-                serviceId: true,
+                primaryEntityId: true,
               },
               type: FieldType.MultiSelectDropdown,
               filterDropdownOptions: telemetryServices.map(
@@ -427,7 +458,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
             },
             {
               field: {
-                serviceId: true,
+                primaryEntityId: true,
               },
               title: "Service",
               type: FieldType.Element,
@@ -435,7 +466,8 @@ const TraceTable: FunctionComponent<ComponentProps> = (
                 const telemetryService: Service | undefined =
                   telemetryServices.find((service: Service) => {
                     return (
-                      service.id?.toString() === span.serviceId?.toString()
+                      service.id?.toString() ===
+                      span.primaryEntityId?.toString()
                     );
                   });
 

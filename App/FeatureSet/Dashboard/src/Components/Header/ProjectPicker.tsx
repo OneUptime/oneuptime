@@ -14,6 +14,8 @@ import Toggle from "Common/UI/Components/Toggle/Toggle";
 import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
+import GlobalConfigUtil from "Common/UI/Utils/GlobalConfig";
+import User from "Common/UI/Utils/User";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, {
   FunctionComponent,
@@ -37,6 +39,8 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
 
   const [initialValues, setInitialValues] = useState<any>({});
 
+  const [canCreateProject, setCanCreateProject] = useState<boolean>(true);
+
   useEffect(() => {
     // check if promocode exists in localstorage and if it does, add it to initialValues.
     const promoCode: JSONValue = LocalStorage.getItem("promoCode");
@@ -46,6 +50,21 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         paymentProviderPromoCode: promoCode,
       });
     }
+  }, []);
+
+  useEffect(() => {
+    if (User.isMasterAdmin()) {
+      setCanCreateProject(true);
+      return;
+    }
+
+    GlobalConfigUtil.fetchVars()
+      .then((vars: { disableUserProjectCreation: boolean }) => {
+        setCanCreateProject(!vars.disableUserProjectCreation);
+      })
+      .catch(() => {
+        setCanCreateProject(true);
+      });
   }, []);
 
   useEffect(() => {
@@ -258,6 +277,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
           selectedProjectName={props.selectedProject?.name || ""}
           selectedProjectIcon={IconProp.Folder}
           projects={props.projects}
+          hideCreateProjectButton={!canCreateProject}
           onCreateProjectButtonClicked={() => {
             setShowModal(true);
             props.onProjectModalClose();
@@ -267,7 +287,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
           }}
         />
       )}
-      {showModal ? (
+      {showModal && canCreateProject ? (
         <ModelFormModal<Project>
           modelType={Project}
           initialValues={initialValues}

@@ -38,6 +38,21 @@ const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
   "/product/dashboards": { priority: 0.9, changefreq: "weekly" },
   "/product/ai-agent": { priority: 0.9, changefreq: "weekly" },
   "/product/scheduled-maintenance": { priority: 0.9, changefreq: "weekly" },
+  "/product/kubernetes": { priority: 0.9, changefreq: "weekly" },
+  "/product/docker": { priority: 0.9, changefreq: "weekly" },
+  "/product/podman": { priority: 0.9, changefreq: "weekly" },
+  "/product/host": { priority: 0.9, changefreq: "weekly" },
+  "/product/proxmox": { priority: 0.9, changefreq: "weekly" },
+  "/product/ai-observability": { priority: 0.9, changefreq: "weekly" },
+  "/product/ceph": { priority: 0.9, changefreq: "weekly" },
+  "/product/docker-swarm": { priority: 0.9, changefreq: "weekly" },
+  "/product/iot": { priority: 0.9, changefreq: "weekly" },
+  "/product/serverless": { priority: 0.9, changefreq: "weekly" },
+  "/product/rum": { priority: 0.9, changefreq: "weekly" },
+  "/product/cloud": { priority: 0.9, changefreq: "weekly" },
+  "/product/profiles": { priority: 0.9, changefreq: "weekly" },
+  "/product/services": { priority: 0.9, changefreq: "weekly" },
+  "/product/runbooks": { priority: 0.9, changefreq: "weekly" },
 
   // Teams (Solutions) pages
   "/solutions/devops": { priority: 0.8, changefreq: "weekly" },
@@ -191,6 +206,11 @@ async function getBlogPostCount(): Promise<number> {
     return blogPostCountCache!.data;
   }
 
+  /*
+   * Use the lightweight list (no git-history contributors). The sitemap only
+   * needs the post count, and resolving contributors runs an expensive `git log`
+   * over the whole blog repo that previously timed the sitemap index out (504).
+   */
   const blogPosts: Array<BlogPostHeader> = await BlogPostUtil.getBlogPostList();
   const count: number = blogPosts.length;
 
@@ -481,6 +501,7 @@ export async function generateBlogSitemapXml(page: number): Promise<string> {
   const baseUrl: URL = await BlogPostUtil.getHomeUrl();
   const baseUrlString: string = baseUrl.toString().replace(/\/$/, "");
 
+  // Lightweight list (no contributors) — the sitemap only needs urls + dates.
   const blogPosts: Array<BlogPostHeader> = await BlogPostUtil.getBlogPostList();
 
   // Calculate slice for this page (1-indexed)

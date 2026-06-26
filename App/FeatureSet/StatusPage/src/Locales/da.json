@@ -1,4 +1,7 @@
 {
+  "a11y": {
+    "skipToMainContent": "Spring til hovedindhold"
+  },
   "common": {
     "save": "Gem",
     "cancel": "Annuller",
@@ -129,7 +132,7 @@
       "workspaceName": "Slack-arbejdsområdets navn",
       "workspaceNameDescription": "Indtast navnet på dit Slack-arbejdsområde til validering.",
       "workspaceNamePlaceholder": "mit-firma-arbejdsomraade",
-      "webhookUrl": "Slack Incoming Webhook URL",
+      "webhookUrl": "URL til indgående webhook for Slack",
       "webhookUrlDescription": "Statussideopdateringer sendes til denne Slack-webhook.",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "managePrompt": "Indtast venligst navnet på det Slack-arbejdsområde, du har abonneret med",
@@ -141,11 +144,18 @@
       "workspaceName": "Microsoft Teams-arbejdsområdets navn",
       "workspaceNameDescription": "Indtast navnet på dit Microsoft Teams-arbejdsområde til validering.",
       "workspaceNamePlaceholder": "mit-firma-arbejdsomraade",
-      "webhookUrl": "Microsoft Teams Incoming Webhook URL",
+      "webhookUrl": "URL til indgående webhook for Microsoft Teams",
       "webhookUrlDescription": "Statussideopdateringer sendes til denne Teams-webhook.",
       "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
       "managePrompt": "Indtast venligst navnet på det Microsoft Teams-arbejdsområde, du har abonneret med",
       "manageDescription": "Vi sender dig et administrationslink til dette arbejdsområde."
+    },
+    "webhook": {
+      "title": "Abonner via webhook",
+      "description": "Alle vores opdateringer sendes som JSON POST-anmodninger til denne webhook-URL.",
+      "webhookUrl": "Webhook-URL",
+      "webhookUrlDescription": "En JSON POST-anmodning sendes til denne URL ved hver statussidehændelse.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
     },
     "resources": {
       "all": "Abonner på alle ressourcer",
@@ -163,6 +173,7 @@
       "title": "Opdater abonnement",
       "description": "Du kan opdatere dine abonnementspræferencer eller afmelde dig her.",
       "saved": "Dine ændringer er blevet gemt.",
+      "submit": "Opdater abonnement",
       "unsubscribe": "Afmeld",
       "unsubscribeDescription": "Vælg dette, hvis du vil afmelde dig alle ressourcer."
     },
@@ -244,5 +255,19 @@
     "ongoing": "Igangværende",
     "ended": "Afsluttet",
     "completed": "Fuldført"
-  }
+  },
+  "Subscriber ID is required": "Abonnent-ID er påkrævet",
+  "Token is required": "Token er påkrævet",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} må ikke være mindre end {{minLength}} tegn.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} må ikke være mere end {{maxLength}} tegn.",
+  "{{field}} should not have spaces.": "{{field}} må ikke indeholde mellemrum.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} må kun indeholde bogstaver, tal, bindestreger (-) og understregninger (_).",
+  "{{field}} should not have numbers.": "{{field}} må ikke indeholde tal.",
+  "{{field}} should be a future date.": "{{field}} skal være en fremtidig dato.",
+  "{{field}} should be a number.": "{{field}} skal være et tal.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} må ikke være større end {{maxValue}}.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} må ikke være mindre end {{minValue}}.",
+  "{{field}} is required.": "{{field}} er påkrævet.",
+  "{{field}} should match {{matchField}}": "{{field}} skal matche {{matchField}}",
+  "Email is not valid.": "E-mailen er ugyldig."
 }

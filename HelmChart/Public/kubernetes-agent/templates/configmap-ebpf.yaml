@@ -1,0 +1,30 @@
+{{- if and .Values.ebpf.enabled .Values.ebpf.logToTraceCorrelation }}
+# OBI YAML configuration. The vast majority of OBI's settings are driven by
+# OTEL_EBPF_* env vars on the DaemonSet — this file exists only for the
+# pieces that can't be expressed via env vars, principally the
+# `ebpf.log_enricher.services` selector (it's a list of GlobAttributes, no
+# env var equivalent).
+#
+# OBI merges this YAML with the env vars at startup; env vars win on
+# conflict, so the toggles in values.yaml stay authoritative.
+#
+# The `services:` block below is rendered from `.Values.ebpf.logEnricher.services`
+# so users can narrow which processes get the in-process write() uprobe and
+# buffer rewrite. Defaults to `exe_path: "*"` (every process). See the
+# warning on `ebpf.logToTraceCorrelation` in values.yaml for why you would
+# want to scope it (LD_PRELOAD-based APM agents like Dynatrace conflict
+# with the log enricher and will crash with SIGSEGV).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-ebpf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+data:
+  obi-config.yaml: |
+    ebpf:
+      log_enricher:
+        services:
+{{ toYaml .Values.ebpf.logEnricher.services | indent 10 }}
+{{- end }}

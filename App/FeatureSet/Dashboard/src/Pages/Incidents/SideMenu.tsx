@@ -184,6 +184,51 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
+            title: "On-Call Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Call,
+        },
+        {
+          link: {
+            title: "Owner Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_OWNER_RULES] as Route,
+            ),
+          },
+          icon: IconProp.User,
+        },
+        {
+          link: {
+            title: "Runbook Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES] as Route,
+            ),
+          },
+          icon: IconProp.BookOpen,
+        },
+        {
+          link: {
+            title: "Privacy Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Lock,
+        },
+        {
+          link: {
+            title: "Label Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_LABEL_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Tag,
+        },
+        {
+          link: {
             title: "SLA Rules",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.INCIDENTS_SETTINGS_SLA_RULES] as Route,

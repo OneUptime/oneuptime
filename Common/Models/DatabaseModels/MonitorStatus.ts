@@ -38,8 +38,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   create: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.MonitorManager,
+    Permission.MonitorAdmin,
     Permission.CreateProjectMonitorStatus,
   ],
   read: [
@@ -47,22 +46,21 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.MonitorManager,
+    Permission.MonitorAdmin,
+    Permission.MonitorMember,
+    Permission.MonitorViewer,
     Permission.ReadProjectMonitorStatus,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.MonitorManager,
+    Permission.MonitorAdmin,
     Permission.DeleteProjectMonitorStatus,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.MonitorManager,
+    Permission.MonitorAdmin,
     Permission.EditProjectMonitorStatus,
   ],
 })
@@ -92,8 +90,7 @@ export default class MonitorStatus extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
       Permission.CreateProjectMonitorStatus,
     ],
     read: [
@@ -101,9 +98,10 @@ export default class MonitorStatus extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -132,8 +130,7 @@ export default class MonitorStatus extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
       Permission.CreateProjectMonitorStatus,
     ],
     read: [
@@ -141,9 +138,10 @@ export default class MonitorStatus extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -167,8 +165,7 @@ export default class MonitorStatus extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
       Permission.CreateProjectMonitorStatus,
     ],
     read: [
@@ -176,15 +173,15 @@ export default class MonitorStatus extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
       Permission.EditProjectMonitorStatus,
     ],
   })
@@ -211,9 +208,10 @@ export default class MonitorStatus extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -236,8 +234,7 @@ export default class MonitorStatus extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
       Permission.CreateProjectMonitorStatus,
     ],
     read: [
@@ -245,15 +242,15 @@ export default class MonitorStatus extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
       Permission.EditProjectMonitorStatus,
     ],
   })
@@ -275,8 +272,7 @@ export default class MonitorStatus extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
       Permission.CreateProjectMonitorStatus,
     ],
     read: [
@@ -284,9 +280,10 @@ export default class MonitorStatus extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -316,8 +313,7 @@ export default class MonitorStatus extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
       Permission.CreateProjectMonitorStatus,
     ],
     read: [
@@ -325,9 +321,10 @@ export default class MonitorStatus extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -352,9 +349,10 @@ export default class MonitorStatus extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -388,9 +386,10 @@ export default class MonitorStatus extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -412,8 +411,7 @@ export default class MonitorStatus extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
       Permission.CreateProjectMonitorStatus,
     ],
     read: [
@@ -421,15 +419,15 @@ export default class MonitorStatus extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
       Permission.EditProjectMonitorStatus,
     ],
   })
@@ -455,8 +453,7 @@ export default class MonitorStatus extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
       Permission.CreateProjectMonitorStatus,
     ],
     read: [
@@ -464,15 +461,15 @@ export default class MonitorStatus extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
       Permission.EditProjectMonitorStatus,
     ],
   })
@@ -494,8 +491,7 @@ export default class MonitorStatus extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
       Permission.CreateProjectMonitorStatus,
     ],
     read: [
@@ -503,15 +499,15 @@ export default class MonitorStatus extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
       Permission.EditProjectMonitorStatus,
     ],
   })
@@ -533,8 +529,7 @@ export default class MonitorStatus extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
       Permission.CreateProjectMonitorStatus,
     ],
     read: [
@@ -542,15 +537,15 @@ export default class MonitorStatus extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
       Permission.EditProjectMonitorStatus,
     ],
   })

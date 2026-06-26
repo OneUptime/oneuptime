@@ -47,12 +47,12 @@ Filter queries let you target specific logs. If left empty, the pipeline matches
 |----------|---------|-------------|
 | \`=\` | \`severityText = 'ERROR'\` | Exact match |
 | \`!=\` | \`severityText != 'DEBUG'\` | Not equal |
-| \`LIKE\` | \`body LIKE '%timeout%'\` | Pattern match (\`%\` = wildcard) |
+| \`LIKE\` | \`body LIKE 'timeout'\` | Substring match (use \`%\` for SQL-style wildcards) |
 | \`IN\` | \`severityText IN ('ERROR', 'WARN')\` | Match any value in list |
 | \`AND\` | \`severityText = 'ERROR' AND attributes.service = 'api'\` | Both conditions must match |
 | \`OR\` | \`severityText = 'ERROR' OR severityText = 'WARN'\` | Either condition matches |
 
-**Available fields:** \`severityText\`, \`body\`, \`serviceId\`, \`attributes.<key>\`
+**Available fields:** \`severityText\`, \`body\`, \`primaryEntityId\`, \`attributes.<key>\`
 
 ---
 
@@ -93,7 +93,7 @@ Adds a category label to logs based on filter conditions. Useful for tagging log
 1. Create a pipeline with filter: \`severityText IN ('ERROR', 'FATAL')\`
 2. Add a **Category Processor**:
    - Target Key: \`error_category\`
-   - Categories: "Database Error" for \`body LIKE '%connection%'\`, "Timeout" for \`body LIKE '%timeout%'\`
+   - Categories: "Database Error" for \`body LIKE 'connection'\`, "Timeout" for \`body LIKE 'timeout'\`
 `;
 
 const LogPipelines: FunctionComponent<
@@ -108,6 +108,9 @@ const LogPipelines: FunctionComponent<
       id="log-pipelines-table"
       name="Logs > Settings > Pipelines"
       userPreferencesKey="log-pipelines-table"
+      saveFilterProps={{
+        tableId: "log-pipelines-table",
+      }}
       isDeleteable={false}
       isEditable={false}
       isCreateable={true}

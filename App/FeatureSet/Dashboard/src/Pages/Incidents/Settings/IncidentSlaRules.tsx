@@ -100,6 +100,9 @@ const IncidentSlaRulesPage: FunctionComponent<
         id="incident-sla-rules-table"
         name="Settings > Incident SLA Rules"
         userPreferencesKey="incident-sla-rules-table"
+        saveFilterProps={{
+          tableId: "incident-sla-rules-table",
+        }}
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
@@ -199,6 +202,7 @@ const IncidentSlaRulesPage: FunctionComponent<
           {
             title: "Match Criteria",
             id: "match-criteria",
+            columns: 2,
           },
           {
             title: "Note Reminders",
@@ -248,11 +252,13 @@ const IncidentSlaRulesPage: FunctionComponent<
             },
             title: "Response Time (minutes)",
             stepId: "sla-targets",
+            sectionTitle: "Deadlines",
+            sectionDescription:
+              "Time budgets for acknowledgement and resolution. Leave a target empty to skip tracking it.",
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "15",
-            description:
-              "Time allowed to acknowledge the incident. Leave empty if response tracking is not needed.",
+            description: "Time allowed to acknowledge the incident.",
           },
           {
             field: {
@@ -263,8 +269,7 @@ const IncidentSlaRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "60",
-            description:
-              "Time allowed to resolve the incident. Leave empty if resolution tracking is not needed.",
+            description: "Time allowed to resolve the incident.",
           },
           {
             field: {
@@ -272,11 +277,13 @@ const IncidentSlaRulesPage: FunctionComponent<
             },
             title: "At-Risk Threshold (%)",
             stepId: "sla-targets",
+            sectionTitle: "Risk Threshold",
+            sectionDescription:
+              "When elapsed time exceeds this percentage of a deadline, the SLA flips to At Risk.",
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "80",
-            description:
-              "Percentage of deadline at which status changes to 'At Risk'. Default is 80%.",
+            description: "Default is 80%.",
           },
           // Match Criteria
           {
@@ -285,6 +292,9 @@ const IncidentSlaRulesPage: FunctionComponent<
             },
             title: "Monitors",
             stepId: "match-criteria",
+            sectionTitle: "Match by Attributes",
+            sectionDescription:
+              "Filter incidents by which monitor produced them and their severity/labels. Leave a filter empty to skip it.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
               type: Monitor,
@@ -292,8 +302,6 @@ const IncidentSlaRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            description:
-              "Only apply this SLA to incidents from these monitors. Leave empty to match incidents from any monitor.",
             placeholder: "Select Monitors (optional)",
           },
           {
@@ -309,8 +317,6 @@ const IncidentSlaRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            description:
-              "Only apply this SLA to incidents with these severities. Leave empty to match incidents of any severity.",
             placeholder: "Select Severities (optional)",
           },
           {
@@ -326,8 +332,6 @@ const IncidentSlaRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            description:
-              "Only apply this SLA to incidents that have at least one of these labels. Leave empty to match incidents regardless of labels.",
             placeholder: "Select Incident Labels (optional)",
           },
           {
@@ -343,8 +347,6 @@ const IncidentSlaRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            description:
-              "Only apply this SLA to incidents from monitors that have at least one of these labels. Leave empty to match incidents regardless of monitor labels.",
             placeholder: "Select Monitor Labels (optional)",
           },
           {
@@ -353,11 +355,12 @@ const IncidentSlaRulesPage: FunctionComponent<
             },
             title: "Incident Title Pattern",
             stepId: "match-criteria",
+            sectionTitle: "Match by Pattern",
+            sectionDescription:
+              "Case-insensitive regex matched against incident text.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "CPU.*high",
-            description:
-              "Regular expression pattern to match incident titles. Leave empty to match any title.",
           },
           {
             field: {
@@ -368,8 +371,6 @@ const IncidentSlaRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "timeout|connection refused",
-            description:
-              "Regular expression pattern to match incident descriptions. Leave empty to match any description.",
           },
           // Note Reminders
           {
@@ -378,11 +379,12 @@ const IncidentSlaRulesPage: FunctionComponent<
             },
             title: "Internal Note Reminder Interval (minutes)",
             stepId: "note-reminders",
+            sectionTitle: "Internal Reminders",
+            sectionDescription:
+              "Post an internal note on a recurring interval while the incident is open. Leave the interval empty to disable.",
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "30",
-            description:
-              "Post an internal note reminder at this interval while the incident is open. Leave empty to disable internal note reminders.",
           },
           {
             field: {
@@ -395,7 +397,7 @@ const IncidentSlaRulesPage: FunctionComponent<
             placeholder:
               "**SLA Reminder**: This incident has been open for {{elapsedTime}}...",
             description:
-              "Markdown template for internal note reminders. Use template variables like {{incidentTitle}}, {{elapsedTime}}, etc.",
+              "Markdown. Variables: {{incidentTitle}}, {{elapsedTime}}, {{responseDeadline}}, {{resolutionDeadline}}, {{slaStatus}}.",
           },
           {
             field: {
@@ -403,11 +405,12 @@ const IncidentSlaRulesPage: FunctionComponent<
             },
             title: "Public Note Reminder Interval (minutes)",
             stepId: "note-reminders",
+            sectionTitle: "Public Reminders",
+            sectionDescription:
+              "Post a public note (visible on status pages) on a recurring interval. Leave the interval empty to disable.",
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "60",
-            description:
-              "Post a public note reminder at this interval while the incident is open. Leave empty to disable public note reminders.",
           },
           {
             field: {
@@ -420,7 +423,7 @@ const IncidentSlaRulesPage: FunctionComponent<
             placeholder:
               "**Status Update**: Our team continues to work on resolving this incident...",
             description:
-              "Markdown template for public note reminders. Use template variables like {{incidentTitle}}, {{elapsedTime}}, etc.",
+              "Markdown. Variables: {{incidentTitle}}, {{elapsedTime}}, {{responseDeadline}}, {{resolutionDeadline}}, {{slaStatus}}.",
           },
         ]}
         showRefreshButton={true}

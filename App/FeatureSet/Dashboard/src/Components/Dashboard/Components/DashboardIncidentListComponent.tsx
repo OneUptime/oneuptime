@@ -9,8 +9,11 @@ import DashboardIncidentListComponent from "Common/Types/Dashboard/DashboardComp
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListViewMode,
 } from "./DashboardResourceListBase";
+import { HoneycombTile } from "./DashboardResourceHoneycomb";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import DashboardResourceList from "../Utils/DashboardResourceList";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -46,6 +49,8 @@ const DashboardIncidentListComponentElement: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const maxRows: number = props.component.arguments.maxRows || 25;
+  const viewMode: ResourceListViewMode =
+    props.component.arguments.viewMode === "honeycomb" ? "honeycomb" : "list";
   const stateFilter: string | undefined = props.component.arguments.stateFilter;
   const severityIds: Array<string> | undefined =
     props.component.arguments.severityIds;
@@ -65,7 +70,7 @@ const DashboardIncidentListComponentElement: FunctionComponent<
     setIsLoading(true);
 
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    if (!projectId) {
+    if (!DashboardResourceList.isPublic() && !projectId) {
       setIsLoading(false);
       setError("No project selected.");
       return;
@@ -114,6 +119,7 @@ const DashboardIncidentListComponentElement: FunctionComponent<
       const listResult: ListResult<Incident> = await ModelAPI.getList<Incident>(
         {
           modelType: Incident,
+          requestOptions: DashboardResourceList.getRequestOptions("incident"),
           query: query,
           limit: maxRows,
           skip: 0,
@@ -155,6 +161,46 @@ const DashboardIncidentListComponentElement: FunctionComponent<
   useEffect(() => {
     fetchIncidents();
   }, [fetchIncidents, props.refreshTick]);
+
+  const honeycombTiles: Array<HoneycombTile> = incidents.map(
+    (incident: Incident): HoneycombTile => {
+      const incidentId: string = (incident._id as string) || "";
+      const title: string = (incident.title as string) || "Untitled";
+      const stateName: string =
+        (incident.currentIncidentState?.name as string) || "—";
+      const severityName: string =
+        (incident.incidentSeverity?.name as string) || "—";
+      const severityColor: Color | undefined = incident.incidentSeverity
+        ?.color as Color | undefined;
+      const stateColor: Color | undefined = incident.currentIncidentState
+        ?.color as Color | undefined;
+
+      const route: Route | undefined = incidentId
+        ? RouteUtil.populateRouteParams(
+            RouteMap[PageMap.INCIDENT_VIEW] as Route,
+            { modelId: new ObjectID(incidentId) },
+          )
+        : undefined;
+
+      return {
+        id: incidentId || title,
+        status: stateName,
+        color: severityColor
+          ? severityColor.toString()
+          : stateColor
+            ? stateColor.toString()
+            : "#9ca3af",
+        route: route,
+        tooltip: {
+          title: title,
+          details: [
+            { label: "State", value: stateName },
+            { label: "Severity", value: severityName },
+          ],
+        },
+      };
+    },
+  );
 
   const rows: Array<ReactElement> = incidents.map(
     (incident: Incident): ReactElement => {
@@ -243,6 +289,8 @@ const DashboardIncidentListComponentElement: FunctionComponent<
       isEmpty={incidents.length === 0}
       emptyMessage="No incidents found"
       emptyIcon={IconProp.Alert}
+      viewMode={viewMode}
+      honeycombTiles={honeycombTiles}
     >
       {rows}
     </DashboardResourceListBase>

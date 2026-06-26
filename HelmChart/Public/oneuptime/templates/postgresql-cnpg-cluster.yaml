@@ -1,0 +1,93 @@
+{{- $cnpg := .Values.postgresOperator.cnpg }}
+{{- if $cnpg.enabled }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ .Release.Name }}-postgresql-cnpg
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-postgresql
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: postgresql
+    appname: oneuptime
+    helm.sh/release-name: {{ .Release.Name }}
+    helm.sh/release-namespace: {{ .Release.Namespace }}
+spec:
+  instances: {{ $cnpg.instances | default 1 }}
+  imageName: {{ $cnpg.imageName | default "ghcr.io/cloudnative-pg/postgresql:17" | quote }}
+
+  # The OneUptime app connects as the "postgres" superuser (parity with the
+  # built-in StatefulSet). CloudNativePG disables superuser access by default;
+  # we enable it and manage the password via the secret created in secrets.yaml.
+  enableSuperuserAccess: true
+  superuserSecret:
+    name: {{ .Release.Name }}-postgresql-cnpg-superuser
+
+  # Bootstrap a fresh, empty cluster. This does NOT migrate data from an existing
+  # StatefulSet — see HelmChart/Docs/Postgres.md for the migration runbook.
+  bootstrap:
+    initdb:
+      database: {{ $cnpg.database | default "oneuptimedb" | quote }}
+      owner: {{ $cnpg.owner | default "oneuptime" | quote }}
+
+  {{- $persistence := $cnpg.persistence | default dict }}
+  storage:
+    size: {{ $persistence.size | default "25Gi" | quote }}
+    {{- if $persistence.storageClass }}
+    {{- if (eq "-" $persistence.storageClass) }}
+    storageClass: ""
+    {{- else }}
+    storageClass: {{ $persistence.storageClass | quote }}
+    {{- end }}
+    {{- else if .Values.global.storageClass }}
+    storageClass: {{ .Values.global.storageClass | quote }}
+    {{- end }}
+
+  {{- $backup := $cnpg.backup | default dict }}
+  {{- if $backup.enabled }}
+  backup:
+    volumeSnapshot:
+      {{- if $backup.volumeSnapshotClassName }}
+      className: {{ $backup.volumeSnapshotClassName | quote }}
+      {{- end }}
+      online: {{ $backup.online }}
+  {{- end }}
+
+  {{- $syncReplicas := int (default 0 $cnpg.synchronousReplicas) }}
+  {{- if or $cnpg.parameters (gt $syncReplicas 0) }}
+  postgresql:
+    {{- with $cnpg.parameters }}
+    parameters:
+      {{- range $key, $val := . }}
+      {{ $key }}: {{ $val | quote }}
+      {{- end }}
+    {{- end }}
+    {{- if gt $syncReplicas 0 }}
+    # Quorum-based synchronous replication (commits wait for the standbys below).
+    synchronous:
+      method: any
+      number: {{ $syncReplicas }}
+    {{- end }}
+  {{- end }}
+
+  {{- with $cnpg.resources }}
+  resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- if or $cnpg.nodeSelector $cnpg.tolerations $cnpg.affinity }}
+  affinity:
+    {{- with $cnpg.nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $cnpg.tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $cnpg.affinity }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- end }}

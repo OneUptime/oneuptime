@@ -8,7 +8,14 @@ import {
 import { Worker } from "bullmq";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AppMetrics from "../Utils/Telemetry/AppMetrics";
+import TelemetryContext from "../Utils/Telemetry/TelemetryContext";
+import Telemetry, {
+  Span,
+  SpanException,
+  SpanStatusCode,
+} from "../Utils/Telemetry";
 import Redis from "./Redis";
+import GracefulShutdown, { ShutdownPriority } from "../Utils/GracefulShutdown";
 
 export default class QueueWorker {
   @CaptureSpan()
@@ -45,7 +52,40 @@ export default class QueueWorker {
       let outcome: "success" | "failure" | "timeout" = "success";
 
       try {
-        await onJobInQueue(job);
+        /*
+         * Seed a telemetry-context scope for this job so every span and log it
+         * produces inherits the queue/job name plus any tenant identifiers
+         * carried in the job payload (projectId, monitorId, incidentId, ...).
+         */
+        await TelemetryContext.runWithContext(
+          {
+            queueName: queueName,
+            jobName: job.name || "unknown",
+            ...TelemetryContext.pickKnownAttributes(job.data),
+          },
+          () => {
+            /*
+             * Wrap the job in an explicit root span so every background job has
+             * a consistent, named trace root that carries the seeded context —
+             * the @CaptureSpan service calls it makes become children of this.
+             */
+            return Telemetry.startActiveSpan<Promise<void>>({
+              name: `worker.job ${queueName}/${job.name || "unknown"}`,
+              fn: async (span: Span): Promise<void> => {
+                try {
+                  await onJobInQueue(job);
+                  span.setStatus({ code: SpanStatusCode.OK });
+                } catch (err) {
+                  span.recordException(err as SpanException);
+                  span.setStatus({ code: SpanStatusCode.ERROR });
+                  throw err;
+                } finally {
+                  span.end();
+                }
+              },
+            });
+          },
+        );
       } catch (err) {
         outcome =
           err instanceof TimeoutException ||
@@ -77,9 +117,19 @@ export default class QueueWorker {
         : {}),
     });
 
-    process.on("SIGINT", async () => {
-      await worker.close();
-    });
+    /*
+     * Stop pulling new jobs and let in-flight ones finish on shutdown. Runs in
+     * the Workers tier — before datastores are drained — so jobs mid-flight can
+     * still reach Postgres / Redis. Replaces a SIGINT-only handler that never
+     * fired in containers (Kubernetes / docker stop send SIGTERM).
+     */
+    GracefulShutdown.registerHandler(
+      `QueueWorker:${queueName}`,
+      ShutdownPriority.Workers,
+      () => {
+        return worker.close();
+      },
+    );
 
     return worker;
   }

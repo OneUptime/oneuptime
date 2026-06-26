@@ -9,8 +9,11 @@ import DashboardDockerImageListComponent from "Common/Types/Dashboard/DashboardC
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListViewMode,
 } from "./DashboardResourceListBase";
+import { HoneycombTile } from "./DashboardResourceHoneycomb";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import DashboardResourceList from "../Utils/DashboardResourceList";
 import DockerResource from "Common/Models/DatabaseModels/DockerResource";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -20,6 +23,13 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import Search from "Common/Types/BaseDatabase/Search";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ProjectUtil from "Common/UI/Utils/Project";
+import DashboardModelQueryInterpolation, {
+  AttributeToColumnMap,
+} from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
+
+const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
+  "container.image.name": "name",
+};
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDockerImageListComponent;
@@ -43,6 +53,8 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
   const maxRows: number = args.maxRows || 25;
   const dockerHostIds: Array<string> | undefined = args.dockerHostIds;
   const nameSearch: string | undefined = args.nameSearch;
+  const viewMode: ResourceListViewMode =
+    args.viewMode === "honeycomb" ? "honeycomb" : "list";
 
   const dockerHostIdsKey: string = (dockerHostIds || []).join(",");
   const nameSearchKey: string = (nameSearch || "").trim();
@@ -52,31 +64,38 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
 
     const projectId: ReturnType<typeof ProjectUtil.getCurrentProjectId> =
       ProjectUtil.getCurrentProjectId();
-    if (!projectId) {
+    if (!DashboardResourceList.isPublic() && !projectId) {
       setIsLoading(false);
       setError("No project selected.");
       return;
     }
 
     try {
-      const query: Query<DockerResource> = {
+      const baseQuery: Record<string, unknown> = {
         projectId: projectId,
         kind: "Image",
-      } as Query<DockerResource>;
+      };
 
       if (dockerHostIds && dockerHostIds.length > 0) {
-        (query as Record<string, unknown>)["dockerHostId"] = new Includes(
-          dockerHostIds,
-        );
+        baseQuery["dockerHostId"] = new Includes(dockerHostIds);
       }
 
       if (nameSearchKey) {
-        (query as Record<string, unknown>)["name"] = new Search(nameSearchKey);
+        baseQuery["name"] = new Search(nameSearchKey);
       }
+
+      const query: Query<DockerResource> =
+        DashboardModelQueryInterpolation.applyToQuery(
+          baseQuery,
+          props.variables,
+          ATTRIBUTE_TO_COLUMN,
+        ) as Query<DockerResource>;
 
       const listResult: ListResult<DockerResource> =
         await ModelAPI.getList<DockerResource>({
           modelType: DockerResource,
+          requestOptions:
+            DashboardResourceList.getRequestOptions("docker-image"),
           query: query,
           limit: maxRows,
           skip: 0,
@@ -101,11 +120,33 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
     }
 
     setIsLoading(false);
-  }, [maxRows, dockerHostIdsKey, nameSearchKey]);
+  }, [maxRows, dockerHostIdsKey, nameSearchKey, props.variables]);
 
   useEffect(() => {
     fetchImages();
   }, [fetchImages, props.refreshTick]);
+
+  const honeycombTiles: Array<HoneycombTile> = images.map(
+    (img: DockerResource): HoneycombTile => {
+      const id: string = (img._id as string) || "";
+      const name: string = (img.name as string) || "Unnamed";
+      const imageId: string = (img.containerId as string) || "—";
+      const hostName: string = (img.dockerHost?.name as string) || "—";
+
+      return {
+        id: id || name,
+        status: "Image",
+        color: "#3b82f6",
+        tooltip: {
+          title: name,
+          details: [
+            { label: "Image ID", value: imageId },
+            { label: "Host", value: hostName },
+          ],
+        },
+      };
+    },
+  );
 
   const rows: Array<ReactElement> = images.map((img: DockerResource) => {
     const id: string = (img._id as string) || "";
@@ -140,6 +181,8 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
       isEmpty={images.length === 0}
       emptyMessage="No images found"
       emptyIcon={IconProp.Cube}
+      viewMode={viewMode}
+      honeycombTiles={honeycombTiles}
     >
       {rows}
     </DashboardResourceListBase>
@@ -158,10 +201,13 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     return false;
   }
 
-  return JSONFunctions.deepEqual(
-    prev.component.arguments,
-    next.component.arguments,
-  );
+  if (
+    !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(prev.variables, next.variables);
 }
 
 export default React.memo(

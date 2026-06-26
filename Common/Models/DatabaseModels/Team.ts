@@ -19,6 +19,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -37,7 +38,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.SettingsManager,
+    Permission.SettingsAdmin,
+    Permission.SettingsMember,
     Permission.CreateProjectTeam,
   ],
   read: [
@@ -45,9 +47,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.SettingsManager,
+    Permission.SettingsAdmin,
+    Permission.SettingsMember,
+    Permission.SettingsViewer,
     Permission.ReadProjectTeam,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -94,9 +97,10 @@ export default class Team extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -132,9 +136,10 @@ export default class Team extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -165,9 +170,10 @@ export default class Team extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -202,9 +208,10 @@ export default class Team extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -235,9 +242,10 @@ export default class Team extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -268,9 +276,10 @@ export default class Team extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -307,9 +316,10 @@ export default class Team extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -381,10 +391,11 @@ export default class Team extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.EditProjectTeam,
       Permission.EditProjectTeamPermissions,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -409,10 +420,11 @@ export default class Team extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.EditProjectTeam,
       Permission.EditProjectTeamPermissions,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -437,10 +449,11 @@ export default class Team extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.EditProjectTeam,
       Permission.EditProjectTeamPermissions,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -465,10 +478,11 @@ export default class Team extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.EditProjectTeam,
       Permission.EditProjectTeamPermissions,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -485,4 +499,44 @@ export default class Team extends BaseModel {
     default: true,
   })
   public isTeamEditable?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateProjectTeam,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectTeam,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditProjectTeam,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Custom Fields",
+    description: "Custom Fields on this resource.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public customFields?: JSONObject = undefined;
 }

@@ -1,44 +1,115 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
-import NavBar, { NavItem } from "Common/UI/Components/Navbar/NavBar";
+import NavBar, {
+  MoreMenuItem,
+  NavItem,
+} from "Common/UI/Components/Navbar/NavBar";
 import React, { FunctionComponent, ReactElement } from "react";
-import { useTranslation } from "react-i18next";
 
 const DashboardNavbar: FunctionComponent = (): ReactElement => {
-  const { t } = useTranslation();
-
+  /*
+   * Primary nav item. The shared NavBar renders this as the "Home" breadcrumb
+   * root, then a "/ <active section>" dropdown built from moreMenuItems.
+   */
   const navItems: NavItem[] = [
     {
-      id: "users-nav-bar-item",
-      title: t("navbar.users"),
-      icon: IconProp.User,
-      route: RouteUtil.populateRouteParams(RouteMap[PageMap.USERS] as Route),
-    },
-    {
-      id: "projects-nav-bar-item",
-      title: t("navbar.projects"),
-      icon: IconProp.Folder,
-      route: RouteUtil.populateRouteParams(RouteMap[PageMap.PROJECTS] as Route),
-    },
-    {
-      id: "more-nav-bar-item",
-      title: t("navbar.more"),
-      icon: IconProp.More,
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.MORE_EMAIL] as Route,
-      ),
-    },
-    {
-      id: "settings-nav-bar-item",
-      title: t("navbar.settings"),
-      icon: IconProp.Settings,
-      route: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
+      id: "home-nav-bar-item",
+      title: "Home",
+      icon: IconProp.Home,
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+      activeRoute: RouteMap[PageMap.HOME],
     },
   ];
 
-  return <NavBar items={navItems} />;
+  /*
+   * Only top-level pages go in the menu. Sections that have their own side menu
+   * (Settings, with all its notification/auth/AI/data sub-pages) are
+   * represented by a single entry — the side menu handles the rest, same as the
+   * main dashboard.
+   */
+  const managementCategory: string = "Management";
+  const monitoringCategory: string = "Monitoring";
+  const toolsCategory: string = "Tools";
+  const settingsCategory: string = "Settings";
+
+  const moreMenuItems: MoreMenuItem[] = [
+    {
+      title: "Users",
+      description: "Manage all users across the instance.",
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.USERS] as Route),
+      activeRoute: RouteMap[PageMap.USERS],
+      icon: IconProp.User,
+      iconColor: "blue",
+      category: managementCategory,
+    },
+    {
+      title: "Projects",
+      description: "View and manage every project.",
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.PROJECTS] as Route),
+      activeRoute: RouteMap[PageMap.PROJECTS],
+      icon: IconProp.Folder,
+      iconColor: "emerald",
+      category: managementCategory,
+    },
+    {
+      title: "Instance Health",
+      description: "Live status, datastore capacity and queue backlogs.",
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.HEALTH] as Route),
+      activeRoute: RouteMap[PageMap.HEALTH],
+      icon: IconProp.Heartbeat,
+      iconColor: "rose",
+      category: monitoringCategory,
+    },
+    {
+      title: "Send Email",
+      description: "Send a broadcast email to all users.",
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.MORE_EMAIL] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.MORE_EMAIL],
+      icon: IconProp.Email,
+      iconColor: "cyan",
+      category: toolsCategory,
+    },
+    {
+      title: "Settings",
+      description:
+        "Authentication, notifications, probes, AI, data retention and more.",
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
+      activeRoute: new Route("/admin/settings"),
+      icon: IconProp.Settings,
+      iconColor: "slate",
+      category: settingsCategory,
+    },
+  ];
+
+  const moreMenuFooter: {
+    title: string;
+    description: string;
+    link: URL;
+  } = {
+    title: "Need help?",
+    description: "Report an issue or request a feature on GitHub.",
+    link: URL.fromString(
+      "https://github.com/OneUptime/oneuptime/issues/new/choose",
+    ),
+  };
+
+  return (
+    <NavBar
+      items={navItems}
+      moreMenuItems={moreMenuItems}
+      moreMenuFooter={moreMenuFooter}
+      moreMenuTitle="Menu"
+      moreMenuSearchPlaceholder="Search admin…"
+      moreMenuNoResultsText="No results found."
+      moreMenuKeyboardHint="↑↓ navigate · ↵ open · esc close"
+      moreMenuRecentLabel="Recently visited"
+    />
+  );
 };
 
 export default DashboardNavbar;

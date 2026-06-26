@@ -7,6 +7,7 @@ import ObjectID from "Common/Types/ObjectID";
 const RouteMap: Dictionary<Route> = {
   [PageMap.INIT]: new Route(`/admin`),
   [PageMap.HOME]: new Route(`/admin`),
+  [PageMap.HEALTH]: new Route(`/admin/health`),
   [PageMap.LOGOUT]: new Route(`/admin/logout`),
   [PageMap.SETTINGS]: new Route(`/admin/settings/host`),
 
@@ -47,6 +48,14 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_LLM_PROVIDERS]: new Route(`/admin/settings/llm-providers`),
   [PageMap.SETTINGS_AUTHENTICATION]: new Route(
     `/admin/settings/authentication`,
+  ),
+  [PageMap.SETTINGS_GLOBAL_SSO]: new Route(`/admin/settings/global-sso`),
+  [PageMap.SETTINGS_GLOBAL_SSO_VIEW]: new Route(
+    `/admin/settings/global-sso/${RouteParams.ModelID}`,
+  ),
+  [PageMap.SETTINGS_GLOBAL_OIDC]: new Route(`/admin/settings/global-oidc`),
+  [PageMap.SETTINGS_GLOBAL_OIDC_VIEW]: new Route(
+    `/admin/settings/global-oidc/${RouteParams.ModelID}`,
   ),
   [PageMap.SETTINGS_API_KEY]: new Route(`/admin/settings/api-key`),
   [PageMap.SETTINGS_DATA_RETENTION]: new Route(

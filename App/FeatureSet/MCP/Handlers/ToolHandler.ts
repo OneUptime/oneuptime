@@ -18,7 +18,6 @@ import {
 } from "../Types/McpTypes";
 import OneUptimeOperation from "../Types/OneUptimeOperation";
 import OneUptimeApiService from "../Services/OneUptimeApiService";
-import SessionManager from "../Server/SessionManager";
 import { LIST_PREVIEW_LIMIT } from "../Config/ServerConfig";
 import { isHelperTool, handleHelperTool } from "../Tools/HelperTools";
 import {
@@ -28,11 +27,17 @@ import {
 import logger from "Common/Server/Utils/Logger";
 
 /**
- * Register tool handlers on the MCP server
+ * Register tool handlers on the MCP server.
+ *
+ * `apiKey` is the key supplied on the request that created this (stateless)
+ * server instance. The call-tool handler closes over it so each request reads
+ * its own key — avoiding the race condition that a process-global "current API
+ * key" would create under concurrent requests.
  */
 export function registerToolHandlers(
   mcpServer: McpServer,
   tools: McpToolInfo[],
+  apiKey: string,
 ): void {
   // Register list tools handler
   mcpServer.server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -43,7 +48,7 @@ export function registerToolHandlers(
   mcpServer.server.setRequestHandler(
     CallToolRequestSchema,
     async (request: CallToolRequest) => {
-      return handleCallTool(request, tools);
+      return handleCallTool(request, tools, apiKey);
     },
   );
 
@@ -78,6 +83,7 @@ function handleListTools(tools: McpToolInfo[]): {
 async function handleCallTool(
   request: CallToolRequest,
   tools: McpToolInfo[],
+  apiKey: string,
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
   const { name, arguments: args } = request.params;
 
@@ -134,7 +140,6 @@ async function handleCallTool(
     logger.info(`Executing tool: ${name} for model: ${tool.modelName}`);
 
     // Validate API key is available for this session
-    const apiKey: string = SessionManager.getCurrentApiKey();
     if (!apiKey) {
       throw new McpError(
         ErrorCode.InvalidRequest,

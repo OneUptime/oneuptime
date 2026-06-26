@@ -18,6 +18,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
 
 const KubernetesClusterNodes: FunctionComponent<
   PageComponentProps
@@ -35,6 +36,34 @@ const KubernetesClusterNodes: FunctionComponent<
         await KubernetesResourceUtils.fetchInventoryResources({
           kubernetesClusterId: modelId,
           kind: "Node",
+          selectFullSpec: true,
+          transform: (
+            resource: KubernetesResource,
+            row: KubernetesResourceModel,
+          ) => {
+            /*
+             * A Node's memory% is its usage measured against its own
+             * allocatable memory (status.allocatable.memory, falling
+             * back to capacity) — the same denominator the Node's CPU%
+             * already uses. Lets the Memory column render a percentage
+             * instead of raw bytes.
+             */
+            const status: Record<string, unknown> =
+              (row.status as unknown as Record<string, unknown>) || {};
+            const allocatable: Record<string, unknown> =
+              (status["allocatable"] as Record<string, unknown>) || {};
+            const capacity: Record<string, unknown> =
+              (status["capacity"] as Record<string, unknown>) || {};
+            const memString: string =
+              (allocatable["memory"] as string) ||
+              (capacity["memory"] as string) ||
+              "";
+            const bytes: number =
+              KubernetesResourceUtils.parseK8sMemoryToBytes(memString);
+            if (bytes > 0) {
+              resource.memoryLimitBytes = bytes;
+            }
+          },
         });
 
       setResources(nodeList);

@@ -1,4 +1,7 @@
 {
+  "a11y": {
+    "skipToMainContent": "Vai al contenuto principale"
+  },
   "common": {
     "save": "Salva",
     "cancel": "Annulla",
@@ -147,6 +150,13 @@
       "managePrompt": "Inserisci il nome dell'area di lavoro Microsoft Teams con cui ti sei iscritto",
       "manageDescription": "Ti invieremo un link per gestire l'iscrizione a quest'area di lavoro."
     },
+    "webhook": {
+      "title": "Iscriviti tramite webhook",
+      "description": "Tutti i nostri aggiornamenti saranno inviati come richieste JSON POST a questo URL webhook.",
+      "webhookUrl": "URL del webhook",
+      "webhookUrlDescription": "A ogni evento della pagina di stato verrà inviata una richiesta JSON POST a questo URL.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
     "resources": {
       "all": "Iscriviti a tutte le risorse",
       "allDescription": "Seleziona questa opzione se desideri iscriverti a tutte le risorse.",
@@ -163,6 +173,7 @@
       "title": "Aggiorna iscrizione",
       "description": "Puoi aggiornare le tue preferenze di iscrizione o annullarla qui.",
       "saved": "Le tue modifiche sono state salvate.",
+      "submit": "Aggiorna iscrizione",
       "unsubscribe": "Annulla iscrizione",
       "unsubscribeDescription": "Seleziona questa opzione se desideri annullare l'iscrizione a tutte le risorse."
     },
@@ -244,5 +255,19 @@
     "ongoing": "In corso",
     "ended": "Terminato",
     "completed": "Completato"
-  }
+  },
+  "Subscriber ID is required": "L'ID abbonato è obbligatorio",
+  "Token is required": "Il token è obbligatorio",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} non può contenere meno di {{minLength}} caratteri.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} non può contenere più di {{maxLength}} caratteri.",
+  "{{field}} should not have spaces.": "{{field}} non deve contenere spazi.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} può contenere solo lettere, numeri, trattini (-) e trattini bassi (_).",
+  "{{field}} should not have numbers.": "{{field}} non deve contenere numeri.",
+  "{{field}} should be a future date.": "{{field}} deve essere una data futura.",
+  "{{field}} should be a number.": "{{field}} deve essere un numero.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} non deve essere maggiore di {{maxValue}}.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} non deve essere minore di {{minValue}}.",
+  "{{field}} is required.": "{{field}} è obbligatorio.",
+  "{{field}} should match {{matchField}}": "{{field}} deve corrispondere a {{matchField}}",
+  "Email is not valid.": "L'email non è valida."
 }

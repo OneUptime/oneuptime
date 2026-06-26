@@ -24,11 +24,20 @@ export interface ComponentProps {
   singularLabel: string;
   pluralLabel: string;
   dataTestId?: string;
+  /*
+   * Optional. Set by analytics list endpoints that skip COUNT(*) for
+   * performance — `totalItemsCount` is then only a lower bound, so
+   * the page-count math and "X of Y" label don't apply. When set,
+   * we render prev/next-only with no jump-to-page modal.
+   */
+  hasMore?: boolean | undefined;
 }
 
 const Pagination: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const isHasMoreMode: boolean = props.hasMore !== undefined;
+
   const [minPageNumber, setMinPageNumber] = useState<number>(1);
   const [maxPageNumber, setMaxPageNumber] = useState<number>(1);
 
@@ -56,12 +65,14 @@ const Pagination: FunctionComponent<ComponentProps> = (
 
   const isPreviousDisabled: boolean =
     props.currentPageNumber === 1 || props.isLoading || props.isError;
-  const isNextDisabled: boolean =
-    props.currentPageNumber * props.itemsOnPage >= props.totalItemsCount ||
-    props.isLoading ||
-    props.isError;
-  const isCurrentPageButtonDisabled: boolean =
-    props.totalItemsCount === 0 || props.isLoading || props.isError;
+  const isNextDisabled: boolean = isHasMoreMode
+    ? !props.hasMore || props.isLoading || props.isError
+    : props.currentPageNumber * props.itemsOnPage >= props.totalItemsCount ||
+      props.isLoading ||
+      props.isError;
+  const isCurrentPageButtonDisabled: boolean = isHasMoreMode
+    ? props.isLoading || props.isError
+    : props.totalItemsCount === 0 || props.isLoading || props.isError;
 
   const [showPaginationModel, setShowPaginationModel] =
     useState<boolean>(false);
@@ -75,7 +86,21 @@ const Pagination: FunctionComponent<ComponentProps> = (
       {/* Desktop layout: Description on left, all controls on right */}
       <div className="hidden md:block">
         <p className="text-sm text-gray-500">
-          {!props.isLoading && (
+          {!props.isLoading && isHasMoreMode && (
+            <span>
+              {`Showing ${
+                props.itemsOnPage * (props.currentPageNumber - 1) + 1
+              } to ${
+                props.itemsOnPage * (props.currentPageNumber - 1) +
+                Math.max(
+                  props.totalItemsCount -
+                    props.itemsOnPage * (props.currentPageNumber - 1),
+                  0,
+                )
+              }${props.hasMore ? "+" : ""} ${props.pluralLabel.toLowerCase()}.`}
+            </span>
+          )}
+          {!props.isLoading && !isHasMoreMode && (
             <span>
               {props.totalItemsCount.toLocaleString()}{" "}
               {props.totalItemsCount > 1
@@ -108,114 +133,81 @@ const Pagination: FunctionComponent<ComponentProps> = (
             />
           </div>
 
-          <ul className="py-3" role="list">
-            <li
-              role="button"
-              tabIndex={isPreviousDisabled ? -1 : 0}
-              aria-disabled={isPreviousDisabled}
-              aria-label="Go to previous page"
-              onClick={() => {
-                let currentPageNumber: number = props.currentPageNumber;
-
-                if (typeof currentPageNumber === "string") {
-                  currentPageNumber = parseInt(currentPageNumber);
-                }
-
-                if (props.onNavigateToPage && !isPreviousDisabled) {
-                  props.onNavigateToPage(
-                    currentPageNumber - 1,
-                    props.itemsOnPage,
-                  );
-                }
-              }}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (
-                  (e.key === "Enter" || e.key === " ") &&
-                  !isPreviousDisabled
-                ) {
-                  e.preventDefault();
+          <ul className="flex py-3" role="list">
+            <li className="flex">
+              <button
+                type="button"
+                disabled={isPreviousDisabled}
+                aria-label="Go to previous page"
+                onClick={() => {
                   let currentPageNumber: number = props.currentPageNumber;
+
                   if (typeof currentPageNumber === "string") {
                     currentPageNumber = parseInt(currentPageNumber);
                   }
-                  if (props.onNavigateToPage) {
+
+                  if (props.onNavigateToPage && !isPreviousDisabled) {
                     props.onNavigateToPage(
                       currentPageNumber - 1,
                       props.itemsOnPage,
                     );
                   }
-                }
-              }}
-              className={` inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500   ${
-                isPreviousDisabled
-                  ? "bg-gray-100"
-                  : "hover:bg-gray-50 cursor-pointer"
-              }`}
-            >
-              <span className="page-link">Previous</span>
+                }}
+                className={` inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500   ${
+                  isPreviousDisabled
+                    ? "bg-gray-100 cursor-not-allowed"
+                    : "hover:bg-gray-50 cursor-pointer"
+                }`}
+              >
+                <span className="page-link">Previous</span>
+              </button>
             </li>
-            <li
-              role="button"
-              tabIndex={isCurrentPageButtonDisabled ? -1 : 0}
-              aria-current="page"
-              aria-label={`Page ${props.currentPageNumber}, click to change page`}
-              data-testid="current-page-link"
-              className={` z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600  cursor-pointer ${
-                isCurrentPageButtonDisabled ? "bg-gray-100" : ""
-              }`}
-              onClick={() => {
-                setShowPaginationModel(true);
-              }}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setShowPaginationModel(true);
-                }
-              }}
-            >
-              <span>{props.currentPageNumber}</span>
+            <li className="flex">
+              <button
+                type="button"
+                disabled={isCurrentPageButtonDisabled}
+                aria-current="page"
+                aria-label={`Page ${props.currentPageNumber}, current page. Select to jump to another page.`}
+                data-testid="current-page-link"
+                className={` z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
+                  isCurrentPageButtonDisabled ? "bg-gray-100" : ""
+                }`}
+                onClick={() => {
+                  if (!isHasMoreMode) {
+                    setShowPaginationModel(true);
+                  }
+                }}
+              >
+                <span>{props.currentPageNumber}</span>
+              </button>
             </li>
-            <li
-              role="button"
-              tabIndex={isNextDisabled ? -1 : 0}
-              aria-disabled={isNextDisabled}
-              aria-label="Go to next page"
-              onClick={() => {
-                let currentPageNumber: number = props.currentPageNumber;
-
-                if (typeof currentPageNumber === "string") {
-                  currentPageNumber = parseInt(currentPageNumber);
-                }
-
-                if (props.onNavigateToPage && !isNextDisabled) {
-                  props.onNavigateToPage(
-                    currentPageNumber + 1,
-                    props.itemsOnPage,
-                  );
-                }
-              }}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if ((e.key === "Enter" || e.key === " ") && !isNextDisabled) {
-                  e.preventDefault();
+            <li className="flex">
+              <button
+                type="button"
+                disabled={isNextDisabled}
+                aria-label="Go to next page"
+                onClick={() => {
                   let currentPageNumber: number = props.currentPageNumber;
+
                   if (typeof currentPageNumber === "string") {
                     currentPageNumber = parseInt(currentPageNumber);
                   }
-                  if (props.onNavigateToPage) {
+
+                  if (props.onNavigateToPage && !isNextDisabled) {
                     props.onNavigateToPage(
                       currentPageNumber + 1,
                       props.itemsOnPage,
                     );
                   }
-                }
-              }}
-              className={` inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500  ${
-                isNextDisabled
-                  ? "bg-gray-100"
-                  : " hover:bg-gray-50 cursor-pointer"
-              }`}
-            >
-              <span>Next</span>
+                }}
+                className={` inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500  ${
+                  isNextDisabled
+                    ? "bg-gray-100 cursor-not-allowed"
+                    : " hover:bg-gray-50 cursor-pointer"
+                }`}
+              >
+                <span>Next</span>
+              </button>
             </li>
           </ul>
         </div>
@@ -238,114 +230,81 @@ const Pagination: FunctionComponent<ComponentProps> = (
 
       <div className="md:hidden">
         <div className="inline-flex -space-x-px rounded-md shadow-sm">
-          <ul role="list">
-            <li
-              role="button"
-              tabIndex={isPreviousDisabled ? -1 : 0}
-              aria-disabled={isPreviousDisabled}
-              aria-label="Go to previous page"
-              onClick={() => {
-                let currentPageNumber: number = props.currentPageNumber;
-
-                if (typeof currentPageNumber === "string") {
-                  currentPageNumber = parseInt(currentPageNumber);
-                }
-
-                if (props.onNavigateToPage && !isPreviousDisabled) {
-                  props.onNavigateToPage(
-                    currentPageNumber - 1,
-                    props.itemsOnPage,
-                  );
-                }
-              }}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (
-                  (e.key === "Enter" || e.key === " ") &&
-                  !isPreviousDisabled
-                ) {
-                  e.preventDefault();
+          <ul className="flex" role="list">
+            <li className="flex">
+              <button
+                type="button"
+                disabled={isPreviousDisabled}
+                aria-label="Go to previous page"
+                onClick={() => {
                   let currentPageNumber: number = props.currentPageNumber;
+
                   if (typeof currentPageNumber === "string") {
                     currentPageNumber = parseInt(currentPageNumber);
                   }
-                  if (props.onNavigateToPage) {
+
+                  if (props.onNavigateToPage && !isPreviousDisabled) {
                     props.onNavigateToPage(
                       currentPageNumber - 1,
                       props.itemsOnPage,
                     );
                   }
-                }
-              }}
-              className={` inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500   ${
-                isPreviousDisabled
-                  ? "bg-gray-100"
-                  : "hover:bg-gray-50 cursor-pointer"
-              }`}
-            >
-              <span className="page-link">Previous</span>
+                }}
+                className={` inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500   ${
+                  isPreviousDisabled
+                    ? "bg-gray-100 cursor-not-allowed"
+                    : "hover:bg-gray-50 cursor-pointer"
+                }`}
+              >
+                <span className="page-link">Previous</span>
+              </button>
             </li>
-            <li
-              role="button"
-              tabIndex={isCurrentPageButtonDisabled ? -1 : 0}
-              aria-current="page"
-              aria-label={`Page ${props.currentPageNumber}, click to change page`}
-              data-testid="current-page-link-mobile"
-              className={` z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600  cursor-pointer ${
-                isCurrentPageButtonDisabled ? "bg-gray-100" : ""
-              }`}
-              onClick={() => {
-                setShowPaginationModel(true);
-              }}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setShowPaginationModel(true);
-                }
-              }}
-            >
-              <span>{props.currentPageNumber}</span>
+            <li className="flex">
+              <button
+                type="button"
+                disabled={isCurrentPageButtonDisabled}
+                aria-current="page"
+                aria-label={`Page ${props.currentPageNumber}, current page. Select to jump to another page.`}
+                data-testid="current-page-link-mobile"
+                className={` z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
+                  isCurrentPageButtonDisabled ? "bg-gray-100" : ""
+                }`}
+                onClick={() => {
+                  if (!isHasMoreMode) {
+                    setShowPaginationModel(true);
+                  }
+                }}
+              >
+                <span>{props.currentPageNumber}</span>
+              </button>
             </li>
-            <li
-              role="button"
-              tabIndex={isNextDisabled ? -1 : 0}
-              aria-disabled={isNextDisabled}
-              aria-label="Go to next page"
-              onClick={() => {
-                let currentPageNumber: number = props.currentPageNumber;
-
-                if (typeof currentPageNumber === "string") {
-                  currentPageNumber = parseInt(currentPageNumber);
-                }
-
-                if (props.onNavigateToPage && !isNextDisabled) {
-                  props.onNavigateToPage(
-                    currentPageNumber + 1,
-                    props.itemsOnPage,
-                  );
-                }
-              }}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if ((e.key === "Enter" || e.key === " ") && !isNextDisabled) {
-                  e.preventDefault();
+            <li className="flex">
+              <button
+                type="button"
+                disabled={isNextDisabled}
+                aria-label="Go to next page"
+                onClick={() => {
                   let currentPageNumber: number = props.currentPageNumber;
+
                   if (typeof currentPageNumber === "string") {
                     currentPageNumber = parseInt(currentPageNumber);
                   }
-                  if (props.onNavigateToPage) {
+
+                  if (props.onNavigateToPage && !isNextDisabled) {
                     props.onNavigateToPage(
                       currentPageNumber + 1,
                       props.itemsOnPage,
                     );
                   }
-                }
-              }}
-              className={` inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500  ${
-                isNextDisabled
-                  ? "bg-gray-100"
-                  : " hover:bg-gray-50 cursor-pointer"
-              }`}
-            >
-              <span>Next</span>
+                }}
+                className={` inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500  ${
+                  isNextDisabled
+                    ? "bg-gray-100 cursor-not-allowed"
+                    : " hover:bg-gray-50 cursor-pointer"
+                }`}
+              >
+                <span>Next</span>
+              </button>
             </li>
           </ul>
         </div>
@@ -354,14 +313,23 @@ const Pagination: FunctionComponent<ComponentProps> = (
       {showPaginationModel && (
         <BasicFormModal<PaginationNavigationItem>
           data-testid="pagination-modal"
-          title={"Navigate to Page"}
+          title={isHasMoreMode ? "Items on Page" : "Navigate to Page"}
           onClose={() => {
             setShowPaginationModel(false);
           }}
-          submitButtonText={"Go to Page"}
+          submitButtonText={isHasMoreMode ? "Apply" : "Go to Page"}
           onSubmit={(item: PaginationNavigationItem) => {
             if (props.onNavigateToPage) {
-              props.onNavigateToPage(item.pageNumber, item.itemsOnPage);
+              /*
+               * hasMore mode doesn't know the max page, so the
+               * pageNumber field is hidden — navigating "in place"
+               * keeps the current page and only changes the page
+               * size.
+               */
+              const pageNumber: number = isHasMoreMode
+                ? props.currentPageNumber
+                : item.pageNumber;
+              props.onNavigateToPage(pageNumber, item.itemsOnPage);
             }
             setShowPaginationModel(false);
           }}
@@ -371,25 +339,29 @@ const Pagination: FunctionComponent<ComponentProps> = (
               itemsOnPage: props.itemsOnPage,
             },
             fields: [
-              {
-                title: "Page Number",
-                description: `You can enter page numbers from ${
-                  minPageNumber !== maxPageNumber
-                    ? minPageNumber + " to " + maxPageNumber
-                    : minPageNumber
-                }. Please enter it here:`,
-                field: {
-                  pageNumber: true,
-                },
-                disabled: minPageNumber === maxPageNumber,
-                placeholder: "1",
-                required: true,
-                validation: {
-                  minValue: minPageNumber,
-                  maxValue: maxPageNumber,
-                },
-                fieldType: FormFieldSchemaType.PositiveNumber,
-              },
+              ...(isHasMoreMode
+                ? []
+                : [
+                    {
+                      title: "Page Number",
+                      description: `You can enter page numbers from ${
+                        minPageNumber !== maxPageNumber
+                          ? minPageNumber + " to " + maxPageNumber
+                          : minPageNumber
+                      }. Please enter it here:`,
+                      field: {
+                        pageNumber: true,
+                      },
+                      disabled: minPageNumber === maxPageNumber,
+                      placeholder: "1",
+                      required: true,
+                      validation: {
+                        minValue: minPageNumber,
+                        maxValue: maxPageNumber,
+                      },
+                      fieldType: FormFieldSchemaType.PositiveNumber,
+                    },
+                  ]),
               {
                 title: `${props.pluralLabel} on Page `,
                 description: `Enter the number of ${props.pluralLabel.toLowerCase()} you would like to see on the page:`,

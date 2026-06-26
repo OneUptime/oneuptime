@@ -106,6 +106,12 @@ export function getOnCallDutyBreadcrumbs(
       "View On-Call Schedule",
       "Layers",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_OWNERS, [
+      "Project",
+      "On-Call Duty",
+      "View On-Call Schedule",
+      "Owners",
+    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS,
       ["Project", "On-Call Duty", "View On-Call Schedule", "Settings"],
@@ -127,6 +133,18 @@ export function getOnCallDutyBreadcrumbs(
       PageMap.ON_CALL_DUTY_SETTINGS_CUSTOM_FIELDS,
       ["Project", "On-Call Duty", "Settings", "Custom Fields"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_SETTINGS_LABEL_RULES, [
+      "Project",
+      "On-Call Duty",
+      "Settings",
+      "Label Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_SETTINGS_OWNER_RULES, [
+      "Project",
+      "On-Call Duty",
+      "Settings",
+      "Owner Rules",
+    ]),
 
     // Incoming Call Policies
     ...BuildBreadcrumbLinksByTitles(
@@ -153,6 +171,16 @@ export function getIncomingCallPolicyBreadcrumbs(
         "Incoming Call Policies",
         "View Policy",
         "Escalation Rules",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_OWNERS,
+      [
+        "Project",
+        "On-Call Duty",
+        "Incoming Call Policies",
+        "View Policy",
+        "Owners",
       ],
     ),
     ...BuildBreadcrumbLinksByTitles(

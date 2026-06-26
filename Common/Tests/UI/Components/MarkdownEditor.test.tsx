@@ -31,7 +31,7 @@ describe("MarkdownEditor", () => {
     expect(screen.getByTitle("Horizontal Rule")).toBeInTheDocument();
   });
 
-  test("should toggle preview mode", () => {
+  test("should default to WYSIWYG and toggle to markdown source", () => {
     render(
       <MarkdownEditor
         initialValue="**bold text**"
@@ -39,15 +39,25 @@ describe("MarkdownEditor", () => {
       />,
     );
 
-    const previewButton: HTMLElement = screen.getByText("Preview");
-    fireEvent.click(previewButton);
+    /*
+     * Default mode shows a toggle button labelled "Markdown" — the
+     * button-role query disambiguates from the help text which also
+     * mentions "Markdown".
+     */
+    const toggle: HTMLElement = screen.getByRole("button", {
+      name: "Markdown",
+    });
+    expect(toggle).toBeInTheDocument();
 
-    // Should show preview
-    expect(screen.getByText("Write")).toBeInTheDocument();
+    // Switch to markdown source mode.
+    fireEvent.click(toggle);
+    expect(screen.getByRole("button", { name: "Visual" })).toBeInTheDocument();
 
-    // Click to go back to write mode
-    fireEvent.click(screen.getByText("Write"));
-    expect(screen.getByText("Preview")).toBeInTheDocument();
+    // Switch back to WYSIWYG.
+    fireEvent.click(screen.getByRole("button", { name: "Visual" }));
+    expect(
+      screen.getByRole("button", { name: "Markdown" }),
+    ).toBeInTheDocument();
   });
 
   test("should enable spell check by default", () => {
@@ -58,11 +68,12 @@ describe("MarkdownEditor", () => {
       />,
     );
 
-    const textarea: HTMLTextAreaElement = screen.getByRole(
-      "textbox",
-    ) as HTMLTextAreaElement;
-    // jsdom doesn't properly reflect spellcheck property, so we check the attribute
-    expect(textarea.getAttribute("spellcheck")).toBe("true");
+    const editor: HTMLElement = screen.getByRole("textbox");
+    /*
+     * jsdom doesn't reflect the spellcheck IDL property reliably, so assert
+     * the attribute that React renders.
+     */
+    expect(editor.getAttribute("spellcheck")).toBe("true");
   });
 
   test("should enable spell check when disableSpellCheck is undefined", () => {
@@ -74,10 +85,8 @@ describe("MarkdownEditor", () => {
       />,
     );
 
-    const textarea: HTMLTextAreaElement = screen.getByRole(
-      "textbox",
-    ) as HTMLTextAreaElement;
-    expect(textarea.getAttribute("spellcheck")).toBe("true");
+    const editor: HTMLElement = screen.getByRole("textbox");
+    expect(editor.getAttribute("spellcheck")).toBe("true");
   });
 
   test("should disable spell check when disableSpellCheck is true", () => {
@@ -89,10 +98,8 @@ describe("MarkdownEditor", () => {
       />,
     );
 
-    const textarea: HTMLTextAreaElement = screen.getByRole(
-      "textbox",
-    ) as HTMLTextAreaElement;
-    expect(textarea.getAttribute("spellcheck")).toBe("false");
+    const editor: HTMLElement = screen.getByRole("textbox");
+    expect(editor.getAttribute("spellcheck")).toBe("false");
   });
 
   test("should handle spell check prop changes", () => {
@@ -104,10 +111,8 @@ describe("MarkdownEditor", () => {
       />,
     );
 
-    let textarea: HTMLTextAreaElement = screen.getByRole(
-      "textbox",
-    ) as HTMLTextAreaElement;
-    expect(textarea.getAttribute("spellcheck")).toBe("true");
+    let editor: HTMLElement = screen.getByRole("textbox");
+    expect(editor.getAttribute("spellcheck")).toBe("true");
 
     rerender(
       <MarkdownEditor
@@ -117,8 +122,8 @@ describe("MarkdownEditor", () => {
       />,
     );
 
-    textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
-    expect(textarea.getAttribute("spellcheck")).toBe("false");
+    editor = screen.getByRole("textbox");
+    expect(editor.getAttribute("spellcheck")).toBe("false");
   });
 
   test("should show help text", () => {
@@ -126,10 +131,10 @@ describe("MarkdownEditor", () => {
       <MarkdownEditor initialValue="" placeholder="Enter markdown here..." />,
     );
 
-    expect(screen.getByText("Markdown help")).toBeInTheDocument();
+    expect(screen.getByText("Formatting help")).toBeInTheDocument();
   });
 
-  test("should handle onChange callback", () => {
+  test("should handle onChange callback in markdown mode", () => {
     const mockOnChange: jest.Mock = jest.fn();
     render(
       <MarkdownEditor
@@ -138,6 +143,9 @@ describe("MarkdownEditor", () => {
         onChange={mockOnChange}
       />,
     );
+
+    // Switch to markdown source mode so we can drive the textarea directly.
+    fireEvent.click(screen.getByRole("button", { name: "Markdown" }));
 
     const textarea: HTMLElement = screen.getByRole("textbox");
     fireEvent.change(textarea, { target: { value: "new text" } });

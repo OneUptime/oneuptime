@@ -1,4 +1,16 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-# npm run lint
+# Keep every internal package.json's "version" field in sync with the VERSION
+# file. Vulnerability scanners read package.json from source and flag stale
+# "1.0.0" entries otherwise. Running on every commit (not just VERSION bumps)
+# also catches manual package.json edits and stale-branch commits.
+node ./Scripts/Install/SyncPackageVersions.js
+
+# Stage any package.json the sync just updated so the commit is internally
+# consistent. Only touches files git already knows about — pathspec
+# ':(exclude)**/node_modules/**' filters out vendored copies as a belt-and-
+# suspenders alongside the sync script's own ignore list.
+git diff --name-only -- '*package.json' ':(exclude)**/node_modules/**' | while IFS= read -r changed; do
+  [ -n "$changed" ] && git add -- "$changed"
+done

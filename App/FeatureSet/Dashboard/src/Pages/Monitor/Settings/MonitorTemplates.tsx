@@ -35,8 +35,12 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
     <Fragment>
       <ModelTable<MonitorTemplate>
         modelType={MonitorTemplate}
+        enableJsonImportExport={true}
         id="monitor-templates-table"
         userPreferencesKey="monitor-templates-table"
+        saveFilterProps={{
+          tableId: "monitor-templates-table",
+        }}
         name="Settings > Monitor Templates"
         isDeleteable={false}
         isEditable={false}
@@ -244,6 +248,11 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
           },
         ]}
         showRefreshButton={true}
+        searchableFields={[
+          "templateName",
+          "templateDescription",
+          "monitorName",
+        ]}
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
         filters={[
           {

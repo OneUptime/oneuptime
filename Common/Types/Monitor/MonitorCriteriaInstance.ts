@@ -15,6 +15,9 @@ import {
   CriteriaFilterSchema,
 } from "./CriteriaFilter";
 import { CriteriaIncident, CriteriaIncidentSchema } from "./CriteriaIncident";
+import IncidentGroupingConfig, {
+  IncidentGroupingConfigSchema,
+} from "./IncomingMonitor/IncidentGroupingConfig";
 import MonitorType from "./MonitorType";
 import { FindOperator } from "typeorm";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
@@ -31,6 +34,12 @@ export interface MonitorCriteriaInstanceType {
   createIncidents?: boolean | undefined;
   createAlerts?: boolean | undefined;
   isEnabled?: boolean | undefined;
+  /**
+   * Incoming Request monitors only: opt-in config to open one incident
+   * per distinct value extracted from the webhook payload (e.g. one per
+   * Grafana alert name) instead of a single active incident per criteria.
+   */
+  incidentGrouping?: IncidentGroupingConfig | undefined;
   id: string;
 }
 
@@ -487,6 +496,33 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return monitorCriteriaInstance;
     }
 
+    if (arg.monitorType === MonitorType.DNSSEC) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            checkOn: CheckOn.DnssecChainValid,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+        ],
+        incidents: [],
+        alerts: [],
+        createAlerts: false,
+        changeMonitorStatus: true,
+        createIncidents: false,
+        name: `Check if ${arg.monitorName} DNSSEC chain is valid`,
+        description: `This criteria checks if the ${arg.monitorName} DNSSEC chain is valid end-to-end`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
     if (arg.monitorType === MonitorType.ExternalStatusPage) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
@@ -501,14 +537,19 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             filterType: FilterType.True,
             value: undefined,
           },
+          {
+            checkOn: CheckOn.ExternalStatusPageActiveIncidents,
+            filterType: FilterType.EqualTo,
+            value: 0,
+          },
         ],
         incidents: [],
         alerts: [],
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the ${arg.monitorName} external status page is reachable`,
+        name: `Check if ${arg.monitorName} is operational`,
+        description: `This criteria checks if the ${arg.monitorName} external status page is reachable and has no active incidents`,
       };
 
       return monitorCriteriaInstance;
@@ -695,22 +736,22 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       };
     }
 
-    if (arg.monitorType === MonitorType.ExternalStatusPage) {
+    if (arg.monitorType === MonitorType.DNSSEC) {
       monitorCriteriaInstance.data = {
         id: ObjectID.generate().toString(),
         monitorStatusId: arg.monitorStatusId,
         filterCondition: FilterCondition.Any,
         filters: [
           {
-            checkOn: CheckOn.ExternalStatusPageIsOnline,
+            checkOn: CheckOn.DnssecChainValid,
             filterType: FilterType.False,
             value: undefined,
           },
         ],
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} external status page is currently unreachable.`,
+            title: `${arg.monitorName} DNSSEC chain is broken`,
+            description: `${arg.monitorName} DNSSEC validation is currently failing.`,
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -722,16 +763,81 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} external status page is currently unreachable.`,
+            title: `${arg.monitorName} DNSSEC chain is broken`,
+            description: `${arg.monitorName} DNSSEC validation is currently failing.`,
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
           },
         ],
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} external status page is unreachable`,
+        name: `Check if ${arg.monitorName} DNSSEC chain is broken`,
+        description: `This criteria checks if the ${arg.monitorName} DNSSEC chain is broken`,
+      };
+    }
+
+    if (arg.monitorType === MonitorType.ExternalStatusPage) {
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.ExternalStatusPageIsOnline,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.ExternalStatusPageActiveIncidents,
+            filterType: FilterType.GreaterThan,
+            value: 0,
+          },
+          {
+            checkOn: CheckOn.ExternalStatusPageComponentStatus,
+            filterType: FilterType.EqualTo,
+            value: "degraded_performance",
+          },
+          {
+            checkOn: CheckOn.ExternalStatusPageComponentStatus,
+            filterType: FilterType.EqualTo,
+            value: "partial_outage",
+          },
+          {
+            checkOn: CheckOn.ExternalStatusPageComponentStatus,
+            filterType: FilterType.EqualTo,
+            value: "major_outage",
+          },
+          {
+            checkOn: CheckOn.ExternalStatusPageComponentStatus,
+            filterType: FilterType.EqualTo,
+            value: "full_outage",
+          },
+        ],
+        incidents: [
+          {
+            title: `${arg.monitorName} has an active incident or outage`,
+            description: `${arg.monitorName} external status page is reporting an active incident or a non-operational component.`,
+            incidentSeverityId: arg.incidentSeverityId,
+            autoResolveIncident: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        changeMonitorStatus: true,
+        createIncidents: true,
+        createAlerts: false,
+        alerts: [
+          {
+            title: `${arg.monitorName} has an active incident or outage`,
+            description: `${arg.monitorName} external status page is reporting an active incident or a non-operational component.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        name: `Check if ${arg.monitorName} has an active incident or outage`,
+        description: `This criteria checks if the ${arg.monitorName} external status page is unreachable, has an active incident, or has a degraded, partial, or major outage`,
       };
     }
 
@@ -1385,6 +1491,16 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     return this;
   }
 
+  public setIncidentGrouping(
+    incidentGrouping: IncidentGroupingConfig | undefined,
+  ): MonitorCriteriaInstance {
+    if (this.data) {
+      this.data.incidentGrouping = incidentGrouping;
+    }
+
+    return this;
+  }
+
   public override toJSON(): JSONObject {
     if (!this.data) {
       return MonitorCriteriaInstance.getNewMonitorCriteriaInstanceAsJSON();
@@ -1403,6 +1519,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: this.data.changeMonitorStatus,
         createIncidents: this.data.createIncidents,
         isEnabled: this.data.isEnabled,
+        incidentGrouping: this.data.incidentGrouping,
         name: this.data.name,
         description: this.data.description,
       } as any,
@@ -1512,6 +1629,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       createAlerts: (json["createAlerts"] as boolean) || false,
       isEnabled:
         json["isEnabled"] === undefined ? true : (json["isEnabled"] as boolean),
+      incidentGrouping: (json["incidentGrouping"] as any) || undefined,
       filters: filters as any,
       incidents: incidents as any,
       alerts: alerts as any,
@@ -1538,6 +1656,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createIncidents: Zod.boolean().optional(),
         createAlerts: Zod.boolean().optional(),
         isEnabled: Zod.boolean().optional(),
+        incidentGrouping: IncidentGroupingConfigSchema.optional(),
       }).openapi({
         type: "object",
         example: {

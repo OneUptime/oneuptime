@@ -14,7 +14,24 @@ import { promisify } from "util";
 
 const execAsync: (
   command: string,
+  options?: { cwd?: string },
 ) => Promise<{ stdout: string; stderr: string }> = promisify(exec);
+
+/*
+ * Extract the most useful diagnostic text from a failed `exec` call. Compiler
+ * and `go mod` errors land on stderr/stdout, not in the bare Error message, so
+ * surface those so a failure is actually debuggable from the logs.
+ */
+function formatCommandError(error: unknown): string {
+  const execError: { stdout?: string; stderr?: string; message?: string } =
+    error as { stdout?: string; stderr?: string; message?: string };
+  return (
+    execError.stderr?.trim() ||
+    execError.stdout?.trim() ||
+    execError.message ||
+    "Unknown error"
+  );
+}
 
 async function main(): Promise<void> {
   Logger.info("🚀 Starting Terraform Provider Generation Process...");
@@ -115,15 +132,15 @@ async function main(): Promise<void> {
     Logger.info("📦 Step 11: Running go mod tidy...");
 
     try {
-      const originalCwd: string = process.cwd();
-      process.chdir(providerDir);
-      await execAsync("go mod tidy");
-      process.chdir(originalCwd);
+      await execAsync("go mod tidy", { cwd: providerDir });
       Logger.info("✅ go mod tidy completed successfully");
     } catch (error) {
-      Logger.warn(
-        `⚠️  go mod tidy failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
+      /*
+       * Fail hard. A failed `go mod tidy` means go.mod/go.sum are inconsistent,
+       * which yields a provider that won't build. Stopping here keeps a broken
+       * module from being pushed/tagged/released by publish-terraform-provider.sh.
+       */
+      throw new Error(`go mod tidy failed:\n${formatCommandError(error)}`);
     }
 
     /*
@@ -137,14 +154,19 @@ async function main(): Promise<void> {
       "🔨 Step 12: Verifying provider compiles (current platform)...",
     );
     try {
-      const originalCwd: string = process.cwd();
-      process.chdir(providerDir);
-      await execAsync("go build -o terraform-provider-oneuptime");
+      await execAsync("go build -o terraform-provider-oneuptime", {
+        cwd: providerDir,
+      });
       Logger.info("✅ Provider compiled successfully");
-      process.chdir(originalCwd);
     } catch (error) {
-      Logger.warn(
-        `⚠️  Build failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      /*
+       * Fail hard. A non-compiling provider MUST stop the pipeline here, before
+       * publish-terraform-provider.sh pushes/tags/releases the broken code.
+       * Otherwise the failure resurfaces much later (and confusingly) as a
+       * GoReleaser cross-compile failure rather than a generation bug.
+       */
+      throw new Error(
+        `Generated provider failed to compile (go build):\n${formatCommandError(error)}`,
       );
     }
 

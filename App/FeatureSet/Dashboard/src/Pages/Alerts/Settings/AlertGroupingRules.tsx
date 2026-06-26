@@ -84,12 +84,11 @@ flowchart LR
 
 | Option | When Enabled | When Disabled |
 |--------|-------------|---------------|
-| **Group By Service** | Alerts from monitors in different services → separate episodes | Alerts can be grouped regardless of service |
 | **Group By Monitor** | Alerts from different monitors → separate episodes | Alerts from any monitor can be grouped together |
 | **Group By Severity** | Alerts with different severities → separate episodes | Alerts of any severity can be grouped together |
 | **Group By Alert Title** | Alerts with different titles → separate episodes | Alerts with any title can be grouped together |
-
-> **Note:** Monitors can be attached to Services. A Service can have multiple monitors. Group By Service is useful when you want to group all alerts from a service together regardless of which specific monitor triggered them.
+| **Group By Alert Labels** | Alerts with different sets of labels → separate episodes (exact set match) | Alert labels are ignored for grouping |
+| **Group By Monitor Labels** | Alerts whose monitors have different sets of labels → separate episodes (exact set match) | Monitor labels are ignored for grouping |
 
 #### Default Behavior
 
@@ -145,6 +144,9 @@ const AlertGroupingRulesPage: FunctionComponent<
         id="alert-grouping-rules-table"
         name="Settings > Alert Grouping Rules"
         userPreferencesKey="alert-grouping-rules-table"
+        saveFilterProps={{
+          tableId: "alert-grouping-rules-table",
+        }}
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
@@ -240,10 +242,12 @@ const AlertGroupingRulesPage: FunctionComponent<
           {
             title: "Match Criteria",
             id: "match-criteria",
+            columns: 2,
           },
           {
             title: "Group By",
             id: "group-by",
+            columns: 2,
           },
           {
             title: "Time Settings",
@@ -260,6 +264,7 @@ const AlertGroupingRulesPage: FunctionComponent<
           {
             title: "On-Call & Ownership",
             id: "on-call-ownership",
+            columns: 2,
           },
         ]}
         formFields={[
@@ -315,6 +320,9 @@ const AlertGroupingRulesPage: FunctionComponent<
             },
             title: "Monitors",
             stepId: "match-criteria",
+            sectionTitle: "Match by Attributes",
+            sectionDescription:
+              "Filter alerts by which monitor produced them and their severity/labels. Leave a filter empty to skip it.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
               type: Monitor,
@@ -322,8 +330,6 @@ const AlertGroupingRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            description:
-              "Only group alerts from these monitors. Leave empty to match alerts from any monitor.",
             placeholder: "Select Monitors (optional)",
           },
           {
@@ -339,8 +345,6 @@ const AlertGroupingRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            description:
-              "Only group alerts with these severities. Leave empty to match alerts of any severity.",
             placeholder: "Select Severities (optional)",
           },
           {
@@ -356,8 +360,6 @@ const AlertGroupingRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            description:
-              "Only group alerts that have at least one of these labels attached to them. Leave empty to match alerts regardless of alert labels.",
             placeholder: "Select Alert Labels (optional)",
           },
           {
@@ -373,8 +375,6 @@ const AlertGroupingRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            description:
-              "Only group alerts from monitors that have at least one of these labels. Leave empty to match alerts regardless of monitor labels.",
             placeholder: "Select Monitor Labels (optional)",
           },
           {
@@ -383,11 +383,12 @@ const AlertGroupingRulesPage: FunctionComponent<
             },
             title: "Alert Title Pattern",
             stepId: "match-criteria",
+            sectionTitle: "Match by Pattern",
+            sectionDescription:
+              "Case-insensitive regex matched against alert and monitor text.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "CPU.*high",
-            description:
-              "Regular expression pattern to match alert titles. Leave empty to match any title. Example: 'CPU.*high' matches titles containing 'CPU' followed by 'high'.",
           },
           {
             field: {
@@ -398,8 +399,6 @@ const AlertGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "timeout|connection refused",
-            description:
-              "Regular expression pattern to match alert descriptions. Leave empty to match any description. Example: 'timeout|connection refused' matches descriptions containing either phrase.",
           },
           {
             field: {
@@ -410,8 +409,6 @@ const AlertGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "prod-.*|api-server-.*",
-            description:
-              "Regular expression pattern to match monitor names. Leave empty to match any monitor. Example: 'prod-.*' matches monitors starting with 'prod-'.",
           },
           {
             field: {
@@ -422,21 +419,8 @@ const AlertGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "production|critical",
-            description:
-              "Regular expression pattern to match monitor descriptions. Leave empty to match any description.",
           },
           // Group By Fields
-          {
-            field: {
-              groupByService: true,
-            },
-            title: "Group By Service",
-            stepId: "group-by",
-            fieldType: FormFieldSchemaType.Checkbox,
-            required: false,
-            description:
-              "When enabled, alerts from monitors belonging to different services will be grouped into separate episodes. Monitors can be attached to services, and a service can have multiple monitors.",
-          },
           {
             field: {
               groupByMonitor: true,
@@ -469,6 +453,28 @@ const AlertGroupingRulesPage: FunctionComponent<
             required: false,
             description:
               "When enabled, alerts with different titles will be grouped into separate episodes. When disabled, alerts with any title can be grouped together.",
+          },
+          {
+            field: {
+              groupByAlertLabels: true,
+            },
+            title: "Group By Alert Labels",
+            stepId: "group-by",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "When enabled, alerts with different sets of labels will be grouped into separate episodes (exact set match). When disabled, alert labels are ignored for grouping.",
+          },
+          {
+            field: {
+              groupByMonitorLabels: true,
+            },
+            title: "Group By Monitor Labels",
+            stepId: "group-by",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "When enabled, alerts whose monitors have different sets of labels will be grouped into separate episodes (exact set match). When disabled, monitor labels are ignored for grouping.",
           },
           // Time Settings Fields
           {
@@ -680,6 +686,9 @@ const AlertGroupingRulesPage: FunctionComponent<
             },
             title: "On-Call Duty Policies",
             stepId: "on-call-ownership",
+            sectionTitle: "Policies to Execute",
+            sectionDescription:
+              "On-call policies to fire when an episode is created by this rule.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
               type: OnCallDutyPolicy,
@@ -687,9 +696,8 @@ const AlertGroupingRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            description:
-              "On-call policies to execute when an episode is created with this rule.",
             placeholder: "Select On-Call Policies",
+            spanFullRow: true,
           },
           {
             field: {
@@ -697,6 +705,9 @@ const AlertGroupingRulesPage: FunctionComponent<
             },
             title: "Default Assign To Team",
             stepId: "on-call-ownership",
+            sectionTitle: "Default Assignees",
+            sectionDescription:
+              "The team and user new episodes are assigned to by default. Both are optional.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: Team,
@@ -704,8 +715,6 @@ const AlertGroupingRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            description:
-              "Default team to assign episodes created by this rule.",
             placeholder: "Select Team",
           },
           {
@@ -721,8 +730,6 @@ const AlertGroupingRulesPage: FunctionComponent<
               );
             },
             required: false,
-            description:
-              "Default user to assign episodes created by this rule.",
             placeholder: "Select User",
           },
         ]}

@@ -1120,6 +1120,10 @@ const HomeFeatureSet: FeatureSet = {
       res.redirect("/product/workflows");
     });
 
+    app.get("/runbooks", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.redirect("/product/runbooks");
+    });
+
     app.get("/on-call", (_req: ExpressRequest, res: ExpressResponse) => {
       res.redirect("/product/on-call");
     });
@@ -1160,6 +1164,20 @@ const HomeFeatureSet: FeatureSet = {
           res.locals["homeUrl"] as string,
         );
         res.render(`${ViewsPath}/workflows`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/product/runbooks",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/runbooks",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/runbooks`, {
           enableGoogleTagManager: IsBillingEnabled,
           seo,
         });
@@ -1233,6 +1251,17 @@ const HomeFeatureSet: FeatureSet = {
       });
     });
 
+    app.get("/product/podman", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/product/podman",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/podman`, {
+        enableGoogleTagManager: IsBillingEnabled,
+        seo,
+      });
+    });
+
     app.get("/product/host", (_req: ExpressRequest, res: ExpressResponse) => {
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
         "/product/host",
@@ -1243,6 +1272,84 @@ const HomeFeatureSet: FeatureSet = {
         seo,
       });
     });
+
+    app.get(
+      "/product/proxmox",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/proxmox",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/proxmox`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/product/ai-observability",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/ai-observability",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/ai-observability`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get("/product/ceph", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/product/ceph",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/ceph`, {
+        enableGoogleTagManager: IsBillingEnabled,
+        seo,
+      });
+    });
+
+    app.get(
+      "/product/docker-swarm",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/docker-swarm",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/docker-swarm`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get("/product/iot", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/product/iot",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/iot`, {
+        enableGoogleTagManager: IsBillingEnabled,
+        seo,
+      });
+    });
+
+    app.get(
+      "/product/services",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/services",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/services`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
 
     app.get(
       "/product/profiles",
@@ -1317,6 +1424,42 @@ const HomeFeatureSet: FeatureSet = {
         });
       },
     );
+
+    app.get(
+      "/product/serverless",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/serverless",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/serverless`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get("/product/cloud", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/product/cloud",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/cloud`, {
+        enableGoogleTagManager: IsBillingEnabled,
+        seo,
+      });
+    });
+
+    app.get("/product/rum", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/product/rum",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/rum`, {
+        enableGoogleTagManager: IsBillingEnabled,
+        seo,
+      });
+    });
 
     app.get(
       "/incident-management",

@@ -189,6 +189,27 @@ function formatWithThresholds(
 ): FormattedValue {
   const absValue: number = Math.abs(value);
 
+  /*
+   * 0 is a tricky edge case for descending-threshold tables: the table
+   * always has a `threshold: 0` entry at the bottom (the smallest sub-
+   * unit — ns for seconds, B for bytes), and `0 >= 0` short-circuits the
+   * loop on that entry. The result is that a 0-value `seconds` metric
+   * renders as "0 ns" instead of "0 sec". Use the natural unit
+   * (divisor === 1) when the value is exactly 0 so the suffix matches
+   * the input scale.
+   */
+  if (absValue === 0) {
+    const natural: UnitThreshold =
+      thresholds.find((t: UnitThreshold) => {
+        return t.divisor === 1;
+      }) ?? (thresholds[thresholds.length - 1] as UnitThreshold);
+    return {
+      value: "0",
+      unit: natural.unit,
+      formatted: `0 ${natural.unit}`,
+    };
+  }
+
   for (const t of thresholds) {
     if (absValue >= t.threshold) {
       const scaled: number = value / t.divisor;
@@ -212,12 +233,56 @@ function formatWithThresholds(
   };
 }
 
+/*
+ * Abbreviates large numbers (>= 1000) with K/M/B/T/P suffixes so chart
+ * axis labels stay narrow. Counter-style metrics frequently reach into
+ * the billions and the raw digit string overflows the y-axis tick width.
+ *
+ * Always renders 2 decimal places of the scaled value, then trims trailing
+ * zeros — so neighbouring ticks like 119.20B / 119.25B remain distinct
+ * (the user can see the counter rising) while round values stay clean
+ * (5K, not 5.00K).
+ */
+function formatLargeNumber(value: number): string {
+  const absValue: number = Math.abs(value);
+  let scaled: number;
+  let suffix: string;
+
+  if (absValue >= 1e15) {
+    scaled = value / 1e15;
+    suffix = "P";
+  } else if (absValue >= 1e12) {
+    scaled = value / 1e12;
+    suffix = "T";
+  } else if (absValue >= 1e9) {
+    scaled = value / 1e9;
+    suffix = "B";
+  } else if (absValue >= 1e6) {
+    scaled = value / 1e6;
+    suffix = "M";
+  } else {
+    scaled = value / 1e3;
+    suffix = "K";
+  }
+
+  let formatted: string = scaled.toFixed(2);
+  if (formatted.includes(".")) {
+    formatted = formatted.replace(/\.?0+$/, "");
+  }
+
+  return `${formatted}${suffix}`;
+}
+
 function formatNumber(value: number): string {
   if (value === 0) {
     return "0";
   }
 
   const absValue: number = Math.abs(value);
+
+  if (absValue >= 1e3) {
+    return formatLargeNumber(value);
+  }
 
   if (absValue >= 100) {
     return Math.round(value).toString();
@@ -230,24 +295,58 @@ function formatNumber(value: number): string {
   return (Math.round(value * 100) / 100).toString();
 }
 
+/*
+ * Percent values always render with two decimal places. Trailing zeros are
+ * preserved (so 100 → "100.00", 2 → "2.00") to keep axis ticks and tooltips
+ * visually consistent across high- and low-utilization series.
+ */
+function formatPercent(value: number): string {
+  if (!Number.isFinite(value)) {
+    return "0.00";
+  }
+  return value.toFixed(2);
+}
+
 export default class ValueFormatter {
   /*
    * Format a value with a unit into a human-friendly string.
    * e.g. formatValue(1048576, "bytes") → "1 MB"
    * e.g. formatValue(3661, "seconds") → "1.02 hr"
    * e.g. formatValue(42, "%") → "42%"
+   * e.g. formatValue(0.25, "1", { metricName: "system.cpu.utilization" }) → "25%"
    */
-  public static formatValue(value: number, unit: string): string {
+  public static formatValue(
+    value: number,
+    unit: string,
+    options?: { metricName?: string },
+  ): string {
     const trimmedUnit: string = (unit || "").trim();
+
+    /*
+     * OTel/UCUM ratio metrics carry a [0, 1] fraction with unit "1". Render
+     * them as a percentage so chart axes / thresholds read 25.00% instead
+     * of 0.25. Percent values always render with two decimal places so
+     * low-utilization series (e.g. 2.04%) and exact values (e.g. 100.00%)
+     * read consistently across axis ticks and tooltips.
+     */
+    if (
+      trimmedUnit === "1" &&
+      ValueFormatter.isFractionMetric(options?.metricName)
+    ) {
+      return `${formatPercent(value * 100)}%`;
+    }
 
     // OpenTelemetry uses "1" as the dimensionless marker — render as a bare number.
     if (trimmedUnit === "" || trimmedUnit === "1") {
       return formatNumber(value);
     }
 
-    // "%" follows the conventional inline format with no separating space.
-    if (trimmedUnit === "%") {
-      return `${formatNumber(value)}%`;
+    /*
+     * "%" and its spelled-out / casual variants all render inline with no
+     * separating space — `25.00%`, never `25 Percent`.
+     */
+    if (ValueFormatter.isPercentUnit(trimmedUnit)) {
+      return `${formatPercent(value)}%`;
     }
 
     /*
@@ -296,6 +395,82 @@ export default class ValueFormatter {
     return `${formatNumber(value)} ${ValueFormatter.getReadableUnit(unit)}`;
   }
 
+  /*
+   * UCUM canonical is "%" but exporters (especially custom ones) often
+   * write "percent", "percentage", or "pct". Treat them all the same so a
+   * user adding a percent metric never sees the value rendered as
+   * "25 Percent" with a stray space.
+   */
+  public static isPercentUnit(unit: string | undefined): boolean {
+    if (!unit) {
+      return false;
+    }
+    const normalized: string = unit.trim().toLowerCase();
+    return (
+      normalized === "%" ||
+      normalized === "percent" ||
+      normalized === "percentage" ||
+      normalized === "pct"
+    );
+  }
+
+  /*
+   * Returns true when the metric name follows a convention that signals a
+   * [0, 1] ratio. Pair with unit "1" to render values as percentages.
+   *
+   * Conventions covered:
+   *   - OTel `.utilization` (system.cpu.utilization, k8s.node.cpu.utilization, …)
+   *   - OTel `.ratio` and `.fraction` (db.client.connection.usage_ratio, …)
+   *   - Prometheus-style `_utilization` / `_ratio` / `_fraction` suffixes
+   *   - Plain `_percent` / `.percent` / `_percentage` / `.percentage` names
+   *
+   * Adding a new suffix is one regex edit — no per-metric allowlist.
+   */
+  public static isFractionMetric(metricName: string | undefined): boolean {
+    if (!metricName) {
+      return false;
+    }
+    const fractionMetricSuffixRegex: RegExp =
+      /[._](utilization|ratio|fraction|percent|percentage)$/i;
+    return fractionMetricSuffixRegex.test(metricName);
+  }
+
+  /*
+   * Direction-of-goodness heuristic for trend coloring. Returns true when a
+   * rising value on this metric should be shown as bad (red ↑) and a falling
+   * value as good (green ↓) — the opposite of the default "up = good".
+   *
+   * Caller is responsible for the inversion; this method only classifies.
+   * Conservative by default: when the metric name carries no signal we
+   * return `false` so generic counters (request rate, network I/O, span
+   * count) keep the up = good colour scheme. Explicit "higher is better"
+   * tokens (uptime/availability/online/ready/healthy/available/success/
+   * passed) take precedence — without that allowlist `oneuptime.monitor.
+   * online` would match nothing and incorrectly fall through; the suffix
+   * test then catches incident counts, error rates, MTTR/MTTA, response
+   * times, CPU/memory usage, restarts, pressure, queue backlogs, etc.
+   *
+   * Adding a metric here is a single regex edit. If a dashboard widget
+   * really needs to override this for a specific case, callers can set
+   * `higherIsBetter` explicitly on the trend display.
+   */
+  public static isHigherWorseMetric(metricName: string | undefined): boolean {
+    if (!metricName) {
+      return false;
+    }
+    const lower: string = metricName.toLowerCase();
+
+    const higherIsBetter: RegExp =
+      /\b(uptime|availability|online|ready|healthy|available|success|passed|ok|alive|up)\b/;
+    if (higherIsBetter.test(lower)) {
+      return false;
+    }
+
+    const higherIsWorse: RegExp =
+      /(error|fail(?:ure|ed)?|incident|exception|crash|restart|timeout|dropped|aborted?|reject(?:ed)?|mttr|mtta|latenc(?:y|ies)|duration|[._-]time\b|time[._-]to[._-]|usage|utilization|pressure|unresolved|pending|backlog|lag|delay|saturation|throttl|stall|missed?)/;
+    return higherIsWorse.test(lower);
+  }
+
   // Check if a unit is one we can auto-scale (bytes, seconds, etc.)
   public static isScalableUnit(unit: string): boolean {
     if (!unit || unit.trim() === "") {
@@ -308,11 +483,25 @@ export default class ValueFormatter {
    * Convert a UCUM / OpenTelemetry unit code into a human-readable name.
    * e.g. "By" → "Bytes", "s" → "Seconds", "By/s" → "Bytes per Second",
    * "1" → "" (dimensionless). Falls back to the original string when unknown.
+   * When `metricName` ends in `.utilization` and the unit is "1", returns
+   * "Percent" so axis legends and badges match the formatted values.
    */
-  public static getReadableUnit(unit: string): string {
+  public static getReadableUnit(
+    unit: string,
+    options?: { metricName?: string },
+  ): string {
     const trimmed: string = (unit || "").trim();
+    if (
+      trimmed === "1" &&
+      ValueFormatter.isFractionMetric(options?.metricName)
+    ) {
+      return "Percent";
+    }
     if (trimmed === "" || trimmed === "1") {
       return "";
+    }
+    if (ValueFormatter.isPercentUnit(trimmed)) {
+      return "Percent";
     }
 
     /*

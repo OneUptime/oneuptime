@@ -64,6 +64,32 @@ app.get(
   },
 );
 
+/*
+ * Lazily serve the rendered validation-summary.md for a post (loaded on demand
+ * when the reader clicks the "Validated" badge). Registered before the static
+ * file route below so "validation-summary" is not treated as a file name.
+ */
+app.get(
+  "/blog/post/:file/validation-summary",
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    try {
+      const fileName: string = req.params["file"] as string;
+
+      const summaryHtml: string | null =
+        await BlogPostUtil.getValidationSummaryHtml(fileName);
+
+      if (!summaryHtml) {
+        return NotFoundUtil.renderNotFound(res);
+      }
+
+      return Response.sendHtmlResponse(req, res, summaryHtml);
+    } catch (e) {
+      logger.error(e);
+      return next(e);
+    }
+  },
+);
+
 app.get(
   "/blog/post/:postName/:fileName",
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
@@ -117,7 +143,9 @@ app.get(
       }
 
       const allPosts: Array<BlogPostHeader> =
-        await BlogPostUtil.getBlogPostList(tagName);
+        await BlogPostUtil.getBlogPostList(tagName, {
+          includeContributors: true,
+        });
       const totalPosts: number = allPosts.length;
       const totalPages: number = Math.ceil(totalPosts / pageSize) || 1;
       if (page > totalPages) {
@@ -179,7 +207,9 @@ app.get(
       }
 
       const allPosts: Array<BlogPostHeader> =
-        await BlogPostUtil.getBlogPostList();
+        await BlogPostUtil.getBlogPostList(undefined, {
+          includeContributors: true,
+        });
       const totalPosts: number = allPosts.length;
       const totalPages: number = Math.ceil(totalPosts / pageSize) || 1;
       if (page > totalPages) {

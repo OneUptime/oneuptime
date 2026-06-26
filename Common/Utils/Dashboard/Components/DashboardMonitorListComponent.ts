@@ -14,6 +14,7 @@ import {
   MonitorTypeProps,
 } from "../../../Types/Monitor/MonitorType";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
+import { getViewModeArgument } from "./DashboardListSharedArgs";
 
 const DisplaySection: ComponentArgumentSection = {
   name: "Display Options",
@@ -89,6 +90,10 @@ export default class DashboardMonitorListComponentUtil extends DashboardBaseComp
       placeholder: "25",
       section: DisplaySection,
     });
+
+    componentArguments.push(
+      getViewModeArgument<DashboardMonitorListComponent>(DisplaySection),
+    );
 
     componentArguments.push({
       name: "Operational Status",

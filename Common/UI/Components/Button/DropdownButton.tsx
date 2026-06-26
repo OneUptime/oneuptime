@@ -1,3 +1,4 @@
+import useTranslateValue from "../../Utils/Translation";
 import React, { ReactElement, useState } from "react";
 
 interface DropdownOption {
@@ -22,6 +23,7 @@ const DropdownButton: React.FC<DropdownButtonProps> = ({
   dropdownOptions,
   onButtonClick,
 }: ComponentProps): ReactElement => {
+  const { translateString } = useTranslateValue();
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleDropdown: VoidFunction = () => {
@@ -35,7 +37,7 @@ const DropdownButton: React.FC<DropdownButtonProps> = ({
         className="relative inline-flex items-center rounded-l-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10"
         onClick={onButtonClick}
       >
-        {title}
+        {translateString(title) ?? title}
       </button>
       <div className="relative -ml-px block">
         <button
@@ -78,7 +80,7 @@ const DropdownButton: React.FC<DropdownButtonProps> = ({
                     role="menuitem"
                     onClick={option.onClick}
                   >
-                    {option.label}
+                    {translateString(option.label) ?? option.label}
                   </a>
                 );
               })}

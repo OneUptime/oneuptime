@@ -46,6 +46,7 @@ export interface ResourceLatestMetric {
   name: string;
   cpuPercent: number | null;
   memoryBytes: number | null;
+  memoryPercent: number | null;
   observedAt: Date;
   /*
    * Optional Pod controller lineage. Read from
@@ -447,7 +448,7 @@ export class Service extends DatabaseService<Model> {
 
       for (const m of chunk) {
         valueFragments.push(
-          `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}::numeric, $${paramIndex++}::bigint, $${paramIndex++}::timestamptz, $${paramIndex++}, $${paramIndex++})`,
+          `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}::numeric, $${paramIndex++}::bigint, $${paramIndex++}::numeric, $${paramIndex++}::timestamptz, $${paramIndex++}, $${paramIndex++})`,
         );
         params.push(
           m.kind,
@@ -458,6 +459,9 @@ export class Service extends DatabaseService<Model> {
             : null,
           m.memoryBytes !== null && m.memoryBytes !== undefined
             ? Math.trunc(m.memoryBytes).toString()
+            : null,
+          m.memoryPercent !== null && m.memoryPercent !== undefined
+            ? m.memoryPercent
             : null,
           m.observedAt,
           m.controllerDeploymentName ?? null,
@@ -470,12 +474,13 @@ export class Service extends DatabaseService<Model> {
         SET
           "latestCpuPercent" = COALESCE(v."cpu", k."latestCpuPercent"),
           "latestMemoryBytes" = COALESCE(v."mem", k."latestMemoryBytes"),
+          "latestMemoryPercent" = COALESCE(v."memPct", k."latestMemoryPercent"),
           "metricsUpdatedAt" = v."observedAt",
           "controllerDeploymentName" = COALESCE(v."deployName", k."controllerDeploymentName"),
           "controllerCronJobName" = COALESCE(v."cronName", k."controllerCronJobName"),
           "updatedAt" = now()
         FROM (VALUES ${valueFragments.join(", ")})
-          AS v("kind", "ns", "name", "cpu", "mem", "observedAt", "deployName", "cronName")
+          AS v("kind", "ns", "name", "cpu", "mem", "memPct", "observedAt", "deployName", "cronName")
         WHERE
           k."projectId" = $1
           AND k."kubernetesClusterId" = $2
@@ -744,15 +749,22 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     kubernetesClusterId: ObjectID;
     staleAfter: Date;
-  }): Promise<Map<string, { cpuPercent: number; memoryBytes: number }>> {
+  }): Promise<
+    Map<
+      string,
+      { cpuPercent: number; memoryBytes: number; memoryPercent: number }
+    >
+  > {
     const rows: Array<{
       namespaceKey: string;
       cpu: string | null;
       mem: string | null;
+      memPct: string | null;
     }> = await this.getRepository().manager.query(
       `SELECT "namespaceKey",
               SUM("latestCpuPercent")::text AS cpu,
-              SUM("latestMemoryBytes")::text AS mem
+              SUM("latestMemoryBytes")::text AS mem,
+              SUM("latestMemoryPercent")::text AS "memPct"
        FROM "KubernetesResource"
        WHERE "projectId" = $1
          AND "kubernetesClusterId" = $2
@@ -768,12 +780,15 @@ export class Service extends DatabaseService<Model> {
       ],
     );
 
-    const out: Map<string, { cpuPercent: number; memoryBytes: number }> =
-      new Map();
+    const out: Map<
+      string,
+      { cpuPercent: number; memoryBytes: number; memoryPercent: number }
+    > = new Map();
     for (const row of rows) {
       out.set(row.namespaceKey || "", {
         cpuPercent: row.cpu ? parseFloat(row.cpu) || 0 : 0,
         memoryBytes: row.mem ? parseInt(row.mem, 10) || 0 : 0,
+        memoryPercent: row.memPct ? parseFloat(row.memPct) || 0 : 0,
       });
     }
     return out;
@@ -800,11 +815,17 @@ export class Service extends DatabaseService<Model> {
     kubernetesClusterId: ObjectID;
     ownerKind: string;
     staleAfter: Date;
-  }): Promise<Map<string, { cpuPercent: number; memoryBytes: number }>> {
+  }): Promise<
+    Map<
+      string,
+      { cpuPercent: number; memoryBytes: number; memoryPercent: number }
+    >
+  > {
     let rows: Array<{
       ownerName: string;
       cpu: string | null;
       mem: string | null;
+      memPct: string | null;
     }>;
 
     if (data.ownerKind === "Deployment" || data.ownerKind === "CronJob") {
@@ -816,7 +837,8 @@ export class Service extends DatabaseService<Model> {
         `SELECT
            "${column}" AS "ownerName",
            SUM("latestCpuPercent")::text AS cpu,
-           SUM("latestMemoryBytes")::text AS mem
+           SUM("latestMemoryBytes")::text AS mem,
+           SUM("latestMemoryPercent")::text AS "memPct"
          FROM "KubernetesResource"
          WHERE "projectId" = $1
            AND "kubernetesClusterId" = $2
@@ -837,7 +859,8 @@ export class Service extends DatabaseService<Model> {
         `SELECT
            (owner->>'name') AS "ownerName",
            SUM("latestCpuPercent")::text AS cpu,
-           SUM("latestMemoryBytes")::text AS mem
+           SUM("latestMemoryBytes")::text AS mem,
+           SUM("latestMemoryPercent")::text AS "memPct"
          FROM "KubernetesResource",
               jsonb_array_elements("ownerReferences"->'items') AS owner
          WHERE "projectId" = $1
@@ -858,8 +881,10 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    const out: Map<string, { cpuPercent: number; memoryBytes: number }> =
-      new Map();
+    const out: Map<
+      string,
+      { cpuPercent: number; memoryBytes: number; memoryPercent: number }
+    > = new Map();
     for (const row of rows) {
       if (!row.ownerName) {
         continue;
@@ -867,6 +892,7 @@ export class Service extends DatabaseService<Model> {
       out.set(row.ownerName, {
         cpuPercent: row.cpu ? parseFloat(row.cpu) || 0 : 0,
         memoryBytes: row.mem ? parseInt(row.mem, 10) || 0 : 0,
+        memoryPercent: row.memPct ? parseFloat(row.memPct) || 0 : 0,
       });
     }
     return out;

@@ -1,6 +1,7 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertElement from "./Alert";
+import AppLink from "../AppLink/AppLink";
 import { Black } from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -11,14 +12,29 @@ import {
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
+import Search from "Common/Types/BaseDatabase/Search";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
+import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
-import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorElement from "../Monitor/Monitor";
+import buildAffectedResourcesFacet from "../AffectedResources/buildAffectedResourcesFacet";
+import OwnersCell from "../ResourceOwners/OwnersCell";
+import useResourceOwners, {
+  ResourceFacet,
+  buildEntityFacetQuery,
+} from "../ResourceOwners/useResourceOwners";
+import {
+  FilterChipDropdownOption,
+  FilterOperator,
+} from "../ResourceOwners/FilterChipDropdown";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -30,7 +46,7 @@ import PageMap from "../../Utils/PageMap";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
-import MonitorElement from "../Monitor/Monitor";
+import AffectedResourcesCell from "../AffectedResources/AffectedResourcesCell";
 import {
   BulkActionButtonSchema,
   BulkActionFailed,
@@ -38,6 +54,7 @@ import {
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import API from "Common/UI/Utils/API/API";
@@ -72,6 +89,247 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Alert>({ modelType: Alert });
+
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<Alert>({
+      ownerUserModelType: AlertOwnerUser,
+      ownerTeamModelType: AlertOwnerTeam,
+      resourceIdField: "alertId",
+    });
+
+  const alertExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "currentAlertState",
+      label: "State",
+      icon: IconProp.Flag,
+      isMultiSelect: true,
+      searchPlaceholder: "Search states...",
+      loadOptions: async (
+        projectId: ObjectID,
+        searchTerm: string,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        const query: Query<AlertState> = {
+          projectId: projectId,
+        } as Query<AlertState>;
+        if (searchTerm.trim()) {
+          (query as unknown as Record<string, unknown>)["name"] = new Search(
+            searchTerm.trim(),
+          );
+        }
+        const result: ListResult<AlertState> =
+          await ModelAPI.getList<AlertState>({
+            modelType: AlertState,
+            query: query,
+            limit: 50,
+            skip: 0,
+            select: { _id: true, name: true, order: true, color: true },
+            sort: { order: SortOrder.Ascending },
+          });
+        return result.data.map((s: AlertState) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
+          };
+        });
+      },
+      resolveOptions: async (
+        projectId: ObjectID,
+        values: Array<string>,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        if (values.length === 0) {
+          return [];
+        }
+        const result: ListResult<AlertState> =
+          await ModelAPI.getList<AlertState>({
+            modelType: AlertState,
+            query: {
+              projectId: projectId,
+              _id: new Includes(values),
+            } as Query<AlertState>,
+            limit: values.length,
+            skip: 0,
+            select: { _id: true, name: true, color: true },
+            sort: {},
+          });
+        return result.data.map((s: AlertState) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
+          };
+        });
+      },
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEntityFacetQuery(values, operator, true);
+      },
+    },
+    {
+      key: "alertSeverity",
+      label: "Severity",
+      icon: IconProp.Fire,
+      isMultiSelect: true,
+      searchPlaceholder: "Search severities...",
+      loadOptions: async (
+        projectId: ObjectID,
+        searchTerm: string,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        const query: Query<AlertSeverity> = {
+          projectId: projectId,
+        } as Query<AlertSeverity>;
+        if (searchTerm.trim()) {
+          (query as unknown as Record<string, unknown>)["name"] = new Search(
+            searchTerm.trim(),
+          );
+        }
+        const result: ListResult<AlertSeverity> =
+          await ModelAPI.getList<AlertSeverity>({
+            modelType: AlertSeverity,
+            query: query,
+            limit: 50,
+            skip: 0,
+            select: { _id: true, name: true, order: true, color: true },
+            sort: { order: SortOrder.Ascending },
+          });
+        return result.data.map((s: AlertSeverity) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
+          };
+        });
+      },
+      resolveOptions: async (
+        projectId: ObjectID,
+        values: Array<string>,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        if (values.length === 0) {
+          return [];
+        }
+        const result: ListResult<AlertSeverity> =
+          await ModelAPI.getList<AlertSeverity>({
+            modelType: AlertSeverity,
+            query: {
+              projectId: projectId,
+              _id: new Includes(values),
+            } as Query<AlertSeverity>,
+            limit: values.length,
+            skip: 0,
+            select: { _id: true, name: true, color: true },
+            sort: {},
+          });
+        return result.data.map((s: AlertSeverity) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
+          };
+        });
+      },
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEntityFacetQuery(values, operator, true);
+      },
+    },
+    {
+      key: "monitor",
+      // Alert.monitor is M2O — filter against the FK column directly.
+      queryField: "monitorId",
+      label: "Monitor",
+      icon: IconProp.AltGlobe,
+      isMultiSelect: true,
+      searchPlaceholder: "Search monitors...",
+      loadOptions: async (
+        projectId: ObjectID,
+        searchTerm: string,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        const query: Query<Monitor> = {
+          projectId: projectId,
+        } as Query<Monitor>;
+        if (searchTerm.trim()) {
+          (query as unknown as Record<string, unknown>)["name"] = new Search(
+            searchTerm.trim(),
+          );
+        }
+        const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
+          modelType: Monitor,
+          query: query,
+          limit: 50,
+          skip: 0,
+          select: { _id: true, name: true },
+          sort: { name: SortOrder.Ascending },
+        });
+        return result.data.map((m: Monitor): FilterChipDropdownOption => {
+          return {
+            value: m.id?.toString() || "",
+            label: m.name?.toString() || "",
+            icon: IconProp.AltGlobe,
+          };
+        });
+      },
+      resolveOptions: async (
+        projectId: ObjectID,
+        values: Array<string>,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        if (values.length === 0) {
+          return [];
+        }
+        const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
+          modelType: Monitor,
+          query: {
+            projectId: projectId,
+            _id: new Includes(values),
+          } as Query<Monitor>,
+          limit: values.length,
+          skip: 0,
+          select: { _id: true, name: true },
+          sort: {},
+        });
+        return result.data.map((m: Monitor): FilterChipDropdownOption => {
+          return {
+            value: m.id?.toString() || "",
+            label: m.name?.toString() || "",
+            icon: IconProp.AltGlobe,
+          };
+        });
+      },
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEntityFacetQuery(values, operator, true);
+      },
+    },
+    buildAffectedResourcesFacet<Alert>({
+      parentModelType: Alert,
+      // Alert's monitor relation is M2O — query against the FK column.
+      monitorQueryField: "monitorId",
+      // Monitor has its own dedicated facet above; keep it out of this one.
+      excludeMonitor: true,
+    }),
+  ];
+
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<Alert>({
+    persistKey: props.saveFilterProps?.tableId,
+    ownerUserModelType: AlertOwnerUser,
+    ownerTeamModelType: AlertOwnerTeam,
+    resourceIdField: "alertId",
+    showLabelsFacet: true,
+    extraFacets: alertExtraFacets,
+  });
 
   // Fetch alert states on mount
   useEffect(() => {
@@ -247,6 +505,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           buttons: [
             getBulkChangeStateAction(),
             ...labelBulkActions,
+            ...ownerBulkActions,
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
@@ -257,7 +516,13 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         id="alerts-table"
         isDeleteable={false}
         showCreateForm={Object.keys(initialValuesForAlert).length > 0}
-        query={props.query || {}}
+        topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery(props.query)}
+        onFetchSuccess={(data: Array<Alert>) => {
+          onResourcesFetched(data);
+        }}
         isEditable={false}
         isCreateable={false}
         isViewable={true}
@@ -274,6 +539,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         }}
         noItemsMessage={props.noItemsMessage || "No alerts found."}
         showRefreshButton={true}
+        searchableFields={["title", "description"]}
         showViewIdButton={true}
         saveFilterProps={props.saveFilterProps}
         viewPageRoute={RouteUtil.populateRouteParams(RouteMap[PageMap.ALERTS]!)}
@@ -301,89 +567,42 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              alertSeverity: {
-                name: true,
-              },
-            },
-            title: "Severity",
-            type: FieldType.Entity,
-
-            filterEntityType: AlertSeverity,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              currentAlertState: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "State",
-            type: FieldType.Entity,
-
-            filterEntityType: AlertState,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              monitor: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-            },
-            title: "Monitor Affected",
-            type: FieldType.EntityArray,
-
-            filterEntityType: Monitor,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
               createdAt: true,
             },
             title: "Created",
             type: FieldType.Date,
           },
-          {
-            field: {
-              labels: {
-                name: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
         ]}
         selectMoreFields={{
           alertNumberWithPrefix: true,
+          isPrivate: true,
+          /*
+           * The Affected Resources column lists several M2M relations under one
+           * `field` block, but BaseModelTable only auto-selects the FIRST key
+           * of each column.field. Include the remaining relations explicitly
+           * so all attached resources actually load.
+           */
+          kubernetesClusters: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+          dockerHosts: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+          podmanHosts: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+          services: {
+            name: true,
+            _id: true,
+            projectId: true,
+            serviceColor: true,
+          },
         }}
         columns={[
           {
@@ -397,8 +616,38 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 return <>-</>;
               }
 
+              const numberLabel: string =
+                item.alertNumberWithPrefix || `#${item.alertNumber}`;
+
+              const numberContent: ReactElement = item._id ? (
+                <AppLink
+                  className="hover:underline"
+                  to={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.ALERT_VIEW] as Route,
+                    {
+                      modelId: new ObjectID(item._id as string),
+                    },
+                  )}
+                >
+                  <span>{numberLabel}</span>
+                </AppLink>
+              ) : (
+                <span>{numberLabel}</span>
+              );
+
               return (
-                <>{item.alertNumberWithPrefix || `#${item.alertNumber}`}</>
+                <span className="inline-flex items-center">
+                  {numberContent}
+                  {item.isPrivate === true && (
+                    <span
+                      title="Private alert — visible only to its owners, project admins, and project owners"
+                      className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200 align-middle"
+                    >
+                      <Icon icon={IconProp.Lock} className="w-3 h-3" />
+                      Private
+                    </span>
+                  )}
+                </span>
               );
             },
           },
@@ -469,14 +718,57 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 projectId: true,
               },
             },
-            title: "Monitor Affected",
+            title: "Monitor",
+            type: FieldType.Entity,
+            getElement: (item: Alert): ReactElement => {
+              if (!item.monitor) {
+                return <></>;
+              }
+              return <MonitorElement monitor={item.monitor} showIcon={true} />;
+            },
+          },
+          {
+            field: {
+              hosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              kubernetesClusters: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              dockerHosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              podmanHosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              services: {
+                name: true,
+                _id: true,
+                projectId: true,
+                serviceColor: true,
+              },
+            },
+            title: "Affected Resources",
             type: FieldType.EntityArray,
 
             getElement: (item: Alert): ReactElement => {
-              if (item["monitor"]) {
-                return <MonitorElement monitor={item["monitor"]!} />;
-              }
-              return <span>-</span>;
+              return (
+                <AffectedResourcesCell
+                  hosts={item.hosts || []}
+                  kubernetesClusters={item.kubernetesClusters || []}
+                  dockerHosts={item.dockerHosts || []}
+                  podmanHosts={item.podmanHosts || []}
+                  services={item.services || []}
+                />
+              );
             },
           },
           {
@@ -502,6 +794,22 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
               return <LabelsElement labels={item["labels"] || []} />;
             },
           },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Alert): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
+          },
         ]}
       />
 
@@ -517,6 +825,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
       )}
 
       {labelBulkActionModals}
+      {ownerBulkActionModals}
 
       {showBulkStateChangeModal && (
         <BasicFormModal

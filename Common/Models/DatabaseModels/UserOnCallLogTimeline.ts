@@ -16,13 +16,16 @@ import UserPush from "./UserPush";
 import UserOnCallLog from "./UserOnCallLog";
 import UserSMS from "./UserSMS";
 import UserTelegram from "./UserTelegram";
+import UserWebhook from "./UserWebhook";
 import UserWhatsApp from "./UserWhatsApp";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -45,6 +48,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   delete: PlanType.Growth,
 })
 @EnableDocumentation()
+@CanAccessIfCanReadOn("onCallDutyPolicy")
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [],
@@ -53,6 +57,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   update: [],
 })
 @CrudApiEndpoint(new Route("/user-notification-log-timeline"))
+@OwnedThrough("onCallDutyPolicyId", OnCallDutyPolicy)
 @Entity({
   name: "UserOnCallLogTimeline",
 })
@@ -1027,6 +1032,53 @@ export default class UserOnCallLogTimeline extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public userTelegramId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "userWebhookId",
+    type: TableColumnType.Entity,
+    modelType: UserWebhook,
+    title: "User Webhook",
+    description:
+      "Relation to User Webhook Resource in which this object belongs",
+  })
+  @ManyToOne(
+    () => {
+      return UserWebhook;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userWebhookId" })
+  public userWebhook?: UserWebhook = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "User Webhook ID",
+    description: "ID of User Webhook in which this object belongs",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userWebhookId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

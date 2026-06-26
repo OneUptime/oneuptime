@@ -48,7 +48,7 @@ function App(): ReactElement {
   return (
     <div className="m-auto flex min-h-screen flex-col">
       <Suspense fallback={<PageLoader isVisible={true} />}>
-        <div className="flex-grow">
+        <div className="flex flex-grow flex-col justify-center">
           <Routes>
             <Route path="/accounts" element={<LoginPage />} />
             <Route path="/accounts/login" element={<LoginPage />} />

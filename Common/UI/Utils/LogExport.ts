@@ -42,7 +42,7 @@ function getLogFieldValue(log: Log, columnId: string): string {
     case "time":
       return log.time ? new Date(log.time).toISOString() : "";
     case "service":
-      return log.serviceId?.toString() || "";
+      return log.primaryEntityId?.toString() || "";
     case "severity":
       return log.severityText?.toString() || "";
     case "message":
@@ -104,7 +104,7 @@ export function exportLogsToJSON(logs: Array<Log>): string {
   const data: Array<JSONObject> = logs.map((log: Log) => {
     const obj: JSONObject = {};
     obj["time"] = log.time ? new Date(log.time).toISOString() : null;
-    obj["serviceId"] = log.serviceId?.toString() || null;
+    obj["primaryEntityId"] = log.primaryEntityId?.toString() || null;
     obj["severity"] = log.severityText?.toString() || null;
     obj["severityNumber"] = log.severityNumber || null;
     obj["body"] = log.body || null;

@@ -4,7 +4,9 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
@@ -20,6 +22,7 @@ import TableBillingAccessControl from "../../Types/Database/AccessControl/TableB
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 
 @EnableDocumentation()
+@CanAccessIfCanReadOn("onCallDutyPolicy")
 @TableBillingAccessControl({
   create: PlanType.Growth,
   read: PlanType.Growth,
@@ -32,7 +35,8 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.OnCallManager,
+    Permission.OnCallAdmin,
+    Permission.OnCallMember,
     Permission.CreateOnCallDutyPolicyUserOverride,
   ],
   read: [
@@ -40,26 +44,30 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.OnCallManager,
+    Permission.OnCallAdmin,
+    Permission.OnCallMember,
+    Permission.OnCallViewer,
     Permission.ReadOnCallDutyPolicyUserOverride,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.OnCallManager,
+    Permission.OnCallAdmin,
+    Permission.OnCallMember,
     Permission.DeleteOnCallDutyPolicyUserOverride,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.OnCallManager,
+    Permission.OnCallAdmin,
+    Permission.OnCallMember,
     Permission.EditOnCallDutyPolicyUserOverride,
   ],
 })
 @CrudApiEndpoint(new Route("/on-call-duty-policy-user-override"))
+@OwnedThrough("onCallDutyPolicyId", OnCallDutyPolicy)
 @Entity({
   name: "OnCallDutyPolicyUserOverride",
 })
@@ -77,7 +85,8 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyUserOverride,
     ],
     read: [
@@ -85,9 +94,10 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyUserOverride,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -117,7 +127,8 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyUserOverride,
     ],
     read: [
@@ -125,9 +136,10 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyUserOverride,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -157,7 +169,8 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyUserOverride,
     ],
     read: [
@@ -165,9 +178,10 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyUserOverride,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -198,7 +212,8 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyUserOverride,
     ],
     read: [
@@ -206,9 +221,10 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyUserOverride,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -233,7 +249,8 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyUserOverride,
     ],
     read: [
@@ -241,9 +258,10 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyUserOverride,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -274,7 +292,8 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyUserOverride,
     ],
     read: [
@@ -282,9 +301,10 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyUserOverride,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -306,7 +326,8 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyUserOverride,
     ],
     read: [
@@ -314,9 +335,10 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyUserOverride,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -347,7 +369,8 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyUserOverride,
     ],
     read: [
@@ -355,9 +378,10 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyUserOverride,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -380,7 +404,8 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyUserOverride,
     ],
     read: [
@@ -388,9 +413,10 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyUserOverride,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -421,7 +447,8 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyUserOverride,
     ],
     read: [
@@ -429,9 +456,10 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyUserOverride,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -460,7 +488,8 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyUserOverride,
     ],
     read: [
@@ -468,9 +497,10 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyUserOverride,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -491,7 +521,8 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyUserOverride,
     ],
     read: [
@@ -499,9 +530,10 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyUserOverride,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

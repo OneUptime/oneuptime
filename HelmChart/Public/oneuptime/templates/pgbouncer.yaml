@@ -1,0 +1,232 @@
+{{- if .Values.pgbouncer.enabled }}
+{{- if and (eq .Values.pgbouncer.poolMode "transaction") (not .Values.migrate.enabled) }}
+{{- fail "pgbouncer.poolMode=transaction requires migrate.enabled=true: in transaction mode the data-migration session advisory lock breaks unless migrations run in the dedicated Job instead of on the runtime pods. Set migrate.enabled=true, or use poolMode=session." }}
+{{- end }}
+{{- $isExternal := and (not .Values.postgresql.enabled) (not .Values.postgresOperator.cnpg.enabled) }}
+{{- $externalSsl := and $isExternal .Values.externalPostgres.ssl.enabled }}
+# =============================================================================
+# PgBouncer connection pooler (opt-in: pgbouncer.enabled).
+#
+# Sits between the OneUptime app/worker/ingress pods and PostgreSQL and
+# multiplexes their per-process node-postgres pools onto a smaller set of
+# server connections. Fronts WHICHEVER Postgres backend is active — the
+# built-in StatefulSet, the CloudNativePG operator, or an externalPostgres
+# (managed RDS / Cloud SQL / Neon / Azure). Runs in SESSION pool mode by
+# default, which is safe for everything OneUptime does, including the boot-time
+# schema migrations and the session-level advisory lock the data-migration
+# runner relies on. See HelmChart/Docs/Postgres.md for the rationale and for
+# why transaction mode would need the migration path moved off the pooler.
+# =============================================================================
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-pgbouncer-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-pgbouncer
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: pgbouncer
+    appname: oneuptime
+data:
+  pgbouncer.ini: |-
+    [databases]
+    # Fallback entry: forward every database the client requests to the active
+    # backend, taking the server password from the userlist for the user.
+    * = host={{ include "oneuptime.postgres.backendHost" . }} port={{ include "oneuptime.postgres.backendPort" . }}
+
+    [pgbouncer]
+    listen_addr = 0.0.0.0
+    listen_port = {{ .Values.pgbouncer.service.port | int }}
+    unix_socket_dir = /tmp
+    # The app -> pgbouncer hop is in-cluster; authenticate it against the
+    # userlist materialized at startup from the backend credentials.
+    auth_type = plain
+    auth_file = /tmp/userlist.txt
+    pool_mode = {{ .Values.pgbouncer.poolMode }}
+    max_client_conn = {{ .Values.pgbouncer.maxClientConn | int }}
+    default_pool_size = {{ .Values.pgbouncer.defaultPoolSize | int }}
+    min_pool_size = {{ .Values.pgbouncer.minPoolSize | int }}
+    {{- if gt (int .Values.pgbouncer.maxDbConnections) 0 }}
+    max_db_connections = {{ .Values.pgbouncer.maxDbConnections | int }}
+    {{- end }}
+    server_idle_timeout = {{ .Values.pgbouncer.serverIdleTimeoutSeconds | int }}
+    # node-postgres sends statement_timeout / idle_in_transaction_session_timeout
+    # (and idle_session_timeout via `options`) as startup parameters. pgbouncer
+    # rejects any startup parameter it does not track with a FATAL error and
+    # closes the connection, so every one the app sends MUST be listed here.
+    # These are accepted-and-ignored (not forwarded to the backend) — see the
+    # ignoreStartupParameters note in values.yaml.
+    ignore_startup_parameters = {{ .Values.pgbouncer.ignoreStartupParameters }}
+    {{- if $externalSsl }}
+    # TLS from pgbouncer to the managed/external backend.
+    server_tls_sslmode = {{ .Values.pgbouncer.serverTls.sslmode | default "require" }}
+    {{- if .Values.externalPostgres.ssl.ca }}
+    server_tls_ca_file = /etc/pgbouncer/tls/server-ca.crt
+    {{- end }}
+    {{- else if .Values.pgbouncer.serverTls.sslmode }}
+    server_tls_sslmode = {{ .Values.pgbouncer.serverTls.sslmode }}
+    {{- end }}
+    admin_users = {{ include "oneuptime.postgres.backendUser" . }}
+    stats_users = {{ include "oneuptime.postgres.backendUser" . }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-pgbouncer
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-pgbouncer
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: pgbouncer
+    appname: oneuptime
+spec:
+  replicas: {{ .Values.pgbouncer.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-pgbouncer
+      app.kubernetes.io/component: pgbouncer
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-pgbouncer
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: pgbouncer
+        appname: oneuptime
+      annotations:
+        # Roll the pods when the rendered pgbouncer.ini (its inputs) changes.
+        checksum/config: {{ printf "%s|%s|%s|%s" (toYaml .Values.pgbouncer) (include "oneuptime.postgres.backendHost" .) (include "oneuptime.postgres.backendPort" .) (include "oneuptime.postgres.backendUser" .) | sha256sum }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.pgbouncer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.pgbouncer.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.pgbouncer.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.pgbouncer.podSecurityContext }}
+      {{- with .Values.pgbouncer.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- else if .Values.podSecurityContext }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+      containers:
+      - name: pgbouncer
+        image: "{{ .Values.pgbouncer.image.repository }}:{{ .Values.pgbouncer.image.tag }}"
+        imagePullPolicy: {{ .Values.pgbouncer.image.pullPolicy }}
+        {{- if .Values.pgbouncer.containerSecurityContext }}
+        securityContext:
+          {{- with .Values.pgbouncer.containerSecurityContext }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+        {{- else if .Values.containerSecurityContext }}
+        securityContext:
+          {{- with .Values.containerSecurityContext }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+        {{- end }}
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -eu
+            # Materialize the userlist from the injected backend credentials.
+            # Kept out of the read-only ConfigMap mount and off any image layer.
+            umask 077
+            printf '"%s" "%s"\n' "$PGB_DB_USER" "$PGB_DB_PASSWORD" > /tmp/userlist.txt
+            exec pgbouncer /etc/pgbouncer/pgbouncer.ini
+        env:
+        - name: PGB_DB_USER
+          value: {{ include "oneuptime.postgres.backendUser" . | quote }}
+        {{- include "oneuptime.postgres.backendPasswordEnv" . | nindent 8 }}
+        ports:
+        - name: pgbouncer
+          containerPort: {{ .Values.pgbouncer.service.port | int }}
+          protocol: TCP
+        livenessProbe:
+          tcpSocket:
+            port: pgbouncer
+          initialDelaySeconds: 15
+          timeoutSeconds: 5
+          periodSeconds: 10
+          failureThreshold: 5
+        readinessProbe:
+          tcpSocket:
+            port: pgbouncer
+          initialDelaySeconds: 5
+          timeoutSeconds: 3
+          periodSeconds: 10
+          failureThreshold: 5
+        {{- with .Values.pgbouncer.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: config
+          mountPath: /etc/pgbouncer
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        {{- if and $externalSsl .Values.externalPostgres.ssl.ca }}
+        - name: server-tls
+          mountPath: /etc/pgbouncer/tls
+          readOnly: true
+        {{- end }}
+      volumes:
+      - name: config
+        configMap:
+          name: {{ .Release.Name }}-pgbouncer-config
+      - name: tmp
+        emptyDir: {}
+      {{- if and $externalSsl .Values.externalPostgres.ssl.ca }}
+      - name: server-tls
+        secret:
+          secretName: {{ printf "%s-external-postgres" .Release.Name }}
+          items:
+          - key: ssl-ca
+            path: server-ca.crt
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-pgbouncer
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-pgbouncer
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: pgbouncer
+    appname: oneuptime
+spec:
+  type: {{ .Values.pgbouncer.service.type | default "ClusterIP" }}
+  ports:
+  - port: {{ .Values.pgbouncer.service.port | int }}
+    targetPort: pgbouncer
+    protocol: TCP
+    name: pgbouncer
+  selector:
+    app: {{ .Release.Name }}-pgbouncer
+    app.kubernetes.io/component: pgbouncer
+---
+
+# PgBouncer PodDisruptionBudget
+{{- include "oneuptime.pdb" (dict "ServiceName" "pgbouncer" "Override" .Values.pgbouncer.podDisruptionBudget "Release" .Release "Values" .Values) }}
+{{- end }}

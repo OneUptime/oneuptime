@@ -8,7 +8,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                </svg>
             </div>
-            <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Resource</span>
+            <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider"><%= t('pages.model.badge') %></span>
          </div>
          <h1 class="font-bold text-3xl text-slate-900 tracking-tight mb-3">
             <%= pageData.title -%>
@@ -19,52 +19,54 @@
       </div>
 
       <h2 id="the-contact-model" class="scroll-mt-24 text-xl font-semibold text-slate-900 mb-6 mt-12">
-         The <%= pageData.title -%> Model
+         <%= t('pages.model.modelHeading', { title: pageData.title }) %>
       </h2>
 
       <script>
+         var __viewPermsLabel = <%- JSON.stringify(t('pages.model.viewPermissions')) %>;
+         var __hidePermsLabel = <%- JSON.stringify(t('pages.model.hidePermissions')) %>;
          function showPermissions(id) {
             var permissionsblock = document.getElementById(id + "-permissions");
             var viewPermissionsBtn = document.getElementById(id + "-view-permissions");
 
             if (permissionsblock.style.display === "none") {
                permissionsblock.style.display = "block";
-               viewPermissionsBtn.innerHTML = "Hide Permissions";
+               viewPermissionsBtn.innerHTML = __hidePermsLabel;
             } else {
                permissionsblock.style.display = "none";
-               viewPermissionsBtn.innerHTML = "View Permissions";
+               viewPermissionsBtn.innerHTML = __viewPermsLabel;
             }
          }
       </script>
 
-      <h3 class="text-base font-semibold text-slate-800 mb-4">Properties</h3>
+      <h3 class="text-base font-semibold text-slate-800 mb-4"><%= t('pages.model.properties') %></h3>
       <div class="my-6 rounded-xl border border-slate-200 bg-white overflow-hidden">
          <ul role="list" class="m-0 w-full list-none divide-y divide-slate-100 p-0">
             <% for(var i=0; i<Object.keys(pageData.columns).length; i++) {%>
                <li class="m-0 px-5 py-4 hover:bg-slate-50/50 transition-colors">
                   <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                     <dt class="sr-only">Name</dt>
+                     <dt class="sr-only"><%= t('ui.srName') %></dt>
                      <dd><code class="model-inline-code"><%= Object.keys(pageData.columns)[i] -%></code></dd>
-                     <dt class="sr-only">Type</dt>
+                     <dt class="sr-only"><%= t('ui.srType') %></dt>
                      <dd class="font-mono text-xs text-slate-500">
                         <% if(pageData.columns[Object.keys(pageData.columns)[i]].modelDocumentationPath) { %>
-                           <a href="/reference/<%= pageData.columns[Object.keys(pageData.columns)[i]].modelDocumentationPath -%>" class="text-indigo-600 hover:text-indigo-700 hover:underline font-medium"><%= pageData.columns[Object.keys(pageData.columns)[i]].modelName -%></a>
+                           <a href="/reference/<%= lang %>/<%= pageData.columns[Object.keys(pageData.columns)[i]].modelDocumentationPath -%>" class="text-indigo-600 hover:text-indigo-700 hover:underline font-medium"><%= pageData.columns[Object.keys(pageData.columns)[i]].modelName -%></a>
                         <% } else if(pageData.columns[Object.keys(pageData.columns)[i]].typeDocumentationPath) { %>
-                           <a href="/reference/<%= pageData.columns[Object.keys(pageData.columns)[i]].typeDocumentationPath -%>" class="text-indigo-600 hover:text-indigo-700 hover:underline font-medium"><%= pageData.columns[Object.keys(pageData.columns)[i]].type -%></a>
+                           <a href="/reference/<%= lang %>/<%= pageData.columns[Object.keys(pageData.columns)[i]].typeDocumentationPath -%>" class="text-indigo-600 hover:text-indigo-700 hover:underline font-medium"><%= pageData.columns[Object.keys(pageData.columns)[i]].type -%></a>
                         <% } else { %>
                            <%= pageData.columns[Object.keys(pageData.columns)[i]].type -%>
                         <% } %>
                         <% if(pageData.columns[Object.keys(pageData.columns)[i]].required){ %>
-                           <span class="ml-1.5 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">Required</span>
+                           <span class="ml-1.5 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20"><%= t('ui.required') %></span>
                         <% } %>
                      </dd>
-                     <dt class="sr-only">Description</dt>
+                     <dt class="sr-only"><%= t('ui.srDescription') %></dt>
                      <dd class="w-full flex-none text-sm [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                         <p class="text-slate-600">
                            <%= pageData.columns[Object.keys(pageData.columns)[i]].description -%>
                            <button class="text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer text-xs font-medium ml-1"
                                  id="<%= Object.keys(pageData.columns)[i] -%>-view-permissions"
-                                 onclick="showPermissions('<%= Object.keys(pageData.columns)[i] -%>')">View Permissions</button>
+                                 onclick="showPermissions('<%= Object.keys(pageData.columns)[i] -%>')"><%= t('pages.model.viewPermissions') %></button>
                         </p>
                      </dd>
 
@@ -72,47 +74,47 @@
                         id="<%= Object.keys(pageData.columns)[i] -%>-permissions">
                         <div class="space-y-3">
                            <div class="flex flex-wrap items-center gap-2">
-                              <span class="text-slate-700 text-xs font-medium min-w-[100px]">Create:</span>
+                              <span class="text-slate-700 text-xs font-medium min-w-[100px]"><%= t('pages.model.createLabel') %></span>
                               <% for(var j=0; j < pageData.columns[Object.keys(pageData.columns)[i]].permissions.create.length; j++) {%>
                                  <span class="inline-flex items-center rounded-md bg-white px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200">
                                     <%= pageData.columns[Object.keys(pageData.columns)[i]].permissions.create[j] -%>
                                  </span>
                                  <% if(j !== pageData.columns[Object.keys(pageData.columns)[i]].permissions.create.length-1){ %>
-                                    <span class="text-slate-400 text-xs">or</span>
+                                    <span class="text-slate-400 text-xs"><%= t('ui.or') %></span>
                                  <% } %>
                               <% } %>
                               <% if(pageData.columns[Object.keys(pageData.columns)[i]].permissions.create.length===0){ %>
-                                 <span class="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-xs font-medium text-rose-600 ring-1 ring-inset ring-rose-200">Autogenerated</span>
+                                 <span class="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-xs font-medium text-rose-600 ring-1 ring-inset ring-rose-200"><%= t('pages.model.autogenerated') %></span>
                               <% } %>
                            </div>
 
                            <div class="flex flex-wrap items-center gap-2">
-                              <span class="text-slate-700 text-xs font-medium min-w-[100px]">Read:</span>
+                              <span class="text-slate-700 text-xs font-medium min-w-[100px]"><%= t('pages.model.readLabel') %></span>
                               <% for(var j=0; j < pageData.columns[Object.keys(pageData.columns)[i]].permissions.read.length; j++) {%>
                                  <span class="inline-flex items-center rounded-md bg-white px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200">
                                     <%= pageData.columns[Object.keys(pageData.columns)[i]].permissions.read[j] -%>
                                  </span>
                                  <% if(j !== pageData.columns[Object.keys(pageData.columns)[i]].permissions.read.length-1){ %>
-                                    <span class="text-slate-400 text-xs">or</span>
+                                    <span class="text-slate-400 text-xs"><%= t('ui.or') %></span>
                                  <% } %>
                               <% } %>
                               <% if(pageData.columns[Object.keys(pageData.columns)[i]].permissions.read.length===0){ %>
-                                 <span class="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-xs font-medium text-rose-600 ring-1 ring-inset ring-rose-200">Cannot read</span>
+                                 <span class="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-xs font-medium text-rose-600 ring-1 ring-inset ring-rose-200"><%= t('pages.model.cannotRead') %></span>
                               <% } %>
                            </div>
 
                            <div class="flex flex-wrap items-center gap-2">
-                              <span class="text-slate-700 text-xs font-medium min-w-[100px]">Update:</span>
+                              <span class="text-slate-700 text-xs font-medium min-w-[100px]"><%= t('pages.model.updateLabel') %></span>
                               <% for(var j=0; j < pageData.columns[Object.keys(pageData.columns)[i]].permissions.update.length; j++) {%>
                                  <span class="inline-flex items-center rounded-md bg-white px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200">
                                     <%= pageData.columns[Object.keys(pageData.columns)[i]].permissions.update[j] -%>
                                  </span>
                                  <% if(j !== pageData.columns[Object.keys(pageData.columns)[i]].permissions.update.length-1){ %>
-                                    <span class="text-slate-400 text-xs">or</span>
+                                    <span class="text-slate-400 text-xs"><%= t('ui.or') %></span>
                                  <% } %>
                               <% } %>
                               <% if(pageData.columns[Object.keys(pageData.columns)[i]].permissions.update.length===0){ %>
-                                 <span class="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-xs font-medium text-rose-600 ring-1 ring-inset ring-rose-200">Cannot update</span>
+                                 <span class="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-xs font-medium text-rose-600 ring-1 ring-inset ring-rose-200"><%= t('pages.model.cannotUpdate') %></span>
                               <% } %>
                            </div>
                         </div>
@@ -128,72 +130,72 @@
          <div class="border-t border-slate-200 pt-10">
             <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
                <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-emerald-300 bg-emerald-400/10 text-emerald-600">GET</span>
-               <span class="font-mono text-xs text-slate-400">or</span>
+               <span class="font-mono text-xs text-slate-400"><%= t('ui.or') %></span>
                <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600">POST</span>
                <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
                <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%>/get-list</code>
             </div>
-            <h2 id="list-all-contacts" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">List</h2>
+            <h2 id="list-all-contacts" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32"><%= t('pages.model.listHeading') %></h2>
 
             <div class="space-y-8">
                <div>
-                  <p class="text-slate-600 leading-relaxed">This endpoint allows you to retrieve a paginated list of all your <%= pageData.title -%>. By default, a maximum of ten <%= pageData.title -%> are shown per page.</p>
-                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3">Optional Query Params</h3>
+                  <p class="text-slate-600 leading-relaxed"><%= t('pages.model.listIntro', { title: pageData.title }) %></p>
+                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3"><%= t('pages.model.optionalQueryParams') %></h3>
                   <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
                      <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">Limit</dt>
                               <dd><code class="inline-code">limit</code></dd>
-                              <dt class="sr-only">Type</dt>
+                              <dt class="sr-only"><%= t('ui.srType') %></dt>
                               <dd class="font-mono text-xs text-slate-500">number</dd>
-                              <dt class="sr-only">Description</dt>
-                              <dd class="w-full flex-none text-sm text-slate-600">Number of objects to fetch. By default 10, you can increase this count up to 100</dd>
+                              <dt class="sr-only"><%= t('ui.srDescription') %></dt>
+                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.limitDescription') %></dd>
                            </dl>
                         </li>
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">Skip</dt>
                               <dd><code class="inline-code">skip</code></dd>
-                              <dt class="sr-only">Type</dt>
+                              <dt class="sr-only"><%= t('ui.srType') %></dt>
                               <dd class="font-mono text-xs text-slate-500">number</dd>
-                              <dt class="sr-only">Description</dt>
-                              <dd class="w-full flex-none text-sm text-slate-600">Number of objects to skip. This can be useful in pagination</dd>
+                              <dt class="sr-only"><%= t('ui.srDescription') %></dt>
+                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.skipDescription') %></dd>
                            </dl>
                         </li>
                      </ul>
                   </div>
-                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3">Optional Request Body</h3>
+                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3"><%= t('pages.model.optionalRequestBody') %></h3>
                   <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
                      <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">Query</dt>
                               <dd><code class="inline-code">query</code></dd>
-                              <dt class="sr-only">Type</dt>
+                              <dt class="sr-only"><%= t('ui.srType') %></dt>
                               <dd class="font-mono text-xs text-slate-500">query</dd>
-                              <dt class="sr-only">Description</dt>
-                              <dd class="w-full flex-none text-sm text-slate-600">If you would like to filter on <%= pageData.title -%>. You can specify include a query here. For more information, <a class="text-indigo-600 hover:text-indigo-700 font-medium" target="_blank" href="/reference/data-types#queries">please check out writing queries here.</a></dd>
+                              <dt class="sr-only"><%= t('ui.srDescription') %></dt>
+                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.queryFilterDescription', { title: pageData.title }) %> <a class="text-indigo-600 hover:text-indigo-700 font-medium" target="_blank" href="/reference/<%= lang %>/data-types#queries"><%= t('pages.model.checkQueriesLink') %></a></dd>
                            </dl>
                         </li>
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">Select</dt>
                               <dd><code class="inline-code">select</code></dd>
-                              <dt class="sr-only">Type</dt>
+                              <dt class="sr-only"><%= t('ui.srType') %></dt>
                               <dd class="font-mono text-xs text-slate-500">select</dd>
-                              <dt class="sr-only">Description</dt>
-                              <dd class="w-full flex-none text-sm text-slate-600">By default you will only retrieve ID of objects, to retrieve more fields you need to select them. For more information, <a class="text-indigo-600 hover:text-indigo-700 font-medium" target="_blank" href="/reference/data-types#select">please check how to select here.</a></dd>
+                              <dt class="sr-only"><%= t('ui.srDescription') %></dt>
+                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.selectFieldsDescription') %> <a class="text-indigo-600 hover:text-indigo-700 font-medium" target="_blank" href="/reference/<%= lang %>/data-types#select"><%= t('pages.model.checkSelectLink') %></a></dd>
                            </dl>
                         </li>
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">Sort</dt>
                               <dd><code class="inline-code">sort</code></dd>
-                              <dt class="sr-only">Type</dt>
+                              <dt class="sr-only"><%= t('ui.srType') %></dt>
                               <dd class="font-mono text-xs text-slate-500">sort</dd>
-                              <dt class="sr-only">Description</dt>
-                              <dd class="w-full flex-none text-sm text-slate-600">Objects will be sorted based on created date by default. You can change the sort order by passing <a class="text-indigo-600 hover:text-indigo-700 font-medium" target="_blank" href="/reference/data-types#select">please check how to select here.</a></dd>
+                              <dt class="sr-only"><%= t('ui.srDescription') %></dt>
+                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.sortDescription') %> <a class="text-indigo-600 hover:text-indigo-700 font-medium" target="_blank" href="/reference/<%= lang %>/data-types#select"><%= t('pages.model.checkSelectLink') %></a></dd>
                            </dl>
                         </li>
                      </ul>
@@ -202,7 +204,7 @@
 
                <div class="w-full">
                   <%- include('../partials/code-tabs', {
-                     title: "List Request",
+                     title: t('pages.model.listRequestTitle'),
                      requestUrl: pageData.apiPath + "/get-list?skip=0&limit=10",
                      requestType: "POST",
                      codeExamples: pageData.codeExamples.list
@@ -216,7 +218,7 @@
                       data: pageData.exampleObjects.simpleListResponseExample
                   }, null, 4);
                   %>
-                  <%- include('../partials/code', {title: "Response" , code: listResponseCode, requestType: "", requestUrl: "" }) -%>
+                  <%- include('../partials/code', {title: t('pages.model.responseTitle'), code: listResponseCode, requestType: "", requestUrl: "" }) -%>
                </div>
             </div>
          </div>
@@ -226,42 +228,42 @@
          <div class="border-t border-slate-200 pt-10">
             <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
                <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-emerald-300 bg-emerald-400/10 text-emerald-600">GET</span>
-               <span class="font-mono text-xs text-slate-400">or</span>
+               <span class="font-mono text-xs text-slate-400"><%= t('ui.or') %></span>
                <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600">POST</span>
                <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
                <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%>/:id/get-item</code>
             </div>
-            <h2 id="get-item-by-id" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Get item by ID</h2>
+            <h2 id="get-item-by-id" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32"><%= t('pages.model.getItemHeading') %></h2>
 
             <div class="space-y-8">
                <div>
-                  <p class="text-slate-600 leading-relaxed">This endpoint allows you to retrieve <%= pageData.title -%> by ID.</p>
-                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3">Required Query Params</h3>
+                  <p class="text-slate-600 leading-relaxed"><%= t('pages.model.getItemIntro', { title: pageData.title }) %></p>
+                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3"><%= t('pages.model.requiredQueryParams') %></h3>
                   <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
                      <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">ID</dt>
                               <dd><code class="inline-code">id</code></dd>
-                              <dt class="sr-only">Type</dt>
+                              <dt class="sr-only"><%= t('ui.srType') %></dt>
                               <dd class="font-mono text-xs text-slate-500">text</dd>
-                              <dt class="sr-only">Description</dt>
-                              <dd class="w-full flex-none text-sm text-slate-600">ID of the Object</dd>
+                              <dt class="sr-only"><%= t('ui.srDescription') %></dt>
+                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.idDescription') %></dd>
                            </dl>
                         </li>
                      </ul>
                   </div>
-                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3">Optional Request Body</h3>
+                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3"><%= t('pages.model.optionalRequestBody') %></h3>
                   <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
                      <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">Select</dt>
                               <dd><code class="inline-code">select</code></dd>
-                              <dt class="sr-only">Type</dt>
+                              <dt class="sr-only"><%= t('ui.srType') %></dt>
                               <dd class="font-mono text-xs text-slate-500">select</dd>
-                              <dt class="sr-only">Description</dt>
-                              <dd class="w-full flex-none text-sm text-slate-600">By default you will only retrieve ID of objects, to retrieve more fields you need to select them. For more information, <a class="text-indigo-600 hover:text-indigo-700 font-medium" target="_blank" href="/reference/data-types#select">please check how to select here.</a></dd>
+                              <dt class="sr-only"><%= t('ui.srDescription') %></dt>
+                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.selectFieldsDescription') %> <a class="text-indigo-600 hover:text-indigo-700 font-medium" target="_blank" href="/reference/<%= lang %>/data-types#select"><%= t('pages.model.checkSelectLink') %></a></dd>
                            </dl>
                         </li>
                      </ul>
@@ -270,14 +272,14 @@
 
                <div class="w-full">
                   <%- include('../partials/code-tabs', {
-                     title: "Get Item Request",
+                     title: t('pages.model.getItemRequestTitle'),
                      requestUrl: pageData.apiPath + "/:id/get-item",
                      requestType: "POST",
                      codeExamples: pageData.codeExamples.getItem
                   }) -%>
 
                   <% const itemResponseCode = JSON.stringify(pageData.exampleObjects.simpleResponseExample, null, 4); %>
-                  <%- include('../partials/code', {title: "Response" , code: itemResponseCode, requestType: "", requestUrl: "" }) -%>
+                  <%- include('../partials/code', {title: t('pages.model.responseTitle'), code: itemResponseCode, requestType: "", requestUrl: "" }) -%>
                </div>
             </div>
          </div>
@@ -293,22 +295,22 @@
                <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
                <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%>/count</code>
             </div>
-            <h2 id="count" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Count</h2>
+            <h2 id="count" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32"><%= t('pages.model.countHeading') %></h2>
 
             <div class="space-y-8">
                <div>
-                  <p class="text-slate-600 leading-relaxed">This endpoint allows you to retrieve the count of all your <%= pageData.title -%>.</p>
-                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3">Optional Request Body</h3>
+                  <p class="text-slate-600 leading-relaxed"><%= t('pages.model.countIntro', { title: pageData.title }) %></p>
+                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3"><%= t('pages.model.optionalRequestBody') %></h3>
                   <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
                      <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">Query</dt>
                               <dd><code class="inline-code">query</code></dd>
-                              <dt class="sr-only">Type</dt>
+                              <dt class="sr-only"><%= t('ui.srType') %></dt>
                               <dd class="font-mono text-xs text-slate-500">query</dd>
-                              <dt class="sr-only">Description</dt>
-                              <dd class="w-full flex-none text-sm text-slate-600">If you would like to filter on <%= pageData.title -%>. You can specify include a query here. For more information, <a class="text-indigo-600 hover:text-indigo-700 font-medium" target="_blank" href="/reference/data-types#queries">please check out writing queries here.</a></dd>
+                              <dt class="sr-only"><%= t('ui.srDescription') %></dt>
+                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.queryFilterDescription', { title: pageData.title }) %> <a class="text-indigo-600 hover:text-indigo-700 font-medium" target="_blank" href="/reference/<%= lang %>/data-types#queries"><%= t('pages.model.checkQueriesLink') %></a></dd>
                            </dl>
                         </li>
                      </ul>
@@ -317,18 +319,74 @@
 
                <div class="w-full">
                   <%- include('../partials/code-tabs', {
-                     title: "Count Request",
+                     title: t('pages.model.countRequestTitle'),
                      requestUrl: pageData.apiPath + "/count",
                      requestType: "POST",
                      codeExamples: pageData.codeExamples.count
                   }) -%>
 
                   <% const countResponseCode = JSON.stringify({ count: 107 }, null, 4); %>
-                  <%- include('../partials/code', {title: "Response" , code: countResponseCode, requestType: "", requestUrl: "" }) -%>
+                  <%- include('../partials/code', {title: t('pages.model.responseTitle'), code: countResponseCode, requestType: "", requestUrl: "" }) -%>
                </div>
             </div>
          </div>
       </div>
+
+
+      <% if(pageData.showAggregate){ %>
+      <div class="mt-12">
+         <div class="border-t border-slate-200 pt-10">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
+               <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-emerald-300 bg-emerald-400/10 text-emerald-600">GET</span>
+               <span class="font-mono text-xs text-slate-400"><%= t('ui.or') %></span>
+               <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600">POST</span>
+               <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
+               <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%>/aggregate</code>
+            </div>
+            <h2 id="aggregate" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32"><%= t('pages.model.aggregateHeading') %></h2>
+
+            <div class="space-y-8">
+               <div>
+                  <p class="text-slate-600 leading-relaxed"><%= t('pages.model.aggregateIntro', { title: pageData.title }) %></p>
+                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3"><%= t('pages.model.requestBody') %></h3>
+                  <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
+                     <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
+                        <li class="m-0 px-4 py-3">
+                           <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                              <dt class="sr-only">aggregateBy</dt>
+                              <dd><code class="inline-code">aggregateBy</code></dd>
+                              <dt class="sr-only"><%= t('ui.srType') %></dt>
+                              <dd class="font-mono text-xs text-slate-500">JSON</dd>
+                              <dt class="sr-only"><%= t('ui.srDescription') %></dt>
+                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.aggregateByDescription') %></dd>
+                           </dl>
+                        </li>
+                     </ul>
+                  </div>
+               </div>
+
+               <div class="w-full">
+                  <%- include('../partials/code-tabs', {
+                     title: t('pages.model.aggregateRequestTitle'),
+                     requestUrl: pageData.apiPath + "/aggregate",
+                     requestType: "POST",
+                     codeExamples: pageData.codeExamples.aggregate
+                  }) -%>
+
+                  <%
+                  const aggregateResponseCode = JSON.stringify({
+                      data: [
+                          { timestamp: "2024-01-15T00:00:00.000Z", value: 42 },
+                          { timestamp: "2024-01-15T01:00:00.000Z", value: 57 }
+                      ]
+                  }, null, 4);
+                  %>
+                  <%- include('../partials/code', {title: t('pages.model.responseTitle'), code: aggregateResponseCode, requestType: "", requestUrl: "" }) -%>
+               </div>
+            </div>
+         </div>
+      </div>
+      <% } %>
 
 
       <% if(pageData.tablePermissions.create && pageData.tablePermissions.create.length > 0) { %>
@@ -339,22 +397,22 @@
                <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
                <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%></code>
             </div>
-            <h2 id="create" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Create <%= pageData.title -%></h2>
+            <h2 id="create" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32"><%= t('pages.model.createHeading', { title: pageData.title }) %></h2>
 
             <div class="space-y-8">
                <div>
-                  <p class="text-slate-600 leading-relaxed">This endpoint allows you to create a new object.</p>
-                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3">Request Body</h3>
+                  <p class="text-slate-600 leading-relaxed"><%= t('pages.model.createIntro') %></p>
+                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3"><%= t('pages.model.requestBody') %></h3>
                   <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
                      <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">Data</dt>
                               <dd><code class="inline-code">data</code></dd>
-                              <dt class="sr-only">Type</dt>
+                              <dt class="sr-only"><%= t('ui.srType') %></dt>
                               <dd class="font-mono text-xs text-slate-500">JSON</dd>
-                              <dt class="sr-only">Description</dt>
-                              <dd class="w-full flex-none text-sm text-slate-600">Object to create as JSON</dd>
+                              <dt class="sr-only"><%= t('ui.srDescription') %></dt>
+                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.createDataDescription') %></dd>
                            </dl>
                         </li>
                      </ul>
@@ -363,14 +421,14 @@
 
                <div class="w-full">
                   <%- include('../partials/code-tabs', {
-                     title: "Create Request",
+                     title: t('pages.model.createRequestTitle'),
                      requestUrl: pageData.apiPath,
                      requestType: "POST",
                      codeExamples: pageData.codeExamples.create
                   }) -%>
 
                   <% const createResponseCode = JSON.stringify(pageData.exampleObjects.simpleResponseExample, null, 4); %>
-                  <%- include('../partials/code', {title: "Response" , code: createResponseCode, requestType: "", requestUrl: "" }) -%>
+                  <%- include('../partials/code', {title: t('pages.model.responseTitle'), code: createResponseCode, requestType: "", requestUrl: "" }) -%>
                </div>
             </div>
          </div>
@@ -387,29 +445,29 @@
                <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
                <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%>/:id</code>
             </div>
-            <h2 id="update" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Update by ID</h2>
+            <h2 id="update" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32"><%= t('pages.model.updateHeading') %></h2>
 
             <div class="space-y-8">
                <div>
-                  <p class="text-slate-600 leading-relaxed">This endpoint allows you to update object by its ID.</p>
-                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3">Request Body</h3>
+                  <p class="text-slate-600 leading-relaxed"><%= t('pages.model.updateIntro') %></p>
+                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3"><%= t('pages.model.requestBody') %></h3>
                   <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
                      <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">Data</dt>
                               <dd><code class="inline-code">data</code></dd>
-                              <dt class="sr-only">Type</dt>
+                              <dt class="sr-only"><%= t('ui.srType') %></dt>
                               <dd class="font-mono text-xs text-slate-500">JSON</dd>
-                              <dt class="sr-only">Description</dt>
-                              <dd class="w-full flex-none text-sm text-slate-600">Object to update as JSON</dd>
+                              <dt class="sr-only"><%= t('ui.srDescription') %></dt>
+                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.updateDataDescription') %></dd>
                            </dl>
                         </li>
                      </ul>
                   </div>
                   <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5 mt-6">
-                     <h4 class="font-semibold text-slate-800 text-sm mb-2">Alternative Methods</h4>
-                     <p class="text-slate-600 text-sm mb-4">For clients that do not support PUT requests, you can use POST or GET with the same request headers and body:</p>
+                     <h4 class="font-semibold text-slate-800 text-sm mb-2"><%= t('pages.model.alternativeMethods') %></h4>
+                     <p class="text-slate-600 text-sm mb-4"><%= t('pages.model.alternativeMethodsBodyUpdate') %></p>
                      <div class="space-y-2">
                         <div class="flex flex-wrap items-center gap-2 sm:gap-x-3">
                            <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600 flex-shrink-0">POST</span>
@@ -425,14 +483,14 @@
 
                <div class="w-full">
                   <%- include('../partials/code-tabs', {
-                     title: "Update Request",
+                     title: t('pages.model.updateRequestTitle'),
                      requestUrl: pageData.apiPath + "/:id",
                      requestType: "PUT",
                      codeExamples: pageData.codeExamples.update
                   }) -%>
 
                   <% const updateResponseCode = JSON.stringify({}, null, 4); %>
-                  <%- include('../partials/code', {title: "Response" , code: updateResponseCode, requestType: "", requestUrl: "" }) -%>
+                  <%- include('../partials/code', {title: t('pages.model.responseTitle'), code: updateResponseCode, requestType: "", requestUrl: "" }) -%>
                </div>
             </div>
          </div>
@@ -447,14 +505,14 @@
                <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
                <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%>/:id</code>
             </div>
-            <h2 id="delete" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Delete by ID</h2>
+            <h2 id="delete" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32"><%= t('pages.model.deleteHeading') %></h2>
 
             <div class="space-y-8">
                <div>
-                  <p class="text-slate-600 leading-relaxed">This endpoint allows you to delete object by its ID.</p>
+                  <p class="text-slate-600 leading-relaxed"><%= t('pages.model.deleteIntro') %></p>
                   <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5 mt-6">
-                     <h4 class="font-semibold text-slate-800 text-sm mb-2">Alternative Methods</h4>
-                     <p class="text-slate-600 text-sm mb-4">For clients that do not support DELETE requests, you can use POST or GET with the same request headers and body:</p>
+                     <h4 class="font-semibold text-slate-800 text-sm mb-2"><%= t('pages.model.alternativeMethods') %></h4>
+                     <p class="text-slate-600 text-sm mb-4"><%= t('pages.model.alternativeMethodsBodyDelete') %></p>
                      <div class="space-y-2">
                         <div class="flex flex-wrap items-center gap-2 sm:gap-x-3">
                            <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600 flex-shrink-0">POST</span>
@@ -470,14 +528,14 @@
 
                <div class="w-full">
                   <%- include('../partials/code-tabs', {
-                     title: "Delete Request",
+                     title: t('pages.model.deleteRequestTitle'),
                      requestUrl: pageData.apiPath + "/:id",
                      requestType: "DELETE",
                      codeExamples: pageData.codeExamples.delete
                   }) -%>
 
                   <% const deleteResponseCode = JSON.stringify({}, null, 4); %>
-                  <%- include('../partials/code', {title: "Response" , code: deleteResponseCode, requestType: "", requestUrl: "" }) -%>
+                  <%- include('../partials/code', {title: t('pages.model.responseTitle'), code: deleteResponseCode, requestType: "", requestUrl: "" }) -%>
                </div>
             </div>
          </div>
@@ -485,17 +543,17 @@
       <% } %>
 
       <div class="mt-12 border-t border-slate-200 pt-10">
-         <h2 class="text-xl font-semibold text-slate-900 mb-4">Permissions</h2>
+         <h2 class="text-xl font-semibold text-slate-900 mb-4"><%= t('pages.model.permissionsHeading') %></h2>
 
          <% if(!pageData.isMasterAdminApiDocs){ %>
-            <p class="text-slate-600 leading-relaxed mb-8">Your API Token needs permissions to create, update, read or delete this resource. If you do not have permissions to make a request a <code class="inline-code">4xx</code> status will be sent as response.</p>
+            <p class="text-slate-600 leading-relaxed mb-8"><%- t('pages.model.permissionsIntro') %></p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                <!-- Read Permissions -->
                <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
                   <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
-                     <h3 class="text-sm font-semibold text-slate-800">Read Permissions</h3>
-                     <p class="text-xs text-slate-500 mt-0.5">Required to read <%= pageData.title -%></p>
+                     <h3 class="text-sm font-semibold text-slate-800"><%= t('pages.model.readPermissions') %></h3>
+                     <p class="text-xs text-slate-500 mt-0.5"><%= t('pages.model.readPermissionsBody', { title: pageData.title }) %></p>
                   </div>
                   <% if(pageData.tablePermissions.read.length === 0) { %>
                      <div class="px-4 py-4">
@@ -503,7 +561,7 @@
                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
                            </svg>
-                           <span class="text-sm">This resource cannot be read via the API</span>
+                           <span class="text-sm"><%= t('pages.model.cannotReadResource') %></span>
                         </div>
                      </div>
                   <% } else { %>
@@ -524,8 +582,8 @@
                <!-- Create Permissions -->
                <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
                   <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
-                     <h3 class="text-sm font-semibold text-slate-800">Create Permissions</h3>
-                     <p class="text-xs text-slate-500 mt-0.5">Required to create <%= pageData.title -%></p>
+                     <h3 class="text-sm font-semibold text-slate-800"><%= t('pages.model.createPermissions') %></h3>
+                     <p class="text-xs text-slate-500 mt-0.5"><%= t('pages.model.createPermissionsBody', { title: pageData.title }) %></p>
                   </div>
                   <% if(pageData.tablePermissions.create.length === 0) { %>
                      <div class="px-4 py-4">
@@ -533,7 +591,7 @@
                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
                            </svg>
-                           <span class="text-sm">This resource cannot be created via the API</span>
+                           <span class="text-sm"><%= t('pages.model.cannotCreateResource') %></span>
                         </div>
                      </div>
                   <% } else { %>
@@ -554,8 +612,8 @@
                <!-- Update Permissions -->
                <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
                   <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
-                     <h3 class="text-sm font-semibold text-slate-800">Update Permissions</h3>
-                     <p class="text-xs text-slate-500 mt-0.5">Required to update <%= pageData.title -%></p>
+                     <h3 class="text-sm font-semibold text-slate-800"><%= t('pages.model.updatePermissions') %></h3>
+                     <p class="text-xs text-slate-500 mt-0.5"><%= t('pages.model.updatePermissionsBody', { title: pageData.title }) %></p>
                   </div>
                   <% if(pageData.tablePermissions.update.length === 0) { %>
                      <div class="px-4 py-4">
@@ -563,7 +621,7 @@
                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
                            </svg>
-                           <span class="text-sm">This resource cannot be updated via the API</span>
+                           <span class="text-sm"><%= t('pages.model.cannotUpdateResource') %></span>
                         </div>
                      </div>
                   <% } else { %>
@@ -584,8 +642,8 @@
                <!-- Delete Permissions -->
                <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
                   <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
-                     <h3 class="text-sm font-semibold text-slate-800">Delete Permissions</h3>
-                     <p class="text-xs text-slate-500 mt-0.5">Required to delete <%= pageData.title -%></p>
+                     <h3 class="text-sm font-semibold text-slate-800"><%= t('pages.model.deletePermissions') %></h3>
+                     <p class="text-xs text-slate-500 mt-0.5"><%= t('pages.model.deletePermissionsBody', { title: pageData.title }) %></p>
                   </div>
                   <% if(pageData.tablePermissions.delete.length === 0) { %>
                      <div class="px-4 py-4">
@@ -593,7 +651,7 @@
                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
                            </svg>
-                           <span class="text-sm">This resource cannot be deleted via the API</span>
+                           <span class="text-sm"><%= t('pages.model.cannotDeleteResource') %></span>
                         </div>
                      </div>
                   <% } else { %>
@@ -622,8 +680,8 @@
                      </svg>
                   </div>
                   <div>
-                     <h4 class="text-sm font-semibold text-amber-800 mb-1">Master Admin API Only</h4>
-                     <p class="text-sm text-amber-700">This API can only be accessed through a Master API Token. You can create one on the Admin Dashboard. Please add the token to the <code class="inline-code">ApiKey</code> header to make the request.</p>
+                     <h4 class="text-sm font-semibold text-amber-800 mb-1"><%= t('pages.model.masterAdminOnlyTitle') %></h4>
+                     <p class="text-sm text-amber-700"><%- t('pages.model.masterAdminOnlyBody') %></p>
                   </div>
                </div>
             </div>

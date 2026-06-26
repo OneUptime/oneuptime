@@ -41,7 +41,12 @@ const Image: FunctionComponent<ComponentProps> = (
           props.onClick?.();
         }}
         data-testid={props["data-testid"]}
-        alt={props.alt}
+        /*
+         * Always render an alt attribute so the <img> is never missing it
+         * (WCAG 1.1.1). Callers should pass a descriptive alt for meaningful
+         * images (e.g. avatars); an empty string marks the image decorative.
+         */
+        alt={props.alt ?? ""}
         src={url}
         height={props.height}
         className={props.className}

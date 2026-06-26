@@ -12,13 +12,16 @@ import {
   ActiveFilter,
   FacetConfig,
   FacetData,
-  FacetValue,
   HistogramBucket,
   HistogramSeriesOption,
   SearchHelpRow,
 } from "Common/UI/Components/TelemetryViewer/types";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import Service from "Common/Models/DatabaseModels/Service";
+import Host from "Common/Models/DatabaseModels/Host";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import ModelAPI, {
   ListResult as ModelListResult,
 } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -73,6 +76,8 @@ async function postApi(
   return response;
 }
 
+const POSITIVE_INT_REGEX: RegExp = /^\d+$/;
+
 function computeBucketSizeInMinutes(startTime: Date, endTime: Date): number {
   const totalMs: number = endTime.getTime() - startTime.getTime();
   const targetBuckets: number = 40;
@@ -100,36 +105,177 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
 
 const FIELD_ALIAS_MAP: Record<string, string> = {
   type: "exceptionType",
-  service: "serviceId",
+  service: "primaryEntityId",
   env: "environment",
 };
 
 export type ExceptionStatus = "unresolved" | "resolved" | "archived" | "all";
 
+const EXCEPTION_STATUS_VALUES: ReadonlyArray<ExceptionStatus> = [
+  "unresolved",
+  "resolved",
+  "archived",
+  "all",
+];
+
+interface InitialUrlState {
+  search: string;
+  filters: Array<ActiveFilter>;
+  timeRange: RangeStartAndEndDateTime;
+  page: number;
+  pageSize: number;
+  status: ExceptionStatus | null;
+}
+
+/*
+ * Parse filter state from `window.location.search` on first mount so refresh
+ * + back-from-exception-detail restore the view rather than resetting it.
+ * Defensive: malformed/unknown values fall back to defaults.
+ */
+function readInitialUrlState(): InitialUrlState {
+  const params: URLSearchParams = new URLSearchParams(window.location.search);
+
+  const rawSearch: string | null = params.get("search");
+  let search: string = "";
+  if (rawSearch) {
+    try {
+      search = decodeURIComponent(rawSearch);
+    } catch {
+      search = rawSearch;
+    }
+  }
+
+  let filters: Array<ActiveFilter> = [];
+  const filtersRaw: string | null = params.get("filters");
+  if (filtersRaw) {
+    try {
+      const parsed: unknown = JSON.parse(filtersRaw);
+      if (Array.isArray(parsed)) {
+        filters = (parsed as Array<unknown>)
+          .filter((pair: unknown): pair is [string, string] => {
+            return (
+              Array.isArray(pair) &&
+              pair.length === 2 &&
+              typeof pair[0] === "string" &&
+              typeof pair[1] === "string"
+            );
+          })
+          .map(([facetKey, value]: [string, string]): ActiveFilter => {
+            return {
+              facetKey,
+              value,
+              displayKey: facetKey,
+              displayValue: value,
+            };
+          });
+      }
+    } catch {
+      // malformed JSON → ignore
+    }
+  }
+
+  let timeRange: RangeStartAndEndDateTime = { range: TimeRange.PAST_ONE_DAY };
+  const rangeRaw: string | null = params.get("range");
+  if (rangeRaw) {
+    const knownRanges: Array<string> = Object.values(TimeRange);
+    if (knownRanges.includes(rangeRaw)) {
+      const matched: TimeRange = rangeRaw as TimeRange;
+      if (matched === TimeRange.CUSTOM) {
+        const startStr: string | null = params.get("start");
+        const endStr: string | null = params.get("end");
+        if (startStr && endStr) {
+          const startDate: Date = new Date(startStr);
+          const endDate: Date = new Date(endStr);
+          if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+            timeRange = {
+              range: matched,
+              startAndEndDate: new InBetween<Date>(startDate, endDate),
+            };
+          }
+        }
+      } else {
+        timeRange = { range: matched };
+      }
+    }
+  }
+
+  const pageRaw: string | null = params.get("page");
+  const page: number =
+    pageRaw && POSITIVE_INT_REGEX.test(pageRaw)
+      ? Math.max(1, parseInt(pageRaw, 10))
+      : 1;
+  const pageSizeRaw: string | null = params.get("pageSize");
+  const pageSize: number =
+    pageSizeRaw && POSITIVE_INT_REGEX.test(pageSizeRaw)
+      ? Math.max(1, parseInt(pageSizeRaw, 10))
+      : DEFAULT_PAGE_SIZE;
+
+  const statusRaw: string | null = params.get("status");
+  const status: ExceptionStatus | null =
+    statusRaw && EXCEPTION_STATUS_VALUES.includes(statusRaw as ExceptionStatus)
+      ? (statusRaw as ExceptionStatus)
+      : null;
+
+  return { search, filters, timeRange, page, pageSize, status };
+}
+
 export interface ExceptionsViewerProps {
   defaultStatus?: ExceptionStatus;
-  serviceId?: ObjectID | undefined;
+  primaryEntityId?: ObjectID | undefined;
 }
 
 const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   props: ExceptionsViewerProps,
 ): ReactElement => {
+  /*
+   * Parse filter state from the URL once on first mount so refresh and
+   * back-from-exception-detail restore the view.
+   */
+  const initialUrlState: InitialUrlState = useMemo(readInitialUrlState, []);
+
+  const defaultStatus: ExceptionStatus = props.defaultStatus || "unresolved";
+
   const [status, setStatus] = useState<ExceptionStatus>(
-    props.defaultStatus || "unresolved",
+    initialUrlState.status || defaultStatus,
   );
 
   const [exceptions, setExceptions] = useState<Array<TelemetryException>>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
-  const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+  const [page, setPage] = useState<number>(initialUrlState.page);
+  const [pageSize, setPageSize] = useState<number>(initialUrlState.pageSize);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
   const [services, setServices] = useState<Array<Service>>([]);
+  const [hosts, setHosts] = useState<Array<Host>>([]);
+  const [dockerHosts, setDockerHosts] = useState<Array<DockerHost>>([]);
+  const [podmanHosts, setPodmanHosts] = useState<Array<PodmanHost>>([]);
+  const [kubernetesClusters, setKubernetesClusters] = useState<
+    Array<KubernetesCluster>
+  >([]);
 
-  const [searchValue, setSearchValue] = useState<string>("");
-  const [submittedSearch, setSubmittedSearch] = useState<string>("");
-  const [activeFilters, setActiveFilters] = useState<Array<ActiveFilter>>([]);
+  const [searchValue, setSearchValue] = useState<string>(
+    initialUrlState.search,
+  );
+  const [submittedSearch, setSubmittedSearch] = useState<string>(
+    initialUrlState.search,
+  );
+  const [activeFilters, setActiveFilters] = useState<Array<ActiveFilter>>(
+    initialUrlState.filters,
+  );
+
+  /*
+   * The search bar's X button (and full backspace) only updates `searchValue`
+   * — it doesn't call `onSubmit`. Without this effect, `submittedSearch`
+   * stays at the old value, results stay filtered, and the URL keeps the
+   * stale `?search=...`. Treat an emptied input as an implicit submit.
+   */
+  useEffect(() => {
+    if (searchValue === "" && submittedSearch !== "") {
+      setSubmittedSearch("");
+      setPage(1);
+    }
+  }, [searchValue, submittedSearch]);
 
   const [telemetryAttributes, setTelemetryAttributes] = useState<Array<string>>(
     [],
@@ -143,36 +289,150 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const lastValueSuggestionKeyRef: React.MutableRefObject<string> =
     useRef<string>("");
 
-  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
-    range: TimeRange.PAST_ONE_DAY,
-  });
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(
+    initialUrlState.timeRange,
+  );
   const [histogramBuckets, setHistogramBuckets] = useState<
     Array<HistogramBucket>
   >([]);
   const [histogramLoading, setHistogramLoading] = useState<boolean>(false);
+  const [facetData, setFacetData] = useState<FacetData>({});
+  const [facetLoading, setFacetLoading] = useState<boolean>(false);
+  /*
+   * Per-facet search text for resource facets (primaryEntityId / hostId / etc.).
+   * Updates trigger a backend refetch so the result includes resources from
+   * the full Postgres source-of-truth, not just the loaded subset.
+   */
+  const [facetSearchText, setFacetSearchText] = useState<
+    Record<string, string>
+  >({});
 
-  // Load services once
+  /*
+   * Mirror filter state to the URL so refresh and back-from-exception-detail
+   * restore the view. `replaceState` keeps history clean — individual filter
+   * tweaks don't push extra entries.
+   */
   useEffect(() => {
-    const loadServices: () => Promise<void> = async () => {
+    const params: URLSearchParams = new URLSearchParams();
+    if (submittedSearch) {
+      params.set("search", submittedSearch);
+    }
+    if (activeFilters.length > 0) {
+      const tuples: Array<[string, string]> = activeFilters.map(
+        (f: ActiveFilter): [string, string] => {
+          return [f.facetKey, f.value];
+        },
+      );
+      params.set("filters", JSON.stringify(tuples));
+    }
+    if (timeRange.range !== TimeRange.PAST_ONE_DAY) {
+      params.set("range", timeRange.range);
+    }
+    if (timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate) {
+      params.set("start", timeRange.startAndEndDate.startValue.toISOString());
+      params.set("end", timeRange.startAndEndDate.endValue.toISOString());
+    }
+    if (page > 1) {
+      params.set("page", String(page));
+    }
+    if (pageSize !== DEFAULT_PAGE_SIZE) {
+      params.set("pageSize", String(pageSize));
+    }
+    if (status !== defaultStatus) {
+      params.set("status", status);
+    }
+
+    const query: string = params.toString();
+    const nextSearch: string = query ? `?${query}` : "";
+    if (nextSearch !== window.location.search) {
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${nextSearch}${window.location.hash}`,
+      );
+    }
+  }, [
+    submittedSearch,
+    activeFilters,
+    timeRange,
+    page,
+    pageSize,
+    status,
+    defaultStatus,
+  ]);
+
+  // Load services / hosts / docker hosts / k8s clusters once
+  useEffect(() => {
+    const loadResources: () => Promise<void> = async () => {
       try {
         const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
         if (!projectId) {
           return;
         }
-        const result: ModelListResult<Service> = await ModelAPI.getList({
-          modelType: Service,
-          query: { projectId },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: { name: true, serviceColor: true },
-          sort: { name: SortOrder.Ascending },
-        });
-        setServices(result.data || []);
+        const [
+          serviceResult,
+          hostResult,
+          dockerHostResult,
+          podmanHostResult,
+          clusterResult,
+        ]: [
+          ModelListResult<Service>,
+          ModelListResult<Host>,
+          ModelListResult<DockerHost>,
+          ModelListResult<PodmanHost>,
+          ModelListResult<KubernetesCluster>,
+        ] = await Promise.all([
+          ModelAPI.getList({
+            modelType: Service,
+            query: { projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, serviceColor: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+          ModelAPI.getList({
+            modelType: Host,
+            query: { projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, hostIdentifier: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+          ModelAPI.getList({
+            modelType: DockerHost,
+            query: { projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, hostIdentifier: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+          ModelAPI.getList({
+            modelType: PodmanHost,
+            query: { projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, hostIdentifier: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+          ModelAPI.getList({
+            modelType: KubernetesCluster,
+            query: { projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, clusterIdentifier: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+        ]);
+        setServices(serviceResult.data || []);
+        setHosts(hostResult.data || []);
+        setDockerHosts(dockerHostResult.data || []);
+        setPodmanHosts(podmanHostResult.data || []);
+        setKubernetesClusters(clusterResult.data || []);
       } catch {
         // non-critical
       }
     };
-    void loadServices();
+    void loadResources();
   }, []);
 
   useEffect(() => {
@@ -268,12 +528,57 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   } = useCallback((raw: string) => {
     const fieldFilters: Record<string, Array<string>> = {};
     const freeTextParts: Array<string> = [];
-    const tokens: Array<string> = raw.match(/@\S+:[^\s]+|\S+/g) || [];
+    /*
+     * Tokenizer also matches `@attr:"value with spaces"`. See the matching
+     * block in TracesViewer for details on the merge logic that handles
+     * `@type: "..."` (space after colon) and unclosed quotes.
+     */
+    const rawTokens: Array<string> =
+      raw.match(/@?\S+:"[^"]*"|@\S+:[^\s]+|\S+/g) || [];
+    const tokens: Array<string> = [];
+    for (let i: number = 0; i < rawTokens.length; i++) {
+      const token: string = rawTokens[i]!;
+      if (
+        token.endsWith(":") &&
+        token.startsWith("@") &&
+        i + 1 < rawTokens.length
+      ) {
+        let merged: string = token + rawTokens[i + 1]!;
+        i++;
+        if (merged.includes(':"') && !merged.endsWith('"')) {
+          while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
+            i++;
+            merged = merged + " " + rawTokens[i]!;
+          }
+        }
+        tokens.push(merged);
+        continue;
+      }
+      if (token.includes(':"') && !token.endsWith('"')) {
+        let merged: string = token;
+        while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
+          i++;
+          merged = merged + " " + rawTokens[i]!;
+        }
+        tokens.push(merged);
+        continue;
+      }
+      tokens.push(token);
+    }
+    const stripQuotes: (s: string) => string = (s: string): string => {
+      if (s.length >= 2 && s.startsWith('"') && s.endsWith('"')) {
+        return s.slice(1, -1);
+      }
+      return s;
+    };
     for (const token of tokens) {
       const match: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
       if (match) {
         const alias: string = match[1]!;
-        const value: string = match[2]!;
+        const value: string = stripQuotes(match[2]!);
+        if (value.length === 0) {
+          continue;
+        }
         const backendField: string = FIELD_ALIAS_MAP[alias] || alias;
         if (!fieldFilters[backendField]) {
           fieldFilters[backendField] = [];
@@ -294,8 +599,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       q.projectId = projectId;
     }
 
-    if (props.serviceId) {
-      q.serviceId = props.serviceId;
+    if (props.primaryEntityId) {
+      q.primaryEntityId = props.primaryEntityId;
     }
 
     if (status === "unresolved") {
@@ -316,7 +621,39 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       }
       facetGroups[f.facetKey]!.push(f.value);
     }
+
+    /*
+     * primaryEntityId / hostId / dockerHostId / kubernetesClusterId all map
+     * to the same underlying `primaryEntityId` column on TelemetryException —
+     * the discriminator only matters at facet bucketing time.
+     */
+    const resourceFacetKeys: Set<string> = new Set<string>([
+      "primaryEntityId",
+      "hostId",
+      "dockerHostId",
+      "podmanHostId",
+      "kubernetesClusterId",
+    ]);
+    const resourceIds: Set<string> = new Set<string>();
+    for (const key of resourceFacetKeys) {
+      const values: Array<string> | undefined = facetGroups[key];
+      if (values) {
+        for (const v of values) {
+          resourceIds.add(v);
+        }
+      }
+    }
+    if (resourceIds.size > 0) {
+      (q as Record<string, unknown>)["primaryEntityId"] =
+        resourceIds.size === 1
+          ? Array.from(resourceIds)[0]!
+          : new Includes(Array.from(resourceIds));
+    }
+
     for (const key of Object.keys(facetGroups)) {
+      if (resourceFacetKeys.has(key)) {
+        continue;
+      }
       const values: Array<string> = facetGroups[key]!;
       if (values.length === 1) {
         (q as Record<string, unknown>)[key] = values[0]!;
@@ -352,7 +689,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
 
     return q;
   }, [
-    props.serviceId,
+    props.primaryEntityId,
     status,
     activeFilters,
     submittedSearch,
@@ -380,7 +717,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
             lastSeenAt: true,
             isResolved: true,
             isArchived: true,
-            serviceId: true,
+            primaryEntityId: true,
             environment: true,
           },
           sort: { lastSeenAt: SortOrder.Descending },
@@ -431,16 +768,36 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       groups[key]!.push(...fieldFilters[key]!);
     }
 
-    // Scope histogram by the serviceId prop, if present
-    if (props.serviceId) {
-      if (!groups["serviceId"]) {
-        groups["serviceId"] = [];
+    // Scope histogram by the primaryEntityId prop, if present
+    if (props.primaryEntityId) {
+      if (!groups["primaryEntityId"]) {
+        groups["primaryEntityId"] = [];
       }
-      groups["serviceId"]!.push(props.serviceId.toString());
+      groups["primaryEntityId"]!.push(props.primaryEntityId.toString());
     }
 
-    if (groups["serviceId"] && groups["serviceId"].length > 0) {
-      payload["serviceIds"] = groups["serviceId"];
+    /*
+     * Union primaryEntityId / hostId / dockerHostId / kubernetesClusterId
+     * into a single serviceIds list — they all filter the underlying
+     * `primaryEntityId` column.
+     */
+    const histogramResourceIds: Set<string> = new Set<string>();
+    for (const k of [
+      "primaryEntityId",
+      "hostId",
+      "dockerHostId",
+      "podmanHostId",
+      "kubernetesClusterId",
+    ]) {
+      const values: Array<string> | undefined = groups[k];
+      if (values) {
+        for (const v of values) {
+          histogramResourceIds.add(v);
+        }
+      }
+    }
+    if (histogramResourceIds.size > 0) {
+      payload["serviceIds"] = Array.from(histogramResourceIds);
     }
     if (groups["exceptionType"] && groups["exceptionType"].length > 0) {
       payload["exceptionTypes"] = groups["exceptionType"];
@@ -466,7 +823,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     } finally {
       setHistogramLoading(false);
     }
-  }, [timeRange, activeFilters, submittedSearch, parseSearch, props.serviceId]);
+  }, [
+    timeRange,
+    activeFilters,
+    submittedSearch,
+    parseSearch,
+    props.primaryEntityId,
+  ]);
 
   useEffect(() => {
     void fetchHistogram();
@@ -511,61 +874,205 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         }
       }
     }
+
+    const hostNameMap: Record<string, string> = {};
+    for (const host of hosts) {
+      if (host.id) {
+        hostNameMap[host.id.toString()] =
+          host.name || host.hostIdentifier || "Unknown";
+      }
+    }
+
+    const dockerHostNameMap: Record<string, string> = {};
+    for (const dockerHost of dockerHosts) {
+      if (dockerHost.id) {
+        dockerHostNameMap[dockerHost.id.toString()] =
+          dockerHost.name || dockerHost.hostIdentifier || "Unknown";
+      }
+    }
+
+    const podmanHostNameMap: Record<string, string> = {};
+    for (const podmanHost of podmanHosts) {
+      if (podmanHost.id) {
+        podmanHostNameMap[podmanHost.id.toString()] =
+          podmanHost.name || podmanHost.hostIdentifier || "Unknown";
+      }
+    }
+
+    const clusterNameMap: Record<string, string> = {};
+    for (const cluster of kubernetesClusters) {
+      if (cluster.id) {
+        clusterNameMap[cluster.id.toString()] =
+          cluster.name || cluster.clusterIdentifier || "Unknown";
+      }
+    }
+
     return [
       {
-        key: "serviceId",
+        key: "primaryEntityId",
         title: "Service",
         valueDisplayMap: serviceNameMap,
         valueColorMap: serviceColorMap,
         priority: 1,
+        serverSearchable: true,
+      },
+      {
+        key: "hostId",
+        title: "Host",
+        valueDisplayMap: hostNameMap,
+        priority: 2,
+        serverSearchable: true,
+      },
+      {
+        key: "dockerHostId",
+        title: "Docker Host",
+        valueDisplayMap: dockerHostNameMap,
+        priority: 3,
+        serverSearchable: true,
+      },
+      {
+        key: "podmanHostId",
+        title: "Podman Host",
+        valueDisplayMap: podmanHostNameMap,
+        priority: 4,
+        serverSearchable: true,
+      },
+      {
+        key: "kubernetesClusterId",
+        title: "Kubernetes Cluster",
+        valueDisplayMap: clusterNameMap,
+        priority: 5,
+        serverSearchable: true,
       },
       {
         key: "exceptionType",
         title: "Exception Type",
-        priority: 2,
+        priority: 6,
       },
       {
         key: "environment",
         title: "Environment",
-        priority: 3,
+        priority: 7,
       },
     ];
-  }, [services]);
+  }, [services, hosts, dockerHosts, podmanHosts, kubernetesClusters]);
 
-  const facetData: FacetData = useMemo(() => {
-    const byService: Record<string, number> = {};
-    const byType: Record<string, number> = {};
-    const byEnv: Record<string, number> = {};
-    for (const e of exceptions) {
-      if (e.serviceId) {
-        const k: string = e.serviceId.toString();
-        byService[k] = (byService[k] || 0) + 1;
+  /*
+   * Fetch facets from the backend. Counts come from ClickHouse aggregation
+   * over the current time window; resource facet values are resolved from
+   * the Postgres source-of-truth so every project resource appears in the
+   * sidebar (and search hits the full list, not just the loaded subset).
+   */
+  const fetchFacets: () => Promise<void> = useCallback(async () => {
+    setFacetLoading(true);
+
+    const dateRange: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+
+    const payload: JSONObject = {
+      startTime: dateRange.startValue.toISOString(),
+      endTime: dateRange.endValue.toISOString(),
+      facetKeys: [
+        "primaryEntityId",
+        "hostId",
+        "dockerHostId",
+        "podmanHostId",
+        "kubernetesClusterId",
+        "exceptionType",
+        "environment",
+      ],
+    };
+
+    /*
+     * Collect filter values from active facets + parsed search (same shape
+     * as the histogram payload above — keeps facet counts aligned with the
+     * list scope).
+     */
+    const groups: Record<string, Array<string>> = {};
+    for (const f of activeFilters) {
+      if (!groups[f.facetKey]) {
+        groups[f.facetKey] = [];
       }
-      if (e.exceptionType) {
-        byType[e.exceptionType] = (byType[e.exceptionType] || 0) + 1;
+      groups[f.facetKey]!.push(f.value);
+    }
+    const { fieldFilters, freeText } = parseSearch(submittedSearch);
+    for (const key of Object.keys(fieldFilters)) {
+      if (!groups[key]) {
+        groups[key] = [];
       }
-      if (e.environment) {
-        byEnv[e.environment] = (byEnv[e.environment] || 0) + 1;
+      groups[key]!.push(...fieldFilters[key]!);
+    }
+    if (props.primaryEntityId) {
+      if (!groups["primaryEntityId"]) {
+        groups["primaryEntityId"] = [];
+      }
+      groups["primaryEntityId"]!.push(props.primaryEntityId.toString());
+    }
+
+    const resourceIds: Set<string> = new Set<string>();
+    for (const k of [
+      "primaryEntityId",
+      "hostId",
+      "dockerHostId",
+      "podmanHostId",
+      "kubernetesClusterId",
+    ]) {
+      const values: Array<string> | undefined = groups[k];
+      if (values) {
+        for (const v of values) {
+          resourceIds.add(v);
+        }
       }
     }
-    const toFacet: (m: Record<string, number>) => Array<FacetValue> = (
-      m: Record<string, number>,
-    ) => {
-      return Object.entries(m)
-        .map(([value, count]: [string, number]): FacetValue => {
-          return { value, count };
-        })
-        .sort((a: FacetValue, b: FacetValue): number => {
-          return b.count - a.count;
-        })
-        .slice(0, 20);
-    };
-    return {
-      serviceId: toFacet(byService),
-      exceptionType: toFacet(byType),
-      environment: toFacet(byEnv),
-    };
-  }, [exceptions]);
+    if (resourceIds.size > 0) {
+      payload["serviceIds"] = Array.from(resourceIds);
+    }
+    if (groups["exceptionType"] && groups["exceptionType"].length > 0) {
+      payload["exceptionTypes"] = groups["exceptionType"];
+    }
+    if (groups["environment"] && groups["environment"].length > 0) {
+      payload["environments"] = groups["environment"];
+    }
+    if (freeText && freeText.length > 0) {
+      payload["messageSearchText"] = freeText;
+    }
+
+    const facetSearchTextActive: Record<string, string> = {};
+    for (const [key, val] of Object.entries(facetSearchText)) {
+      if (val && val.trim().length > 0) {
+        facetSearchTextActive[key] = val.trim();
+      }
+    }
+    if (Object.keys(facetSearchTextActive).length > 0) {
+      payload["facetSearchText"] = facetSearchTextActive;
+    }
+
+    try {
+      const response: HTTPResponse<JSONObject> = await postApi(
+        "/telemetry/exceptions/facets",
+        payload,
+      );
+      const facets: FacetData = (response.data["facets"] ||
+        {}) as unknown as FacetData;
+      setFacetData(facets);
+    } catch {
+      // Facets are non-critical; silently degrade
+      setFacetData({});
+    } finally {
+      setFacetLoading(false);
+    }
+  }, [
+    timeRange,
+    activeFilters,
+    submittedSearch,
+    parseSearch,
+    props.primaryEntityId,
+    facetSearchText,
+  ]);
+
+  useEffect(() => {
+    void fetchFacets();
+  }, [fetchFacets]);
 
   const handleFacetInclude: (facetKey: string, value: string) => void =
     useCallback(
@@ -608,20 +1115,45 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     setPage(1);
   }, []);
 
-  // Read-only chips for prop-level scoping (e.g. service view page)
+  /*
+   * Read-only chips for prop-level scoping (e.g. service view page), merged
+   * with user-added chips. Display labels are re-derived from facetConfigs so
+   * URL-restored chips (which only carry facetKey/value) still render the
+   * human-readable label once services/hosts/etc. load.
+   */
   const mergedActiveFilters: Array<ActiveFilter> = useMemo(() => {
+    const resolveDisplay: (chip: ActiveFilter) => ActiveFilter = (
+      chip: ActiveFilter,
+    ) => {
+      const config: FacetConfig | undefined = facetConfigs.find(
+        (c: FacetConfig): boolean => {
+          return c.key === chip.facetKey;
+        },
+      );
+      const displayKey: string = chip.facetKey.startsWith("attributes.")
+        ? chip.facetKey.substring("attributes.".length)
+        : config?.title || chip.displayKey || chip.facetKey;
+      const displayValue: string =
+        config?.valueDisplayMap?.[chip.value] ||
+        chip.displayValue ||
+        chip.value;
+      return { ...chip, displayKey, displayValue };
+    };
+
     const base: Array<ActiveFilter> = [];
-    if (props.serviceId) {
-      base.push({
-        facetKey: "serviceId",
-        value: props.serviceId.toString(),
-        displayKey: "Service",
-        displayValue: props.serviceId.toString(),
-        readOnly: true,
-      });
+    if (props.primaryEntityId) {
+      base.push(
+        resolveDisplay({
+          facetKey: "primaryEntityId",
+          value: props.primaryEntityId.toString(),
+          displayKey: "Service",
+          displayValue: props.primaryEntityId.toString(),
+          readOnly: true,
+        }),
+      );
     }
-    return [...base, ...activeFilters];
-  }, [props.serviceId, activeFilters]);
+    return [...base, ...activeFilters.map(resolveDisplay)];
+  }, [props.primaryEntityId, activeFilters, facetConfigs]);
 
   // Row click → navigate to exception detail
   const handleRowClick: (exception: TelemetryException) => void = useCallback(
@@ -729,8 +1261,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       emptyMessage="No exceptions found"
       itemLabel="exceptions"
       renderRow={(exception: TelemetryException): ReactElement => {
-        const service: Service | undefined = exception.serviceId
-          ? serviceById[exception.serviceId.toString()]
+        const service: Service | undefined = exception.primaryEntityId
+          ? serviceById[exception.primaryEntityId.toString()]
           : undefined;
         return (
           <ExceptionRow
@@ -782,11 +1314,20 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
          * — preserving the previous behavior rather than silently breaking
          * the filter. Alias detection is case-insensitive so users can type
          * `Type:` or `SERVICE:`; attribute keys keep their original case.
+         *
+         * Strip surrounding quotes before storing the chip so `type:"My Type"`
+         * doesn't store `"My Type"` literally (which would never match).
+         * The unknown-field branch keeps the quotes because the resulting
+         * search string is re-parsed by `parseSearch`, which strips them.
          */
         const aliased: string | undefined =
           FIELD_ALIAS_MAP[fieldKey.toLowerCase()];
         if (aliased) {
-          handleFacetInclude(aliased, value);
+          const cleanValue: string =
+            value.length >= 2 && value.startsWith('"') && value.endsWith('"')
+              ? value.slice(1, -1)
+              : value;
+          handleFacetInclude(aliased, cleanValue);
           return;
         }
         const newSearch: string = `@${fieldKey}:${value}`;
@@ -809,8 +1350,24 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       showFacetSidebar={true}
       facetData={facetData}
       facetConfigs={facetConfigs}
-      facetLoading={false}
+      facetLoading={facetLoading}
       onFacetInclude={handleFacetInclude}
+      onFacetSearchChange={(facetKey: string, text: string) => {
+        setFacetSearchText(
+          (prev: Record<string, string>): Record<string, string> => {
+            if ((prev[facetKey] || "") === text) {
+              return prev;
+            }
+            const next: Record<string, string> = { ...prev };
+            if (text.length === 0) {
+              delete next[facetKey];
+            } else {
+              next[facetKey] = text;
+            }
+            return next;
+          },
+        );
+      }}
       activeFilters={mergedActiveFilters}
       onRemoveFilter={handleRemoveFilter}
       onClearAllFilters={handleClearAllFilters}

@@ -20,6 +20,8 @@ import ScheduledMaintenanceEventViewDelete from "../Pages/ScheduledMaintenanceEv
 import ScheduledMaintenanceEventsWorkspaceConnectionMicrosoftTeams from "../Pages/ScheduledMaintenanceEvents/WorkspaceConnectionMicrosoftTeams";
 
 import ScheduledMaintenanceEventViewOwner from "../Pages/ScheduledMaintenanceEvents/View/Owners";
+import ScheduledMaintenanceEventViewRunbooks from "../Pages/ScheduledMaintenanceEvents/View/Runbooks";
+import ScheduledMaintenanceEventViewAuditLogs from "../Pages/ScheduledMaintenanceEvents/View/AuditLogs";
 
 import ScheduledMaintenanceEventsWorkspaceConnectionSlack from "../Pages/ScheduledMaintenanceEvents/WorkspaceConnectionSlack";
 
@@ -51,6 +53,11 @@ import ScheduledMaintenanceSettingsNoteTemplates from "../Pages/ScheduledMainten
 import ScheduledMaintenanceSettingsNoteTemplatesView from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNoteTemplateView";
 
 import ScheduledMaintenanceSettingsCustomFields from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceCusomFields";
+
+import ScheduledMaintenanceSettingsOwnerRules from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceOwnerRules";
+import ScheduledMaintenanceSettingsRunbookRules from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceRunbookRules";
+
+import ScheduledMaintenanceSettingsLabelRules from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceLabelRules";
 
 import ScheduledMaintenanceSettingsMore from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceMoreSettings";
 
@@ -270,6 +277,60 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={
             ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULES
+            ] || ""
+          }
+          element={
+            <ScheduledMaintenanceSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULES
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES
+            ] || ""
+          }
+          element={
+            <ScheduledMaintenanceSettingsRunbookRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULES
+            ] || ""
+          }
+          element={
+            <ScheduledMaintenanceSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULES
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
               PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE
             ] || ""
           }
@@ -442,6 +503,34 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS,
+          )}
+          element={
+            <ScheduledMaintenanceEventViewRunbooks
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SCHEDULED_MAINTENANCE_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <ScheduledMaintenanceEventViewAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_AUDIT_LOGS] as Route
               }
             />
           }

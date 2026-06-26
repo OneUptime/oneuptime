@@ -22,6 +22,7 @@ import Query from "../../Types/BaseDatabase/Query";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Sort from "../../Types/BaseDatabase/Sort";
 import AnalyticsBaseModel from "../AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import { JSONObject } from "../../Types/JSON";
 
 @TableBillingAccessControl({
   create: PlanType.Growth,
@@ -42,9 +43,10 @@ import AnalyticsBaseModel from "../AnalyticsModels/AnalyticsBaseModel/AnalyticsB
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.SettingsManager,
+    Permission.SettingsAdmin,
+    Permission.SettingsMember,
+    Permission.SettingsViewer,
     Permission.ReadTableView,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -87,9 +89,10 @@ export default class TableView extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -126,9 +129,10 @@ export default class TableView extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -159,9 +163,10 @@ export default class TableView extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -195,9 +200,10 @@ export default class TableView extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -231,9 +237,10 @@ export default class TableView extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -266,9 +273,10 @@ export default class TableView extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -306,9 +314,10 @@ export default class TableView extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -333,9 +342,10 @@ export default class TableView extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -370,9 +380,10 @@ export default class TableView extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -401,9 +412,10 @@ export default class TableView extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -438,9 +450,10 @@ export default class TableView extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -475,9 +488,10 @@ export default class TableView extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -502,4 +516,43 @@ export default class TableView extends BaseModel {
     default: 10,
   })
   public itemsOnPage?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTableView,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadTableView,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTableView,
+    ],
+  })
+  @TableColumn({
+    title: "Facets",
+    required: false,
+    unique: false,
+    type: TableColumnType.JSON,
+    canReadOnRelationQuery: true,
+    description:
+      "Facet selections (owner, labels, status, etc.) for this table view",
+    example: '{"selectedOwnerKeys": ["user:abc"], "facetSelections": {}}',
+  })
+  @Column({
+    type: ColumnType.JSON,
+    unique: false,
+    nullable: true,
+  })
+  public facets?: JSONObject = undefined;
 }

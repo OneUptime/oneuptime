@@ -9,14 +9,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
 import Services from "../Pages/Service/Services";
-import ServiceDependencyGraph from "../Pages/Service/DependencyGraph";
 import ServiceView from "../Pages/Service/View/Index";
-
-import ServiceViewMonitors from "../Pages/Service/View/Monitors";
-
-import ServiceViewIncidents from "../Pages/Service/View/Incidents";
-
-import ServiceViewAlerts from "../Pages/Service/View/Alerts";
 
 import ServiceViewLogs from "../Pages/Service/View/Logs";
 
@@ -34,9 +27,21 @@ import ServiceViewSettings from "../Pages/Service/View/Settings";
 
 import ServiceViewOwners from "../Pages/Service/View/Owners";
 
-import ServiceViewDependencies from "../Pages/Service/View/Dependencies";
+import ServiceViewAuditLogs from "../Pages/Service/View/AuditLogs";
 
 import ServiceViewCodeRepositories from "../Pages/Service/View/CodeRepositories";
+
+import ServiceViewIncidents from "../Pages/Service/View/Incidents";
+
+import ServiceViewAlerts from "../Pages/Service/View/Alerts";
+
+import ServiceViewScheduledMaintenance from "../Pages/Service/View/ScheduledMaintenance";
+
+import ServiceSettingsOwnerRules from "../Pages/Service/Settings/OwnerRules";
+
+import ServiceSettingsLabelRules from "../Pages/Service/Settings/LabelRules";
+
+import ServiceArchived from "../Pages/Service/Archived";
 
 const ServiceRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -54,11 +59,33 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_DEPENDENCY_GRAPH)}
+          path={ServiceRoutePath[PageMap.SERVICE_SETTINGS_OWNER_RULES] || ""}
           element={
-            <ServiceDependencyGraph
+            <ServiceSettingsOwnerRules
               {...props}
-              pageRoute={RouteMap[PageMap.SERVICE_DEPENDENCY_GRAPH] as Route}
+              pageRoute={
+                RouteMap[PageMap.SERVICE_SETTINGS_OWNER_RULES] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={ServiceRoutePath[PageMap.SERVICE_SETTINGS_LABEL_RULES] || ""}
+          element={
+            <ServiceSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SERVICE_SETTINGS_LABEL_RULES] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={ServiceRoutePath[PageMap.SERVICE_ARCHIVED] || ""}
+          element={
+            <ServiceArchived
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_ARCHIVED] as Route}
             />
           }
         />
@@ -94,36 +121,6 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
             <ServiceViewSettings
               {...props}
               pageRoute={RouteMap[PageMap.SERVICE_VIEW_SETTINGS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_MONITORS)}
-          element={
-            <ServiceViewMonitors
-              {...props}
-              pageRoute={RouteMap[PageMap.SERVICE_VIEW_MONITORS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_ALERTS)}
-          element={
-            <ServiceViewAlerts
-              {...props}
-              pageRoute={RouteMap[PageMap.SERVICE_VIEW_ALERTS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_INCIDENTS)}
-          element={
-            <ServiceViewIncidents
-              {...props}
-              pageRoute={RouteMap[PageMap.SERVICE_VIEW_INCIDENTS] as Route}
             />
           }
         />
@@ -189,16 +186,6 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_DEPENDENCIES)}
-          element={
-            <ServiceViewDependencies
-              {...props}
-              pageRoute={RouteMap[PageMap.SERVICE_VIEW_DEPENDENCIES] as Route}
-            />
-          }
-        />
-
-        <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.SERVICE_VIEW_CODE_REPOSITORIES,
           )}
@@ -208,6 +195,50 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.SERVICE_VIEW_CODE_REPOSITORIES] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_INCIDENTS)}
+          element={
+            <ServiceViewIncidents
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_INCIDENTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_ALERTS)}
+          element={
+            <ServiceViewAlerts
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_ALERTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE,
+          )}
+          element={
+            <ServiceViewScheduledMaintenance
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_AUDIT_LOGS)}
+          element={
+            <ServiceViewAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_AUDIT_LOGS] as Route}
             />
           }
         />

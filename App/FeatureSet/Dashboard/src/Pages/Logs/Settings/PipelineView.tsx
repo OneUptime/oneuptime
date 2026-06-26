@@ -200,6 +200,9 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
         id="log-pipeline-processors-table"
         name="Log Pipeline > Processors"
         userPreferencesKey="log-pipeline-processors-table"
+        saveFilterProps={{
+          tableId: "log-pipeline-processors-table",
+        }}
         isDeleteable={true}
         isEditable={false}
         isCreateable={false}

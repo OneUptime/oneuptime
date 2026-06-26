@@ -8,6 +8,8 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
+import MonitorLabelRuleEngineService from "./MonitorLabelRuleEngineService";
+import MonitorOwnerRuleEngineService from "./MonitorOwnerRuleEngineService";
 import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
@@ -151,6 +153,50 @@ export class Service extends DatabaseService<Model> {
       requestType,
       monitorType: monitorType || "",
     };
+  }
+
+  public extractMonitorStepIds(
+    monitorSteps: MonitorSteps | JSONObject,
+  ): Array<string> {
+    const stepIds: Array<string> = [];
+
+    let stepsArray: Array<MonitorStep | JSONObject> = [];
+
+    if (monitorSteps instanceof MonitorSteps) {
+      stepsArray = monitorSteps.data?.monitorStepsInstanceArray || [];
+    } else if (monitorSteps && typeof monitorSteps === "object") {
+      const value: JSONObject | undefined = (monitorSteps as JSONObject)[
+        "value"
+      ] as JSONObject | undefined;
+      const rawArray: unknown = value
+        ? value["monitorStepsInstanceArray"]
+        : (monitorSteps as JSONObject)["monitorStepsInstanceArray"];
+
+      if (Array.isArray(rawArray)) {
+        stepsArray = rawArray as Array<JSONObject>;
+      }
+    }
+
+    for (const step of stepsArray) {
+      let stepId: string | undefined;
+
+      if (step instanceof MonitorStep) {
+        stepId = step.data?.id;
+      } else if (step && typeof step === "object") {
+        const wrappedValue: JSONObject | undefined = (step as JSONObject)[
+          "value"
+        ] as JSONObject | undefined;
+        stepId = (wrappedValue?.["id"] || (step as JSONObject)["id"]) as
+          | string
+          | undefined;
+      }
+
+      if (stepId) {
+        stepIds.push(stepId.toString());
+      }
+    }
+
+    return stepIds;
   }
 
   public async refreshMonitorCurrentStatus(monitorId: ObjectID): Promise<void> {
@@ -358,6 +404,17 @@ export class Service extends DatabaseService<Model> {
         if (onUpdate.updateBy.data.monitoringInterval) {
           await MonitorProbeService.updateNextPingAtForMonitor({
             monitorId: monitorId,
+          });
+        }
+
+        if (onUpdate.updateBy.data.monitorSteps) {
+          const validMonitorStepIds: Array<string> = this.extractMonitorStepIds(
+            onUpdate.updateBy.data.monitorSteps as MonitorSteps | JSONObject,
+          );
+
+          await MonitorProbeService.pruneStaleLastMonitoringLogEntries({
+            monitorId: monitorId,
+            validMonitorStepIds: validMonitorStepIds,
           });
         }
 
@@ -729,6 +786,43 @@ ${createdItem.description?.trim() || "No description provided."}
           logger.error(error as Error);
           return Promise.resolve();
         }
+      })
+      .then(async () => {
+        /*
+         * Apply label rules first so rule-added labels are persisted before
+         * owner rules run. Owner rules re-fetch labels from the DB, so this
+         * lets owner rules key on rule-added labels.
+         */
+        try {
+          await MonitorLabelRuleEngineService.applyRulesToMonitor(createdItem);
+        } catch (error) {
+          logger.error(
+            "Apply monitor label rules failed in MonitorService.onCreateSuccess",
+            {
+              projectId: createdItem.projectId?.toString(),
+              monitorId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+          logger.error(error as Error);
+          return Promise.resolve();
+        }
+        return Promise.resolve();
+      })
+      .then(async () => {
+        try {
+          await MonitorOwnerRuleEngineService.applyRulesToMonitor(createdItem);
+        } catch (error) {
+          logger.error(
+            "Apply monitor owner rules failed in MonitorService.onCreateSuccess",
+            {
+              projectId: createdItem.projectId?.toString(),
+              monitorId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+          logger.error(error as Error);
+          return Promise.resolve();
+        }
+        return Promise.resolve();
       })
       .then(async () => {
         try {
@@ -1524,9 +1618,16 @@ ${createdItem.description?.trim() || "No description provided."}
       return;
     }
 
-    for (const monitorProbe of monitorProbes) {
-      await this.refreshMonitorProbeStatus(monitorProbe.monitorId!);
-    }
+    /*
+     * Each monitor appears at most once for a given probeId (composite
+     * unique on MonitorProbe), so concurrent refreshes operate on
+     * disjoint rows and are safe to run in parallel.
+     */
+    await Promise.all(
+      monitorProbes.map((monitorProbe: MonitorProbe) => {
+        return this.refreshMonitorProbeStatus(monitorProbe.monitorId!);
+      }),
+    );
   }
 
   @CaptureSpan()

@@ -1,10 +1,15 @@
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
+import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
 import Host from "../../../Models/DatabaseModels/Host";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
+import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
+import Service from "../../../Models/DatabaseModels/Service";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
@@ -19,9 +24,13 @@ import AlertService from "../../Services/AlertService";
 import AlertSeverityService from "../../Services/AlertSeverityService";
 import AlertStateTimelineService from "../../Services/AlertStateTimelineService";
 import HostService from "../../Services/HostService";
+import ServiceService from "../../Services/ServiceService";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
+import MonitorClusterContextUtil, {
+  MonitorClusterContext,
+} from "./MonitorClusterContext";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
@@ -38,6 +47,14 @@ export default class MonitorAlert {
     dataToProcess: DataToProcess;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
     breachingSeriesFingerprints?: Set<string> | undefined;
+    /**
+     * Event-driven (incoming-request / webhook) mode. When true, an open
+     * alert carrying a seriesFingerprint is never auto-resolved here —
+     * webhooks resolve per-key only via resolveSeriesAlertsByFingerprint,
+     * never by absence. Passed on BOTH the criteria-met and no-criteria-met
+     * code paths for grouped incoming-request monitors.
+     */
+    disableSeriesAbsenceResolution?: boolean | undefined;
   }): Promise<Array<Alert>> {
     // check active alerts and if there are open alerts, do not create another alert.
     const openAlerts: Array<Alert> = await AlertService.findBy({
@@ -74,6 +91,7 @@ export default class MonitorAlert {
           input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
         criteriaInstance: input.criteriaInstance,
         breachingSeriesFingerprints: input.breachingSeriesFingerprints,
+        disableSeriesAbsenceResolution: input.disableSeriesAbsenceResolution,
       });
 
       if (shouldClose) {
@@ -101,6 +119,95 @@ export default class MonitorAlert {
     return openAlerts;
   }
 
+  /**
+   * Event-driven (incoming-request / webhook) resolution: resolve the open
+   * alerts for the given payload-derived fingerprints — and only those —
+   * when the criteria that created them has auto-resolve enabled. Mirrors
+   * MonitorIncident.resolveSeriesIncidentsByFingerprint; never resolves by
+   * absence (a webhook describes only the keys in its payload).
+   */
+  @CaptureSpan()
+  public static async resolveSeriesAlertsByFingerprint(input: {
+    monitor: Monitor;
+    fingerprints: Array<string>;
+    rootCause: string;
+    dataToProcess: DataToProcess;
+    autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
+    evaluationSummary?: MonitorEvaluationSummary | undefined;
+  }): Promise<void> {
+    if (!input.fingerprints || input.fingerprints.length === 0) {
+      return;
+    }
+
+    const fingerprintSet: Set<string> = new Set<string>(input.fingerprints);
+
+    const openAlerts: Array<Alert> = await AlertService.findBy({
+      query: {
+        monitor: input.monitor.id!,
+        currentAlertState: {
+          isResolvedState: false,
+        },
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      select: {
+        _id: true,
+        title: true,
+        createdCriteriaId: true,
+        projectId: true,
+        alertNumber: true,
+        alertNumberWithPrefix: true,
+        seriesFingerprint: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const openAlert of openAlerts) {
+      const fingerprint: string | undefined =
+        openAlert.seriesFingerprint || undefined;
+
+      if (!fingerprint || !fingerprintSet.has(fingerprint)) {
+        continue;
+      }
+
+      const createdCriteriaId: string | undefined =
+        openAlert.createdCriteriaId?.toString();
+
+      if (!createdCriteriaId) {
+        continue;
+      }
+
+      // Only auto-resolve when the creating criteria opted into it.
+      const autoResolveTemplates: Array<string> | undefined =
+        input.autoResolveCriteriaInstanceIdAlertIdsDictionary[
+          createdCriteriaId
+        ];
+
+      if (!autoResolveTemplates || autoResolveTemplates.length === 0) {
+        continue;
+      }
+
+      await this.resolveOpenAlert({
+        openAlert: openAlert,
+        rootCause: input.rootCause,
+        dataToProcess: input.dataToProcess,
+      });
+
+      input.evaluationSummary?.events.push({
+        type: "alert-resolved",
+        title: `Alert resolved: ${openAlert.id?.toString()}`,
+        message:
+          "Alert auto-resolved because the incoming payload reported this key as resolved.",
+        relatedAlertId: openAlert.id?.toString(),
+        relatedAlertNumber: openAlert.alertNumber,
+        relatedAlertNumberWithPrefix: openAlert.alertNumberWithPrefix,
+        at: OneUptimeDate.getCurrentDate(),
+      });
+    }
+  }
+
   @CaptureSpan()
   public static async criteriaMetCreateAlertsAndUpdateMonitorStatus(input: {
     criteriaInstance: MonitorCriteriaInstance;
@@ -113,6 +220,23 @@ export default class MonitorAlert {
       telemetryQuery?: TelemetryQuery | undefined;
     };
     matchesPerSeries?: Array<PerSeriesCriteriaMatch> | undefined;
+    /**
+     * Series fingerprints whose underlying resource is inside an
+     * ongoing scheduled maintenance window. Alerts for these series are
+     * suppressed at creation time even though the monitor keeps
+     * evaluating. See MonitorMaintenanceSuppression.
+     */
+    suppressedSeriesFingerprints?: Set<string> | undefined;
+    /**
+     * Event-driven monitors (incoming-request / webhook fan-out) must not
+     * use the metric snapshot model where a series absent from this tick's
+     * breaching set is auto-resolved — a single webhook only describes the
+     * keys in that payload, so absence is not recovery. When true, the
+     * per-series absence-resolve pass is skipped; those alerts are resolved
+     * explicitly elsewhere (see IncomingRequestIncidentGrouping +
+     * resolveSeriesAlertsByFingerprint). Per-key create + dedupe still run.
+     */
+    disableSeriesAbsenceResolution?: boolean | undefined;
   }): Promise<void> {
     const alertLogAttributes: LogAttributes = {
       projectId: input.monitor.projectId?.toString(),
@@ -125,7 +249,7 @@ export default class MonitorAlert {
     );
 
     const breachingSeriesFingerprints: Set<string> | undefined =
-      input.matchesPerSeries
+      input.matchesPerSeries && !input.disableSeriesAbsenceResolution
         ? new Set<string>(
             input.matchesPerSeries.map((m: PerSeriesCriteriaMatch) => {
               return m.fingerprint;
@@ -144,14 +268,35 @@ export default class MonitorAlert {
         dataToProcess: input.dataToProcess,
         evaluationSummary: input.evaluationSummary,
         breachingSeriesFingerprints,
+        disableSeriesAbsenceResolution: input.disableSeriesAbsenceResolution,
       });
 
     if (!input.criteriaInstance.data?.createAlerts) {
       return;
     }
 
+    /*
+     * Proxmox/Ceph monitors: resolve the monitored cluster once per
+     * evaluation (lookup-only, from the step config's clusterIdentifier)
+     * so every alert created below is attached to it. Series labels
+     * cannot supply this — they carry datapoint labels (`id`,
+     * `ceph_daemon`, `pool_id`), not cluster identity, and ungrouped
+     * templates have no series at all. No-op for other monitor types.
+     */
+    const clusterContext: MonitorClusterContext =
+      await MonitorClusterContextUtil.resolveClusterContextForMonitor({
+        monitor: input.monitor,
+      });
+
+    /*
+     * `undefined` matchesPerSeries → legacy single-alert path. A defined
+     * (even empty) array → per-series mode: iterate exactly the matches.
+     * An empty array therefore creates nothing — used by grouped
+     * incoming-request criteria on a payload with no firing key so they
+     * don't fall back to a single whole-monitor alert.
+     */
     const seriesToProcess: Array<PerSeriesCriteriaMatch | undefined> =
-      input.matchesPerSeries && input.matchesPerSeries.length > 0
+      input.matchesPerSeries !== undefined
         ? input.matchesPerSeries
         : [undefined];
 
@@ -162,11 +307,46 @@ export default class MonitorAlert {
         const seriesRootCause: string =
           seriesMatch?.rootCause || input.rootCause;
 
+        /*
+         * Per-series scheduled-maintenance suppression: skip creating an
+         * alert for a series whose resource is inside an ongoing
+         * maintenance window. Other series on the same monitor are
+         * unaffected. Only *new* creation is suppressed — existing open
+         * alerts follow the normal resolve path.
+         */
+        if (
+          seriesFingerprint &&
+          input.suppressedSeriesFingerprints?.has(seriesFingerprint)
+        ) {
+          logger.debug(
+            `${input.monitor.id?.toString()} - Skipping alert for series ${seriesFingerprint}: its resource is under an active scheduled maintenance window.`,
+            alertLogAttributes,
+          );
+
+          input.evaluationSummary?.events.push({
+            type: "alert-skipped",
+            title: "Alert suppressed by scheduled maintenance",
+            message:
+              "Skipped creating an alert because the resource for this series is under an active scheduled maintenance window.",
+            relatedCriteriaId: input.criteriaInstance.data?.id,
+            at: OneUptimeDate.getCurrentDate(),
+          });
+          continue;
+        }
+
+        /*
+         * Mirror the create path: `createdCriteriaId` is only set when the
+         * criteria has an `id`. Guard the `.toString()` with `?.` (a criteria
+         * with a missing id otherwise threw "Cannot read properties of
+         * undefined (reading 'toString')" and failed the queue job every
+         * cycle) and normalise both sides to `undefined` on missing so dedupe
+         * stays correct instead of creating a duplicate alert each cycle.
+         */
         const alreadyOpenAlert: Alert | undefined = openAlerts.find(
           (alert: Alert) => {
             return (
-              alert.createdCriteriaId ===
-                input.criteriaInstance.data?.id.toString() &&
+              (alert.createdCriteriaId || undefined) ===
+                (input.criteriaInstance.data?.id?.toString() || undefined) &&
               (alert.seriesFingerprint || undefined) === seriesFingerprint
             );
           },
@@ -263,7 +443,9 @@ export default class MonitorAlert {
           JSON.stringify(input.dataToProcess, null, 2),
         );
 
-        alert.createdCriteriaId = input.criteriaInstance.data.id.toString();
+        if (input.criteriaInstance.data?.id) {
+          alert.createdCriteriaId = input.criteriaInstance.data.id.toString();
+        }
 
         if (seriesFingerprint) {
           alert.seriesFingerprint = seriesFingerprint;
@@ -305,6 +487,84 @@ export default class MonitorAlert {
               alert.hosts = [host];
             }
           }
+
+          /*
+           * Same idea for Service — OTel ingest stamps `service.name` and
+           * auto-creates a Service row keyed by that name (see
+           * OpenTelemetryIngestService.telemetryServiceFromName). When the
+           * breaching series carries that attribute, link the alert to the
+           * emitting service so the on-call/labels pipeline can fan out.
+           */
+          const serviceName: string | undefined =
+            typeof seriesLabels["resource.service.name"] === "string"
+              ? (seriesLabels["resource.service.name"] as string)
+              : typeof seriesLabels["service.name"] === "string"
+                ? (seriesLabels["service.name"] as string)
+                : undefined;
+
+          if (serviceName) {
+            const service: Service | null = await ServiceService.findOneBy({
+              query: {
+                projectId: input.monitor.projectId!,
+                name: serviceName,
+              },
+              select: {
+                _id: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            if (service) {
+              alert.services = [service];
+            }
+          }
+        }
+
+        /*
+         * Deterministic Proxmox/Ceph cluster link from the monitor's
+         * step config (resolved once above). Series labels never carry
+         * cluster identity for these monitor types, so this — not the
+         * label path above — is what makes the per-cluster Activity
+         * tabs and badge counts see monitor-created alerts. Runs for
+         * both grouped and ungrouped alerts.
+         */
+        if (clusterContext.proxmoxClusterIds.length > 0) {
+          alert.proxmoxClusters = clusterContext.proxmoxClusterIds.map(
+            (id: string): ProxmoxCluster => {
+              const cluster: ProxmoxCluster = new ProxmoxCluster();
+              cluster._id = id;
+              return cluster;
+            },
+          );
+        }
+        if (clusterContext.cephClusterIds.length > 0) {
+          alert.cephClusters = clusterContext.cephClusterIds.map(
+            (id: string): CephCluster => {
+              const cluster: CephCluster = new CephCluster();
+              cluster._id = id;
+              return cluster;
+            },
+          );
+        }
+        if (clusterContext.dockerSwarmClusterIds.length > 0) {
+          alert.dockerSwarmClusters = clusterContext.dockerSwarmClusterIds.map(
+            (id: string): DockerSwarmCluster => {
+              const cluster: DockerSwarmCluster = new DockerSwarmCluster();
+              cluster._id = id;
+              return cluster;
+            },
+          );
+        }
+        if (clusterContext.iotFleetIds.length > 0) {
+          alert.iotFleets = clusterContext.iotFleetIds.map(
+            (id: string): IoTFleet => {
+              const fleet: IoTFleet = new IoTFleet();
+              fleet._id = id;
+              return fleet;
+            },
+          );
         }
 
         alert.onCallDutyPolicies =
@@ -323,6 +583,10 @@ export default class MonitorAlert {
           }) || [];
 
         alert.isCreatedAutomatically = true;
+
+        if (criteriaAlert.isPrivate === true) {
+          alert.isPrivate = true;
+        }
 
         if (input.props.telemetryQuery) {
           alert.telemetryQuery = input.props.telemetryQuery;
@@ -424,12 +688,33 @@ export default class MonitorAlert {
       );
     }
 
-    await AlertStateTimelineService.create({
-      data: alertStateTimeline,
-      props: {
-        isRoot: true,
-      },
-    });
+    try {
+      await AlertStateTimelineService.create({
+        data: alertStateTimeline,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (err) {
+      /*
+       * Idempotent concurrency race: two evaluations for the same monitor
+       * (e.g. the explicit per-key resolveSeriesAlertsByFingerprint path and
+       * the checkOpenAlertsAndCloseIfResolved path) can both decide to resolve
+       * the same open alert near-simultaneously. The loser's onBeforeCreate
+       * dedupe throws this exact BadDataException. Treat as a no-op at debug
+       * level instead of failing the queue job. Mirrors resolveOpenIncident.
+       */
+      if (
+        err instanceof BadDataException &&
+        err.message === "Alert state cannot be same as previous state."
+      ) {
+        logger.debug(
+          `${input.openAlert.id?.toString()} - Alert already in resolved state; skipping duplicate state timeline (concurrent race).`,
+        );
+      } else {
+        throw err;
+      }
+    }
   }
 
   private static shouldCloseAlert(input: {
@@ -437,9 +722,22 @@ export default class MonitorAlert {
     autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
     criteriaInstance: MonitorCriteriaInstance | null; // null if no criteia met.
     breachingSeriesFingerprints?: Set<string> | undefined;
+    disableSeriesAbsenceResolution?: boolean | undefined;
   }): boolean {
     const openSeriesFingerprint: string | undefined =
       input.openAlert.seriesFingerprint || undefined;
+
+    /*
+     * Event-driven (incoming-request / webhook) per-key alerts must NEVER
+     * be resolved by absence — only explicitly, via
+     * resolveSeriesAlertsByFingerprint, when the payload reports the key as
+     * recovered. Mirrors MonitorIncident.shouldCloseIncident. Without this
+     * guard, a heartbeat-timeout cron tick or a rejected webhook would
+     * bulk-resolve all open per-key alerts by absence.
+     */
+    if (input.disableSeriesAbsenceResolution && openSeriesFingerprint) {
+      return false;
+    }
 
     /*
      * Per-series auto-resolve: when a breaching-series set is given and
@@ -482,7 +780,7 @@ export default class MonitorAlert {
 
     if (
       input.openAlert.createdCriteriaId?.toString() ===
-      input.criteriaInstance?.data?.id.toString()
+      input.criteriaInstance?.data?.id?.toString()
     ) {
       // same alert active. So, do not close.
       return false;

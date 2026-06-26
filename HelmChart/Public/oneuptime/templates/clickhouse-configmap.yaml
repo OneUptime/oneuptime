@@ -1,4 +1,4 @@
-{{- if .Values.clickhouse.enabled }}
+{{- if and .Values.clickhouse.enabled (not .Values.clickhouseOperator.altinity.enabled) }}
 apiVersion: v1
 kind: ConfigMap
 metadata:

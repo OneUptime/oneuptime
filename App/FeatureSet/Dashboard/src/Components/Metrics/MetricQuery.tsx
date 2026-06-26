@@ -31,6 +31,9 @@ export interface ComponentProps {
     | Record<string, Array<string>>
     | undefined;
   onAttributeKeySelected?: ((key: string) => void) | undefined;
+  onAttributeValueSearch?:
+    | ((key: string, searchText: string) => void)
+    | undefined;
   onAdvancedFiltersToggle?:
     | undefined
     | ((showAdvancedFilters: boolean) => void);
@@ -115,6 +118,7 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
               jsonKeys: props.telemetryAttributes,
               jsonValueSuggestions: props.telemetryAttributeValueSuggestions,
               onJsonKeySelected: props.onAttributeKeySelected,
+              onJsonValueSearch: props.onAttributeValueSearch,
               isLoadingJsonKeys: props.isAttributesLoading,
               loadingJsonValueKeys: props.loadingAttributeValueKeys,
               jsonEnableOperators: true,

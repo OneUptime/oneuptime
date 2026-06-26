@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Ceph Monitoring - Cluster Health, OSDs, Pools & Capacity</title>
+  <meta name="description"
+    content="Monitor Ceph clusters without bolting Grafana onto the dashboard: health drill-downs, OSD and PG state, pool capacity with growth forecasts, and alerting with on-call built in. Open source.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white" id="ceph-hero-section">
+      <!-- Subtle grid pattern background -->
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <!-- Grid glow effect that follows cursor - red color -->
+      <div id="ceph-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(220, 38, 38, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(220, 38, 38, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+      <div class="py-20 sm:py-28 lg:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <!-- Minimal badge -->
+            <p class="text-sm font-medium text-red-600 mb-4">OpenTelemetry Native Ceph Monitoring</p>
+
+            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Ceph monitoring without the Grafana bolt-on
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              Health drill-downs, OSD and placement-group state, pool capacity with growth forecasts, and alerting that pages a human — all from the mgr's Prometheus module, no extra stack to run.
+            </p>
+
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+              <a href="/accounts/register"
+                class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+                Get started
+              </a>
+              <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Request demo <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
+            <!-- Subtle feature list -->
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+              <span>Health drill-down</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>OSD & PG state</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Capacity forecasts</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Pool performance</span>
+            </div>
+          </div>
+
+          <!-- Hero visual - Ceph cluster overview mockup -->
+          <div class="mt-16 sm:mt-20">
+            <div class="relative mx-auto max-w-5xl">
+              <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+                <!-- Ceph Dashboard Mockup -->
+                <div class="rounded-lg bg-white shadow-lg overflow-hidden">
+                  <!-- Header bar -->
+                  <div class="bg-gray-50 px-6 py-3 flex items-center justify-between border-b border-gray-200">
+                    <div class="flex items-center gap-3">
+                      <div class="flex gap-1.5">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <%- include('./Partials/icons/ceph', {iconClass: 'h-4 w-4'}) %>
+                        <span class="text-sm text-gray-700 font-semibold">Ceph Cluster Overview</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-md border border-gray-200 text-xs text-gray-500">
+                        <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Last 1 hour
+                      </div>
+                      <span class="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 rounded-md text-xs font-medium text-amber-600 border border-amber-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                        HEALTH_WARN
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Dashboard content -->
+                  <div class="p-5">
+                    <!-- Top stats row -->
+                    <div class="grid grid-cols-5 gap-3 mb-5">
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Health</div>
+                          <div class="w-6 h-6 rounded-md bg-amber-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-amber-600">WARN</div>
+                        <div class="flex items-center gap-1 mt-1">
+                          <span class="w-1 h-1 rounded-full bg-amber-500"></span>
+                          <span class="text-[10px] text-amber-600 font-medium">1 active check</span>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Capacity</div>
+                          <div class="w-6 h-6 rounded-md bg-red-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">61%</div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                          <div class="bg-red-400 h-1.5 rounded-full" style="width: 61%"></div>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">OSDs</div>
+                          <div class="w-6 h-6 rounded-md bg-blue-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">47/48</div>
+                        <div class="flex items-center gap-1 mt-1">
+                          <span class="w-1 h-1 rounded-full bg-red-500"></span>
+                          <span class="text-[10px] text-red-600 font-medium">osd.17 down</span>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">PGs</div>
+                          <div class="w-6 h-6 rounded-md bg-violet-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">2048</div>
+                        <div class="flex items-center gap-1.5 mt-1">
+                          <span class="text-[10px] text-emerald-600 font-medium">2014 clean</span>
+                          <span class="text-[10px] text-amber-500">34 degraded</span>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Monitors</div>
+                          <div class="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">3/3</div>
+                        <div class="flex items-center gap-1 mt-1">
+                          <span class="w-1 h-1 rounded-full bg-emerald-500"></span>
+                          <span class="text-[10px] text-emerald-600 font-medium">In quorum</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Charts row -->
+                    <div class="grid grid-cols-3 gap-3 mb-5">
+                      <!-- Throughput chart -->
+                      <div class="col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                        <div class="flex items-center justify-between mb-4">
+                          <div>
+                            <div class="text-sm font-semibold text-gray-800">Cluster Throughput</div>
+                            <div class="text-[10px] text-gray-400 mt-0.5">Read and write bytes per second</div>
+                          </div>
+                          <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-1">
+                              <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                              <span class="text-[10px] text-gray-500">Read</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                              <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                              <span class="text-[10px] text-gray-500">Write</span>
+                            </div>
+                          </div>
+                        </div>
+                        <!-- SVG Chart -->
+                        <svg viewBox="0 0 400 100" class="w-full h-24">
+                          <defs>
+                            <linearGradient id="cephReadGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" style="stop-color:#dc2626;stop-opacity:0.18"/>
+                              <stop offset="100%" style="stop-color:#dc2626;stop-opacity:0"/>
+                            </linearGradient>
+                            <linearGradient id="cephWriteGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.15"/>
+                              <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0"/>
+                            </linearGradient>
+                          </defs>
+                          <!-- Grid lines -->
+                          <line x1="0" y1="25" x2="400" y2="25" stroke="#f3f4f6" stroke-width="1"/>
+                          <line x1="0" y1="50" x2="400" y2="50" stroke="#f3f4f6" stroke-width="1"/>
+                          <line x1="0" y1="75" x2="400" y2="75" stroke="#f3f4f6" stroke-width="1"/>
+                          <!-- Read fill -->
+                          <path d="M0,58 L25,52 L50,56 L75,48 L100,53 L125,44 L150,50 L175,42 L200,47 L225,38 L250,45 L275,36 L300,43 L325,35 L350,41 L375,38 L400,40 L400,100 L0,100 Z" fill="url(#cephReadGrad)"/>
+                          <!-- Read line -->
+                          <path d="M0,58 L25,52 L50,56 L75,48 L100,53 L125,44 L150,50 L175,42 L200,47 L225,38 L250,45 L275,36 L300,43 L325,35 L350,41 L375,38 L400,40" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round"/>
+                          <!-- Write fill -->
+                          <path d="M0,72 L25,70 L50,73 L75,68 L100,71 L125,66 L150,69 L175,64 L200,67 L225,62 L250,66 L275,60 L300,64 L325,59 L350,63 L375,61 L400,62 L400,100 L0,100 Z" fill="url(#cephWriteGrad)"/>
+                          <!-- Write line -->
+                          <path d="M0,72 L25,70 L50,73 L75,68 L100,71 L125,66 L150,69 L175,64 L200,67 L225,62 L250,66 L275,60 L300,64 L325,59 L350,63 L375,61 L400,62" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
+                          <!-- Y-axis labels -->
+                          <text x="2" y="23" fill="#9ca3af" font-size="8">1.2 GB/s</text>
+                          <text x="2" y="48" fill="#9ca3af" font-size="8">800 MB/s</text>
+                          <text x="2" y="73" fill="#9ca3af" font-size="8">400 MB/s</text>
+                        </svg>
+                      </div>
+
+                      <!-- PG state breakdown -->
+                      <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                        <div class="text-sm font-semibold text-gray-800 mb-1">PG States</div>
+                        <div class="text-[10px] text-gray-400 mb-4">All placement groups</div>
+                        <!-- Donut chart mockup -->
+                        <div class="flex items-center justify-center mb-4">
+                          <div class="relative">
+                            <svg viewBox="0 0 80 80" class="w-20 h-20">
+                              <circle cx="40" cy="40" r="30" fill="none" stroke="#e5e7eb" stroke-width="8"/>
+                              <circle cx="40" cy="40" r="30" fill="none" stroke="#10b981" stroke-width="8" stroke-dasharray="185.4 188.5" stroke-dashoffset="0" transform="rotate(-90 40 40)"/>
+                              <circle cx="40" cy="40" r="30" fill="none" stroke="#f59e0b" stroke-width="8" stroke-dasharray="3.1 185.4" stroke-dashoffset="-185.4" transform="rotate(-90 40 40)"/>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                              <span class="text-lg font-bold text-gray-900">98%</span>
+                              <span class="text-[8px] text-gray-400">active+clean</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="space-y-2">
+                          <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5">
+                              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                              <span class="text-[11px] text-gray-600">Active + clean</span>
+                            </div>
+                            <span class="text-[11px] font-semibold text-gray-800">2014</span>
+                          </div>
+                          <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5">
+                              <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                              <span class="text-[11px] text-gray-600">Degraded</span>
+                            </div>
+                            <span class="text-[11px] font-semibold text-gray-800">34</span>
+                          </div>
+                          <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5">
+                              <span class="w-2 h-2 rounded-full bg-gray-300"></span>
+                              <span class="text-[11px] text-gray-600">Undersized</span>
+                            </div>
+                            <span class="text-[11px] font-semibold text-gray-800">0</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Pools & Health checks row -->
+                    <div class="grid grid-cols-2 gap-3">
+                      <!-- Pools -->
+                      <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                          <span class="text-xs font-semibold text-gray-700">Pools</span>
+                          <span class="text-[10px] text-gray-400">4 pools</span>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                          <div class="px-4 py-2.5 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              <span class="text-xs font-mono text-gray-700">vm-pool</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                              <div class="w-20 bg-gray-100 rounded-full h-1.5"><div class="bg-emerald-400 h-1.5 rounded-full" style="width:58%"></div></div>
+                              <span class="text-[10px] text-gray-400 w-14 text-right">4.2k IOPS</span>
+                            </div>
+                          </div>
+                          <div class="px-4 py-2.5 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                              <span class="text-xs font-mono text-gray-700">rgw-objects</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                              <div class="w-20 bg-gray-100 rounded-full h-1.5"><div class="bg-amber-400 h-1.5 rounded-full" style="width:81%"></div></div>
+                              <span class="text-[10px] text-gray-400 w-14 text-right">1.8k IOPS</span>
+                            </div>
+                          </div>
+                          <div class="px-4 py-2.5 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              <span class="text-xs font-mono text-gray-700">cephfs-data</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                              <div class="w-20 bg-gray-100 rounded-full h-1.5"><div class="bg-emerald-400 h-1.5 rounded-full" style="width:44%"></div></div>
+                              <span class="text-[10px] text-gray-400 w-14 text-right">920 IOPS</span>
+                            </div>
+                          </div>
+                          <div class="px-4 py-2.5 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              <span class="text-xs font-mono text-gray-700">cephfs-meta</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                              <div class="w-20 bg-gray-100 rounded-full h-1.5"><div class="bg-emerald-400 h-1.5 rounded-full" style="width:12%"></div></div>
+                              <span class="text-[10px] text-gray-400 w-14 text-right">140 IOPS</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Health checks -->
+                      <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                          <span class="text-xs font-semibold text-gray-700">Active Health Checks</span>
+                          <span class="text-[10px] text-gray-400">why HEALTH_WARN</span>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                          <div class="px-4 py-2.5">
+                            <div class="flex items-center justify-between">
+                              <span class="text-xs font-mono text-gray-700">OSD_DOWN</span>
+                              <span class="text-[10px] font-bold text-red-600 uppercase">1 osd</span>
+                            </div>
+                            <div class="text-[10px] text-gray-400 mt-0.5">osd.17 on ceph-node-03 is down</div>
+                          </div>
+                          <div class="px-4 py-2.5">
+                            <div class="flex items-center justify-between">
+                              <span class="text-xs font-mono text-gray-700">PG_DEGRADED</span>
+                              <span class="text-[10px] font-bold text-amber-600 uppercase">34 pgs</span>
+                            </div>
+                            <div class="text-[10px] text-gray-400 mt-0.5">Degraded data redundancy, recovering</div>
+                          </div>
+                          <div class="px-4 py-2.5">
+                            <div class="flex items-center justify-between">
+                              <span class="text-xs font-mono text-gray-700">Recovery</span>
+                              <span class="text-[10px] font-bold text-emerald-600 uppercase">In progress</span>
+                            </div>
+                            <div class="text-[10px] text-gray-400 mt-0.5">34 PGs backfilling to healthy OSDs</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('logo-roll') -%>
+
+    <!-- How It Works Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-red-600 uppercase tracking-wide mb-3">How It Works</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            One mgr module, one agent, full visibility
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            No exporters to package, no Prometheus to size, no Grafana dashboards to import and maintain.
+          </p>
+        </div>
+
+        <div class="mx-auto max-w-5xl">
+          <!-- Connecting line for desktop -->
+          <div class="hidden lg:block relative">
+            <div class="absolute top-8 left-[calc(12.5%+24px)] right-[calc(12.5%+24px)] h-px bg-red-200"></div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Step 1 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-red-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-red-600 ring-2 ring-red-600">1</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Enable the mgr module</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">One command on any mon or mgr host: <code class="text-xs bg-gray-100 px-1 py-0.5 rounded">ceph mgr module enable prometheus</code>. That is the entire Ceph-side setup.</p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-red-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-red-600 ring-2 ring-red-600">2</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Paste one command</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Start the OneUptime agent with a single copy-paste command pointing at the mgr endpoint. It ships every cluster, OSD, PG, and pool series.</p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-red-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-red-600 ring-2 ring-red-600">3</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Cluster auto-discovered</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">The cluster appears with health, capacity, OSD, and pool views on first data. A validation endpoint confirms telemetry is flowing if you are unsure.</p>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-red-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-red-600 ring-2 ring-red-600">4</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Turn on alert templates</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Enable ready-made monitors for OSD down, mon quorum, capacity thresholds, PG degradation, and slow ops — routed straight to on-call.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why OneUptime Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center mb-20">
+          <div class="inline-flex items-center gap-2 rounded-full bg-red-50 px-4 py-1.5 text-sm font-medium text-red-700 ring-1 ring-inset ring-red-600/20 mb-6">
+            <svg class="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            <span class="text-sm font-medium text-red-700">Why OneUptime for Ceph</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            The storage layer everything depends on, finally observable
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            The upstream dashboard shows you state; alerting means wiring up Prometheus, Alertmanager, and Grafana yourself. Most SaaS tools — Datadog included — ship no Ceph metrics at all. OneUptime is a complete Ceph product out of the box.
+          </p>
+        </div>
+
+        <!-- Feature blocks -->
+        <div class="space-y-24">
+
+          <!-- Feature 1: Health with the why -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-200">
+                  <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Health Drill-Down</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Not just HEALTH_WARN — the why behind it</h3>
+              <p class="mt-4 text-lg text-gray-600">A yellow pill is not actionable. OneUptime breaks the cluster health status into its active checks — OSD down, degraded PGs, clock skew, recent daemon crashes, nearfull OSDs — so the first thing you see is the reason, not a status code to go grep for.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Per-check breakdown with affected daemons and counts
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  OSD up/in matrix and honeycomb view of every daemon
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Cluster log viewer for the events behind the state change
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Health drill-down Mockup -->
+                <div class="relative max-w-md mx-auto">
+                  <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+                    <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                      <div class="flex gap-1.5">
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      </div>
+                      <div class="flex-1 text-center">
+                        <span class="text-xs text-gray-400">Cluster Health</span>
+                      </div>
+                    </div>
+                    <div class="p-4 space-y-3">
+                      <div class="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <div class="text-sm font-medium text-gray-900">HEALTH_WARN</div>
+                            <div class="text-xs text-gray-500">ceph-prod &middot; 2 active checks</div>
+                          </div>
+                        </div>
+                        <span class="text-xs text-amber-600 font-medium">Investigate</span>
+                      </div>
+                      <div class="p-3 bg-red-50 rounded-lg border border-red-200">
+                        <div class="flex items-center justify-between mb-1">
+                          <span class="text-xs font-mono font-semibold text-gray-800">OSD_DOWN</span>
+                          <span class="text-[10px] font-bold text-red-600 uppercase">1 osd</span>
+                        </div>
+                        <div class="text-xs text-gray-500">osd.17 on ceph-node-03 has been down for 12 min</div>
+                      </div>
+                      <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                        <div class="flex items-center justify-between mb-1">
+                          <span class="text-xs font-mono font-semibold text-gray-800">PG_DEGRADED</span>
+                          <span class="text-[10px] font-bold text-amber-600 uppercase">34 pgs</span>
+                        </div>
+                        <div class="text-xs text-gray-500">Degraded data redundancy: 34 PGs recovering</div>
+                      </div>
+                      <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="flex items-center justify-between mb-1">
+                          <span class="text-xs font-mono font-semibold text-gray-800">MON_CLOCK_SKEW</span>
+                          <span class="text-[10px] font-bold text-emerald-600 uppercase">Resolved</span>
+                        </div>
+                        <div class="text-xs text-gray-400">Cleared 2 hours ago</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 2: Capacity forecasting -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Capacity forecast Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Capacity Forecast</span>
+                    </div>
+                  </div>
+                  <div class="p-4">
+                    <div class="flex items-center justify-between mb-4">
+                      <div>
+                        <div class="text-sm font-medium text-gray-900">Raw capacity</div>
+                        <div class="text-xs text-gray-500">412 TiB used of 680 TiB</div>
+                      </div>
+                      <span class="flex items-center gap-1 px-2 py-1 bg-amber-50 rounded text-xs text-amber-600 border border-amber-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                        85% in ~74 days
+                      </span>
+                    </div>
+
+                    <!-- Forecast chart -->
+                    <svg viewBox="0 0 360 120" class="w-full h-32">
+                      <!-- threshold lines -->
+                      <line x1="0" y1="30" x2="360" y2="30" stroke="#fca5a5" stroke-width="1" stroke-dasharray="4 3"/>
+                      <text x="4" y="26" fill="#ef4444" font-size="9">full 95%</text>
+                      <line x1="0" y1="44" x2="360" y2="44" stroke="#fcd34d" stroke-width="1" stroke-dasharray="4 3"/>
+                      <text x="4" y="40" fill="#d97706" font-size="9">nearfull 85%</text>
+                      <!-- history -->
+                      <path d="M0,96 L30,94 L60,92 L90,89 L120,87 L150,84 L180,81" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round"/>
+                      <!-- forecast (dashed) -->
+                      <path d="M180,81 L220,74 L260,66 L300,56 L340,46 L360,42" fill="none" stroke="#dc2626" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round" opacity="0.6"/>
+                      <circle cx="180" cy="81" r="3" fill="#dc2626"/>
+                      <text x="186" y="98" fill="#9ca3af" font-size="9">today</text>
+                      <!-- intersection marker -->
+                      <circle cx="345" cy="44" r="3" fill="#d97706"/>
+                      <text x="262" y="112" fill="#d97706" font-size="9">nearfull in ~74 days</text>
+                    </svg>
+
+                    <div class="mt-3 grid grid-cols-2 gap-2">
+                      <div class="p-2 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="text-[10px] text-gray-400">vm-pool</div>
+                        <div class="text-xs font-semibold text-gray-800">full in ~117 days</div>
+                      </div>
+                      <div class="p-2 bg-amber-50 rounded-lg border border-amber-200">
+                        <div class="text-[10px] text-gray-400">rgw-objects</div>
+                        <div class="text-xs font-semibold text-amber-700">full in ~38 days</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-200">
+                  <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Capacity Forecasting</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Order disks before nearfull, not after</h3>
+              <p class="mt-4 text-lg text-gray-600">A Ceph cluster hitting <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">full_ratio</code> stops accepting writes — and everything above it stops too. OneUptime fits your actual growth and tells you "85% in ~74 days" for the cluster and for each pool, the long-horizon view operators keep asking the upstream dashboard for.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Days-to-nearfull and days-to-full from real growth trends
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Per-pool growth projections, not just the cluster total
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Capacity gauge with nearfull/full thresholds marked
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Feature 3: Alerting without the stack -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-200">
+                  <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Alerting Built In</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Built-in alerting, zero Prometheus stack</h3>
+              <p class="mt-4 text-lg text-gray-600">Getting alerts from the upstream dashboard means running Prometheus, Alertmanager, and Grafana on the side — the most common complaint about operating Ceph. OneUptime ships alert templates for the core failure modes the ceph-mixin pack covers, connected directly to escalation policies and incident management.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  OSD down, mon quorum, nearfull, PG degradation, slow ops
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  One click to enable — no PromQL, no rule files
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Escalation policies, status pages, and incidents included
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Alert Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Active Alerts</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <div class="p-3 bg-red-50 rounded-lg border border-red-200">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="px-1.5 py-0.5 bg-red-100 rounded text-[10px] font-bold text-red-600">CRITICAL</span>
+                        <span class="text-xs text-gray-500">4 min ago</span>
+                      </div>
+                      <div class="text-sm font-medium text-gray-900">OSD Down</div>
+                      <div class="text-xs text-gray-500 mt-1">osd.17 on ceph-node-03</div>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="px-1.5 py-0.5 bg-amber-100 rounded text-[10px] font-bold text-amber-600">WARNING</span>
+                        <span class="text-xs text-gray-500">9 min ago</span>
+                      </div>
+                      <div class="text-sm font-medium text-gray-900">PGs Degraded</div>
+                      <div class="text-xs text-gray-500 mt-1">34 placement groups recovering</div>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="px-1.5 py-0.5 bg-amber-100 rounded text-[10px] font-bold text-amber-600">WARNING</span>
+                        <span class="text-xs text-gray-500">2 hr ago</span>
+                      </div>
+                      <div class="text-sm font-medium text-gray-900">Pool Approaching Capacity</div>
+                      <div class="text-xs text-gray-500 mt-1">rgw-objects at 81% of quota</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 4: Fleet view -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Fleet Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Ceph Clusters</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-900">ceph-prod</span>
+                        <span class="text-xs text-emerald-600 font-medium">HEALTH_OK</span>
+                      </div>
+                      <div class="flex items-center gap-3">
+                        <div class="flex-1 bg-white rounded-full h-1.5 border border-emerald-100"><div class="bg-emerald-400 h-1.5 rounded-full" style="width:61%"></div></div>
+                        <span class="text-[10px] text-gray-400">61% &middot; 48 OSDs</span>
+                      </div>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-lg border border-amber-100">
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-900">ceph-backup-site</span>
+                        <span class="text-xs text-amber-600 font-medium">HEALTH_WARN</span>
+                      </div>
+                      <div class="flex items-center gap-3">
+                        <div class="flex-1 bg-white rounded-full h-1.5 border border-amber-100"><div class="bg-amber-400 h-1.5 rounded-full" style="width:83%"></div></div>
+                        <span class="text-[10px] text-gray-400">83% &middot; 24 OSDs</span>
+                      </div>
+                    </div>
+                    <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-900">ceph-lab</span>
+                        <span class="text-xs text-emerald-600 font-medium">HEALTH_OK</span>
+                      </div>
+                      <div class="flex items-center gap-3">
+                        <div class="flex-1 bg-white rounded-full h-1.5 border border-emerald-100"><div class="bg-emerald-400 h-1.5 rounded-full" style="width:27%"></div></div>
+                        <span class="text-[10px] text-gray-400">27% &middot; 6 OSDs</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-200">
+                  <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Fleet View</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Every cluster, one screen</h3>
+              <p class="mt-4 text-lg text-gray-600">The upstream dashboard manages one cluster at a time. OneUptime lists every Ceph cluster you run — production, backup site, lab — with health pills and capacity bars side by side, so the cluster quietly filling up at the DR site does not stay quiet.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Health and capacity for every cluster at a glance
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Clusters auto-register on first data from their agent
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Drill into OSDs, pools, PGs, and logs per cluster
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- More Features Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center">
+          <div class="inline-flex items-center gap-2 rounded-full bg-red-50 px-4 py-1.5 text-sm font-medium text-red-700 ring-1 ring-inset ring-red-600/20 mb-6">
+            <svg class="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span class="text-sm font-medium text-red-700">Advanced capabilities</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            Everything you need to run Ceph confidently
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            From homelab three-node clusters to multi-petabyte production deployments.
+          </p>
+        </div>
+
+        <!-- Feature cards grid -->
+        <div class="mx-auto mt-16 max-w-7xl">
+          <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+
+            <!-- Card 1: The SaaS gap -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-red-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-200">
+                  <%- include('./Partials/icons/ceph', {iconClass: 'h-6 w-6'}) %>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">A Real Ceph Product</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Datadog ships zero Ceph metrics in its Proxmox integration; most SaaS tools ignore Ceph entirely. OneUptime treats your storage layer as a first-class product with its own pages, alerts, and docs.</p>
+              </div>
+            </div>
+
+            <!-- Card 2: OSD/PG/pool depth -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-blue-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-blue-200">
+                  <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">OSD, PG & Pool Depth</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Up/in state for every OSD in a honeycomb view, placement-group state breakdowns, and per-pool usage, IOPS, and throughput — the views you rely on in the native dashboard, with alerting on top.</p>
+              </div>
+            </div>
+
+            <!-- Card 3: Cluster log viewer -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
+                  <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Cluster Log Viewer</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Stream the Ceph cluster log next to your metrics. When health flips to WARN, the events that explain it are one tab away — no SSH session to a mon host required.</p>
+              </div>
+            </div>
+
+            <!-- Card 4: Proxmox cross-link -->
+            <div class="group relative">
+              <a href="/product/proxmox" class="block relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-orange-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 ring-1 ring-orange-200">
+                  <%- include('./Partials/icons/proxmox', {iconClass: 'h-6 w-6'}) %>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Hyper-Converged with Proxmox</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Running Ceph under Proxmox VE? Pair this with the Proxmox product: hypervisor, guests, and the storage they sit on, monitored side by side in the same project.</p>
+              </a>
+            </div>
+
+            <!-- Card 5: Whole platform -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+                  <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">On-Call, Status Pages & Incidents</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">An OSD page at 3 AM should wake the right person, open an incident, and update your status page. All of that ships in the same product — no Alertmanager, no PagerDuty bill.</p>
+              </div>
+            </div>
+
+            <!-- Card 6: Open source -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-50 ring-1 ring-pink-200">
+                  <svg class="h-6 w-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Open Source & Self-Hostable</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">You chose Ceph to own your storage. OneUptime is fully open source and self-hostable, so your monitoring can live next to your cluster — air-gapped if it has to be.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Notifications Section -->
+    <div class="relative overflow-hidden bg-white py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <!-- Content -->
+          <div class="relative">
+            <p class="text-sm font-medium text-red-600 uppercase tracking-wide mb-3">Team Notifications</p>
+            <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+              Ceph alerts where your team already works
+            </h2>
+            <p class="mt-4 text-lg text-gray-600 leading-relaxed">
+              Get instant notifications for OSD failures, degraded PGs, and capacity warnings in Slack and Microsoft Teams. Acknowledge and investigate without leaving your chat app.
+            </p>
+
+            <!-- Integration cards -->
+            <div class="mt-10 space-y-3">
+              <!-- Slack -->
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z" fill="#E01E5A"/>
+                    <path d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z" fill="#36C5F0"/>
+                    <path d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312z" fill="#2EB67D"/>
+                    <path d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#ECB22E"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-gray-900">Slack</h3>
+                  <p class="text-sm text-gray-500">Interactive Ceph alert actions</p>
+                </div>
+              </div>
+
+              <!-- Microsoft Teams -->
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <path d="M20.16 7.8h-4.736c.103.317.159.654.159 1.005v7.029a3.588 3.588 0 01-3.583 3.583h-4.8v.777c0 .998.81 1.806 1.806 1.806h8.339l2.869 1.912a.452.452 0 00.703-.376V21.2h.646c.997 0 1.806-.809 1.806-1.806v-9.788A1.806 1.806 0 0020.16 7.8z" fill="#5059C9"/>
+                    <circle cx="18.5" cy="4.5" r="2.5" fill="#5059C9"/>
+                    <path d="M13.5 6H3.806A1.806 1.806 0 002 7.806v9.388c0 .997.81 1.806 1.806 1.806h2.611v3.336a.452.452 0 00.703.376L10.5 20h3a3.5 3.5 0 003.5-3.5v-7A3.5 3.5 0 0013.5 6z" fill="#7B83EB"/>
+                    <circle cx="10" cy="3" r="3" fill="#7B83EB"/>
+                    <path d="M6 11h6M6 14h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-gray-900">Microsoft Teams</h3>
+                  <p class="text-sm text-gray-500">Native adaptive cards integration</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Features list -->
+            <div class="mt-8 grid grid-cols-2 gap-4">
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Real-time delivery
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                OSD failure alerts
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Rich formatting
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Action buttons
+              </div>
+            </div>
+          </div>
+
+          <!-- Slack Demo -->
+          <div class="mt-12 lg:mt-0 relative">
+            <!-- Decorative gradient background -->
+            <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+            <div class="relative rounded-2xl bg-[#1a1d21] shadow-2xl ring-1 ring-white/10 overflow-hidden">
+              <!-- Slack Window Header -->
+              <div class="bg-[#0f1114] px-4 py-3 flex items-center justify-between border-b border-white/5">
+                <div class="flex items-center gap-2">
+                  <div class="flex gap-1.5">
+                    <div class="w-3 h-3 rounded-full bg-[#ff5f57]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#febc2e]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#28c840]"></div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <svg class="h-4 w-4 text-white/60" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+                  </svg>
+                  <span class="text-white/60 text-sm font-medium">#ceph-alerts</span>
+                </div>
+                <div class="w-16"></div>
+              </div>
+
+              <!-- Slack Messages Area -->
+              <div class="p-4 space-y-4 min-h-[320px]" id="ceph-slack-messages">
+                <!-- Main Alert Message -->
+                <div class="flex gap-3" style="animation: fadeSlideIn 0.5s ease-out forwards;">
+                  <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                      <path d="M11.959.257A11.912 11.912 0 003.503 3.76 11.92 11.92 0 000 12.217a11.934 11.934 0 001.207 5.243c.72 1.474 1.888 2.944 3.208 4.044.86-.47 1.35-.99 1.453-1.545.1-.533-.134-1.107-.737-1.805a9.031 9.031 0 01-2.219-5.937c0-4.988 4.058-9.047 9.047-9.047h.08c4.99 0 9.048 4.059 9.048 9.047a9.03 9.03 0 01-2.218 5.936c-.599.693-.84 1.292-.735 1.83.108.556.595 1.068 1.449 1.522 1.322-1.1 2.489-2.57 3.209-4.046A11.898 11.898 0 0024 12.217a11.929 11.929 0 00-3.503-8.457A11.923 11.923 0 0012.04.257h-.041zm-.005 4.837a7.072 7.072 0 00-3.76 1.075A7.202 7.202 0 006.15 8.093a7.164 7.164 0 00-1.161 2.65 7.188 7.188 0 00.04 3.125 7.14 7.14 0 001.22 2.607c.154.207.326.396.509.597l.185.202.005.006c.007.007.017.016.026.027.635.738.957 1.533.957 2.36a3.4 3.4 0 01-1.788 2.989 11.924 11.924 0 002.685 1.087c.14-.088.614-.441 1.077-1.083a4.899 4.899 0 00.94-2.99 6.595 6.595 0 00-.49-2.37 6.717 6.717 0 00-1.302-2.033l-.002-.004-.124-.142c-.21-.245-.428-.497-.602-.792a4.104 4.104 0 01-.462-1.135 4.258 4.258 0 01-.024-1.85 4.25 4.25 0 01.686-1.564 4.216 4.216 0 013.432-1.773H12.042a4.202 4.202 0 013.432 1.773c.33.466.568 1.007.686 1.565a4.27 4.27 0 01-.023 1.849c-.093.39-.249.772-.463 1.135-.173.295-.391.547-.602.792l-.123.142-.004.004a6.736 6.736 0 00-1.301 2.033 6.607 6.607 0 00-.49 2.37 4.897 4.897 0 00.94 2.99c.463.642.937.995 1.076 1.083a11.776 11.776 0 002.687-1.087 3.399 3.399 0 01-1.789-2.988c0-.817.313-1.59.956-2.359.009-.012.02-.022.027-.03l.006-.004.184-.204c.183-.2.355-.39.51-.596a7.14 7.14 0 001.22-2.608 7.21 7.21 0 00.04-3.124 7.185 7.185 0 00-1.16-2.65 7.203 7.203 0 00-2.044-1.924 7.074 7.074 0 00-3.762-1.075h-.09zM12 9.97a2.365 2.365 0 00-2.362 2.361A2.364 2.364 0 0012 14.691c1.301 0 2.36-1.059 2.36-2.36A2.364 2.364 0 0012 9.968z"></path>
+                    </svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-baseline gap-2">
+                      <span class="font-bold text-white text-sm">OneUptime Ceph</span>
+                      <span class="text-xs text-white/40">4:03 AM</span>
+                    </div>
+                    <!-- Alert Card -->
+                    <div class="mt-2 rounded-lg bg-[#0f1114] border border-white/10 overflow-hidden">
+                      <div class="p-3 border-l-4 border-red-500">
+                        <div class="flex items-center gap-2 mb-2">
+                          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-500/20 text-red-400 ring-1 ring-red-500/30">CRITICAL</span>
+                          <span class="text-white/40 text-xs">OSD Down</span>
+                        </div>
+                        <p class="text-white font-semibold">osd.17 on ceph-node-03 is down</p>
+                        <div class="mt-2 flex items-center gap-4 text-xs text-white/50">
+                          <span class="flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
+                            </svg>
+                            cluster: ceph-prod
+                          </span>
+                          <span class="flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            34 PGs degraded
+                          </span>
+                        </div>
+                        <!-- Action Buttons -->
+                        <div class="mt-3 flex gap-2">
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
+                            Acknowledge
+                          </button>
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors">
+                            View OSDs
+                          </button>
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
+                            Resolve
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Reactions -->
+                    <div class="mt-2 flex items-center gap-1">
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+                        <span>👀</span>
+                        <span class="text-white/60">3</span>
+                      </span>
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+                        <span>🚨</span>
+                        <span class="text-white/60">2</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Thread Replies Container -->
+                <div id="ceph-thread-container" class="ml-12 space-y-3 hidden">
+                </div>
+              </div>
+
+              <!-- Message Input Area -->
+              <div class="px-4 py-3 border-t border-white/5">
+                <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0f1114] border border-white/10">
+                  <svg class="h-5 w-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span class="text-white/30 text-sm">Message #ceph-alerts</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('./Partials/enterprise-ready') -%>
+    <%- include('features-table') -%>
+    <%- include('cta') -%>
+  </main>
+
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+
+  <style>
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+
+  <!-- Grid glow cursor effect -->
+  <script>
+    (function() {
+      const heroSection = document.getElementById('ceph-hero-section');
+      const gridGlow = document.getElementById('ceph-grid-glow');
+
+      if (heroSection && gridGlow) {
+        heroSection.addEventListener('mousemove', (e) => {
+          const rect = heroSection.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          gridGlow.style.setProperty('--mouse-x', x + 'px');
+          gridGlow.style.setProperty('--mouse-y', y + 'px');
+          gridGlow.style.opacity = '1';
+        });
+
+        heroSection.addEventListener('mouseleave', () => {
+          gridGlow.style.opacity = '0';
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html>

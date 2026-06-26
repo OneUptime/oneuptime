@@ -11,10 +11,6 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import ProjectSettings from "../Pages/Settings/ProjectSettings";
 import SettingsApiKeys from "../Pages/Settings/APIKeys";
 
-import SettingsUsers from "../Pages/Settings/Users";
-
-import SettingsUserView from "../Pages/Settings/UserView";
-
 import SettingsApiKeyView from "../Pages/Settings/APIKeyView";
 
 import SettingsIngestionKeys from "../Pages/Settings/TelemetryIngestionKeys";
@@ -24,8 +20,6 @@ import SettingsIngestionKeyView from "../Pages/Settings/TelemetryIngestionKeyVie
 import SettingsTelemetrySettings from "../Pages/Settings/TelemetrySettings";
 
 import SettingLabels from "../Pages/Settings/Labels";
-
-import SettingProbes from "../Pages/Settings/Probes";
 
 import SettingAIAgents from "../Pages/Settings/AIAgents";
 
@@ -38,15 +32,12 @@ import SettingsLlmProviderView from "../Pages/Settings/LlmProviderView";
 import SettingsAIBilling from "../Pages/Settings/AIBillingSettings";
 
 import SettingFeatureFlags from "../Pages/Settings/FeatureFlags";
-import SettingsTeams from "../Pages/Settings/Teams";
-import SettingsTeamView from "../Pages/Settings/TeamView";
-
-import SettingsProbeView from "../Pages/Settings/ProbeView";
 
 import SettingsDomains from "../Pages/Settings/Domains";
 
 import SettingsBilling from "../Pages/Settings/Billing";
 import SettingsSSO from "../Pages/Settings/SSO";
+import SettingsOIDC from "../Pages/Settings/OIDC";
 
 import SettingsSCIM from "../Pages/Settings/SCIM";
 
@@ -204,6 +195,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_OIDC)}
+          element={
+            <SettingsOIDC
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_OIDC] as Route}
+            />
+          }
+        />
+
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_SCIM)}
           element={
             <SettingsSCIM
@@ -315,16 +316,6 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_PROBES)}
-          element={
-            <SettingProbes
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_PROBES] as Route}
-            />
-          }
-        />
-
-        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_AGENTS)}
           element={
             <SettingAIAgents
@@ -350,56 +341,6 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingLlmProviders
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_TEAMS)}
-          element={
-            <SettingsTeams
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_TEAMS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_USERS)}
-          element={
-            <SettingsUsers
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_USERS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_TEAM_VIEW, 2)}
-          element={
-            <SettingsTeamView
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_USER_VIEW, 2)}
-          element={
-            <SettingsUserView
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_USER_VIEW] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_PROBE_VIEW, 2)}
-          element={
-            <SettingsProbeView
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_PROBE_VIEW] as Route}
             />
           }
         />

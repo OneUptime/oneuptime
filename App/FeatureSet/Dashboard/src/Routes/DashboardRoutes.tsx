@@ -1,4 +1,5 @@
 import ComponentProps from "../Pages/PageComponentProps";
+import DashboardsLayout from "../Pages/Dashboards/Layout";
 import DashboardViewLayout from "../Pages/Dashboards/View/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { DashboardsRoutePath, RouteUtil } from "../Utils/RouteMap";
@@ -22,20 +23,58 @@ import DashboardViewBranding from "../Pages/Dashboards/View/Branding";
 
 import DashboardViewCustomDomains from "../Pages/Dashboards/View/CustomDomains";
 
+import DashboardViewOwners from "../Pages/Dashboards/View/Owners";
+
+import DashboardViewAuditLogs from "../Pages/Dashboards/View/AuditLogs";
+
+import DashboardSettingsOwnerRules from "../Pages/Dashboards/Settings/OwnerRules";
+
+import DashboardSettingsLabelRules from "../Pages/Dashboards/Settings/LabelRules";
+
 const DashboardsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
     <Routes>
-      <PageRoute
-        path={DashboardsRoutePath[PageMap.DASHBOARDS] || ""}
-        element={
-          <Dashboards
-            {...props}
-            pageRoute={RouteMap[PageMap.DASHBOARDS] as Route}
-          />
-        }
-      />
+      <PageRoute path="/" element={<DashboardsLayout {...props} />}>
+        <PageRoute
+          index
+          element={
+            <Dashboards
+              {...props}
+              pageRoute={RouteMap[PageMap.DASHBOARDS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            DashboardsRoutePath[PageMap.DASHBOARDS_SETTINGS_OWNER_RULES] || ""
+          }
+          element={
+            <DashboardSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DASHBOARDS_SETTINGS_OWNER_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            DashboardsRoutePath[PageMap.DASHBOARDS_SETTINGS_LABEL_RULES] || ""
+          }
+          element={
+            <DashboardSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DASHBOARDS_SETTINGS_LABEL_RULES] as Route
+              }
+            />
+          }
+        />
+      </PageRoute>
 
       <PageRoute
         path={DashboardsRoutePath[PageMap.DASHBOARD_VIEW] || ""}
@@ -117,6 +156,26 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.DASHBOARD_VIEW_OWNERS)}
+          element={
+            <DashboardViewOwners
+              {...props}
+              pageRoute={RouteMap[PageMap.DASHBOARD_VIEW_OWNERS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.DASHBOARD_VIEW_AUDIT_LOGS)}
+          element={
+            <DashboardViewAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.DASHBOARD_VIEW_AUDIT_LOGS] as Route}
             />
           }
         />

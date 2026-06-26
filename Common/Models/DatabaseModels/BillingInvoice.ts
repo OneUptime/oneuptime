@@ -36,7 +36,6 @@ export enum InvoiceStatus {
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ReadInvoices,
-    Permission.ReadAllProjectResources,
   ],
   delete: [],
   update: [],
@@ -59,7 +58,6 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -91,7 +89,6 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -117,7 +114,6 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -150,7 +146,6 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -174,7 +169,6 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -208,7 +202,6 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -232,7 +225,6 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -253,7 +245,6 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -275,7 +266,6 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -297,7 +287,6 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -319,7 +308,6 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -341,7 +329,6 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -363,7 +350,6 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -385,7 +371,6 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -405,7 +390,6 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

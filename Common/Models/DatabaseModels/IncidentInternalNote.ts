@@ -5,6 +5,7 @@ import File from "./File";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -36,7 +37,8 @@ import {
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
     Permission.CreateIncidentInternalNote,
   ],
   read: [
@@ -44,22 +46,25 @@ import {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
+    Permission.IncidentViewer,
     Permission.ReadIncidentInternalNote,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
     Permission.DeleteIncidentInternalNote,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
     Permission.EditIncidentInternalNote,
   ],
 })
@@ -70,6 +75,7 @@ import {
   read: true,
 })
 @CrudApiEndpoint(new Route("/incident-internal-note"))
+@OwnedThrough("incidentId", Incident)
 @Entity({
   name: "IncidentInternalNote",
 })
@@ -86,7 +92,8 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentInternalNote,
     ],
     read: [
@@ -94,9 +101,10 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -126,7 +134,8 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentInternalNote,
     ],
     read: [
@@ -134,9 +143,10 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -161,7 +171,8 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentInternalNote,
     ],
     read: [
@@ -169,9 +180,10 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -201,7 +213,8 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentInternalNote,
     ],
     read: [
@@ -209,9 +222,10 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -235,7 +249,8 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentInternalNote,
     ],
     read: [
@@ -243,9 +258,10 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -276,7 +292,8 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentInternalNote,
     ],
     read: [
@@ -284,9 +301,10 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -356,7 +374,8 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentInternalNote,
     ],
     read: [
@@ -364,15 +383,17 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.EditIncidentInternalNote,
     ],
   })
@@ -395,7 +416,8 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentInternalNote,
     ],
     read: [
@@ -403,15 +425,17 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.EditIncidentInternalNote,
     ],
   })
@@ -450,9 +474,10 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -479,7 +504,8 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentInternalNote,
     ],
     read: [
@@ -487,9 +513,10 @@ export default class IncidentInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

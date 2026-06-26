@@ -5,8 +5,24 @@ OneUptime URL: {{ .Values.oneuptime.url }}
 
 The agent is now collecting:
   - Node, pod, and container resource metrics (kubeletstats)
+{{- if .Values.kubeletstats.utilizationMetrics.enabled }}
+  - Container & pod CPU/memory saturation (% of request/limit)
+{{- end }}
+{{- if .Values.kubeletstats.volumeMetrics.enabled }}
+  - Per-PVC disk usage (k8s.volume.available / capacity)
+{{- end }}
+{{- if .Values.cadvisor.enabled }}
+  - cAdvisor: CFS throttling and OOM kill counters (kubelet /metrics/cadvisor)
+{{- end }}
   - Cluster-level metrics: deployments, replicas, pod phases (k8s_cluster)
   - Kubernetes events (k8sobjects)
+{{- if .Values.kubeStateMetrics.enabled }}
+{{- if eq .Values.kubeStateMetrics.mode "bundled" }}
+  - Cluster-state metrics from bundled kube-state-metrics: pod phases, container waiting reasons, resource quotas
+{{- else }}
+  - Cluster-state metrics from external kube-state-metrics at {{ .Values.kubeStateMetrics.endpoint }}
+{{- end }}
+{{- end }}
 {{- if .Values.controlPlane.enabled }}
   - Control plane metrics: etcd, API server, scheduler, controller manager (prometheus)
 {{- end }}
@@ -18,6 +34,24 @@ The agent is now collecting:
   - Pod logs from /var/log/pods (filelog DaemonSet)
 {{- end }}
 {{- end }}
+{{- if .Values.ebpf.enabled }}
+  - Application traces & HTTP request metrics from every pod on the cluster, via OpenTelemetry eBPF Instrumentation (DaemonSet, no code changes)
+{{- end }}
+{{- if .Values.profiling.enabled }}
+  - Continuous CPU flame graphs from every process on every node, via the OpenTelemetry eBPF Profiler (DaemonSet, samples stacks at {{ .Values.profiling.samplesPerSecond }}Hz)
+{{- end }}
+{{- if .Values.hostMetrics.enabled }}
+  - Per-node OS metrics (disk I/O, filesystem inodes, NIC errors, paging, load average)
+{{- end }}
+{{- if .Values.auditLogs.enabled }}
+  - Kubernetes API server audit logs (self-managed clusters)
+{{- end }}
+{{- if .Values.csi.enabled }}
+  - CSI driver metrics (volume attach/detach latency, provisioning, IOPS — depends on the driver)
+{{- end }}
+{{- if .Values.coreDns.enabled }}
+  - CoreDNS metrics (query rate, latency, cache hits, errors)
+{{- end }}
 {{- if .Values.preset }}
 
 Preset: {{ .Values.preset }}
@@ -28,6 +62,22 @@ To verify the agent is running:
 
 To check collector logs:
   kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "kubernetes-agent.name" . }} -c otel-collector
+{{- if .Values.ebpf.enabled }}
+
+To check the eBPF instrumentation logs:
+  kubectl logs -n {{ .Release.Namespace }} -l component=ebpf-instrument -c ebpf-instrument --tail=100
+
+To turn eBPF auto-instrumentation off:
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reuse-values --set ebpf.enabled=false
+{{- end }}
 
 Your cluster should appear in OneUptime within a few minutes at:
   {{ .Values.oneuptime.url }}/dashboard/<project-id>/kubernetes
+
+If it stays "Disconnected" or no data shows up (most often a wrong/revoked
+ingestion key — which is silently dropped, so the collector logs look clean),
+run the diagnostic script for a one-shot root-cause verdict:
+  curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh | bash -s -- -n {{ .Release.Namespace }}
+
+Or validate your ingestion key directly (200 = valid, 401 = unknown/revoked):
+  curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" {{ .Values.oneuptime.url }}/otlp/v1/validate

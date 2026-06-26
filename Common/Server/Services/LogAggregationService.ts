@@ -1,4 +1,5 @@
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
+import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import LogDatabaseService from "./LogService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
@@ -8,6 +9,7 @@ import Includes from "../../Types/BaseDatabase/Includes";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 
 export interface HistogramBucket {
   time: string;
@@ -21,6 +23,7 @@ export interface HistogramRequest {
   endTime: Date;
   bucketSizeInMinutes: number;
   serviceIds?: Array<ObjectID> | undefined;
+  entityKeys?: Array<string> | undefined;
   severityTexts?: Array<string> | undefined;
   bodySearchText?: string | undefined;
   traceIds?: Array<string> | undefined;
@@ -31,6 +34,7 @@ export interface HistogramRequest {
 export interface FacetValue {
   value: string;
   count: number;
+  displayName?: string | undefined;
 }
 
 export interface FacetRequest {
@@ -40,6 +44,7 @@ export interface FacetRequest {
   facetKey: string;
   limit?: number | undefined;
   serviceIds?: Array<ObjectID> | undefined;
+  entityKeys?: Array<string> | undefined;
   severityTexts?: Array<string> | undefined;
   bodySearchText?: string | undefined;
   traceIds?: Array<string> | undefined;
@@ -88,12 +93,44 @@ export class LogAggregationService {
   private static readonly TABLE_NAME: string = AnalyticsTableName.Log;
   private static readonly TOP_LEVEL_COLUMNS: Set<string> = new Set([
     "severityText",
-    "serviceId",
+    "primaryEntityId",
     "traceId",
     "spanId",
   ]);
+  /*
+   * Virtual facet keys that don't correspond to real ClickHouse columns —
+   * they all read out of `primaryEntityId` filtered by `primaryEntityType`.
+   * The discriminator was added so host / docker host / k8s cluster
+   * telemetry could reuse the `primaryEntityId` slot instead of synthesising
+   * phantom Service rows; these facets surface each resource type
+   * independently.
+   */
+  private static readonly RESOURCE_FACET_KEYS: Map<string, ServiceType> =
+    new Map([
+      ["hostId", ServiceType.Host],
+      ["dockerHostId", ServiceType.DockerHost],
+      ["podmanHostId", ServiceType.PodmanHost],
+      ["kubernetesClusterId", ServiceType.KubernetesCluster],
+      ["proxmoxClusterId", ServiceType.ProxmoxCluster],
+      ["cephClusterId", ServiceType.CephCluster],
+      ["serverlessFunctionId", ServiceType.ServerlessFunction],
+      ["cloudResourceId", ServiceType.CloudResource],
+      ["rumApplicationId", ServiceType.RealUserMonitor],
+    ]);
   private static readonly ATTRIBUTE_KEY_PATTERN: RegExp = /^[a-zA-Z0-9._:/-]+$/;
   private static readonly MAX_FACET_KEY_LENGTH: number = 256;
+  /*
+   * Read-side retention filter (mirrors
+   * AnalyticsDatabaseService.getRetentionReadFilter): rows past their
+   * per-service retention stay queryable until their whole part drops
+   * (ttl_only_drop_parts), so raw-table reads exclude them explicitly.
+   * Deliberately NOT applied to projection-shaped queries (the severity
+   * histogram): an aggregate projection cannot evaluate a predicate on a
+   * column it does not store, so adding it would silently force a full
+   * base-table scan.
+   */
+  private static readonly RETENTION_FILTER: string =
+    " AND retentionDate >= now()";
 
   @CaptureSpan()
   public static async getHistogram(
@@ -147,67 +184,114 @@ export class LogAggregationService {
   private static buildHistogramStatement(request: HistogramRequest): Statement {
     const intervalSeconds: number = request.bucketSizeInMinutes * 60;
 
+    /*
+     * Two-stage aggregation mirroring TraceAggregationService.getHistogram.
+     * The inner query groups by toStartOfInterval(time, INTERVAL 1 MINUTE) —
+     * the exact key expression of the proj_severity_histogram projection
+     * (projectId, severityText, minute) — and filters the window on that same
+     * expression rather than raw `time`. A raw `time` predicate references a
+     * column the aggregate projection does not store, so ClickHouse rejects
+     * the projection and full-scans (verified: 2.1M rows / ~46ms vs 978 rows /
+     * ~7ms with this form). The outer query re-buckets the tiny minute-level
+     * result to the requested size. Window edges round to the minute, which is
+     * consistent with the minute-bucketed output and only shifts the first/last
+     * bucket by the partial boundary minute when the range is not minute-aligned.
+     *
+     * A non-projection filter (primaryEntityId, entityKeys, traceId, spanId,
+     * attributes) makes the inner query transparently fall back to a
+     * base-table scan — same cost as before, still correct.
+     */
     const statement: Statement = SQL`
       SELECT
-        toStartOfInterval(time, INTERVAL ${{
+        toStartOfInterval(minute, INTERVAL ${{
           type: TableColumnType.Number,
           value: intervalSeconds,
         }} SECOND) AS bucket,
         severityText,
-        count() AS cnt
-      FROM ${LogAggregationService.TABLE_NAME}
-      WHERE projectId = ${{
-        type: TableColumnType.ObjectID,
-        value: request.projectId,
-      }}
-        AND time >= ${{
-          type: TableColumnType.Date,
-          value: request.startTime,
+        sum(cnt_minute) AS cnt
+      FROM (
+        SELECT
+          toStartOfInterval(time, INTERVAL 1 MINUTE) AS minute,
+          severityText,
+          count() AS cnt_minute
+        FROM ${LogAggregationService.TABLE_NAME}
+        WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: request.projectId,
         }}
-        AND time <= ${{
-          type: TableColumnType.Date,
-          value: request.endTime,
-        }}
+          AND toStartOfInterval(time, INTERVAL 1 MINUTE) >= toStartOfInterval(${{
+            type: TableColumnType.Date,
+            value: request.startTime,
+          }}, INTERVAL 1 MINUTE)
+          AND toStartOfInterval(time, INTERVAL 1 MINUTE) <= toStartOfInterval(${{
+            type: TableColumnType.Date,
+            value: request.endTime,
+          }}, INTERVAL 1 MINUTE)
     `;
 
     LogAggregationService.appendCommonFilters(statement, request);
 
-    statement.append(" GROUP BY bucket, severityText ORDER BY bucket ASC");
+    statement.append(
+      " GROUP BY minute, severityText ) GROUP BY bucket, severityText ORDER BY bucket ASC",
+    );
 
     /*
      * Defense in depth: cap histogram runtime below nginx's 60s
      * proxy_read_timeout. 'break' returns partial aggregated results
      * rather than throwing, which is acceptable for a density viz.
+     * Explicitly enable projection use.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+        additionalSettings: { optimize_use_projections: 1 },
+      }),
     );
 
     return statement;
   }
 
   private static buildFacetStatement(request: FacetRequest): Statement {
+    // Pre-rename alias from stale clients; the V3 column is primaryEntityId.
+    if (request.facetKey === "serviceId") {
+      request.facetKey = "primaryEntityId";
+    }
+
     const limit: number =
       request.limit ?? LogAggregationService.DEFAULT_FACET_LIMIT;
 
     LogAggregationService.validateFacetKey(request.facetKey);
 
-    const isTopLevelColumn: boolean = LogAggregationService.isTopLevelColumn(
-      request.facetKey,
-    );
+    const resourceServiceType: ServiceType | undefined =
+      LogAggregationService.RESOURCE_FACET_KEYS.get(request.facetKey);
+    const isResourceFacet: boolean = resourceServiceType !== undefined;
+    const isTopLevelColumn: boolean =
+      isResourceFacet ||
+      LogAggregationService.isTopLevelColumn(request.facetKey);
 
     const statement: Statement = new Statement();
 
-    if (isTopLevelColumn) {
+    if (isResourceFacet) {
+      /*
+       * Virtual facet — group primaryEntityId values whose row carries the
+       * matching ServiceType discriminator (Host / DockerHost /
+       * KubernetesCluster).
+       */
+      statement.append(
+        SQL`SELECT toString(primaryEntityId) AS val, count() AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
+      );
+    } else if (isTopLevelColumn) {
       statement.append(
         SQL`SELECT toString(${request.facetKey}) AS val, count() AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
       );
     } else {
+      // attributes is Map(String, String) — subscript access, not JSON functions.
       statement.append(
-        SQL`SELECT JSONExtractRaw(attributes, ${{
+        SQL`SELECT attributes[${{
           type: TableColumnType.Text,
           value: request.facetKey,
-        }}) AS val, count() AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
+        }}] AS val, count() AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
       );
     }
 
@@ -224,14 +308,35 @@ export class LogAggregationService {
       }}`,
     );
 
-    if (!isTopLevelColumn) {
+    if (isResourceFacet) {
       statement.append(
-        SQL` AND JSONHas(attributes, ${{
+        SQL` AND primaryEntityType = ${{
+          type: TableColumnType.Text,
+          value: resourceServiceType as string,
+        }}`,
+      );
+    } else if (request.facetKey === "primaryEntityId") {
+      /*
+       * Constrain the canonical Services facet to rows that actually
+       * belong to a Service. NULL / empty primaryEntityType covers legacy
+       * rows ingested before the discriminator existed.
+       */
+      statement.append(
+        SQL` AND (primaryEntityType = '' OR primaryEntityType = ${{
+          type: TableColumnType.Text,
+          value: ServiceType.OpenTelemetry as string,
+        }})`,
+      );
+    } else if (!isTopLevelColumn) {
+      statement.append(
+        SQL` AND mapContains(attributes, ${{
           type: TableColumnType.Text,
           value: request.facetKey,
-        }}) = 1`,
+        }})`,
       );
     }
+
+    statement.append(LogAggregationService.RETENTION_FILTER);
 
     LogAggregationService.appendCommonFilters(statement, request);
 
@@ -247,7 +352,10 @@ export class LogAggregationService {
      * 60s proxy_read_timeout so a slow facet never starves the endpoint.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     return statement;
@@ -376,10 +484,10 @@ export class LogAggregationService {
       } else {
         const alias: string = LogAggregationService.groupByAlias(key);
         statement.append(
-          SQL`, JSONExtractRaw(attributes, ${{
+          SQL`, attributes[${{
             type: TableColumnType.Text,
             value: key,
-          }}) AS ${alias}`,
+          }}] AS ${alias}`,
         );
       }
     }
@@ -407,7 +515,7 @@ export class LogAggregationService {
         return `uniqExact(${request.aggregationField})`;
       }
 
-      return `uniqExact(JSONExtractRaw(attributes, '${request.aggregationField.replace(/'/g, "\\'")}'))`;
+      return `uniqExact(attributes['${request.aggregationField.replace(/'/g, "\\'")}'])`;
     }
 
     return "count()";
@@ -468,6 +576,8 @@ export class LogAggregationService {
         }}`,
     );
 
+    statement.append(LogAggregationService.RETENTION_FILTER);
+
     LogAggregationService.appendCommonFilters(statement, request);
 
     statement.append(" GROUP BY bucket");
@@ -477,6 +587,18 @@ export class LogAggregationService {
     }
 
     statement.append(" ORDER BY bucket ASC");
+
+    /*
+     * Defense in depth: cap runtime below the client's 58s request_timeout
+     * (matches the histogram / facet paths above). 'break' returns partial
+     * aggregated results rather than holding a pool connection.
+     */
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
+    );
 
     return statement;
   }
@@ -502,7 +624,7 @@ export class LogAggregationService {
         `SELECT toString(${groupByKey}) AS val, ${aggExpr} AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
       );
     } else {
-      statement.append(`SELECT JSONExtractRaw(attributes, `);
+      statement.append(`SELECT attributes[`);
       statement.append(
         SQL`${{
           type: TableColumnType.Text,
@@ -510,7 +632,7 @@ export class LogAggregationService {
         }}`,
       );
       statement.append(
-        `) AS val, ${aggExpr} AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
+        `] AS val, ${aggExpr} AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
       );
     }
 
@@ -529,12 +651,14 @@ export class LogAggregationService {
 
     if (!isTopLevel) {
       statement.append(
-        SQL` AND JSONHas(attributes, ${{
+        SQL` AND mapContains(attributes, ${{
           type: TableColumnType.Text,
           value: groupByKey,
-        }}) = 1`,
+        }})`,
       );
     }
+
+    statement.append(LogAggregationService.RETENTION_FILTER);
 
     LogAggregationService.appendCommonFilters(statement, request);
 
@@ -543,6 +667,17 @@ export class LogAggregationService {
         type: TableColumnType.Number,
         value: limit,
       }}`,
+    );
+
+    /*
+     * Cap runtime below the client's 58s request_timeout; 'break' returns
+     * partial results (matches the histogram / facet paths).
+     */
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     return statement;
@@ -581,6 +716,8 @@ export class LogAggregationService {
         }}`,
     );
 
+    statement.append(LogAggregationService.RETENTION_FILTER);
+
     LogAggregationService.appendCommonFilters(statement, request);
 
     // Build GROUP BY from aliases
@@ -601,6 +738,17 @@ export class LogAggregationService {
       }}`,
     );
 
+    /*
+     * Cap runtime below the client's 58s request_timeout; 'break' returns
+     * partial results (matches the histogram / facet paths).
+     */
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
+    );
+
     return statement;
   }
 
@@ -609,6 +757,7 @@ export class LogAggregationService {
     request: Pick<
       HistogramRequest,
       | "serviceIds"
+      | "entityKeys"
       | "severityTexts"
       | "bodySearchText"
       | "traceIds"
@@ -618,13 +767,22 @@ export class LogAggregationService {
   ): void {
     if (request.serviceIds && request.serviceIds.length > 0) {
       statement.append(
-        SQL` AND serviceId IN (${{
+        SQL` AND primaryEntityId IN (${{
           type: TableColumnType.ObjectID,
           value: new Includes(
             request.serviceIds.map((id: ObjectID) => {
               return id.toString();
             }),
           ),
+        }})`,
+      );
+    }
+
+    if (request.entityKeys && request.entityKeys.length > 0) {
+      statement.append(
+        SQL` AND hasAny(entityKeys, ${{
+          type: TableColumnType.ArrayText,
+          value: request.entityKeys,
         }})`,
       );
     }
@@ -658,7 +816,7 @@ export class LogAggregationService {
 
     if (request.bodySearchText && request.bodySearchText.trim().length > 0) {
       statement.append(
-        ` AND body ILIKE ${{
+        SQL` AND body ILIKE ${{
           type: TableColumnType.Text,
           value: `%${request.bodySearchText.trim()}%`,
         }}`,
@@ -707,7 +865,7 @@ export class LogAggregationService {
     const statement: Statement = SQL`
       SELECT
         time,
-        serviceId,
+        primaryEntityId,
         severityText,
         severityNumber,
         body,
@@ -729,6 +887,8 @@ export class LogAggregationService {
         }}
     `;
 
+    statement.append(LogAggregationService.RETENTION_FILTER);
+
     LogAggregationService.appendCommonFilters(statement, request);
 
     statement.append(
@@ -736,6 +896,17 @@ export class LogAggregationService {
         type: TableColumnType.Number,
         value: maxLimit,
       }}`,
+    );
+
+    /*
+     * Cap runtime below the client's 58s request_timeout; 'break' returns
+     * partial rows rather than holding a pool connection on a large export.
+     */
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     const dbResult: Results = await LogDatabaseService.executeQuery(statement);
@@ -749,7 +920,7 @@ export class LogAggregationService {
   @CaptureSpan()
   public static async getLogContext(request: {
     projectId: ObjectID;
-    serviceId: ObjectID;
+    primaryEntityId: ObjectID;
     time: Date;
     logId: string;
     count: number;
@@ -761,7 +932,7 @@ export class LogAggregationService {
         _id,
         time,
         timeUnixNano,
-        serviceId,
+        primaryEntityId,
         severityText,
         severityNumber,
         body,
@@ -773,9 +944,9 @@ export class LogAggregationService {
         type: TableColumnType.ObjectID,
         value: request.projectId,
       }}
-        AND serviceId = ${{
+        AND primaryEntityId = ${{
           type: TableColumnType.ObjectID,
-          value: request.serviceId,
+          value: request.primaryEntityId,
         }}
         AND time <= ${{
           type: TableColumnType.Date,
@@ -785,6 +956,7 @@ export class LogAggregationService {
           type: TableColumnType.Text,
           value: request.logId,
         }}
+        AND retentionDate >= now()
       ORDER BY time DESC, timeUnixNano DESC
       LIMIT ${{
         type: TableColumnType.Number,
@@ -797,7 +969,7 @@ export class LogAggregationService {
         _id,
         time,
         timeUnixNano,
-        serviceId,
+        primaryEntityId,
         severityText,
         severityNumber,
         body,
@@ -809,9 +981,9 @@ export class LogAggregationService {
         type: TableColumnType.ObjectID,
         value: request.projectId,
       }}
-        AND serviceId = ${{
+        AND primaryEntityId = ${{
           type: TableColumnType.ObjectID,
-          value: request.serviceId,
+          value: request.primaryEntityId,
         }}
         AND time >= ${{
           type: TableColumnType.Date,
@@ -821,6 +993,7 @@ export class LogAggregationService {
           type: TableColumnType.Text,
           value: request.logId,
         }}
+        AND retentionDate >= now()
       ORDER BY time ASC, timeUnixNano ASC
       LIMIT ${{
         type: TableColumnType.Number,
@@ -878,7 +1051,20 @@ export class LogAggregationService {
         }}
     `;
 
+    totalStatement.append(LogAggregationService.RETENTION_FILTER);
+
     LogAggregationService.appendCommonFilters(totalStatement, request);
+
+    /*
+     * Cap the count scan below the client's 58s request_timeout; 'break'
+     * returns a partial (lower-bound) count, acceptable for an estimate.
+     */
+    totalStatement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
+    );
 
     // Get matching count using the filter query as body search
     const matchStatement: Statement = SQL`
@@ -898,10 +1084,23 @@ export class LogAggregationService {
         }}
     `;
 
+    matchStatement.append(LogAggregationService.RETENTION_FILTER);
+
     LogAggregationService.appendCommonFilters(matchStatement, {
       ...request,
       bodySearchText: request.filterQuery,
     });
+
+    /*
+     * Cap the count scan below the client's 58s request_timeout; 'break'
+     * returns a partial (lower-bound) count, acceptable for an estimate.
+     */
+    matchStatement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
+    );
 
     const [totalResult, matchResult] = await Promise.all([
       LogDatabaseService.executeQuery(totalStatement),
@@ -944,7 +1143,10 @@ export class LogAggregationService {
       throw new BadDataException("Invalid facetKey");
     }
 
-    if (LogAggregationService.isTopLevelColumn(facetKey)) {
+    if (
+      LogAggregationService.isTopLevelColumn(facetKey) ||
+      LogAggregationService.RESOURCE_FACET_KEYS.has(facetKey)
+    ) {
       return;
     }
 

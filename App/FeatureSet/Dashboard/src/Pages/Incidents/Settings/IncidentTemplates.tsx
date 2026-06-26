@@ -5,12 +5,23 @@ import PageComponentProps from "../../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import Host from "Common/Models/DatabaseModels/Host";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import Service from "Common/Models/DatabaseModels/Service";
+import AffectedResourcesPicker, {
+  isAffectedResourcesPayload,
+} from "../../../Components/AffectedResources/AffectedResourcesPicker";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Team from "Common/Models/DatabaseModels/Team";
 import React, {
@@ -24,7 +35,6 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 const IncidentTemplates: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -75,13 +85,18 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
     <Fragment>
       <ModelTable<IncidentTemplate>
         modelType={IncidentTemplate}
+        enableJsonImportExport={true}
         id="incident-templates-table"
         userPreferencesKey="incident-templates-table"
         name="Settings > Incident Templates"
+        saveFilterProps={{
+          tableId: "incident-templates-table",
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        createEditModalWidth={ModalWidth.Large}
         cardProps={{
           title: "Incident Templates",
           description:
@@ -241,17 +256,106 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             field: {
               monitors: true,
             },
-            title: "Monitors affected",
+            title: "Resources Affected",
             stepId: "resources-affected",
-            description: "Select monitors affected by this incident.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Monitor,
-              labelField: "name",
-              valueField: "_id",
-            },
+            description:
+              "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.",
+            fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
-            placeholder: "Monitors affected",
+            getCustomElement: (
+              values: FormValues<IncidentTemplate>,
+              elementProps: CustomElementProps,
+            ) => {
+              return (
+                <AffectedResourcesPicker
+                  monitors={values.monitors as Array<Monitor>}
+                  hosts={values.hosts as Array<Host>}
+                  kubernetesClusters={
+                    values.kubernetesClusters as Array<KubernetesCluster>
+                  }
+                  dockerHosts={values.dockerHosts as Array<DockerHost>}
+                  podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                  services={values.services as Array<Service>}
+                  onChange={(payload: unknown) => {
+                    elementProps.onChange?.(payload);
+                  }}
+                />
+              );
+            },
+            onChange: (
+              value: unknown,
+              currentValues: FormValues<IncidentTemplate>,
+              setNewFormValues: (values: FormValues<IncidentTemplate>) => void,
+            ) => {
+              if (isAffectedResourcesPayload(value)) {
+                const payload: typeof value = value;
+                queueMicrotask(() => {
+                  setNewFormValues({
+                    ...currentValues,
+                    monitors: payload.monitors,
+                    hosts: payload.hosts,
+                    kubernetesClusters: payload.kubernetesClusters,
+                    dockerHosts: payload.dockerHosts,
+                    podmanHosts: payload.podmanHosts,
+                    services: payload.services,
+                  } as FormValues<IncidentTemplate>);
+                });
+              }
+            },
+          },
+          /*
+           * Hidden registrations so ModelForm.getSelectFields includes
+           * hosts/kubernetesClusters/dockerHosts/services on load and submit.
+           */
+          {
+            field: { hosts: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { kubernetesClusters: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { dockerHosts: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { podmanHosts: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { services: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
           },
           {
             field: {

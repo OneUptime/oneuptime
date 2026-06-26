@@ -1,0 +1,26 @@
+{{- if .Values.ebpf.enabled }}
+# Internal OTLP receiver for the eBPF DaemonSet to ship traces into.
+# Goes only to the metrics-collector Deployment (component: metrics-collector)
+# — the eBPF pods are in-cluster, so a ClusterIP Service is sufficient.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-otlp
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "kubernetes-agent.selectorLabels" . | nindent 4 }}
+    component: metrics-collector
+  ports:
+    - name: otlp-http
+      port: 4318
+      targetPort: otlp-http
+      protocol: TCP
+    - name: otlp-grpc
+      port: 4317
+      targetPort: otlp-grpc
+      protocol: TCP
+{{- end }}

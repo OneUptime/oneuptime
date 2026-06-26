@@ -23,28 +23,6 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION,
       ["Project", "Settings", "Microsoft Teams Integration"],
     ),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_TEAMS, [
-      "Project",
-      "Settings",
-      "Teams",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_TEAM_VIEW, [
-      "Project",
-      "Settings",
-      "Teams",
-      "View Team",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_USERS, [
-      "Project",
-      "Settings",
-      "Users",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_USER_VIEW, [
-      "Project",
-      "Settings",
-      "Users",
-      "View User",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_NOTIFICATION_SETTINGS, [
       "Project",
       "Settings",
@@ -54,17 +32,6 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Settings",
       "Notification Logs",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_PROBES, [
-      "Project",
-      "Settings",
-      "Probes",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_PROBE_VIEW, [
-      "Project",
-      "Settings",
-      "Probes",
-      "View Probe",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_DOMAINS, [
       "Project",
@@ -106,6 +73,11 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Settings",
       "SSO",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_OIDC, [
+      "Project",
+      "Settings",
+      "OIDC",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_DANGERZONE, [
       "Project",

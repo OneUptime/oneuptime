@@ -1,5 +1,6 @@
 import ComponentCodeAPI from "./API/ComponentCode";
 import ManualAPI from "./API/Manual";
+import ModelSchemaAPI from "./API/ModelSchema";
 import WorkflowAPI from "./API/Workflow";
 import RunWorkflow from "./Services/RunWorkflow";
 import { JSONObject } from "Common/Types/JSON";
@@ -14,7 +15,10 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import path from "path";
 import logger from "Common/Server/Utils/Logger";
-import { WorkflowTimeoutInMs } from "Common/Server/EnvironmentConfig";
+import {
+  DisableQueueWorkers,
+  WorkflowTimeoutInMs,
+} from "Common/Server/EnvironmentConfig";
 
 const APP_NAME: string = "workflow";
 
@@ -24,6 +28,8 @@ const WorkflowFeatureSet: FeatureSet = {
       const app: ExpressApplication = Express.getExpressApp();
 
       app.use(`/${APP_NAME}/manual`, new ManualAPI().router);
+
+      app.use(`/${APP_NAME}`, new ModelSchemaAPI().router);
 
       app.use(`/${APP_NAME}`, new WorkflowAPI().router);
 
@@ -58,23 +64,34 @@ const WorkflowFeatureSet: FeatureSet = {
 
       app.use(`/${APP_NAME}`, componentCodeAPI.router);
 
-      // Job process.
-      QueueWorker.getWorker(
-        QueueName.Workflow,
-        async (job: QueueJob) => {
-          await new RunWorkflow().runWorkflow({
-            workflowId: new ObjectID(job.data["workflowId"] as string),
-            workflowLogId: job.data["workflowLogId"]
-              ? new ObjectID(job.data["workflowLogId"] as string)
-              : null,
-            arguments: job.data.data as JSONObject,
-            timeout: WorkflowTimeoutInMs || 5000,
-            callChain:
-              (job.data["callChain"] as Array<string> | undefined) || [],
-          });
-        },
-        { concurrency: 100 },
-      );
+      /*
+       * Job process. Skipped in the "api" role (DISABLE_QUEUE_WORKERS=true) —
+       * the dedicated worker deployment drains the Workflow queue.
+       */
+      if (DisableQueueWorkers) {
+        logger.info(
+          "DISABLE_QUEUE_WORKERS=true — Workflow queue consumer not registered (api role).",
+          { service: "workflow" },
+        );
+      } else {
+        QueueWorker.getWorker(
+          QueueName.Workflow,
+          async (job: QueueJob) => {
+            await new RunWorkflow().runWorkflow({
+              workflowId: new ObjectID(job.data["workflowId"] as string),
+              workflowLogId: job.data["workflowLogId"]
+                ? new ObjectID(job.data["workflowLogId"] as string)
+                : null,
+              arguments: job.data.data as JSONObject,
+              timeout: WorkflowTimeoutInMs || 5000,
+              callChain:
+                (job.data["callChain"] as Array<string> | undefined) || [],
+              isResume: job.data["isResume"] === true,
+            });
+          },
+          { concurrency: 100 },
+        );
+      }
     } catch (err) {
       logger.error("App Init Failed:", { service: "workflow" });
       logger.error(err, { service: "workflow" });

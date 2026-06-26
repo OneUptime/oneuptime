@@ -41,6 +41,7 @@ import { IncidentEpisodeFeedEventType } from "Common/Models/DatabaseModels/Incid
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 
@@ -316,6 +317,19 @@ RunCron(
           },
         );
 
+        /*
+         * Pre-compute markdown conversions for episode.description once per
+         * episode. These values do not vary per status page or per subscriber,
+         * so memoizing here avoids N redundant markdown parses during fan-out.
+         */
+        const episodeDescriptionHtml: string = await Markdown.convertToHTML(
+          episode.description || "",
+          MarkdownContentType.Email,
+        );
+        const episodeDescriptionPlainText: string = Markdown.convertToPlainText(
+          episode.description || "",
+        );
+
         let notificationSentToAtLeastOneSubscriber: boolean = false;
 
         for (const statuspage of statusPages) {
@@ -443,12 +457,13 @@ RunCron(
               episodeDescription: episode.description || "",
             };
 
-            // Prepare SMS-specific template variables with plain text (no HTML/Markdown)
+            /*
+             * Prepare SMS-specific template variables with plain text (no HTML/Markdown).
+             * Uses the memoized plain-text conversion computed once per episode above.
+             */
             const smsTemplateVariables: Record<string, string> = {
               ...templateVariables,
-              episodeDescription: Markdown.convertToPlainText(
-                episode.description || "",
-              ),
+              episodeDescription: episodeDescriptionPlainText,
             };
 
             for (const subscriber of subscribers) {
@@ -577,10 +592,7 @@ RunCron(
                           episodeSeverity:
                             episode.incidentSeverity?.name || " - ",
                           episodeTitle: episode.title || "",
-                          episodeDescription: await Markdown.convertToHTML(
-                            episode.description || "",
-                            MarkdownContentType.Email,
-                          ),
+                          episodeDescription: episodeDescriptionHtml,
                           unsubscribeUrl: unsubscribeUrl,
 
                           subscriberEmailNotificationFooterText:
@@ -767,6 +779,32 @@ RunCron(
                       incidentEpisodeId: episode.id?.toString(),
                     },
                   );
+                }
+
+                if (subscriber.subscriberWebhook) {
+                  StatusPageSubscriberWebhookUtil.sendWebhookNotification({
+                    webhookUrl: subscriber.subscriberWebhook,
+                    payload: {
+                      eventType: "EpisodeCreated",
+                      statusPageId: statuspage.id!.toString(),
+                      statusPageName: statusPageName,
+                      statusPageUrl: statusPageURL,
+                      unsubscribeUrl: unsubscribeUrl,
+                      data: {
+                        episodeId: episode.id?.toString() || "",
+                        episodeTitle: episode.title || "",
+                        episodeDescription: episode.description || "",
+                        incidentSeverity: episode.incidentSeverity?.name || "",
+                        resourcesAffected: resourcesAffectedString,
+                        detailsUrl: episodeDetailsUrl,
+                      },
+                    },
+                  }).catch((err: Error) => {
+                    logger.error(err, {
+                      projectId: episode.projectId?.toString(),
+                      incidentEpisodeId: episode.id?.toString(),
+                    });
+                  });
                 }
               } catch (err) {
                 logger.error(err, {

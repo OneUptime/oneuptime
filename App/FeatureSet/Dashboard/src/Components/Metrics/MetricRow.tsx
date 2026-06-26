@@ -1,7 +1,13 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useState,
+} from "react";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Service from "Common/Models/DatabaseModels/Service";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import OneUptimeDate from "Common/Types/Date";
 import MetricSparkline, { SparklinePoint } from "./MetricSparkline";
 
 export interface MetricRowProps {
@@ -17,13 +23,41 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
 ): ReactElement => {
   const { metric } = props;
 
+  /*
+   * While the cursor is over the sparkline, swap the displayed value
+   * for the hovered data point so the number on the left tracks the
+   * chart, and surface the data point's timestamp underneath. Reset
+   * to null on mouse-out to fall back to lastValue.
+   */
+  const [hoveredPoint, setHoveredPoint] = useState<SparklinePoint | null>(null);
+
+  const handleHoverPoint: (point: SparklinePoint | null) => void = useCallback(
+    (point: SparklinePoint | null): void => {
+      setHoveredPoint(point);
+    },
+    [],
+  );
+
+  const displayedValue: number | undefined = hoveredPoint
+    ? hoveredPoint.value
+    : props.lastValue;
+  const displayedTime: string | null = hoveredPoint
+    ? OneUptimeDate.getDateAsLocalFormattedString(hoveredPoint.time)
+    : null;
+
   const services: Array<Service> = (metric.services || []).filter(
     (service: Service): boolean => {
       return Boolean(service.name && service.name.toString().trim());
     },
   );
   const rawUnit: string = metric.unit || "";
-  const readableUnit: string = ValueFormatter.getReadableUnit(rawUnit);
+  const formatterOptions: { metricName: string } = {
+    metricName: metric.name || "",
+  };
+  const readableUnit: string = ValueFormatter.getReadableUnit(
+    rawUnit,
+    formatterOptions,
+  );
 
   return (
     <button
@@ -81,11 +115,20 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
 
         {/* Right: sparkline + last value */}
         <div className="flex flex-shrink-0 items-center gap-4">
-          {props.lastValue !== undefined && (
+          {displayedValue !== undefined && (
             <div className="text-right">
-              <span className="font-mono text-sm font-semibold tabular-nums text-gray-900">
-                {ValueFormatter.formatValue(props.lastValue, rawUnit)}
-              </span>
+              <div className="font-mono text-sm font-semibold tabular-nums text-gray-900">
+                {ValueFormatter.formatValue(
+                  displayedValue,
+                  rawUnit,
+                  formatterOptions,
+                )}
+              </div>
+              {displayedTime && (
+                <div className="mt-0.5 font-mono text-[10px] text-gray-400 tabular-nums">
+                  {displayedTime}
+                </div>
+              )}
             </div>
           )}
           <MetricSparkline
@@ -93,6 +136,7 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
             isLoading={props.sparklineLoading}
             widthClassName="w-40"
             heightClassName="h-10"
+            onHoverPoint={handleHoverPoint}
           />
         </div>
       </div>

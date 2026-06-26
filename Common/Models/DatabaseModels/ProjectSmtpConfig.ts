@@ -17,6 +17,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import Email from "../../Types/Email";
+import MailTransportType from "../../Types/Email/MailTransportType";
 import OAuthProviderType from "../../Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "../../Types/Email/SMTPAuthenticationType";
 import IconProp from "../../Types/Icon/IconProp";
@@ -43,9 +44,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.SettingsManager,
+    Permission.SettingsAdmin,
+    Permission.SettingsMember,
+    Permission.SettingsViewer,
     Permission.ReadProjectSMTPConfig,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -82,9 +84,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -121,9 +124,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -154,9 +158,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -185,9 +190,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -218,9 +224,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -254,9 +261,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -294,9 +302,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -321,9 +330,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -358,9 +368,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -393,9 +404,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -405,13 +417,13 @@ export default class ProjectSmtpConfig extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     example: "smtp-user@example.com",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public username?: string = undefined;
 
@@ -425,7 +437,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -456,9 +467,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -467,12 +479,15 @@ export default class ProjectSmtpConfig extends BaseModel {
     ],
   })
   @TableColumn({
-    required: true,
+    required: false,
     type: TableColumnType.ShortText,
+    title: "Hostname",
+    description:
+      "SMTP server hostname. Required when Transport is SMTP. Not used by HTTP-API transports like Microsoft Graph.",
     example: "smtp.gmail.com",
   })
   @Column({
-    nullable: false,
+    nullable: true,
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
     transformer: Hostname.getDatabaseTransformer(),
@@ -490,9 +505,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -501,12 +517,15 @@ export default class ProjectSmtpConfig extends BaseModel {
     ],
   })
   @TableColumn({
-    required: true,
+    required: false,
     type: TableColumnType.Number,
+    title: "Port",
+    description:
+      "SMTP server port. Required when Transport is SMTP. Not used by HTTP-API transports.",
     example: 587,
   })
   @Column({
-    nullable: false,
+    nullable: true,
     type: ColumnType.Number,
     transformer: Port.getDatabaseTransformer(),
   })
@@ -523,9 +542,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -557,9 +577,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -590,9 +611,55 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSMTPConfig,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Use SSL / TLS",
+    description:
+      "Enable secure SMTP connection. Used only for SMTP transport — HTTP-API transports always use HTTPS.",
+    defaultValue: true,
+    example: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+    default: true,
+  })
+  public secure?: boolean = undefined;
+
+  /*
+   * Transport type selects how mail is actually delivered.
+   * SMTP (default) uses the host/port above. HTTP-API transports (e.g. Microsoft
+   * Graph) ignore host/port and call the provider's REST API directly using the
+   * OAuth credentials below.
+   */
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSMTPConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectSMTPConfig,
     ],
     update: [
       Permission.ProjectOwner,
@@ -602,16 +669,20 @@ export default class ProjectSmtpConfig extends BaseModel {
   })
   @TableColumn({
     required: true,
-    type: TableColumnType.Boolean,
-    defaultValue: true,
-    example: true,
+    type: TableColumnType.ShortText,
+    title: "Transport",
+    description:
+      "How OneUptime delivers mail for this config. 'SMTP' uses the hostname/port. 'Microsoft Graph' sends via the Microsoft Graph REST API — use this when your Microsoft 365 tenant has SMTP AUTH disabled.",
+    defaultValue: MailTransportType.SMTP,
+    example: "SMTP",
   })
   @Column({
     nullable: false,
-    type: ColumnType.Boolean,
-    default: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    default: MailTransportType.SMTP,
   })
-  public secure?: boolean = undefined;
+  public transportType?: MailTransportType = undefined;
 
   // OAuth 2.0 Configuration Fields
 
@@ -626,9 +697,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -664,9 +736,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -699,7 +772,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -732,9 +804,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -768,9 +841,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -804,9 +878,10 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsManager,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

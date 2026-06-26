@@ -18,6 +18,23 @@ import AIAgentDataAPI from "Common/Server/API/AIAgentDataAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
+import ProjectOidcAPI from "Common/Server/API/ProjectOIDC";
+import GlobalSso from "Common/Models/DatabaseModels/GlobalSso";
+import GlobalOidc from "Common/Models/DatabaseModels/GlobalOidc";
+import GlobalSsoProject from "Common/Models/DatabaseModels/GlobalSsoProject";
+import GlobalOidcProject from "Common/Models/DatabaseModels/GlobalOidcProject";
+import GlobalSsoService, {
+  Service as GlobalSsoServiceType,
+} from "Common/Server/Services/GlobalSsoService";
+import GlobalOidcService, {
+  Service as GlobalOidcServiceType,
+} from "Common/Server/Services/GlobalOidcService";
+import GlobalSsoProjectService, {
+  Service as GlobalSsoProjectServiceType,
+} from "Common/Server/Services/GlobalSsoProjectService";
+import GlobalOidcProjectService, {
+  Service as GlobalOidcProjectServiceType,
+} from "Common/Server/Services/GlobalOidcProjectService";
 import WhatsAppLogAPI from "./WhatsAppLogAPI";
 import TelegramLogAPI from "./TelegramLogAPI";
 
@@ -55,6 +72,7 @@ import UserSMSAPI from "Common/Server/API/UserSmsAPI";
 import UserIncomingCallNumberAPI from "Common/Server/API/UserIncomingCallNumberAPI";
 import UserWhatsAppAPI from "Common/Server/API/UserWhatsAppAPI";
 import UserTelegramAPI from "Common/Server/API/UserTelegramAPI";
+import UserWebhookAPI from "Common/Server/API/UserWebhookAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
 import UserAPI from "Common/Server/API/UserAPI";
 import ApiKeyPermissionService, {
@@ -91,6 +109,10 @@ import AlertCustomFieldService, {
 import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
+import ProxmoxResourceAPI from "Common/Server/API/ProxmoxResourceAPI";
+import IoTDeviceAPI from "Common/Server/API/IoTDeviceAPI";
+import DockerSwarmResourceAPI from "Common/Server/API/DockerSwarmResourceAPI";
+import CephResourceAPI from "Common/Server/API/CephResourceAPI";
 import KubernetesContainer from "Common/Models/DatabaseModels/KubernetesContainer";
 import KubernetesContainerService, {
   Service as KubernetesContainerServiceType,
@@ -119,6 +141,14 @@ import AlertStateService, {
 import AlertStateTimelineService, {
   Service as AlertStateTimelineServiceType,
 } from "Common/Server/Services/AlertStateTimelineService";
+import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
+import TelemetryEntityServiceInstance, {
+  TelemetryEntityService as TelemetryEntityServiceType,
+} from "Common/Server/Services/TelemetryEntityService";
+import TelemetryEntityRelationship from "Common/Models/DatabaseModels/TelemetryEntityRelationship";
+import TelemetryEntityRelationshipServiceInstance, {
+  TelemetryEntityRelationshipService as TelemetryEntityRelationshipServiceType,
+} from "Common/Server/Services/TelemetryEntityRelationshipService";
 
 // AlertEpisode Services
 import AlertEpisodeService, {
@@ -176,6 +206,170 @@ import IncidentGroupingRuleService, {
   Service as IncidentGroupingRuleServiceType,
 } from "Common/Server/Services/IncidentGroupingRuleService";
 
+import AlertOnCallRuleService, {
+  Service as AlertOnCallRuleServiceType,
+} from "Common/Server/Services/AlertOnCallRuleService";
+
+import AlertOwnerRuleService, {
+  Service as AlertOwnerRuleServiceType,
+} from "Common/Server/Services/AlertOwnerRuleService";
+
+import AlertPrivacyRuleService, {
+  Service as AlertPrivacyRuleServiceType,
+} from "Common/Server/Services/AlertPrivacyRuleService";
+
+import AlertLabelRuleService, {
+  Service as AlertLabelRuleServiceType,
+} from "Common/Server/Services/AlertLabelRuleService";
+
+import AlertEpisodeOnCallRuleService, {
+  Service as AlertEpisodeOnCallRuleServiceType,
+} from "Common/Server/Services/AlertEpisodeOnCallRuleService";
+
+import AlertEpisodeOwnerRuleService, {
+  Service as AlertEpisodeOwnerRuleServiceType,
+} from "Common/Server/Services/AlertEpisodeOwnerRuleService";
+
+import AlertEpisodePrivacyRuleService, {
+  Service as AlertEpisodePrivacyRuleServiceType,
+} from "Common/Server/Services/AlertEpisodePrivacyRuleService";
+
+import AlertEpisodeLabelRuleService, {
+  Service as AlertEpisodeLabelRuleServiceType,
+} from "Common/Server/Services/AlertEpisodeLabelRuleService";
+
+import IncidentOnCallRuleService, {
+  Service as IncidentOnCallRuleServiceType,
+} from "Common/Server/Services/IncidentOnCallRuleService";
+
+import IncidentOwnerRuleService, {
+  Service as IncidentOwnerRuleServiceType,
+} from "Common/Server/Services/IncidentOwnerRuleService";
+
+import IncidentPrivacyRuleService, {
+  Service as IncidentPrivacyRuleServiceType,
+} from "Common/Server/Services/IncidentPrivacyRuleService";
+
+import IncidentLabelRuleService, {
+  Service as IncidentLabelRuleServiceType,
+} from "Common/Server/Services/IncidentLabelRuleService";
+
+import MonitorOwnerRuleService, {
+  Service as MonitorOwnerRuleServiceType,
+} from "Common/Server/Services/MonitorOwnerRuleService";
+
+import MonitorLabelRuleService, {
+  Service as MonitorLabelRuleServiceType,
+} from "Common/Server/Services/MonitorLabelRuleService";
+
+import StatusPageOwnerRuleService, {
+  Service as StatusPageOwnerRuleServiceType,
+} from "Common/Server/Services/StatusPageOwnerRuleService";
+
+import StatusPageLabelRuleService, {
+  Service as StatusPageLabelRuleServiceType,
+} from "Common/Server/Services/StatusPageLabelRuleService";
+
+import HostOwnerRuleService, {
+  Service as HostOwnerRuleServiceType,
+} from "Common/Server/Services/HostOwnerRuleService";
+
+import HostLabelRuleService, {
+  Service as HostLabelRuleServiceType,
+} from "Common/Server/Services/HostLabelRuleService";
+
+import ServiceOwnerRuleService, {
+  Service as ServiceOwnerRuleServiceType,
+} from "Common/Server/Services/ServiceOwnerRuleService";
+
+import ServiceLabelRuleService, {
+  Service as ServiceLabelRuleServiceType,
+} from "Common/Server/Services/ServiceLabelRuleService";
+
+import DockerHostOwnerRuleService, {
+  Service as DockerHostOwnerRuleServiceType,
+} from "Common/Server/Services/DockerHostOwnerRuleService";
+
+import DockerHostLabelRuleService, {
+  Service as DockerHostLabelRuleServiceType,
+} from "Common/Server/Services/DockerHostLabelRuleService";
+
+import PodmanHostOwnerRuleService, {
+  Service as PodmanHostOwnerRuleServiceType,
+} from "Common/Server/Services/PodmanHostOwnerRuleService";
+
+import PodmanHostLabelRuleService, {
+  Service as PodmanHostLabelRuleServiceType,
+} from "Common/Server/Services/PodmanHostLabelRuleService";
+
+import KubernetesClusterOwnerRuleService, {
+  Service as KubernetesClusterOwnerRuleServiceType,
+} from "Common/Server/Services/KubernetesClusterOwnerRuleService";
+
+import KubernetesClusterLabelRuleService, {
+  Service as KubernetesClusterLabelRuleServiceType,
+} from "Common/Server/Services/KubernetesClusterLabelRuleService";
+
+import ProxmoxClusterOwnerRuleService, {
+  Service as ProxmoxClusterOwnerRuleServiceType,
+} from "Common/Server/Services/ProxmoxClusterOwnerRuleService";
+import IoTFleetOwnerRuleService, {
+  Service as IoTFleetOwnerRuleServiceType,
+} from "Common/Server/Services/IoTFleetOwnerRuleService";
+import DockerSwarmClusterOwnerRuleService, {
+  Service as DockerSwarmClusterOwnerRuleServiceType,
+} from "Common/Server/Services/DockerSwarmClusterOwnerRuleService";
+
+import ProxmoxClusterLabelRuleService, {
+  Service as ProxmoxClusterLabelRuleServiceType,
+} from "Common/Server/Services/ProxmoxClusterLabelRuleService";
+import IoTFleetLabelRuleService, {
+  Service as IoTFleetLabelRuleServiceType,
+} from "Common/Server/Services/IoTFleetLabelRuleService";
+import DockerSwarmClusterLabelRuleService, {
+  Service as DockerSwarmClusterLabelRuleServiceType,
+} from "Common/Server/Services/DockerSwarmClusterLabelRuleService";
+
+import CephClusterOwnerRuleService, {
+  Service as CephClusterOwnerRuleServiceType,
+} from "Common/Server/Services/CephClusterOwnerRuleService";
+
+import CephClusterLabelRuleService, {
+  Service as CephClusterLabelRuleServiceType,
+} from "Common/Server/Services/CephClusterLabelRuleService";
+
+import RunbookOwnerRuleService, {
+  Service as RunbookOwnerRuleServiceType,
+} from "Common/Server/Services/RunbookOwnerRuleService";
+
+import RunbookLabelRuleService, {
+  Service as RunbookLabelRuleServiceType,
+} from "Common/Server/Services/RunbookLabelRuleService";
+
+import ScheduledMaintenanceOwnerRuleService, {
+  Service as ScheduledMaintenanceOwnerRuleServiceType,
+} from "Common/Server/Services/ScheduledMaintenanceOwnerRuleService";
+
+import ScheduledMaintenanceLabelRuleService, {
+  Service as ScheduledMaintenanceLabelRuleServiceType,
+} from "Common/Server/Services/ScheduledMaintenanceLabelRuleService";
+
+import IncidentEpisodeOnCallRuleService, {
+  Service as IncidentEpisodeOnCallRuleServiceType,
+} from "Common/Server/Services/IncidentEpisodeOnCallRuleService";
+
+import IncidentEpisodeOwnerRuleService, {
+  Service as IncidentEpisodeOwnerRuleServiceType,
+} from "Common/Server/Services/IncidentEpisodeOwnerRuleService";
+
+import IncidentEpisodePrivacyRuleService, {
+  Service as IncidentEpisodePrivacyRuleServiceType,
+} from "Common/Server/Services/IncidentEpisodePrivacyRuleService";
+
+import IncidentEpisodeLabelRuleService, {
+  Service as IncidentEpisodeLabelRuleServiceType,
+} from "Common/Server/Services/IncidentEpisodeLabelRuleService";
+
 import IncidentSlaService, {
   Service as IncidentSlaServiceType,
 } from "Common/Server/Services/IncidentSlaService";
@@ -199,6 +393,12 @@ import TableViewService, {
 import LogSavedViewService, {
   Service as LogSavedViewServiceType,
 } from "Common/Server/Services/LogSavedViewService";
+import MetricSavedViewService, {
+  Service as MetricSavedViewServiceType,
+} from "Common/Server/Services/MetricSavedViewService";
+import TraceSavedViewService, {
+  Service as TraceSavedViewServiceType,
+} from "Common/Server/Services/TraceSavedViewService";
 import LogPipelineService, {
   Service as LogPipelineServiceType,
 } from "Common/Server/Services/LogPipelineService";
@@ -274,6 +474,60 @@ import KubernetesClusterOwnerTeamService, {
 import KubernetesClusterOwnerUserService, {
   Service as KubernetesClusterOwnerUserServiceType,
 } from "Common/Server/Services/KubernetesClusterOwnerUserService";
+import ServerlessFunctionService, {
+  Service as ServerlessFunctionServiceType,
+} from "Common/Server/Services/ServerlessFunctionService";
+import ServerlessFunctionOwnerTeamService, {
+  Service as ServerlessFunctionOwnerTeamServiceType,
+} from "Common/Server/Services/ServerlessFunctionOwnerTeamService";
+import ServerlessFunctionOwnerUserService, {
+  Service as ServerlessFunctionOwnerUserServiceType,
+} from "Common/Server/Services/ServerlessFunctionOwnerUserService";
+import ServerlessFunctionLabelRuleService, {
+  Service as ServerlessFunctionLabelRuleServiceType,
+} from "Common/Server/Services/ServerlessFunctionLabelRuleService";
+import ServerlessFunctionOwnerRuleService, {
+  Service as ServerlessFunctionOwnerRuleServiceType,
+} from "Common/Server/Services/ServerlessFunctionOwnerRuleService";
+import CloudResourceService, {
+  Service as CloudResourceServiceType,
+} from "Common/Server/Services/CloudResourceService";
+import CloudResourceOwnerTeamService, {
+  Service as CloudResourceOwnerTeamServiceType,
+} from "Common/Server/Services/CloudResourceOwnerTeamService";
+import CloudResourceOwnerUserService, {
+  Service as CloudResourceOwnerUserServiceType,
+} from "Common/Server/Services/CloudResourceOwnerUserService";
+import CloudResourceLabelRuleService, {
+  Service as CloudResourceLabelRuleServiceType,
+} from "Common/Server/Services/CloudResourceLabelRuleService";
+import CloudResourceOwnerRuleService, {
+  Service as CloudResourceOwnerRuleServiceType,
+} from "Common/Server/Services/CloudResourceOwnerRuleService";
+import RumApplicationService, {
+  Service as RumApplicationServiceType,
+} from "Common/Server/Services/RumApplicationService";
+import RumApplicationOwnerTeamService, {
+  Service as RumApplicationOwnerTeamServiceType,
+} from "Common/Server/Services/RumApplicationOwnerTeamService";
+import RumApplicationOwnerUserService, {
+  Service as RumApplicationOwnerUserServiceType,
+} from "Common/Server/Services/RumApplicationOwnerUserService";
+import RumApplicationLabelRuleService, {
+  Service as RumApplicationLabelRuleServiceType,
+} from "Common/Server/Services/RumApplicationLabelRuleService";
+import RumApplicationOwnerRuleService, {
+  Service as RumApplicationOwnerRuleServiceType,
+} from "Common/Server/Services/RumApplicationOwnerRuleService";
+import ServerlessFunctionInstanceService, {
+  Service as ServerlessFunctionInstanceServiceType,
+} from "Common/Server/Services/ServerlessFunctionInstanceService";
+import CloudResourceInstanceService, {
+  Service as CloudResourceInstanceServiceType,
+} from "Common/Server/Services/CloudResourceInstanceService";
+import RumApplicationClientService, {
+  Service as RumApplicationClientServiceType,
+} from "Common/Server/Services/RumApplicationClientService";
 import DockerHostService, {
   Service as DockerHostServiceType,
 } from "Common/Server/Services/DockerHostService";
@@ -283,6 +537,57 @@ import DockerHostOwnerTeamService, {
 import DockerHostOwnerUserService, {
   Service as DockerHostOwnerUserServiceType,
 } from "Common/Server/Services/DockerHostOwnerUserService";
+import DockerResourceService, {
+  Service as DockerResourceServiceType,
+} from "Common/Server/Services/DockerResourceService";
+import PodmanHostService, {
+  Service as PodmanHostServiceType,
+} from "Common/Server/Services/PodmanHostService";
+import PodmanHostOwnerTeamService, {
+  Service as PodmanHostOwnerTeamServiceType,
+} from "Common/Server/Services/PodmanHostOwnerTeamService";
+import PodmanHostOwnerUserService, {
+  Service as PodmanHostOwnerUserServiceType,
+} from "Common/Server/Services/PodmanHostOwnerUserService";
+import PodmanResourceService, {
+  Service as PodmanResourceServiceType,
+} from "Common/Server/Services/PodmanResourceService";
+import ProxmoxClusterService, {
+  Service as ProxmoxClusterServiceType,
+} from "Common/Server/Services/ProxmoxClusterService";
+import IoTFleetService, {
+  Service as IoTFleetServiceType,
+} from "Common/Server/Services/IoTFleetService";
+import DockerSwarmClusterService, {
+  Service as DockerSwarmClusterServiceType,
+} from "Common/Server/Services/DockerSwarmClusterService";
+import CephClusterService, {
+  Service as CephClusterServiceType,
+} from "Common/Server/Services/CephClusterService";
+import ProxmoxClusterOwnerTeamService, {
+  Service as ProxmoxClusterOwnerTeamServiceType,
+} from "Common/Server/Services/ProxmoxClusterOwnerTeamService";
+import IoTFleetOwnerTeamService, {
+  Service as IoTFleetOwnerTeamServiceType,
+} from "Common/Server/Services/IoTFleetOwnerTeamService";
+import DockerSwarmClusterOwnerTeamService, {
+  Service as DockerSwarmClusterOwnerTeamServiceType,
+} from "Common/Server/Services/DockerSwarmClusterOwnerTeamService";
+import ProxmoxClusterOwnerUserService, {
+  Service as ProxmoxClusterOwnerUserServiceType,
+} from "Common/Server/Services/ProxmoxClusterOwnerUserService";
+import IoTFleetOwnerUserService, {
+  Service as IoTFleetOwnerUserServiceType,
+} from "Common/Server/Services/IoTFleetOwnerUserService";
+import DockerSwarmClusterOwnerUserService, {
+  Service as DockerSwarmClusterOwnerUserServiceType,
+} from "Common/Server/Services/DockerSwarmClusterOwnerUserService";
+import CephClusterOwnerTeamService, {
+  Service as CephClusterOwnerTeamServiceType,
+} from "Common/Server/Services/CephClusterOwnerTeamService";
+import CephClusterOwnerUserService, {
+  Service as CephClusterOwnerUserServiceType,
+} from "Common/Server/Services/CephClusterOwnerUserService";
 import HostService, {
   Service as HostServiceType,
 } from "Common/Server/Services/HostService";
@@ -307,6 +612,9 @@ import MetricAPI from "Common/Server/API/MetricAPI";
 import MonitorCustomFieldService, {
   Service as MonitorCustomFieldServiceType,
 } from "Common/Server/Services/MonitorCustomFieldService";
+import TeamCustomFieldService, {
+  Service as TeamCustomFieldServiceType,
+} from "Common/Server/Services/TeamCustomFieldService";
 import MonitorGroupOwnerTeamService, {
   Service as MonitorGroupOwnerTeamServiceType,
 } from "Common/Server/Services/MonitorGroupOwnerTeamService";
@@ -429,13 +737,6 @@ import ServiceOwnerUserService, {
 import ServiceService, {
   Service as ServiceServiceType,
 } from "Common/Server/Services/ServiceService";
-import ServiceDependencyService, {
-  Service as ServiceDependencyServiceType,
-} from "Common/Server/Services/ServiceDependencyService";
-import ServiceMonitor from "Common/Models/DatabaseModels/ServiceMonitor";
-import ServiceMonitorService, {
-  Service as ServiceMonitorServiceType,
-} from "Common/Server/Services/ServiceMonitorService";
 
 import ServiceCodeRepository from "Common/Models/DatabaseModels/ServiceCodeRepository";
 import ServiceCodeRepositoryService, {
@@ -491,6 +792,9 @@ import StatusPageResourceService, {
 import StatusPageSSOService, {
   Service as StatusPageSSOServiceType,
 } from "Common/Server/Services/StatusPageSsoService";
+import StatusPageOIDCService, {
+  Service as StatusPageOIDCServiceType,
+} from "Common/Server/Services/StatusPageOidcService";
 import TeamMemberAPI from "Common/Server/API/TeamMemberAPI";
 import TeamMemberCustomFieldService, {
   Service as TeamMemberCustomFieldServiceType,
@@ -525,6 +829,36 @@ import WorkflowService, {
 import WorkflowVariableService, {
   Service as WorkflowVariableServiceType,
 } from "Common/Server/Services/WorkflowVariableService";
+import RunbookService, {
+  Service as RunbookServiceType,
+} from "Common/Server/Services/RunbookService";
+import RunbookExecutionService, {
+  Service as RunbookExecutionServiceType,
+} from "Common/Server/Services/RunbookExecutionService";
+import RunbookOwnerTeamService, {
+  Service as RunbookOwnerTeamServiceType,
+} from "Common/Server/Services/RunbookOwnerTeamService";
+import RunbookOwnerUserService, {
+  Service as RunbookOwnerUserServiceType,
+} from "Common/Server/Services/RunbookOwnerUserService";
+import RunbookRuleService, {
+  Service as RunbookRuleServiceType,
+} from "Common/Server/Services/RunbookRuleService";
+import RunbookAgentService, {
+  Service as RunbookAgentServiceType,
+} from "Common/Server/Services/RunbookAgentService";
+import RunbookAgentJobService, {
+  Service as RunbookAgentJobServiceType,
+} from "Common/Server/Services/RunbookAgentJobService";
+import RunbookAgentOwnerTeamService, {
+  Service as RunbookAgentOwnerTeamServiceType,
+} from "Common/Server/Services/RunbookAgentOwnerTeamService";
+import RunbookAgentOwnerUserService, {
+  Service as RunbookAgentOwnerUserServiceType,
+} from "Common/Server/Services/RunbookAgentOwnerUserService";
+import RunbookSecretService, {
+  Service as RunbookSecretServiceType,
+} from "Common/Server/Services/RunbookSecretService";
 
 import ProbeOwnerTeamService, {
   Service as ProbeOwnerTeamServiceType,
@@ -592,7 +926,50 @@ import AlertEpisodeOwnerTeam from "Common/Models/DatabaseModels/AlertEpisodeOwne
 import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwnerUser";
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
 import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
+import AlertOnCallRule from "Common/Models/DatabaseModels/AlertOnCallRule";
+import AlertOwnerRule from "Common/Models/DatabaseModels/AlertOwnerRule";
+import AlertPrivacyRule from "Common/Models/DatabaseModels/AlertPrivacyRule";
+import AlertLabelRule from "Common/Models/DatabaseModels/AlertLabelRule";
+import AlertEpisodeOnCallRule from "Common/Models/DatabaseModels/AlertEpisodeOnCallRule";
+import AlertEpisodeOwnerRule from "Common/Models/DatabaseModels/AlertEpisodeOwnerRule";
+import AlertEpisodePrivacyRule from "Common/Models/DatabaseModels/AlertEpisodePrivacyRule";
+import AlertEpisodeLabelRule from "Common/Models/DatabaseModels/AlertEpisodeLabelRule";
 import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingRule";
+import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule";
+import IncidentOwnerRule from "Common/Models/DatabaseModels/IncidentOwnerRule";
+import IncidentPrivacyRule from "Common/Models/DatabaseModels/IncidentPrivacyRule";
+import IncidentLabelRule from "Common/Models/DatabaseModels/IncidentLabelRule";
+
+import MonitorOwnerRule from "Common/Models/DatabaseModels/MonitorOwnerRule";
+import MonitorLabelRule from "Common/Models/DatabaseModels/MonitorLabelRule";
+import StatusPageOwnerRule from "Common/Models/DatabaseModels/StatusPageOwnerRule";
+import StatusPageLabelRule from "Common/Models/DatabaseModels/StatusPageLabelRule";
+import HostOwnerRule from "Common/Models/DatabaseModels/HostOwnerRule";
+import HostLabelRule from "Common/Models/DatabaseModels/HostLabelRule";
+import ServiceOwnerRule from "Common/Models/DatabaseModels/ServiceOwnerRule";
+import ServiceLabelRule from "Common/Models/DatabaseModels/ServiceLabelRule";
+import DockerHostOwnerRule from "Common/Models/DatabaseModels/DockerHostOwnerRule";
+import DockerHostLabelRule from "Common/Models/DatabaseModels/DockerHostLabelRule";
+import PodmanHostOwnerRule from "Common/Models/DatabaseModels/PodmanHostOwnerRule";
+import PodmanHostLabelRule from "Common/Models/DatabaseModels/PodmanHostLabelRule";
+import KubernetesClusterOwnerRule from "Common/Models/DatabaseModels/KubernetesClusterOwnerRule";
+import KubernetesClusterLabelRule from "Common/Models/DatabaseModels/KubernetesClusterLabelRule";
+import ProxmoxClusterOwnerRule from "Common/Models/DatabaseModels/ProxmoxClusterOwnerRule";
+import IoTFleetOwnerRule from "Common/Models/DatabaseModels/IoTFleetOwnerRule";
+import DockerSwarmClusterOwnerRule from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerRule";
+import ProxmoxClusterLabelRule from "Common/Models/DatabaseModels/ProxmoxClusterLabelRule";
+import IoTFleetLabelRule from "Common/Models/DatabaseModels/IoTFleetLabelRule";
+import DockerSwarmClusterLabelRule from "Common/Models/DatabaseModels/DockerSwarmClusterLabelRule";
+import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerRule";
+import CephClusterLabelRule from "Common/Models/DatabaseModels/CephClusterLabelRule";
+import RunbookOwnerRule from "Common/Models/DatabaseModels/RunbookOwnerRule";
+import RunbookLabelRule from "Common/Models/DatabaseModels/RunbookLabelRule";
+import ScheduledMaintenanceOwnerRule from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
+import ScheduledMaintenanceLabelRule from "Common/Models/DatabaseModels/ScheduledMaintenanceLabelRule";
+import IncidentEpisodeOnCallRule from "Common/Models/DatabaseModels/IncidentEpisodeOnCallRule";
+import IncidentEpisodeOwnerRule from "Common/Models/DatabaseModels/IncidentEpisodeOwnerRule";
+import IncidentEpisodePrivacyRule from "Common/Models/DatabaseModels/IncidentEpisodePrivacyRule";
+import IncidentEpisodeLabelRule from "Common/Models/DatabaseModels/IncidentEpisodeLabelRule";
 import IncidentSla from "Common/Models/DatabaseModels/IncidentSla";
 import IncidentSlaRule from "Common/Models/DatabaseModels/IncidentSlaRule";
 
@@ -622,14 +999,50 @@ import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemp
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesClusterOwnerTeam from "Common/Models/DatabaseModels/KubernetesClusterOwnerTeam";
 import KubernetesClusterOwnerUser from "Common/Models/DatabaseModels/KubernetesClusterOwnerUser";
+import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
+import ServerlessFunctionOwnerTeam from "Common/Models/DatabaseModels/ServerlessFunctionOwnerTeam";
+import ServerlessFunctionOwnerUser from "Common/Models/DatabaseModels/ServerlessFunctionOwnerUser";
+import ServerlessFunctionLabelRule from "Common/Models/DatabaseModels/ServerlessFunctionLabelRule";
+import ServerlessFunctionOwnerRule from "Common/Models/DatabaseModels/ServerlessFunctionOwnerRule";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import CloudResourceOwnerTeam from "Common/Models/DatabaseModels/CloudResourceOwnerTeam";
+import CloudResourceOwnerUser from "Common/Models/DatabaseModels/CloudResourceOwnerUser";
+import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLabelRule";
+import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
+import RumApplication from "Common/Models/DatabaseModels/RumApplication";
+import RumApplicationOwnerTeam from "Common/Models/DatabaseModels/RumApplicationOwnerTeam";
+import RumApplicationOwnerUser from "Common/Models/DatabaseModels/RumApplicationOwnerUser";
+import RumApplicationLabelRule from "Common/Models/DatabaseModels/RumApplicationLabelRule";
+import RumApplicationOwnerRule from "Common/Models/DatabaseModels/RumApplicationOwnerRule";
+import ServerlessFunctionInstance from "Common/Models/DatabaseModels/ServerlessFunctionInstance";
+import CloudResourceInstance from "Common/Models/DatabaseModels/CloudResourceInstance";
+import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationClient";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
 import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
+import DockerResource from "Common/Models/DatabaseModels/DockerResource";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import PodmanHostOwnerTeam from "Common/Models/DatabaseModels/PodmanHostOwnerTeam";
+import PodmanHostOwnerUser from "Common/Models/DatabaseModels/PodmanHostOwnerUser";
+import PodmanResource from "Common/Models/DatabaseModels/PodmanResource";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
+import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
+import ProxmoxClusterOwnerTeam from "Common/Models/DatabaseModels/ProxmoxClusterOwnerTeam";
+import IoTFleetOwnerTeam from "Common/Models/DatabaseModels/IoTFleetOwnerTeam";
+import DockerSwarmClusterOwnerTeam from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerTeam";
+import ProxmoxClusterOwnerUser from "Common/Models/DatabaseModels/ProxmoxClusterOwnerUser";
+import IoTFleetOwnerUser from "Common/Models/DatabaseModels/IoTFleetOwnerUser";
+import DockerSwarmClusterOwnerUser from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerUser";
+import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import CephClusterOwnerTeam from "Common/Models/DatabaseModels/CephClusterOwnerTeam";
+import CephClusterOwnerUser from "Common/Models/DatabaseModels/CephClusterOwnerUser";
 import Host from "Common/Models/DatabaseModels/Host";
 import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
+import TeamCustomField from "Common/Models/DatabaseModels/TeamCustomField";
 import MonitorGroupOwnerTeam from "Common/Models/DatabaseModels/MonitorGroupOwnerTeam";
 import MonitorGroupOwnerUser from "Common/Models/DatabaseModels/MonitorGroupOwnerUser";
 import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
@@ -684,6 +1097,7 @@ import StatusPageOwnerUser from "Common/Models/DatabaseModels/StatusPageOwnerUse
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
+import StatusPageOIDC from "Common/Models/DatabaseModels/StatusPageOidc";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
@@ -695,12 +1109,21 @@ import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
+import Runbook from "Common/Models/DatabaseModels/Runbook";
+import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
+import RunbookOwnerTeam from "Common/Models/DatabaseModels/RunbookOwnerTeam";
+import RunbookOwnerUser from "Common/Models/DatabaseModels/RunbookOwnerUser";
+import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
+import RunbookAgent from "Common/Models/DatabaseModels/RunbookAgent";
+import RunbookAgentJob from "Common/Models/DatabaseModels/RunbookAgentJob";
+import RunbookAgentOwnerTeam from "Common/Models/DatabaseModels/RunbookAgentOwnerTeam";
+import RunbookAgentOwnerUser from "Common/Models/DatabaseModels/RunbookAgentOwnerUser";
+import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
 import AIAgentOwnerUser from "Common/Models/DatabaseModels/AIAgentOwnerUser";
 import LlmLog from "Common/Models/DatabaseModels/LlmLog";
-import ServiceDependency from "Common/Models/DatabaseModels/ServiceDependency";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import WorkspaceNotificationLogService, {
   Service as WorkspaceNotificationLogServiceType,
@@ -721,6 +1144,8 @@ import ScheduledMaintenanceTemplateOwnerUserService, {
 } from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerUserService";
 import TableView from "Common/Models/DatabaseModels/TableView";
 import LogSavedView from "Common/Models/DatabaseModels/LogSavedView";
+import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
+import TraceSavedView from "Common/Models/DatabaseModels/TraceSavedView";
 import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
@@ -797,6 +1222,56 @@ import OnCallDutyPolicyOwnerUser from "Common/Models/DatabaseModels/OnCallDutyPo
 import OnCallDutyPolicyOwnerUserService, {
   Service as OnCallDutyPolicyOwnerUserServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyOwnerUserService";
+
+import OnCallDutyPolicyScheduleOwnerTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleOwnerTeam";
+import OnCallDutyPolicyScheduleOwnerTeamService, {
+  Service as OnCallDutyPolicyScheduleOwnerTeamServiceType,
+} from "Common/Server/Services/OnCallDutyPolicyScheduleOwnerTeamService";
+
+import OnCallDutyPolicyScheduleOwnerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleOwnerUser";
+import OnCallDutyPolicyScheduleOwnerUserService, {
+  Service as OnCallDutyPolicyScheduleOwnerUserServiceType,
+} from "Common/Server/Services/OnCallDutyPolicyScheduleOwnerUserService";
+
+import OnCallDutyPolicyLabelRule from "Common/Models/DatabaseModels/OnCallDutyPolicyLabelRule";
+import OnCallDutyPolicyLabelRuleService, {
+  Service as OnCallDutyPolicyLabelRuleServiceType,
+} from "Common/Server/Services/OnCallDutyPolicyLabelRuleService";
+
+import OnCallDutyPolicyOwnerRule from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerRule";
+import OnCallDutyPolicyOwnerRuleService, {
+  Service as OnCallDutyPolicyOwnerRuleServiceType,
+} from "Common/Server/Services/OnCallDutyPolicyOwnerRuleService";
+
+import OnCallDutyPolicyScheduleLabelRule from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLabelRule";
+import OnCallDutyPolicyScheduleLabelRuleService, {
+  Service as OnCallDutyPolicyScheduleLabelRuleServiceType,
+} from "Common/Server/Services/OnCallDutyPolicyScheduleLabelRuleService";
+
+import OnCallDutyPolicyScheduleOwnerRule from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleOwnerRule";
+import OnCallDutyPolicyScheduleOwnerRuleService, {
+  Service as OnCallDutyPolicyScheduleOwnerRuleServiceType,
+} from "Common/Server/Services/OnCallDutyPolicyScheduleOwnerRuleService";
+
+import IncomingCallPolicyOwnerTeam from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerTeam";
+import IncomingCallPolicyOwnerTeamService, {
+  Service as IncomingCallPolicyOwnerTeamServiceType,
+} from "Common/Server/Services/IncomingCallPolicyOwnerTeamService";
+
+import IncomingCallPolicyOwnerUser from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerUser";
+import IncomingCallPolicyOwnerUserService, {
+  Service as IncomingCallPolicyOwnerUserServiceType,
+} from "Common/Server/Services/IncomingCallPolicyOwnerUserService";
+
+import IncomingCallPolicyLabelRule from "Common/Models/DatabaseModels/IncomingCallPolicyLabelRule";
+import IncomingCallPolicyLabelRuleService, {
+  Service as IncomingCallPolicyLabelRuleServiceType,
+} from "Common/Server/Services/IncomingCallPolicyLabelRuleService";
+
+import IncomingCallPolicyOwnerRule from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerRule";
+import IncomingCallPolicyOwnerRuleService, {
+  Service as IncomingCallPolicyOwnerRuleServiceType,
+} from "Common/Server/Services/IncomingCallPolicyOwnerRuleService";
 import MonitorLog from "Common/Models/AnalyticsModels/MonitorLog";
 import MonitorLogService, {
   Service as MonitorLogServiceType,
@@ -867,6 +1342,26 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AlertState, AlertStateServiceType>(
         AlertState,
         AlertStateService,
+      ).getRouter(),
+    );
+
+    // Telemetry entity registry + topology graph (read/list for the entity explorer).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TelemetryEntity, TelemetryEntityServiceType>(
+        TelemetryEntity,
+        TelemetryEntityServiceInstance,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        TelemetryEntityRelationship,
+        TelemetryEntityRelationshipServiceType
+      >(
+        TelemetryEntityRelationship,
+        TelemetryEntityRelationshipServiceInstance,
       ).getRouter(),
     );
 
@@ -954,6 +1449,126 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         OnCallDutyPolicyOwnerTeam,
         OnCallDutyPolicyOwnerTeamService,
+      ).getRouter(),
+    );
+
+    // on-call schedule owner user.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OnCallDutyPolicyScheduleOwnerUser,
+        OnCallDutyPolicyScheduleOwnerUserServiceType
+      >(
+        OnCallDutyPolicyScheduleOwnerUser,
+        OnCallDutyPolicyScheduleOwnerUserService,
+      ).getRouter(),
+    );
+
+    // on-call schedule owner team.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OnCallDutyPolicyScheduleOwnerTeam,
+        OnCallDutyPolicyScheduleOwnerTeamServiceType
+      >(
+        OnCallDutyPolicyScheduleOwnerTeam,
+        OnCallDutyPolicyScheduleOwnerTeamService,
+      ).getRouter(),
+    );
+
+    // on-call policy label rule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OnCallDutyPolicyLabelRule,
+        OnCallDutyPolicyLabelRuleServiceType
+      >(
+        OnCallDutyPolicyLabelRule,
+        OnCallDutyPolicyLabelRuleService,
+      ).getRouter(),
+    );
+
+    // on-call policy owner rule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OnCallDutyPolicyOwnerRule,
+        OnCallDutyPolicyOwnerRuleServiceType
+      >(
+        OnCallDutyPolicyOwnerRule,
+        OnCallDutyPolicyOwnerRuleService,
+      ).getRouter(),
+    );
+
+    // on-call schedule label rule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OnCallDutyPolicyScheduleLabelRule,
+        OnCallDutyPolicyScheduleLabelRuleServiceType
+      >(
+        OnCallDutyPolicyScheduleLabelRule,
+        OnCallDutyPolicyScheduleLabelRuleService,
+      ).getRouter(),
+    );
+
+    // on-call schedule owner rule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OnCallDutyPolicyScheduleOwnerRule,
+        OnCallDutyPolicyScheduleOwnerRuleServiceType
+      >(
+        OnCallDutyPolicyScheduleOwnerRule,
+        OnCallDutyPolicyScheduleOwnerRuleService,
+      ).getRouter(),
+    );
+
+    // incoming call policy owner user.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncomingCallPolicyOwnerUser,
+        IncomingCallPolicyOwnerUserServiceType
+      >(
+        IncomingCallPolicyOwnerUser,
+        IncomingCallPolicyOwnerUserService,
+      ).getRouter(),
+    );
+
+    // incoming call policy owner team.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncomingCallPolicyOwnerTeam,
+        IncomingCallPolicyOwnerTeamServiceType
+      >(
+        IncomingCallPolicyOwnerTeam,
+        IncomingCallPolicyOwnerTeamService,
+      ).getRouter(),
+    );
+
+    // incoming call policy label rule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncomingCallPolicyLabelRule,
+        IncomingCallPolicyLabelRuleServiceType
+      >(
+        IncomingCallPolicyLabelRule,
+        IncomingCallPolicyLabelRuleService,
+      ).getRouter(),
+    );
+
+    // incoming call policy owner rule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncomingCallPolicyOwnerRule,
+        IncomingCallPolicyOwnerRuleServiceType
+      >(
+        IncomingCallPolicyOwnerRule,
+        IncomingCallPolicyOwnerRuleService,
       ).getRouter(),
     );
 
@@ -1259,6 +1874,366 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertOnCallRule, AlertOnCallRuleServiceType>(
+        AlertOnCallRule,
+        AlertOnCallRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentOnCallRule, IncidentOnCallRuleServiceType>(
+        IncidentOnCallRule,
+        IncidentOnCallRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertOwnerRule, AlertOwnerRuleServiceType>(
+        AlertOwnerRule,
+        AlertOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertPrivacyRule, AlertPrivacyRuleServiceType>(
+        AlertPrivacyRule,
+        AlertPrivacyRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentOwnerRule, IncidentOwnerRuleServiceType>(
+        IncidentOwnerRule,
+        IncidentOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentPrivacyRule, IncidentPrivacyRuleServiceType>(
+        IncidentPrivacyRule,
+        IncidentPrivacyRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertEpisodeOnCallRule, AlertEpisodeOnCallRuleServiceType>(
+        AlertEpisodeOnCallRule,
+        AlertEpisodeOnCallRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentEpisodeOnCallRule,
+        IncidentEpisodeOnCallRuleServiceType
+      >(
+        IncidentEpisodeOnCallRule,
+        IncidentEpisodeOnCallRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertEpisodeOwnerRule, AlertEpisodeOwnerRuleServiceType>(
+        AlertEpisodeOwnerRule,
+        AlertEpisodeOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertEpisodePrivacyRule, AlertEpisodePrivacyRuleServiceType>(
+        AlertEpisodePrivacyRule,
+        AlertEpisodePrivacyRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentEpisodeOwnerRule,
+        IncidentEpisodeOwnerRuleServiceType
+      >(IncidentEpisodeOwnerRule, IncidentEpisodeOwnerRuleService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentEpisodePrivacyRule,
+        IncidentEpisodePrivacyRuleServiceType
+      >(
+        IncidentEpisodePrivacyRule,
+        IncidentEpisodePrivacyRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertLabelRule, AlertLabelRuleServiceType>(
+        AlertLabelRule,
+        AlertLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentLabelRule, IncidentLabelRuleServiceType>(
+        IncidentLabelRule,
+        IncidentLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MonitorOwnerRule, MonitorOwnerRuleServiceType>(
+        MonitorOwnerRule,
+        MonitorOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MonitorLabelRule, MonitorLabelRuleServiceType>(
+        MonitorLabelRule,
+        MonitorLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StatusPageOwnerRule, StatusPageOwnerRuleServiceType>(
+        StatusPageOwnerRule,
+        StatusPageOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StatusPageLabelRule, StatusPageLabelRuleServiceType>(
+        StatusPageLabelRule,
+        StatusPageLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<HostOwnerRule, HostOwnerRuleServiceType>(
+        HostOwnerRule,
+        HostOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<HostLabelRule, HostLabelRuleServiceType>(
+        HostLabelRule,
+        HostLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ServiceOwnerRule, ServiceOwnerRuleServiceType>(
+        ServiceOwnerRule,
+        ServiceOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ServiceLabelRule, ServiceLabelRuleServiceType>(
+        ServiceLabelRule,
+        ServiceLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DockerHostOwnerRule, DockerHostOwnerRuleServiceType>(
+        DockerHostOwnerRule,
+        DockerHostOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DockerHostLabelRule, DockerHostLabelRuleServiceType>(
+        DockerHostLabelRule,
+        DockerHostLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PodmanHostOwnerRule, PodmanHostOwnerRuleServiceType>(
+        PodmanHostOwnerRule,
+        PodmanHostOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PodmanHostLabelRule, PodmanHostLabelRuleServiceType>(
+        PodmanHostLabelRule,
+        PodmanHostLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        KubernetesClusterOwnerRule,
+        KubernetesClusterOwnerRuleServiceType
+      >(
+        KubernetesClusterOwnerRule,
+        KubernetesClusterOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        KubernetesClusterLabelRule,
+        KubernetesClusterLabelRuleServiceType
+      >(
+        KubernetesClusterLabelRule,
+        KubernetesClusterLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProxmoxClusterOwnerRule, ProxmoxClusterOwnerRuleServiceType>(
+        ProxmoxClusterOwnerRule,
+        ProxmoxClusterOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IoTFleetOwnerRule, IoTFleetOwnerRuleServiceType>(
+        IoTFleetOwnerRule,
+        IoTFleetOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DockerSwarmClusterOwnerRule,
+        DockerSwarmClusterOwnerRuleServiceType
+      >(
+        DockerSwarmClusterOwnerRule,
+        DockerSwarmClusterOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProxmoxClusterLabelRule, ProxmoxClusterLabelRuleServiceType>(
+        ProxmoxClusterLabelRule,
+        ProxmoxClusterLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IoTFleetLabelRule, IoTFleetLabelRuleServiceType>(
+        IoTFleetLabelRule,
+        IoTFleetLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DockerSwarmClusterLabelRule,
+        DockerSwarmClusterLabelRuleServiceType
+      >(
+        DockerSwarmClusterLabelRule,
+        DockerSwarmClusterLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CephClusterOwnerRule, CephClusterOwnerRuleServiceType>(
+        CephClusterOwnerRule,
+        CephClusterOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CephClusterLabelRule, CephClusterLabelRuleServiceType>(
+        CephClusterLabelRule,
+        CephClusterLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookOwnerRule, RunbookOwnerRuleServiceType>(
+        RunbookOwnerRule,
+        RunbookOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookLabelRule, RunbookLabelRuleServiceType>(
+        RunbookLabelRule,
+        RunbookLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ScheduledMaintenanceOwnerRule,
+        ScheduledMaintenanceOwnerRuleServiceType
+      >(
+        ScheduledMaintenanceOwnerRule,
+        ScheduledMaintenanceOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ScheduledMaintenanceLabelRule,
+        ScheduledMaintenanceLabelRuleServiceType
+      >(
+        ScheduledMaintenanceLabelRule,
+        ScheduledMaintenanceLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertEpisodeLabelRule, AlertEpisodeLabelRuleServiceType>(
+        AlertEpisodeLabelRule,
+        AlertEpisodeLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentEpisodeLabelRule,
+        IncidentEpisodeLabelRuleServiceType
+      >(IncidentEpisodeLabelRule, IncidentEpisodeLabelRuleService).getRouter(),
+    );
+
     // IncidentSla
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -1293,6 +2268,25 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new KubernetesResourceAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ProxmoxResourceAPI().getRouter(),
+    );
+
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new IoTDeviceAPI().getRouter());
+
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new IoTDeviceAPI().getRouter());
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new DockerSwarmResourceAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CephResourceAPI().getRouter(),
     );
 
     app.use(
@@ -1413,28 +2407,12 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceDependency, ServiceDependencyServiceType>(
-        ServiceDependency,
-        ServiceDependencyService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<
         StatusPageHistoryChartBarColorRule,
         StatusPageHistoryChartBarColorRuleServiceType
       >(
         StatusPageHistoryChartBarColorRule,
         StatusPageHistoryChartBarColorRuleService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceMonitor, ServiceMonitorServiceType>(
-        ServiceMonitor,
-        ServiceMonitorService,
       ).getRouter(),
     );
 
@@ -1637,6 +2615,22 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MetricSavedView, MetricSavedViewServiceType>(
+        MetricSavedView,
+        MetricSavedViewService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TraceSavedView, TraceSavedViewServiceType>(
+        TraceSavedView,
+        TraceSavedViewService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<LogPipeline, LogPipelineServiceType>(
         LogPipeline,
         LogPipelineService,
@@ -1771,6 +2765,86 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<WorkflowLog, WorkflowLogServiceType>(
         WorkflowLog,
         WorkflowLogService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<Runbook, RunbookServiceType>(
+        Runbook,
+        RunbookService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookExecution, RunbookExecutionServiceType>(
+        RunbookExecution,
+        RunbookExecutionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookRule, RunbookRuleServiceType>(
+        RunbookRule,
+        RunbookRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookOwnerTeam, RunbookOwnerTeamServiceType>(
+        RunbookOwnerTeam,
+        RunbookOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookOwnerUser, RunbookOwnerUserServiceType>(
+        RunbookOwnerUser,
+        RunbookOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookAgent, RunbookAgentServiceType>(
+        RunbookAgent,
+        RunbookAgentService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookAgentJob, RunbookAgentJobServiceType>(
+        RunbookAgentJob,
+        RunbookAgentJobService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookAgentOwnerTeam, RunbookAgentOwnerTeamServiceType>(
+        RunbookAgentOwnerTeam,
+        RunbookAgentOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookAgentOwnerUser, RunbookAgentOwnerUserServiceType>(
+        RunbookAgentOwnerUser,
+        RunbookAgentOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookSecret, RunbookSecretServiceType>(
+        RunbookSecret,
+        RunbookSecretService,
       ).getRouter(),
     );
 
@@ -2065,6 +3139,165 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ServerlessFunction, ServerlessFunctionServiceType>(
+        ServerlessFunction,
+        ServerlessFunctionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServerlessFunctionOwnerTeam,
+        ServerlessFunctionOwnerTeamServiceType
+      >(
+        ServerlessFunctionOwnerTeam,
+        ServerlessFunctionOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServerlessFunctionOwnerUser,
+        ServerlessFunctionOwnerUserServiceType
+      >(
+        ServerlessFunctionOwnerUser,
+        ServerlessFunctionOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServerlessFunctionLabelRule,
+        ServerlessFunctionLabelRuleServiceType
+      >(
+        ServerlessFunctionLabelRule,
+        ServerlessFunctionLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServerlessFunctionOwnerRule,
+        ServerlessFunctionOwnerRuleServiceType
+      >(
+        ServerlessFunctionOwnerRule,
+        ServerlessFunctionOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudResource, CloudResourceServiceType>(
+        CloudResource,
+        CloudResourceService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudResourceOwnerTeam, CloudResourceOwnerTeamServiceType>(
+        CloudResourceOwnerTeam,
+        CloudResourceOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudResourceOwnerUser, CloudResourceOwnerUserServiceType>(
+        CloudResourceOwnerUser,
+        CloudResourceOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudResourceLabelRule, CloudResourceLabelRuleServiceType>(
+        CloudResourceLabelRule,
+        CloudResourceLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudResourceOwnerRule, CloudResourceOwnerRuleServiceType>(
+        CloudResourceOwnerRule,
+        CloudResourceOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RumApplication, RumApplicationServiceType>(
+        RumApplication,
+        RumApplicationService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RumApplicationOwnerTeam, RumApplicationOwnerTeamServiceType>(
+        RumApplicationOwnerTeam,
+        RumApplicationOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RumApplicationOwnerUser, RumApplicationOwnerUserServiceType>(
+        RumApplicationOwnerUser,
+        RumApplicationOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RumApplicationLabelRule, RumApplicationLabelRuleServiceType>(
+        RumApplicationLabelRule,
+        RumApplicationLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RumApplicationOwnerRule, RumApplicationOwnerRuleServiceType>(
+        RumApplicationOwnerRule,
+        RumApplicationOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServerlessFunctionInstance,
+        ServerlessFunctionInstanceServiceType
+      >(
+        ServerlessFunctionInstance,
+        ServerlessFunctionInstanceService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudResourceInstance, CloudResourceInstanceServiceType>(
+        CloudResourceInstance,
+        CloudResourceInstanceService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RumApplicationClient, RumApplicationClientServiceType>(
+        RumApplicationClient,
+        RumApplicationClientService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<DockerHost, DockerHostServiceType>(
         DockerHost,
         DockerHostService,
@@ -2084,6 +3317,148 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DockerHostOwnerUser, DockerHostOwnerUserServiceType>(
         DockerHostOwnerUser,
         DockerHostOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DockerResource, DockerResourceServiceType>(
+        DockerResource,
+        DockerResourceService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PodmanHost, PodmanHostServiceType>(
+        PodmanHost,
+        PodmanHostService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PodmanHostOwnerTeam, PodmanHostOwnerTeamServiceType>(
+        PodmanHostOwnerTeam,
+        PodmanHostOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PodmanHostOwnerUser, PodmanHostOwnerUserServiceType>(
+        PodmanHostOwnerUser,
+        PodmanHostOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PodmanResource, PodmanResourceServiceType>(
+        PodmanResource,
+        PodmanResourceService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProxmoxCluster, ProxmoxClusterServiceType>(
+        ProxmoxCluster,
+        ProxmoxClusterService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IoTFleet, IoTFleetServiceType>(
+        IoTFleet,
+        IoTFleetService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DockerSwarmCluster, DockerSwarmClusterServiceType>(
+        DockerSwarmCluster,
+        DockerSwarmClusterService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProxmoxClusterOwnerTeam, ProxmoxClusterOwnerTeamServiceType>(
+        ProxmoxClusterOwnerTeam,
+        ProxmoxClusterOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IoTFleetOwnerTeam, IoTFleetOwnerTeamServiceType>(
+        IoTFleetOwnerTeam,
+        IoTFleetOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DockerSwarmClusterOwnerTeam,
+        DockerSwarmClusterOwnerTeamServiceType
+      >(
+        DockerSwarmClusterOwnerTeam,
+        DockerSwarmClusterOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProxmoxClusterOwnerUser, ProxmoxClusterOwnerUserServiceType>(
+        ProxmoxClusterOwnerUser,
+        ProxmoxClusterOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IoTFleetOwnerUser, IoTFleetOwnerUserServiceType>(
+        IoTFleetOwnerUser,
+        IoTFleetOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DockerSwarmClusterOwnerUser,
+        DockerSwarmClusterOwnerUserServiceType
+      >(
+        DockerSwarmClusterOwnerUser,
+        DockerSwarmClusterOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CephCluster, CephClusterServiceType>(
+        CephCluster,
+        CephClusterService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CephClusterOwnerTeam, CephClusterOwnerTeamServiceType>(
+        CephClusterOwnerTeam,
+        CephClusterOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CephClusterOwnerUser, CephClusterOwnerUserServiceType>(
+        CephClusterOwnerUser,
+        CephClusterOwnerUserService,
       ).getRouter(),
     );
 
@@ -2232,6 +3607,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StatusPageOIDC, StatusPageOIDCServiceType>(
+        StatusPageOIDC,
+        StatusPageOIDCService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<MonitorTimelineStatus, MonitorTimelineStatusServiceType>(
         MonitorTimelineStatus,
         MonitorTimelineStatusService,
@@ -2327,6 +3710,38 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new ProjectOidcAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<GlobalSso, GlobalSsoServiceType>(
+        GlobalSso,
+        GlobalSsoService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<GlobalOidc, GlobalOidcServiceType>(
+        GlobalOidc,
+        GlobalOidcService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<GlobalSsoProject, GlobalSsoProjectServiceType>(
+        GlobalSsoProject,
+        GlobalSsoProjectService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<GlobalOidcProject, GlobalOidcProjectServiceType>(
+        GlobalOidcProject,
+        GlobalOidcProjectService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new ResellerPlanAPI().getRouter(),
     );
     app.use(
@@ -2374,6 +3789,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new UserTelegramAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new UserWebhookAPI().getRouter(),
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserPushAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProbeAPI().getRouter());
@@ -2592,6 +4011,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<MonitorCustomField, MonitorCustomFieldServiceType>(
         MonitorCustomField,
         MonitorCustomFieldService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TeamCustomField, TeamCustomFieldServiceType>(
+        TeamCustomField,
+        TeamCustomFieldService,
       ).getRouter(),
     );
 

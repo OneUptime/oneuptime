@@ -7,6 +7,8 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Query from "Common/Types/BaseDatabase/Query";
 import ProjectUtil from "Common/UI/Utils/Project";
 import TelemetryServiceElement from "../TelemetryService/TelemetryServiceElement";
+import Service from "Common/Models/DatabaseModels/Service";
+import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import TelemetryExceptionElement from "./ExceptionElement";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -15,24 +17,45 @@ import {
   BulkActionFailed,
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import AnalyticsModelAPI, {
+  ListResult as AnalyticsListResult,
+} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import GroupBy from "Common/Types/BaseDatabase/GroupBy";
+import Select from "Common/Types/BaseDatabase/Select";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
 import UserUtil from "Common/UI/Utils/User";
 
 export interface ComponentProps {
-  serviceId?: ObjectID | undefined;
+  primaryEntityId?: ObjectID | undefined;
   query: Query<TelemetryException>;
   title: string;
   description: string;
   onFetchSuccess?:
     | ((data: Array<TelemetryException>, totalCount: number) => void)
     | undefined;
+  /*
+   * Scope to a OneUptime entity by its stable entityKeys (membership).
+   * TelemetryException is a Postgres grouping row with no entityKeys column,
+   * so the scope is resolved via the ExceptionInstance analytics table
+   * (hasAny(entityKeys, [...]) GROUP BY fingerprint) and injected as a
+   * fingerprint IN (...) filter on the exception groups.
+   */
+  entityKeys?: Array<string> | undefined;
 }
+
+// A fingerprint that can never exist — forces an empty (scoped) result set.
+const NO_MATCH_FINGERPRINT: string = "__entity-scope-no-match__";
 
 const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -40,6 +63,96 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
   const viewRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.EXCEPTIONS_VIEW_ROOT]!,
   );
+
+  /*
+   * An exception's primaryEntityId is polymorphic (no Service relation). Load the
+   * project's Services once so the Service column can resolve real
+   * OpenTelemetry services to their name/colour; Host/Docker/K8s and
+   * unattributed rows resolve to a label / synthetic via
+   * TelemetryServiceUtil.resolveTelemetryResource.
+   */
+  const [services, setServices] = React.useState<Array<Service>>([]);
+
+  /*
+   * Fingerprints of exception groups that have at least one instance
+   * belonging to the scoped entity. null = not resolved yet (loading).
+   */
+  const [entityFingerprints, setEntityFingerprints] =
+    React.useState<Array<string> | null>(null);
+
+  React.useEffect(() => {
+    const loadServices: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const result: ListResult<Service> = await ModelAPI.getList<Service>({
+          modelType: Service,
+          query: { projectId: ProjectUtil.getCurrentProjectId()! },
+          select: { _id: true, name: true, serviceColor: true },
+          sort: { name: SortOrder.Ascending },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+        });
+        setServices(result.data);
+      } catch {
+        // Non-fatal: rows fall back to a primaryEntityType label / "Unknown".
+      }
+    };
+    void loadServices();
+  }, []);
+
+  React.useEffect(() => {
+    if (!props.entityKeys || props.entityKeys.length === 0) {
+      setEntityFingerprints(null);
+      return;
+    }
+    const entityKeys: Array<string> = props.entityKeys;
+
+    const loadFingerprints: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const result: AnalyticsListResult<ExceptionInstance> =
+          await AnalyticsModelAPI.getList<ExceptionInstance>({
+            modelType: ExceptionInstance,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+              entityKeys: new Includes(entityKeys),
+            } as Query<ExceptionInstance>,
+            groupBy: { fingerprint: true } as GroupBy<ExceptionInstance>,
+            select: { fingerprint: true } as Select<ExceptionInstance>,
+            sort: { fingerprint: SortOrder.Ascending } as Record<
+              string,
+              SortOrder
+            >,
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            requestOptions: {},
+          });
+
+        const fingerprints: Set<string> = new Set<string>();
+        for (const instance of result.data) {
+          const fingerprint: string | undefined = instance.fingerprint;
+          if (fingerprint) {
+            fingerprints.add(fingerprint);
+          }
+        }
+        setEntityFingerprints(Array.from(fingerprints));
+      } catch {
+        // Degrade to "no matches" rather than showing unscoped exceptions.
+        setEntityFingerprints([]);
+      }
+    };
+    void loadFingerprints();
+  }, [props.entityKeys]);
+
+  const isEntityScoped: boolean = Boolean(
+    props.entityKeys && props.entityKeys.length > 0,
+  );
+
+  /*
+   * Defer the table render until the fingerprint scope has resolved —
+   * rendering earlier would briefly show the unscoped (project-wide) list.
+   */
+  if (isEntityScoped && entityFingerprints === null) {
+    return <ComponentLoader />;
+  }
 
   return (
     <Fragment>
@@ -63,8 +176,19 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
         }}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
-          serviceId: props.serviceId ? props.serviceId : undefined,
+          primaryEntityId: props.primaryEntityId
+            ? props.primaryEntityId
+            : undefined,
           ...props.query,
+          ...(isEntityScoped
+            ? {
+                fingerprint: new Includes(
+                  entityFingerprints && entityFingerprints.length > 0
+                    ? entityFingerprints
+                    : [NO_MATCH_FINGERPRINT],
+                ),
+              }
+            : {}),
         }}
         bulkActions={{
           buttons: [
@@ -456,24 +580,23 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              service: {
-                name: true,
-                serviceColor: true,
-              },
+              primaryEntityId: true,
+              primaryEntityType: true,
             },
             title: "Service",
             type: FieldType.Entity,
-            getElement: (exception: TelemetryException) => {
-              if (!exception.service) {
-                // this should never happen.
-                return <div>Unknown</div>;
+            getElement: (exception: TelemetryException): ReactElement => {
+              const { service, label } =
+                TelemetryServiceUtil.resolveTelemetryResource({
+                  primaryEntityId: exception.primaryEntityId,
+                  primaryEntityType: exception.primaryEntityType,
+                  services: services,
+                  projectId: ProjectUtil.getCurrentProjectId(),
+                });
+              if (service) {
+                return <TelemetryServiceElement telemetryService={service} />;
               }
-
-              return (
-                <TelemetryServiceElement
-                  telemetryService={exception.service!}
-                />
-              );
+              return <div className="text-gray-700">{label}</div>;
             },
           },
           {

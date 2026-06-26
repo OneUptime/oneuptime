@@ -138,6 +138,44 @@ export default class QueryHelper {
     );
   }
 
+  /**
+   * Searches the provided entity property names with a single OR-joined ILIKE.
+   *
+   * IMPORTANT: emit unquoted `alias.propertyName` references and let
+   * TypeORM's `replacePropertyNamesForTheWholeQuery` post-processor escape
+   * the table alias and translate property names → DB column names. Pre-
+   * quoting (e.g. `Incident."title"`) bypasses that pass, which leaves an
+   * unquoted `Incident` in the final SQL — Postgres then lowercases it and
+   * fails with `missing FROM-clause entry for table "incident"`.
+   */
+  @CaptureSpan()
+  public static multiSearch(
+    entityPropertyNames: Array<string>,
+    value: string,
+  ): FindWhereProperty<any> {
+    const trimmed: string = value.toLowerCase().trim();
+    const rid: string = Text.generateRandomText(10);
+
+    return Raw(
+      (alias: string) => {
+        const tableAlias: string = alias.includes(".")
+          ? (alias.split(".")[0] as string)
+          : alias;
+
+        const orConditions: string = entityPropertyNames
+          .map((field: string) => {
+            return `(CAST(${tableAlias}.${field} AS TEXT) ILIKE :${rid})`;
+          })
+          .join(" OR ");
+
+        return `(${orConditions})`;
+      },
+      {
+        [rid]: `%${trimmed}%`,
+      },
+    );
+  }
+
   @CaptureSpan()
   public static notContains(name: string): FindWhereProperty<any> {
     name = name.toLowerCase().trim();
@@ -249,6 +287,82 @@ export default class QueryHelper {
         [valuesRid]: values,
       },
     );
+  }
+
+  /**
+   * Returns a filter that matches owner rows that are linked to *any* of the
+   * provided related entity ids through a many-to-many join table. The
+   * returned FindOperator is intended to be applied to the primary id column
+   * of the owner entity. An empty values array matches nothing (fail closed).
+   */
+  @CaptureSpan()
+  public static anyOfEntitiesInManyToMany(data: {
+    values: Array<string | ObjectID>;
+    joinTableName: string;
+    ownerColumnName: string;
+    relationColumnName: string;
+  }): FindWhereProperty<any> {
+    const values: Array<string> = data.values.map(
+      (value: string | ObjectID) => {
+        return value.toString();
+      },
+    );
+
+    if (!values || values.length === 0) {
+      return Raw(() => {
+        return `TRUE = FALSE`;
+      }, {});
+    }
+
+    const valuesRid: string = Text.generateRandomText(10);
+
+    const joinTable: string = data.joinTableName.replace(/"/g, '""');
+    const ownerCol: string = data.ownerColumnName.replace(/"/g, '""');
+    const relationCol: string = data.relationColumnName.replace(/"/g, '""');
+
+    return Raw(
+      (alias: string) => {
+        return `(${alias} IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (:...${valuesRid})))`;
+      },
+      {
+        [valuesRid]: values,
+      },
+    );
+  }
+
+  /**
+   * Matches owner rows that have no rows in the join table — i.e. the
+   * many-to-many collection is empty. Apply to the owner's primary id column.
+   */
+  @CaptureSpan()
+  public static noEntitiesInManyToMany(data: {
+    joinTableName: string;
+    ownerColumnName: string;
+  }): FindWhereProperty<any> {
+    const joinTable: string = data.joinTableName.replace(/"/g, '""');
+    const ownerCol: string = data.ownerColumnName.replace(/"/g, '""');
+
+    return Raw((alias: string) => {
+      return `(${alias} NOT IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${ownerCol}" IS NOT NULL))`;
+    }, {});
+  }
+
+  /**
+   * Matches owner rows that have at least one row in the join table — i.e.
+   * the many-to-many collection has at least one entry. Apply to the
+   * owner's primary id column.
+   */
+  @CaptureSpan()
+  public static anyEntitiesInManyToMany(data: {
+    joinTableName: string;
+    ownerColumnName: string;
+  }): FindWhereProperty<any> {
+    const joinTable: string = data.joinTableName.replace(/"/g, '""');
+    const ownerCol: string = data.ownerColumnName.replace(/"/g, '""');
+
+    return Raw((alias: string) => {
+      return `(${alias} IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${ownerCol}" IS NOT NULL))`;
+    }, {});
   }
 
   /**

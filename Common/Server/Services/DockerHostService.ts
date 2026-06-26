@@ -1,15 +1,23 @@
 import DatabaseService from "./DatabaseService";
+import DockerHostLabelRuleEngineService from "./DockerHostLabelRuleEngineService";
+import DockerHostOwnerRuleEngineService from "./DockerHostOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/DockerHost";
+import Label from "../../Models/DatabaseModels/Label";
+import { OnCreate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
+import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "docker-host-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
+
+const LABELS_APPLIED_CACHE_NAMESPACE: string = "docker-host-labels-applied";
+const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -17,15 +25,57 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    if (createdItem.projectId && createdItem.id) {
+      Promise.resolve()
+        .then(async () => {
+          await DockerHostLabelRuleEngineService.applyRulesToDockerHost(
+            createdItem,
+          );
+        })
+        .then(async () => {
+          await DockerHostOwnerRuleEngineService.applyRulesToDockerHost(
+            createdItem,
+          );
+        })
+        .catch((error: Error) => {
+          logger.error(
+            `Error applying docker host rules in DockerHostService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              dockerHostId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        });
+    }
+    return createdItem;
+  }
+
+  @CaptureSpan()
   public async findOrCreateByHostIdentifier(data: {
     projectId: ObjectID;
     hostIdentifier: string;
   }): Promise<Model> {
-    // Try to find existing host
+    /*
+     * Canonicalize + look up case-insensitively. A Docker host is keyed by
+     * the OTel `host.name` resource attribute (see autoDiscoverDockerHost),
+     * whose casing is not stable — Windows surfaces PRIMARY01 vs primary01
+     * across resource detectors. Ingest already canonicalizes host.name
+     * (OtelIngestBaseService.normalizeHostNameAttributesInPlace); we repeat
+     * it here so the method is correct for any caller. A case-sensitive
+     * lookup would miss an existing row, then fail to create it because the
+     * unique guard (checkUniqueColumnBy -> findWithSameText) compares
+     * case-insensitively, wedging ingest for that host. Mirrors HostService.
+     */
+    const hostIdentifier: string = data.hostIdentifier.trim().toLowerCase();
+
     const existingHost: Model | null = await this.findOneBy({
       query: {
         projectId: data.projectId,
-        hostIdentifier: data.hostIdentifier,
+        hostIdentifier: QueryHelper.findWithSameText(hostIdentifier),
       },
       select: {
         _id: true,
@@ -38,6 +88,37 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (existingHost) {
+      /*
+       * Converge a legacy mixed-case identifier onto the canonical form so
+       * the stored resource.host.name (canonicalized at ingest) keeps
+       * matching the Docker-host detail page filter. Best-effort — never
+       * block ingest on it. Updates don't re-run the unique guard.
+       */
+      if (
+        existingHost._id &&
+        existingHost.hostIdentifier &&
+        existingHost.hostIdentifier !== hostIdentifier
+      ) {
+        try {
+          await this.updateOneById({
+            id: new ObjectID(existingHost._id.toString()),
+            data: {
+              hostIdentifier: hostIdentifier,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+          existingHost.hostIdentifier = hostIdentifier;
+        } catch (err) {
+          logger.warn(
+            `DockerHostService: failed to canonicalize hostIdentifier for host ${existingHost._id.toString()}: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+        }
+      }
+
       return existingHost;
     }
 
@@ -45,8 +126,8 @@ export class Service extends DatabaseService<Model> {
       // Create new host
       const newHost: Model = new Model();
       newHost.projectId = data.projectId;
-      newHost.name = data.hostIdentifier;
-      newHost.hostIdentifier = data.hostIdentifier;
+      newHost.name = hostIdentifier;
+      newHost.hostIdentifier = hostIdentifier;
       newHost.otelCollectorStatus = "connected";
       newHost.lastSeenAt = OneUptimeDate.getCurrentDate();
 
@@ -60,13 +141,15 @@ export class Service extends DatabaseService<Model> {
       return createdHost;
     } catch {
       /*
-       * Race condition: another request created the host concurrently.
-       * Re-fetch the existing host.
+       * Either two ingest workers raced to create the same host, or a host
+       * with this identifier in a different case already existed and the
+       * unique guard rejected the insert. Re-resolve case-insensitively so
+       * the caller still gets the existing row instead of throwing.
        */
       const reFetchedHost: Model | null = await this.findOneBy({
         query: {
           projectId: data.projectId,
-          hostIdentifier: data.hostIdentifier,
+          hostIdentifier: QueryHelper.findWithSameText(hostIdentifier),
         },
         select: {
           _id: true,
@@ -83,7 +166,7 @@ export class Service extends DatabaseService<Model> {
       }
 
       throw new Error(
-        "Failed to create or find Docker host: " + data.hostIdentifier,
+        "Failed to create or find Docker host: " + hostIdentifier,
       );
     }
   }
@@ -94,6 +177,7 @@ export class Service extends DatabaseService<Model> {
     extra?: {
       osType?: string | undefined;
       osVersion?: string | undefined;
+      agentVersion?: string | undefined;
     },
   ): Promise<void> {
     const cacheKey: string = hostId.toString();
@@ -103,25 +187,38 @@ export class Service extends DatabaseService<Model> {
         JSON.stringify({
           osType: extra?.osType ?? null,
           osVersion: extra?.osVersion ?? null,
+          agentVersion: extra?.agentVersion ?? null,
         }),
       )
       .digest("hex");
 
-    const cached: string | null = await GlobalCache.getString(
-      LAST_SEEN_CACHE_NAMESPACE,
-      cacheKey,
-    );
+    let cached: string | null = null;
+    try {
+      cached = await GlobalCache.getString(LAST_SEEN_CACHE_NAMESPACE, cacheKey);
+    } catch {
+      /*
+       * Cache unavailable — fail open and refresh lastSeenAt anyway. A
+       * cache error must never skip the DB write below, otherwise the
+       * resource is wrongly marked "disconnected" while telemetry is
+       * still flowing. Mirrors shouldRunMaintenance's fail-open stance.
+       */
+      cached = null;
+    }
 
     if (cached === extrasFingerprint) {
       return; // same data was written recently
     }
 
-    await GlobalCache.setString(
-      LAST_SEEN_CACHE_NAMESPACE,
-      cacheKey,
-      extrasFingerprint,
-      { expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS },
-    );
+    try {
+      await GlobalCache.setString(
+        LAST_SEEN_CACHE_NAMESPACE,
+        cacheKey,
+        extrasFingerprint,
+        { expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS },
+      );
+    } catch {
+      // Best-effort throttle write; proceed with the DB update regardless.
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: any = {
@@ -135,27 +232,117 @@ export class Service extends DatabaseService<Model> {
     if (extra?.osVersion) {
       data.osVersion = extra.osVersion;
     }
+    if (extra?.agentVersion) {
+      data.agentVersion = extra.agentVersion;
+    }
 
-    await this.updateOneById({
+    /*
+     * Heartbeat write: a single-statement UPDATE with no hooks and no
+     * `version` bump, avoiding the hot-row Postgres lock convoy that the
+     * full updateOneById pipeline causes. See ServiceService.updateLastSeen.
+     */
+    await this.updateColumnsByIdWithoutHooks({
       id: hostId,
       data: data,
-      props: {
-        isRoot: true,
-      },
     });
+  }
+
+  /**
+   * Additively attach labels to a Docker host. Existing labels are
+   * never removed — manual labels set via the UI survive ingest. The
+   * set of labelIds passed in is fingerprinted and cached for 60s so
+   * the common case (steady-state collector pushing the same label
+   * set every batch) costs one in-memory lookup, not a join-table
+   * scan.
+   */
+  @CaptureSpan()
+  public async attachLabels(data: {
+    dockerHostId: ObjectID;
+    labelIds: Array<ObjectID>;
+  }): Promise<void> {
+    if (!data.labelIds || data.labelIds.length === 0) {
+      return;
+    }
+
+    const cacheKey: string = data.dockerHostId.toString();
+    const fingerprint: string = fingerprintLabelIds(data.labelIds);
+    const cached: string | null = await GlobalCache.getString(
+      LABELS_APPLIED_CACHE_NAMESPACE,
+      cacheKey,
+    );
+    if (cached === fingerprint) {
+      return;
+    }
+
+    try {
+      const dockerHostIdStr: string = data.dockerHostId.toString();
+      const existingLabels: Array<Label> = await this.getRepository()
+        .createQueryBuilder()
+        .relation(Model, "labels")
+        .of(dockerHostIdStr)
+        .loadMany();
+
+      const existingIds: Set<string> = new Set();
+      for (const lbl of existingLabels) {
+        const idStr: string | undefined = lbl._id?.toString();
+        if (idStr) {
+          existingIds.add(idStr);
+        }
+      }
+
+      const toAddIds: Array<string> = [];
+      const seen: Set<string> = new Set();
+      for (const id of data.labelIds) {
+        const idStr: string = id.toString();
+        if (existingIds.has(idStr) || seen.has(idStr)) {
+          continue;
+        }
+        seen.add(idStr);
+        toAddIds.push(idStr);
+      }
+
+      if (toAddIds.length > 0) {
+        await this.getRepository()
+          .createQueryBuilder()
+          .relation(Model, "labels")
+          .of(dockerHostIdStr)
+          .add(toAddIds);
+      }
+
+      await GlobalCache.setString(
+        LABELS_APPLIED_CACHE_NAMESPACE,
+        cacheKey,
+        fingerprint,
+        { expiresInSeconds: LABELS_APPLIED_CACHE_TTL_SECONDS },
+      );
+    } catch (err) {
+      logger.warn(
+        `DockerHostService.attachLabels failed for docker host ${data.dockerHostId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
   }
 
   @CaptureSpan()
   public async markDisconnectedHosts(): Promise<void> {
-    const fiveMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
+    /*
+     * Threshold must stay well above the 5-minute OTel ingest
+     * maintenance fence (MAINTENANCE_FENCE_TTL_SECONDS in
+     * OtelIngestBaseService) — lastSeenAt is legitimately up to
+     * ~5 minutes stale during continuous telemetry, so a threshold
+     * equal to the fence TTL flaps healthy resources. 15 minutes
+     * gives 3x headroom.
+     */
+    const fifteenMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
       OneUptimeDate.getCurrentDate(),
-      -5,
+      -15,
     );
 
     const connectedHosts: Array<Model> = await this.findBy({
       query: {
         otelCollectorStatus: "connected",
-        lastSeenAt: QueryHelper.lessThan(fiveMinutesAgo),
+        lastSeenAt: QueryHelper.lessThan(fifteenMinutesAgo),
       },
       select: {
         _id: true,
@@ -181,6 +368,15 @@ export class Service extends DatabaseService<Model> {
       }
     }
   }
+}
+
+function fingerprintLabelIds(labelIds: Array<ObjectID>): string {
+  const sorted: Array<string> = labelIds
+    .map((id: ObjectID) => {
+      return id.toString();
+    })
+    .sort();
+  return crypto.createHash("sha1").update(sorted.join(",")).digest("hex");
 }
 
 export default new Service();

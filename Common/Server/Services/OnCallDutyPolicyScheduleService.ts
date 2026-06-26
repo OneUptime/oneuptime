@@ -1,12 +1,18 @@
 import DatabaseService from "./DatabaseService";
 import OnCallDutyPolicyScheduleLayerService from "./OnCallDutyPolicyScheduleLayerService";
 import OnCallDutyPolicyScheduleLayerUserService from "./OnCallDutyPolicyScheduleLayerUserService";
+import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import CalendarEvent from "../../Types/Calendar/CalendarEvent";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import ObjectID from "../../Types/ObjectID";
 import LayerUtil, { LayerProps } from "../../Types/OnCallDutyPolicy/Layer";
+import UserOverrideUtil, {
+  UserOverrideRecord,
+} from "../../Types/OnCallDutyPolicy/UserOverrideUtil";
+import OnCallDutyPolicyUserOverride from "../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
+import QueryHelper from "../Types/Database/QueryHelper";
 import OnCallDutyPolicyScheduleLayer from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import User from "../../Models/DatabaseModels/User";
@@ -32,8 +38,10 @@ import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import { Green500 } from "../../Types/BrandColors";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
+import OnCallDutyPolicyScheduleLabelRuleEngineService from "./OnCallDutyPolicyScheduleLabelRuleEngineService";
+import OnCallDutyPolicyScheduleOwnerRuleEngineService from "./OnCallDutyPolicyScheduleOwnerRuleEngineService";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnDelete } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
@@ -44,6 +52,35 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
 
   public constructor() {
     super(OnCallDutyPolicySchedule);
+  }
+
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<OnCallDutyPolicySchedule>,
+    createdItem: OnCallDutyPolicySchedule,
+  ): Promise<OnCallDutyPolicySchedule> {
+    if (createdItem.projectId && createdItem.id) {
+      Promise.resolve()
+        .then(async () => {
+          await OnCallDutyPolicyScheduleLabelRuleEngineService.applyRulesToSchedule(
+            createdItem,
+          );
+        })
+        .then(async () => {
+          await OnCallDutyPolicyScheduleOwnerRuleEngineService.applyRulesToSchedule(
+            createdItem,
+          );
+        })
+        .catch((error: Error) => {
+          logger.error(
+            `Error applying on-call schedule rules in OnCallDutyPolicyScheduleService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              onCallDutyPolicyScheduleId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        });
+    }
+    return createdItem;
   }
 
   protected override async onBeforeDelete(
@@ -914,9 +951,11 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     return resultReturn;
   }
 
-  private async getScheduleLayerProps(data: {
-    scheduleId: ObjectID;
-  }): Promise<Array<LayerProps>> {
+  private async getScheduleLayerProps(data: { scheduleId: ObjectID }): Promise<{
+    layerProps: Array<LayerProps>;
+    projectId: ObjectID | null;
+    scheduleUserIds: Array<ObjectID>;
+  }> {
     // get schedule layers.
 
     const scheduleId: ObjectID = data.scheduleId;
@@ -968,23 +1007,34 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       });
 
     const layerProps: Array<LayerProps> = [];
+    const scheduleUserIds: Array<ObjectID> = [];
+    const seenUserIds: Set<string> = new Set<string>();
 
     for (const layer of layers) {
+      const usersForLayer: Array<User> = layerUsers
+        .filter((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
+          return (
+            layerUser.onCallDutyPolicyScheduleLayerId?.toString() ===
+            layer.id?.toString()
+          );
+        })
+        .map((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
+          return layerUser.user!;
+        })
+        .filter((user: User) => {
+          return Boolean(user);
+        });
+
+      for (const user of usersForLayer) {
+        const idStr: string = user.id?.toString() || "";
+        if (idStr && !seenUserIds.has(idStr)) {
+          seenUserIds.add(idStr);
+          scheduleUserIds.push(user.id!);
+        }
+      }
+
       layerProps.push({
-        users:
-          layerUsers
-            .filter((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
-              return (
-                layerUser.onCallDutyPolicyScheduleLayerId?.toString() ===
-                layer.id?.toString()
-              );
-            })
-            .map((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
-              return layerUser.user!;
-            })
-            .filter((user: User) => {
-              return Boolean(user);
-            }) || [],
+        users: usersForLayer,
         startDateTimeOfLayer: layer.startsAt!,
         restrictionTimes: layer.restrictionTimes!,
         rotation: layer.rotation!,
@@ -992,12 +1042,82 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       });
     }
 
-    return layerProps;
+    const projectId: ObjectID | null = layers[0]?.projectId || null;
+
+    return { layerProps, projectId, scheduleUserIds };
+  }
+
+  private async fetchOverridesForSchedule(data: {
+    projectId: ObjectID;
+    scheduleUserIds: Array<ObjectID>;
+    windowStart: Date;
+    windowEnd: Date;
+    currentOnCallDutyPolicyId?: ObjectID | undefined;
+  }): Promise<Array<UserOverrideRecord>> {
+    if (data.scheduleUserIds.length === 0) {
+      return [];
+    }
+
+    /*
+     * When a policy context is provided, include overrides scoped to that
+     * policy plus global overrides. Without a policy context (e.g. schedule
+     * roster refresh, dashboard preview, incoming-call routing), only global
+     * overrides apply — a policy-specific override from one policy must not
+     * affect schedule resolution for a different policy.
+     */
+    const overrides: Array<OnCallDutyPolicyUserOverride> =
+      await OnCallDutyPolicyUserOverrideService.findBy({
+        query: {
+          projectId: data.projectId,
+          startsAt: QueryHelper.lessThanEqualTo(data.windowEnd),
+          endsAt: QueryHelper.greaterThanEqualTo(data.windowStart),
+          onCallDutyPolicyId: data.currentOnCallDutyPolicyId
+            ? QueryHelper.equalToOrNull(data.currentOnCallDutyPolicyId)
+            : QueryHelper.isNull(),
+        },
+        select: {
+          startsAt: true,
+          endsAt: true,
+          overrideUserId: true,
+          routeAlertsToUserId: true,
+          onCallDutyPolicyId: true,
+        },
+        sort: {
+          startsAt: SortOrder.Ascending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const scheduleUserIdSet: Set<string> = new Set<string>(
+      data.scheduleUserIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    );
+
+    return overrides
+      .filter((o: OnCallDutyPolicyUserOverride) => {
+        const overrideUserId: string = o.overrideUserId?.toString() || "";
+        return scheduleUserIdSet.has(overrideUserId);
+      })
+      .map((o: OnCallDutyPolicyUserOverride): UserOverrideRecord => {
+        return {
+          overrideUserId: o.overrideUserId?.toString() || "",
+          routeAlertsToUserId: o.routeAlertsToUserId?.toString() || "",
+          startsAt: o.startsAt!,
+          endsAt: o.endsAt!,
+          onCallDutyPolicyId: o.onCallDutyPolicyId?.toString() || null,
+        };
+      });
   }
 
   public async getEventByIndexInSchedule(data: {
     scheduleId: ObjectID;
     getNumberOfEvents: number; // which event would you like to get. First event, second event, etc.
+    onCallDutyPolicyId?: ObjectID | undefined;
   }): Promise<Array<CalendarEvent>> {
     logger.debug(
       "getEventByIndexInSchedule called with data: " + JSON.stringify(data),
@@ -1006,9 +1126,10 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       } as LogAttributes,
     );
 
-    const layerProps: Array<LayerProps> = await this.getScheduleLayerProps({
-      scheduleId: data.scheduleId,
-    });
+    const { layerProps, projectId, scheduleUserIds } =
+      await this.getScheduleLayerProps({
+        scheduleId: data.scheduleId,
+      });
 
     logger.debug("Layer properties fetched: " + JSON.stringify(layerProps), {
       onCallDutyPolicyScheduleId: data.scheduleId.toString(),
@@ -1042,7 +1163,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       onCallDutyPolicyScheduleId: data.scheduleId.toString(),
     } as LogAttributes);
 
-    const events: Array<CalendarEvent> = this.layerUtil.getMultiLayerEvents(
+    let events: Array<CalendarEvent> = this.layerUtil.getMultiLayerEvents(
       {
         layers: layerProps,
         calendarStartDate: currentStartTime,
@@ -1052,6 +1173,25 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
         getNumberOfEvents: numberOfEventsToGet,
       },
     );
+
+    if (projectId && events.length > 0) {
+      const overrides: Array<UserOverrideRecord> =
+        await this.fetchOverridesForSchedule({
+          projectId,
+          scheduleUserIds,
+          windowStart: currentStartTime,
+          windowEnd: currentEndTime,
+          currentOnCallDutyPolicyId: data.onCallDutyPolicyId,
+        });
+
+      if (overrides.length > 0) {
+        events = UserOverrideUtil.applyOverridesToEvents({
+          events,
+          overrides,
+          currentOnCallDutyPolicyId: data.onCallDutyPolicyId?.toString(),
+        });
+      }
+    }
 
     logger.debug("Events fetched: " + JSON.stringify(events), {
       onCallDutyPolicyScheduleId: data.scheduleId.toString(),
@@ -1063,10 +1203,12 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
   @CaptureSpan()
   public async getCurrentUserIdInSchedule(
     scheduleId: ObjectID,
+    options?: { onCallDutyPolicyId?: ObjectID | undefined } | undefined,
   ): Promise<ObjectID | null> {
-    const layerProps: Array<LayerProps> = await this.getScheduleLayerProps({
-      scheduleId: scheduleId,
-    });
+    const { layerProps, projectId, scheduleUserIds } =
+      await this.getScheduleLayerProps({
+        scheduleId: scheduleId,
+      });
 
     if (layerProps.length === 0) {
       return null;
@@ -1078,7 +1220,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       1,
     );
 
-    const events: Array<CalendarEvent> = this.layerUtil.getMultiLayerEvents(
+    let events: Array<CalendarEvent> = this.layerUtil.getMultiLayerEvents(
       {
         layers: layerProps,
         calendarStartDate: currentStartTime,
@@ -1088,6 +1230,25 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
         getNumberOfEvents: 1,
       },
     );
+
+    if (projectId && events.length > 0) {
+      const overrides: Array<UserOverrideRecord> =
+        await this.fetchOverridesForSchedule({
+          projectId,
+          scheduleUserIds,
+          windowStart: currentStartTime,
+          windowEnd: currentEndTime,
+          currentOnCallDutyPolicyId: options?.onCallDutyPolicyId,
+        });
+
+      if (overrides.length > 0) {
+        events = UserOverrideUtil.applyOverridesToEvents({
+          events,
+          overrides,
+          currentOnCallDutyPolicyId: options?.onCallDutyPolicyId?.toString(),
+        });
+      }
+    }
 
     const currentEvent: CalendarEvent | null = events[0] || null;
 

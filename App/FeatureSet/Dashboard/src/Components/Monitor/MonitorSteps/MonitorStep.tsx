@@ -211,6 +211,14 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         fieldType: FieldType.Boolean,
         placeholder: "No",
       },
+      {
+        key: "allowSelfSignedCertificates",
+        title: "Allow Self-Signed Certificates",
+        description:
+          "When set, TLS certificate validation is skipped (self-signed or untrusted certificates are accepted).",
+        fieldType: FieldType.Boolean,
+        placeholder: "No",
+      },
     ];
   } else if (props.monitorType === MonitorType.Website) {
     fields = [
@@ -225,6 +233,14 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         key: "doNotFollowRedirects",
         title: "Do Not Follow Redirects",
         description: "Do not follow redirects.",
+        fieldType: FieldType.Boolean,
+        placeholder: "No",
+      },
+      {
+        key: "allowSelfSignedCertificates",
+        title: "Allow Self-Signed Certificates",
+        description:
+          "When set, TLS certificate validation is skipped (self-signed or untrusted certificates are accepted).",
         fieldType: FieldType.Boolean,
         placeholder: "No",
       },
@@ -324,6 +340,32 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         },
       },
     ];
+  } else if (props.monitorType === MonitorType.DNSSEC) {
+    fields = [
+      {
+        key: "dnssecMonitor",
+        title: "Zone",
+        description: "The zone being validated end-to-end via DNSSEC.",
+        fieldType: FieldType.Element,
+        placeholder: "No data entered",
+        getElement: (item: MonitorStepType): ReactElement => {
+          const dnssecMonitor: any = item.dnssecMonitor;
+          return <p>{dnssecMonitor?.domainName || "-"}</p>;
+        },
+      },
+      {
+        key: "dnssecMonitor",
+        title: "Resolvers",
+        description: "Validating resolvers queried for AD/SERVFAIL behavior.",
+        fieldType: FieldType.Element,
+        placeholder: "No data entered",
+        getElement: (item: MonitorStepType): ReactElement => {
+          const dnssecMonitor: any = item.dnssecMonitor;
+          const resolvers: Array<string> = dnssecMonitor?.resolvers || [];
+          return <p>{resolvers.length > 0 ? resolvers.join(", ") : "-"}</p>;
+        },
+      },
+    ];
   } else if (props.monitorType === MonitorType.ExternalStatusPage) {
     fields = [
       {
@@ -335,6 +377,33 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         getElement: (item: MonitorStepType): ReactElement => {
           const externalStatusPageMonitor: any = item.externalStatusPageMonitor;
           return <p>{externalStatusPageMonitor?.statusPageUrl || "-"}</p>;
+        },
+      },
+      {
+        key: "externalStatusPageMonitor",
+        title: "Provider",
+        description: "How OneUptime reads this status page.",
+        fieldType: FieldType.Element,
+        placeholder: "Auto",
+        getElement: (item: MonitorStepType): ReactElement => {
+          const externalStatusPageMonitor: any = item.externalStatusPageMonitor;
+          return <p>{externalStatusPageMonitor?.provider || "Auto"}</p>;
+        },
+      },
+      {
+        key: "externalStatusPageMonitor",
+        title: "Component Group Filter",
+        description:
+          "If set, only components in this group are monitored and incidents elsewhere are ignored.",
+        fieldType: FieldType.Element,
+        placeholder: "All groups",
+        getElement: (item: MonitorStepType): ReactElement => {
+          const externalStatusPageMonitor: any = item.externalStatusPageMonitor;
+          return (
+            <p>
+              {externalStatusPageMonitor?.componentGroupName || "All groups"}
+            </p>
+          );
         },
       },
       {

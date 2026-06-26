@@ -11,11 +11,15 @@ const ComponentPortViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <div className="mt-3 mb-3">
-      <h2 className="text-sm font-semibold text-gray-600">{props.name}</h2>
-      <p className="text-xs text-gray-400 mb-2">{props.description}</p>
+    <div>
+      {props.name && (
+        <h2 className="text-sm font-semibold text-gray-600">{props.name}</h2>
+      )}
+      {props.description && (
+        <p className="text-xs text-gray-400 mb-2">{props.description}</p>
+      )}
       {props.ports && props.ports.length === 0 && (
-        <p className="text-xs text-gray-400 italic">No ports configured.</p>
+        <p className="text-xs text-gray-400 italic">No connections.</p>
       )}
       <div>
         {props.ports &&

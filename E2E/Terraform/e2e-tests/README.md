@@ -31,6 +31,7 @@ The `index.sh` script runs the complete test flow:
 ```
 
 This will:
+
 1. Set up `config.env` from the example file
 2. Start OneUptime services via Docker Compose
 3. Wait for services to be ready
@@ -58,6 +59,7 @@ If you already have OneUptime running locally:
 ## Test Flow
 
 Each test case in `tests/` follows this pattern:
+
 1. `terraform init` - Initialize the Terraform configuration
 2. `terraform plan` - Create an execution plan
 3. `terraform apply` - Create the resources
@@ -71,19 +73,19 @@ The `scripts/lib.sh` file provides common utility functions for verify.sh script
 
 ### Helper Functions
 
-| Function | Description |
-|----------|-------------|
-| `unwrap_value "$json"` | Unwrap API values from wrapper format (e.g., `{"_type": "Color", "value": "#FF5733"}` → `#FF5733`) |
-| `get_output "name"` | Get a Terraform output value safely (returns empty string if not found) |
-| `assert_not_empty "$value" "name"` | Assert that a value is not empty |
-| `assert_equals "$expected" "$actual" "name"` | Assert two values are equal |
-| `api_get_resource "/api/endpoint" "$id" '{"select": true}'` | Make an API call to get a resource |
-| `verify_resource_exists "/api/endpoint" "$id"` | Verify a resource exists in the API |
-| `validate_field "$response" "field" "$expected"` | Validate a field from API response (handles wrapper unwrapping) |
-| `check_idempotency [strict]` | Run idempotency check (terraform plan should show no changes) |
-| `print_header "Test Name"` | Print test header |
-| `print_passed "Test Name"` | Print test passed message |
-| `print_failed "Test Name"` | Print test failed message and exit |
+| Function                                                    | Description                                                                                        |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `unwrap_value "$json"`                                      | Unwrap API values from wrapper format (e.g., `{"_type": "Color", "value": "#FF5733"}` → `#FF5733`) |
+| `get_output "name"`                                         | Get a Terraform output value safely (returns empty string if not found)                            |
+| `assert_not_empty "$value" "name"`                          | Assert that a value is not empty                                                                   |
+| `assert_equals "$expected" "$actual" "name"`                | Assert two values are equal                                                                        |
+| `api_get_resource "/api/endpoint" "$id" '{"select": true}'` | Make an API call to get a resource                                                                 |
+| `verify_resource_exists "/api/endpoint" "$id"`              | Verify a resource exists in the API                                                                |
+| `validate_field "$response" "field" "$expected"`            | Validate a field from API response (handles wrapper unwrapping)                                    |
+| `check_idempotency [strict]`                                | Run idempotency check (terraform plan should show no changes)                                      |
+| `print_header "Test Name"`                                  | Print test header                                                                                  |
+| `print_passed "Test Name"`                                  | Print test passed message                                                                          |
+| `print_failed "Test Name"`                                  | Print test failed message and exit                                                                 |
 
 ### Example verify.sh
 
@@ -127,15 +129,16 @@ print_passed "My Resource Verification"
 
 The following environment variables are used:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ONEUPTIME_URL` | `http://localhost` | OneUptime instance URL |
-| `TF_VAR_api_key` | (generated) | API key for authentication |
-| `TF_VAR_project_id` | (generated) | Project ID for resources |
+| Variable            | Default            | Description                |
+| ------------------- | ------------------ | -------------------------- |
+| `ONEUPTIME_URL`     | `http://localhost` | OneUptime instance URL     |
+| `TF_VAR_api_key`    | (generated)        | API key for authentication |
+| `TF_VAR_project_id` | (generated)        | Project ID for resources   |
 
 ## CI/CD
 
 Tests run automatically via GitHub Actions on:
+
 - Pull requests
 - Pushes to `main`, `master`, or `develop` branches
 - Manual workflow dispatch

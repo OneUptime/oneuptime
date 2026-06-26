@@ -42,6 +42,18 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Owners",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_OWNERS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Team}
+        />
+        <SideMenuItem
+          link={{
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
               RouteMap[
@@ -81,6 +93,18 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Settings}
+        />
+        <SideMenuItem
+          link={{
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_AUDIT_LOGS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
         />
       </SideMenuSection>
 

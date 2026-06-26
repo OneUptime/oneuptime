@@ -36,21 +36,21 @@ EKS Fargate, and any other restricted Kubernetes environment.
 
 All configuration is via environment variables:
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `ONEUPTIME_URL` | yes | — | Base URL of your OneUptime instance (e.g. `https://oneuptime.example.com`). |
-| `ONEUPTIME_API_KEY` | yes | — | Project API key. |
-| `CLUSTER_NAME` | yes | — | Stamped as `k8s.cluster.name` on every log record. |
-| `NAMESPACE_INCLUDE` | no | (empty) | Comma-separated allowlist. If set, only these namespaces are tailed. |
-| `NAMESPACE_EXCLUDE` | no | `kube-system` | Comma-separated denylist. |
-| `AGENT_NAMESPACE` | no | (empty) | Scope the self-exclusion label selector to this namespace. |
-| `AGENT_LABEL_SELECTOR` | no | `app.kubernetes.io/part-of=oneuptime` | Pods matching this selector are skipped to prevent feedback loops. |
-| `BATCH_MAX_RECORDS` | no | `500` | Flush the batch after this many records. |
-| `BATCH_MAX_MS` | no | `5000` | Flush the batch after this many milliseconds. |
-| `EXPORT_MAX_RETRIES` | no | `5` | Max retries for a failed OTLP export (exponential backoff). |
-| `SINCE_SECONDS_ON_START` | no | `10` | When a stream first connects, fetch the last N seconds of log buffer. Reconnects use 1s to minimize duplication. |
-| `HEALTH_PORT` | no | `13133` | HTTP port for `/healthz`. |
-| `LOG_LEVEL` | no | `info` | `debug`, `info`, `warn`, `error`. |
+| Variable                 | Required | Default                               | Description                                                                                                      |
+| ------------------------ | -------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`          | yes      | —                                     | Base URL of your OneUptime instance (e.g. `https://oneuptime.example.com`).                                      |
+| `ONEUPTIME_API_KEY`      | yes      | —                                     | Project API key.                                                                                                 |
+| `CLUSTER_NAME`           | yes      | —                                     | Stamped as `k8s.cluster.name` on every log record.                                                               |
+| `NAMESPACE_INCLUDE`      | no       | (empty)                               | Comma-separated allowlist. If set, only these namespaces are tailed.                                             |
+| `NAMESPACE_EXCLUDE`      | no       | `kube-system`                         | Comma-separated denylist.                                                                                        |
+| `AGENT_NAMESPACE`        | no       | (empty)                               | Scope the self-exclusion label selector to this namespace.                                                       |
+| `AGENT_LABEL_SELECTOR`   | no       | `app.kubernetes.io/part-of=oneuptime` | Pods matching this selector are skipped to prevent feedback loops.                                               |
+| `BATCH_MAX_RECORDS`      | no       | `500`                                 | Flush the batch after this many records.                                                                         |
+| `BATCH_MAX_MS`           | no       | `5000`                                | Flush the batch after this many milliseconds.                                                                    |
+| `EXPORT_MAX_RETRIES`     | no       | `5`                                   | Max retries for a failed OTLP export (exponential backoff).                                                      |
+| `SINCE_SECONDS_ON_START` | no       | `10`                                  | When a stream first connects, fetch the last N seconds of log buffer. Reconnects use 1s to minimize duplication. |
+| `HEALTH_PORT`            | no       | `13133`                               | HTTP port for `/healthz`.                                                                                        |
+| `LOG_LEVEL`              | no       | `info`                                | `debug`, `info`, `warn`, `error`.                                                                                |
 
 ## Health
 

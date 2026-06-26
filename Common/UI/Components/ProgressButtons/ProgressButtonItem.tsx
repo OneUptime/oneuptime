@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import Color from "../../../Types/Color";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import useTranslateValue from "../../Utils/Translation";
 
 export interface ProgressItemProps {
   id: string;
@@ -20,6 +21,8 @@ export interface ComponentProps extends ProgressItemProps {
 const ProgressButtonItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const translatedTitle: string = translateString(props.title) ?? props.title;
   return (
     <li
       className="relative md:flex md:flex-1 "
@@ -75,7 +78,7 @@ const ProgressButtonItem: FunctionComponent<ComponentProps> = (
             className="ml-4 text-sm font-medium text-gray-900"
             style={{ color: props.color.toString() }}
           >
-            {props.title}
+            {translatedTitle}
           </span>
         </span>
       </div>

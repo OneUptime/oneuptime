@@ -302,6 +302,108 @@ import { AddHostTables1778006035712 } from "./1778006035712-AddHostTables";
 import { AddHostIpAddresses1778013317872 } from "./1778013317872-AddHostIpAddresses";
 import { WidenHostOsVersionToLongText1778066346303 } from "./1778066346303-WidenHostOsVersionToLongText";
 import { MigrationName1778070278986 } from "./1778070278986-MigrationName";
+import { DedupeServicesAndAddUniqueIndex1778100000000 } from "./1778100000000-DedupeServicesAndAddUniqueIndex";
+import { MigrationName1778269764550 } from "./1778269764550-MigrationName";
+import { MigrationName1778271406963 } from "./1778271406963-MigrationName";
+import { MigrationName1778274719786 } from "./1778274719786-MigrationName";
+import { AddIncidentIsPrivate1778359982682 } from "./1778359982682-AddIncidentIsPrivate";
+import { AddFileImageAccessToken1778361904715 } from "./1778361904715-AddFileImageAccessToken";
+import { AddOwnerRuleInheritFlags1778413144103 } from "./1778413144103-AddOwnerRuleInheritFlags";
+import { AddAlertIsPrivate1778438949454 } from "./1778438949454-AddAlertIsPrivate";
+import { AddPrivacyRules1778440665575 } from "./1778440665575-AddPrivacyRules";
+import { AddEpisodePrivacyRules1778442385970 } from "./1778442385970-AddEpisodePrivacyRules";
+import { AddProjectOIDC1778506655291 } from "./1778506655291-AddProjectOIDC";
+import { MigrationName1778514515756 } from "./1778514515756-MigrationName";
+import { MigrationName1778521361934 } from "./1778521361934-MigrationName";
+import { AddStatusPageOIDC1778522070962 } from "./1778522070962-AddStatusPageOIDC";
+import { MigrationName1778582583897 } from "./1778582583897-MigrationName";
+import { AddScheduledMaintenanceRules1778703414082 } from "./1778703414082-AddScheduledMaintenanceRules";
+import { MigrationName1778759476700 } from "./1778759476700-MigrationName";
+import { MigrationName1778761532493 } from "./1778761532493-MigrationName";
+import { MigrationName1778776830462 } from "./1778776830462-MigrationName";
+import { MigrationName1778777574869 } from "./1778777574869-MigrationName";
+import { MigrationName1778779608191 } from "./1778779608191-MigrationName";
+import { MigrationName1778782819382 } from "./1778782819382-AddMonitorAndStatusPageOwnerLabelRules";
+import { AddRunbookAgentJobStepType1778784000000 } from "./1778784000000-AddRunbookAgentJobStepType";
+import { MigrationName1778784396629 } from "./1778784396629-AddHostServiceDockerK8sOwnerLabelRules";
+import { MigrationName1778785741500 } from "./1778785741500-AddRunbookOwnerLabelRules";
+import { MigrationName1778791942334 } from "./1778791942334-AddDashboardWorkflowOwnerLabelRules";
+import { AddTeamPermissionScope1778800000000 } from "./1778800000000-AddTeamPermissionScope";
+import { SwitchRunbookAgentTagsToAgentId1778834788959 } from "./1778834788959-SwitchRunbookAgentTagsToAgentId";
+import { AddRunbookAgentOwnersAndLabels1778842348388 } from "./1778842348388-AddRunbookAgentOwnersAndLabels";
+import { AddRunbookSecret1778851431287 } from "./1778851431287-AddRunbookSecret";
+import { UpdateTeamPermissionScopeDefault1778877094014 } from "./1778877094014-UpdateTeamPermissionScopeDefault";
+import { MigrateLegacyManagerRolesToAdmin1778900000000 } from "./1778900000000-MigrateLegacyManagerRolesToAdmin";
+import { AddOnCallDutyPolicyScheduleOwners1778929624633 } from "./1778929624633-AddOnCallDutyPolicyScheduleOwners";
+import { AddOnCallIncomingCallOwnersAndRules1778931537020 } from "./1778931537020-AddOnCallIncomingCallOwnersAndRules";
+import { IncreaseSmtpUsernameLength1779125489830 } from "./1779125489830-IncreaseSmtpUsernameLength";
+import { AddTelemetryRetentionConfig1779199346010 } from "./1779199346010-AddTelemetryRetentionConfig";
+import { DropServiceDependencyTable1779277271302 } from "./1779277271302-DropServiceDependencyTable";
+import { AddTelemetryRetentionToHostDockerKubernetes1779282769946 } from "./1779282769946-AddTelemetryRetentionToHostDockerKubernetes";
+import { AttachKubernetesAndDockerToIncidentAndAlert1779302536475 } from "./1779302536475-AttachKubernetesAndDockerToIncidentAndAlert";
+import { AttachServiceToIncidentAndAlert1779303924241 } from "./1779303924241-AttachServiceToIncidentAndAlert";
+import { AddAgentVersionToKubernetesDockerHost1779392865146 } from "./1779392865146-AddAgentVersionToKubernetesDockerHost";
+import { AddPerformanceIndexes1779392970424 } from "./1779392970424-AddPerformanceIndexes";
+import { AddFacetsToTableView1779536271671 } from "./1779536271671-AddFacetsToTableView";
+import { AddIsMemberNotifiedIndex1779540427366 } from "./1779540427366-AddIsMemberNotifiedIndex";
+import { AddDropdownOptionsToCustomFields1779619108628 } from "./1779619108628-AddDropdownOptionsToCustomFields";
+import { AddLabelInheritanceAndScheduledMaintenanceResources1779653508434 } from "./1779653508434-AddLabelInheritanceAndScheduledMaintenanceResources";
+import { AddAffectedResourcesToTemplates1779708719656 } from "./1779708719656-AddAffectedResourcesToTemplates";
+import { MigrationName1779739410559 } from "./1779739410559-MigrationName";
+import { AttachServiceToScheduledMaintenanceTemplatesAndLabelRules1779742211961 } from "./1779742211961-AttachServiceToScheduledMaintenanceTemplatesAndLabelRules";
+import { MigrationName1779790539196 } from "./1779790539196-MigrationName";
+import { ExpandOwnerRuleInheritFlags1779823516881 } from "./1779823516881-ExpandOwnerRuleInheritFlags";
+import { RenameStatusPageZhToZhCN1779827700000 } from "./1779827700000-RenameStatusPageZhToZhCN";
+import { MigrationName1779879993421 } from "./1779879993421-MigrationName";
+import { MigrationName1779882573463 } from "./1779882573463-MigrationName";
+import { AddLabelGroupByToGroupingRules1779971548393 } from "./1779971548393-AddLabelGroupByToGroupingRules";
+import { AddTransportTypeToProjectSmtpConfig1779975064262 } from "./1779975064262-AddTransportTypeToProjectSmtpConfig";
+import { AddSmtpTransportTypeToGlobalConfig1779976190561 } from "./1779976190561-AddSmtpTransportTypeToGlobalConfig";
+import { MigrationName1779980428744 } from "./1779980428744-MigrationName";
+import { AddDeliveryTrackingToSmsLog1780317745887 } from "./1780317745887-AddDeliveryTrackingToSmsLog";
+import { MigrationName1780381124553 } from "./1780381124553-MigrationName";
+import { MigrationName1780382837019 } from "./1780382837019-MigrationName";
+import { MigrationName1780387560604 } from "./1780387560604-MigrationName";
+import { MigrationName1780388219225 } from "./1780388219225-MigrationName";
+import { AddMetricAndTraceSavedView1780645560183 } from "./1780645560183-AddMetricAndTraceSavedView";
+import { AddKubernetesLatestMemoryPercent1780651429467 } from "./1780651429467-AddKubernetesLatestMemoryPercent";
+import { AddResumeStateToWorkflowLog1780931746908 } from "./1780931746908-AddResumeStateToWorkflowLog";
+import { AddTelemetryResourceMetadataColumns1780931863719 } from "./1780931863719-AddTelemetryResourceMetadataColumns";
+import { AddServerlessFunctionTables1780933132562 } from "./1780933132562-AddServerlessFunctionTables";
+import { AddCloudResourceTables1780935387827 } from "./1780935387827-AddCloudResourceTables";
+import { AddRumApplicationTables1780936579718 } from "./1780936579718-AddRumApplicationTables";
+import { AddServerlessFunctionRuleTables1780938407319 } from "./1780938407319-AddServerlessFunctionRuleTables";
+import { AddCloudResourceRuleTables1780940721814 } from "./1780940721814-AddCloudResourceRuleTables";
+import { AddRumApplicationRuleTables1780940998002 } from "./1780940998002-AddRumApplicationRuleTables";
+import { AddTelemetryResourceInventoryTables1780941762204 } from "./1780941762204-AddTelemetryResourceInventoryTables";
+import { AddRumApplicationSdkLanguage1780985763463 } from "./1780985763463-AddRumApplicationSdkLanguage";
+import { RecastCloudResourcesByEnvironment1780987192743 } from "./1780987192743-RecastCloudResourcesByEnvironment";
+import { MigrationName1781011482945 } from "./1781011482945-MigrationName";
+import { RenameTelemetryServiceIdToPrimaryEntityId1781100000001 } from "./1781100000001-RenameTelemetryServiceIdToPrimaryEntityId";
+import { AddTelemetryEntityTable1781200000000 } from "./1781200000000-AddTelemetryEntityTable";
+import { AddTelemetryEntityRelationshipTable1781200000001 } from "./1781200000001-AddTelemetryEntityRelationshipTable";
+import { MigrationName1781250074195 } from "./1781250074195-MigrationName";
+import { AddTelemetryEntityLabels1781300000000 } from "./1781300000000-AddTelemetryEntityLabels";
+import { AddServiceTelemetrySdkLanguage1781400000000 } from "./1781400000000-AddServiceTelemetrySdkLanguage";
+import { AddProxmoxAndCephClusterTables1781500000000 } from "./1781500000000-AddProxmoxAndCephClusterTables";
+import { AddProxmoxCephV2Columns1781600000000 } from "./1781600000000-AddProxmoxCephV2Columns";
+import { AddProxmoxCephActivityAndRules1781600000001 } from "./1781600000001-AddProxmoxCephActivityAndRules";
+import { AddProxmoxCephV3Columns1781700000000 } from "./1781700000000-AddProxmoxCephV3Columns";
+import { MigrationName1781750000000 } from "./1781750000000-MigrationName";
+import { AddGlobalSsoAndOidc1782000000000 } from "./1782000000000-AddGlobalSsoAndOidc";
+import { AddStatusPageImageAltText1782100000000 } from "./1782100000000-AddStatusPageImageAltText";
+import { AddRequireSsoForLoginToGlobalProviders1782200000000 } from "./1782200000000-AddRequireSsoForLoginToGlobalProviders";
+import { MoveRequireSsoForLoginToGlobalConfig1782300000000 } from "./1782300000000-MoveRequireSsoForLoginToGlobalConfig";
+import { MigrationName1782310000000 } from "./1782310000000-MigrationName";
+import { RemoveIsTestedFromGlobalSsoAndOidc1782400000000 } from "./1782400000000-RemoveIsTestedFromGlobalSsoAndOidc";
+import { OptimizeTelemetryExceptionWritePath1782500000000 } from "./1782500000000-OptimizeTelemetryExceptionWritePath";
+import { AddArchiveToResources1782600000000 } from "./1782600000000-AddArchiveToResources";
+import { RemoveDeprecatedEnableSubscribersFromStatusPage1782700000000 } from "./1782700000000-RemoveDeprecatedEnableSubscribersFromStatusPage";
+import { WidenDockerResourceImageColumns1782800000000 } from "./1782800000000-WidenDockerResourceImageColumns";
+import { AddIoTFleetAndDeviceTables1782900000000 } from "./1782900000000-AddIoTFleetAndDeviceTables";
+import { AddIoTFleetActivityJoinTables1783000000000 } from "./1783000000000-AddIoTFleetActivityJoinTables";
+import { MigrationName1783010000000 } from "./1783010000000-MigrationName";
+
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -607,4 +709,105 @@ export default [
   AddHostIpAddresses1778013317872,
   WidenHostOsVersionToLongText1778066346303,
   MigrationName1778070278986,
+  DedupeServicesAndAddUniqueIndex1778100000000,
+  MigrationName1778269764550,
+  MigrationName1778271406963,
+  MigrationName1778274719786,
+  AddIncidentIsPrivate1778359982682,
+  AddFileImageAccessToken1778361904715,
+  AddOwnerRuleInheritFlags1778413144103,
+  AddAlertIsPrivate1778438949454,
+  AddPrivacyRules1778440665575,
+  AddEpisodePrivacyRules1778442385970,
+  AddProjectOIDC1778506655291,
+  MigrationName1778514515756,
+  MigrationName1778521361934,
+  AddStatusPageOIDC1778522070962,
+  MigrationName1778582583897,
+  AddScheduledMaintenanceRules1778703414082,
+  MigrationName1778759476700,
+  MigrationName1778761532493,
+  MigrationName1778776830462,
+  MigrationName1778777574869,
+  MigrationName1778779608191,
+  MigrationName1778782819382,
+  AddRunbookAgentJobStepType1778784000000,
+  MigrationName1778784396629,
+  MigrationName1778785741500,
+  MigrationName1778791942334,
+  AddTeamPermissionScope1778800000000,
+  SwitchRunbookAgentTagsToAgentId1778834788959,
+  AddRunbookAgentOwnersAndLabels1778842348388,
+  AddRunbookSecret1778851431287,
+  UpdateTeamPermissionScopeDefault1778877094014,
+  MigrateLegacyManagerRolesToAdmin1778900000000,
+  AddOnCallDutyPolicyScheduleOwners1778929624633,
+  AddOnCallIncomingCallOwnersAndRules1778931537020,
+  IncreaseSmtpUsernameLength1779125489830,
+  AddTelemetryRetentionConfig1779199346010,
+  DropServiceDependencyTable1779277271302,
+  AddTelemetryRetentionToHostDockerKubernetes1779282769946,
+  AttachKubernetesAndDockerToIncidentAndAlert1779302536475,
+  AttachServiceToIncidentAndAlert1779303924241,
+  AddAgentVersionToKubernetesDockerHost1779392865146,
+  AddPerformanceIndexes1779392970424,
+  AddFacetsToTableView1779536271671,
+  AddIsMemberNotifiedIndex1779540427366,
+  AddDropdownOptionsToCustomFields1779619108628,
+  AddLabelInheritanceAndScheduledMaintenanceResources1779653508434,
+  AddAffectedResourcesToTemplates1779708719656,
+  MigrationName1779739410559,
+  AttachServiceToScheduledMaintenanceTemplatesAndLabelRules1779742211961,
+  MigrationName1779790539196,
+  ExpandOwnerRuleInheritFlags1779823516881,
+  RenameStatusPageZhToZhCN1779827700000,
+  MigrationName1779879993421,
+  MigrationName1779882573463,
+  AddLabelGroupByToGroupingRules1779971548393,
+  AddTransportTypeToProjectSmtpConfig1779975064262,
+  AddSmtpTransportTypeToGlobalConfig1779976190561,
+  MigrationName1779980428744,
+  AddDeliveryTrackingToSmsLog1780317745887,
+  MigrationName1780381124553,
+  MigrationName1780382837019,
+  MigrationName1780387560604,
+  MigrationName1780388219225,
+  AddMetricAndTraceSavedView1780645560183,
+  AddKubernetesLatestMemoryPercent1780651429467,
+  AddResumeStateToWorkflowLog1780931746908,
+  AddTelemetryResourceMetadataColumns1780931863719,
+  AddServerlessFunctionTables1780933132562,
+  AddCloudResourceTables1780935387827,
+  AddRumApplicationTables1780936579718,
+  AddServerlessFunctionRuleTables1780938407319,
+  AddCloudResourceRuleTables1780940721814,
+  AddRumApplicationRuleTables1780940998002,
+  AddTelemetryResourceInventoryTables1780941762204,
+  AddRumApplicationSdkLanguage1780985763463,
+  RecastCloudResourcesByEnvironment1780987192743,
+  MigrationName1781011482945,
+  RenameTelemetryServiceIdToPrimaryEntityId1781100000001,
+  AddTelemetryEntityTable1781200000000,
+  AddTelemetryEntityRelationshipTable1781200000001,
+  AddTelemetryEntityLabels1781300000000,
+  AddServiceTelemetrySdkLanguage1781400000000,
+  MigrationName1781250074195,
+  AddProxmoxAndCephClusterTables1781500000000,
+  AddProxmoxCephV2Columns1781600000000,
+  AddProxmoxCephActivityAndRules1781600000001,
+  AddProxmoxCephV3Columns1781700000000,
+  MigrationName1781750000000,
+  AddGlobalSsoAndOidc1782000000000,
+  AddStatusPageImageAltText1782100000000,
+  AddRequireSsoForLoginToGlobalProviders1782200000000,
+  MoveRequireSsoForLoginToGlobalConfig1782300000000,
+  MigrationName1782310000000,
+  RemoveIsTestedFromGlobalSsoAndOidc1782400000000,
+  OptimizeTelemetryExceptionWritePath1782500000000,
+  AddArchiveToResources1782600000000,
+  RemoveDeprecatedEnableSubscribersFromStatusPage1782700000000,
+  WidenDockerResourceImageColumns1782800000000,
+  AddIoTFleetAndDeviceTables1782900000000,
+  AddIoTFleetActivityJoinTables1783000000000,
+  MigrationName1783010000000,
 ];

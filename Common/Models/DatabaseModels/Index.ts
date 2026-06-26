@@ -9,9 +9,47 @@ import DockerHost from "./DockerHost";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
 import DockerResource from "./DockerResource";
+import PodmanHost from "./PodmanHost";
+import PodmanHostOwnerTeam from "./PodmanHostOwnerTeam";
+import PodmanHostOwnerUser from "./PodmanHostOwnerUser";
+import PodmanResource from "./PodmanResource";
+import ProxmoxCluster from "./ProxmoxCluster";
+import DockerSwarmCluster from "./DockerSwarmCluster";
+import ProxmoxClusterOwnerTeam from "./ProxmoxClusterOwnerTeam";
+import DockerSwarmClusterOwnerTeam from "./DockerSwarmClusterOwnerTeam";
+import ProxmoxClusterOwnerUser from "./ProxmoxClusterOwnerUser";
+import DockerSwarmClusterOwnerUser from "./DockerSwarmClusterOwnerUser";
+import ProxmoxResource from "./ProxmoxResource";
+import DockerSwarmResource from "./DockerSwarmResource";
+import IoTFleet from "./IoTFleet";
+import IoTFleetOwnerTeam from "./IoTFleetOwnerTeam";
+import IoTFleetOwnerUser from "./IoTFleetOwnerUser";
+import IoTDevice from "./IoTDevice";
+import CephCluster from "./CephCluster";
+import CephClusterOwnerTeam from "./CephClusterOwnerTeam";
+import CephClusterOwnerUser from "./CephClusterOwnerUser";
+import CephResource from "./CephResource";
 import Host from "./Host";
 import HostOwnerTeam from "./HostOwnerTeam";
 import HostOwnerUser from "./HostOwnerUser";
+import ServerlessFunction from "./ServerlessFunction";
+import ServerlessFunctionOwnerTeam from "./ServerlessFunctionOwnerTeam";
+import ServerlessFunctionOwnerUser from "./ServerlessFunctionOwnerUser";
+import ServerlessFunctionLabelRule from "./ServerlessFunctionLabelRule";
+import ServerlessFunctionOwnerRule from "./ServerlessFunctionOwnerRule";
+import CloudResource from "./CloudResource";
+import CloudResourceOwnerTeam from "./CloudResourceOwnerTeam";
+import CloudResourceOwnerUser from "./CloudResourceOwnerUser";
+import CloudResourceLabelRule from "./CloudResourceLabelRule";
+import CloudResourceOwnerRule from "./CloudResourceOwnerRule";
+import RumApplication from "./RumApplication";
+import RumApplicationOwnerTeam from "./RumApplicationOwnerTeam";
+import RumApplicationOwnerUser from "./RumApplicationOwnerUser";
+import RumApplicationLabelRule from "./RumApplicationLabelRule";
+import RumApplicationOwnerRule from "./RumApplicationOwnerRule";
+import ServerlessFunctionInstance from "./ServerlessFunctionInstance";
+import CloudResourceInstance from "./CloudResourceInstance";
+import RumApplicationClient from "./RumApplicationClient";
 // API Keys
 import ApiKey from "./ApiKey";
 import ApiKeyPermission from "./ApiKeyPermission";
@@ -49,6 +87,8 @@ import IncidentTemplateOwnerUser from "./IncidentTemplateOwnerUser";
 //Labels.
 import Label from "./Label";
 import LogSavedView from "./LogSavedView";
+import MetricSavedView from "./MetricSavedView";
+import TraceSavedView from "./TraceSavedView";
 import LogPipeline from "./LogPipeline";
 import LogPipelineProcessor from "./LogPipelineProcessor";
 import LogDropFilter from "./LogDropFilter";
@@ -94,6 +134,20 @@ import OnCallDutyPolicyFeed from "./OnCallDutyPolicyFeed";
 import OnCallDutyPolicySchedule from "./OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleLayer from "./OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "./OnCallDutyPolicyScheduleLayerUser";
+import OnCallDutyPolicyScheduleOwnerTeam from "./OnCallDutyPolicyScheduleOwnerTeam";
+import OnCallDutyPolicyScheduleOwnerUser from "./OnCallDutyPolicyScheduleOwnerUser";
+
+// On-Call Duty Label and Owner Rules
+import OnCallDutyPolicyLabelRule from "./OnCallDutyPolicyLabelRule";
+import OnCallDutyPolicyOwnerRule from "./OnCallDutyPolicyOwnerRule";
+import OnCallDutyPolicyScheduleLabelRule from "./OnCallDutyPolicyScheduleLabelRule";
+import OnCallDutyPolicyScheduleOwnerRule from "./OnCallDutyPolicyScheduleOwnerRule";
+
+// Incoming Call Policy Owners and Rules
+import IncomingCallPolicyOwnerTeam from "./IncomingCallPolicyOwnerTeam";
+import IncomingCallPolicyOwnerUser from "./IncomingCallPolicyOwnerUser";
+import IncomingCallPolicyLabelRule from "./IncomingCallPolicyLabelRule";
+import IncomingCallPolicyOwnerRule from "./IncomingCallPolicyOwnerRule";
 import OnCallDutyPolicyTimeLog from "./OnCallDutyPolicyTimeLog";
 
 // Incoming Call Policy
@@ -121,6 +175,11 @@ import ProjectUserProfile from "./ProjectUserProfile";
 import ProjectSmtpConfig from "./ProjectSmtpConfig";
 //SSO
 import ProjectSSO from "./ProjectSso";
+import ProjectOIDC from "./ProjectOidc";
+import GlobalSSO from "./GlobalSso";
+import GlobalOIDC from "./GlobalOidc";
+import GlobalSSOProject from "./GlobalSsoProject";
+import GlobalOIDCProject from "./GlobalOidcProject";
 import PromoCode from "./PromoCode";
 import EnterpriseLicense from "./EnterpriseLicense";
 import OpenSourceDeployment from "./OpenSourceDeployment";
@@ -147,6 +206,7 @@ import ShortLink from "./ShortLink";
 import SmsLog from "./SmsLog";
 import WhatsAppLog from "./WhatsAppLog";
 import TelegramLog from "./TelegramLog";
+import WebhookLog from "./WebhookLog";
 import PushNotificationLog from "./PushNotificationLog";
 import WorkspaceNotificationLog from "./WorkspaceNotificationLog";
 // Status Page
@@ -166,11 +226,13 @@ import StatusPagePrivateUserSession from "./StatusPagePrivateUserSession";
 import StatusPageResource from "./StatusPageResource";
 import StatusPageSCIM from "./StatusPageSCIM";
 import StatusPageSSO from "./StatusPageSso";
+import StatusPageOIDC from "./StatusPageOidc";
 import StatusPageSubscriber from "./StatusPageSubscriber";
 import StatusPageSubscriberNotificationTemplate from "./StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationTemplateStatusPage from "./StatusPageSubscriberNotificationTemplateStatusPage";
 // Team
 import Team from "./Team";
+import TeamCustomField from "./TeamCustomField";
 import TeamMember from "./TeamMember";
 import TeamMemberCustomField from "./TeamMemberCustomField";
 import TeamPermission from "./TeamPermission";
@@ -184,6 +246,7 @@ import UserEmail from "./UserEmail";
 import UserPush from "./UserPush";
 import UserWhatsApp from "./UserWhatsApp";
 import UserTelegram from "./UserTelegram";
+import UserWebhook from "./UserWebhook";
 // User Notification Rules
 import UserNotificationRule from "./UserNotificationRule";
 import UserNotificationSetting from "./UserNotificationSetting";
@@ -195,8 +258,19 @@ import UserIncomingCallNumber from "./UserIncomingCallNumber";
 import Workflow from "./Workflow";
 import WorkflowLog from "./WorkflowLog";
 import WorkflowVariables from "./WorkflowVariable";
-import ServiceDependency from "./ServiceDependency";
-import ServiceMonitor from "./ServiceMonitor";
+import WorkflowOwnerTeam from "./WorkflowOwnerTeam";
+import WorkflowOwnerUser from "./WorkflowOwnerUser";
+// Runbooks.
+import Runbook from "./Runbook";
+import RunbookAgent from "./RunbookAgent";
+import RunbookAgentJob from "./RunbookAgentJob";
+import RunbookAgentOwnerTeam from "./RunbookAgentOwnerTeam";
+import RunbookAgentOwnerUser from "./RunbookAgentOwnerUser";
+import RunbookSecret from "./RunbookSecret";
+import RunbookExecution from "./RunbookExecution";
+import RunbookOwnerTeam from "./RunbookOwnerTeam";
+import RunbookOwnerUser from "./RunbookOwnerUser";
+import RunbookRule from "./RunbookRule";
 
 import UserTotpAuth from "./UserTotpAuth";
 import UserWebAuthn from "./UserWebAuthn";
@@ -204,6 +278,8 @@ import UserWebAuthn from "./UserWebAuthn";
 import TelemetryIngestionKey from "./TelemetryIngestionKey";
 
 import TelemetryException from "./TelemetryException";
+import TelemetryEntity from "./TelemetryEntity";
+import TelemetryEntityRelationship from "./TelemetryEntityRelationship";
 import ScheduledMaintenanceTemplate from "./ScheduledMaintenanceTemplate";
 import ScheduledMaintenanceTemplateOwnerTeam from "./ScheduledMaintenanceTemplateOwnerTeam";
 import ScheduledMaintenanceTemplateOwnerUser from "./ScheduledMaintenanceTemplateOwnerUser";
@@ -229,6 +305,14 @@ import AlertEpisodeOwnerTeam from "./AlertEpisodeOwnerTeam";
 import AlertEpisodeInternalNote from "./AlertEpisodeInternalNote";
 import AlertEpisodeFeed from "./AlertEpisodeFeed";
 import AlertGroupingRule from "./AlertGroupingRule";
+import AlertOnCallRule from "./AlertOnCallRule";
+import AlertOwnerRule from "./AlertOwnerRule";
+import AlertPrivacyRule from "./AlertPrivacyRule";
+import AlertLabelRule from "./AlertLabelRule";
+import AlertEpisodeOnCallRule from "./AlertEpisodeOnCallRule";
+import AlertEpisodeOwnerRule from "./AlertEpisodeOwnerRule";
+import AlertEpisodePrivacyRule from "./AlertEpisodePrivacyRule";
+import AlertEpisodeLabelRule from "./AlertEpisodeLabelRule";
 
 import IncidentEpisode from "./IncidentEpisode";
 import IncidentEpisodeMember from "./IncidentEpisodeMember";
@@ -240,12 +324,52 @@ import IncidentEpisodeInternalNote from "./IncidentEpisodeInternalNote";
 import IncidentEpisodeFeed from "./IncidentEpisodeFeed";
 import IncidentEpisodePublicNote from "./IncidentEpisodePublicNote";
 import IncidentGroupingRule from "./IncidentGroupingRule";
+import IncidentOnCallRule from "./IncidentOnCallRule";
+import IncidentOwnerRule from "./IncidentOwnerRule";
+import IncidentPrivacyRule from "./IncidentPrivacyRule";
+import IncidentLabelRule from "./IncidentLabelRule";
+import ScheduledMaintenanceOwnerRule from "./ScheduledMaintenanceOwnerRule";
+import ScheduledMaintenanceLabelRule from "./ScheduledMaintenanceLabelRule";
+import IncidentEpisodeOnCallRule from "./IncidentEpisodeOnCallRule";
+import IncidentEpisodeOwnerRule from "./IncidentEpisodeOwnerRule";
+import IncidentEpisodePrivacyRule from "./IncidentEpisodePrivacyRule";
+import IncidentEpisodeLabelRule from "./IncidentEpisodeLabelRule";
 import IncidentSlaRule from "./IncidentSlaRule";
 import IncidentSla from "./IncidentSla";
+import MonitorOwnerRule from "./MonitorOwnerRule";
+import MonitorLabelRule from "./MonitorLabelRule";
+import StatusPageOwnerRule from "./StatusPageOwnerRule";
+import StatusPageLabelRule from "./StatusPageLabelRule";
+import HostOwnerRule from "./HostOwnerRule";
+import HostLabelRule from "./HostLabelRule";
+import ServiceOwnerRule from "./ServiceOwnerRule";
+import ServiceLabelRule from "./ServiceLabelRule";
+import DockerHostOwnerRule from "./DockerHostOwnerRule";
+import DockerHostLabelRule from "./DockerHostLabelRule";
+import PodmanHostOwnerRule from "./PodmanHostOwnerRule";
+import PodmanHostLabelRule from "./PodmanHostLabelRule";
+import KubernetesClusterOwnerRule from "./KubernetesClusterOwnerRule";
+import KubernetesClusterLabelRule from "./KubernetesClusterLabelRule";
+import ProxmoxClusterOwnerRule from "./ProxmoxClusterOwnerRule";
+import DockerSwarmClusterOwnerRule from "./DockerSwarmClusterOwnerRule";
+import ProxmoxClusterLabelRule from "./ProxmoxClusterLabelRule";
+import DockerSwarmClusterLabelRule from "./DockerSwarmClusterLabelRule";
+import IoTFleetOwnerRule from "./IoTFleetOwnerRule";
+import IoTFleetLabelRule from "./IoTFleetLabelRule";
+import CephClusterOwnerRule from "./CephClusterOwnerRule";
+import CephClusterLabelRule from "./CephClusterLabelRule";
+import RunbookOwnerRule from "./RunbookOwnerRule";
+import RunbookLabelRule from "./RunbookLabelRule";
+import WorkflowOwnerRule from "./WorkflowOwnerRule";
+import WorkflowLabelRule from "./WorkflowLabelRule";
+import DashboardOwnerRule from "./DashboardOwnerRule";
+import DashboardLabelRule from "./DashboardLabelRule";
 
 import TableView from "./TableView";
 import Dashboard from "./Dashboard";
 import DashboardDomain from "./DashboardDomain";
+import DashboardOwnerTeam from "./DashboardOwnerTeam";
+import DashboardOwnerUser from "./DashboardOwnerUser";
 
 import MonitorTest from "./MonitorTest";
 import ScheduledMaintenanceFeed from "./ScheduledMaintenanceFeed";
@@ -273,6 +397,7 @@ const AllModelTypes: Array<{
   Project,
   EmailVerificationToken,
   Team,
+  TeamCustomField,
   TeamMember,
   TeamMemberCustomField,
   TeamPermission,
@@ -280,6 +405,8 @@ const AllModelTypes: Array<{
   ApiKey,
   Label,
   LogSavedView,
+  MetricSavedView,
+  TraceSavedView,
   LogPipeline,
   LogPipelineProcessor,
   LogDropFilter,
@@ -353,6 +480,14 @@ const AllModelTypes: Array<{
   AlertEpisodeInternalNote,
   AlertEpisodeFeed,
   AlertGroupingRule,
+  AlertOnCallRule,
+  AlertOwnerRule,
+  AlertPrivacyRule,
+  AlertLabelRule,
+  AlertEpisodeOnCallRule,
+  AlertEpisodeOwnerRule,
+  AlertEpisodePrivacyRule,
+  AlertEpisodeLabelRule,
 
   IncidentEpisode,
   IncidentEpisodeMember,
@@ -364,8 +499,47 @@ const AllModelTypes: Array<{
   IncidentEpisodeFeed,
   IncidentEpisodePublicNote,
   IncidentGroupingRule,
+  IncidentOnCallRule,
+  IncidentOwnerRule,
+  IncidentPrivacyRule,
+  IncidentLabelRule,
+  ScheduledMaintenanceOwnerRule,
+  ScheduledMaintenanceLabelRule,
+  IncidentEpisodeOnCallRule,
+  IncidentEpisodeOwnerRule,
+  IncidentEpisodePrivacyRule,
+  IncidentEpisodeLabelRule,
   IncidentSlaRule,
   IncidentSla,
+
+  MonitorOwnerRule,
+  MonitorLabelRule,
+  StatusPageOwnerRule,
+  StatusPageLabelRule,
+  HostOwnerRule,
+  HostLabelRule,
+  ServiceOwnerRule,
+  ServiceLabelRule,
+  DockerHostOwnerRule,
+  DockerHostLabelRule,
+  PodmanHostOwnerRule,
+  PodmanHostLabelRule,
+  KubernetesClusterOwnerRule,
+  KubernetesClusterLabelRule,
+  ProxmoxClusterOwnerRule,
+  DockerSwarmClusterOwnerRule,
+  ProxmoxClusterLabelRule,
+  DockerSwarmClusterLabelRule,
+  IoTFleetOwnerRule,
+  IoTFleetLabelRule,
+  CephClusterOwnerRule,
+  CephClusterLabelRule,
+  RunbookOwnerRule,
+  RunbookLabelRule,
+  WorkflowOwnerRule,
+  WorkflowLabelRule,
+  DashboardOwnerRule,
+  DashboardLabelRule,
 
   MonitorStatusTimeline,
 
@@ -405,9 +579,28 @@ const AllModelTypes: Array<{
   Workflow,
   WorkflowVariables,
   WorkflowLog,
+  WorkflowOwnerTeam,
+  WorkflowOwnerUser,
+
+  Runbook,
+  RunbookExecution,
+  RunbookOwnerTeam,
+  RunbookOwnerUser,
+  RunbookRule,
+  RunbookAgent,
+  RunbookAgentJob,
+  RunbookAgentOwnerTeam,
+  RunbookAgentOwnerUser,
+  RunbookSecret,
 
   ProjectSSO,
+  ProjectOIDC,
+  GlobalSSO,
+  GlobalOIDC,
+  GlobalSSOProject,
+  GlobalOIDCProject,
   StatusPageSSO,
+  StatusPageOIDC,
   StatusPageSCIM,
 
   MonitorProbe,
@@ -424,6 +617,7 @@ const AllModelTypes: Array<{
   SmsLog,
   WhatsAppLog,
   TelegramLog,
+  WebhookLog,
   PushNotificationLog,
   WorkspaceNotificationLog,
   CallLog,
@@ -435,6 +629,7 @@ const AllModelTypes: Array<{
   UserPush,
   UserWhatsApp,
   UserTelegram,
+  UserWebhook,
   UserIncomingCallNumber,
 
   UserNotificationRule,
@@ -468,9 +663,19 @@ const AllModelTypes: Array<{
   OnCallDutyPolicySchedule,
   OnCallDutyPolicyScheduleLayer,
   OnCallDutyPolicyScheduleLayerUser,
+  OnCallDutyPolicyScheduleOwnerTeam,
+  OnCallDutyPolicyScheduleOwnerUser,
   OnCallDutyPolicyFeed,
   OnCallDutyPolicyOwnerTeam,
   OnCallDutyPolicyOwnerUser,
+  OnCallDutyPolicyLabelRule,
+  OnCallDutyPolicyOwnerRule,
+  OnCallDutyPolicyScheduleLabelRule,
+  OnCallDutyPolicyScheduleOwnerRule,
+  IncomingCallPolicyOwnerTeam,
+  IncomingCallPolicyOwnerUser,
+  IncomingCallPolicyLabelRule,
+  IncomingCallPolicyOwnerRule,
   OnCallDutyPolicyEscalationRuleSchedule,
 
   UsageBilling,
@@ -485,8 +690,6 @@ const AllModelTypes: Array<{
   Service,
   ServiceOwnerTeam,
   ServiceOwnerUser,
-  ServiceDependency,
-  ServiceMonitor,
   ServiceCodeRepository,
 
   // Code Repository
@@ -513,12 +716,16 @@ const AllModelTypes: Array<{
   TelemetryIngestionKey,
 
   TelemetryException,
+  TelemetryEntity,
+  TelemetryEntityRelationship,
 
   TableView,
 
   // Dashboards
   Dashboard,
   DashboardDomain,
+  DashboardOwnerTeam,
+  DashboardOwnerUser,
 
   MonitorTest,
 
@@ -545,9 +752,47 @@ const AllModelTypes: Array<{
   DockerHostOwnerTeam,
   DockerHostOwnerUser,
   DockerResource,
+  PodmanHost,
+  PodmanHostOwnerTeam,
+  PodmanHostOwnerUser,
+  PodmanResource,
+  ProxmoxCluster,
+  DockerSwarmCluster,
+  ProxmoxClusterOwnerTeam,
+  DockerSwarmClusterOwnerTeam,
+  ProxmoxClusterOwnerUser,
+  DockerSwarmClusterOwnerUser,
+  ProxmoxResource,
+  DockerSwarmResource,
+  IoTFleet,
+  IoTFleetOwnerTeam,
+  IoTFleetOwnerUser,
+  IoTDevice,
+  CephCluster,
+  CephClusterOwnerTeam,
+  CephClusterOwnerUser,
+  CephResource,
   Host,
   HostOwnerTeam,
   HostOwnerUser,
+  ServerlessFunction,
+  ServerlessFunctionOwnerTeam,
+  ServerlessFunctionOwnerUser,
+  ServerlessFunctionLabelRule,
+  ServerlessFunctionOwnerRule,
+  CloudResource,
+  CloudResourceOwnerTeam,
+  CloudResourceOwnerUser,
+  CloudResourceLabelRule,
+  CloudResourceOwnerRule,
+  RumApplication,
+  RumApplicationOwnerTeam,
+  RumApplicationOwnerUser,
+  RumApplicationLabelRule,
+  RumApplicationOwnerRule,
+  ServerlessFunctionInstance,
+  CloudResourceInstance,
+  RumApplicationClient,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

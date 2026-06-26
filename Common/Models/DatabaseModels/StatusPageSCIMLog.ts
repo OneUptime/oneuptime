@@ -5,7 +5,9 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -21,6 +23,7 @@ import SCIMLogStatus from "../../Types/SCIM/SCIMLogStatus";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
+@CanAccessIfCanReadOn("statusPage")
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [],
@@ -30,12 +33,12 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectMember,
     Permission.Viewer,
     Permission.ReadStatusPageSCIMLog,
-    Permission.ReadAllProjectResources,
   ],
   delete: [],
   update: [],
 })
 @CrudApiEndpoint(new Route("/status-page-scim-log"))
+@OwnedThrough("statusPageId", StatusPage)
 @Entity({
   name: "StatusPageSCIMLog",
 })
@@ -56,7 +59,6 @@ export default class StatusPageSCIMLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSCIMLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -89,7 +91,6 @@ export default class StatusPageSCIMLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSCIMLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -116,7 +117,6 @@ export default class StatusPageSCIMLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSCIMLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -149,7 +149,6 @@ export default class StatusPageSCIMLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSCIMLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -176,7 +175,6 @@ export default class StatusPageSCIMLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSCIMLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -210,7 +208,6 @@ export default class StatusPageSCIMLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSCIMLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -237,7 +234,6 @@ export default class StatusPageSCIMLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSCIMLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -264,7 +260,6 @@ export default class StatusPageSCIMLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSCIMLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -290,7 +285,6 @@ export default class StatusPageSCIMLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSCIMLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -316,7 +310,6 @@ export default class StatusPageSCIMLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSCIMLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -341,7 +334,6 @@ export default class StatusPageSCIMLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSCIMLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -367,7 +359,6 @@ export default class StatusPageSCIMLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSCIMLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -393,7 +384,6 @@ export default class StatusPageSCIMLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSCIMLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -418,7 +408,6 @@ export default class StatusPageSCIMLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSCIMLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

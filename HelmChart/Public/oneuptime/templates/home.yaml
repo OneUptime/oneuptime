@@ -76,6 +76,8 @@ spec:
               port: {{ $.Values.home.ports.http }}
             periodSeconds: {{ $.Values.startupProbe.periodSeconds }}
             failureThreshold: {{ $.Values.startupProbe.failureThreshold }}
+            timeoutSeconds: 10
+            initialDelaySeconds: 30
           {{- end }}
           {{- if $.Values.livenessProbe.enabled }}
           # Liveness probe
@@ -141,4 +143,9 @@ spec:
 {{- $homeServiceArgs := dict "ServiceName" "home" "Ports" $homePorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $homeServiceArgs }}
 ---
+{{- end }}
+
+{{- if and $.Values.home.enabled (not $.Values.deployment.disableDeployments) }}
+# OneUptime home PodDisruptionBudget
+{{- include "oneuptime.pdb" (dict "ServiceName" "home" "Override" $.Values.home.podDisruptionBudget "Release" $.Release "Values" $.Values) }}
 {{- end }}

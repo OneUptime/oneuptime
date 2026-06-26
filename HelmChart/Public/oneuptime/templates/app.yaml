@@ -110,7 +110,7 @@ spec:
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:
             {{- include "oneuptime.env.common" . | nindent 12 }}
-            {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
+            {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release "DatabaseMaxOpenConnections" ($.Values.app.databaseMaxOpenConnections | default $.Values.deployment.databaseMaxOpenConnections)) | nindent 12 }}
             - name: PORT
               value: {{ $.Values.app.ports.http | quote }}
             - name: SMS_HIGH_RISK_COST_IN_CENTS
@@ -129,6 +129,12 @@ spec:
               value: {{ $.Values.app.enableProfiling | quote }}
             - name: TELEMETRY_CONCURRENCY
               value: {{ $.Values.app.telemetryConcurrency | default 100 | squote }}
+            # When the dedicated worker deployment is enabled, the app stops
+            # consuming BullMQ queues so heavy background/telemetry processing
+            # can't stall API requests on the shared event loop. Flips
+            # atomically with worker.enabled — never leaves jobs un-consumed.
+            - name: DISABLE_QUEUE_WORKERS
+              value: {{ $.Values.worker.enabled | default false | quote }}
             {{- include "oneuptime.env.registerProbeKey" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
           ports:
             - containerPort: {{ $.Values.app.ports.http }}
@@ -159,4 +165,9 @@ spec:
 {{- $appServiceArgs := dict "ServiceName" "app" "Ports" $appPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $appServiceArgs }}
 ---
+{{- end }}
+
+{{- if and $.Values.app.enabled (not $.Values.deployment.disableDeployments) }}
+# OneUptime app PodDisruptionBudget
+{{- include "oneuptime.pdb" (dict "ServiceName" "app" "Override" $.Values.app.podDisruptionBudget "Release" $.Release "Values" $.Values) }}
 {{- end }}

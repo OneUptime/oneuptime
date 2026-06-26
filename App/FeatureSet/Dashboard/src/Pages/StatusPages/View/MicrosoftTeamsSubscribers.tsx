@@ -379,6 +379,9 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
             id="table-microsoft-teams-subscriber"
             name="Status Page > Microsoft Teams Subscribers"
             userPreferencesKey="status-page-microsoft-teams-subscribers-table"
+            saveFilterProps={{
+              tableId: "status-page-microsoft-teams-subscribers-table",
+            }}
             isDeleteable={true}
             showViewIdButton={true}
             isCreateable={true}

@@ -62,7 +62,7 @@ const ExceptionInstanceTable: FunctionComponent<ComponentProps> = (
       filters={[
         {
           field: {
-            serviceId: true,
+            primaryEntityId: true,
           },
           type: FieldType.Text,
           title: "Telemetry Service",
@@ -102,7 +102,7 @@ const ExceptionInstanceTable: FunctionComponent<ComponentProps> = (
         },
         {
           field: {
-            serviceId: true,
+            primaryEntityId: true,
           },
           title: "Telemetry Service ID",
           type: FieldType.Text,

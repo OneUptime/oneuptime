@@ -1,6 +1,6 @@
 # GitHub Ops
 
-### Cancel all GitHub actions jobs at once. 
+### Cancel all GitHub actions jobs at once.
 
 Please install GitHub CLI and run the below command in your terminal.
 
@@ -12,7 +12,7 @@ Authenticate with your GitHub account
 
 ```
 gh auth login
-````
+```
 
 Then run the below command in your terminal
 

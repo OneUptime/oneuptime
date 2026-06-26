@@ -19,6 +19,9 @@ const WorkflowStatusElement: FunctionComponent<ComponentProps> = (
   if (props.status === WorkflowStatus.Scheduled) {
     return <Pill color={Yellow} text="Scheduled" />;
   }
+  if (props.status === WorkflowStatus.Waiting) {
+    return <Pill color={Yellow} text="Waiting" />;
+  }
   if (props.status === WorkflowStatus.Error) {
     return <Pill color={Red} text="Error" />;
   }

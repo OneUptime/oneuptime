@@ -4,6 +4,7 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -40,6 +41,10 @@ export enum AlertFeedEventType {
   OnCallNotification = "OnCallNotification",
   AddedToEpisode = "AddedToEpisode",
   RemovedFromEpisode = "RemovedFromEpisode",
+  LabelRuleExecuted = "LabelRuleExecuted",
+  OwnerRuleExecuted = "OwnerRuleExecuted",
+  PrivacyRuleExecuted = "PrivacyRuleExecuted",
+  OnCallRuleExecuted = "OnCallRuleExecuted",
 }
 
 @EnableDocumentation()
@@ -50,7 +55,8 @@ export enum AlertFeedEventType {
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.AlertManager,
+    Permission.AlertAdmin,
+    Permission.AlertMember,
     Permission.CreateAlertFeed,
   ],
   read: [
@@ -58,9 +64,10 @@ export enum AlertFeedEventType {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.AlertManager,
+    Permission.AlertAdmin,
+    Permission.AlertMember,
+    Permission.AlertViewer,
     Permission.ReadAlertFeed,
-    Permission.ReadAllProjectResources,
   ],
   delete: [],
   update: [],
@@ -72,6 +79,7 @@ export enum AlertFeedEventType {
   read: true,
 })
 @CrudApiEndpoint(new Route("/alert-feed"))
+@OwnedThrough("alertId", Alert)
 @Entity({
   name: "AlertFeed",
 })
@@ -83,13 +91,15 @@ export enum AlertFeedEventType {
   tableDescription:
     "Log of the entire alert state change. This is a log of all the alert state changes, public notes, more etc.",
 })
+@Index(["alertId", "postedAt"]) // Alert detail page: feed sorted by postedAt
 export default class AlertFeed extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertFeed,
     ],
     read: [
@@ -97,9 +107,10 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -129,7 +140,8 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertFeed,
     ],
     read: [
@@ -137,9 +149,10 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -164,7 +177,8 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertFeed,
     ],
     read: [
@@ -172,9 +186,10 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -204,7 +219,8 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertFeed,
     ],
     read: [
@@ -212,9 +228,10 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -238,7 +255,8 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertFeed,
     ],
     read: [
@@ -246,9 +264,10 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -279,7 +298,8 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertFeed,
     ],
     read: [
@@ -287,9 +307,10 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -358,7 +379,8 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertFeed,
     ],
     read: [
@@ -366,9 +388,10 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -392,7 +415,8 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertFeed,
     ],
     read: [
@@ -400,9 +424,10 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -424,7 +449,8 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertFeed,
     ],
     read: [
@@ -432,9 +458,10 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -457,7 +484,8 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertFeed,
     ],
     read: [
@@ -465,9 +493,10 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -493,7 +522,8 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertFeed,
     ],
     read: [
@@ -501,9 +531,10 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -534,7 +565,8 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertFeed,
     ],
     read: [
@@ -542,9 +574,10 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -567,7 +600,8 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
       Permission.CreateAlertFeed,
     ],
     read: [
@@ -575,9 +609,10 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.AlertManager,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
       Permission.ReadAlertFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -91,6 +91,9 @@ jobs:
           echo "patch=${target_patch}" >> "$GITHUB_OUTPUT"
           echo "Using version base: ${new_version}"
 
+      - name: Verify package.json versions match VERSION
+        run: node ./Scripts/Install/SyncPackageVersions.js --check
+
   # ─── Docker image build jobs (per-arch matrix) ───────────────────────
 
   nginx-docker-image-build:
@@ -104,25 +107,13 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -189,25 +180,13 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -273,25 +252,13 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -358,7 +325,6 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -375,7 +341,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -441,25 +407,13 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -525,25 +479,13 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -598,6 +540,78 @@ jobs:
             --image probe \
             --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
 
+  runbook-agent-docker-image-build:
+    needs: [read-version, generate-build-number]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+
+      - name: Build and push
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image runbook-agent \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./RunbookAgent/Dockerfile \
+            --context . \
+            --platforms ${{ matrix.platform }} \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
+
+  runbook-agent-docker-image-merge:
+    needs: [runbook-agent-docker-image-build, read-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}-test"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image runbook-agent \
+            --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
+
   app-docker-image-build:
     needs: [read-version, generate-build-number]
     strategy:
@@ -609,25 +623,13 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -693,25 +695,13 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -783,7 +773,7 @@ jobs:
 
   test-helm-chart:
     runs-on: ubuntu-latest
-    needs: [infrastructure-agent-deploy, publish-terraform-provider, home-docker-image-merge, test-server-docker-image-merge, test-docker-image-merge, probe-docker-image-merge, app-docker-image-merge, ai-agent-docker-image-merge, nginx-docker-image-merge, e2e-docker-image-merge]
+    needs: [infrastructure-agent-deploy, publish-terraform-provider, home-docker-image-merge, test-server-docker-image-merge, test-docker-image-merge, probe-docker-image-merge, runbook-agent-docker-image-merge, app-docker-image-merge, ai-agent-docker-image-merge, nginx-docker-image-merge, e2e-docker-image-merge]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -803,7 +793,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26
       - run: cd HelmChart && cd Tests && bash index.sh
 
   test-e2e-test-saas:
@@ -828,7 +818,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26
       - name: Preinstall and enable billing
         run: |
           set -euo pipefail
@@ -907,7 +897,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26
       - name: Preinstall
         run: |
           set -euo pipefail
@@ -1021,4 +1011,43 @@ jobs:
           # Minimum 1 day.
           # Maximum 90 days unless changed from the repository settings page.
           # Optional. Defaults to repository settings.
+          retention-days: 7
+
+  # Validate the OneUptime Host Collector build (ocb cross-compile + MSI) without
+  # publishing a release — binaries are uploaded as a CI artifact for inspection.
+  host-collector-deploy:
+    needs: [read-version, generate-build-number]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "stable"
+
+      - name: Build collector binaries
+        run: cd HostCollector && bash build.sh ${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}
+
+      - name: Build Windows MSI installers
+        run: cd HostCollector && bash build-msi.sh ${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}
+
+      - name: Upload Host Collector Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-collector-binaries
+          path: |
+            ./HostCollector/dist
           retention-days: 7

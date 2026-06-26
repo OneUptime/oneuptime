@@ -1,0 +1,100 @@
+receivers:
+  # Scrape the Ceph mgr prometheus module (`ceph mgr module enable
+  # prometheus`, default port 9283) on EVERY mgr — active and standbys.
+  # Only the active mgr returns metrics; standbys answer with an empty
+  # response (or an HTTP error if mgr/prometheus/standby_behaviour is set
+  # to "error"), so scraping all of them survives mgr failover with no
+  # config change.
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: oneuptime-ceph
+          # Keep the labels Ceph exports (ceph_daemon, pool_id, etc.).
+          # Without honor_labels the instance label is rewritten per
+          # scrape target and flips every time the active mgr changes,
+          # breaking series continuity.
+          honor_labels: true
+          # The mgr prometheus module caches a scrape for
+          # mgr/prometheus/scrape_interval (default 15s). Never scrape
+          # more often than that cache interval — 30s is a comfortable
+          # default for a production cluster.
+          scrape_interval: 30s
+          static_configs:
+            # CEPH_MGR_ENDPOINTS is a comma-separated list of host:port
+            # pairs wrapped in square brackets so the collector parses it
+            # as a list, e.g.
+            #   CEPH_MGR_ENDPOINTS=[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]
+            - targets: ${env:CEPH_MGR_ENDPOINTS}
+
+  # Optional: tail the Ceph cluster log and ship it to OneUptime — this is
+  # what powers the Cluster Log page of the Ceph dashboard. Off by default
+  # because it requires the agent to run on a host that has
+  # /var/log/ceph/ceph.log (a mon host by default) AND the directory
+  # mounted into the container — uncomment the matching volume in
+  # docker-compose.yml:
+  #   - /var/log/ceph:/var/log/ceph:ro
+  # Then uncomment this receiver and the `logs` pipeline at the bottom of
+  # this file. Lines ship verbatim; OneUptime parses the ceph.log format
+  # (timestamp, daemon, INF/WRN/ERR level, message) at read time, and the
+  # resource processor below stamps `ceph.cluster.name` so the log lands
+  # on this cluster.
+  # filelog:
+  #   include:
+  #     - /var/log/ceph/ceph.log
+  #   # Tail from the end so an agent restart does not re-ship the file.
+  #   start_at: end
+
+processors:
+  # Stamp every metric with the cluster identity. OneUptime auto-registers
+  # the Ceph cluster from `ceph.cluster.name`, and every Ceph page and
+  # monitor scopes on it — this attribute is what makes the data appear
+  # under the Ceph section of the dashboard. Keep it stable: changing it
+  # later registers a brand-new cluster.
+  resource:
+    attributes:
+      - key: ceph.cluster.name
+        value: "${env:CEPH_CLUSTER_NAME}"
+        action: upsert
+      # Optionally also stamp the cluster fsid (`ceph fsid`). Uncomment
+      # and set CEPH_CLUSTER_FSID in the .env file:
+      # - key: ceph.cluster.fsid
+      #   value: "${env:CEPH_CLUSTER_FSID}"
+      #   action: upsert
+      # The prometheus receiver synthesizes service.name (= the scrape job
+      # name, "oneuptime-ceph") and service.instance.id on every batch per
+      # the Prometheus->OTLP compatibility spec. Drop them: OneUptime
+      # routes batches by service.name first, so leaving them in would
+      # register a phantom "oneuptime-ceph" Service instead of routing
+      # this data to the Ceph cluster discovered from `ceph.cluster.name`
+      # (which would also break per-cluster retention settings). Do not
+      # remove these two deletes.
+      - key: service.name
+        action: delete
+      - key: service.instance.id
+        action: delete
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+    spike_limit_mib: 64
+
+exporters:
+  otlphttp:
+    endpoint: "${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [prometheus]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp]
+    # Uncomment together with the filelog receiver above to ship the Ceph
+    # cluster log (powers the Cluster Log page):
+    # logs:
+    #   receivers: [filelog]
+    #   processors: [memory_limiter, resource, batch]
+    #   exporters: [otlphttp]

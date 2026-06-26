@@ -1,8 +1,15 @@
 <head>
-   <link rel="preconnect" href="https://fonts.googleapis.com">
-   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
-      rel="stylesheet">
+   <link rel="preload" href="/reference/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+   <style>
+      @font-face {
+         font-family: 'Inter';
+         font-style: normal;
+         font-weight: 100 900;
+         font-display: swap;
+         src: url('/reference/fonts/InterVariable.woff2') format('woff2') tech('variations'),
+              url('/reference/fonts/InterVariable.woff2') format('woff2-variations');
+      }
+   </style>
 
    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -456,7 +463,7 @@
  </script>
    <meta charset="utf-8">
    <meta name="viewport" content="width=device-width">
-   <title>OneUptime API Reference - <%= pageTitle -%>
+   <title><%= (typeof t !== 'undefined' ? t('ui.metaTitleSuffix') : 'OneUptime API Reference') %> - <%= pageTitle -%>
    </title>
    <meta name="description" content="<%= pageDescription -%>">
    <meta name="next-head-count" content="4">

@@ -115,6 +115,63 @@ export default class MonitorUtil {
     }
 
     if (
+      monitorType === MonitorType.API ||
+      monitorType === MonitorType.Website
+    ) {
+      for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
+        []) {
+        // Resolve monitorSecrets in TLS client certificate / key / passphrase.
+        if (
+          monitorStep.data?.tlsClientCertificate &&
+          this.hasSecrets(monitorStep.data.tlsClientCertificate)
+        ) {
+          if (!isSecretsLoaded) {
+            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+            isSecretsLoaded = true;
+          }
+
+          monitorStep.data.tlsClientCertificate =
+            (await MonitorUtil.fillSecretsInStringOrJSON({
+              secrets: monitorSecrets,
+              populateSecretsIn: monitorStep.data.tlsClientCertificate,
+            })) as string;
+        }
+
+        if (
+          monitorStep.data?.tlsClientKey &&
+          this.hasSecrets(monitorStep.data.tlsClientKey)
+        ) {
+          if (!isSecretsLoaded) {
+            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+            isSecretsLoaded = true;
+          }
+
+          monitorStep.data.tlsClientKey =
+            (await MonitorUtil.fillSecretsInStringOrJSON({
+              secrets: monitorSecrets,
+              populateSecretsIn: monitorStep.data.tlsClientKey,
+            })) as string;
+        }
+
+        if (
+          monitorStep.data?.tlsClientKeyPassphrase &&
+          this.hasSecrets(monitorStep.data.tlsClientKeyPassphrase)
+        ) {
+          if (!isSecretsLoaded) {
+            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+            isSecretsLoaded = true;
+          }
+
+          monitorStep.data.tlsClientKeyPassphrase =
+            (await MonitorUtil.fillSecretsInStringOrJSON({
+              secrets: monitorSecrets,
+              populateSecretsIn: monitorStep.data.tlsClientKeyPassphrase,
+            })) as string;
+        }
+      }
+    }
+
+    if (
       monitorType === MonitorType.SyntheticMonitor ||
       monitorType === MonitorType.CustomJavaScriptCode
     ) {
@@ -252,6 +309,27 @@ export default class MonitorUtil {
             (await MonitorUtil.fillSecretsInStringOrJSON({
               secrets: monitorSecrets,
               populateSecretsIn: monitorStep.data.domainMonitor.domainName,
+            })) as string;
+        }
+      }
+    }
+
+    if (monitorType === MonitorType.DNSSEC) {
+      for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
+        []) {
+        if (
+          monitorStep.data?.dnssecMonitor?.domainName &&
+          this.hasSecrets(monitorStep.data.dnssecMonitor.domainName)
+        ) {
+          if (!isSecretsLoaded) {
+            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+            isSecretsLoaded = true;
+          }
+
+          monitorStep.data.dnssecMonitor.domainName =
+            (await MonitorUtil.fillSecretsInStringOrJSON({
+              secrets: monitorSecrets,
+              populateSecretsIn: monitorStep.data.dnssecMonitor.domainName,
             })) as string;
         }
       }

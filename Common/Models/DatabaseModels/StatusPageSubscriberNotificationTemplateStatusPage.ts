@@ -6,6 +6,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -36,7 +37,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.StatusPageManager,
+    Permission.StatusPageAdmin,
+    Permission.StatusPageMember,
     Permission.CreateStatusPageSubscriberNotificationTemplateStatusPage,
   ],
   read: [
@@ -44,22 +46,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.StatusPageManager,
+    Permission.StatusPageAdmin,
+    Permission.StatusPageMember,
+    Permission.StatusPageViewer,
     Permission.ReadStatusPageSubscriberNotificationTemplateStatusPage,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.StatusPageManager,
+    Permission.StatusPageAdmin,
+    Permission.StatusPageMember,
     Permission.DeleteStatusPageSubscriberNotificationTemplateStatusPage,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.StatusPageManager,
+    Permission.StatusPageAdmin,
+    Permission.StatusPageMember,
     Permission.EditStatusPageSubscriberNotificationTemplateStatusPage,
   ],
 })
@@ -80,6 +85,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   tableDescription:
     "Links subscriber notification templates to specific status pages. This allows you to use different notification templates for different status pages.",
 })
+@OwnedThrough("statusPageId", StatusPage)
 @Entity({
   name: "StatusPageSubscriberNotificationTemplateStatusPage",
 })
@@ -89,7 +95,8 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPageSubscriberNotificationTemplateStatusPage,
     ],
     read: [
@@ -97,9 +104,10 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageSubscriberNotificationTemplateStatusPage,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -129,7 +137,8 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPageSubscriberNotificationTemplateStatusPage,
     ],
     read: [
@@ -137,9 +146,10 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageSubscriberNotificationTemplateStatusPage,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -163,7 +173,8 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPageSubscriberNotificationTemplateStatusPage,
     ],
     read: [
@@ -171,9 +182,10 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageSubscriberNotificationTemplateStatusPage,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -203,7 +215,8 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPageSubscriberNotificationTemplateStatusPage,
     ],
     read: [
@@ -211,9 +224,10 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageSubscriberNotificationTemplateStatusPage,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -237,7 +251,8 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPageSubscriberNotificationTemplateStatusPage,
     ],
     read: [
@@ -245,15 +260,17 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageSubscriberNotificationTemplateStatusPage,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.EditStatusPageSubscriberNotificationTemplateStatusPage,
     ],
   })
@@ -284,7 +301,8 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPageSubscriberNotificationTemplateStatusPage,
     ],
     read: [
@@ -292,15 +310,17 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageSubscriberNotificationTemplateStatusPage,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.EditStatusPageSubscriberNotificationTemplateStatusPage,
     ],
   })
@@ -326,9 +346,10 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageSubscriberNotificationTemplateStatusPage,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -359,7 +380,8 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPageSubscriberNotificationTemplateStatusPage,
     ],
     read: [
@@ -367,9 +389,10 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageSubscriberNotificationTemplateStatusPage,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -393,9 +416,10 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageSubscriberNotificationTemplateStatusPage,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

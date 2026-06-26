@@ -10,6 +10,7 @@ import MonitorType, {
 import ObjectID from "Common/Types/ObjectID";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import DuplicateModel from "Common/UI/Components/DuplicateModel/DuplicateModel";
+import ExportModelCard from "Common/UI/Components/ImportExport/ExportModelCard";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import InlineCode from "Common/UI/Components/InlineCode/InlineCode";
@@ -320,6 +321,10 @@ const MonitorCriteria: FunctionComponent<
               },
             ]}
           />
+        </div>
+
+        <div className="mt-5">
+          <ExportModelCard modelId={modelId} modelType={Monitor} />
         </div>
       </div>
     );

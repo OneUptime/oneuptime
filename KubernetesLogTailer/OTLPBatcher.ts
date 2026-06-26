@@ -7,6 +7,7 @@ import {
   CLUSTER_NAME,
   EXPORT_MAX_RETRIES,
   ONEUPTIME_API_KEY,
+  ONEUPTIME_LABELS,
   ONEUPTIME_URL,
 } from "./Config";
 import Logger from "./Logger";
@@ -122,6 +123,14 @@ const groupByResource: (entries: Array<LogEntry>) => Array<OtlpResourceLogs> = (
       }
       for (const [labelKey, labelValue] of Object.entries(entry.labels)) {
         resourceAttrs.push(kv(`k8s.pod.label.${labelKey}`, labelValue));
+      }
+      /*
+       * Project labels from .Values.oneuptime.labels (helm chart). The
+       * OneUptime ingest pipeline promotes `oneuptime.label.*` resource
+       * attributes into project Labels on the host/service.
+       */
+      for (const [labelKey, labelValue] of Object.entries(ONEUPTIME_LABELS)) {
+        resourceAttrs.push(kv(`oneuptime.label.${labelKey}`, labelValue));
       }
       group = {
         resource: { attributes: resourceAttrs },

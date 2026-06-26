@@ -2,45 +2,36 @@ import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
+import { buildRenderContext } from "../Utils/RenderContext";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import Dictionary from "Common/Types/Dictionary";
 
-// Get all resources and featured resources from ResourceUtil
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 const DataTypes: Array<DataTypeDocumentation> = DataTypeUtil.getDataTypes();
 const FeaturedResources: Array<ModelDocumentation> =
   ResourceUtil.getFeaturedResources();
 
 export default class ServiceHandler {
-  // Handle the API request
   public static async executeResponse(
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
-    // Initialize page title and description
-    let pageTitle: string = "";
-    let pageDescription: string = "";
-
-    // Get the requested page from the URL parameters
-    const page: string | undefined = req.params["page"];
+    const ctx: ReturnType<typeof buildRenderContext> = buildRenderContext(req);
     const pageData: Dictionary<unknown> = {};
-
-    // Set featured resources for the page
     pageData["featuredResources"] = FeaturedResources;
 
-    // Set page title and description
-    pageTitle = "Introduction";
-    pageDescription = "API Reference for OneUptime";
-
-    // Render the index page with the required data
     return res.render(`${ViewsPath}/pages/index`, {
-      page: page,
+      page: "introduction",
       resources: Resources,
       dataTypes: DataTypes,
-      pageTitle: pageTitle,
+      pageTitle: ctx.t("pages.introduction.metaTitle"),
       enableGoogleTagManager: IsBillingEnabled,
-      pageDescription: pageDescription,
+      pageDescription: ctx.t("pages.introduction.metaDescription"),
       pageData: pageData,
+      lang: ctx.lang,
+      t: ctx.t,
+      supportedLanguages: ctx.supportedLanguages,
+      currentPath: ctx.currentPath,
     });
   }
 }

@@ -145,6 +145,103 @@ export const ShouldDatabaseSslEnable: boolean = Boolean(
   DatabaseSslCa || (DatabaseSslCert && DatabaseSslKey),
 );
 
+/*
+ * Postgres pool size per API/Worker node. TypeORM's default is 10 which
+ * starves the API under any meaningful load — pick a number that, when
+ * multiplied by the number of running Node processes, stays under the
+ * Postgres server's `max_connections` (100 on a stock PostgreSQL cluster; the
+ * OneUptime Helm chart ships 500, or front the DB with the chart's pgbouncer).
+ */
+export const MaxPostgresConnections: number = parseInt(
+  process.env["DATABASE_MAX_OPEN_CONNECTIONS"] || "50",
+  10,
+);
+
+/*
+ * Postgres-side statement timeout (ms). Caps the wall-clock time of any
+ * single SQL statement. Without this, a single runaway query can pin a
+ * connection forever and starve the pool.
+ */
+export const PostgresStatementTimeoutMs: number = parseInt(
+  process.env["DATABASE_STATEMENT_TIMEOUT_MS"] || "30000",
+  10,
+);
+
+/*
+ * Node-postgres client-side query timeout (ms). Belt-and-braces for the
+ * server-side statement_timeout — fires even if the connection has gone
+ * silent or the server-side timeout doesn't kick in.
+ */
+export const PostgresQueryTimeoutMs: number = parseInt(
+  process.env["DATABASE_QUERY_TIMEOUT_MS"] || "30000",
+  10,
+);
+
+/*
+ * Postgres-side idle-in-transaction timeout (ms). Kills connections that
+ * are stuck holding row locks inside a BEGIN without committing.
+ */
+export const PostgresIdleInTransactionTimeoutMs: number = parseInt(
+  process.env["DATABASE_IDLE_IN_TRANSACTION_TIMEOUT_MS"] || "60000",
+  10,
+);
+
+/*
+ * pg-pool acquire timeout (ms). How long a query waits for a free
+ * connection before failing. Without this, requests pile up invisibly
+ * when the pool is exhausted.
+ */
+export const PostgresConnectionAcquireTimeoutMs: number = parseInt(
+  process.env["DATABASE_CONNECTION_TIMEOUT_MS"] || "5000",
+  10,
+);
+
+/*
+ * pg-pool idle connection timeout (ms). Closes connections that have
+ * been sitting unused for this long, freeing server-side slots.
+ */
+export const PostgresIdleTimeoutMs: number = parseInt(
+  process.env["DATABASE_IDLE_TIMEOUT_MS"] || "30000",
+  10,
+);
+
+/*
+ * TCP keepalive initial delay (ms) for Postgres sockets. When the client
+ * process dies ungracefully (SIGKILL, OOM, crash) or a network partition cuts
+ * the link, Postgres has no way to know the client is gone and the backend
+ * lingers as an orphaned connection — by default up to the OS
+ * tcp_keepalive_time (~2h on Linux). Enabling socket keepalive makes
+ * node-postgres probe the peer so dead connections are detected and torn down
+ * promptly.
+ */
+export const PostgresKeepAliveInitialDelayMs: number = parseInt(
+  process.env["DATABASE_KEEPALIVE_INITIAL_DELAY_MS"] || "10000",
+  10,
+);
+
+/*
+ * Postgres-side idle-session timeout (ms). Server-side backstop for orphaned
+ * connections: the server terminates any session that sits idle (outside a
+ * transaction) longer than this. MUST be larger than the pool's
+ * idleTimeoutMillis (PostgresIdleTimeoutMs) so the pool reaps its own healthy
+ * idle connections first and only truly-orphaned sessions (client gone) ever
+ * hit this. Set to 0 to disable. Requires Postgres 14+.
+ */
+export const PostgresIdleSessionTimeoutMs: number = parseInt(
+  process.env["DATABASE_IDLE_SESSION_TIMEOUT_MS"] || "300000",
+  10,
+);
+
+/*
+ * TypeORM slow-query log threshold (ms). Any query exceeding this is
+ * logged so we can find offenders in production without per-query
+ * tracing. Set to 0 to disable.
+ */
+export const PostgresSlowQueryLogThresholdMs: number = parseInt(
+  process.env["DATABASE_SLOW_QUERY_LOG_THRESHOLD_MS"] || "1000",
+  10,
+);
+
 export const EncryptionSecret: ObjectID = new ObjectID(
   process.env["ENCRYPTION_SECRET"] || "secret",
 );
@@ -246,6 +343,34 @@ export const DisableAutomaticIncidentCreation: boolean =
 export const DisableAutomaticAlertCreation: boolean =
   process.env["DISABLE_AUTOMATIC_ALERT_CREATION"] === "true";
 
+export const DisableTelemetryIngestion: boolean =
+  process.env["DISABLE_TELEMETRY_INGESTION"] === "true";
+
+/*
+ * When true, this process does NOT register any BullMQ queue consumers
+ * (the "api" role). Background jobs — telemetry ingestion processing, the
+ * general Worker/cron jobs, Workflow runs and Runbook executions — are
+ * instead drained by the dedicated "worker" deployment so heavy queue
+ * processing never competes with API request handling on the same event
+ * loop. Default false → this process consumes queues (backwards compatible
+ * single-container behavior). The process still mounts ingest endpoints and
+ * enqueues jobs; only consumption is gated.
+ */
+export const DisableQueueWorkers: boolean =
+  process.env["DISABLE_QUEUE_WORKERS"] === "true";
+
+/*
+ * When "false", this process does NOT run schema or data migrations on boot.
+ * Set on runtime pods (app/worker/nginx) when a dedicated one-shot migrate Job
+ * (App/Migrate.ts) owns migrations instead, so the fleet's many replicas never
+ * run them — which is what makes PgBouncer transaction-mode pooling safe (the
+ * data-migration session advisory lock then only ever runs in the single Job).
+ * Default true preserves the original self-migrating-on-boot behavior used by
+ * docker-compose and any deploy that does not run the migrate Job.
+ */
+export const RunDatabaseMigrationsOnBoot: boolean =
+  process.env["RUN_DATABASE_MIGRATIONS_ON_BOOT"] !== "false";
+
 export const ClickhouseHost: Hostname = Hostname.fromString(
   process.env["CLICKHOUSE_HOST"] || "clickhouse",
 );
@@ -284,6 +409,47 @@ export const ClickHouseIsHostHttps: boolean =
 export const ShouldClickhouseSslEnable: boolean = Boolean(
   ClickhouseTlsCa || (ClickhouseTlsCert && ClickhouseTlsKey),
 );
+
+export const MaxClickhouseConnections: number = parseInt(
+  process.env["CLICKHOUSE_MAX_OPEN_CONNECTIONS"] || "100",
+  10,
+);
+
+/*
+ * Ingest pool size. Falls back to MaxClickhouseConnections so single-knob
+ * setups still work; override only when the ingest pool needs to be sized
+ * independently from the query pool.
+ */
+export const MaxClickhouseIngestConnections: number = parseInt(
+  process.env["CLICKHOUSE_INGEST_MAX_OPEN_CONNECTIONS"] ||
+    String(MaxClickhouseConnections),
+  10,
+);
+
+/*
+ * Cluster name. The analytics schema ALWAYS runs as a sharded + replicated
+ * cluster (Distributed tables over local ReplicatedMergeTree, `ON CLUSTER
+ * '<name>'`); a single node is just a 1-shard/1-replica cluster backed by an
+ * embedded Keeper. The name must match the cluster defined in the ClickHouse
+ * config / ClickHouseInstallation; it defaults to 'oneuptime' (what the bundled
+ * StatefulSet config and the Altinity operator both create).
+ *
+ * NOTE: the live, test-toggleable readers live in
+ * Common/Server/Utils/AnalyticsDatabase/ClusterConfig.ts (which reads
+ * process.env directly). These consts mirror the same keys/defaults and exist
+ * so the env surface is discoverable here alongside the other CLICKHOUSE_* vars.
+ */
+export const ClickhouseClusterName: string =
+  process.env["CLICKHOUSE_CLUSTER_NAME"] || "oneuptime";
+
+/*
+ * Optional GLOBAL override of the Distributed sharding-key expression. Empty by
+ * default, which means each model's own `shardingKey` is used (e.g.
+ * cityHash64(traceId) for spans, the series tuple for metrics). Set this to
+ * force one expression across all tables.
+ */
+export const ClickhouseShardingKeyOverride: string =
+  process.env["CLICKHOUSE_SHARDING_KEY"] || "";
 
 export const GitSha: string = process.env["GIT_SHA"] || "unknown";
 

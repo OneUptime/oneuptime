@@ -1,10 +1,12 @@
 import OneUptimeDate from "Common/Types/Date";
+import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import DnsMonitorResponse, {
   DnsRecordResponse,
 } from "Common/Types/Monitor/DnsMonitor/DnsMonitorResponse";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
+import ProbeAttemptsView from "./ProbeAttemptsView";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -31,6 +33,12 @@ const DnsMonitorView: FunctionComponent<ComponentProps> = (
     }
     return dnsResponse.isDnssecValid ? "Valid" : "Invalid";
   };
+
+  const probeAttempts: Array<ProbeAttempt> =
+    props.probeMonitorResponse.probeAttempts || [];
+  const totalAttempts: number =
+    props.probeMonitorResponse.totalAttempts ?? probeAttempts.length;
+  const hadRetries: boolean = totalAttempts > 1;
 
   return (
     <div className="space-y-5">
@@ -76,6 +84,13 @@ const DnsMonitorView: FunctionComponent<ComponentProps> = (
             value={props.probeMonitorResponse.failureCause?.toString() || "-"}
           />
         </div>
+      )}
+
+      {hadRetries && (
+        <ProbeAttemptsView
+          attempts={probeAttempts}
+          totalAttempts={totalAttempts}
+        />
       )}
 
       {/* DNS Records Section */}

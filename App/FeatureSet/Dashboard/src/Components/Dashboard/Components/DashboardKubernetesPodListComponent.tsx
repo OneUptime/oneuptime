@@ -1,7 +1,10 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import DashboardKubernetesPodListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesPodListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
-import { ResourceListColumn } from "./DashboardResourceListBase";
+import {
+  ResourceListColumn,
+  ResourceListViewMode,
+} from "./DashboardResourceListBase";
 import DashboardKubernetesResourceListBase from "./DashboardKubernetesResourceListBase";
 import IconProp from "Common/Types/Icon/IconProp";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -12,6 +15,27 @@ import PageMap from "../../../Utils/PageMap";
 import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import { AttributeToColumnMap } from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
+import {
+  HoneycombLegendItem,
+  HoneycombTile,
+} from "./DashboardResourceHoneycomb";
+
+/*
+ * Both bare and `resource.*`-prefixed variants are mapped so widget
+ * filtering works regardless of which form the dashboard variable
+ * binds to. Templates ship variables under the `resource.*` form to
+ * match how OTel resource attributes are stored in ClickHouse for
+ * metric/log filtering; users who hand-author a variable against the
+ * bare key (the form the attribute-key autocomplete sometimes shows)
+ * still get list-level filtering.
+ */
+const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
+  "k8s.pod.name": "name",
+  "k8s.namespace.name": "namespaceKey",
+  "resource.k8s.pod.name": "name",
+  "resource.k8s.namespace.name": "namespaceKey",
+};
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardKubernetesPodListComponent;
@@ -31,6 +55,47 @@ const PHASE_COLORS: Record<string, { dot: string; text: string }> = {
   Failed: { dot: "#ef4444", text: "#b91c1c" },
   Unknown: { dot: "#9ca3af", text: "#6b7280" },
 };
+
+const POD_LEGEND: Array<HoneycombLegendItem> = [
+  { label: "Running", color: "#10b981" },
+  { label: "Pending", color: "#f59e0b" },
+  { label: "Succeeded", color: "#3b82f6" },
+  { label: "Failed", color: "#ef4444" },
+  { label: "Unknown", color: "#9ca3af" },
+];
+
+function buildPodTile(r: KubernetesResource): HoneycombTile {
+  const id: string = (r._id as string) || "";
+  const name: string = (r.name as string) || "Unnamed";
+  const namespace: string = (r.namespaceKey as string) || "—";
+  const phase: string = (r.phase as string) || "Unknown";
+  const phaseStyle: { dot: string; text: string } =
+    PHASE_COLORS[phase] || PHASE_COLORS["Unknown"]!;
+  const clusterName: string = (r.kubernetesCluster?.name as string) || "—";
+  const clusterId: string = (r.kubernetesClusterId?.toString() as string) || "";
+
+  let route: Route | undefined = undefined;
+  if (clusterId && id) {
+    route = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL] as Route,
+      { modelId: new ObjectID(clusterId), subModelId: new ObjectID(id) },
+    );
+  }
+
+  return {
+    id: id || name,
+    status: phase,
+    color: phaseStyle.dot,
+    route: route,
+    tooltip: {
+      title: name,
+      details: [
+        { label: "Namespace", value: namespace },
+        { label: "Cluster", value: clusterName },
+      ],
+    },
+  };
+}
 
 function renderPodRow(r: KubernetesResource): ReactElement {
   const id: string = (r._id as string) || "";
@@ -96,6 +161,9 @@ const DashboardKubernetesPodListComponentElement: FunctionComponent<
       ? { phase: new Includes(podPhases) }
       : undefined;
 
+  const viewMode: ResourceListViewMode =
+    args.viewMode === "honeycomb" ? "honeycomb" : "list";
+
   return (
     <DashboardKubernetesResourceListBase
       title={args.title}
@@ -109,7 +177,12 @@ const DashboardKubernetesPodListComponentElement: FunctionComponent<
       namespaces={args.namespaces}
       extraQuery={extraQuery}
       refreshTick={props.refreshTick}
+      variables={props.variables}
+      attributeToColumn={ATTRIBUTE_TO_COLUMN}
       renderRow={renderPodRow}
+      viewMode={viewMode}
+      renderHoneycombTile={buildPodTile}
+      honeycombLegend={POD_LEGEND}
     />
   );
 };
@@ -126,10 +199,13 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     return false;
   }
 
-  return JSONFunctions.deepEqual(
-    prev.component.arguments,
-    next.component.arguments,
-  );
+  if (
+    !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(prev.variables, next.variables);
 }
 
 export default React.memo(

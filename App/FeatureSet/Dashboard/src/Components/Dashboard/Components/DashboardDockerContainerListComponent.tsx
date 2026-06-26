@@ -9,8 +9,14 @@ import DashboardDockerContainerListComponent from "Common/Types/Dashboard/Dashbo
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListViewMode,
 } from "./DashboardResourceListBase";
+import {
+  HoneycombLegendItem,
+  HoneycombTile,
+} from "./DashboardResourceHoneycomb";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import DashboardResourceList from "../Utils/DashboardResourceList";
 import DockerResource from "Common/Models/DatabaseModels/DockerResource";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -25,6 +31,14 @@ import PageMap from "../../../Utils/PageMap";
 import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import DashboardModelQueryInterpolation, {
+  AttributeToColumnMap,
+} from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
+
+const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
+  "container.name": "name",
+  "container.image.name": "imageName",
+};
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDockerContainerListComponent;
@@ -37,6 +51,37 @@ const COLUMNS: Array<ResourceListColumn> = [
   { label: "Memory", widthPct: "15%", alignRight: true },
   { label: "Host", widthPct: "15%" },
 ];
+
+const CONTAINER_STATE_COLORS: Record<string, { color: string; label: string }> =
+  {
+    running: { color: "#10b981", label: "Running" },
+    restarting: { color: "#f59e0b", label: "Restarting" },
+    paused: { color: "#f59e0b", label: "Paused" },
+    exited: { color: "#9ca3af", label: "Exited" },
+    dead: { color: "#ef4444", label: "Dead" },
+    created: { color: "#3b82f6", label: "Created" },
+  };
+
+const CONTAINER_LEGEND: Array<HoneycombLegendItem> = [
+  { label: "Running", color: "#10b981" },
+  { label: "Restarting/Paused", color: "#f59e0b" },
+  { label: "Created", color: "#3b82f6" },
+  { label: "Exited", color: "#9ca3af" },
+  { label: "Dead", color: "#ef4444" },
+];
+
+function getContainerStateInfo(state: string | undefined): {
+  color: string;
+  label: string;
+} {
+  const key: string = (state || "").toLowerCase();
+  return (
+    CONTAINER_STATE_COLORS[key] || {
+      color: "#9ca3af",
+      label: state || "Unknown",
+    }
+  );
+}
 
 function formatBytes(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined) {
@@ -65,6 +110,8 @@ const DashboardDockerContainerListComponentElement: FunctionComponent<
   const maxRows: number = args.maxRows || 25;
   const dockerHostIds: Array<string> | undefined = args.dockerHostIds;
   const imageName: string | undefined = args.imageName;
+  const viewMode: ResourceListViewMode =
+    args.viewMode === "honeycomb" ? "honeycomb" : "list";
 
   const dockerHostIdsKey: string = (dockerHostIds || []).join(",");
   const imageNameKey: string = (imageName || "").trim();
@@ -73,33 +120,38 @@ const DashboardDockerContainerListComponentElement: FunctionComponent<
     setIsLoading(true);
 
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    if (!projectId) {
+    if (!DashboardResourceList.isPublic() && !projectId) {
       setIsLoading(false);
       setError("No project selected.");
       return;
     }
 
     try {
-      const query: Query<DockerResource> = {
+      const baseQuery: Record<string, unknown> = {
         projectId: projectId,
         kind: "Container",
-      } as Query<DockerResource>;
+      };
 
       if (dockerHostIds && dockerHostIds.length > 0) {
-        (query as Record<string, unknown>)["dockerHostId"] = new Includes(
-          dockerHostIds,
-        );
+        baseQuery["dockerHostId"] = new Includes(dockerHostIds);
       }
 
       if (imageNameKey) {
-        (query as Record<string, unknown>)["imageName"] = new Search(
-          imageNameKey,
-        );
+        baseQuery["imageName"] = new Search(imageNameKey);
       }
+
+      const query: Query<DockerResource> =
+        DashboardModelQueryInterpolation.applyToQuery(
+          baseQuery,
+          props.variables,
+          ATTRIBUTE_TO_COLUMN,
+        ) as Query<DockerResource>;
 
       const listResult: ListResult<DockerResource> =
         await ModelAPI.getList<DockerResource>({
           modelType: DockerResource,
+          requestOptions:
+            DashboardResourceList.getRequestOptions("docker-container"),
           query: query,
           limit: maxRows,
           skip: 0,
@@ -127,11 +179,49 @@ const DashboardDockerContainerListComponentElement: FunctionComponent<
     }
 
     setIsLoading(false);
-  }, [maxRows, dockerHostIdsKey, imageNameKey]);
+  }, [maxRows, dockerHostIdsKey, imageNameKey, props.variables]);
 
   useEffect(() => {
     fetchContainers();
   }, [fetchContainers, props.refreshTick]);
+
+  const honeycombTiles: Array<HoneycombTile> = containers.map(
+    (container: DockerResource): HoneycombTile => {
+      const id: string = (container._id as string) || "";
+      const name: string = (container.name as string) || "Unnamed";
+      const image: string = (container.imageName as string) || "—";
+      const stateRaw: string | undefined = container.state as
+        | string
+        | undefined;
+      const stateInfo: { color: string; label: string } =
+        getContainerStateInfo(stateRaw);
+      const hostName: string = (container.dockerHost?.name as string) || "—";
+      const hostId: string =
+        (container.dockerHostId?.toString() as string) || "";
+
+      let route: Route | undefined = undefined;
+      if (hostId && id) {
+        route = RouteUtil.populateRouteParams(
+          RouteMap[PageMap.DOCKER_HOST_VIEW_CONTAINER_DETAIL] as Route,
+          { modelId: new ObjectID(hostId), subModelId: new ObjectID(id) },
+        );
+      }
+
+      return {
+        id: id || name,
+        status: stateInfo.label,
+        color: stateInfo.color,
+        route: route,
+        tooltip: {
+          title: name,
+          details: [
+            { label: "Image", value: image },
+            { label: "Host", value: hostName },
+          ],
+        },
+      };
+    },
+  );
 
   const rows: Array<ReactElement> = containers.map(
     (container: DockerResource) => {
@@ -202,6 +292,9 @@ const DashboardDockerContainerListComponentElement: FunctionComponent<
       isEmpty={containers.length === 0}
       emptyMessage="No containers found"
       emptyIcon={IconProp.Cube}
+      viewMode={viewMode}
+      honeycombTiles={honeycombTiles}
+      honeycombLegend={CONTAINER_LEGEND}
     >
       {rows}
     </DashboardResourceListBase>
@@ -220,10 +313,13 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     return false;
   }
 
-  return JSONFunctions.deepEqual(
-    prev.component.arguments,
-    next.component.arguments,
-  );
+  if (
+    !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(prev.variables, next.variables);
 }
 
 export default React.memo(

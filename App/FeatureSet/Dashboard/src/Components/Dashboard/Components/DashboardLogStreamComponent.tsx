@@ -11,6 +11,7 @@ import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Log from "Common/Models/AnalyticsModels/Log";
+import DashboardResourceList from "../Utils/DashboardResourceList";
 import API from "Common/UI/Utils/API/API";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -24,6 +25,7 @@ import {
   queryStringToFilter,
   LogFilter,
 } from "Common/Types/Log/LogQueryToFilter";
+import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardLogStreamComponent;
@@ -113,15 +115,29 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
         (query as Record<string, unknown>)["body"] = bodyContains.trim();
       }
 
+      let baseAttributes: Record<string, unknown> | undefined;
       if (attributeFilterQuery && attributeFilterQuery.trim() !== "") {
         const parsedFilter: LogFilter = queryStringToFilter(
           attributeFilterQuery.trim(),
         );
+        baseAttributes = parsedFilter.attributes;
+      }
 
-        if (parsedFilter.attributes) {
-          (query as Record<string, unknown>)["attributes"] =
-            parsedFilter.attributes;
-        }
+      /*
+       * Layer dashboard variable selections on top of any
+       * widget-configured attribute filters. A "cluster=$cluster"
+       * variable here narrows the log stream the same way it does the
+       * metric charts on the same dashboard.
+       */
+      const interpolatedAttributes: Record<string, unknown> =
+        DashboardVariableInterpolation.applyToAttributes(
+          baseAttributes,
+          props.variables,
+        );
+
+      if (Object.keys(interpolatedAttributes).length > 0) {
+        (query as Record<string, unknown>)["attributes"] =
+          interpolatedAttributes;
       }
 
       const listResult: ListResult<Log> = await AnalyticsModelAPI.getList<Log>({
@@ -133,7 +149,7 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
           time: true,
           severityText: true,
           body: true,
-          serviceId: true,
+          primaryEntityId: true,
           traceId: true,
           spanId: true,
           attributes: true,
@@ -141,7 +157,7 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
         sort: {
           time: SortOrder.Descending,
         },
-        requestOptions: {},
+        requestOptions: DashboardResourceList.getRequestOptions("log"),
       });
 
       setLogs(listResult.data);
@@ -157,6 +173,7 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
     bodyContains,
     attributeFilterQuery,
     maxRows,
+    props.variables,
   ]);
 
   useEffect(() => {

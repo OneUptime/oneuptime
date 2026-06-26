@@ -1,0 +1,7 @@
+# ocb-generated collector source
+_build/
+# build artifacts (binaries, archives, MSIs)
+dist/
+# rendered WXS (generated from *-template.wxs by build-msi.sh)
+windows/app-amd64.wxs
+windows/app-arm64.wxs

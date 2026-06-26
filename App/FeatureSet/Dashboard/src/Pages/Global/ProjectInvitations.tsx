@@ -39,6 +39,9 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
         name="Project Invitations"
         id="team-member-table"
         userPreferencesKey="project-invitations-table"
+        saveFilterProps={{
+          tableId: "project-invitations-table",
+        }}
         isDeleteable={true}
         query={{
           userId: User.getUserId(),

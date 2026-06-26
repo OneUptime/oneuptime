@@ -91,6 +91,11 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         subscriberEmail: true,
       },
       title: t("subscribe.email.yourEmail"),
+      /*
+       * Explicit localized description; otherwise the model's hardcoded English
+       * column description ("Email address of the subscriber.") leaks through.
+       */
+      description: t("subscribe.email.description"),
       fieldType: FormFieldSchemaType.Email,
       required: true,
       placeholder: t("subscribe.email.placeholder"),
@@ -260,6 +265,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
           enableMicrosoftTeamsSubscribers={
             props.enableMicrosoftTeamsSubscribers
           }
+          enableWebhookSubscribers={props.enableWebhookSubscribers}
         />
       }
     >

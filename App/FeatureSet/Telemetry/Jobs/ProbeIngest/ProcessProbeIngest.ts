@@ -85,6 +85,9 @@ export async function processIncomingEmailFromQueue(
     select: {
       _id: true,
       projectId: true,
+      disableActiveMonitoring: true,
+      disableActiveMonitoringBecauseOfManualIncident: true,
+      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
     },
     props: {
       isRoot: true,
@@ -116,8 +119,16 @@ export async function processIncomingEmailFromQueue(
     onlyCheckForIncomingEmailReceivedAt: false,
   };
 
-  // Update monitor with last email received time
-  await MonitorService.updateOneById({
+  /*
+   * Update monitor with last email received time. Heartbeat write:
+   * single-statement UPDATE, no hooks and no `version` bump. These columns
+   * trigger no onUpdateSuccess work, and this deliberately drops the
+   * per-update workflow trigger + audit-log entry Monitor's
+   * @EnableWorkflow / @EnableAuditLog would otherwise fire on every email
+   * (those are gated on the model flag, not on ignoreHooks) — a heartbeat
+   * should not spam workflows/audit. See ServiceService.updateLastSeen.
+   */
+  await MonitorService.updateColumnsByIdWithoutHooks({
     id: new ObjectID(monitor._id.toString()),
     data: {
       incomingEmailMonitorLastEmailReceivedAt: now,
@@ -127,10 +138,28 @@ export async function processIncomingEmailFromQueue(
       >,
       incomingEmailMonitorHeartbeatCheckedAt: now,
     },
-    props: {
-      isRoot: true,
-    },
   });
+
+  /*
+   * Skip disabled monitors before invoking monitorResource(). Incoming Email
+   * monitors keep receiving mail from an external sender regardless of being
+   * disabled in OneUptime, and monitorResource() would only re-fetch the
+   * monitor, take a per-monitor Redis lock, and throw MonitorDisabled — pure
+   * waste. The last-email-received update above is intentionally left in place
+   * so heartbeat tracking stays accurate across maintenance/incident windows:
+   * the CheckOnlineStatus cron skips disabled monitors and resumes afterwards,
+   * relying on that timestamp.
+   */
+  if (
+    monitor.disableActiveMonitoring ||
+    monitor.disableActiveMonitoringBecauseOfManualIncident ||
+    monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
+  ) {
+    logger.debug(
+      `Incoming email received for disabled monitor ${monitor._id.toString()}. Skipping evaluation.`,
+    );
+    return;
+  }
 
   // Process monitor resource
   await MonitorResourceUtil.monitorResource(incomingEmailRequest);

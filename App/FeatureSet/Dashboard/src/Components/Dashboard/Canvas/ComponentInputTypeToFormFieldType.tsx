@@ -59,6 +59,18 @@ export default class ComponentInputTypeToFormFieldType {
       };
     }
 
+    if (componentInputType === ComponentInputType.TableColumns) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+      };
+    }
+
+    if (componentInputType === ComponentInputType.TableGroupBy) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+      };
+    }
+
     if (componentInputType === ComponentInputType.Dropdown) {
       return {
         fieldType: FormFieldSchemaType.Dropdown,

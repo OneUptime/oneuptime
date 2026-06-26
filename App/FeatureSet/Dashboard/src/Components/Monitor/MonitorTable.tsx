@@ -21,13 +21,15 @@ import {
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import Query from "Common/Types/BaseDatabase/Query";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorOwnerTeam from "Common/Models/DatabaseModels/MonitorOwnerTeam";
+import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
@@ -40,6 +42,20 @@ import React, {
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import MonitorElement from "./Monitor";
+import OwnersCell from "../ResourceOwners/OwnersCell";
+import useResourceOwners, {
+  ResourceFacet,
+  buildEntityFacetQuery,
+  buildEnumFacetQuery,
+} from "../ResourceOwners/useResourceOwners";
+import {
+  FilterChipDropdownOption,
+  FilterOperator,
+} from "../ResourceOwners/FilterChipDropdown";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import Search from "Common/Types/BaseDatabase/Search";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -73,8 +89,125 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<Monitor> | null>(null);
 
+  const monitorExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "currentMonitorStatus",
+      label: "Status",
+      icon: IconProp.Heartbeat,
+      isMultiSelect: true,
+      searchPlaceholder: "Search statuses...",
+      loadOptions: async (
+        projectId: ObjectID,
+        searchTerm: string,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        const query: Query<MonitorStatus> = {
+          projectId: projectId,
+        } as Query<MonitorStatus>;
+        if (searchTerm.trim()) {
+          (query as unknown as Record<string, unknown>)["name"] = new Search(
+            searchTerm.trim(),
+          );
+        }
+        const result: ListResult<MonitorStatus> =
+          await ModelAPI.getList<MonitorStatus>({
+            modelType: MonitorStatus,
+            query: query,
+            limit: 50,
+            skip: 0,
+            select: { _id: true, name: true, priority: true, color: true },
+            sort: { priority: SortOrder.Ascending },
+          });
+        return result.data.map((s: MonitorStatus) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
+          };
+        });
+      },
+      resolveOptions: async (
+        projectId: ObjectID,
+        values: Array<string>,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        if (values.length === 0) {
+          return [];
+        }
+        const result: ListResult<MonitorStatus> =
+          await ModelAPI.getList<MonitorStatus>({
+            modelType: MonitorStatus,
+            query: {
+              projectId: projectId,
+              _id: new Includes(values),
+            } as Query<MonitorStatus>,
+            limit: values.length,
+            skip: 0,
+            select: { _id: true, name: true, color: true },
+            sort: {},
+          });
+        return result.data.map((s: MonitorStatus) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
+          };
+        });
+      },
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEntityFacetQuery(values, operator, true);
+      },
+    },
+    {
+      key: "monitorType",
+      label: "Type",
+      icon: IconProp.Cube,
+      isMultiSelect: true,
+      searchPlaceholder: "Search monitor types...",
+      options: MonitorTypeUtil.monitorTypesAsDropdownOptions().map(
+        (o: DropdownOption): FilterChipDropdownOption => {
+          return {
+            value: o.value.toString(),
+            label: o.label,
+          };
+        },
+      ),
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEnumFacetQuery(values, operator);
+      },
+    },
+  ];
+
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<Monitor>({
+    ownerUserModelType: MonitorOwnerUser,
+    ownerTeamModelType: MonitorOwnerTeam,
+    resourceIdField: "monitorId",
+    showLabelsFacet: true,
+    extraFacets: monitorExtraFacets,
+    persistKey: props.saveFilterProps?.tableId,
+  });
+
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Monitor>({ modelType: Monitor });
+
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<Monitor>({
+      ownerUserModelType: MonitorOwnerUser,
+      ownerTeamModelType: MonitorOwnerTeam,
+      resourceIdField: "monitorId",
+    });
 
   useEffect(() => {
     const fetchProbes: () => Promise<void> = async (): Promise<void> => {
@@ -344,6 +477,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     <div>
       <ModelTable<Monitor>
         modelType={Monitor}
+        enableJsonImportExport={!props.disableCreate}
         name="Monitors"
         userPreferencesKey="monitors-table"
         id="Monitors-table"
@@ -465,6 +599,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             getBulkAddProbesAction(),
             getBulkRemoveProbesAction(),
             ...labelBulkActions,
+            ...ownerBulkActions,
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
@@ -475,7 +610,13 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         isCreateable={false}
         isViewable={true}
         refreshToggle={props.refreshToggle}
-        query={props.query || {}}
+        topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery(props.query)}
+        onFetchSuccess={(data: Array<Monitor>) => {
+          onResourcesFetched(data);
+        }}
         createEditModalWidth={ModalWidth.Large}
         cardProps={{
           title: props.title || "Monitors",
@@ -492,6 +633,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         }}
         noItemsMessage={props.noItemsMessage || "No monitors found."}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         viewPageRoute={RouteUtil.populateRouteParams(
           RouteMap[PageMap.MONITORS]!,
         )}
@@ -508,51 +650,6 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Text,
             field: {
               name: true,
-            },
-          },
-          {
-            title: "Monitor Type",
-            type: FieldType.Text,
-            field: {
-              monitorType: true,
-            },
-            filterDropdownOptions:
-              MonitorTypeUtil.monitorTypesAsDropdownOptions(),
-          },
-          {
-            title: "Monitor Status",
-            type: FieldType.Entity,
-            field: {
-              currentMonitorStatus: {
-                color: true,
-                name: true,
-              },
-            },
-            filterEntityType: MonitorStatus,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            title: "Labels",
-            type: FieldType.EntityArray,
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
             },
           },
           {
@@ -652,6 +749,22 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
               return <LabelsElement labels={item["labels"] || []} />;
             },
           },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Monitor): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
+          },
         ]}
       />
 
@@ -689,6 +802,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
       )}
 
       {labelBulkActionModals}
+      {ownerBulkActionModals}
 
       {showRemoveProbesModal && (
         <BasicFormModal

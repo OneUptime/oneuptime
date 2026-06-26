@@ -29,6 +29,22 @@ import { UserPermission } from "../../Types/Permission";
 import PositiveNumber from "../../Types/PositiveNumber";
 import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import GlobalCache from "../Infrastructure/GlobalCache";
+import logger from "../Utils/Logger";
+
+/*
+ * Aggregate cache TTL. Dashboards typically auto-refresh every 30s+,
+ * so an 8s window collapses bursts of identical requests (e.g. 12
+ * widgets loading on the same page) onto a single ClickHouse query
+ * while still looking real-time to humans.
+ *
+ * Project-scoped only: analytics data is project-wide and the
+ * service layer enforces project-scoped read permissions, so
+ * caching across users within the same project is safe. Endpoints
+ * with row-level access scoping should override `getAggregate` to
+ * skip the cache (or shape the key to include the access scope).
+ */
+const ANALYTICS_AGGREGATE_CACHE_TTL_SECONDS: number = 8;
 
 export default class BaseAnalyticsAPI<
   TAnalyticsDataModel extends AnalyticsDataModel,
@@ -45,9 +61,22 @@ export default class BaseAnalyticsAPI<
   ) {
     this.entityType = type;
     const router: ExpressRouter = Express.getRouter();
+    /*
+     * BaseAnalyticsAPI only makes sense for models that expose CRUD over
+     * HTTP. Internal-only tables (e.g. MV target tables) are constructed
+     * with `crudApiPath: undefined` and must never be wired here — fail
+     * fast if a caller tries.
+     */
+    const crudApiPath: string | undefined =
+      new this.entityType().crudApiPath?.toString();
+    if (!crudApiPath) {
+      throw new Error(
+        `BaseAnalyticsAPI cannot be constructed for ${type.name}: model has no crudApiPath.`,
+      );
+    }
     // Create
     router.post(
-      `${new this.entityType().crudApiPath.toString()}`,
+      `${crudApiPath}`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -255,29 +284,46 @@ export default class BaseAnalyticsAPI<
     const databaseProps: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-    const [list, count] = await Promise.all([
-      this.service.findBy({
-        query,
-        select,
-        skip: skip,
-        limit: limit,
-        sort: sort,
-        groupBy: groupBy,
-        props: databaseProps,
-      }),
-      this.service.countBy({
-        query,
-        groupBy: groupBy,
-        props: databaseProps,
-      }),
-    ]);
+    /*
+     * Skip the parallel countBy on analytics tables. countBy on Log /
+     * Span / Metric over wide time ranges scans every matching block
+     * (no LIMIT) and routinely dominates list-endpoint latency under
+     * heavy ingest. Instead we over-fetch by one row and derive
+     * `hasMore` from whether the extra row showed up. `count` is
+     * emitted as a lower bound (`skip + data.length + hasMore`) so
+     * older clients that read `count` keep rendering something
+     * sensible while newer clients use `hasMore` for prev/next.
+     */
+    const overfetchLimit: PositiveNumber = new PositiveNumber(
+      limit.toNumber() + 1,
+    );
+
+    const list: Array<AnalyticsDataModel> = await this.service.findBy({
+      query,
+      select,
+      skip: skip,
+      limit: overfetchLimit,
+      sort: sort,
+      groupBy: groupBy,
+      props: databaseProps,
+    });
+
+    const hasMore: boolean = list.length > limit.toNumber();
+    if (hasMore) {
+      list.length = limit.toNumber();
+    }
+
+    const lowerBoundCount: PositiveNumber = new PositiveNumber(
+      skip.toNumber() + list.length + (hasMore ? 1 : 0),
+    );
 
     return Response.sendEntityArrayResponse(
       req,
       res,
       list,
-      count,
+      lowerBoundCount,
       this.entityType,
+      { hasMore },
     );
   }
 
@@ -314,14 +360,89 @@ export default class BaseAnalyticsAPI<
     const databaseProps: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
+    /*
+     * Short-lived project-scoped cache. A dashboard refresh fires
+     * one /aggregate call per widget — typically 10+ identical or
+     * near-identical aggregations against the same time window
+     * inside a few hundred milliseconds. Cache the result for 8s
+     * so the underlying ClickHouse aggregation runs once per
+     * burst. On cache outage (Redis down, parse error, …) we fall
+     * through to a live query so behavior degrades to today's.
+     */
+    const projectId: string | undefined = databaseProps.tenantId?.toString();
+    const cacheNamespace: string = `${this.getEntityName()}-aggregate`;
+    const cacheKey: string | null = projectId
+      ? `${projectId}:${this.buildAggregateCacheKey(aggregateBy)}`
+      : null;
+
+    if (cacheKey) {
+      try {
+        const cached: JSONObject | null = await GlobalCache.getJSONObject(
+          cacheNamespace,
+          cacheKey,
+        );
+        if (cached) {
+          return Response.sendJsonObjectResponse(req, res, cached);
+        }
+      } catch (err) {
+        logger.debug(`${cacheNamespace} cache read failed`);
+        logger.debug(err);
+      }
+    }
+
     const aggregateResult: AggregatedResult = await this.service.aggregateBy({
       ...aggregateBy,
       props: databaseProps,
     });
 
-    return Response.sendJsonObjectResponse(req, res, {
-      ...(aggregateResult as any),
-    });
+    const responseBody: JSONObject = { ...(aggregateResult as any) };
+
+    if (cacheKey) {
+      try {
+        await GlobalCache.setJSON(cacheNamespace, cacheKey, responseBody, {
+          expiresInSeconds: ANALYTICS_AGGREGATE_CACHE_TTL_SECONDS,
+        });
+      } catch (err) {
+        logger.debug(`${cacheNamespace} cache write failed`);
+        logger.debug(err);
+      }
+    }
+
+    return Response.sendJsonObjectResponse(req, res, responseBody);
+  }
+
+  /*
+   * Stable serialization for the aggregate cache key. Date instances
+   * are normalized to ISO so two logically-equal time windows hit
+   * the same cache slot, and we sort object keys so the ordering is
+   * deterministic across clients and across V8 versions.
+   */
+  protected buildAggregateCacheKey(
+    aggregateBy: AggregateBy<AnalyticsDataModel>,
+  ): string {
+    return JSON.stringify(
+      aggregateBy,
+      (_key: string, value: unknown): unknown => {
+        if (value instanceof Date) {
+          return value.toISOString();
+        }
+        if (
+          value &&
+          typeof value === "object" &&
+          !Array.isArray(value) &&
+          (value as Record<string, unknown>).constructor === Object
+        ) {
+          const sorted: Record<string, unknown> = {};
+          for (const k of Object.keys(
+            value as Record<string, unknown>,
+          ).sort()) {
+            sorted[k] = (value as Record<string, unknown>)[k];
+          }
+          return sorted;
+        }
+        return value;
+      },
+    );
   }
 
   @CaptureSpan()

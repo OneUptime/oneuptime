@@ -90,20 +90,30 @@ validate_resource_deleted() {
 
     echo "    Verifying deletion via API: POST ${ONEUPTIME_URL}${endpoint}/${resource_id}/get-item"
 
+    local response
     local http_code
-    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${ONEUPTIME_URL}${endpoint}/${resource_id}/get-item" \
+    local body
+    response=$(curl -s -w $'\n%{http_code}' -X POST "${ONEUPTIME_URL}${endpoint}/${resource_id}/get-item" \
         -H "Content-Type: application/json" \
         -H "Apikey: $TF_VAR_api_key" \
         -H "projectid: $TF_VAR_project_id" \
         -d '{"select": {"_id": true}}' 2>&1)
+    http_code="${response##*$'\n'}"
+    body="${response%$'\n'*}"
 
-    # Resource should return 404 or 500 (not found) after deletion
-    if [ "$http_code" -eq 404 ] || [ "$http_code" -eq 500 ]; then
+    # get-item returns HTTP 200 with an empty JSON object ({}) for missing or
+    # deleted items — never 404 — so deletion must be judged by whether the
+    # response body still carries the item's _id.
+    if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+        if echo "$body" | grep -q '"_id"'; then
+            echo "    ✗ Deletion verification FAILED: Resource still exists (HTTP $http_code, body: $body)"
+            return 1
+        fi
+        echo "    ✓ Deletion verified: Resource no longer exists (HTTP $http_code, empty body)"
+        return 0
+    elif [ "$http_code" -eq 404 ] || [ "$http_code" -eq 500 ]; then
         echo "    ✓ Deletion verified: Resource no longer exists (HTTP $http_code)"
         return 0
-    elif [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
-        echo "    ✗ Deletion verification FAILED: Resource still exists (HTTP $http_code)"
-        return 1
     else
         echo "    ✓ Deletion likely successful (HTTP $http_code)"
         return 0

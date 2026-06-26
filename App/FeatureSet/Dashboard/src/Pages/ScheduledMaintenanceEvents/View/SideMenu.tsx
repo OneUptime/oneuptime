@@ -61,6 +61,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.List}
         />
+        <SideMenuItem
+          link={{
+            title: "Runbooks",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.BookOpen}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Logs">
@@ -88,7 +98,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         /> */}
       </SideMenuSection>
 
-      <SideMenuSection title="Scheduled Maintenance Notes">
+      <SideMenuSection title="Notes">
         <SideMenuItem
           link={{
             title: "Private Notes",
@@ -134,6 +144,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Settings}
+        />
+
+        <SideMenuItem
+          link={{
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
         />
 
         <SideMenuItem

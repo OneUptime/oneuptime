@@ -39,10 +39,48 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Name from "../../Types/Name";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Timezone from "../../Types/Timezone";
+import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 
 export class Service extends DatabaseService<Model> {
+  /*
+   * Suppresses repeated `lastActive` UPDATEs from a single API node. 60s of
+   * staleness on "last seen" is acceptable; an UPDATE per request is not.
+   */
+  private lastActiveCache: InMemoryTTLCache<true> = new InMemoryTTLCache(
+    10_000,
+  );
+
   public constructor() {
     super(Model);
+  }
+
+  /**
+   * Debounced fire-and-forget update of `User.lastActive`. The auth
+   * middleware calls this on every authenticated request; without the cache
+   * we'd issue one Postgres UPDATE per request per user.
+   */
+  @CaptureSpan()
+  public async updateLastActive(userId: ObjectID): Promise<void> {
+    const key: string = userId.toString();
+    if (this.lastActiveCache.has(key)) {
+      return;
+    }
+    /*
+     * Set BEFORE the await so a burst of concurrent requests collapses to one
+     * UPDATE per node per 60s window.
+     */
+    this.lastActiveCache.set(key, true, 60_000);
+
+    void this.updateOneById({
+      id: userId,
+      data: { lastActive: OneUptimeDate.getCurrentDate() },
+      props: { isRoot: true },
+    }).catch((err: Error) => {
+      this.lastActiveCache.delete(key);
+      logger.error(
+        `Failed to update User.lastActive for ${key}: ${err.message}`,
+      );
+    });
   }
 
   @CaptureSpan()

@@ -1,9 +1,12 @@
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
-import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
-import Icon, { SizeProp } from "../Icon/Icon";
+import { ButtonStyleType } from "../Button/Button";
+import Icon from "../Icon/Icon";
 import ConfirmModal, {
   ComponentProps as ConfirmModalProps,
 } from "../Modal/ConfirmModal";
+import MoreMenu from "../MoreMenu/MoreMenu";
+import MoreMenuItem from "../MoreMenu/MoreMenuItem";
+import MoreMenuDivider from "../MoreMenu/Divider";
 import ProgressBar, { ProgressBarSize } from "../ProgressBar/ProgressBar";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import { Green, Red } from "../../../Types/BrandColors";
@@ -66,6 +69,16 @@ export interface ComponentProps<T extends GenericObject> {
   itemToString?: ((item: T) => string) | undefined;
 }
 
+const isDangerStyle: (style: ButtonStyleType) => boolean = (
+  style: ButtonStyleType,
+): boolean => {
+  return (
+    style === ButtonStyleType.DANGER ||
+    style === ButtonStyleType.DANGER_OUTLINE ||
+    style === ButtonStyleType.HOVER_DANGER_OUTLINE
+  );
+};
+
 const BulkUpdateForm: <T extends GenericObject>(
   props: ComponentProps<T>,
 ) => ReactElement = <T extends GenericObject>(
@@ -85,6 +98,114 @@ const BulkUpdateForm: <T extends GenericObject>(
   if (props.selectedItems.length === 0) {
     return <></>;
   }
+
+  const visibleButtons: Array<BulkActionButtonSchema<T>> = (
+    props.buttons || []
+  ).filter((button: BulkActionButtonSchema<T>) => {
+    if (button.isVisible) {
+      return button.isVisible(props.selectedItems) !== false;
+    }
+    return true;
+  });
+
+  const safeButtons: Array<BulkActionButtonSchema<T>> = visibleButtons.filter(
+    (b: BulkActionButtonSchema<T>) => {
+      return !isDangerStyle(b.buttonStyleType);
+    },
+  );
+
+  const dangerButtons: Array<BulkActionButtonSchema<T>> = visibleButtons.filter(
+    (b: BulkActionButtonSchema<T>) => {
+      return isDangerStyle(b.buttonStyleType);
+    },
+  );
+
+  const triggerButtonClick: (button: BulkActionButtonSchema<T>) => void = (
+    button: BulkActionButtonSchema<T>,
+  ): void => {
+    if (button.disabled) {
+      return;
+    }
+
+    const buttonClickObject: BulkActionOnClickProps<T> = {
+      items: props.selectedItems,
+      onProgressInfo: (info: ProgressInfo<T>) => {
+        setProgressInfo(info);
+      },
+      onBulkActionStart: () => {
+        setShowProgressInfoModal(true);
+        setProgressInfo({
+          inProgressItems: props.selectedItems,
+          successItems: [],
+          failed: [],
+          totalItems: props.selectedItems,
+        });
+        setActionInProgress(true);
+        if (props.onActionStart) {
+          props.onActionStart();
+        }
+      },
+      onBulkActionEnd: () => {
+        setActionInProgress(false);
+      },
+    };
+
+    if (button.confirmMessage) {
+      setConfirmModalProps({
+        title: button.confirmTitle
+          ? button.confirmTitle(props.selectedItems)
+          : "Confirm",
+        description: button.confirmMessage(props.selectedItems),
+        submitButtonType: button.confirmButtonStyleType,
+        submitButtonText: button.title,
+        onClose: () => {
+          setConfirmModalProps(null);
+        },
+        onSubmit: async () => {
+          await button.onClick(buttonClickObject);
+        },
+      });
+      return;
+    }
+
+    if (button.onClick) {
+      void button.onClick(buttonClickObject);
+    }
+  };
+
+  const renderMenuItem: (
+    button: BulkActionButtonSchema<T>,
+    index: number,
+  ) => ReactElement = (
+    button: BulkActionButtonSchema<T>,
+    index: number,
+  ): ReactElement => {
+    const isDanger: boolean = isDangerStyle(button.buttonStyleType);
+    const isDisabled: boolean = Boolean(button.disabled);
+
+    let itemClassName: string = "";
+    let iconClassName: string = "";
+
+    if (isDisabled) {
+      itemClassName = "opacity-50 cursor-not-allowed hover:bg-transparent";
+    } else if (isDanger) {
+      itemClassName = "text-red-700 hover:text-red-800 hover:bg-red-50";
+      iconClassName = "text-red-400 group-hover:text-red-500";
+    }
+
+    return (
+      <MoreMenuItem
+        key={`bulk-action-${index}`}
+        text={button.title}
+        icon={button.icon}
+        className={itemClassName}
+        iconClassName={iconClassName}
+        onClick={() => {
+          triggerButtonClick(button);
+        }}
+      />
+    );
+  };
 
   const showProgressInfo: GetReactElementFunction = (): ReactElement => {
     if (actionInProgress && progressInfo) {
@@ -182,124 +303,100 @@ const BulkUpdateForm: <T extends GenericObject>(
     return <></>;
   };
 
+  const menuChildren: Array<ReactElement> = [];
+
+  safeButtons.forEach((button: BulkActionButtonSchema<T>, index: number) => {
+    menuChildren.push(renderMenuItem(button, index));
+  });
+
+  if (safeButtons.length > 0 && dangerButtons.length > 0) {
+    menuChildren.push(<MoreMenuDivider key="bulk-action-divider" />);
+  }
+
+  dangerButtons.forEach((button: BulkActionButtonSchema<T>, index: number) => {
+    menuChildren.push(renderMenuItem(button, safeButtons.length + index));
+  });
+
+  const showLimitWarning: boolean =
+    props.isAllItemsSelected &&
+    props.selectedItems.length === LIMIT_PER_PROJECT;
+
   return (
     <div>
       <div>
-        <div className="flex mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100 justify-between">
-          <div className="w-full -mt-1">
-            <div className="flex mt-1">
-              <div className="flex-auto py-0.5 text-sm leading-5">
-                <span className="font-semibold">
-                  {props.selectedItems.length} {props.pluralLabel + " " || ""}
-                  Selected
-                </span>{" "}
-                {props.isAllItemsSelected &&
-                  props.selectedItems.length === LIMIT_PER_PROJECT && (
-                    <span className="text-gray-500">
-                      (You can only select {LIMIT_PER_PROJECT}{" "}
-                      {props.pluralLabel} at a time. This is for performance
-                      reasons.)
-                    </span>
-                  )}
-              </div>
-            </div>
-            <div className="flex -ml-3 mt-1">
-              {/** Edit Filter Button */}
-              {!props.isAllItemsSelected && (
-                <Button
-                  className="font-medium text-gray-900"
+        <div className="mt-5 mb-5 bg-gray-50 rounded-xl p-4 border-2 border-gray-100">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/** Selected Count Badge */}
+              <div className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 px-3 py-1.5 text-sm font-semibold text-indigo-700 border border-indigo-100">
+                <Icon
                   icon={IconProp.CheckCircle}
+                  className="h-4 w-4 text-indigo-600"
+                />
+                <span>
+                  {props.selectedItems.length} {props.pluralLabel} Selected
+                </span>
+              </div>
+
+              {/** Divider */}
+              <div className="h-6 w-px bg-gray-300 mx-1" />
+
+              {/** Select All Button */}
+              {!props.isAllItemsSelected && (
+                <button
+                  type="button"
                   onClick={() => {
                     props.onSelectAllClick();
                   }}
-                  title={`Select All ${props.pluralLabel}`}
-                  iconSize={SizeProp.Smaller}
-                  buttonStyle={ButtonStyleType.SECONDARY_LINK}
-                />
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-150 cursor-pointer select-none"
+                >
+                  <Icon icon={IconProp.CheckCircle} className="h-3.5 w-3.5" />
+                  <span>Select All {props.pluralLabel}</span>
+                </button>
               )}
 
-              {/** Clear Filter Button */}
-              <Button
+              {/** Clear Selection Button */}
+              <button
+                type="button"
                 onClick={() => {
                   props.onClearSelectionClick();
                 }}
-                className="font-medium text-gray-900 -ml-2"
-                icon={IconProp.Close}
-                title="Clear Selection"
-                buttonStyle={ButtonStyleType.SECONDARY_LINK}
-              />
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-red-50 hover:border-red-300 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-150 cursor-pointer select-none"
+              >
+                <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+                <span>Clear Selection</span>
+              </button>
+            </div>
+
+            <div className="flex items-center">
+              {menuChildren.length > 0 && (
+                <MoreMenu
+                  elementToBeShownInsteadOfButton={
+                    <div className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-150 cursor-pointer select-none">
+                      <Icon
+                        icon={IconProp.Bolt}
+                        className="h-4 w-4 text-gray-500"
+                      />
+                      <span>Bulk Actions</span>
+                      <Icon
+                        icon={IconProp.ChevronDown}
+                        className="h-3.5 w-3.5 text-gray-400 ml-0.5"
+                      />
+                    </div>
+                  }
+                >
+                  {menuChildren}
+                </MoreMenu>
+              )}
             </div>
           </div>
 
-          <div className="flex w-full h-full -mt-1 justify-end mt-auto mb-auto">
-            {props.buttons?.map(
-              (button: BulkActionButtonSchema<T>, i: number) => {
-                return (
-                  <div key={i}>
-                    <Button
-                      key={i}
-                      title={button.title}
-                      buttonStyle={button.buttonStyleType}
-                      className={button.className}
-                      onClick={async () => {
-                        const buttonClickObject: BulkActionOnClickProps<T> = {
-                          items: props.selectedItems,
-                          onProgressInfo: (progressInfo: ProgressInfo<T>) => {
-                            setProgressInfo(progressInfo);
-                          },
-                          onBulkActionStart: () => {
-                            setShowProgressInfoModal(true);
-                            setProgressInfo({
-                              inProgressItems: props.selectedItems,
-                              successItems: [],
-                              failed: [],
-                              totalItems: props.selectedItems,
-                            });
-                            setActionInProgress(true);
-                            if (props.onActionStart) {
-                              props.onActionStart();
-                            }
-                          },
-                          onBulkActionEnd: () => {
-                            setActionInProgress(false);
-                          },
-                        };
-
-                        if (button.confirmMessage) {
-                          setConfirmModalProps({
-                            title: button.confirmTitle
-                              ? button.confirmTitle(props.selectedItems)
-                              : "Confirm",
-                            description: button.confirmMessage(
-                              props.selectedItems,
-                            ),
-                            submitButtonType: button.confirmButtonStyleType,
-                            submitButtonText: button.title,
-                            onClose: () => {
-                              setConfirmModalProps(null);
-                            },
-                            onSubmit: async () => {
-                              await button.onClick(buttonClickObject);
-                            },
-                          });
-                          return;
-                        }
-
-                        if (button.onClick) {
-                          await button.onClick(buttonClickObject);
-                        }
-                      }}
-                      disabled={button.disabled}
-                      icon={button.icon}
-                      shortcutKey={button.shortcutKey}
-                      buttonSize={ButtonSize.Small}
-                      dataTestId="card-button"
-                    />
-                  </div>
-                );
-              },
-            )}
-          </div>
+          {showLimitWarning && (
+            <div className="mt-2 text-xs text-gray-500">
+              You can only select {LIMIT_PER_PROJECT} {props.pluralLabel} at a
+              time. This is for performance reasons.
+            </div>
+          )}
         </div>
       </div>
 

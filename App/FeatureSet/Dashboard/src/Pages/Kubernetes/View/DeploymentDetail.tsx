@@ -28,6 +28,10 @@ import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetri
 import { KubernetesDeploymentObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesCpuUtils, {
+  NodeAllocatableCpu,
+} from "../Utils/KubernetesCpuUtils";
+import useNodeAllocatableCpu from "../Utils/useNodeAllocatableCpu";
 import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
 import StatusBadge, {
   StatusBadgeType,
@@ -95,6 +99,11 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     fetchObject().catch(() => {});
   }, [cluster?.clusterIdentifier, deploymentName]);
 
+  // Per-node allocatable CPU — denominator for the true CPU% transform.
+  const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(
+    cluster?.clusterIdentifier || undefined,
+  );
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -123,7 +132,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "deployment_cpu",
       title: "Pod CPU Utilization",
-      description: `CPU utilization for pods in deployment ${deploymentName}`,
+      description: `CPU usage as a percentage of node allocatable CPU for pods in deployment ${deploymentName}`,
       legend: "CPU",
       legendUnit: "%",
     },
@@ -142,6 +151,9 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
       },
     },
     getSeries: getSeries,
+    transformValue: allocatable
+      ? KubernetesCpuUtils.makeCpuPercentTransform(allocatable)
+      : undefined,
   };
 
   const memoryQuery: MetricQueryConfigData = {

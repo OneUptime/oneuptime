@@ -2,7 +2,7 @@
     <div
         class="contents lg:pointer-events-auto lg:block lg:w-72 lg:overflow-y-auto lg:border-r lg:border-slate-200/80 lg:px-6 lg:pt-6 lg:pb-8 xl:w-80 lg:bg-gradient-to-b lg:from-slate-50 lg:to-white">
         <div class="hidden lg:flex lg:items-center lg:mb-8">
-            <a aria-label="Home" href="/">
+            <a aria-label="<%= t('ui.homeAria') %>" href="/">
                 <svg class="h-7" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 75" preserveAspectRatio="xMidYMid meet">
                     <defs>
                         <g></g>
@@ -85,7 +85,7 @@
             </a>
         </div>
         <div class="hidden">
-            <a aria-label="Home" href="/">
+            <a aria-label="<%= t('ui.homeAria') %>" href="/">
                 <svg class="h-6" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
                     width="500" zoomAndPan="magnify" viewBox="0 0 375 74.999997" height="100"
                     preserveAspectRatio="xMidYMid meet" version="1.0">
@@ -201,7 +201,7 @@
             <div class="flex items-center gap-5 lg:hidden">
                 <button type="button" id="mobile-menu-toggle"
                     class="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-slate-100"
-                    aria-label="Toggle navigation">
+                    aria-label="<%= t('ui.menuAria') %>">
                     <svg id="menu-open-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"
                         class="w-5 h-5 stroke-slate-700">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
@@ -211,7 +211,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
-                <a aria-label="Home" href="/">
+                <a aria-label="<%= t('ui.homeAria') %>" href="/">
                     <svg class="h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 75" preserveAspectRatio="xMidYMid meet">
                         <defs>
                             <g></g>
@@ -297,24 +297,40 @@
                 <nav class="hidden md:block">
                     <ul role="list" class="flex items-center gap-6">
                         <li><a class="text-sm font-medium text-slate-600 transition hover:text-slate-900"
-                                href="/">Home</a></li>
+                                href="/"><%= t('ui.home') %></a></li>
                         <li><a class="text-sm font-medium text-slate-600 transition hover:text-slate-900"
                                 target="_blank"
-                                href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA">Slack</a></li>
+                                href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA"><%= t('ui.slack') %></a></li>
                         <li><a class="text-sm font-medium text-slate-600 transition hover:text-slate-900"
-                                href="/support">Support</a></li>
+                                href="/support"><%= t('ui.support') %></a></li>
                         <li><a class="text-sm font-medium text-slate-600 transition hover:text-slate-900"
-                                href="/reference/openapi" type="_blank">OpenAPI</a></li>
+                                href="/reference/<%= lang %>/openapi" type="_blank"><%= t('ui.openApi') %></a></li>
                         <li><a class="text-sm font-medium text-slate-600 transition hover:text-slate-900"
-                                href="https://github.com/oneuptime/oneuptime">GitHub</a></li>
+                                href="https://github.com/oneuptime/oneuptime"><%= t('ui.github') %></a></li>
                     </ul>
                 </nav>
+                <% if (typeof supportedLanguages !== 'undefined' && supportedLanguages && supportedLanguages.length > 1) { %>
+                <div class="hidden md:flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-200 transition-colors">
+                    <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>
+                    </svg>
+                    <label for="reference-language-switcher" class="sr-only"><%= t('ui.switchLanguage') %></label>
+                    <select id="reference-language-switcher"
+                            data-current-path="<%= typeof currentPath !== 'undefined' ? currentPath : '' %>"
+                            aria-label="<%= t('ui.switchLanguage') %>"
+                            class="cursor-pointer border-0 bg-transparent p-0 pr-1 text-sm font-medium text-slate-600 focus:outline-none focus:ring-0">
+                        <% supportedLanguages.forEach(function(language){ %>
+                            <option value="<%= language.code %>" <%= language.code === lang ? 'selected' : '' %>><%= language.nativeName %></option>
+                        <% }); %>
+                    </select>
+                </div>
+                <% } %>
                 <div class="hidden md:block md:h-5 md:w-px md:bg-slate-200"></div>
                 <div class="flex gap-4">
                     <div class="contents lg:hidden">
                         <button type="button"
                             class="flex h-6 w-6 items-center justify-center rounded-md transition hover:bg-zinc-900/5  lg:hidden focus:[&amp;:not(:focus-visible)]:outline-none"
-                            aria-label="Find something...">
+                            aria-label="<%= t('ui.searchAria') %>">
                             <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"
                                 class="h-5 w-5 stroke-zinc-900 ">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -341,65 +357,65 @@
                 </div>
                 <div class="hidden min-[416px]:contents"><a
                         class="inline-flex gap-0.5 justify-center overflow-hidden text-sm font-medium transition rounded-full bg-indigo-600 py-1.5 px-4 text-white hover:bg-indigo-700 shadow-sm"
-                        href="/dashboard">Sign in</a></div>
+                        href="/dashboard"><%= t('ui.signIn') %></a></div>
             </div>
         </div>
         <nav class="hidden lg:block">
             <div class="mb-6">
                 <span class="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-600/20">
-                    API Reference
+                    <%= t('ui.apiReference') %>
                 </span>
             </div>
             <ul role="list" class="space-y-6">
                 <li class="md:hidden"><a
                         class="block py-1 text-sm text-slate-600 transition hover:text-slate-900"
-                        href="/">API</a></li>
+                        href="/"><%= t('ui.apiReference') %></a></li>
                 <li class="md:hidden"><a
                         class="block py-1 text-sm text-slate-600 transition hover:text-slate-900"
-                        href="/#">Documentation</a></li>
+                        href="/#"><%= t('ui.documentation') %></a></li>
                 <li class="md:hidden"><a
                         class="block py-1 text-sm text-slate-600 transition hover:text-slate-900"
-                        href="/#">Support</a></li>
+                        href="/#"><%= t('ui.support') %></a></li>
                 <li class="relative md:mt-0">
-                    <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide">Guides</h6>
+                    <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide"><%= t('ui.guides') %></h6>
                     <div class="relative mt-3 pl-2">
                         <div class="absolute inset-y-0 left-2 w-px bg-slate-200"></div>
                         <ul role="list" class="border-l border-transparent space-y-1">
                             <li class="relative">
                                 <a class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
-                                    href="/reference/introduction"><span
-                                        class="truncate">Introduction</span></a>
+                                    href="/reference/<%= lang %>/introduction"><span
+                                        class="truncate"><%= t('ui.introductionLink') %></span></a>
                             </li>
                             <li class="relative"><a
                                     class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
-                                    href="/reference/authentication"><span class="truncate">Authentication</span></a></li>
+                                    href="/reference/<%= lang %>/authentication"><span class="truncate"><%= t('ui.authenticationLink') %></span></a></li>
                             <li class="relative"><a
                                     class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
-                                    href="/reference/pagination"><span class="truncate">Pagination</span></a></li>
+                                    href="/reference/<%= lang %>/pagination"><span class="truncate"><%= t('ui.paginationLink') %></span></a></li>
                             <li class="relative"><a
                                     class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
-                                    href="/reference/permissions"><span class="truncate">Permissions</span></a></li>
+                                    href="/reference/<%= lang %>/permissions"><span class="truncate"><%= t('ui.permissionsLink') %></span></a></li>
                             <li class="relative"><a
                                     class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
-                                    href="/reference/data-types"><span class="truncate">Data Types</span></a></li>
+                                    href="/reference/<%= lang %>/data-types"><span class="truncate"><%= t('ui.dataTypesLink') %></span></a></li>
                             <li class="relative"><a
                                     class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
-                                    href="/reference/errors"><span class="truncate">Errors</span></a></li>
+                                    href="/reference/<%= lang %>/errors"><span class="truncate"><%= t('ui.errorsLink') %></span></a></li>
                             <li class="relative"><a
                                     class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
-                                    href="/reference/openapi"><span class="truncate">OpenAPI Spec</span></a></li>
+                                    href="/reference/<%= lang %>/openapi"><span class="truncate"><%= t('ui.openApiSpecLink') %></span></a></li>
                         </ul>
                     </div>
                 </li>
                 <li class="relative mt-6">
-                    <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide">Resources</h6>
+                    <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide"><%= t('ui.resources') %></h6>
                     <div class="relative mt-3 pl-2">
                         <div class="absolute inset-y-0 left-2 w-px bg-slate-200"></div>
                         <ul role="list" class="border-l border-transparent space-y-1">
                             <% for(var i=0; i<resources.length; i++) {%>
                                 <li class="relative"><a
                                         class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
-                                        href="/reference/<%= resources[i].path -%>"><span class="truncate">
+                                        href="/reference/<%= lang %>/<%= resources[i].path -%>"><span class="truncate">
                                             <%= resources[i].name -%>
                                         </span></a></li>
                             <% } %>
@@ -426,14 +442,14 @@
                     }
                 %>
                 <li class="relative mt-6">
-                    <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide">Data Types</h6>
+                    <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide"><%= t('ui.dataTypes') %></h6>
                     <div class="relative mt-3 pl-2">
                         <div class="absolute inset-y-0 left-2 w-px bg-slate-200"></div>
                         <ul role="list" class="border-l border-transparent space-y-1">
                             <% for(var i=0; i<_dtGeneral.length; i++) {%>
                                 <li class="relative"><a
                                         class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
-                                        href="/reference/<%= _dtGeneral[i].path -%>"><span class="truncate"><%= _dtGeneral[i].name -%></span></a></li>
+                                        href="/reference/<%= lang %>/<%= _dtGeneral[i].path -%>"><span class="truncate"><%= _dtGeneral[i].name -%></span></a></li>
                             <% } %>
                         </ul>
                         <% for (var _ci = 0; _ci < _dtCatOrder.length; _ci++) { %>
@@ -445,7 +461,7 @@
                                 <% for(var _ti=0; _ti<_catTypes.length; _ti++) {%>
                                     <li class="relative"><a
                                             class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
-                                            href="/reference/<%= _catTypes[_ti].path -%>"><span class="truncate"><%= _catTypes[_ti].name -%></span></a></li>
+                                            href="/reference/<%= lang %>/<%= _catTypes[_ti].path -%>"><span class="truncate"><%= _catTypes[_ti].name -%></span></a></li>
                                 <% } %>
                             </ul>
                         <% } %>
@@ -454,7 +470,7 @@
                 <% } %>
                 <li class="sticky bottom-0 z-10 mt-6 min-[416px]:hidden"><a
                         class="inline-flex gap-0.5 justify-center overflow-hidden text-sm font-medium transition rounded-full bg-indigo-600 py-1.5 px-4 text-white hover:bg-indigo-700 shadow-sm w-full"
-                        href="/#">Sign in</a></li>
+                        href="/#"><%= t('ui.signIn') %></a></li>
             </ul>
         </nav>
     </div>
@@ -557,29 +573,46 @@
 
       <div class="mb-6">
          <span class="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-600/20">
-            API Reference
+            <%= t('ui.apiReference') %>
          </span>
       </div>
+
+      <% if (typeof supportedLanguages !== 'undefined' && supportedLanguages && supportedLanguages.length > 1) { %>
+      <div class="mb-6 flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-600">
+         <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>
+         </svg>
+         <label for="reference-language-switcher-mobile" class="sr-only"><%= t('ui.switchLanguage') %></label>
+         <select id="reference-language-switcher-mobile"
+                 data-current-path="<%= typeof currentPath !== 'undefined' ? currentPath : '' %>"
+                 aria-label="<%= t('ui.switchLanguage') %>"
+                 class="cursor-pointer border-0 bg-transparent p-0 pr-1 text-sm font-medium text-slate-600 focus:outline-none focus:ring-0">
+            <% supportedLanguages.forEach(function(language){ %>
+               <option value="<%= language.code %>" <%= language.code === lang ? 'selected' : '' %>><%= language.nativeName %></option>
+            <% }); %>
+         </select>
+      </div>
+      <% } %>
 
       <nav>
          <ul role="list" class="space-y-6">
             <li class="relative">
-               <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide mb-3">Guides</h6>
+               <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide mb-3"><%= t('ui.guides') %></h6>
                <ul role="list" class="space-y-1 border-l border-slate-200 ml-2">
-                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/introduction">Introduction</a></li>
-                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/authentication">Authentication</a></li>
-                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/pagination">Pagination</a></li>
-                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/permissions">Permissions</a></li>
-                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/data-types">Data Types</a></li>
-                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/errors">Errors</a></li>
-                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/openapi">OpenAPI Spec</a></li>
+                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/<%= lang %>/introduction"><%= t('ui.introductionLink') %></a></li>
+                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/<%= lang %>/authentication"><%= t('ui.authenticationLink') %></a></li>
+                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/<%= lang %>/pagination"><%= t('ui.paginationLink') %></a></li>
+                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/<%= lang %>/permissions"><%= t('ui.permissionsLink') %></a></li>
+                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/<%= lang %>/data-types"><%= t('ui.dataTypesLink') %></a></li>
+                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/<%= lang %>/errors"><%= t('ui.errorsLink') %></a></li>
+                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/<%= lang %>/openapi"><%= t('ui.openApiSpecLink') %></a></li>
                </ul>
             </li>
             <li class="relative">
-               <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide mb-3">Resources</h6>
+               <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide mb-3"><%= t('ui.resources') %></h6>
                <ul role="list" class="space-y-1 border-l border-slate-200 ml-2">
                   <% for(var i=0; i<resources.length; i++) {%>
-                     <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition truncate" href="/reference/<%= resources[i].path -%>"><%= resources[i].name -%></a></li>
+                     <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition truncate" href="/reference/<%= lang %>/<%= resources[i].path -%>"><%= resources[i].name -%></a></li>
                   <% } %>
                </ul>
             </li>
@@ -603,10 +636,10 @@
                 }
             %>
             <li class="relative">
-               <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide mb-3">Data Types</h6>
+               <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide mb-3"><%= t('ui.dataTypes') %></h6>
                <ul role="list" class="space-y-1 border-l border-slate-200 ml-2">
                   <% for(var i=0; i<_mGeneral.length; i++) {%>
-                     <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition truncate" href="/reference/<%= _mGeneral[i].path -%>"><%= _mGeneral[i].name -%></a></li>
+                     <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition truncate" href="/reference/<%= lang %>/<%= _mGeneral[i].path -%>"><%= _mGeneral[i].name -%></a></li>
                   <% } %>
                </ul>
                <% for (var _mci = 0; _mci < _mCatOrder.length; _mci++) { %>
@@ -616,7 +649,7 @@
                   </div>
                   <ul role="list" class="space-y-1 border-l border-slate-200 ml-2">
                      <% for(var _mti=0; _mti<_mCatTypes.length; _mti++) {%>
-                        <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition truncate" href="/reference/<%= _mCatTypes[_mti].path -%>"><%= _mCatTypes[_mti].name -%></a></li>
+                        <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition truncate" href="/reference/<%= lang %>/<%= _mCatTypes[_mti].path -%>"><%= _mCatTypes[_mti].name -%></a></li>
                      <% } %>
                   </ul>
                <% } %>
@@ -627,7 +660,7 @@
 
       <div class="mt-8 pt-6 border-t border-slate-200">
          <a href="/dashboard" class="flex items-center justify-center w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition shadow-sm">
-            Sign in
+            <%= t('ui.signIn') %>
          </a>
       </div>
    </div>
@@ -706,6 +739,20 @@
          if (e.key === 'Escape' && !menuPanel.classList.contains('-translate-x-full')) {
             closeMenu();
          }
+      });
+
+      // Language switcher: rewrite the language segment in the current path.
+      var langSwitcherIds = ['reference-language-switcher', 'reference-language-switcher-mobile'];
+      langSwitcherIds.forEach(function(id) {
+         var sel = document.getElementById(id);
+         if (!sel) return;
+         sel.addEventListener('change', function() {
+            var nextLang = sel.value;
+            var currentPath = sel.getAttribute('data-current-path') || window.location.pathname;
+            // Replace the language segment in /reference/<lang>/... with the new one.
+            var rewritten = currentPath.replace(/^\/reference\/[^\/]+/, '/reference/' + nextLang);
+            window.location.href = rewritten;
+         });
       });
    });
 </script>

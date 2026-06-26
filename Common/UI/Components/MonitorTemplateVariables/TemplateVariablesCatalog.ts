@@ -32,10 +32,10 @@ export default class TemplateVariablesCatalog {
     monitorType: MonitorType;
     /**
      * Attribute keys the user has configured on the metric query
-     * (e.g. ["host.name", "region"]). For metric/kubernetes/docker
-     * monitors, these become per-series template variables — one
-     * incident fires per unique value combination, and each incident
-     * can reference the label values via `{{host.name}}` etc.
+     * (e.g. ["host.name", "region"]). For metric/kubernetes/docker/
+     * proxmox/ceph monitors, these become per-series template variables
+     * — one incident fires per unique value combination, and each
+     * incident can reference the label values via `{{host.name}}` etc.
      */
     seriesAttributeKeys?: Array<string> | undefined;
   }): Array<TemplateVariableGroup> {
@@ -52,7 +52,12 @@ export default class TemplateVariablesCatalog {
     if (
       input.monitorType === MonitorType.Metrics ||
       input.monitorType === MonitorType.Kubernetes ||
-      input.monitorType === MonitorType.Docker
+      input.monitorType === MonitorType.Docker ||
+      input.monitorType === MonitorType.Host ||
+      input.monitorType === MonitorType.Podman ||
+      input.monitorType === MonitorType.DockerSwarm ||
+      input.monitorType === MonitorType.Proxmox ||
+      input.monitorType === MonitorType.Ceph
     ) {
       groups.push(
         TemplateVariablesCatalog.seriesLabelsGroup(input.seriesAttributeKeys),
@@ -405,6 +410,57 @@ export default class TemplateVariablesCatalog {
           ],
         };
 
+      case MonitorType.DNSSEC:
+        return {
+          title: "DNSSEC",
+          variables: [
+            {
+              key: "isOnline",
+              description: "True if the DNSSEC check completed.",
+            },
+            { key: "domainName", description: "Zone queried." },
+            {
+              key: "isZoneSigned",
+              description: "True if any DNSKEY records exist for the zone.",
+            },
+            {
+              key: "isParentDsPresent",
+              description: "True if DS records exist at the parent zone.",
+            },
+            {
+              key: "isChainValid",
+              description:
+                "True if DNSKEY, DS, RRSIG, and resolver AD-flag all check out.",
+            },
+            {
+              key: "resolverConsensusAd",
+              description:
+                "True if every configured resolver returned the AD flag.",
+            },
+            {
+              key: "isNameserverConsistent",
+              description:
+                "True if every authoritative nameserver returned the same SOA serial.",
+            },
+            {
+              key: "earliestSignatureExpiration",
+              description: "Earliest RRSIG expiration timestamp (ISO).",
+            },
+            {
+              key: "daysUntilSignatureExpiry",
+              description: "Days until the earliest RRSIG expires.",
+            },
+            { key: "dnskeyCount", description: "Number of DNSKEY records." },
+            {
+              key: "dsRecordCount",
+              description: "Number of DS records at the parent.",
+            },
+            { key: "rrsigCount", description: "Number of RRSIG records seen." },
+            { key: "responseTimeInMs", description: "Total check duration." },
+            { key: "failureCause", description: "Failure reason." },
+          ],
+        };
+
       case MonitorType.ExternalStatusPage:
         return {
           title: "External Status Page",
@@ -420,7 +476,20 @@ export default class TemplateVariablesCatalog {
             },
             {
               key: "componentStatuses",
-              description: "Array of {name, status, description}.",
+              description: "Array of {name, status, description, groupName}.",
+            },
+            {
+              key: "provider",
+              description:
+                "Detected provider (Atlassian Statuspage, incident.io, RSS, Atom).",
+            },
+            {
+              key: "componentGroup",
+              description: "Component group this monitor is scoped to, if any.",
+            },
+            {
+              key: "componentName",
+              description: "Component this monitor is scoped to, if any.",
             },
             {
               key: "isOnline",
@@ -434,6 +503,11 @@ export default class TemplateVariablesCatalog {
       case MonitorType.Metrics:
       case MonitorType.Kubernetes:
       case MonitorType.Docker:
+      case MonitorType.Host:
+      case MonitorType.Podman:
+      case MonitorType.DockerSwarm:
+      case MonitorType.Proxmox:
+      case MonitorType.Ceph:
         return {
           title: "Metric",
           variables: [

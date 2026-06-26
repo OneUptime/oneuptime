@@ -8,6 +8,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import SslMonitorResponse from "Common/Types/Monitor/SSLMonitor/SslMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import ObjectUtil from "Common/Utils/ObjectUtil";
@@ -20,6 +21,8 @@ export interface SslResponse extends SslMonitorResponse {
   isOnline: boolean;
   failureCause: string;
   isTimeout?: boolean | undefined;
+  probeAttempts?: Array<ProbeAttempt> | undefined;
+  totalAttempts?: number | undefined;
 }
 
 export interface SSLMonitorOptions {
@@ -28,6 +31,7 @@ export interface SSLMonitorOptions {
   currentRetryCount?: number | undefined;
   monitorId?: ObjectID | undefined;
   isOnlineCheckRequest?: boolean | undefined;
+  attempts?: Array<ProbeAttempt> | undefined;
 }
 
 export default class SSLMonitor {
@@ -45,12 +49,17 @@ export default class SSLMonitor {
       pingOptions.currentRetryCount = 1;
     }
 
+    if (!pingOptions.attempts) {
+      pingOptions.attempts = [];
+    }
+
     logger.debug(
       `Pinging host: ${pingOptions?.monitorId?.toString()} ${url.toString()} - Retry: ${
         pingOptions?.currentRetryCount
       }`,
     );
 
+    const attemptedAt: Date = new Date();
     try {
       const res: SslResponse = await this.getSslMonitorResponse(
         url.hostname.hostname,
@@ -62,6 +71,18 @@ export default class SSLMonitor {
       );
       logger.debug(res);
 
+      const responseReceivedAt: Date = new Date();
+      pingOptions.attempts.push({
+        attemptNumber: pingOptions.currentRetryCount,
+        attemptedAt,
+        responseReceivedAt,
+        responseTimeInMs: responseReceivedAt.getTime() - attemptedAt.getTime(),
+        isOnline: res.isOnline,
+        failureCause: res.isOnline ? undefined : res.failureCause,
+      });
+
+      res.probeAttempts = pingOptions.attempts;
+      res.totalAttempts = pingOptions.attempts.length;
       return res;
     } catch (err: unknown) {
       logger.debug(
@@ -76,6 +97,20 @@ export default class SSLMonitor {
       if (!pingOptions.currentRetryCount) {
         pingOptions.currentRetryCount = 0;
       }
+
+      if (!pingOptions.attempts) {
+        pingOptions.attempts = [];
+      }
+
+      const responseReceivedAt: Date = new Date();
+      pingOptions.attempts.push({
+        attemptNumber: pingOptions.currentRetryCount || 1,
+        attemptedAt,
+        responseReceivedAt,
+        responseTimeInMs: responseReceivedAt.getTime() - attemptedAt.getTime(),
+        isOnline: false,
+        failureCause: API.getFriendlyErrorMessage(err as Error),
+      });
 
       if (pingOptions.currentRetryCount < (pingOptions.retry || 5)) {
         pingOptions.currentRetryCount++;
@@ -109,6 +144,8 @@ export default class SSLMonitor {
             "Request was tried " +
             pingOptions.currentRetryCount +
             " times and it timed out.",
+          probeAttempts: pingOptions.attempts,
+          totalAttempts: pingOptions.attempts.length,
         };
       }
 
@@ -123,6 +160,8 @@ export default class SSLMonitor {
         isOnline: false,
         isTimeout: false,
         failureCause: API.getFriendlyErrorMessage(err as Error),
+        probeAttempts: pingOptions.attempts,
+        totalAttempts: pingOptions.attempts.length,
       };
     }
   }

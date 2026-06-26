@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/public-dashboard",
-  "version": "0.1.0",
+  "version": "11.3.6",
   "private": false,
   "repository": {
     "type": "git",
@@ -33,7 +33,6 @@
   },
   "dependencies": {
     "Common": "file:../../../Common",
-
     "ejs": "^3.1.10",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -45,8 +44,7 @@
     "@types/react": "^18.2.38",
     "@types/react-dom": "^18.0.4",
     "@types/react-router-dom": "^5.3.3",
-    "nodemon": "^2.0.20",
-
+    "nodemon": "^3.1.14",
     "ts-node": "^10.9.1"
   }
 }

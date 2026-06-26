@@ -5,6 +5,7 @@ export interface SubscribePageProps extends PageComponentProps {
   enableSMSSubscribers: boolean;
   enableSlackSubscribers: boolean;
   enableMicrosoftTeamsSubscribers: boolean;
+  enableWebhookSubscribers: boolean;
   allowSubscribersToChooseResources: boolean;
   allowSubscribersToChooseEventTypes: boolean;
 }

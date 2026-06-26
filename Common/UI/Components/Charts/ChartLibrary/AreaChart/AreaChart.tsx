@@ -562,6 +562,15 @@ interface AreaChartProps extends React.HTMLAttributes<HTMLDivElement> {
   referenceLines?: Array<ChartReferenceLineProps> | undefined;
   formattedExemplarPoints?: Array<FormattedExemplarPoint> | undefined;
   onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
+  /**
+   * Render a shaded "expected range" band underneath the data lines.
+   * Both keys must already be present on every entry of `data` (the
+   * caller is responsible for merging baseline values into the data
+   * array — keeps band fetch decoupled from chart rendering). Omitted
+   * → no band.
+   */
+  anomalyBandLowerKey?: string | undefined;
+  anomalyBandUpperKey?: string | undefined;
 }
 
 const AreaChart: React.ForwardRefExoticComponent<
@@ -680,7 +689,7 @@ const AreaChart: React.ForwardRefExoticComponent<
     }
 
     return (
-      <div ref={ref} className={cx("h-80 w-full", className)} {...other}>
+      <div ref={ref} className={cx("flex-1 w-full", className)} {...other}>
         <ResponsiveContainer>
           <RechartsAreaChart
             data={data}
@@ -695,7 +704,11 @@ const AreaChart: React.ForwardRefExoticComponent<
                 : () => {}
             }
             margin={{
-              bottom: (xAxisLabel ? 30 : 8) as unknown as number,
+              bottom: (xAxisLabel
+                ? 40
+                : showXAxis
+                  ? 24
+                  : 8) as unknown as number,
               left: (yAxisLabel ? 20 : 0) as unknown as number,
               right: (yAxisLabel ? 5 : 8) as unknown as number,
               top: 5,
@@ -874,6 +887,33 @@ const AreaChart: React.ForwardRefExoticComponent<
                     yAxisWidth,
                   );
                 }}
+              />
+            ) : null}
+            {props.anomalyBandLowerKey && props.anomalyBandUpperKey ? (
+              <Area
+                key="__anomaly_band__"
+                name="Expected range"
+                type={props.curve || ChartCurve.MONOTONE}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                dataKey={(d: Record<string, any>): [number, number] | null => {
+                  const low: number = Number(d[props.anomalyBandLowerKey!]);
+                  const high: number = Number(d[props.anomalyBandUpperKey!]);
+                  if (!Number.isFinite(low) || !Number.isFinite(high)) {
+                    return null;
+                  }
+                  return [low, high];
+                }}
+                stroke="#94a3b8"
+                strokeOpacity={0.3}
+                strokeWidth={1}
+                strokeDasharray="3 3"
+                fill="#94a3b8"
+                fillOpacity={0.12}
+                isAnimationActive={false}
+                connectNulls={false}
+                activeDot={false}
+                dot={false}
+                legendType="none"
               />
             ) : null}
             {categories.map((category: string) => {

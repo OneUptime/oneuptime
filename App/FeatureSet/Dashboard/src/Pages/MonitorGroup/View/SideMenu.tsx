@@ -81,6 +81,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       items: [
         {
           link: {
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITOR_GROUP_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          },
+          icon: IconProp.List,
+        },
+        {
+          link: {
             title: "Delete Group",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.MONITOR_GROUP_VIEW_DELETE] as Route,

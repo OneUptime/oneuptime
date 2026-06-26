@@ -31,6 +31,7 @@ import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
@@ -174,6 +175,21 @@ RunCron(
       );
 
       try {
+        /*
+         * Pre-compute markdown conversions for announcement.description once
+         * per announcement. These values do not vary per status page or per
+         * subscriber, so memoizing here avoids N redundant markdown parses
+         * during fan-out (the HTML version was previously recomputed inside
+         * the per-subscriber loop).
+         */
+        const announcementDescriptionHtml: string =
+          await Markdown.convertToHTML(
+            announcement.description || "",
+            MarkdownContentType.Email,
+          );
+        const announcementDescriptionPlainText: string =
+          Markdown.convertToPlainText(announcement.description || "");
+
         let notificationSentToAtLeastOneSubscriber: boolean = false;
 
         for (const statuspage of statusPages) {
@@ -361,9 +377,7 @@ RunCron(
                       statusPageUrl: statusPageURL,
                       detailsUrl: announcementDetailsUrl,
                       announcementTitle: announcement.title || "",
-                      announcementDescription: Markdown.convertToPlainText(
-                        announcement.description || "",
-                      ),
+                      announcementDescription: announcementDescriptionPlainText,
                       unsubscribeUrl: unsubscribeUrl,
                     };
                     smsMessage =
@@ -474,19 +488,42 @@ RunCron(
                   });
                 }
 
+                if (subscriber.subscriberWebhook) {
+                  logger.debug(
+                    `Queueing webhook notification to subscriber ${subscriber._id} for announcement ${announcement.id}.`,
+                  );
+
+                  StatusPageSubscriberWebhookUtil.sendWebhookNotification({
+                    webhookUrl: subscriber.subscriberWebhook,
+                    payload: {
+                      eventType: "AnnouncementCreated",
+                      statusPageId: statuspage.id!.toString(),
+                      statusPageName: statusPageName,
+                      statusPageUrl: statusPageURL,
+                      unsubscribeUrl: unsubscribeUrl,
+                      data: {
+                        announcementId: announcement.id?.toString() || "",
+                        announcementTitle: announcement.title || "",
+                        announcementDescription: announcement.description || "",
+                        detailsUrl: announcementDetailsUrl,
+                      },
+                    },
+                  }).catch((err: Error) => {
+                    logger.error(err);
+                  });
+                }
+
                 if (subscriber.subscriberEmail) {
                   // send email here.
                   logger.debug(
                     `Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail} for announcement ${announcement.id}.`,
                   );
 
-                  // Prepare email content - use custom template if available
-                  const announcementDescriptionHtml: string =
-                    await Markdown.convertToHTML(
-                      announcement.description || "",
-                      MarkdownContentType.Email,
-                    );
-
+                  /*
+                   * Prepare email content - use custom template if available.
+                   * announcementDescriptionHtml is memoized at the per-announcement
+                   * scope above; reusing it here.
+                   */
                   let emailSubject: string =
                     "[Announcement] " + announcement.title;
 

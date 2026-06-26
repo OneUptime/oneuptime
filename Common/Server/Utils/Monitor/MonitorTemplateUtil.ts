@@ -19,6 +19,7 @@ import DnsMonitorResponse, {
   DnsRecordResponse,
 } from "../../../Types/Monitor/DnsMonitor/DnsMonitorResponse";
 import DomainMonitorResponse from "../../../Types/Monitor/DomainMonitor/DomainMonitorResponse";
+import DnssecMonitorResponse from "../../../Types/Monitor/DnssecMonitor/DnssecMonitorResponse";
 import ExternalStatusPageMonitorResponse, {
   ExternalStatusPageComponentStatus,
 } from "../../../Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
@@ -332,10 +333,39 @@ export default class MonitorTemplateUtil {
         } as JSONObject;
       }
 
+      if (data.monitorType === MonitorType.DNSSEC) {
+        const dnssecResponse: DnssecMonitorResponse | undefined = (
+          data.dataToProcess as ProbeMonitorResponse
+        ).dnssecResponse;
+
+        storageMap = {
+          isOnline: (data.dataToProcess as ProbeMonitorResponse).isOnline,
+          responseTimeInMs: dnssecResponse?.responseTimeInMs,
+          failureCause: dnssecResponse?.failureCause,
+          domainName: dnssecResponse?.domainName,
+          isZoneSigned: dnssecResponse?.isZoneSigned,
+          isParentDsPresent: dnssecResponse?.isParentDsPresent,
+          isChainValid: dnssecResponse?.isChainValid,
+          resolverConsensusAd: dnssecResponse?.resolverConsensusAd,
+          isNameserverConsistent: dnssecResponse?.isNameserverConsistent,
+          earliestSignatureExpiration:
+            dnssecResponse?.earliestSignatureExpiration,
+          daysUntilSignatureExpiry: dnssecResponse?.daysUntilSignatureExpiry,
+          dnskeyCount: dnssecResponse?.dnskeys?.length,
+          dsRecordCount: dnssecResponse?.parentDsRecords?.length,
+          rrsigCount: dnssecResponse?.rrsigs?.length,
+        } as JSONObject;
+      }
+
       if (
         data.monitorType === MonitorType.Metrics ||
         data.monitorType === MonitorType.Kubernetes ||
-        data.monitorType === MonitorType.Docker
+        data.monitorType === MonitorType.Docker ||
+        data.monitorType === MonitorType.Host ||
+        data.monitorType === MonitorType.Podman ||
+        data.monitorType === MonitorType.DockerSwarm ||
+        data.monitorType === MonitorType.Proxmox ||
+        data.monitorType === MonitorType.Ceph
       ) {
         const metricResponse: MetricMonitorResponse =
           data.dataToProcess as MetricMonitorResponse;
@@ -369,6 +399,9 @@ export default class MonitorTemplateUtil {
           failureCause: externalStatusPageResponse?.failureCause,
           overallStatus: externalStatusPageResponse?.overallStatus,
           activeIncidentCount: externalStatusPageResponse?.activeIncidentCount,
+          provider: externalStatusPageResponse?.provider,
+          componentGroup: externalStatusPageResponse?.componentGroupName,
+          componentName: externalStatusPageResponse?.componentName,
         } as JSONObject;
 
         // Add component statuses
@@ -380,6 +413,7 @@ export default class MonitorTemplateUtil {
                   name: component.name,
                   status: component.status,
                   description: component.description,
+                  groupName: component.groupName,
                 };
               },
             );

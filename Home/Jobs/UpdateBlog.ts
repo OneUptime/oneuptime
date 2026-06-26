@@ -19,6 +19,15 @@ BasicCron({
       repoPath: BlogRootPath,
     });
     BlogPostUtil.clearAllCaches();
+    /*
+     * Warm git-history contributors in the background (off the request path) so
+     * the first /blog hit doesn't pay the ~60s+ full-history `git log`. Bounded
+     * internally; fire-and-forget so the pull/cache-clear stays snappy.
+     */
+    BlogPostUtil.warmContributors().catch((err: unknown) => {
+      logger.debug("UpdateBlog: contributor warm failed");
+      logger.debug(err);
+    });
     logger.debug("UpdateBlog: End", { service: "home", job: "UpdateBlog" });
   },
 });

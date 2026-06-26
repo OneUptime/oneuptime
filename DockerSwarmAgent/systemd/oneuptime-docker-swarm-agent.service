@@ -1,0 +1,20 @@
+[Unit]
+Description=OneUptime Docker Swarm Agent (OpenTelemetry Collector + inventory poller)
+Documentation=https://oneuptime.com/docs/telemetry/docker-swarm
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/oneuptime-docker-swarm-agent
+ExecStartPre=/usr/bin/docker compose pull
+ExecStart=/usr/bin/docker compose up --remove-orphans
+ExecStop=/usr/bin/docker compose down
+Restart=on-failure
+RestartSec=30
+TimeoutStartSec=120
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

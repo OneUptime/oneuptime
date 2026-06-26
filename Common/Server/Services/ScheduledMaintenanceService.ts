@@ -49,8 +49,12 @@ import Protocol from "../../Types/API/Protocol";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
+import ScheduledMaintenanceLabelRuleEngineService from "./ScheduledMaintenanceLabelRuleEngineService";
+import ScheduledMaintenanceOwnerRuleEngineService from "./ScheduledMaintenanceOwnerRuleEngineService";
+import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import StatusPageSubscriberWebhookUtil from "../Utils/StatusPageSubscriberWebhook";
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
@@ -325,6 +329,39 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
             SlackUtil.sendMessageToChannelViaIncomingWebhook({
               url: subscriber.slackIncomingWebhookUrl,
               text: SlackUtil.convertMarkdownToSlackRichText(slackMessage),
+            }).catch((err: Error) => {
+              logger.error(err, {
+                projectId: statuspage.projectId?.toString(),
+              } as LogAttributes);
+            });
+          }
+
+          if (subscriber.subscriberWebhook) {
+            StatusPageSubscriberWebhookUtil.sendWebhookNotification({
+              webhookUrl: subscriber.subscriberWebhook,
+              payload: {
+                eventType: "ScheduledMaintenanceCreated",
+                statusPageId: statuspage.id!.toString(),
+                statusPageName: statusPageName,
+                statusPageUrl: statusPageURL,
+                unsubscribeUrl: unsubscribeUrl,
+                data: {
+                  scheduledMaintenanceId: event.id?.toString() || "",
+                  scheduledMaintenanceTitle: event.title || "",
+                  scheduledMaintenanceDescription: event.description || "",
+                  scheduledStartTime:
+                    OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                      event.startsAt!,
+                    ),
+                  scheduledEndTime: event.endsAt
+                    ? OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                        event.endsAt,
+                      )
+                    : "",
+                  resourcesAffected: resourcesAffected,
+                  detailsUrl: scheduledEventDetailsUrl,
+                },
+              },
             }).catch((err: Error) => {
               logger.error(err, {
                 projectId: statuspage.projectId?.toString(),
@@ -899,6 +936,53 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
             } as LogAttributes,
           );
           return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        // Apply owner rules: add matched owner users/teams to the event.
+        try {
+          await ScheduledMaintenanceOwnerRuleEngineService.applyRulesToScheduledMaintenance(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply scheduled maintenance owner rules failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              scheduledMaintenanceId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        // Apply label rules: attach matched (and optionally inherited monitor) labels to the event.
+        try {
+          await ScheduledMaintenanceLabelRuleEngineService.applyRulesToScheduledMaintenance(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply scheduled maintenance label rules failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              scheduledMaintenanceId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        try {
+          await RunbookRuleEngineService.applyRulesToScheduledMaintenance(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply runbook rules failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              scheduledMaintenanceId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
         }
       })
       .catch((error: Error) => {

@@ -23,10 +23,125 @@ data:
           - node
           - pod
           - container
+          {{- if .Values.kubeletstats.volumeMetrics.enabled }}
+          - volume
+          {{- end }}
         extra_metadata_labels:
           - container.id
         k8s_api_config:
           auth_type: serviceAccount
+        {{- if .Values.kubeletstats.utilizationMetrics.enabled }}
+        # Saturation metrics — CPU/memory as a percentage of pod
+        # limit/request. All disabled by default in the upstream
+        # kubeletstats receiver because they require pod limits/requests
+        # set; enabling them adds no extra scrape, just derived metric
+        # families from data the receiver already collects.
+        #
+        # The receiver only exposes request/limit utilization at the
+        # container and pod level — there is no node-level
+        # `k8s.node.*.request_utilization` metric in any receiver
+        # version (it's a pod-scheduling ratio, not a kubelet stat).
+        # Node request saturation is derived downstream from
+        # pod/container requests vs. node allocatable.
+        metrics:
+          k8s.container.cpu_limit_utilization:
+            enabled: true
+          k8s.container.cpu_request_utilization:
+            enabled: true
+          k8s.container.memory_limit_utilization:
+            enabled: true
+          k8s.container.memory_request_utilization:
+            enabled: true
+          k8s.pod.cpu_limit_utilization:
+            enabled: true
+          k8s.pod.cpu_request_utilization:
+            enabled: true
+          k8s.pod.memory_limit_utilization:
+            enabled: true
+          k8s.pod.memory_request_utilization:
+            enabled: true
+        {{- end }}
+
+      {{- if .Values.cadvisor.enabled }}
+      # Scrape this node's kubelet cAdvisor endpoint for container-level
+      # metrics that the kubeletstats receiver doesn't translate (CFS
+      # throttling, OOM kills). One scrape per node (DaemonSet pod →
+      # local kubelet on NODE_IP:10250), no apiserver load.
+      #
+      # `metric_relabel_configs` drops everything except the configured
+      # allowlist at the receiver — cAdvisor exposes hundreds of metrics
+      # by default, so without this the per-container cardinality would
+      # balloon the collector's memory and the OneUptime metric store.
+      prometheus/cadvisor:
+        config:
+          scrape_configs:
+            - job_name: cadvisor
+              scrape_interval: {{ .Values.cadvisor.scrapeInterval }}
+              scheme: https
+              metrics_path: /metrics/cadvisor
+              tls_config:
+                insecure_skip_verify: true
+              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+              static_configs:
+                - targets:
+                    - "${env:NODE_IP}:10250"
+              metric_relabel_configs:
+                - source_labels: [__name__]
+                  regex: "^({{ join "|" .Values.cadvisor.metricsAllowlist }})$"
+                  action: keep
+      {{- end }}
+
+      {{- if .Values.hostMetrics.enabled }}
+      # OS-level metrics that kubeletstats doesn't surface: disk I/O
+      # queue depth, filesystem inode usage, NIC error counters, load
+      # average, paging stats. Reads /proc and /sys directly (mounted
+      # under /host).
+      hostmetrics:
+        collection_interval: {{ .Values.hostMetrics.collectionInterval }}
+        root_path: /host
+        scrapers:
+          cpu:
+          load:
+          memory:
+          disk:
+          filesystem:
+            include_fs_types:
+              fs_types: [ext4, ext3, ext2, xfs, btrfs, zfs]
+              match_type: strict
+          network:
+          paging:
+          processes:
+      {{- end }}
+
+      {{- if .Values.auditLogs.enabled }}
+      # Kubernetes API server audit log. Self-managed clusters only;
+      # managed K8s (EKS / GKE / AKS / DOKS) routes audit logs to the
+      # cloud provider's sink instead of writing them to a file.
+      filelog/audit:
+        include:
+          {{- range .Values.auditLogs.paths }}
+          - {{ . | quote }}
+          {{- end }}
+        start_at: end
+        include_file_path: true
+        operators:
+          - type: json_parser
+            id: parse-audit-json
+            on_error: send
+          - type: severity_parser
+            parse_from: attributes.level
+            mapping:
+              warn: warning
+              error: ["panic", "error"]
+              info: ["request", "requestresponse", "metadata"]
+              debug: ["none"]
+          - type: add
+            field: resource["k8s.cluster.name"]
+            value: {{ .Values.clusterName | quote }}
+          - type: add
+            field: resource["service.name"]
+            value: "kubernetes-audit"
+      {{- end }}
 
       # Collect pod logs from /var/log/pods
       filelog:
@@ -80,7 +195,67 @@ data:
           - type: move
             from: attributes.log
             to: body
+          {{- if and .Values.ebpf.enabled .Values.ebpf.logToTraceCorrelation }}
+          # OBI's log enricher zeroes out the original stdout buffer with
+          # NULs (then re-emits the enriched line separately), so each
+          # intercepted write leaves a placeholder line of NULs/whitespace
+          # in the container log file. Drop those — the real enriched
+          # line still comes through.
+          - type: filter
+            id: drop-obi-nul-placeholder
+            expr: 'body matches "^[\\x00\\s]*$"'
+          # Log ↔ trace correlation. OBI re-emits enriched JSON log lines
+          # with `{"trace_id": "...", "span_id": "..."}` fields injected.
+          # Pre-filter on the substring so we only run JSON parse on lines
+          # that have a chance of containing trace context; the default
+          # branch skips straight to the next normal operator. We stash
+          # the parsed JSON under `attributes._obi`, lift trace_id /
+          # span_id onto the LogRecord, then drop the temp attribute.
+          - type: router
+            id: ebpf-trace-route
+            routes:
+              - output: parse-ebpf-trace-json
+                expr: 'body matches "\"trace_id\""'
+            default: recombine-multiline
+          - type: json_parser
+            id: parse-ebpf-trace-json
+            parse_from: body
+            parse_to: attributes._obi
+            on_error: send
+            output: lift-obi-trace-context
+          - type: trace_parser
+            id: lift-obi-trace-context
+            trace_id:
+              parse_from: attributes._obi.trace_id
+            span_id:
+              parse_from: attributes._obi.span_id
+            output: cleanup-obi-attrs
+          - type: remove
+            id: cleanup-obi-attrs
+            field: attributes._obi
+            output: recombine-multiline
+          {{- end }}
+          # Container runtimes write one log entry per newline, so a multi-line
+          # event (a Java/Python/Node/.NET stack trace, a pretty-printed JSON
+          # blob) arrives as many separate records and renders as many separate
+          # lines on the OneUptime Logs page. Recombine continuation lines back
+          # into the record they belong to so each exception is a single log.
+          # A line starts a new record unless it begins with whitespace or a
+          # closing bracket/brace/paren, which covers stack frames and wrapped
+          # structured output. source_identifier keys on the per-container log
+          # file path so records from different pods/containers never merge.
+          # This mirrors the recombine operator the Docker agent already ships.
+          - type: recombine
+            id: recombine-multiline
+            output: move-stream
+            combine_field: body
+            combine_with: "\n"
+            is_first_entry: 'body matches "^[^\\s\\}\\)\\]]"'
+            source_identifier: attributes["log.file.path"]
+            force_flush_period: 5s
+            max_log_size: 1048576
           - type: move
+            id: move-stream
             from: attributes.stream
             to: attributes["log.iostream"]
           - type: move
@@ -173,7 +348,10 @@ data:
           - sources:
               - from: connection
 
-      # Stamp with cluster name and default service name
+      # Stamp with cluster name and default service name. Any keys under
+      # .Values.oneuptime.labels are also stamped here as
+      # `oneuptime.label.<key>=<value>` resource attributes — the OneUptime
+      # ingest pipeline promotes those into project Labels.
       resource:
         attributes:
           - key: k8s.cluster.name
@@ -182,6 +360,10 @@ data:
           - key: service.name
             value: "kubernetes-agent-{{ .Values.clusterName }}"
             action: upsert
+          - key: oneuptime.agent.version
+            value: {{ .Chart.AppVersion | quote }}
+            action: upsert
+          {{- include "kubernetes-agent.oneuptimeLabels" (dict "labels" .Values.oneuptime.labels "action" "upsert") | nindent 10 }}
 
       # Set service.name from deployment/statefulset/daemonset name when available
       transform:
@@ -202,16 +384,44 @@ data:
         send_batch_size: 1024
         timeout: 10s
 
+      # Memory ceiling for the collector. limit_mib / spike_limit_mib are
+      # derived from the container memory limit
+      # (.Values.logs.resources.limits.memory, wired into the DaemonSet at
+      # templates/daemonset.yaml) so the limiter always trips *below* the
+      # cgroup limit — otherwise the kernel OOMKills the pod before the
+      # limiter can shed load. limit_mib ≈ 80% of the container limit,
+      # spike_limit_mib ≈ 20% of limit_mib (OTel guidance). See the
+      # `kubernetes-agent.memoryLimiter` helper.
       memory_limiter:
-        check_interval: 5s
-        limit_mib: 400
-        spike_limit_mib: 100
+        {{- include "kubernetes-agent.memoryLimiter" (.Values.logs.resources.limits.memory | default "512Mi") | nindent 8 }}
 
     exporters:
       otlphttp:
         endpoint: "{{ .Values.oneuptime.url }}/otlp"
         headers:
           x-oneuptime-token: "${env:ONEUPTIME_API_KEY}"
+        # Bound how much un-exported telemetry can buffer in RAM when the
+        # OneUptime backend is slow or unreachable. Without an explicit queue
+        # and retry window the exporter falls back to the OTel defaults
+        # (queue_size 1000, retry for up to 300s), which on this
+        # memory-constrained DaemonSet pod can buffer past the container limit
+        # and get the pod OOMKilled before memory_limiter / GOMEMLIMIT can
+        # react (the original symptom: crashes on backend 502 /
+        # context-deadline-exceeded). A small queue plus a short retry window
+        # sheds (drops) excess logs during an outage instead of crashing; the
+        # pod keeps running and resumes exporting when the backend recovers.
+        # For zero-loss buffering across longer outages, swap this for a
+        # file_storage-backed persistent queue (needs the file_storage
+        # extension and a writable volume).
+        sending_queue:
+          enabled: true
+          num_consumers: 5
+          queue_size: 256
+        retry_on_failure:
+          enabled: true
+          initial_interval: 5s
+          max_interval: 30s
+          max_elapsed_time: 120s
 
     service:
       extensions:
@@ -220,6 +430,12 @@ data:
         metrics:
           receivers:
             - kubeletstats
+            {{- if .Values.cadvisor.enabled }}
+            - prometheus/cadvisor
+            {{- end }}
+            {{- if .Values.hostMetrics.enabled }}
+            - hostmetrics
+            {{- end }}
           processors:
             - memory_limiter
             - k8sattributes
@@ -231,6 +447,9 @@ data:
         logs:
           receivers:
             - filelog
+            {{- if .Values.auditLogs.enabled }}
+            - filelog/audit
+            {{- end }}
           processors:
             - memory_limiter
             - k8sattributes

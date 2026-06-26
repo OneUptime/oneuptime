@@ -1,5 +1,6 @@
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import BillingPermissions from "./BillingPermission";
+import EditionPermissions from "./EditionPermission";
 import PublicPermission from "./PublicPermission";
 import BaseModel, {
   DatabaseBaseModelType,
@@ -55,7 +56,13 @@ export default class TablePermission {
     // 2nd CHECK: Is user project in active state?
     BillingPermissions.checkBillingPermissions(modelType, props, type);
 
-    // 2nd CHECK: Does user have access to CRUD data on this model.
+    /*
+     * 3rd CHECK: Is this an enterprise-only feature being accessed on the
+     * community self-hosted build?
+     */
+    EditionPermissions.checkEditionPermissions(modelType, props);
+
+    // 4th CHECK: Does user have access to CRUD data on this model.
     const userPermissions: Array<UserPermission> =
       DatabaseCommonInteractionPropsUtil.getUserPermissions(
         props,
@@ -65,12 +72,19 @@ export default class TablePermission {
     const modelPermissions: Array<Permission> =
       TablePermission.getTablePermission(modelType, type);
 
+    const effectiveModelPermissions: Array<Permission> =
+      TablePermission.getEffectiveModelPermissions(
+        modelType,
+        modelPermissions,
+        type,
+      );
+
     if (
       !PermissionHelper.doesPermissionsIntersect(
         userPermissions.map((userPermission: UserPermission) => {
           return userPermission.permission;
         }) || [],
-        modelPermissions,
+        effectiveModelPermissions,
       )
     ) {
       const permissions: Array<string> =
@@ -87,6 +101,51 @@ export default class TablePermission {
           new modelType().singularName
         }. You need one of these permissions: ${permissions.join(", ")}`,
       );
+    }
+  }
+
+  /*
+   * Resolves the model's enumerated permissions plus any wildcards that should
+   * grant access. See Internal/Docs/PermissionsSimplification.md.
+   *
+   * Operational-resource wildcard: models marked @OperationalResource also
+   * accept the matching *AllOperationalResources wildcard (ReadAllOperationalResources for read,
+   * EditAllOperationalResources for update, etc.). Scope (All/Owned/Labels) on the
+   * permission row is evaluated in a later step, not here.
+   */
+  private static getEffectiveModelPermissions(
+    modelType: DatabaseBaseModelType,
+    modelPermissions: Array<Permission>,
+    type: DatabaseRequestType,
+  ): Array<Permission> {
+    const effective: Array<Permission> = [...modelPermissions];
+
+    const model: BaseModel = new modelType();
+    if (model.isOperationalResource) {
+      const wildcard: Permission | null =
+        TablePermission.getWildcardPermissionForOperation(type);
+      if (wildcard && !effective.includes(wildcard)) {
+        effective.push(wildcard);
+      }
+    }
+
+    return effective;
+  }
+
+  private static getWildcardPermissionForOperation(
+    type: DatabaseRequestType,
+  ): Permission | null {
+    switch (type) {
+      case DatabaseRequestType.Read:
+        return Permission.ReadAllOperationalResources;
+      case DatabaseRequestType.Update:
+        return Permission.EditAllOperationalResources;
+      case DatabaseRequestType.Delete:
+        return Permission.DeleteAllOperationalResources;
+      case DatabaseRequestType.Create:
+        return Permission.CreateAllOperationalResources;
+      default:
+        return null;
     }
   }
 

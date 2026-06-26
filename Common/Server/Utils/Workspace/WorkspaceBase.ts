@@ -237,6 +237,7 @@ export default class WorkspaceBase {
     authToken: string;
     channelName: string;
     projectId: ObjectID;
+    isPrivate?: boolean;
   }): Promise<WorkspaceChannel> {
     throw new NotImplementedException();
   }

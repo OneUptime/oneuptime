@@ -347,6 +347,23 @@ class UserNotificationSetting extends BaseModel {
     default: false,
   })
   public alertByPush?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [Permission.CurrentUser],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public alertByWebhook?: boolean = undefined;
 }
 
 export default UserNotificationSetting;

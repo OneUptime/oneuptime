@@ -1,3 +1,4 @@
+import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -7,6 +8,8 @@ export interface ComponentProps {
 const PlaceholderText: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const translatedText: string = translateString(props.text) ?? props.text;
   return (
     <span className="inline-flex items-center gap-1.5 text-gray-400 italic text-sm select-none px-2 py-0.5 rounded-md bg-gray-50 border border-dashed border-gray-200">
       <svg
@@ -22,7 +25,7 @@ const PlaceholderText: FunctionComponent<ComponentProps> = (
           d="M20 12H4"
         />
       </svg>
-      {props.text}
+      {translatedText}
     </span>
   );
 };

@@ -1,4 +1,5 @@
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
+import useTranslateValue from "../../Utils/Translation";
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import BulkUpdateForm, {
   BulkActionButtonSchema,
@@ -31,6 +32,11 @@ export interface ComponentProps<T extends GenericObject> {
   onNavigateToPage: (pageNumber: number, itemsOnPage: number) => void;
   currentPageNumber: number;
   totalItemsCount: number;
+  /*
+   * Optional. Forwarded to Pagination. When set, count is a lower
+   * bound and pagination switches to a prev/next-only UI.
+   */
+  hasMore?: boolean | undefined;
   itemsOnPage: number;
   error: string;
   isLoading: boolean;
@@ -84,6 +90,11 @@ type TableFunction = <T extends GenericObject>(
 const Table: TableFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const translatedSingularLabel: string =
+    translateString(props.singularLabel) ?? props.singularLabel;
+  const translatedPluralLabel: string =
+    translateString(props.pluralLabel) ?? props.pluralLabel;
   const isBulkActionsEnabled: boolean | undefined =
     props.bulkActions &&
     props.bulkActions.buttons &&
@@ -156,7 +167,7 @@ const Table: TableFunction = <T extends GenericObject>(
                 message={
                   props.noItemsMessage
                     ? props.noItemsMessage
-                    : `No ${props.singularLabel.toLocaleLowerCase()}`
+                    : `${translateString("No") ?? "No"} ${translatedSingularLabel.toLocaleLowerCase()}`
                 }
                 onRefreshClick={props.onRefreshClick}
               />
@@ -242,8 +253,8 @@ const Table: TableFunction = <T extends GenericObject>(
         filters={props.filters || []}
         onFilterModalClose={props.onFilterModalClose}
         onFilterModalOpen={props.onFilterModalOpen}
-        singularLabel={props.singularLabel}
-        pluralLabel={props.pluralLabel}
+        singularLabel={translatedSingularLabel}
+        pluralLabel={translatedPluralLabel}
         filterData={props.filterData}
         onAdvancedFiltersToggle={props.onAdvancedFiltersToggle}
       />
@@ -259,8 +270,8 @@ const Table: TableFunction = <T extends GenericObject>(
             setIsAllItemsSelected(true);
           }}
           selectedItems={bulkSelectedItems}
-          singularLabel={props.singularLabel}
-          pluralLabel={props.pluralLabel}
+          singularLabel={translatedSingularLabel}
+          pluralLabel={translatedPluralLabel}
           isAllItemsSelected={isAllItemsSelected}
           onActionStart={props.onBulkActionStart}
           onActionEnd={() => {
@@ -324,10 +335,11 @@ const Table: TableFunction = <T extends GenericObject>(
         <div className="bg-gray-50 text-right md:-mx-6 -mb-6 rounded-b-xl">
           {!props.disablePagination && (
             <Pagination
-              singularLabel={props.singularLabel}
-              pluralLabel={props.pluralLabel}
+              singularLabel={translatedSingularLabel}
+              pluralLabel={translatedPluralLabel}
               currentPageNumber={props.currentPageNumber}
               totalItemsCount={props.totalItemsCount}
+              hasMore={props.hasMore}
               itemsOnPage={props.itemsOnPage}
               onNavigateToPage={props.onNavigateToPage}
               isLoading={props.isLoading}

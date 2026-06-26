@@ -92,6 +92,36 @@ const ExceptionsRoutes: React.LazyExoticComponent<
     };
   });
 });
+
+const LlmRoutes: React.LazyExoticComponent<AllRoutesModule["LlmRoutes"]> = lazy(
+  () => {
+    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+      return {
+        default: m.LlmRoutes,
+      };
+    });
+  },
+);
+
+const EntitiesRoutes: React.LazyExoticComponent<
+  AllRoutesModule["EntitiesRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.EntitiesRoutes,
+    };
+  });
+});
+
+const TopologyRoutes: React.LazyExoticComponent<
+  AllRoutesModule["TopologyRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.TopologyRoutes,
+    };
+  });
+});
 const ProfilesRoutes: React.LazyExoticComponent<
   AllRoutesModule["ProfilesRoutes"]
 > = lazy(() => {
@@ -163,6 +193,15 @@ const WorkflowRoutes: React.LazyExoticComponent<
     };
   });
 });
+const RunbookRoutes: React.LazyExoticComponent<
+  AllRoutesModule["RunbookRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.RunbookRoutes,
+    };
+  });
+});
 const StatusPagesRoutes: React.LazyExoticComponent<
   AllRoutesModule["StatusPagesRoutes"]
 > = lazy(() => {
@@ -207,6 +246,49 @@ const DockerRoutes: React.LazyExoticComponent<AllRoutesModule["DockerRoutes"]> =
       };
     });
   });
+const PodmanRoutes: React.LazyExoticComponent<AllRoutesModule["PodmanRoutes"]> =
+  lazy(() => {
+    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+      return {
+        default: m.PodmanRoutes,
+      };
+    });
+  });
+const ProxmoxRoutes: React.LazyExoticComponent<
+  AllRoutesModule["ProxmoxRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.ProxmoxRoutes,
+    };
+  });
+});
+const IoTRoutes: React.LazyExoticComponent<AllRoutesModule["IoTRoutes"]> = lazy(
+  () => {
+    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+      return {
+        default: m.IoTRoutes,
+      };
+    });
+  },
+);
+const DockerSwarmRoutes: React.LazyExoticComponent<
+  AllRoutesModule["DockerSwarmRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.DockerSwarmRoutes,
+    };
+  });
+});
+const CephRoutes: React.LazyExoticComponent<AllRoutesModule["CephRoutes"]> =
+  lazy(() => {
+    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+      return {
+        default: m.CephRoutes,
+      };
+    });
+  });
 const HostRoutes: React.LazyExoticComponent<AllRoutesModule["HostRoutes"]> =
   lazy(() => {
     return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
@@ -215,6 +297,33 @@ const HostRoutes: React.LazyExoticComponent<AllRoutesModule["HostRoutes"]> =
       };
     });
   });
+const ServerlessRoutes: React.LazyExoticComponent<
+  AllRoutesModule["ServerlessRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.ServerlessRoutes,
+    };
+  });
+});
+const CloudResourceRoutes: React.LazyExoticComponent<
+  AllRoutesModule["CloudResourceRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.CloudResourceRoutes,
+    };
+  });
+});
+const RumApplicationRoutes: React.LazyExoticComponent<
+  AllRoutesModule["RumApplicationRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.RumApplicationRoutes,
+    };
+  });
+});
 const CodeRepositoryRoutes: React.LazyExoticComponent<
   AllRoutesModule["CodeRepositoryRoutes"]
 > = lazy(() => {
@@ -251,6 +360,22 @@ const UserSettingsRoutes: React.LazyExoticComponent<
     };
   });
 });
+const UsersRoutes: React.LazyExoticComponent<AllRoutesModule["UsersRoutes"]> =
+  lazy(() => {
+    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+      return {
+        default: m.UsersRoutes,
+      };
+    });
+  });
+const TeamsRoutes: React.LazyExoticComponent<AllRoutesModule["TeamsRoutes"]> =
+  lazy(() => {
+    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+      return {
+        default: m.TeamsRoutes,
+      };
+    });
+  });
 
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
@@ -550,6 +675,12 @@ const App: () => JSX.Element = () => {
             element={<WorkflowRoutes {...commonPageProps} />}
           />
 
+          {/* Runbooks */}
+          <PageRoute
+            path={RouteMap[PageMap.RUNBOOKS_ROOT]?.toString() || ""}
+            element={<RunbookRoutes {...commonPageProps} />}
+          />
+
           {/* Status Pages */}
           <PageRoute
             path={RouteMap[PageMap.STATUS_PAGES_ROOT]?.toString() || ""}
@@ -580,10 +711,58 @@ const App: () => JSX.Element = () => {
             element={<DockerRoutes {...commonPageProps} />}
           />
 
+          {/* Podman */}
+          <PageRoute
+            path={RouteMap[PageMap.PODMAN_ROOT]?.toString() || ""}
+            element={<PodmanRoutes {...commonPageProps} />}
+          />
+
+          {/* Proxmox */}
+          <PageRoute
+            path={RouteMap[PageMap.PROXMOX_ROOT]?.toString() || ""}
+            element={<ProxmoxRoutes {...commonPageProps} />}
+          />
+
+          {/* IoT */}
+          <PageRoute
+            path={RouteMap[PageMap.IOT_ROOT]?.toString() || ""}
+            element={<IoTRoutes {...commonPageProps} />}
+          />
+
+          {/* Docker Swarm */}
+          <PageRoute
+            path={RouteMap[PageMap.DOCKER_SWARM_ROOT]?.toString() || ""}
+            element={<DockerSwarmRoutes {...commonPageProps} />}
+          />
+
+          {/* Ceph */}
+          <PageRoute
+            path={RouteMap[PageMap.CEPH_ROOT]?.toString() || ""}
+            element={<CephRoutes {...commonPageProps} />}
+          />
+
           {/* Hosts */}
           <PageRoute
             path={RouteMap[PageMap.HOST_ROOT]?.toString() || ""}
             element={<HostRoutes {...commonPageProps} />}
+          />
+
+          {/* Serverless Functions */}
+          <PageRoute
+            path={RouteMap[PageMap.SERVERLESS_ROOT]?.toString() || ""}
+            element={<ServerlessRoutes {...commonPageProps} />}
+          />
+
+          {/* Cloud Resources */}
+          <PageRoute
+            path={RouteMap[PageMap.CLOUD_ROOT]?.toString() || ""}
+            element={<CloudResourceRoutes {...commonPageProps} />}
+          />
+
+          {/* Real User Monitoring */}
+          <PageRoute
+            path={RouteMap[PageMap.RUM_ROOT]?.toString() || ""}
+            element={<RumApplicationRoutes {...commonPageProps} />}
           />
 
           {/* Code Repository */}
@@ -612,6 +791,18 @@ const App: () => JSX.Element = () => {
               ""
             }
             element={<ScheduledMaintenanceEventsRoutes {...commonPageProps} />}
+          />
+
+          {/* Users Routes (top-level) */}
+          <PageRoute
+            path={RouteMap[PageMap.USERS_ROOT]?.toString() || ""}
+            element={<UsersRoutes {...commonPageProps} />}
+          />
+
+          {/* Teams Routes (top-level) */}
+          <PageRoute
+            path={RouteMap[PageMap.TEAMS_ROOT]?.toString() || ""}
+            element={<TeamsRoutes {...commonPageProps} />}
           />
 
           {/* Settings Routes */}
@@ -793,6 +984,27 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.EXCEPTIONS_ROOT]?.toString() || ""}
             element={<ExceptionsRoutes {...commonPageProps} />}
+          />
+
+          {/** AI / LLM Observability */}
+
+          <PageRoute
+            path={RouteMap[PageMap.LLM_ROOT]?.toString() || ""}
+            element={<LlmRoutes {...commonPageProps} />}
+          />
+
+          {/** Entities (entity explorer) */}
+
+          <PageRoute
+            path={RouteMap[PageMap.ENTITIES_ROOT]?.toString() || ""}
+            element={<EntitiesRoutes {...commonPageProps} />}
+          />
+
+          {/** Topology (service map) */}
+
+          <PageRoute
+            path={RouteMap[PageMap.TOPOLOGY_ROOT]?.toString() || ""}
+            element={<TopologyRoutes {...commonPageProps} />}
           />
 
           {/* 👇️ only match this when no other routes match */}

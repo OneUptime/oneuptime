@@ -4,6 +4,7 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -46,7 +47,8 @@ export enum OnCallDutyPolicyFeedEventType {
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.OnCallManager,
+    Permission.OnCallAdmin,
+    Permission.OnCallMember,
     Permission.CreateOnCallDutyPolicyFeed,
   ],
   read: [
@@ -54,9 +56,10 @@ export enum OnCallDutyPolicyFeedEventType {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.OnCallManager,
+    Permission.OnCallAdmin,
+    Permission.OnCallMember,
+    Permission.OnCallViewer,
     Permission.ReadOnCallDutyPolicyFeed,
-    Permission.ReadAllProjectResources,
   ],
   delete: [],
   update: [],
@@ -68,6 +71,7 @@ export enum OnCallDutyPolicyFeedEventType {
   read: true,
 })
 @CrudApiEndpoint(new Route("/on-call-duty-policy-feed"))
+@OwnedThrough("onCallDutyPolicyId", OnCallDutyPolicy)
 @Entity({
   name: "OnCallDutyPolicyFeed",
 })
@@ -85,7 +89,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyFeed,
     ],
     read: [
@@ -93,9 +98,10 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -126,7 +132,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyFeed,
     ],
     read: [
@@ -134,9 +141,10 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -161,7 +169,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyFeed,
     ],
     read: [
@@ -169,9 +178,10 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -202,7 +212,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyFeed,
     ],
     read: [
@@ -210,9 +221,10 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -237,7 +249,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyFeed,
     ],
     read: [
@@ -245,9 +258,10 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -279,7 +293,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyFeed,
     ],
     read: [
@@ -287,9 +302,10 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -360,7 +376,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyFeed,
     ],
     read: [
@@ -368,9 +385,10 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -394,7 +412,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyFeed,
     ],
     read: [
@@ -402,9 +421,10 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -428,7 +448,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyFeed,
     ],
     read: [
@@ -436,9 +457,10 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -462,7 +484,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateOnCallDutyPolicyFeed,
     ],
     read: [
@@ -470,9 +493,10 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -497,7 +521,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateScheduledMaintenanceFeed,
     ],
     read: [
@@ -505,9 +530,10 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -539,7 +565,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateScheduledMaintenanceFeed,
     ],
     read: [
@@ -547,9 +574,10 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -572,7 +600,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
       Permission.CreateScheduledMaintenanceFeed,
     ],
     read: [
@@ -580,9 +609,10 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.OnCallManager,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

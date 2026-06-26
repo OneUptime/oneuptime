@@ -14,7 +14,8 @@ import ObjectID from "Common/Types/ObjectID";
  *
  * Runs every 5 minutes. Two steps:
  *   1. Mark clusters as disconnected if they have not been seen for
- *      5 minutes (existing KubernetesClusterService method).
+ *      15 minutes (existing KubernetesClusterService method; 3x the
+ *      ingest maintenance fence TTL so healthy clusters never flap).
  *   2. For each CONNECTED cluster, hard-delete KubernetesResource
  *      rows whose last snapshot is older than the stale threshold
  *      (default 15 minutes = 3x snapshot interval).
@@ -55,6 +56,7 @@ RunCron(
           },
           select: {
             _id: true,
+            lastSeenAt: true,
           },
           skip: 0,
           limit: LIMIT_MAX,
@@ -65,8 +67,6 @@ RunCron(
         return;
       }
 
-      const cutoff: Date = KubernetesResourceService.getStaleThresholdDate();
-
       let totalDeleted: number = 0;
       let totalContainersDeleted: number = 0;
       for (const cluster of connectedClusters) {
@@ -75,6 +75,21 @@ RunCron(
         }
 
         const clusterId: ObjectID = new ObjectID(cluster._id.toString());
+
+        /*
+         * Anchor the prune cutoff to the cluster's own lastSeenAt, not
+         * wall-clock now. Resource rows refresh on the 5-minute
+         * snapshot clock while cluster.lastSeenAt is fence-gated
+         * telemetry, so at agent death the rows are ~5 minutes staler
+         * than the cluster record. With the disconnect threshold
+         * (15 min) equal to the prune threshold, a wall-clock cutoff
+         * would let a cron run during minutes ~10-15 of an outage wipe
+         * the last-known inventory of a still-"connected" cluster.
+         * Anchoring to lastSeenAt freezes the cutoff during an outage.
+         */
+        const cutoff: Date = KubernetesResourceService.getStaleThresholdDate(
+          cluster.lastSeenAt || undefined,
+        );
 
         try {
           const deleted: number =
@@ -105,7 +120,7 @@ RunCron(
 
       if (totalDeleted > 0 || totalContainersDeleted > 0) {
         logger.debug(
-          `CleanupStaleResources: pruned ${totalDeleted} stale KubernetesResource row(s) and ${totalContainersDeleted} KubernetesContainer row(s) across ${connectedClusters.length} cluster(s) (cutoff ${cutoff.toISOString()})`,
+          `CleanupStaleResources: pruned ${totalDeleted} stale KubernetesResource row(s) and ${totalContainersDeleted} KubernetesContainer row(s) across ${connectedClusters.length} cluster(s)`,
         );
       }
     } catch (err) {

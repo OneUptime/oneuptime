@@ -152,6 +152,9 @@ const Settings: FunctionComponent<ComponentProps> = (
           modelType={BillingInvoice}
           id="invoices-table"
           userPreferencesKey="billing-invoices-table"
+          saveFilterProps={{
+            tableId: "settings-invoices-table",
+          }}
           isDeleteable={false}
           name="Settings > Billing > Invoices"
           isEditable={false}

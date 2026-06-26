@@ -1,7 +1,10 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
-import OTelIngestService, {
+import {
   TelemetryServiceMetadata,
+  getScalarEntityKeyColumns,
 } from "Common/Server/Services/OpenTelemetryIngestService";
+import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
+import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
 import OneUptimeDate from "Common/Types/Date";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Text from "Common/Types/Text";
@@ -14,6 +17,7 @@ import Response from "Common/Server/Utils/Response";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import LogSeverity from "Common/Types/Log/LogSeverity";
+import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
@@ -25,17 +29,36 @@ import logger, {
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import LogsQueueService from "./Queue/LogsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
-import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
+import {
+  TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
+  TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED,
+  TELEMETRY_LOG_FLUSH_BATCH_SIZE,
+} from "../Config";
 import LogService from "Common/Server/Services/LogService";
+import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
+import ExceptionUtil, { TelemetryExceptionPayload } from "../Utils/Exception";
+import LogExceptionExtractor, {
+  ExtractedLogException,
+} from "Common/Server/Utils/Telemetry/LogExceptionExtractor";
+import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import LogPipelineService, { LoadedPipeline } from "./LogPipelineService";
-import LogDropFilterService from "./LogDropFilterService";
-import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
+import LogDropFilterService, {
+  LoadedLogDropFilter,
+} from "./LogDropFilterService";
 import LogScrubRuleService from "./LogScrubRuleService";
 import KubernetesResourceService from "Common/Server/Services/KubernetesResourceService";
 import KubernetesContainerService from "Common/Server/Services/KubernetesContainerService";
 import DockerResourceService, {
   ParsedDockerResource,
 } from "Common/Server/Services/DockerResourceService";
+import PodmanResourceService, {
+  ParsedPodmanResource,
+} from "Common/Server/Services/PodmanResourceService";
+import DockerSwarmResourceService, {
+  ParsedDockerSwarmResource,
+} from "Common/Server/Services/DockerSwarmResourceService";
+import DockerSwarmClusterService from "Common/Server/Services/DockerSwarmClusterService";
 import {
   extractInventoryResource,
   ExtractedInventoryRecord,
@@ -49,6 +72,18 @@ import {
   INVENTORY_KIND_ATTRIBUTE as DOCKER_INVENTORY_KIND_ATTRIBUTE,
   isInventoriedDockerKind,
 } from "Common/Types/Docker/DockerInventoryExtractor";
+import {
+  extractPodmanInventoryResource,
+  ExtractedPodmanInventoryRecord,
+  INVENTORY_KIND_ATTRIBUTE as PODMAN_INVENTORY_KIND_ATTRIBUTE,
+  isInventoriedPodmanKind,
+} from "Common/Types/Podman/PodmanInventoryExtractor";
+import {
+  extractDockerSwarmInventoryResource,
+  ExtractedDockerSwarmInventoryRecord,
+  INVENTORY_KIND_ATTRIBUTE as DOCKER_SWARM_INVENTORY_KIND_ATTRIBUTE,
+  isInventoriedDockerSwarmKind,
+} from "Common/Types/DockerSwarm/DockerSwarmInventoryExtractor";
 
 const INVENTORIED_TYPE_SET: Set<string> = new Set(
   INVENTORIED_RESOURCE_TYPES.map((t: string) => {
@@ -79,6 +114,33 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     }
   }
 
+  /*
+   * Flush log-derived ClickHouse ExceptionInstance rows. Mirrors
+   * OtelTracesIngestService.flushExceptionsBuffer so the two ingest paths
+   * write exception instances identically.
+   */
+  private static async flushExceptionsBuffer(
+    exceptions: Array<JSONObject>,
+    force: boolean = false,
+  ): Promise<void> {
+    while (
+      exceptions.length >= TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE ||
+      (force && exceptions.length > 0)
+    ) {
+      const batchSize: number = Math.min(
+        exceptions.length,
+        TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
+      );
+      const batch: Array<JSONObject> = exceptions.splice(0, batchSize);
+
+      if (batch.length === 0) {
+        continue;
+      }
+
+      await ExceptionInstanceService.insertJsonRows(batch);
+    }
+  }
+
   @CaptureSpan()
   public static async ingestLogs(
     req: ExpressRequest,
@@ -92,8 +154,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         );
       }
 
-      req.body = req.body?.toJSON ? req.body.toJSON() : req.body;
-
+      /*
+       * Respond first, then enqueue the raw bytes. Protobuf decode +
+       * JSON normalization now happens in the worker so the HTTP
+       * event loop isn't blocked on every ingest call.
+       */
       Response.sendEmptySuccessResponse(req, res);
 
       await LogsQueueService.addLogIngestJob(req as TelemetryRequest);
@@ -115,14 +180,39 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       const resourceLogs: JSONArray = req.body["resourceLogs"] as JSONArray;
 
       if (!resourceLogs || !Array.isArray(resourceLogs)) {
-        logger.error(
-          "Invalid resourceLogs format in request body",
-          getLogAttributesFromRequest(req as RequestLike),
+        /*
+         * Nothing to ingest. Reached when the out-of-band body was lost
+         * (TTL elapsed before the worker ran — decodeFromQueue returns {})
+         * or the payload genuinely carried no resourceLogs. Skip, do NOT
+         * throw: this runs in the worker after the 200 was already sent, so
+         * throwing only burns retries (the body won't reappear) and masks
+         * the real first-attempt error behind "Invalid resourceLogs format".
+         */
+        logger.warn(
+          "No resourceLogs to ingest (empty or lost body); skipping batch.",
         );
-        throw new BadRequestException("Invalid resourceLogs format");
+        logger.warn(getLogAttributesFromRequest(req as RequestLike));
+        return;
       }
 
+      /*
+       * Canonicalize host.name casing so the resolved hostIdentifier and
+       * the stored resource.host.name attribute share one casing and the
+       * host-detail Logs tab keeps matching via the fast query path.
+       */
+      OtelIngestBaseService.normalizeHostNameAttributesInPlace(resourceLogs);
+
       const dbLogs: Array<JSONObject> = [];
+      /*
+       * Exceptions detected inside logs (explicit OTel exception.* attributes,
+       * or a stack trace in an error/fatal body). Buffered and flushed exactly
+       * like the trace span-event exception path: ClickHouse ExceptionInstance
+       * rows in dbExceptions, and batched Postgres TelemetryException upserts in
+       * pendingExceptionUpserts — so log-derived and span-derived exceptions
+       * share fingerprints and land in the same Issues view.
+       */
+      const dbExceptions: Array<JSONObject> = [];
+      const pendingExceptionUpserts: Array<TelemetryExceptionPayload> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
       let totalLogsProcessed: number = 0;
 
@@ -156,10 +246,30 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         Array<ParsedDockerResource>
       > = new Map();
 
+      /*
+       * Podman inventory buffer keyed by podman host ID. Populated only
+       * when a log record carries the Podman agent's snapshot envelope
+       * attribute (oneuptime.podman.kind).
+       */
+      const podmanInventoryBuffer: Map<
+        string,
+        Array<ParsedPodmanResource>
+      > = new Map();
+
+      /*
+       * Docker Swarm inventory buffer keyed by swarm cluster ID.
+       * Populated only when a log record carries the Docker Swarm
+       * agent's snapshot envelope attribute (oneuptime.dockerswarm.kind).
+       */
+      const dockerSwarmInventoryBuffer: Map<
+        string,
+        Array<ParsedDockerSwarmResource>
+      > = new Map();
+
       // Load pipelines, drop filters, and scrub rules once per batch
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
       let loadedPipelines: Array<LoadedPipeline> = [];
-      let loadedDropFilters: Array<LogDropFilter> = [];
+      let loadedDropFilters: Array<LoadedLogDropFilter> = [];
       let loadedScrubRules: Awaited<
         ReturnType<typeof LogScrubRuleService.loadScrubRules>
       > = [];
@@ -185,20 +295,69 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
-          const serviceName: string = await this.getServiceNameFromAttributes(
-            req,
-            resourceAttributes_raw,
-          );
+          // Producer-declared entities (authoritative when present).
+          const resourceEntityRefs: Array<ResourceEntityRef> =
+            OtelPayloadDecoder.getEntityRefsFromResource(
+              resourceLog["resource"] as JSONObject | undefined,
+            );
 
           /*
-           * Auto-discover Kubernetes cluster from resource attributes.
-           * Returns the cluster ID so the inventory hook can key its buffer.
+           * Auto-discover Kubernetes cluster, Docker host, Proxmox
+           * cluster and Ceph cluster from resource attributes. They
+           * look at disjoint attributes and don't share state, so we
+           * issue all Postgres lookups concurrently and only wait
+           * once. The cluster id is also what the inventory hook
+           * below keys its buffer on.
            */
-          const kubernetesClusterId: ObjectID | null =
-            await this.autoDiscoverKubernetesCluster({
+          const [
+            kubernetesClusterId,
+            dockerHostId,
+            podmanHostId,
+            proxmoxClusterId,
+            cephClusterId,
+            dockerSwarmClusterId,
+          ]: [
+            ObjectID | null,
+            ObjectID | null,
+            ObjectID | null,
+            ObjectID | null,
+            ObjectID | null,
+            ObjectID | null,
+          ] = await Promise.all([
+            this.autoDiscoverKubernetesCluster({
               projectId,
               attributes: resourceAttributes_raw,
-            });
+            }),
+            this.autoDiscoverDockerHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverPodmanHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverProxmoxCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverCephCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverDockerSwarmCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+          ]);
+
+          /*
+           * Docker Swarm inventory eligibility — the agent's inventory
+           * poller tags each JSON-line log record with
+           * `oneuptime.dockerswarm.kind`. Per-record check happens in the
+           * loop below; zero cost on non-inventory batches.
+           */
+          const isDockerSwarmInventoryEligible: boolean =
+            Boolean(dockerSwarmClusterId);
 
           /*
            * The OTel k8sobjects receiver tags each log record (not the
@@ -209,13 +368,6 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
            */
           const isK8sInventoryEligible: boolean = Boolean(kubernetesClusterId);
 
-          // Auto-discover Docker host from resource attributes
-          const dockerHostId: ObjectID | null =
-            await this.autoDiscoverDockerHost({
-              projectId,
-              attributes: resourceAttributes_raw,
-            });
-
           /*
            * Docker inventory eligibility — same shape as the K8s gate.
            * Per-record check happens inside the loop below since the
@@ -224,42 +376,108 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           const isDockerInventoryEligible: boolean = Boolean(dockerHostId);
 
           /*
+           * Podman inventory eligibility — same shape as the Docker gate.
+           * Per-record check happens inside the loop below since the
+           * agent tags each line individually.
+           */
+          const isPodmanInventoryEligible: boolean = Boolean(podmanHostId);
+
+          /*
            * Generic Host auto-discovery. Logs don't carry infra metrics,
            * so we rely on resource attribute signals (host.id, host.arch,
            * os.type, container.runtime, k8s.cluster.name) to gate row
            * creation.
            */
-          await this.autoDiscoverHost({
+          const hostId: ObjectID | null = await this.autoDiscoverHost({
             projectId,
             attributes: resourceAttributes_raw,
             hasInfraSignal: false,
             dockerHostId,
+            podmanHostId,
             kubernetesClusterId,
           });
 
-          if (!serviceDictionary[serviceName]) {
-            const service: {
-              serviceId: ObjectID;
-              dataRententionInDays: number;
-            } = await OTelIngestService.telemetryServiceFromName({
-              serviceName: serviceName,
-              projectId: (req as TelemetryRequest).projectId,
+          const serverlessFunctionId: ObjectID | null =
+            await this.autoDiscoverServerless({
+              projectId,
+              attributes: resourceAttributes_raw,
             });
 
-            serviceDictionary[serviceName] = {
-              serviceName: serviceName,
-              serviceId: service.serviceId,
-              dataRententionInDays: service.dataRententionInDays,
-            };
-          }
+          const cloudResourceId: ObjectID | null =
+            await this.autoDiscoverCloudResource({
+              projectId,
+              attributes: resourceAttributes_raw,
+            });
+
+          const rumApplicationId: ObjectID | null = await this.autoDiscoverRum({
+            projectId,
+            attributes: resourceAttributes_raw,
+          });
+
+          const serviceMetadata: TelemetryServiceMetadata =
+            await this.resolveTelemetryResource({
+              req,
+              attributes: resourceAttributes_raw,
+              projectId,
+              hostId,
+              dockerHostId,
+              podmanHostId,
+              kubernetesClusterId,
+              proxmoxClusterId,
+              cephClusterId,
+              dockerSwarmClusterId,
+              serverlessFunctionId,
+              cloudResourceId,
+              rumApplicationId,
+              entityRefs: resourceEntityRefs,
+            });
+          const serviceName: string = serviceMetadata.serviceName;
+
+          serviceDictionary[serviceName] = serviceMetadata;
+
+          const stampHostName: string | null =
+            OtelIngestBaseService.getStringAttribute(
+              resourceAttributes_raw,
+              "host.name",
+            );
+          const stampClusterName: string | null =
+            OtelIngestBaseService.getClusterNameFromAttributes(
+              resourceAttributes_raw,
+            );
 
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
-            ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-              serviceId: serviceDictionary[serviceName]!.serviceId!,
-              serviceName: serviceName,
-            }),
+            ...(serviceMetadata.primaryEntityType === ServiceType.OpenTelemetry
+              ? TelemetryUtil.getAttributesForServiceIdAndServiceName({
+                  serviceId: serviceMetadata.primaryEntityId!,
+                  serviceName: serviceName,
+                })
+              : {}),
+            ...(hostId && stampHostName
+              ? TelemetryUtil.getAttributesForHostIdAndHostName({
+                  hostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(dockerHostId && stampHostName
+              ? TelemetryUtil.getAttributesForDockerHostIdAndHostName({
+                  dockerHostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(podmanHostId && stampHostName
+              ? TelemetryUtil.getAttributesForPodmanHostIdAndHostName({
+                  podmanHostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(kubernetesClusterId && stampClusterName
+              ? TelemetryUtil.getAttributesForKubernetesClusterIdAndName({
+                  kubernetesClusterId,
+                  clusterName: stampClusterName,
+                })
+              : {}),
             ...TelemetryUtil.getAttributes({
               items: resourceAttributes_raw,
               prefixKeysWithString: "resource",
@@ -318,13 +536,23 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     }
                   }
 
+                  /*
+                   * `attributeKeys` is stored as a ClickHouse Array column
+                   * and used downstream only as an unordered set (for
+                   * "has this attribute?" checks). Skip the sort the
+                   * shared TelemetryUtil.getAttributeKeys helper does:
+                   * for a ~100-attr log row a single Object.keys is
+                   * O(N), the sort is O(N log N), and with thousands
+                   * of records per batch that sort cost was visible
+                   * on flamegraphs.
+                   */
                   const attributeKeys: Array<string> =
-                    TelemetryUtil.getAttributeKeys(attributesObject);
+                    Object.keys(attributesObject);
 
                   const projectId: ObjectID = (req as TelemetryRequest)
                     .projectId;
-                  const serviceId: ObjectID =
-                    serviceDictionary[serviceName]!.serviceId!;
+                  const primaryEntityId: ObjectID =
+                    serviceDictionary[serviceName]!.primaryEntityId!;
 
                   let timeUnixNanoNumeric: number =
                     OneUptimeDate.getCurrentDateAsUnixNano();
@@ -494,19 +722,104 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     }
                   }
 
-                  let traceId: string = "";
-                  try {
-                    traceId = Text.convertBase64ToHex(log["traceId"] as string);
-                  } catch {
-                    traceId = "";
+                  /*
+                   * Podman inventory hook: the agent's snapshot script
+                   * emits each container/image/network/volume as a JSON
+                   * envelope tagged with `oneuptime.podman.kind`. We
+                   * route these into the PodmanResource inventory table
+                   * exactly like the K8s flow above.
+                   */
+                  if (isPodmanInventoryEligible && podmanHostId && body) {
+                    const recordPodmanKind: unknown =
+                      attributesObject[PODMAN_INVENTORY_KIND_ATTRIBUTE];
+                    if (
+                      typeof recordPodmanKind === "string" &&
+                      isInventoriedPodmanKind(recordPodmanKind)
+                    ) {
+                      try {
+                        const parsed: ExtractedPodmanInventoryRecord | null =
+                          extractPodmanInventoryResource({
+                            kind: recordPodmanKind,
+                            logBody: body,
+                            lastSeenAt: timeDate,
+                          });
+                        if (parsed) {
+                          const key: string = podmanHostId.toString();
+                          let bucket: Array<ParsedPodmanResource> | undefined =
+                            podmanInventoryBuffer.get(key);
+                          if (!bucket) {
+                            bucket = [];
+                            podmanInventoryBuffer.set(key, bucket);
+                          }
+                          bucket.push(parsed.resource);
+                        }
+                      } catch (invErr) {
+                        logger.warn(
+                          `Podman inventory parse failed for kind=${recordPodmanKind}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
+                        );
+                      }
+                    }
                   }
 
-                  let spanId: string = "";
-                  try {
-                    spanId = Text.convertBase64ToHex(log["spanId"] as string);
-                  } catch {
-                    spanId = "";
+                  /*
+                   * Docker Swarm inventory hook: the agent's snapshot
+                   * poller (running on a manager node) emits each node /
+                   * service / task / stack / network / secret / config /
+                   * volume as a JSON envelope tagged with
+                   * `oneuptime.dockerswarm.kind`. Route these into the
+                   * DockerSwarmResource inventory table.
+                   */
+                  if (
+                    isDockerSwarmInventoryEligible &&
+                    dockerSwarmClusterId &&
+                    body
+                  ) {
+                    const recordSwarmKind: unknown =
+                      attributesObject[DOCKER_SWARM_INVENTORY_KIND_ATTRIBUTE];
+                    if (
+                      typeof recordSwarmKind === "string" &&
+                      isInventoriedDockerSwarmKind(recordSwarmKind)
+                    ) {
+                      try {
+                        const parsed: ExtractedDockerSwarmInventoryRecord | null =
+                          extractDockerSwarmInventoryResource({
+                            kind: recordSwarmKind,
+                            logBody: body,
+                            lastSeenAt: timeDate,
+                          });
+                        if (parsed) {
+                          const key: string = dockerSwarmClusterId.toString();
+                          let bucket:
+                            | Array<ParsedDockerSwarmResource>
+                            | undefined = dockerSwarmInventoryBuffer.get(key);
+                          if (!bucket) {
+                            bucket = [];
+                            dockerSwarmInventoryBuffer.set(key, bucket);
+                          }
+                          bucket.push(parsed.resource);
+                        }
+                      } catch (invErr) {
+                        logger.warn(
+                          `Docker Swarm inventory parse failed for kind=${recordSwarmKind}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
+                        );
+                      }
+                    }
                   }
+
+                  /*
+                   * OTLP/JSON sends trace/span ids as 16/32-char hex,
+                   * OTLP/protobuf as base64 — Text.convertOtlpIdToHex
+                   * tells them apart so hex ids are never base64-decoded
+                   * into garbage (which would also break log↔trace
+                   * correlation).
+                   */
+                  const traceId: string = Text.convertOtlpIdToHex(
+                    log["traceId"] as string | undefined,
+                  );
+
+                  const spanId: string = Text.convertOtlpIdToHex(
+                    log["spanId"] as string | undefined,
+                  );
 
                   // Extract observedTimeUnixNano
                   let observedTimeUnixNano: number = 0;
@@ -542,17 +855,33 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                       timeUnixNanoNumeric,
                     );
 
+                  const serviceMetadata: TelemetryServiceMetadata =
+                    serviceDictionary[serviceName]!;
+                  const retentionDays: number = resolveTelemetryRetentionInDays(
+                    {
+                      pillar: "logs",
+                      bucketKey: severityText,
+                      serviceConfig: serviceMetadata.serviceRetentionConfig,
+                      serviceRetentionInDays:
+                        serviceMetadata.serviceRetentionInDays,
+                      projectConfig: serviceMetadata.projectRetentionConfig,
+                      projectRetentionInDays:
+                        serviceMetadata.projectRetentionInDays,
+                    },
+                  );
                   const retentionDate: Date = OneUptimeDate.addRemoveDays(
                     ingestionDate,
-                    serviceDictionary[serviceName]!.dataRententionInDays || 15,
+                    retentionDays,
                   );
 
                   let logRow: JSONObject = {
-                    _id: ObjectID.generate().toString(),
+                    _id: ObjectID.generateTimeOrdered().toString(),
                     createdAt: ingestionTimestamp,
-                    updatedAt: ingestionTimestamp,
                     projectId: projectId.toString(),
-                    serviceId: serviceId.toString(),
+                    primaryEntityId: primaryEntityId.toString(),
+                    primaryEntityType: serviceMetadata.primaryEntityType,
+                    entityKeys: serviceMetadata.entityKeys || [],
+                    ...getScalarEntityKeyColumns(serviceMetadata),
                     time: logTimestamp,
                     timeUnixNano: Math.trunc(timeUnixNanoNumeric).toString(),
                     severityNumber: logSeverityNumber,
@@ -597,11 +926,51 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     );
                   }
 
+                  /*
+                   * Detect an exception in this log and roll it into the Issues
+                   * view. Runs on the post-scrub/post-pipeline logRow (not the
+                   * pre-scrub locals) so scrubbed secrets never reach the
+                   * exception columns. A drop-filtered log already `continue`d
+                   * above, so it never reaches this point.
+                   */
+                  if (TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED) {
+                    try {
+                      this.collectExceptionFromLog({
+                        logRow,
+                        projectId,
+                        primaryEntityId,
+                        serviceMetadata,
+                        severityNumber: logSeverityNumber,
+                        severityText,
+                        timeDate,
+                        timeUnixNano: timeUnixNanoNumeric,
+                        retentionDate,
+                        dbExceptions,
+                        pendingExceptionUpserts,
+                      });
+                    } catch (exceptionExtractionError) {
+                      // Exception extraction must never fail log ingest.
+                      logger.warn(
+                        `Error extracting exception from log: ${
+                          exceptionExtractionError instanceof Error
+                            ? exceptionExtractionError.message
+                            : String(exceptionExtractionError)
+                        }`,
+                      );
+                    }
+                  }
+
                   dbLogs.push(logRow);
                   totalLogsProcessed++;
 
                   if (dbLogs.length >= TELEMETRY_LOG_FLUSH_BATCH_SIZE) {
                     await this.flushLogsBuffer(dbLogs);
+                  }
+
+                  if (
+                    dbExceptions.length >= TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE
+                  ) {
+                    await this.flushExceptionsBuffer(dbExceptions);
                   }
                 } catch (logError) {
                   logger.error("Error processing individual log record:");
@@ -623,6 +992,25 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       }
 
       await this.flushLogsBuffer(dbLogs, true);
+
+      /*
+       * Flush log-derived exceptions: ClickHouse ExceptionInstance rows plus
+       * the batched Postgres TelemetryException summary upsert. The upsert is
+       * wrapped so a Postgres failure can't fail the log worker — the
+       * ClickHouse rows are the source of truth; a lost upsert only lags the
+       * dashboard count for this batch (mirrors the trace path).
+       */
+      await this.flushExceptionsBuffer(dbExceptions, true);
+      if (pendingExceptionUpserts.length > 0) {
+        await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch(
+          pendingExceptionUpserts,
+        ).catch((err: Error) => {
+          logger.error(
+            "Telemetry exception batch upsert (from logs) failed; dashboard counts may lag this batch.",
+          );
+          logger.error(err);
+        });
+      }
 
       /*
        * Flush the k8s inventory buffer — one upsert per cluster. Failures
@@ -690,6 +1078,108 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         }
       }
 
+      if (podmanInventoryBuffer.size > 0) {
+        for (const [hostIdStr, resources] of podmanInventoryBuffer.entries()) {
+          if (resources.length === 0) {
+            continue;
+          }
+          try {
+            await PodmanResourceService.bulkUpsert({
+              projectId,
+              podmanHostId: new ObjectID(hostIdStr),
+              resources,
+            });
+          } catch (invErr) {
+            logger.error(
+              `Error upserting PodmanResource inventory for host ${hostIdStr}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
+            );
+          }
+        }
+      }
+
+      if (dockerSwarmInventoryBuffer.size > 0) {
+        for (const [
+          clusterIdStr,
+          resources,
+        ] of dockerSwarmInventoryBuffer.entries()) {
+          if (resources.length === 0) {
+            continue;
+          }
+          try {
+            await DockerSwarmResourceService.bulkUpsert({
+              projectId,
+              dockerSwarmClusterId: new ObjectID(clusterIdStr),
+              resources,
+            });
+
+            /*
+             * Derive the cluster snapshot counts from the kinds present
+             * in this batch only — never zero a count for a kind the
+             * batch did not carry (the snapshot poller emits all kinds
+             * together, so a steady-state batch is complete).
+             */
+            const sawKind: Set<string> = new Set(
+              resources.map((r: ParsedDockerSwarmResource) => {
+                return r.kind;
+              }),
+            );
+            const countOf: (k: string) => number = (k: string): number => {
+              return resources.filter((r: ParsedDockerSwarmResource) => {
+                return r.kind === k;
+              }).length;
+            };
+            const extras: {
+              nodeCount?: number;
+              readyNodeCount?: number;
+              managerNodeCount?: number;
+              serviceCount?: number;
+              taskCount?: number;
+              runningTaskCount?: number;
+              stackCount?: number;
+              networkCount?: number;
+            } = {};
+            if (sawKind.has("Node")) {
+              extras.nodeCount = countOf("Node");
+              extras.readyNodeCount = resources.filter(
+                (r: ParsedDockerSwarmResource) => {
+                  return r.kind === "Node" && r.isReady === true;
+                },
+              ).length;
+              extras.managerNodeCount = resources.filter(
+                (r: ParsedDockerSwarmResource) => {
+                  return r.kind === "Node" && r.role === "manager";
+                },
+              ).length;
+            }
+            if (sawKind.has("Service")) {
+              extras.serviceCount = countOf("Service");
+            }
+            if (sawKind.has("Task")) {
+              extras.taskCount = countOf("Task");
+              extras.runningTaskCount = resources.filter(
+                (r: ParsedDockerSwarmResource) => {
+                  return r.kind === "Task" && r.isReady === true;
+                },
+              ).length;
+            }
+            if (sawKind.has("Stack")) {
+              extras.stackCount = countOf("Stack");
+            }
+            if (sawKind.has("Network")) {
+              extras.networkCount = countOf("Network");
+            }
+            await DockerSwarmClusterService.updateLastSeen(
+              new ObjectID(clusterIdStr),
+              extras,
+            );
+          } catch (invErr) {
+            logger.error(
+              `Error upserting DockerSwarmResource inventory for cluster ${clusterIdStr}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
+            );
+          }
+        }
+      }
+
       if (totalLogsProcessed === 0) {
         logger.warn("No valid logs were processed from the request");
         return;
@@ -701,6 +1191,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
       try {
         dbLogs.length = 0;
+        dbExceptions.length = 0;
+        pendingExceptionUpserts.length = 0;
 
         if (req.body) {
           req.body = null;
@@ -714,6 +1206,108 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       logger.error(error);
       throw error;
     }
+  }
+
+  /*
+   * Build the ClickHouse ExceptionInstance row and the Postgres
+   * TelemetryException upsert payload for an exception detected in a single log
+   * record, and push them onto the batch buffers. Mirrors
+   * OtelTracesIngestService.buildExceptionRow / its pendingExceptionUpserts
+   * push, with log-appropriate values: no span backing (spanStatusCode Unset,
+   * spanName ""), escaped left null unless the log carried exception.escaped,
+   * the log's own traceId/spanId preserved when correlated, and the log
+   * retention policy (pillar "logs") reused from the caller.
+   */
+  private static collectExceptionFromLog(data: {
+    logRow: JSONObject;
+    projectId: ObjectID;
+    primaryEntityId: ObjectID;
+    serviceMetadata: TelemetryServiceMetadata;
+    severityNumber: number;
+    severityText: LogSeverity;
+    timeDate: Date;
+    timeUnixNano: number;
+    retentionDate: Date;
+    dbExceptions: Array<JSONObject>;
+    pendingExceptionUpserts: Array<TelemetryExceptionPayload>;
+  }): void {
+    const finalBody: string = (data.logRow["body"] as string) || "";
+    const finalAttributes: JSONObject =
+      (data.logRow["attributes"] as JSONObject) || {};
+    const traceId: string = (data.logRow["traceId"] as string) || "";
+    const spanId: string = (data.logRow["spanId"] as string) || "";
+
+    const extracted: ExtractedLogException | null =
+      LogExceptionExtractor.extractFromLogRecord({
+        body: finalBody,
+        attributes: finalAttributes,
+        severityNumber: data.severityNumber,
+        hasTraceAndSpan: Boolean(traceId) && Boolean(spanId),
+      });
+
+    if (!extracted) {
+      return;
+    }
+
+    const fingerprint: string = ExceptionUtil.getFingerprint({
+      projectId: data.projectId,
+      primaryEntityId: data.primaryEntityId,
+      message: extracted.message,
+      stackTrace: extracted.stackTrace,
+      exceptionType: extracted.exceptionType,
+    });
+
+    const release: string =
+      (finalAttributes["resource.service.version"] as string) || "";
+    const environment: string =
+      (finalAttributes["resource.deployment.environment"] as string) || "";
+
+    const ingestionTimestamp: string = OneUptimeDate.toClickhouseDateTime(
+      OneUptimeDate.getCurrentDate(),
+    );
+
+    data.dbExceptions.push({
+      _id: ObjectID.generateTimeOrdered().toString(),
+      createdAt: ingestionTimestamp,
+      projectId: data.projectId.toString(),
+      primaryEntityId: data.primaryEntityId.toString(),
+      primaryEntityType: data.serviceMetadata.primaryEntityType,
+      entityKeys: data.serviceMetadata.entityKeys || [],
+      ...getScalarEntityKeyColumns(data.serviceMetadata),
+      time: OneUptimeDate.toClickhouseDateTime(data.timeDate),
+      timeUnixNano: Math.trunc(data.timeUnixNano).toString(),
+      exceptionType: extracted.exceptionType || "",
+      stackTrace: extracted.stackTrace || "",
+      message: extracted.message || "",
+      spanStatusCode: Number(SpanStatus.Unset),
+      escaped: extracted.escaped === null ? null : Boolean(extracted.escaped),
+      traceId: traceId,
+      spanId: spanId,
+      fingerprint: fingerprint,
+      spanName: "",
+      release: release,
+      environment: environment,
+      parsedFrames: extracted.parsedFrames || "[]",
+      attributes: {
+        "exception.source": "log",
+        "log.severityText": String(data.severityText),
+      },
+      retentionDate: OneUptimeDate.toClickhouseDateTime(data.retentionDate),
+    });
+
+    data.pendingExceptionUpserts.push({
+      fingerprint: fingerprint,
+      projectId: data.projectId,
+      primaryEntityId: data.primaryEntityId,
+      primaryEntityType: data.serviceMetadata.primaryEntityType,
+      ...(extracted.exceptionType
+        ? { exceptionType: extracted.exceptionType }
+        : {}),
+      ...(extracted.message ? { message: extracted.message } : {}),
+      ...(extracted.stackTrace ? { stackTrace: extracted.stackTrace } : {}),
+      ...(release ? { release: release } : {}),
+      ...(environment ? { environment: environment } : {}),
+    });
   }
 
   private static convertSeverityNumber(severityNumber: string): number {

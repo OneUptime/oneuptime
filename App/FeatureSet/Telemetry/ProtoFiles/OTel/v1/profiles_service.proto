@@ -36,6 +36,9 @@ service ProfilesService {
 message ExportProfilesServiceRequest {
   // An array of ResourceProfiles.
   repeated opentelemetry.proto.profiles.v1development.ResourceProfiles resource_profiles = 1;
+
+  // The reference table containing all data shared by profiles in the request.
+  opentelemetry.proto.profiles.v1development.ProfilesDictionary dictionary = 2;
 }
 
 message ExportProfilesServiceResponse {

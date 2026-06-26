@@ -1,7 +1,9 @@
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import {
+  AnomalyDetectionSensitivity,
   CheckOn,
   CriteriaFilter,
+  CriteriaFilterUtil as CommonCriteriaFilterUtil,
   EvaluateOverTimeMinutes,
   EvaluateOverTimeType,
   FilterType,
@@ -82,6 +84,36 @@ export default class CriteriaFilterUtil {
       ) {
         text += `sum of all ${isPercentage ? "percentage " : ""}values `;
       }
+    }
+
+    /*
+     * Anomaly criteria don't use the static threshold value field.
+     * Render them as plain English so the rule list reads cleanly.
+     */
+    if (
+      CommonCriteriaFilterUtil.isAnomalyFilterType(criteriaFilter?.filterType)
+    ) {
+      const sensitivity: AnomalyDetectionSensitivity =
+        (criteriaFilter?.metricMonitorOptions?.anomalyDetection?.sensitivity as
+          | AnomalyDetectionSensitivity
+          | undefined) || AnomalyDetectionSensitivity.Medium;
+      const windowDays: number =
+        criteriaFilter?.metricMonitorOptions?.anomalyDetection?.windowDays ||
+        14;
+      const direction: string =
+        criteriaFilter?.filterType === FilterType.AnomalouslyHigh
+          ? "anomalously high"
+          : criteriaFilter?.filterType === FilterType.AnomalouslyLow
+            ? "anomalously low"
+            : "anomalous (either direction)";
+      text += `"${criteriaFilter?.checkOn.toString()}" is ${direction} (sensitivity: ${sensitivity}, baseline window: ${windowDays} days)`;
+      if (filterCondition === FilterCondition.All) {
+        text += " and,";
+      }
+      if (filterCondition === FilterCondition.Any) {
+        text += " or,";
+      }
+      return text;
     }
 
     if (criteriaFilter?.checkOn === CheckOn.JavaScriptExpression) {
@@ -323,6 +355,19 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (monitorType === MonitorType.DNSSEC) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === CheckOn.DnssecChainValid ||
+          i.value === CheckOn.DnssecDnskeyExists ||
+          i.value === CheckOn.DnssecDsExists ||
+          i.value === CheckOn.DnssecResolverConsensus ||
+          i.value === CheckOn.DnssecNameserverConsistent ||
+          i.value === CheckOn.DnssecSignatureExpiresInDays
+        );
+      });
+    }
+
     if (monitorType === MonitorType.ExternalStatusPage) {
       options = options.filter((i: DropdownOption) => {
         return (
@@ -364,14 +409,20 @@ export default class CriteriaFilterUtil {
       checkOn === CheckOn.SpanCount ||
       checkOn === CheckOn.MetricValue
     ) {
+      const allowAnomaly: boolean = checkOn === CheckOn.MetricValue;
       options = options.filter((i: DropdownOption) => {
-        return (
+        const baseStatic: boolean =
           i.value === FilterType.GreaterThan ||
           i.value === FilterType.LessThan ||
           i.value === FilterType.LessThanOrEqualTo ||
           i.value === FilterType.GreaterThanOrEqualTo ||
-          i.value === FilterType.EqualTo
-        );
+          i.value === FilterType.EqualTo;
+        const baseAnomaly: boolean =
+          allowAnomaly &&
+          (i.value === FilterType.AnomalouslyHigh ||
+            i.value === FilterType.AnomalouslyLow ||
+            i.value === FilterType.Anomalous);
+        return baseStatic || baseAnomaly;
       });
     }
 
@@ -649,6 +700,29 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (
+      checkOn === CheckOn.DnssecChainValid ||
+      checkOn === CheckOn.DnssecDnskeyExists ||
+      checkOn === CheckOn.DnssecDsExists ||
+      checkOn === CheckOn.DnssecResolverConsensus ||
+      checkOn === CheckOn.DnssecNameserverConsistent
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === FilterType.True || i.value === FilterType.False;
+      });
+    }
+
+    if (checkOn === CheckOn.DnssecSignatureExpiresInDays) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.LessThanOrEqualTo ||
+          i.value === FilterType.GreaterThanOrEqualTo
+        );
+      });
+    }
+
     if (checkOn === CheckOn.ExternalStatusPageIsOnline) {
       options = options.filter((i: DropdownOption) => {
         return i.value === FilterType.True || i.value === FilterType.False;
@@ -693,7 +767,11 @@ export default class CriteriaFilterUtil {
   }): boolean {
     const { checkOn } = data;
 
-    if (checkOn === CheckOn.ScreenSizeType || checkOn === CheckOn.BrowserType) {
+    if (
+      checkOn === CheckOn.ScreenSizeType ||
+      checkOn === CheckOn.BrowserType ||
+      checkOn === CheckOn.ExternalStatusPageComponentStatus
+    ) {
       return true;
     }
 
@@ -711,6 +789,23 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.BrowserType) {
       return DropdownUtil.getDropdownOptionsFromEnum(BrowserType);
+    }
+
+    if (checkOn === CheckOn.ExternalStatusPageComponentStatus) {
+      /*
+       * Canonical component status values reported by external status page
+       * providers (Atlassian Statuspage, incident.io, etc.). The stored value
+       * remains the provider's snake_case string so criteria evaluation is
+       * unaffected; only the user-facing label is friendly.
+       */
+      return [
+        { label: "Operational", value: "operational" },
+        { label: "Under Maintenance", value: "under_maintenance" },
+        { label: "Degraded Performance", value: "degraded_performance" },
+        { label: "Partial Outage", value: "partial_outage" },
+        { label: "Major Outage", value: "major_outage" },
+        { label: "Full Outage", value: "full_outage" },
+      ];
     }
 
     return [];
@@ -854,6 +949,10 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.DomainStatusCode) {
       return "clientTransferProhibited";
+    }
+
+    if (checkOn === CheckOn.DnssecSignatureExpiresInDays) {
+      return "7";
     }
 
     if (checkOn === CheckOn.ExternalStatusPageResponseTime) {

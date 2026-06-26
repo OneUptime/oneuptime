@@ -1,4 +1,7 @@
 {
+  "a11y": {
+    "skipToMainContent": "본문으로 건너뛰기"
+  },
   "common": {
     "save": "저장",
     "cancel": "취소",
@@ -128,8 +131,8 @@
       "description": "모든 업데이트가 이 Slack 웹훅으로 전송됩니다.",
       "workspaceName": "Slack 워크스페이스 이름",
       "workspaceNameDescription": "검증을 위해 Slack 워크스페이스 이름을 입력해주세요.",
-      "workspaceNamePlaceholder": "my-company-workspace",
-      "webhookUrl": "Slack Incoming Webhook URL",
+      "workspaceNamePlaceholder": "내-회사-워크스페이스",
+      "webhookUrl": "Slack 수신 웹훅 URL",
       "webhookUrlDescription": "상태 페이지 업데이트가 이 Slack 웹훅으로 전송됩니다.",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "managePrompt": "구독 시 사용한 Slack 워크스페이스 이름을 입력해주세요",
@@ -140,12 +143,19 @@
       "description": "모든 업데이트가 이 Teams 웹훅으로 전송됩니다.",
       "workspaceName": "Microsoft Teams 워크스페이스 이름",
       "workspaceNameDescription": "검증을 위해 Microsoft Teams 워크스페이스 이름을 입력해주세요.",
-      "workspaceNamePlaceholder": "my-company-workspace",
-      "webhookUrl": "Microsoft Teams Incoming Webhook URL",
+      "workspaceNamePlaceholder": "내-회사-워크스페이스",
+      "webhookUrl": "Microsoft Teams 수신 웹훅 URL",
       "webhookUrlDescription": "상태 페이지 업데이트가 이 Teams 웹훅으로 전송됩니다.",
       "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
       "managePrompt": "구독 시 사용한 Microsoft Teams 워크스페이스 이름을 입력해주세요",
       "manageDescription": "구독 관리 링크를 이 워크스페이스로 보내드리겠습니다."
+    },
+    "webhook": {
+      "title": "웹훅으로 구독",
+      "description": "모든 업데이트는 이 웹훅 URL에 JSON POST 요청으로 전송됩니다.",
+      "webhookUrl": "웹훅 URL",
+      "webhookUrlDescription": "상태 페이지 이벤트가 발생할 때마다 이 URL로 JSON POST 요청이 전송됩니다.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
     },
     "resources": {
       "all": "모든 리소스 구독",
@@ -163,6 +173,7 @@
       "title": "구독 업데이트",
       "description": "여기에서 구독 설정을 업데이트하거나 구독을 취소할 수 있습니다.",
       "saved": "변경 사항이 저장되었습니다.",
+      "submit": "구독 업데이트",
       "unsubscribe": "구독 취소",
       "unsubscribeDescription": "모든 리소스의 구독을 취소하려면 이 옵션을 선택하세요."
     },
@@ -228,7 +239,7 @@
     "generic": "문제가 발생했습니다. 다시 시도해주세요."
   },
   "footer": {
-    "poweredBy": "Powered by OneUptime"
+    "poweredBy": "OneUptime 제공"
   },
   "statusNames": {
     "identified": "확인됨",
@@ -244,5 +255,19 @@
     "ongoing": "진행 중",
     "ended": "종료됨",
     "completed": "완료됨"
-  }
+  },
+  "Subscriber ID is required": "구독자 ID는 필수입니다",
+  "Token is required": "토큰이 필요합니다",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}}은(는) {{minLength}}자 이상이어야 합니다.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}}은(는) {{maxLength}}자 이하여야 합니다.",
+  "{{field}} should not have spaces.": "{{field}}에는 공백을 포함할 수 없습니다.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}}에는 문자, 숫자, 하이픈(-) 및 밑줄(_)만 사용할 수 있습니다.",
+  "{{field}} should not have numbers.": "{{field}}에는 숫자를 포함할 수 없습니다.",
+  "{{field}} should be a future date.": "{{field}}은(는) 미래의 날짜여야 합니다.",
+  "{{field}} should be a number.": "{{field}}은(는) 숫자여야 합니다.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}}은(는) {{maxValue}} 이하여야 합니다.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}}은(는) {{minValue}} 이상이어야 합니다.",
+  "{{field}} is required.": "{{field}}은(는) 필수입니다.",
+  "{{field}} should match {{matchField}}": "{{field}}은(는) {{matchField}}과(와) 일치해야 합니다",
+  "Email is not valid.": "이메일이 유효하지 않습니다."
 }

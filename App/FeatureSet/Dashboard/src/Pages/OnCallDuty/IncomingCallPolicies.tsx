@@ -1,19 +1,27 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
+import IncomingCallPolicyOwnerTeam from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerTeam";
+import IncomingCallPolicyOwnerUser from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import Phone from "Common/Types/Phone";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners, {
+  ResourceFacet,
+  buildBooleanFacetQuery,
+} from "../../Components/ResourceOwners/useResourceOwners";
+import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 
 const IncomingCallPoliciesPage: FunctionComponent<
   PageComponentProps
@@ -21,12 +29,66 @@ const IncomingCallPoliciesPage: FunctionComponent<
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<IncomingCallPolicy>({ modelType: IncomingCallPolicy });
 
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<IncomingCallPolicy>({
+      ownerUserModelType: IncomingCallPolicyOwnerUser,
+      ownerTeamModelType: IncomingCallPolicyOwnerTeam,
+      resourceIdField: "incomingCallPolicyId",
+    });
+
+  const incomingCallPolicyExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "isEnabled",
+      label: "Enabled",
+      icon: IconProp.Power,
+      isMultiSelect: false,
+      options: [
+        { value: "true", label: "Enabled" },
+        { value: "false", label: "Disabled" },
+      ],
+      supportedOperators: ["is", "is_not"],
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildBooleanFacetQuery(values, operator);
+      },
+    },
+  ];
+
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<IncomingCallPolicy>({
+    persistKey: "incoming-call-policies-table",
+    ownerUserModelType: IncomingCallPolicyOwnerUser,
+    ownerTeamModelType: IncomingCallPolicyOwnerTeam,
+    resourceIdField: "incomingCallPolicyId",
+    showLabelsFacet: true,
+    extraFacets: incomingCallPolicyExtraFacets,
+  });
+
   return (
     <Fragment>
       <ModelTable<IncomingCallPolicy>
         modelType={IncomingCallPolicy}
         id="incoming-call-policy-table"
         userPreferencesKey="incoming-call-policy-table"
+        topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<IncomingCallPolicy>) => {
+          onResourcesFetched(data);
+        }}
+        saveFilterProps={{
+          tableId: "incoming-call-policies-table",
+        }}
         isDeleteable={false}
         name="On-Call > Incoming Call Policies"
         showViewIdButton={true}
@@ -34,7 +96,7 @@ const IncomingCallPoliciesPage: FunctionComponent<
         isCreateable={true}
         isViewable={true}
         bulkActions={{
-          buttons: [...labelBulkActions],
+          buttons: [...labelBulkActions, ...ownerBulkActions],
         }}
         cardProps={{
           title: "Incoming Call Policies",
@@ -95,6 +157,7 @@ const IncomingCallPoliciesPage: FunctionComponent<
           },
         ]}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
           {
@@ -103,31 +166,6 @@ const IncomingCallPoliciesPage: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            type: FieldType.Boolean,
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
           },
         ]}
         columns={[
@@ -197,9 +235,26 @@ const IncomingCallPoliciesPage: FunctionComponent<
               return <LabelsElement labels={item["labels"] || []} />;
             },
           },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: IncomingCallPolicy): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
+          },
         ]}
       />
       {labelBulkActionModals}
+      {ownerBulkActionModals}
     </Fragment>
   );
 };

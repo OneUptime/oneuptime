@@ -15,6 +15,7 @@ import AnalyticsModelAPI, {
   ListResult as AnalyticsListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import API from "Common/UI/Utils/API/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -193,7 +194,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
             skip: 0,
             select: {
               name: true,
-              serviceId: true,
+              primaryEntityId: true,
               time: true,
             } as Select<Metric>,
             sort: { time: SortOrder.Descending } as Record<string, SortOrder>,
@@ -233,13 +234,13 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
 
     for (const m of activeMetrics) {
       const name: string | undefined = m.name as unknown as string | undefined;
-      const serviceId: ObjectID | undefined = m.serviceId;
+      const primaryEntityId: ObjectID | undefined = m.primaryEntityId;
       if (!name) {
         continue;
       }
       activeMetricNames.add(name);
-      if (serviceId) {
-        const sid: string = serviceId.toString();
+      if (primaryEntityId) {
+        const sid: string = primaryEntityId.toString();
         activeServiceIds.add(sid);
         if (!metricNamesByService.has(sid)) {
           metricNamesByService.set(sid, new Set());
@@ -286,6 +287,20 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
       if (s.id) {
         serviceById.set(s.id.toString(), s);
       }
+    }
+
+    /*
+     * Metrics without a service.name are tagged with the projectId
+     * (ServiceType.Unknown) and have no Service row. Represent them with
+     * a synthetic "Unknown Service" so they still get a summary card
+     * (only surfaces when stats.metricNamesByService keys on projectId).
+     */
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    if (projectId && !serviceById.has(projectId.toString())) {
+      serviceById.set(
+        projectId.toString(),
+        TelemetryServiceUtil.getUnknownService(projectId),
+      );
     }
 
     const out: Array<ServiceSummary> = [];
@@ -559,14 +574,25 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
             summary.service.id?.toString() ||
             (summary.service._id as string) ||
             "";
+          const isUnknownService: boolean =
+            TelemetryServiceUtil.isUnknownServiceId(
+              sid,
+              ProjectUtil.getCurrentProjectId(),
+            );
           return (
             <AppLink
               key={sid}
               className="block"
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.SERVICE_VIEW_METRICS] as Route,
-                { modelId: new ObjectID(sid) },
-              )}
+              to={
+                isUnknownService
+                  ? (RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.METRICS] as Route,
+                    ) as Route)
+                  : RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.SERVICE_VIEW_METRICS] as Route,
+                      { modelId: new ObjectID(sid) },
+                    )
+              }
             >
               <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md">
                 <div className="mb-4 flex items-start justify-between">

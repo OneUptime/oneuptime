@@ -6,10 +6,16 @@ import AnalyticsTableColumn, {
   SkipIndexType,
 } from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import OperationalResource from "../../Types/Database/AccessControl/OperationalResource";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import Service from "../DatabaseModels/Service";
 import { SpanStatus } from "./Span";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 
+@OperationalResource()
+@OwnedThrough("primaryEntityId", Service, { includeProjectScope: true })
 export default class ExceptionInstance extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
@@ -24,43 +30,96 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryException,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryException,
         ],
         update: [],
       },
     });
 
-    const serviceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceId",
-      title: "Service ID",
-      description: "ID of the Service which created the log",
-      required: true,
-      type: TableColumnType.ObjectID,
-      accessControl: {
-        read: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.ReadTelemetryException,
-        ],
-        create: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.CreateTelemetryException,
-        ],
-        update: [],
-      },
-    });
+    const primaryEntityIdColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "primaryEntityId",
+        title: "Service ID",
+        description:
+          "ID of the resource the exception belongs to (Service / Host / DockerHost / KubernetesCluster / Monitor — disambiguated by primaryEntityType)",
+        required: true,
+        type: TableColumnType.ObjectID,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryException,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryException,
+          ],
+          update: [],
+        },
+      });
+
+    const primaryEntityTypeColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "primaryEntityType",
+        isLowCardinality: true,
+        title: "Service Type",
+        description:
+          "Discriminator for primaryEntityId — tells the read side which resource table to dispatch to",
+        required: false,
+        type: TableColumnType.Text,
+        skipIndex: {
+          name: "idx_service_type",
+          type: SkipIndexType.Set,
+          params: [10],
+          granularity: 4,
+        },
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryException,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryException,
+          ],
+          update: [],
+        },
+      });
 
     const timeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "time",
+      codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Time",
       description: "When was the log created?",
       required: true,
@@ -70,12 +129,18 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryException,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryException,
         ],
         update: [],
@@ -84,21 +149,28 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
 
     const timeUnixNanoColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "timeUnixNano",
+      codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Time (in Unix Nano)",
       description: "When was the log created?",
       required: true,
-      type: TableColumnType.LongNumber,
+      type: TableColumnType.UInt64,
       accessControl: {
         read: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryException,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryException,
         ],
         update: [],
@@ -122,12 +194,18 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryException,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryException,
         ],
         update: [],
@@ -149,12 +227,18 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryException,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryException,
         ],
         update: [],
@@ -176,12 +260,18 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryException,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryException,
         ],
         update: [],
@@ -200,12 +290,18 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
             Permission.ReadTelemetryException,
           ],
           create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
             Permission.CreateTelemetryException,
           ],
           update: [],
@@ -224,12 +320,18 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryException,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryException,
         ],
         update: [],
@@ -238,6 +340,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
 
     const traceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "traceId",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Trace ID",
       description: "ID of the trace",
       required: false,
@@ -253,12 +356,18 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryException,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryException,
         ],
         update: [],
@@ -267,6 +376,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
 
     const spanIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "spanId",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Span ID",
       description: "ID of the span",
       required: false,
@@ -282,12 +392,18 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryException,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryException,
         ],
         update: [],
@@ -311,12 +427,18 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryException,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryException,
         ],
         update: [],
@@ -340,12 +462,18 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryServiceTraces,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryServiceTraces,
         ],
         update: [],
@@ -370,12 +498,18 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryException,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryException,
         ],
         update: [],
@@ -400,12 +534,18 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryException,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryException,
         ],
         update: [],
@@ -414,6 +554,8 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
 
     const parsedFramesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "parsedFrames",
+      // JSON-as-String blob, same body-family treatment as stackTrace.
+      codec: { codec: "ZSTD", level: 3 },
       title: "Parsed Stack Frames",
       description: "Stack trace parsed into structured frames (JSON array)",
       required: false,
@@ -423,12 +565,18 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryException,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryException,
         ],
         update: [],
@@ -437,6 +585,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
 
     const attributesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "attributes",
+      codec: { codec: "ZSTD", level: 3 },
       title: "Attributes",
       description: "Attributes",
       required: true,
@@ -447,20 +596,123 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryException,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryException,
         ],
         update: [],
       },
     });
 
+    const entityKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "entityKeys",
+      codec: { codec: "ZSTD", level: 3 },
+      title: "Entity Keys",
+      description:
+        "Stable keys of every OpenTelemetry entity (service, host, k8s.pod, container, ...) this signal belongs to. A superset that includes the primary entity. Enables cross-cutting membership queries via has(entityKeys, :key).",
+      required: true,
+      defaultValue: [],
+      type: TableColumnType.ArrayText,
+      skipIndex: {
+        name: "idx_entity_keys",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
+          Permission.ReadTelemetryException,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.CreateTelemetryException,
+        ],
+        update: [],
+      },
+    });
+
+    /*
+     * Scalar per-entity-type key columns — denormalized single-value
+     * siblings of `entityKeys`. Each holds the 16-hex key (see
+     * Common/Utils/Telemetry/EntityKey) of the row's entity of that type,
+     * or '' when the resource carries no such entity (non-Nullable String,
+     * so old rows read the type default ''). Unlike the array column, a
+     * scalar equality predicate is usable as an MV/sort key and gets a
+     * cheaper bloom-filter probe; only the high-traffic keys
+     * (service/host/k8s.pod) carry skip indexes. Stamped at ingest by the
+     * same extractor that fills `entityKeys`; never part of identity.
+     */
+    const scalarEntityKeyColumns: Array<AnalyticsTableColumn> = [
+      {
+        key: "serviceEntityKey",
+        title: "Service Entity Key",
+        indexName: "idx_service_entity_key",
+      },
+      {
+        key: "hostEntityKey",
+        title: "Host Entity Key",
+        indexName: "idx_host_entity_key",
+      },
+      {
+        key: "k8sPodEntityKey",
+        title: "Kubernetes Pod Entity Key",
+        indexName: "idx_k8s_pod_entity_key",
+      },
+      { key: "k8sNodeEntityKey", title: "Kubernetes Node Entity Key" },
+      { key: "k8sClusterEntityKey", title: "Kubernetes Cluster Entity Key" },
+      { key: "containerEntityKey", title: "Container Entity Key" },
+    ].map(
+      (def: {
+        key: string;
+        title: string;
+        indexName?: string | undefined;
+      }): AnalyticsTableColumn => {
+        return new AnalyticsTableColumn({
+          key: def.key,
+          title: def.title,
+          description:
+            "Scalar entity key for this entity type (see entityKeys); '' when the resource has no entity of this type.",
+          required: true,
+          defaultValue: "",
+          type: TableColumnType.Text,
+          codec: { codec: "ZSTD", level: 1 },
+          skipIndex: def.indexName
+            ? {
+                name: def.indexName,
+                type: SkipIndexType.BloomFilter,
+                params: [0.01],
+                granularity: 1,
+              }
+            : undefined,
+          accessControl: entityKeysColumn.accessControl,
+        });
+      },
+    );
+
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
+      codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Retention Date",
       description:
         "Date after which this row is eligible for TTL deletion, computed at ingest time as time + service.retainTelemetryDataForDays",
@@ -482,31 +734,45 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
           Permission.ReadTelemetryException,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.CreateTelemetryException,
         ],
         update: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.EditTelemetryException,
         ],
         delete: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
           Permission.DeleteTelemetryException,
         ],
       },
       crudApiPath: new Route("/exceptions"),
+      enableDocumentation: true,
+      tableDescription:
+        "Individual exception occurrences captured from your telemetry. Query application errors and their attributes over time.",
       tableColumns: [
         projectIdColumn,
-        serviceIdColumn,
+        primaryEntityIdColumn,
+        primaryEntityTypeColumn,
         timeColumn,
         timeUnixNanoColumn,
         exceptionTypeColumn,
@@ -522,19 +788,29 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
         environmentColumn,
         parsedFramesColumn,
         attributesColumn,
+        entityKeysColumn,
+        ...scalarEntityKeyColumns,
         retentionDateColumn,
       ],
       projections: [
         {
           name: "proj_exception_group",
           query:
-            "SELECT projectId, serviceId, fingerprint, exceptionType, count() AS cnt, max(time) AS last_seen GROUP BY projectId, serviceId, fingerprint, exceptionType",
+            "SELECT projectId, primaryEntityId, fingerprint, exceptionType, count() AS cnt, max(time) AS last_seen GROUP BY projectId, primaryEntityId, fingerprint, exceptionType",
         },
       ],
-      sortKeys: ["projectId", "time", "serviceId", "fingerprint"],
-      primaryKeys: ["projectId", "time", "serviceId", "fingerprint"],
-      partitionKey: "sipHash64(projectId) % 16",
+      sortKeys: ["projectId", "time", "primaryEntityId", "fingerprint"],
+      primaryKeys: ["projectId", "time", "primaryEntityId", "fingerprint"],
+      partitionKey: "toYYYYMMDD(time)",
+      /*
+       * Shard by fingerprint so all occurrences of one exception co-locate and a
+       * big project's distinct exceptions spread across shards.
+       */
+      shardingKey: "cityHash64(projectId, fingerprint)",
+      tableSettings:
+        "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",
+      defaultSortColumn: "time",
     });
   }
 
@@ -546,12 +822,20 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
     this.setColumnValue("projectId", v);
   }
 
-  public get serviceId(): ObjectID | undefined {
-    return this.getColumnValue("serviceId") as ObjectID | undefined;
+  public get primaryEntityId(): ObjectID | undefined {
+    return this.getColumnValue("primaryEntityId") as ObjectID | undefined;
   }
 
-  public set serviceId(v: ObjectID | undefined) {
-    this.setColumnValue("serviceId", v);
+  public set primaryEntityId(v: ObjectID | undefined) {
+    this.setColumnValue("primaryEntityId", v);
+  }
+
+  public get primaryEntityType(): ServiceType | undefined {
+    return this.getColumnValue("primaryEntityType") as ServiceType | undefined;
+  }
+
+  public set primaryEntityType(v: ServiceType | undefined) {
+    this.setColumnValue("primaryEntityType", v);
   }
 
   public get time(): Date | undefined {
@@ -632,6 +916,14 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
 
   public set attributes(v: Record<string, any>) {
     this.setColumnValue("attributes", v);
+  }
+
+  public get entityKeys(): Array<string> | undefined {
+    return this.getColumnValue("entityKeys") as Array<string> | undefined;
+  }
+
+  public set entityKeys(v: Array<string> | undefined) {
+    this.setColumnValue("entityKeys", v);
   }
 
   public get spanStatusCode(): SpanStatus | undefined {

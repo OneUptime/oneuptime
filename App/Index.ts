@@ -9,11 +9,18 @@ import NotificationRoutes from "./FeatureSet/Notification/Index";
 import WorkersRoutes from "./FeatureSet/Workers/Index";
 import TelemetryRoutes from "./FeatureSet/Telemetry/Index";
 import WorkflowRoutes from "./FeatureSet/Workflow/Index";
+import RunbookRoutes from "./FeatureSet/Runbook/Index";
 import AppMetricsAPI from "./API/Metrics";
+import AdminHealthAPI from "./API/AdminHealth";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
+import {
+  ClickhouseAppInstance,
+  ClickhouseIngestInstance,
+  ClickhouseMigrationInstance,
+} from "Common/Server/Infrastructure/ClickhouseDatabase";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
+import Queue from "Common/Server/Infrastructure/Queue";
 import Redis from "Common/Server/Infrastructure/Redis";
 import InfrastructureStatus from "Common/Server/Infrastructure/Status";
 import logger from "Common/Server/Utils/Logger";
@@ -21,6 +28,7 @@ import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import Profiling from "Common/Server/Utils/Profiling";
+import { RunDatabaseMigrationsOnBoot } from "Common/Server/EnvironmentConfig";
 import "ejs";
 import OpenAPIUtil from "Common/Server/Utils/OpenAPI";
 
@@ -85,10 +93,39 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     // Connect to Redis
     await Redis.connect();
 
+    /*
+     * Reset stale completed/failed job counts left over from prior runs. Sweeps
+     * every BullMQ queue once at startup so the admin Health page's Completed/
+     * Failed counts don't linger across a pod (re)start, regardless of when each
+     * queue next produces a job. Fire-and-forget: a large backlog shouldn't
+     * delay readiness, and the sweep self-gates to run at most once per queue.
+     */
+    Queue.cleanAllQueuesOnStartup().catch((err: unknown) => {
+      logger.error("Failed to clean queues on startup");
+      logger.error(err);
+    });
+
     // Connect to Clickhouse database
     await ClickhouseAppInstance.connect(
       ClickhouseAppInstance.getDatasourceOptions(),
     );
+    await ClickhouseIngestInstance.connect(
+      ClickhouseIngestInstance.getDatasourceOptions(),
+    );
+    /*
+     * Migration pool (higher socket-idle timeout) — only connect it where it
+     * is actually used: the boot schema sync + data migrations run here only
+     * when RunDatabaseMigrationsOnBoot is set (same gate as Workers/Index.ts).
+     * When migrations are handled by the dedicated migrate Job
+     * (RUN_DATABASE_MIGRATIONS_ON_BOOT=false), runtime pods never touch this
+     * pool, so connecting it would just waste an HTTP socket pool + a
+     * CREATE DATABASE/ping on every boot.
+     */
+    if (RunDatabaseMigrationsOnBoot) {
+      await ClickhouseMigrationInstance.connect(
+        ClickhouseMigrationInstance.getDatasourceOptions(),
+      );
+    }
 
     // Initialize the app with service name and status checks
     await App.init({
@@ -109,6 +146,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     const expressApp: ExpressApplication = Express.getExpressApp();
     expressApp.use("/", AppMetricsAPI);
 
+    // Admin instance-health overview (master-admin only).
+    expressApp.use("/api/admin/health", AdminHealthAPI);
+
     // Initialize feature sets
     await IdentityRoutes.init();
     await NotificationRoutes.init();
@@ -120,6 +160,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await WorkersRoutes.init();
     await TelemetryRoutes.init();
     await WorkflowRoutes.init();
+    await RunbookRoutes.init();
 
     // Add default routes to the app
     await App.addDefaultRoutes();

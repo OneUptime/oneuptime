@@ -6,13 +6,15 @@ import URL from "Common/Types/API/URL";
 import HTML from "Common/Types/Html";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import RequestFailedDetails from "Common/Types/Probe/RequestFailedDetails";
 import Sleep from "Common/Types/Sleep";
 import WebsiteRequest, { WebsiteResponse } from "Common/Types/WebsiteRequest";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import { AxiosError } from "axios";
-import ProxyConfig from "../../ProxyConfig";
+import ProxyConfig, { ProxyAgents } from "../../ProxyConfig";
+import https from "https";
 
 export interface ProbeWebsiteResponse {
   url: URL;
@@ -26,6 +28,8 @@ export interface ProbeWebsiteResponse {
   failureCause: string;
   requestFailedDetails?: RequestFailedDetails | undefined;
   isTimeout?: boolean;
+  probeAttempts?: Array<ProbeAttempt> | undefined;
+  totalAttempts?: number | undefined;
 }
 
 export default class WebsiteMonitor {
@@ -39,6 +43,11 @@ export default class WebsiteMonitor {
       isOnlineCheckRequest?: boolean | undefined;
       timeout?: PositiveNumber; // timeout in milliseconds
       doNotFollowRedirects?: boolean | undefined;
+      allowSelfSignedCertificates?: boolean | undefined;
+      tlsClientCertificate?: string | undefined;
+      tlsClientKey?: string | undefined;
+      tlsClientKeyPassphrase?: string | undefined;
+      attempts?: Array<ProbeAttempt> | undefined;
     },
   ): Promise<ProbeWebsiteResponse | null> {
     if (!options) {
@@ -49,12 +58,77 @@ export default class WebsiteMonitor {
       options.currentRetryCount = 1;
     }
 
+    if (!options.attempts) {
+      options.attempts = [];
+    }
+
     let requestType: HTTPMethod = HTTPMethod.GET;
 
     if (options.isHeadRequest) {
       requestType = HTTPMethod.HEAD;
     }
 
+    const allowSelfSignedCertificates: boolean = Boolean(
+      options.allowSelfSignedCertificates,
+    );
+
+    const tlsClientCertificate: string | undefined =
+      options.tlsClientCertificate
+        ? options.tlsClientCertificate.trim() || undefined
+        : undefined;
+    const tlsClientKey: string | undefined = options.tlsClientKey
+      ? options.tlsClientKey.trim() || undefined
+      : undefined;
+    const hasClientCert: boolean = Boolean(
+      tlsClientCertificate && tlsClientKey,
+    );
+    const tlsClientKeyPassphrase: string | undefined =
+      options.tlsClientKeyPassphrase || undefined;
+
+    const buildAgents: () => ProxyAgents = (): ProxyAgents => {
+      const proxyOptions: {
+        rejectUnauthorized?: boolean;
+        cert?: string;
+        key?: string;
+        passphrase?: string;
+      } = {};
+      if (allowSelfSignedCertificates) {
+        proxyOptions.rejectUnauthorized = false;
+      }
+      if (hasClientCert && tlsClientCertificate && tlsClientKey) {
+        proxyOptions.cert = tlsClientCertificate;
+        proxyOptions.key = tlsClientKey;
+        if (tlsClientKeyPassphrase) {
+          proxyOptions.passphrase = tlsClientKeyPassphrase;
+        }
+      }
+
+      const proxyAgents: ProxyAgents = {
+        ...ProxyConfig.getRequestProxyAgents(url, proxyOptions),
+      };
+
+      if (
+        (allowSelfSignedCertificates || hasClientCert) &&
+        !proxyAgents.httpsAgent
+      ) {
+        const agentOptions: https.AgentOptions = {};
+        if (allowSelfSignedCertificates) {
+          agentOptions.rejectUnauthorized = false;
+        }
+        if (hasClientCert && tlsClientCertificate && tlsClientKey) {
+          agentOptions.cert = tlsClientCertificate;
+          agentOptions.key = tlsClientKey;
+          if (tlsClientKeyPassphrase) {
+            agentOptions.passphrase = tlsClientKeyPassphrase;
+          }
+        }
+        proxyAgents.httpsAgent = new https.Agent(agentOptions);
+      }
+
+      return proxyAgents;
+    };
+
+    const attemptedAt: Date = new Date();
     try {
       logger.debug(
         `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - Retry: ${
@@ -67,7 +141,7 @@ export default class WebsiteMonitor {
         isHeadRequest: options.isHeadRequest,
         timeout: options.timeout?.toNumber() || 5000,
         doNotFollowRedirects: options.doNotFollowRedirects || false,
-        ...ProxyConfig.getRequestProxyAgents(url),
+        ...buildAgents(),
       });
 
       if (
@@ -80,7 +154,7 @@ export default class WebsiteMonitor {
           isHeadRequest: false,
           timeout: options.timeout?.toNumber() || 5000,
           doNotFollowRedirects: options.doNotFollowRedirects || false,
-          ...ProxyConfig.getRequestProxyAgents(url),
+          ...buildAgents(),
         });
       }
 
@@ -88,6 +162,16 @@ export default class WebsiteMonitor {
       const responseTimeInMS: PositiveNumber = new PositiveNumber(
         Math.ceil((endTime[0] * 1000000000 + endTime[1]) / 1000000),
       );
+      const responseReceivedAt: Date = new Date();
+
+      options.attempts!.push({
+        attemptNumber: options.currentRetryCount,
+        attemptedAt,
+        responseReceivedAt,
+        responseTimeInMs: responseTimeInMS.toNumber(),
+        responseCode: result.responseStatusCode,
+        isOnline: true,
+      });
 
       // if response time is greater than 10 seconds then give it one more try
 
@@ -111,6 +195,8 @@ export default class WebsiteMonitor {
         responseHeaders: result.responseHeaders,
         failureCause: "",
         isTimeout: false,
+        probeAttempts: options.attempts,
+        totalAttempts: options.attempts!.length,
       };
 
       logger.debug(
@@ -128,6 +214,27 @@ export default class WebsiteMonitor {
       if (!options.currentRetryCount) {
         options.currentRetryCount = 0; // default value
       }
+
+      if (!options.attempts) {
+        options.attempts = [];
+      }
+
+      const responseReceivedAt: Date = new Date();
+      const failureCauseForAttempt: string = API.getFriendlyErrorMessage(
+        err as Error,
+      );
+      const statusCodeForAttempt: number | undefined =
+        err instanceof AxiosError ? err.response?.status : undefined;
+
+      options.attempts.push({
+        attemptNumber: options.currentRetryCount || 1,
+        attemptedAt,
+        responseReceivedAt,
+        responseTimeInMs: responseReceivedAt.getTime() - attemptedAt.getTime(),
+        responseCode: statusCodeForAttempt,
+        isOnline: false,
+        failureCause: failureCauseForAttempt,
+      });
 
       if (options.currentRetryCount < (options.retry || 5)) {
         options.currentRetryCount++;
@@ -163,6 +270,8 @@ export default class WebsiteMonitor {
           responseHeaders: (err.response?.headers as Headers) || {},
           failureCause: API.getFriendlyErrorMessage(err),
           requestFailedDetails: requestFailedDetails,
+          probeAttempts: options.attempts,
+          totalAttempts: options.attempts.length,
         };
       } else {
         probeWebsiteResponse = {
@@ -178,6 +287,8 @@ export default class WebsiteMonitor {
           isTimeout: false,
           failureCause: API.getFriendlyErrorMessage(err as Error),
           requestFailedDetails: requestFailedDetails,
+          probeAttempts: options.attempts,
+          totalAttempts: options.attempts.length,
         };
       }
 

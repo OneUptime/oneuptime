@@ -1,0 +1,51 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat alertCount " new " alertCountLabel " added to Episode " episodeNumber) }}
+
+{{> InfoBlock info=(concat alertCount " new " alertCountLabel " added to alert episode " episodeNumber " (" episodeTitle ") in project - " projectName) }}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Episode Title:" text=episodeTitle }}
+{{> DetailBoxField title="Episode Number:" text=episodeNumber }}
+{{> DetailBoxField title="Current Episode State: " text=currentState  }}
+{{> DetailBoxField title="Alerts Added: " text=alertCount  }}
+{{> DetailBoxEnd this }}
+
+{{> InfoBlock info="Alerts added in this update:"}}
+
+<table style="width: calc(100% - 64px); margin: 18px 32px; border-collapse: collapse; font-size: 14px; font-family: 'Helvetica Neue', Arial, sans-serif; color: #1f2733;">
+    <tr>
+        <th style="background: #353b4d; color: #ffffff; padding: 13px 12px; text-align: left; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #2b3040; border-top-left-radius: 10px;">Alert</th>
+        <th style="background: #353b4d; color: #ffffff; padding: 13px 12px; text-align: left; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #2b3040;">Title</th>
+        <th style="background: #353b4d; color: #ffffff; padding: 13px 12px; text-align: left; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #2b3040;">Severity</th>
+        <th style="background: #353b4d; color: #ffffff; padding: 13px 12px; text-align: left; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #2b3040; border-top-right-radius: 10px;">Added At</th>
+    </tr>
+    {{#each alerts}}
+    <tr style="background-color: {{#if @odd}}#f0f3f9{{else}}#ffffff{{/if}};">
+        <td style="padding: 12px 12px; border-bottom: 1px solid #e5e8f0; font-weight: 600;"><a href="{{this.alertViewLink}}" style="color: #4f46e5; text-decoration: none;">{{this.alertNumber}}</a></td>
+        <td style="padding: 12px 12px; border-bottom: 1px solid #e5e8f0;">{{this.alertTitle}}</td>
+        <td style="padding: 12px 12px; border-bottom: 1px solid #e5e8f0;">{{this.alertSeverity}}</td>
+        <td style="padding: 12px 12px; border-bottom: 1px solid #e5e8f0;">{{{this.addedAt}}}</td>
+    </tr>
+    {{/each}}
+</table>
+
+{{#ifCond hasMore "true"}}
+{{> InfoBlock info=(concat "...and " remainingCount " more. Open the episode on the dashboard to see the full list.")}}
+{{/ifCond}}
+
+{{> InfoBlock info="Open this alert episode to see everything in one place:"}}
+
+{{> ButtonBlock buttonUrl=episodeViewLink buttonText="View Alert Episode"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=episodeViewLink}}
+
+{{> OwnerInfo this }}
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

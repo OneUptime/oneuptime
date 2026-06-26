@@ -1,4 +1,7 @@
 {
+  "a11y": {
+    "skipToMainContent": "Naar hoofdinhoud springen"
+  },
   "common": {
     "save": "Opslaan",
     "cancel": "Annuleren",
@@ -129,7 +132,7 @@
       "workspaceName": "Slack-werkruimtenaam",
       "workspaceNameDescription": "Voer de naam van uw Slack-werkruimte in ter validatie.",
       "workspaceNamePlaceholder": "mijn-bedrijfs-werkruimte",
-      "webhookUrl": "Slack Incoming Webhook URL",
+      "webhookUrl": "URL van inkomende Slack-webhook",
       "webhookUrlDescription": "Updates van de statuspagina worden naar deze Slack-webhook verzonden.",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "managePrompt": "Voer de naam van de Slack-werkruimte in waarmee u bent geabonneerd",
@@ -141,11 +144,18 @@
       "workspaceName": "Naam Microsoft Teams-werkruimte",
       "workspaceNameDescription": "Voer de naam van uw Microsoft Teams-werkruimte in ter validatie.",
       "workspaceNamePlaceholder": "mijn-bedrijfs-werkruimte",
-      "webhookUrl": "Microsoft Teams Incoming Webhook URL",
+      "webhookUrl": "URL van inkomende Microsoft Teams-webhook",
       "webhookUrlDescription": "Updates van de statuspagina worden naar deze Teams-webhook verzonden.",
       "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
       "managePrompt": "Voer de naam van de Microsoft Teams-werkruimte in waarmee u bent geabonneerd",
       "manageDescription": "We sturen u een link om uw abonnement te beheren naar deze werkruimte."
+    },
+    "webhook": {
+      "title": "Abonneren via webhook",
+      "description": "Al onze updates worden als JSON POST-verzoeken naar deze webhook-URL verzonden.",
+      "webhookUrl": "Webhook-URL",
+      "webhookUrlDescription": "Bij elke statuspaginagebeurtenis wordt een JSON POST-verzoek naar deze URL verzonden.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
     },
     "resources": {
       "all": "Abonneren op alle bronnen",
@@ -163,6 +173,7 @@
       "title": "Abonnement bijwerken",
       "description": "U kunt hier uw abonnementsvoorkeuren bijwerken of zich afmelden.",
       "saved": "Uw wijzigingen zijn opgeslagen.",
+      "submit": "Abonnement bijwerken",
       "unsubscribe": "Afmelden",
       "unsubscribeDescription": "Selecteer dit als u zich wilt afmelden van alle bronnen."
     },
@@ -244,5 +255,19 @@
     "ongoing": "Lopend",
     "ended": "Beëindigd",
     "completed": "Voltooid"
-  }
+  },
+  "Subscriber ID is required": "Abonnee-ID is vereist",
+  "Token is required": "Token is vereist",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} mag niet minder dan {{minLength}} tekens bevatten.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} mag niet meer dan {{maxLength}} tekens bevatten.",
+  "{{field}} should not have spaces.": "{{field}} mag geen spaties bevatten.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} mag alleen letters, cijfers, koppeltekens (-) en onderstrepingstekens (_) bevatten.",
+  "{{field}} should not have numbers.": "{{field}} mag geen cijfers bevatten.",
+  "{{field}} should be a future date.": "{{field}} moet een datum in de toekomst zijn.",
+  "{{field}} should be a number.": "{{field}} moet een getal zijn.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} mag niet groter zijn dan {{maxValue}}.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} mag niet kleiner zijn dan {{minValue}}.",
+  "{{field}} is required.": "{{field}} is verplicht.",
+  "{{field}} should match {{matchField}}": "{{field}} moet overeenkomen met {{matchField}}",
+  "Email is not valid.": "E-mailadres is ongeldig."
 }

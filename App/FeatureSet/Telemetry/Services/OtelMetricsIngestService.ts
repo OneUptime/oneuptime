@@ -1,8 +1,11 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
-import OTelIngestService, {
+import {
   OtelAggregationTemporality,
   TelemetryServiceMetadata,
+  getScalarEntityKeyColumns,
 } from "Common/Server/Services/OpenTelemetryIngestService";
+import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
+import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import {
   ExpressRequest,
@@ -10,10 +13,7 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import {
-  MetricPointType,
-  ServiceType,
-} from "Common/Models/AnalyticsModels/Metric";
+import { MetricPointType } from "Common/Models/AnalyticsModels/Metric";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import TelemetryUtil, {
@@ -29,11 +29,13 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Service from "Common/Models/DatabaseModels/Service";
 import MetricsQueueService from "./Queue/MetricsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TELEMETRY_METRIC_FLUSH_BATCH_SIZE } from "../Config";
 import MetricPipelineRuleService, {
   MetricRulesForProject,
 } from "./MetricPipelineRuleService";
 import OneUptimeDate from "Common/Types/Date";
+import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import MetricService from "Common/Server/Services/MetricService";
 import Text from "Common/Types/Text";
 import KubernetesResourceService, {
@@ -45,8 +47,56 @@ import KubernetesContainerService, {
 import DockerResourceService, {
   ParsedDockerContainer,
 } from "Common/Server/Services/DockerResourceService";
+import PodmanResourceService, {
+  ParsedPodmanContainer,
+} from "Common/Server/Services/PodmanResourceService";
+import DockerSwarmResourceService, {
+  DockerSwarmResourceLatestMetric,
+} from "Common/Server/Services/DockerSwarmResourceService";
+import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
+import ProxmoxResourceService, {
+  ParsedProxmoxResource,
+  ProxmoxResourceLatestMetric,
+} from "Common/Server/Services/ProxmoxResourceService";
+import CephResourceService, {
+  ParsedCephResource,
+  CephResourceLatestMetric,
+} from "Common/Server/Services/CephResourceService";
+import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
+import CephClusterService from "Common/Server/Services/CephClusterService";
+import IoTDeviceService, {
+  ParsedIoTDevice,
+  IoTDeviceLatestMetric,
+} from "Common/Server/Services/IoTDeviceService";
+import IoTFleetService from "Common/Server/Services/IoTFleetService";
 import HostService from "Common/Server/Services/HostService";
+import LabelService from "Common/Server/Services/LabelService";
 import Host from "Common/Models/DatabaseModels/Host";
+import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
+import { HEARTBEAT_MAX_BACKDATE_MS } from "Common/Utils/Telemetry/HeartbeatAvailability";
+import {
+  PVE_SNAPSHOT_METRIC_NAMES,
+  CEPH_SNAPSHOT_METRIC_NAMES,
+  ProxmoxResourceBufferEntry,
+  ProxmoxClusterSnapshotBufferEntry,
+  ProxmoxClusterSnapshotExtras,
+  CephResourceBufferEntry,
+  CephClusterSnapshotBufferEntry,
+  CephClusterSnapshotExtras,
+  bufferProxmoxSnapshotMetric,
+  bufferCephSnapshotMetric,
+  computeProxmoxGuestBackedUp,
+  deriveProxmoxClusterSnapshotExtras,
+  deriveCephClusterSnapshotExtras,
+} from "Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan";
+import {
+  IOT_SNAPSHOT_METRIC_NAMES,
+  IoTDeviceBufferEntry,
+  IoTFleetSnapshotBufferEntry,
+  IoTFleetSnapshotExtras,
+  bufferIoTSnapshotMetric,
+  deriveIoTFleetSnapshotExtras,
+} from "Common/Server/Utils/Telemetry/IoTSnapshotScan";
 
 type MetricTimestamp = {
   nano: string;
@@ -74,6 +124,23 @@ type MetricTimestamp = {
  * mirror. Anything else is ignored entirely, so the cost on
  * non-Kubernetes batches is one Set.has check per datapoint.
  */
+/*
+ * The k8s_cluster receiver's per-node allocatable CPU (cores). Not a
+ * displayed metric — its latest value is cached per node and used as
+ * the denominator that turns the cores-valued `*.cpu.utilization`
+ * metrics into a true "% of node allocatable CPU".
+ */
+const K8S_NODE_ALLOCATABLE_CPU_METRIC: string = "k8s.node.allocatable_cpu";
+
+/*
+ * The k8s_cluster receiver's per-node allocatable memory (bytes). Like
+ * allocatable CPU, not a displayed metric — its latest value is cached
+ * per node and used as the denominator that turns the bytes-valued
+ * `*.memory.usage` metrics into a true "% of node allocatable memory".
+ */
+const K8S_NODE_ALLOCATABLE_MEMORY_METRIC: string =
+  "k8s.node.allocatable_memory";
+
 const K8S_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "k8s.pod.cpu.utilization",
   "k8s.pod.memory.usage",
@@ -81,6 +148,8 @@ const K8S_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "k8s.node.memory.usage",
   "container.cpu.utilization",
   "container.memory.usage",
+  K8S_NODE_ALLOCATABLE_CPU_METRIC,
+  K8S_NODE_ALLOCATABLE_MEMORY_METRIC,
 ]);
 
 /*
@@ -94,12 +163,61 @@ const DOCKER_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "container.memory.usage.total",
 ]);
 
+/*
+ * Podman snapshot metrics — emitted by the docker_stats receiver
+ * against the Podman socket (Podman exposes a Docker-compatible API)
+ * with container.id / container.name / container.image.name as
+ * resource attributes. Container row inventory is upserted from
+ * these in the same pass as the ClickHouse insert.
+ */
+const PODMAN_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
+  "container.cpu.utilization",
+  "container.memory.usage.total",
+]);
+
+/*
+ * Docker Swarm task metrics — emitted by the same docker_stats receiver
+ * the swarm agent runs on each node. Swarm task containers are named
+ * `<service>.<slot|nodeId>.<taskId>`, so the task id (the DockerSwarmResource
+ * Task externalId `task/<taskId>`) is the last dot-segment of
+ * resource.container.name. The latest CPU/memory point is mirrored onto the
+ * matching Task row (created by the inventory poller); a metric for a task
+ * not yet inventoried is a no-op that the next snapshot reconciles.
+ */
+const DOCKER_SWARM_TASK_METRIC_NAMES: ReadonlySet<string> = new Set([
+  "container.cpu.utilization",
+  "container.memory.usage.total",
+  "container.memory.percent",
+]);
+
+/*
+ * Cloud managed-compute snapshot metrics — ECS/Fargate, Cloud Run, etc.
+ * emit container.cpu.utilization / container.memory.usage with
+ * service.instance.id identifying the running task / instance. The latest
+ * point is mirrored onto the matching CloudResourceInstance row.
+ */
+const CLOUD_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
+  "container.cpu.utilization",
+  "container.memory.usage",
+  "container.memory.usage.total",
+]);
+
+/*
+ * The Proxmox / Ceph snapshot scan (metric-name allow-lists, buffer
+ * entry shapes, per-datapoint fold and the cluster-extras derive) is
+ * the pure, unit-tested module
+ * Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan.ts — this
+ * service only walks the OTLP payload and flushes the folded buffers
+ * to the Proxmox/Ceph services below.
+ */
+
 interface ResourceMetricBufferEntry {
   kind: string;
   namespaceKey: string;
   name: string;
   cpuPercent: number | null;
   memoryBytes: number | null;
+  memoryPercent: number | null;
   observedAt: Date;
   controllerDeploymentName: string | null;
   controllerCronJobName: string | null;
@@ -118,6 +236,30 @@ interface DockerContainerMetricBufferEntry {
   containerName: string;
   containerId: string | null;
   imageName: string | null;
+  cpuPercent: number | null;
+  memoryBytes: number | null;
+  observedAt: Date;
+}
+
+interface DockerSwarmTaskMetricBufferEntry {
+  taskExternalId: string; // task/<taskId>
+  cpuPercent: number | null;
+  memoryBytes: number | null;
+  memoryPercent: number | null;
+  observedAt: Date;
+}
+
+interface PodmanContainerMetricBufferEntry {
+  containerName: string;
+  containerId: string | null;
+  imageName: string | null;
+  cpuPercent: number | null;
+  memoryBytes: number | null;
+  observedAt: Date;
+}
+
+interface CloudResourceInstanceMetricBufferEntry {
+  instanceName: string;
   cpuPercent: number | null;
   memoryBytes: number | null;
   observedAt: Date;
@@ -159,8 +301,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         );
       }
 
-      req.body = req.body?.toJSON ? req.body.toJSON() : req.body;
-
+      /*
+       * Send 200 first, then enqueue the raw bytes. Protobuf decode
+       * now happens in the worker — see TelemetryQueueService.
+       */
       Response.sendEmptySuccessResponse(req, res);
 
       await MetricsQueueService.addMetricIngestJob(req as TelemetryRequest);
@@ -207,6 +351,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       processCount: number | null;
       containerRuntime: string | null;
       hasInfraSignal: boolean;
+      labelNames: Set<string>;
     }
 
     const aggregator: Map<string, HostEnrichmentEntry> = new Map();
@@ -215,9 +360,40 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       const rm: JSONObject = resourceMetric as JSONObject;
       const ras: JSONArray =
         ((rm["resource"] as JSONObject)?.["attributes"] as JSONArray) || [];
-      const hostName: string | null =
-        OtelIngestBaseService.getHostNameFromAttributes(ras);
+
+      /*
+       * Mirror the phantom-host gate from `autoDiscoverHost`: require
+       * explicit host.name and reject k8s/Docker telemetry. Application
+       * SDKs inside pods set host.name to the pod's container hostname
+       * (the pod name) and os.type=linux, which used to slip into the
+       * Host table from this batch-enrichment pass even after
+       * autoDiscoverHost rejected the same batch. k8s pods/nodes belong
+       * in KubernetesResource (kind=Pod / kind=Node), and Docker hosts
+       * belong in the DockerHost table — neither should land here.
+       */
+      const hostName: string | null = OtelIngestBaseService.getStringAttribute(
+        ras,
+        "host.name",
+      );
       if (!hostName) {
+        continue;
+      }
+
+      const k8sPodName: string | null =
+        OtelIngestBaseService.getStringAttribute(ras, "k8s.pod.name");
+      const k8sNodeName: string | null =
+        OtelIngestBaseService.getStringAttribute(ras, "k8s.node.name");
+      const k8sClusterName: string | null =
+        OtelIngestBaseService.getStringAttribute(ras, "k8s.cluster.name");
+      if (k8sPodName || k8sNodeName || k8sClusterName) {
+        continue;
+      }
+
+      if (OtelIngestBaseService.isDockerRuntime(ras)) {
+        continue;
+      }
+
+      if (OtelIngestBaseService.isPodmanRuntime(ras)) {
         continue;
       }
 
@@ -235,8 +411,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           processCount: null,
           containerRuntime: null,
           hasInfraSignal: false,
+          labelNames: new Set<string>(),
         };
         aggregator.set(hostName, entry);
+      }
+
+      const labelNamesForResource: Array<string> =
+        extractOneuptimeLabelNames(ras);
+      for (const labelName of labelNamesForResource) {
+        entry.labelNames.add(labelName);
       }
 
       if (!entry.osType) {
@@ -334,6 +517,20 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           processCount: entry.processCount ?? undefined,
           containerRuntime: entry.containerRuntime ?? undefined,
         });
+
+        if (entry.labelNames.size > 0) {
+          const labelIds: Array<ObjectID> =
+            await LabelService.findOrCreateLabelsByNames({
+              projectId: data.projectId,
+              labelNames: Array.from(entry.labelNames),
+            });
+          if (labelIds.length > 0) {
+            await HostService.attachLabels({
+              hostId: new ObjectID(host._id.toString()),
+              labelIds,
+            });
+          }
+        }
       } catch (hostError) {
         logger.warn(
           `Batch host enrichment write for "${hostName}" failed: ${hostError instanceof Error ? hostError.message : String(hostError)}`,
@@ -350,12 +547,28 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       ] as JSONArray;
 
       if (!resourceMetrics || !Array.isArray(resourceMetrics)) {
-        logger.error(
-          "Invalid resourceMetrics format in request body",
-          getLogAttributesFromRequest(req as RequestLike),
+        /*
+         * Nothing to ingest. Reached when the out-of-band body was lost
+         * (TTL elapsed before the worker ran — decodeFromQueue returns {})
+         * or the payload genuinely carried no resourceMetrics. Skip, do NOT
+         * throw: this runs in the worker after the 200 was already sent, so
+         * throwing only burns retries (the body won't reappear) and masks
+         * the real first-attempt error behind "Invalid resourceMetrics format".
+         */
+        logger.warn(
+          "No resourceMetrics to ingest (empty or lost body); skipping batch.",
         );
-        throw new BadRequestException("Invalid resourceMetrics format");
+        logger.warn(getLogAttributesFromRequest(req as RequestLike));
+        return;
       }
+
+      /*
+       * Canonicalize host.name casing before host enrichment and the main
+       * loop both read it — so the resolved hostIdentifier and the stored
+       * resource.host.name attribute share one casing and the host-detail
+       * pages keep matching via the fast query path.
+       */
+      OtelIngestBaseService.normalizeHostNameAttributesInPlace(resourceMetrics);
 
       const dbMetrics: Array<JSONObject> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
@@ -363,6 +576,66 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       const metricNameServiceNameMap: Dictionary<MetricType> = {};
       let totalMetricsProcessed: number = 0;
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
+
+      /*
+       * Hosts already heartbeated in this batch. The hostmetrics receiver
+       * emits one ResourceMetrics per scraper, all carrying the same
+       * host.name — without this set we'd write a heartbeat row per
+       * scraper instead of one per host per ingest call.
+       */
+      const hostHeartbeatHostNames: Set<string> = new Set<string>();
+
+      /*
+       * Per-host newest datapoint timestamp across the WHOLE payload,
+       * collected up-front because the heartbeat for a host is emitted
+       * on the first resource that carries its host.name (see the
+       * dedup set above) — but the hostmetrics receiver spreads a
+       * host's datapoints across many resources, and a collector
+       * retry/backoff can even merge several scrape cycles into one
+       * export. Scanning only the first resource would stamp the
+       * heartbeat with whichever scraper iterates first instead of the
+       * newest scrape the payload proves.
+       */
+      const hostMaxDatapointTimeNano: Map<string, number> = new Map<
+        string,
+        number
+      >();
+      let heartbeatScanCounter: number = 0;
+      for (const rm of resourceMetrics) {
+        /*
+         * This scan runs OUTSIDE the per-resource try/catch of the
+         * main loop, so a malformed resource (null entry, non-array
+         * attributes / scopeMetrics — all reachable via the OTLP/JSON
+         * path) must be skipped here, not thrown: a throw would fail
+         * the whole batch instead of the one bad resource.
+         */
+        if (heartbeatScanCounter % 25 === 0) {
+          await Promise.resolve();
+        }
+        heartbeatScanCounter++;
+        const resourceForScan: JSONObject | undefined = (
+          rm as JSONObject | null
+        )?.["resource"] as JSONObject | undefined;
+        const attributesForScan: unknown = resourceForScan?.["attributes"];
+        const hostNameForScan: string | null = Array.isArray(attributesForScan)
+          ? OtelIngestBaseService.getHostNameFromAttributes(
+              attributesForScan as JSONArray,
+            )
+          : null;
+        if (!hostNameForScan) {
+          continue;
+        }
+        const scopeMetricsForMax: unknown = (rm as JSONObject)["scopeMetrics"];
+        const resourceMax: number | null = Array.isArray(scopeMetricsForMax)
+          ? this.getMaxDatapointTimeUnixNano(scopeMetricsForMax as JSONArray)
+          : null;
+        if (
+          resourceMax !== null &&
+          resourceMax > (hostMaxDatapointTimeNano.get(hostNameForScan) ?? 0)
+        ) {
+          hostMaxDatapointTimeNano.set(hostNameForScan, resourceMax);
+        }
+      }
 
       /*
        * Snapshot buffers keyed by cluster ID. Inner maps key by the
@@ -381,6 +654,40 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         string,
         Map<string, DockerContainerMetricBufferEntry>
       > = new Map();
+      const podmanContainerMetricsBuffer: Map<
+        string,
+        Map<string, PodmanContainerMetricBufferEntry>
+      > = new Map();
+      const dockerSwarmTaskMetricsBuffer: Map<
+        string,
+        Map<string, DockerSwarmTaskMetricBufferEntry>
+      > = new Map();
+      const cloudResourceInstanceMetricsBuffer: Map<
+        string,
+        Map<string, CloudResourceInstanceMetricBufferEntry>
+      > = new Map();
+      const proxmoxResourceMetricsBuffer: Map<
+        string,
+        Map<string, ProxmoxResourceBufferEntry>
+      > = new Map();
+      const proxmoxClusterSnapshotBuffer: Map<
+        string,
+        ProxmoxClusterSnapshotBufferEntry
+      > = new Map();
+      const cephResourceMetricsBuffer: Map<
+        string,
+        Map<string, CephResourceBufferEntry>
+      > = new Map();
+      const cephClusterSnapshotBuffer: Map<
+        string,
+        CephClusterSnapshotBufferEntry
+      > = new Map();
+      const iotResourceMetricsBuffer: Map<
+        string,
+        Map<string, IoTDeviceBufferEntry>
+      > = new Map();
+      const iotFleetSnapshotBuffer: Map<string, IoTFleetSnapshotBufferEntry> =
+        new Map();
 
       // Load project + service-scoped pipeline rules once per batch (60s cached).
       let pipelineRules: MetricRulesForProject | null = null;
@@ -436,24 +743,66 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
-          const serviceName: string = await this.getServiceNameFromAttributes(
-            req,
-            resourceAttributes_raw,
-          );
+          // Producer-declared entities (authoritative when present).
+          const resourceEntityRefs: Array<ResourceEntityRef> =
+            OtelPayloadDecoder.getEntityRefsFromResource(
+              resourceMetric["resource"] as JSONObject | undefined,
+            );
 
-          // Auto-discover Kubernetes cluster from resource attributes
-          const kubernetesClusterId: ObjectID | null =
-            await this.autoDiscoverKubernetesCluster({
+          /*
+           * Auto-discover Kubernetes cluster, Docker host, Proxmox
+           * cluster and Ceph cluster from resource attributes. The
+           * lookups are independent — they read different attributes
+           * and don't share state — so issue them concurrently to
+           * collapse per-resource latency. autoDiscoverHost still has
+           * to wait below because it consumes the first two ids.
+           */
+          const [
+            kubernetesClusterId,
+            dockerHostId,
+            podmanHostId,
+            proxmoxClusterId,
+            cephClusterId,
+            dockerSwarmClusterId,
+            iotFleetId,
+          ]: [
+            ObjectID | null,
+            ObjectID | null,
+            ObjectID | null,
+            ObjectID | null,
+            ObjectID | null,
+            ObjectID | null,
+            ObjectID | null,
+          ] = await Promise.all([
+            this.autoDiscoverKubernetesCluster({
               projectId,
               attributes: resourceAttributes_raw,
-            });
-
-          // Auto-discover Docker host from resource attributes
-          const dockerHostId: ObjectID | null =
-            await this.autoDiscoverDockerHost({
+            }),
+            this.autoDiscoverDockerHost({
               projectId,
               attributes: resourceAttributes_raw,
-            });
+            }),
+            this.autoDiscoverPodmanHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverProxmoxCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverCephCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverDockerSwarmCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverIoTFleet({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+          ]);
 
           /*
            * Generic Host auto-discovery. Pre-scan the resource's
@@ -472,48 +821,217 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             processCount?: number;
           } = this.scanHostInfraStatsFromMetrics(scopeMetricsForScan);
 
-          await this.autoDiscoverHost({
+          const hostId: ObjectID | null = await this.autoDiscoverHost({
             projectId,
             attributes: resourceAttributes_raw,
             hasInfraSignal: hostInfraStats.hasInfraSignal,
             dockerHostId,
+            podmanHostId,
             kubernetesClusterId,
             cpuCores: hostInfraStats.cpuCores,
             totalMemoryBytes: hostInfraStats.totalMemoryBytes,
             processCount: hostInfraStats.processCount,
           });
 
-          if (!serviceDictionary[serviceName]) {
-            const service: {
-              serviceId: ObjectID;
-              dataRententionInDays: number;
-            } = await OTelIngestService.telemetryServiceFromName({
-              serviceName: serviceName,
-              projectId: (req as TelemetryRequest).projectId,
+          const serverlessFunctionId: ObjectID | null =
+            await this.autoDiscoverServerless({
+              projectId,
+              attributes: resourceAttributes_raw,
             });
 
-            serviceDictionary[serviceName] = {
-              serviceName: serviceName,
-              serviceId: service.serviceId,
-              dataRententionInDays: service.dataRententionInDays,
-            };
-          }
+          const cloudResourceId: ObjectID | null =
+            await this.autoDiscoverCloudResource({
+              projectId,
+              attributes: resourceAttributes_raw,
+            });
+
+          const rumApplicationId: ObjectID | null = await this.autoDiscoverRum({
+            projectId,
+            attributes: resourceAttributes_raw,
+          });
 
           const serviceMetadata: TelemetryServiceMetadata =
-            serviceDictionary[serviceName]!;
+            await this.resolveTelemetryResource({
+              req,
+              attributes: resourceAttributes_raw,
+              projectId,
+              hostId,
+              dockerHostId,
+              podmanHostId,
+              kubernetesClusterId,
+              proxmoxClusterId,
+              cephClusterId,
+              dockerSwarmClusterId,
+              serverlessFunctionId,
+              cloudResourceId,
+              rumApplicationId,
+              entityRefs: resourceEntityRefs,
+            });
+          const serviceName: string = serviceMetadata.serviceName;
+
+          serviceDictionary[serviceName] = serviceMetadata;
+
+          const stampHostName: string | null =
+            OtelIngestBaseService.getStringAttribute(
+              resourceAttributes_raw,
+              "host.name",
+            );
+          const stampClusterName: string | null =
+            OtelIngestBaseService.getClusterNameFromAttributes(
+              resourceAttributes_raw,
+            );
 
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
-            ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-              serviceId: serviceMetadata.serviceId!,
-              serviceName: serviceName,
-            }),
+            ...(serviceMetadata.primaryEntityType === ServiceType.OpenTelemetry
+              ? TelemetryUtil.getAttributesForServiceIdAndServiceName({
+                  serviceId: serviceMetadata.primaryEntityId!,
+                  serviceName: serviceName,
+                })
+              : {}),
+            ...(hostId && stampHostName
+              ? TelemetryUtil.getAttributesForHostIdAndHostName({
+                  hostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(dockerHostId && stampHostName
+              ? TelemetryUtil.getAttributesForDockerHostIdAndHostName({
+                  dockerHostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(podmanHostId && stampHostName
+              ? TelemetryUtil.getAttributesForPodmanHostIdAndHostName({
+                  podmanHostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(kubernetesClusterId && stampClusterName
+              ? TelemetryUtil.getAttributesForKubernetesClusterIdAndName({
+                  kubernetesClusterId,
+                  clusterName: stampClusterName,
+                })
+              : {}),
             ...TelemetryUtil.getAttributes({
               items: resourceAttributes_raw,
               prefixKeysWithString: "resource",
             }),
           };
+
+          /*
+           * Synthetic per-host heartbeat. Lets users alert on "host went
+           * silent" by querying `count(oneuptime.host.heartbeat) > 0`
+           * over a window instead of relying on the presence of a
+           * specific scraper metric. Dedup per host within this batch
+           * (hostmetrics emits one ResourceMetrics per scraper) — the
+           * agent's scrape interval (typically 30-60s) naturally rate-
+           * limits subsequent batches.
+           */
+          const heartbeatHostName: string | null =
+            OtelIngestBaseService.getHostNameFromAttributes(
+              resourceAttributes_raw,
+            );
+          if (
+            heartbeatHostName &&
+            !hostHeartbeatHostNames.has(heartbeatHostName)
+          ) {
+            hostHeartbeatHostNames.add(heartbeatHostName);
+            const heartbeatMetricName: string = "oneuptime.host.heartbeat";
+            if (!metricNameServiceNameMap[heartbeatMetricName]) {
+              const heartbeatMetricType: MetricType = new MetricType();
+              heartbeatMetricType.name = heartbeatMetricName;
+              heartbeatMetricType.description =
+                "Synthetic heartbeat emitted by OneUptime each time the host's OTel collector ships a metric batch. Use `count > 0` over a window to detect host up/down.";
+              heartbeatMetricType.unit = "1";
+              heartbeatMetricType.services = [];
+              metricNameServiceNameMap[heartbeatMetricName] =
+                heartbeatMetricType;
+            }
+            /*
+             * Only associate a real Service row (OpenTelemetry type).
+             * The host heartbeat's primaryEntityId is a Host/DockerHost/
+             * KubernetesCluster id, which has no matching Service row,
+             * so pushing it would fail the MetricType.services FK. The
+             * heartbeat MetricType is still cataloged above without a
+             * service link.
+             */
+            if (
+              serviceMetadata.primaryEntityType === ServiceType.OpenTelemetry &&
+              metricNameServiceNameMap[heartbeatMetricName]!.services!.filter(
+                (svc: Service) => {
+                  return (
+                    svc.id?.toString() ===
+                    serviceMetadata.primaryEntityId!.toString()
+                  );
+                },
+              ).length === 0
+            ) {
+              const heartbeatService: Service = new Service();
+              heartbeatService.id = serviceMetadata.primaryEntityId!;
+              metricNameServiceNameMap[heartbeatMetricName]!.services!.push(
+                heartbeatService,
+              );
+            }
+            /*
+             * Stamp the heartbeat with the host's newest datapoint
+             * timestamp in this payload, not the ingest wall clock.
+             * Ingestion is queued (HTTP -> Redis -> worker), so
+             * wall-clock stamping shifts heartbeats into whatever
+             * minute the worker happened to drain the job in — two
+             * batches draining in one minute leave the previous minute
+             * empty, which the availability charts render as phantom
+             * downtime while every real metric (which keeps its scrape
+             * timestamp) looks perfectly continuous. Using the scrape
+             * time keeps the heartbeat on the same timeline as the
+             * metrics it vouches for.
+             *
+             * Clamped on both sides by the ingest clock: a batch
+             * cannot have been scraped after it arrived (future-skewed
+             * host clocks, batches with no datapoints), and backdating
+             * is floored at HEARTBEAT_MAX_BACKDATE_MS — normal queue
+             * lag is seconds, so anything older means a behind-skewed
+             * host clock or a backlog replay, and an unbounded
+             * backdate would paint a permanent false "down" tail on
+             * the charts (the trailing buckets would never receive a
+             * heartbeat). A floored stamp lands in the newest
+             * evaluable Minute bucket, proving it up; the single
+             * bucket between it and the chart's unevaluable trailing
+             * shadow is rescued by the Minute-grid bridge — see the
+             * invariant documented on HEARTBEAT_MAX_BACKDATE_MS.
+             */
+            const nowUnixNano: number =
+              OneUptimeDate.getCurrentDateAsUnixNano();
+            const maxBackdateNano: number =
+              HEARTBEAT_MAX_BACKDATE_MS * 1_000_000;
+            const maxDatapointTimeUnixNano: number | null =
+              hostMaxDatapointTimeNano.get(heartbeatHostName) ?? null;
+            const heartbeatTimeNano: string = Math.trunc(
+              maxDatapointTimeUnixNano !== null
+                ? Math.max(
+                    Math.min(maxDatapointTimeUnixNano, nowUnixNano),
+                    nowUnixNano - maxBackdateNano,
+                  )
+                : nowUnixNano,
+            ).toString();
+            const heartbeatRow: JSONObject = this.buildMetricRow({
+              datapoint: {
+                timeUnixNano: heartbeatTimeNano,
+                asInt: 1,
+              },
+              baseAttributes: resourceAttributes,
+              projectId: projectId,
+              primaryEntityId: serviceMetadata.primaryEntityId!,
+              serviceName: serviceName,
+              metricName: heartbeatMetricName,
+              metricPointType: MetricPointType.Gauge,
+              serviceMetadata: serviceMetadata,
+            });
+            dbMetrics.push(heartbeatRow);
+            totalMetricsProcessed++;
+          }
+
           const scopeMetrics: JSONArray = resourceMetric[
             "scopeMetrics"
           ] as JSONArray;
@@ -564,18 +1082,32 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                       metricNameServiceNameMap[metricName]!.services = [];
                     }
 
+                    /*
+                     * MetricType.services is a ManyToMany to the
+                     * Service table (join keyed on primaryEntityId). Only
+                     * OpenTelemetry-type telemetry has a real Service
+                     * row; associating Host / DockerHost /
+                     * KubernetesCluster / Unknown telemetry here would
+                     * insert a join row whose primaryEntityId has no matching
+                     * Service and fail the FK. The metric name itself is
+                     * still cataloged above (just without a service
+                     * link), and the datapoints carry the primaryEntityId in
+                     * ClickHouse regardless.
+                     */
                     if (
+                      serviceMetadata.primaryEntityType ===
+                        ServiceType.OpenTelemetry &&
                       metricNameServiceNameMap[metricName]!.services!.filter(
                         (service: Service) => {
                           return (
                             service.id?.toString() ===
-                            serviceMetadata.serviceId!.toString()
+                            serviceMetadata.primaryEntityId!.toString()
                           );
                         },
                       ).length === 0
                     ) {
                       const newService: Service = new Service();
-                      newService.id = serviceMetadata.serviceId!;
+                      newService.id = serviceMetadata.primaryEntityId!;
                       metricNameServiceNameMap[metricName]!.services!.push(
                         newService,
                       );
@@ -684,17 +1216,109 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           });
                         }
 
+                        if (
+                          dockerSwarmClusterId &&
+                          DOCKER_SWARM_TASK_METRIC_NAMES.has(metricName)
+                        ) {
+                          this.bufferDockerSwarmTaskMetric({
+                            clusterIdStr: dockerSwarmClusterId.toString(),
+                            metricName,
+                            metricUnit,
+                            datapoint: datapoint as JSONObject,
+                            metricAttributes,
+                            buffer: dockerSwarmTaskMetricsBuffer,
+                          });
+                        }
+
+                        if (
+                          podmanHostId &&
+                          PODMAN_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          this.bufferPodmanSnapshotMetric({
+                            hostIdStr: podmanHostId.toString(),
+                            metricName,
+                            metricUnit,
+                            datapoint: datapoint as JSONObject,
+                            metricAttributes,
+                            buffer: podmanContainerMetricsBuffer,
+                          });
+                        }
+
+                        if (
+                          cloudResourceId &&
+                          CLOUD_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          this.bufferCloudResourceSnapshotMetric({
+                            cloudResourceIdStr: cloudResourceId.toString(),
+                            metricName,
+                            metricUnit,
+                            datapoint: datapoint as JSONObject,
+                            metricAttributes,
+                            buffer: cloudResourceInstanceMetricsBuffer,
+                          });
+                        }
+
+                        /*
+                         * Proxmox / Ceph identity lives in datapoint
+                         * labels (prometheus receiver), not resource
+                         * attributes — the buffer functions read the
+                         * raw datapoint attribute array directly.
+                         */
+                        if (
+                          proxmoxClusterId &&
+                          PVE_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          bufferProxmoxSnapshotMetric({
+                            clusterIdStr: proxmoxClusterId.toString(),
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                            resourceBuffer: proxmoxResourceMetricsBuffer,
+                            clusterBuffer: proxmoxClusterSnapshotBuffer,
+                          });
+                        }
+
+                        if (
+                          cephClusterId &&
+                          CEPH_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          bufferCephSnapshotMetric({
+                            clusterIdStr: cephClusterId.toString(),
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                            resourceBuffer: cephResourceMetricsBuffer,
+                            clusterBuffer: cephClusterSnapshotBuffer,
+                          });
+                        }
+
+                        /*
+                         * IoT device identity lives in datapoint labels
+                         * (device.id) and resource/datapoint attributes —
+                         * the buffer function reads the raw datapoint
+                         * attribute array directly.
+                         */
+                        if (
+                          iotFleetId &&
+                          IOT_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          bufferIoTSnapshotMetric({
+                            fleetIdStr: iotFleetId.toString(),
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                            resourceBuffer: iotResourceMetricsBuffer,
+                            fleetBuffer: iotFleetSnapshotBuffer,
+                          });
+                        }
+
                         const metricRow: JSONObject = this.buildMetricRow({
                           datapoint: datapoint as JSONObject,
                           baseAttributes: metricAttributes,
                           projectId: projectId,
-                          serviceId: serviceMetadata.serviceId!,
+                          primaryEntityId: serviceMetadata.primaryEntityId!,
                           serviceName: serviceName,
                           metricName: metricName,
                           metricPointType: metricPointType,
                           aggregationTemporality: aggregationTemporality,
-                          dataRententionInDays:
-                            serviceMetadata.dataRententionInDays,
+                          serviceMetadata: serviceMetadata,
                           ...(typeof isMonotonic === "boolean"
                             ? { isMonotonic: isMonotonic }
                             : {}),
@@ -708,7 +1332,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         const transformed: JSONObject | null = pipelineRules
                           ? MetricPipelineRuleService.applyRules(
                               metricRow,
-                              serviceMetadata.serviceId,
+                              serviceMetadata.primaryEntityId,
                               pipelineRules,
                             )
                           : metricRow;
@@ -775,6 +1399,39 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         buffer: dockerContainerMetricsBuffer,
       });
 
+      await this.flushPodmanSnapshotBuffer({
+        projectId,
+        buffer: podmanContainerMetricsBuffer,
+      });
+
+      await this.flushDockerSwarmTaskMetrics({
+        projectId,
+        buffer: dockerSwarmTaskMetricsBuffer,
+      });
+
+      await this.flushCloudResourceSnapshotBuffer({
+        projectId,
+        buffer: cloudResourceInstanceMetricsBuffer,
+      });
+
+      await this.flushProxmoxSnapshotBuffers({
+        projectId,
+        resourceBuffer: proxmoxResourceMetricsBuffer,
+        clusterBuffer: proxmoxClusterSnapshotBuffer,
+      });
+
+      await this.flushCephSnapshotBuffers({
+        projectId,
+        resourceBuffer: cephResourceMetricsBuffer,
+        clusterBuffer: cephClusterSnapshotBuffer,
+      });
+
+      await this.flushIoTSnapshotBuffers({
+        projectId,
+        resourceBuffer: iotResourceMetricsBuffer,
+        fleetBuffer: iotFleetSnapshotBuffer,
+      });
+
       if (totalMetricsProcessed === 0) {
         logger.warn("No valid metrics were processed from the request");
         return;
@@ -829,13 +1486,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
   }
 
   /*
-   * Convert a raw datapoint value to a percent. Most OTel Kubernetes
-   * CPU metrics emit a unit-less ratio (0.0-1.0+); a few emit a raw
-   * percent. We use the metric's `unit` field to decide:
-   *   - "%"          -> already a percent, take as-is
-   *   - "1" / "" / undefined / unknown -> ratio, multiply by 100
-   * Sub-percent precision is preserved end-to-end; values past 100
-   * are kept (200% means 2 fully utilized cores).
+   * Docker-stats CPU → percent. The docker_stats receiver emits
+   * `container.cpu.utilization` as a [0, 1] ratio (unit "1") or a raw
+   * percent (unit "%"); scale accordingly. Kubernetes CPU uses
+   * `cpuCoresToPercent` below, which divides cores by node allocatable.
    */
   private static cpuValueToPercent(
     rawValue: number,
@@ -846,6 +1500,190 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       return rawValue;
     }
     return rawValue * 100;
+  }
+
+  /*
+   * Per-(cluster, node) allocatable CPU cores, learned from the
+   * `k8s.node.allocatable_cpu` metric (k8s_cluster receiver). This is
+   * the denominator that turns cores-valued `*.cpu.utilization` metrics
+   * into a true percentage. In-memory and best-effort: it warms within
+   * one collection interval and is shared across this worker's batches.
+   */
+  private static readonly NODE_ALLOCATABLE_TTL_MS: number = 30 * 60 * 1000;
+  private static nodeAllocatableCpuByCluster: Map<
+    string,
+    Map<string, { cores: number; at: number }>
+  > = new Map();
+
+  private static updateNodeAllocatableCpu(
+    clusterIdStr: string,
+    nodeName: string,
+    cores: number,
+    atMs: number,
+  ): void {
+    if (!nodeName || !Number.isFinite(cores) || cores <= 0) {
+      return;
+    }
+    let byNode: Map<string, { cores: number; at: number }> | undefined =
+      this.nodeAllocatableCpuByCluster.get(clusterIdStr);
+    if (!byNode) {
+      byNode = new Map();
+      this.nodeAllocatableCpuByCluster.set(clusterIdStr, byNode);
+    }
+    byNode.set(nodeName, { cores: cores, at: atMs });
+  }
+
+  /*
+   * Resolve the allocatable CPU cores to divide by. Prefers the exact
+   * node; falls back to the cluster's average node size when the node
+   * hasn't been seen yet (e.g. a pod metric arriving before its node's
+   * allocatable). Returns 0 when nothing is known, signalling the caller
+   * to leave the stored CPU% untouched.
+   */
+  private static lookupNodeAllocatableCpu(
+    clusterIdStr: string,
+    nodeName: string,
+    nowMs: number,
+  ): number {
+    const byNode: Map<string, { cores: number; at: number }> | undefined =
+      this.nodeAllocatableCpuByCluster.get(clusterIdStr);
+    if (!byNode || byNode.size === 0) {
+      return 0;
+    }
+    const exact: { cores: number; at: number } | undefined = nodeName
+      ? byNode.get(nodeName)
+      : undefined;
+    if (exact && nowMs - exact.at <= this.NODE_ALLOCATABLE_TTL_MS) {
+      return exact.cores;
+    }
+    let sum: number = 0;
+    let count: number = 0;
+    for (const entry of byNode.values()) {
+      if (nowMs - entry.at <= this.NODE_ALLOCATABLE_TTL_MS) {
+        sum += entry.cores;
+        count++;
+      }
+    }
+    return count > 0 ? sum / count : 0;
+  }
+
+  /*
+   * Convert a raw Kubernetes CPU datapoint to "% of the node's
+   * allocatable CPU". The kubeletstats `*.cpu.utilization` metrics are
+   * CPU *cores in use* (not a 0-1 ratio), so we divide by the node's
+   * allocatable cores rather than multiplying by 100 — the old
+   * behaviour produced numbers like 711% for a busy multi-core node. A
+   * "%"-unit datapoint is taken as-is. Returns null when allocatable is
+   * unknown so the snapshot keeps its previous CPU value instead of
+   * writing a wrong one.
+   */
+  private static cpuCoresToPercent(
+    rawValue: number,
+    metricUnit: string | undefined,
+    clusterIdStr: string,
+    nodeName: string,
+    nowMs: number,
+  ): number | null {
+    const unit: string = (metricUnit || "").trim();
+    if (unit === "%") {
+      return rawValue;
+    }
+    const allocatableCores: number = this.lookupNodeAllocatableCpu(
+      clusterIdStr,
+      nodeName,
+      nowMs,
+    );
+    if (allocatableCores <= 0) {
+      return null;
+    }
+    return (rawValue / allocatableCores) * 100;
+  }
+
+  /*
+   * Per-(cluster, node) allocatable memory (bytes), learned from the
+   * `k8s.node.allocatable_memory` metric (k8s_cluster receiver). The
+   * memory analogue of the allocatable-CPU cache above: the denominator
+   * that turns bytes-valued `*.memory.usage` metrics into a true
+   * percentage. In-memory, best-effort, shared across this worker's
+   * batches.
+   */
+  private static nodeAllocatableMemoryByCluster: Map<
+    string,
+    Map<string, { bytes: number; at: number }>
+  > = new Map();
+
+  private static updateNodeAllocatableMemory(
+    clusterIdStr: string,
+    nodeName: string,
+    bytes: number,
+    atMs: number,
+  ): void {
+    if (!nodeName || !Number.isFinite(bytes) || bytes <= 0) {
+      return;
+    }
+    let byNode: Map<string, { bytes: number; at: number }> | undefined =
+      this.nodeAllocatableMemoryByCluster.get(clusterIdStr);
+    if (!byNode) {
+      byNode = new Map();
+      this.nodeAllocatableMemoryByCluster.set(clusterIdStr, byNode);
+    }
+    byNode.set(nodeName, { bytes: bytes, at: atMs });
+  }
+
+  /*
+   * Resolve the allocatable memory bytes to divide by. Prefers the
+   * exact node; falls back to the cluster's average node size when the
+   * node hasn't been seen yet. Returns 0 when nothing is known,
+   * signalling the caller to leave the stored memory% untouched.
+   */
+  private static lookupNodeAllocatableMemory(
+    clusterIdStr: string,
+    nodeName: string,
+    nowMs: number,
+  ): number {
+    const byNode: Map<string, { bytes: number; at: number }> | undefined =
+      this.nodeAllocatableMemoryByCluster.get(clusterIdStr);
+    if (!byNode || byNode.size === 0) {
+      return 0;
+    }
+    const exact: { bytes: number; at: number } | undefined = nodeName
+      ? byNode.get(nodeName)
+      : undefined;
+    if (exact && nowMs - exact.at <= this.NODE_ALLOCATABLE_TTL_MS) {
+      return exact.bytes;
+    }
+    let sum: number = 0;
+    let count: number = 0;
+    for (const entry of byNode.values()) {
+      if (nowMs - entry.at <= this.NODE_ALLOCATABLE_TTL_MS) {
+        sum += entry.bytes;
+        count++;
+      }
+    }
+    return count > 0 ? sum / count : 0;
+  }
+
+  /*
+   * Convert a raw Kubernetes memory-usage datapoint (bytes) to "% of the
+   * node's allocatable memory". Mirrors `cpuCoresToPercent`. Returns
+   * null when allocatable memory is unknown so the snapshot keeps its
+   * previous memory% instead of writing a wrong one.
+   */
+  private static memoryBytesToPercent(
+    rawValue: number,
+    clusterIdStr: string,
+    nodeName: string,
+    nowMs: number,
+  ): number | null {
+    const allocatableBytes: number = this.lookupNodeAllocatableMemory(
+      clusterIdStr,
+      nodeName,
+      nowMs,
+    );
+    if (allocatableBytes <= 0) {
+      return null;
+    }
+    return (rawValue / allocatableBytes) * 100;
   }
 
   /*
@@ -885,6 +1723,46 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       "resource.k8s.namespace.name",
     );
 
+    const nowMs: number = Date.now();
+
+    /*
+     * `k8s.node.allocatable_cpu` isn't a displayed snapshot metric — it
+     * is the CPU% denominator. Cache its latest value per node and stop;
+     * never fold it as a Node row.
+     */
+    if (data.metricName === K8S_NODE_ALLOCATABLE_CPU_METRIC) {
+      this.updateNodeAllocatableCpu(
+        data.clusterIdStr,
+        this.readSnapshotAttr(attrs, "resource.k8s.node.name"),
+        rawValue,
+        nowMs,
+      );
+      return;
+    }
+
+    /*
+     * `k8s.node.allocatable_memory` is the memory% denominator, not a
+     * displayed Node row. Cache its latest value per node and stop.
+     */
+    if (data.metricName === K8S_NODE_ALLOCATABLE_MEMORY_METRIC) {
+      this.updateNodeAllocatableMemory(
+        data.clusterIdStr,
+        this.readSnapshotAttr(attrs, "resource.k8s.node.name"),
+        rawValue,
+        nowMs,
+      );
+      return;
+    }
+
+    /*
+     * The node a pod/container/node metric belongs to — the key for its
+     * allocatable CPU denominator.
+     */
+    const nodeName: string = this.readSnapshotAttr(
+      attrs,
+      "resource.k8s.node.name",
+    );
+
     const isCpu: boolean = data.metricName.endsWith(".cpu.utilization");
     const isMem: boolean = data.metricName.endsWith(".memory.usage");
 
@@ -907,7 +1785,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         podName,
         containerName,
         cpuPercent: isCpu
-          ? this.cpuValueToPercent(rawValue, data.metricUnit)
+          ? this.cpuCoresToPercent(
+              rawValue,
+              data.metricUnit,
+              data.clusterIdStr,
+              nodeName,
+              nowMs,
+            )
           : null,
         memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
         observedAt: ts.date,
@@ -945,9 +1829,24 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         ns,
         name: podName,
         cpuPercent: isCpu
-          ? this.cpuValueToPercent(rawValue, data.metricUnit)
+          ? this.cpuCoresToPercent(
+              rawValue,
+              data.metricUnit,
+              data.clusterIdStr,
+              nodeName,
+              nowMs,
+            )
           : null,
         memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
+        memoryPercent:
+          isMem && rawValue >= 0
+            ? this.memoryBytesToPercent(
+                rawValue,
+                data.clusterIdStr,
+                nodeName,
+                nowMs,
+              )
+            : null,
         observedAt: ts.date,
         controllerDeploymentName: deployName || null,
         controllerCronJobName: cronName || null,
@@ -956,10 +1855,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
 
     if (data.metricName.startsWith("k8s.node.")) {
-      const nodeName: string = this.readSnapshotAttr(
-        attrs,
-        "resource.k8s.node.name",
-      );
       if (!nodeName) {
         return;
       }
@@ -970,9 +1865,24 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         ns: "", // Nodes are cluster-scoped
         name: nodeName,
         cpuPercent: isCpu
-          ? this.cpuValueToPercent(rawValue, data.metricUnit)
+          ? this.cpuCoresToPercent(
+              rawValue,
+              data.metricUnit,
+              data.clusterIdStr,
+              nodeName,
+              nowMs,
+            )
           : null,
         memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
+        memoryPercent:
+          isMem && rawValue >= 0
+            ? this.memoryBytesToPercent(
+                rawValue,
+                data.clusterIdStr,
+                nodeName,
+                nowMs,
+              )
+            : null,
         observedAt: ts.date,
         controllerDeploymentName: null,
         controllerCronJobName: null,
@@ -989,6 +1899,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     name: string;
     cpuPercent: number | null;
     memoryBytes: number | null;
+    memoryPercent: number | null;
     observedAt: Date;
     controllerDeploymentName: string | null;
     controllerCronJobName: string | null;
@@ -1008,6 +1919,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         name: data.name,
         cpuPercent: data.cpuPercent,
         memoryBytes: data.memoryBytes,
+        memoryPercent: data.memoryPercent,
         observedAt: data.observedAt,
         controllerDeploymentName: data.controllerDeploymentName,
         controllerCronJobName: data.controllerCronJobName,
@@ -1019,6 +1931,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
     if (data.memoryBytes !== null && data.observedAt >= existing.observedAt) {
       existing.memoryBytes = data.memoryBytes;
+    }
+    if (data.memoryPercent !== null && data.observedAt >= existing.observedAt) {
+      existing.memoryPercent = data.memoryPercent;
     }
     if (data.observedAt > existing.observedAt) {
       existing.observedAt = data.observedAt;
@@ -1101,6 +2016,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               name: e.name,
               cpuPercent: e.cpuPercent,
               memoryBytes: e.memoryBytes,
+              memoryPercent: e.memoryPercent,
               observedAt: e.observedAt,
               controllerDeploymentName: e.controllerDeploymentName,
               controllerCronJobName: e.controllerCronJobName,
@@ -1157,6 +2073,160 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
    * stream — every metric flush both creates and updates rows in
    * one ON-CONFLICT statement.
    */
+  /*
+   * Mirror the latest CPU/memory of a Docker Swarm task's container onto
+   * its DockerSwarmResource Task row. Swarm task containers are named
+   * `<service>.<slot|nodeId>.<taskId>` by Docker, so the task id (the Task
+   * externalId `task/<taskId>`) is the last dot-segment of
+   * resource.container.name. A metric whose task is not yet inventoried is a
+   * harmless no-op (bulkUpdateLatestMetrics only UPDATEs existing rows; the
+   * next inventory snapshot reconciles).
+   */
+  private static bufferDockerSwarmTaskMetric(data: {
+    clusterIdStr: string;
+    metricName: string;
+    metricUnit: string | undefined;
+    datapoint: JSONObject;
+    metricAttributes: Dictionary<AttributeType | Array<AttributeType>>;
+    buffer: Map<string, Map<string, DockerSwarmTaskMetricBufferEntry>>;
+  }): void {
+    const valueFromInt: number | null = this.toNumberOrNull(
+      data.datapoint["asInt"],
+    );
+    const valueFromDouble: number | null = this.toNumberOrNull(
+      data.datapoint["asDouble"],
+    );
+    const rawValue: number | null = valueFromDouble ?? valueFromInt;
+    if (rawValue === null) {
+      return;
+    }
+
+    const ts: MetricTimestamp = this.safeParseUnixNano(
+      data.datapoint["timeUnixNano"] as string | number | undefined,
+      "docker swarm task timeUnixNano",
+    );
+
+    const attrs: Dictionary<AttributeType | Array<AttributeType>> =
+      data.metricAttributes;
+    const containerName: string = this.readSnapshotAttr(
+      attrs,
+      "resource.container.name",
+    );
+    if (!containerName) {
+      return;
+    }
+
+    /*
+     * `<service>.<slot|nodeId>.<taskId>` — need at least 3 segments to be a
+     * swarm task container; the last segment is the task id.
+     */
+    const segments: Array<string> = containerName.split(".");
+    if (segments.length < 3) {
+      return;
+    }
+    const taskId: string = segments[segments.length - 1] || "";
+    if (!taskId) {
+      return;
+    }
+    const taskExternalId: string = `task/${taskId}`;
+
+    const isCpu: boolean = data.metricName === "container.cpu.utilization";
+    const isMemBytes: boolean =
+      data.metricName === "container.memory.usage.total";
+    const isMemPct: boolean = data.metricName === "container.memory.percent";
+
+    this.foldDockerSwarmTaskSnapshot({
+      buffer: data.buffer,
+      clusterIdStr: data.clusterIdStr,
+      taskExternalId,
+      cpuPercent: isCpu
+        ? this.cpuValueToPercent(rawValue, data.metricUnit)
+        : null,
+      memoryBytes: isMemBytes ? Math.max(0, Math.trunc(rawValue)) : null,
+      memoryPercent: isMemPct ? rawValue : null,
+      observedAt: ts.date,
+    });
+  }
+
+  private static foldDockerSwarmTaskSnapshot(data: {
+    buffer: Map<string, Map<string, DockerSwarmTaskMetricBufferEntry>>;
+    clusterIdStr: string;
+    taskExternalId: string;
+    cpuPercent: number | null;
+    memoryBytes: number | null;
+    memoryPercent: number | null;
+    observedAt: Date;
+  }): void {
+    let perCluster: Map<string, DockerSwarmTaskMetricBufferEntry> | undefined =
+      data.buffer.get(data.clusterIdStr);
+    if (!perCluster) {
+      perCluster = new Map();
+      data.buffer.set(data.clusterIdStr, perCluster);
+    }
+    const existing: DockerSwarmTaskMetricBufferEntry | undefined =
+      perCluster.get(data.taskExternalId);
+    if (!existing) {
+      perCluster.set(data.taskExternalId, {
+        taskExternalId: data.taskExternalId,
+        cpuPercent: data.cpuPercent,
+        memoryBytes: data.memoryBytes,
+        memoryPercent: data.memoryPercent,
+        observedAt: data.observedAt,
+      });
+      return;
+    }
+    const newer: boolean = data.observedAt >= existing.observedAt;
+    if (data.cpuPercent !== null && newer) {
+      existing.cpuPercent = data.cpuPercent;
+    }
+    if (data.memoryBytes !== null && newer) {
+      existing.memoryBytes = data.memoryBytes;
+    }
+    if (data.memoryPercent !== null && newer) {
+      existing.memoryPercent = data.memoryPercent;
+    }
+    if (data.observedAt > existing.observedAt) {
+      existing.observedAt = data.observedAt;
+    }
+  }
+
+  private static async flushDockerSwarmTaskMetrics(data: {
+    projectId: ObjectID;
+    buffer: Map<string, Map<string, DockerSwarmTaskMetricBufferEntry>>;
+  }): Promise<void> {
+    if (data.buffer.size === 0) {
+      return;
+    }
+    for (const [clusterIdStr, byKey] of data.buffer.entries()) {
+      if (byKey.size === 0) {
+        continue;
+      }
+      try {
+        const metrics: Array<DockerSwarmResourceLatestMetric> = [];
+        for (const e of byKey.values()) {
+          metrics.push({
+            kind: "Task",
+            externalId: e.taskExternalId,
+            cpuPercent: e.cpuPercent,
+            memoryBytes: e.memoryBytes,
+            maxMemoryBytes: null,
+            memoryPercent: e.memoryPercent,
+            observedAt: e.observedAt,
+          });
+        }
+        await DockerSwarmResourceService.bulkUpdateLatestMetrics({
+          projectId: data.projectId,
+          dockerSwarmClusterId: new ObjectID(clusterIdStr),
+          metrics,
+        });
+      } catch (err) {
+        logger.warn(
+          `Docker Swarm task metric writeback failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
   private static bufferDockerSnapshotMetric(data: {
     hostIdStr: string;
     metricName: string;
@@ -1303,17 +2373,600 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
   }
 
+  /*
+   * Match a Podman container metric to its row, fold the latest CPU
+   * or memory point into the per-host buffer. Identical pattern to
+   * the K8s buffering, but Podman has no separate inventory snapshot
+   * stream — every metric flush both creates and updates rows in
+   * one ON-CONFLICT statement.
+   */
+  private static bufferPodmanSnapshotMetric(data: {
+    hostIdStr: string;
+    metricName: string;
+    metricUnit: string | undefined;
+    datapoint: JSONObject;
+    metricAttributes: Dictionary<AttributeType | Array<AttributeType>>;
+    buffer: Map<string, Map<string, PodmanContainerMetricBufferEntry>>;
+  }): void {
+    const valueFromInt: number | null = this.toNumberOrNull(
+      data.datapoint["asInt"],
+    );
+    const valueFromDouble: number | null = this.toNumberOrNull(
+      data.datapoint["asDouble"],
+    );
+    const rawValue: number | null = valueFromDouble ?? valueFromInt;
+    if (rawValue === null) {
+      return;
+    }
+
+    const ts: MetricTimestamp = this.safeParseUnixNano(
+      data.datapoint["timeUnixNano"] as string | number | undefined,
+      "podman snapshot timeUnixNano",
+    );
+
+    const attrs: Dictionary<AttributeType | Array<AttributeType>> =
+      data.metricAttributes;
+    const containerName: string = this.readSnapshotAttr(
+      attrs,
+      "resource.container.name",
+    );
+    if (!containerName) {
+      return;
+    }
+    const containerId: string =
+      this.readSnapshotAttr(attrs, "resource.container.id") ||
+      this.readSnapshotAttr(attrs, "container.id");
+    const imageName: string =
+      this.readSnapshotAttr(attrs, "resource.container.image.name") ||
+      this.readSnapshotAttr(attrs, "container.image.name");
+
+    const isCpu: boolean = data.metricName === "container.cpu.utilization";
+    const isMem: boolean = data.metricName === "container.memory.usage.total";
+
+    this.foldPodmanContainerSnapshot({
+      buffer: data.buffer,
+      hostIdStr: data.hostIdStr,
+      containerName,
+      containerId: containerId || null,
+      imageName: imageName || null,
+      cpuPercent: isCpu
+        ? this.cpuValueToPercent(rawValue, data.metricUnit)
+        : null,
+      memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
+      observedAt: ts.date,
+    });
+  }
+
+  private static foldPodmanContainerSnapshot(data: {
+    buffer: Map<string, Map<string, PodmanContainerMetricBufferEntry>>;
+    hostIdStr: string;
+    containerName: string;
+    containerId: string | null;
+    imageName: string | null;
+    cpuPercent: number | null;
+    memoryBytes: number | null;
+    observedAt: Date;
+  }): void {
+    let perHost: Map<string, PodmanContainerMetricBufferEntry> | undefined =
+      data.buffer.get(data.hostIdStr);
+    if (!perHost) {
+      perHost = new Map();
+      data.buffer.set(data.hostIdStr, perHost);
+    }
+    const key: string = data.containerName;
+    const existing: PodmanContainerMetricBufferEntry | undefined =
+      perHost.get(key);
+    if (!existing) {
+      perHost.set(key, {
+        containerName: data.containerName,
+        containerId: data.containerId,
+        imageName: data.imageName,
+        cpuPercent: data.cpuPercent,
+        memoryBytes: data.memoryBytes,
+        observedAt: data.observedAt,
+      });
+      return;
+    }
+    if (data.cpuPercent !== null && data.observedAt >= existing.observedAt) {
+      existing.cpuPercent = data.cpuPercent;
+    }
+    if (data.memoryBytes !== null && data.observedAt >= existing.observedAt) {
+      existing.memoryBytes = data.memoryBytes;
+    }
+    if (data.observedAt > existing.observedAt) {
+      existing.observedAt = data.observedAt;
+    }
+    /*
+     * Container ID and image name don't change for the lifetime of a
+     * container; first-non-null wins so later metrics missing the
+     * attribute don't blank the row.
+     */
+    if (data.containerId && !existing.containerId) {
+      existing.containerId = data.containerId;
+    }
+    if (data.imageName && !existing.imageName) {
+      existing.imageName = data.imageName;
+    }
+  }
+
+  private static async flushPodmanSnapshotBuffer(data: {
+    projectId: ObjectID;
+    buffer: Map<string, Map<string, PodmanContainerMetricBufferEntry>>;
+  }): Promise<void> {
+    if (data.buffer.size === 0) {
+      return;
+    }
+    for (const [hostIdStr, byKey] of data.buffer.entries()) {
+      if (byKey.size === 0) {
+        continue;
+      }
+      try {
+        const containers: Array<ParsedPodmanContainer> = [];
+        for (const e of byKey.values()) {
+          containers.push({
+            containerName: e.containerName,
+            containerId: e.containerId,
+            imageName: e.imageName,
+            state: "running",
+            cpuPercent: e.cpuPercent,
+            memoryBytes: e.memoryBytes,
+            observedAt: e.observedAt,
+          });
+        }
+        await PodmanResourceService.bulkUpsertContainers({
+          projectId: data.projectId,
+          podmanHostId: new ObjectID(hostIdStr),
+          containers,
+        });
+      } catch (err) {
+        logger.warn(
+          `Podman snapshot writeback failed for host ${hostIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  /*
+   * Buffer the latest CPU / memory point for a managed-compute instance
+   * (service.instance.id) so multiple datapoints across a batch collapse
+   * into a single CloudResourceInstance upsert. Best-effort — anything
+   * unparseable is skipped without affecting ClickHouse ingest.
+   */
+  private static bufferCloudResourceSnapshotMetric(data: {
+    cloudResourceIdStr: string;
+    metricName: string;
+    metricUnit: string | undefined;
+    datapoint: JSONObject;
+    metricAttributes: Dictionary<AttributeType | Array<AttributeType>>;
+    buffer: Map<string, Map<string, CloudResourceInstanceMetricBufferEntry>>;
+  }): void {
+    const valueFromInt: number | null = this.toNumberOrNull(
+      data.datapoint["asInt"],
+    );
+    const valueFromDouble: number | null = this.toNumberOrNull(
+      data.datapoint["asDouble"],
+    );
+    const rawValue: number | null = valueFromDouble ?? valueFromInt;
+    if (rawValue === null) {
+      return;
+    }
+
+    const ts: MetricTimestamp = this.safeParseUnixNano(
+      data.datapoint["timeUnixNano"] as string | number | undefined,
+      "cloud snapshot timeUnixNano",
+    );
+
+    const instanceName: string = this.readSnapshotAttr(
+      data.metricAttributes,
+      "resource.service.instance.id",
+    );
+    if (!instanceName) {
+      return;
+    }
+
+    const isCpu: boolean = data.metricName === "container.cpu.utilization";
+    const isMem: boolean =
+      data.metricName === "container.memory.usage" ||
+      data.metricName === "container.memory.usage.total";
+
+    let perResource:
+      | Map<string, CloudResourceInstanceMetricBufferEntry>
+      | undefined = data.buffer.get(data.cloudResourceIdStr);
+    if (!perResource) {
+      perResource = new Map();
+      data.buffer.set(data.cloudResourceIdStr, perResource);
+    }
+
+    const cpuPercent: number | null = isCpu
+      ? this.cpuValueToPercent(rawValue, data.metricUnit)
+      : null;
+    const memoryBytes: number | null = isMem
+      ? Math.max(0, Math.trunc(rawValue))
+      : null;
+
+    const existing: CloudResourceInstanceMetricBufferEntry | undefined =
+      perResource.get(instanceName);
+    if (!existing) {
+      perResource.set(instanceName, {
+        instanceName,
+        cpuPercent,
+        memoryBytes,
+        observedAt: ts.date,
+      });
+      return;
+    }
+    if (cpuPercent !== null && ts.date >= existing.observedAt) {
+      existing.cpuPercent = cpuPercent;
+    }
+    if (memoryBytes !== null && ts.date >= existing.observedAt) {
+      existing.memoryBytes = memoryBytes;
+    }
+    if (ts.date > existing.observedAt) {
+      existing.observedAt = ts.date;
+    }
+  }
+
+  private static async flushCloudResourceSnapshotBuffer(data: {
+    projectId: ObjectID;
+    buffer: Map<string, Map<string, CloudResourceInstanceMetricBufferEntry>>;
+  }): Promise<void> {
+    if (data.buffer.size === 0) {
+      return;
+    }
+    for (const [cloudResourceIdStr, byInstance] of data.buffer.entries()) {
+      if (byInstance.size === 0) {
+        continue;
+      }
+      try {
+        const cloudResourceId: ObjectID = new ObjectID(cloudResourceIdStr);
+        for (const e of byInstance.values()) {
+          await CloudResourceInstanceService.recordInstance({
+            projectId: data.projectId,
+            cloudResourceId,
+            instanceName: e.instanceName,
+            cpuPercent: e.cpuPercent ?? undefined,
+            memoryBytes: e.memoryBytes ?? undefined,
+          });
+        }
+      } catch (err) {
+        logger.warn(
+          `Cloud resource instance snapshot writeback failed for ${cloudResourceIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  /*
+   * Drain the Proxmox buffers: inventory upsert + latest-metric
+   * mirror, then the ProxmoxCluster snapshot columns. The count
+   * columns are computed from the SAME buffer the inventory rows were
+   * upserted from — single-source rule, so list-page counts and
+   * sidebar badges can never drift (K8s badge-drift lesson). Failures
+   * are logged and swallowed: snapshots are best-effort and must never
+   * affect ClickHouse ingest.
+   */
+  private static async flushProxmoxSnapshotBuffers(data: {
+    projectId: ObjectID;
+    resourceBuffer: Map<string, Map<string, ProxmoxResourceBufferEntry>>;
+    clusterBuffer: Map<string, ProxmoxClusterSnapshotBufferEntry>;
+  }): Promise<void> {
+    const clusterIdStrs: Set<string> = new Set<string>([
+      ...data.resourceBuffer.keys(),
+      ...data.clusterBuffer.keys(),
+    ]);
+
+    for (const clusterIdStr of clusterIdStrs) {
+      const byKey: Map<string, ProxmoxResourceBufferEntry> | undefined =
+        data.resourceBuffer.get(clusterIdStr);
+      const entries: Array<ProxmoxResourceBufferEntry> = byKey
+        ? Array.from(byKey.values())
+        : [];
+      const snap: ProxmoxClusterSnapshotBufferEntry | undefined =
+        data.clusterBuffer.get(clusterIdStr);
+
+      if (entries.length > 0) {
+        try {
+          const resources: Array<ParsedProxmoxResource> = entries.map(
+            (e: ProxmoxResourceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                name: e.name,
+                vmid: e.vmid,
+                guestType: e.guestType,
+                parentNodeName: e.parentNodeName,
+                isUp: e.isUp,
+                haState: e.haState,
+                onboot: e.onboot,
+                isBackedUp: computeProxmoxGuestBackedUp(e, snap),
+                uptimeSeconds: e.uptimeSeconds,
+                lastSeenAt: e.observedAt,
+              };
+            },
+          );
+          await ProxmoxResourceService.bulkUpsert({
+            projectId: data.projectId,
+            proxmoxClusterId: new ObjectID(clusterIdStr),
+            resources,
+          });
+
+          const metrics: Array<ProxmoxResourceLatestMetric> = entries.map(
+            (e: ProxmoxResourceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                cpuPercent: e.latestCpuPercent,
+                memoryBytes: e.latestMemoryBytes,
+                maxMemoryBytes: e.maxMemoryBytes,
+                memoryPercent:
+                  e.latestMemoryBytes !== null &&
+                  e.maxMemoryBytes !== null &&
+                  e.maxMemoryBytes > 0
+                    ? (e.latestMemoryBytes / e.maxMemoryBytes) * 100
+                    : null,
+                diskBytes: e.latestDiskBytes,
+                maxDiskBytes: e.maxDiskBytes,
+                observedAt: e.observedAt,
+              };
+            },
+          );
+          await ProxmoxResourceService.bulkUpdateLatestMetrics({
+            projectId: data.projectId,
+            proxmoxClusterId: new ObjectID(clusterIdStr),
+            metrics,
+          });
+        } catch (err) {
+          logger.warn(
+            `Proxmox snapshot writeback (inventory) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      try {
+        /*
+         * Counts are only written when the batch carried the matching
+         * identity series — never zero a count on a partial batch
+         * (deriveProxmoxClusterSnapshotExtras owns that contract).
+         */
+        const extras: ProxmoxClusterSnapshotExtras =
+          deriveProxmoxClusterSnapshotExtras(entries, snap);
+
+        if (Object.keys(extras).length > 0) {
+          await ProxmoxClusterService.updateLastSeen(
+            new ObjectID(clusterIdStr),
+            extras,
+          );
+        }
+      } catch (err) {
+        logger.warn(
+          `Proxmox snapshot writeback (cluster) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  /*
+   * Drain the Ceph buffers: inventory upsert + latest-metric mirror,
+   * then the CephCluster snapshot columns — computed from the SAME
+   * buffer the inventory rows were upserted from (single-source rule).
+   * Failures are logged and swallowed: snapshots are best-effort and
+   * must never affect ClickHouse ingest.
+   */
+  private static async flushCephSnapshotBuffers(data: {
+    projectId: ObjectID;
+    resourceBuffer: Map<string, Map<string, CephResourceBufferEntry>>;
+    clusterBuffer: Map<string, CephClusterSnapshotBufferEntry>;
+  }): Promise<void> {
+    const clusterIdStrs: Set<string> = new Set<string>([
+      ...data.resourceBuffer.keys(),
+      ...data.clusterBuffer.keys(),
+    ]);
+
+    for (const clusterIdStr of clusterIdStrs) {
+      const byKey: Map<string, CephResourceBufferEntry> | undefined =
+        data.resourceBuffer.get(clusterIdStr);
+      const entries: Array<CephResourceBufferEntry> = byKey
+        ? Array.from(byKey.values())
+        : [];
+
+      if (entries.length > 0) {
+        try {
+          const resources: Array<ParsedCephResource> = entries.map(
+            (e: CephResourceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                name: e.name,
+                hostname: e.hostname,
+                daemonVersion: e.daemonVersion,
+                deviceClass: e.deviceClass,
+                isUp: e.isUp,
+                isIn: e.isIn,
+                inQuorum: e.inQuorum,
+                lastSeenAt: e.observedAt,
+              };
+            },
+          );
+          await CephResourceService.bulkUpsert({
+            projectId: data.projectId,
+            cephClusterId: new ObjectID(clusterIdStr),
+            resources,
+          });
+
+          const metrics: Array<CephResourceLatestMetric> = entries.map(
+            (e: CephResourceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                statBytes: e.statBytes,
+                statBytesUsed: e.statBytesUsed,
+                applyLatencyMs: e.applyLatencyMs,
+                commitLatencyMs: e.commitLatencyMs,
+                pgCount: e.pgCount,
+                storedBytes: e.storedBytes,
+                maxAvailBytes: e.maxAvailBytes,
+                objects: e.objects,
+                readOpsCounter: e.readOpsCounter,
+                writeOpsCounter: e.writeOpsCounter,
+                observedAt: e.observedAt,
+              };
+            },
+          );
+          await CephResourceService.bulkUpdateLatestMetrics({
+            projectId: data.projectId,
+            cephClusterId: new ObjectID(clusterIdStr),
+            metrics,
+          });
+        } catch (err) {
+          logger.warn(
+            `Ceph snapshot writeback (inventory) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      try {
+        const snap: CephClusterSnapshotBufferEntry | undefined =
+          data.clusterBuffer.get(clusterIdStr);
+        /*
+         * Counts are only written when the batch carried the matching
+         * identity series — never zero a count on a partial batch
+         * (deriveCephClusterSnapshotExtras owns that contract).
+         */
+        const extras: CephClusterSnapshotExtras =
+          deriveCephClusterSnapshotExtras(entries, snap);
+
+        if (Object.keys(extras).length > 0) {
+          await CephClusterService.updateLastSeen(
+            new ObjectID(clusterIdStr),
+            extras,
+          );
+        }
+      } catch (err) {
+        logger.warn(
+          `Ceph snapshot writeback (cluster) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  /*
+   * Drain the IoT buffers: device inventory upsert + latest-metric
+   * mirror, then the IoTFleet snapshot columns. The count columns are
+   * computed from the SAME buffer the inventory rows were upserted from
+   * — single-source rule, so list-page counts and sidebar badges can
+   * never drift. Failures are logged and swallowed: snapshots are
+   * best-effort and must never affect ClickHouse ingest.
+   */
+  private static async flushIoTSnapshotBuffers(data: {
+    projectId: ObjectID;
+    resourceBuffer: Map<string, Map<string, IoTDeviceBufferEntry>>;
+    fleetBuffer: Map<string, IoTFleetSnapshotBufferEntry>;
+  }): Promise<void> {
+    const fleetIdStrs: Set<string> = new Set<string>([
+      ...data.resourceBuffer.keys(),
+      ...data.fleetBuffer.keys(),
+    ]);
+
+    for (const fleetIdStr of fleetIdStrs) {
+      const byKey: Map<string, IoTDeviceBufferEntry> | undefined =
+        data.resourceBuffer.get(fleetIdStr);
+      const entries: Array<IoTDeviceBufferEntry> = byKey
+        ? Array.from(byKey.values())
+        : [];
+      const snap: IoTFleetSnapshotBufferEntry | undefined =
+        data.fleetBuffer.get(fleetIdStr);
+
+      if (entries.length > 0) {
+        try {
+          const devices: Array<ParsedIoTDevice> = entries.map(
+            (e: IoTDeviceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                name: e.name,
+                deviceType: e.deviceType,
+                firmwareVersion: e.firmwareVersion,
+                isUp: e.isUp,
+                uptimeSeconds: e.uptimeSeconds,
+                lastSeenAt: e.observedAt,
+              };
+            },
+          );
+          await IoTDeviceService.bulkUpsert({
+            projectId: data.projectId,
+            iotFleetId: new ObjectID(fleetIdStr),
+            devices,
+          });
+
+          const metrics: Array<IoTDeviceLatestMetric> = entries.map(
+            (e: IoTDeviceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                cpuPercent: e.latestCpuPercent,
+                memoryBytes: e.latestMemoryBytes,
+                maxMemoryBytes: e.maxMemoryBytes,
+                memoryPercent:
+                  e.latestMemoryBytes !== null &&
+                  e.maxMemoryBytes !== null &&
+                  e.maxMemoryBytes > 0
+                    ? (e.latestMemoryBytes / e.maxMemoryBytes) * 100
+                    : null,
+                batteryPercent: e.latestBatteryPercent,
+                signalStrengthDbm: e.latestSignalStrengthDbm,
+                temperatureCelsius: e.latestTemperatureCelsius,
+                observedAt: e.observedAt,
+              };
+            },
+          );
+          await IoTDeviceService.bulkUpdateLatestMetrics({
+            projectId: data.projectId,
+            iotFleetId: new ObjectID(fleetIdStr),
+            metrics,
+          });
+        } catch (err) {
+          logger.warn(
+            `IoT snapshot writeback (inventory) failed for fleet ${fleetIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      try {
+        /*
+         * Counts are only written when the batch carried the matching
+         * identity series — never zero a count on a partial batch
+         * (deriveIoTFleetSnapshotExtras owns that contract).
+         */
+        const extras: IoTFleetSnapshotExtras = deriveIoTFleetSnapshotExtras(
+          entries,
+          snap,
+        );
+
+        if (Object.keys(extras).length > 0) {
+          await IoTFleetService.updateLastSeen(
+            new ObjectID(fleetIdStr),
+            extras,
+          );
+        }
+      } catch (err) {
+        logger.warn(
+          `IoT snapshot writeback (fleet) failed for fleet ${fleetIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
   private static buildMetricRow(data: {
     datapoint: JSONObject;
     baseAttributes: Dictionary<AttributeType | Array<AttributeType>>;
     projectId: ObjectID;
-    serviceId: ObjectID;
+    primaryEntityId: ObjectID;
     serviceName: string;
     metricName: string;
     metricPointType: MetricPointType;
     aggregationTemporality?: OtelAggregationTemporality;
     isMonotonic?: boolean;
-    dataRententionInDays: number;
+    serviceMetadata: TelemetryServiceMetadata;
   }): JSONObject {
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
     const ingestionTimestamp: string =
@@ -1463,18 +3116,26 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       spanId: string | null;
     } = this.extractExemplarIds(data.datapoint["exemplars"] as JSONArray);
 
+    const retentionDays: number = resolveTelemetryRetentionInDays({
+      pillar: "metrics",
+      serviceConfig: data.serviceMetadata.serviceRetentionConfig,
+      serviceRetentionInDays: data.serviceMetadata.serviceRetentionInDays,
+      projectConfig: data.serviceMetadata.projectRetentionConfig,
+      projectRetentionInDays: data.serviceMetadata.projectRetentionInDays,
+    });
     const retentionDate: Date = OneUptimeDate.addRemoveDays(
       ingestionDate,
-      data.dataRententionInDays || 15,
+      retentionDays,
     );
 
     const row: JSONObject = {
-      _id: ObjectID.generate().toString(),
+      _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: ingestionTimestamp,
-      updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
-      serviceId: data.serviceId.toString(),
-      serviceType: ServiceType.OpenTelemetry,
+      primaryEntityId: data.primaryEntityId.toString(),
+      primaryEntityType: data.serviceMetadata.primaryEntityType,
+      entityKeys: data.serviceMetadata.entityKeys || [],
+      ...getScalarEntityKeyColumns(data.serviceMetadata),
       name: data.metricName,
       time: timeFields.db,
       timeUnixNano: timeFields.nano,
@@ -1522,6 +3183,69 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
 
     return row;
+  }
+
+  /*
+   * Newest datapoint timestamp across a resource's scopeMetrics, used
+   * to stamp the synthetic host heartbeat with the batch's own scrape
+   * time instead of the ingest wall clock. Walks every OTLP data shape
+   * (the proto's `oneof data`) but reads only `timeUnixNano`, so the
+   * extra pass is cheap relative to the full ingest transform. Returns
+   * null when the batch carries no parseable datapoint timestamps.
+   */
+  private static getMaxDatapointTimeUnixNano(
+    scopeMetrics: JSONArray,
+  ): number | null {
+    if (!Array.isArray(scopeMetrics)) {
+      return null;
+    }
+    let max: number | null = null;
+    for (const scopeMetric of scopeMetrics) {
+      const metrics: JSONArray | undefined = (scopeMetric as JSONObject)?.[
+        "metrics"
+      ] as JSONArray | undefined;
+      if (!metrics || !Array.isArray(metrics)) {
+        continue;
+      }
+      for (const metric of metrics) {
+        const metricObject: JSONObject | null = metric as JSONObject | null;
+        if (!metricObject) {
+          continue;
+        }
+        const metricTypeWrapper: JSONObject | undefined =
+          (metricObject["sum"] as JSONObject | undefined) ||
+          (metricObject["gauge"] as JSONObject | undefined) ||
+          (metricObject["histogram"] as JSONObject | undefined) ||
+          (metricObject["exponentialHistogram"] as JSONObject | undefined) ||
+          (metricObject["summary"] as JSONObject | undefined);
+        const dataPoints: JSONArray | undefined = metricTypeWrapper?.[
+          "dataPoints"
+        ] as JSONArray | undefined;
+        if (!dataPoints || !Array.isArray(dataPoints)) {
+          continue;
+        }
+        for (const datapoint of dataPoints) {
+          const raw: string | number | undefined = (datapoint as JSONObject)?.[
+            "timeUnixNano"
+          ] as string | number | undefined;
+          let value: number | null = null;
+          if (typeof raw === "number") {
+            value = raw;
+          } else if (typeof raw === "string") {
+            value = Number.parseFloat(raw);
+          }
+          if (
+            value !== null &&
+            Number.isFinite(value) &&
+            value > 0 &&
+            (max === null || value > max)
+          ) {
+            max = value;
+          }
+        }
+      }
+    }
+    return max;
   }
 
   private static safeParseUnixNano(
@@ -1653,14 +3377,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     return { traceId: null, spanId: null };
   }
 
+  /*
+   * OTLP/JSON sends exemplar trace/span ids as 16/32-char hex,
+   * OTLP/protobuf as base64 — Text.convertOtlpIdToHex tells them apart
+   * so hex ids are never base64-decoded into garbage, which would break
+   * metric→trace exemplar navigation.
+   */
   private static convertBase64ToHexSafe(value: string | undefined): string {
-    if (!value) {
-      return "";
-    }
-    try {
-      return Text.convertBase64ToHex(value);
-    } catch {
-      return "";
-    }
+    return Text.convertOtlpIdToHex(value);
   }
 }

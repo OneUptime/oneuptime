@@ -39,7 +39,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectMember,
     Permission.Viewer,
     Permission.ReadTelegramLog,
-    Permission.ReadAllProjectResources,
   ],
   delete: [],
   update: [],
@@ -70,7 +69,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -103,7 +101,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -130,7 +127,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -157,7 +153,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -183,7 +178,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -208,7 +202,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -234,7 +227,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -261,7 +253,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -287,7 +278,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -316,7 +306,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -349,7 +338,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -376,7 +364,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -409,7 +396,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -436,7 +422,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -469,7 +454,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -496,7 +480,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -529,7 +512,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -556,7 +538,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -589,7 +570,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -617,7 +597,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -650,7 +629,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -677,7 +655,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -711,7 +688,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -739,7 +715,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -772,7 +747,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -799,7 +773,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -832,7 +805,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -860,7 +832,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -895,7 +866,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -923,7 +893,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -957,7 +926,6 @@ export default class TelegramLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTelegramLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

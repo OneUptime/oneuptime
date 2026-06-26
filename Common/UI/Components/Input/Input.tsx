@@ -1,5 +1,6 @@
 // Tailwind
 import { Logger } from "../../Utils/Logger";
+import useTranslateValue from "../../Utils/Translation";
 import Icon from "../Icon/Icon";
 import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -22,6 +23,8 @@ export enum InputType {
 
 export interface ComponentProps {
   initialValue?: undefined | string | Date;
+  id?: string | undefined;
+  ariaLabelledby?: string | undefined;
   onClick?: undefined | (() => void);
   placeholder?: undefined | string;
   className?: undefined | string;
@@ -46,6 +49,7 @@ export interface ComponentProps {
 const Input: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   let className: string = "";
 
   if (!props.className) {
@@ -153,11 +157,13 @@ const Input: FunctionComponent<ComponentProps> = (
         <input
           autoFocus={props.autoFocus}
           ref={ref}
+          id={props.id}
           onFocus={props.onFocus}
           onClick={props.onClick}
           data-testid={props.dataTestId}
           spellCheck={!props.disableSpellCheck}
           autoComplete={props.autoComplete}
+          aria-labelledby={props.ariaLabelledby}
           aria-invalid={props.error ? "true" : undefined}
           aria-describedby={props.error ? "input-error-message" : undefined}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,7 +205,7 @@ const Input: FunctionComponent<ComponentProps> = (
               ? "1"
               : undefined
           }
-          placeholder={props.placeholder}
+          placeholder={translateString(props.placeholder)}
           className={className}
           onBlur={() => {
             if (props.onBlur) {

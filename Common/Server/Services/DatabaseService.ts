@@ -46,6 +46,7 @@ import PartialEntity from "../../Types/Database/PartialEntity";
 import { TableColumnMetadata } from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import { getUniqueColumnsBy } from "../../Types/Database/UniqueColumnBy";
+import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
 import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConnectedException";
@@ -54,6 +55,7 @@ import HashedString from "../../Types/HashedString";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
+import TelemetryContext from "../Utils/Telemetry/TelemetryContext";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Text from "../../Types/Text";
 import Typeof from "../../Types/Typeof";
@@ -61,10 +63,14 @@ import API from "../../Utils/API";
 import Slug from "../../Utils/Slug";
 import {
   DataSource,
+  Driver,
   EntityManager,
   Repository,
   SelectQueryBuilder,
 } from "typeorm";
+import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
+import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
+import { ObjectLiteral } from "typeorm/common/ObjectLiteral";
 import { FindWhere } from "../../Types/BaseDatabase/Query";
 import Realtime from "../Utils/Realtime";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
@@ -577,6 +583,28 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       (data as any)["createdByUserId"] = props.userId;
     }
 
+    /*
+     * Stamp archive audit fields when a resource is being (un)archived.
+     * The client only ever sends `isArchived`; we stamp `archivedAt` and
+     * `archivedByUserId` here — which runs after column update-permission
+     * checks — so these audit fields are server-controlled and cannot be
+     * spoofed, exactly like `createdByUserId` above.
+     */
+    if (isUpdate && (data as any)["isArchived"] !== undefined) {
+      const isArchivedValue: boolean = Boolean((data as any)["isArchived"]);
+
+      if (this.model.hasColumn("archivedAt")) {
+        (data as any)["archivedAt"] = isArchivedValue
+          ? OneUptimeDate.getCurrentDate()
+          : null;
+      }
+
+      if (this.model.hasColumn("archivedByUserId")) {
+        (data as any)["archivedByUserId"] =
+          isArchivedValue && props.userId ? props.userId : null;
+      }
+    }
+
     return data;
   }
 
@@ -681,6 +709,69 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
   }
 
+  /**
+   * Derive the telemetry attribute key for this model's primary id, e.g.
+   * `Incident` -> `incidentId`, `Monitor` -> `monitorId`. Matches the keys in
+   * TelemetryContextAttributes so dashboards/queries stay consistent.
+   */
+  private getTelemetryEntityIdKey(): string {
+    const name: string = this.modelName || "entity";
+    return name.charAt(0).toLowerCase() + name.slice(1) + "Id";
+  }
+
+  /**
+   * Seed the ambient telemetry context with the project (tenant) of an
+   * operation so worker/cron/service spans and logs — which run outside the
+   * HTTP request scope — still carry projectId. Best-effort and safe to call
+   * anywhere.
+   */
+  protected setTelemetryContextFromProps(
+    props: DatabaseCommonInteractionProps | undefined,
+  ): void {
+    try {
+      if (props?.tenantId) {
+        TelemetryContext.setAttributes({
+          projectId: props.tenantId.toString(),
+        });
+      }
+    } catch {
+      // Telemetry must never break a database operation.
+    }
+  }
+
+  /**
+   * Seed the ambient telemetry context from a concrete model instance: the
+   * project (tenant) and the entity's own id (e.g. incidentId, monitorId).
+   * Used on create, where a new entity id is minted. Best-effort and safe.
+   */
+  protected setTelemetryContextFromItem(item: TBaseModel | undefined): void {
+    try {
+      if (!item) {
+        return;
+      }
+
+      const attributes: { [key: string]: string } = {};
+
+      const tenantColumn: string | null = this.model.getTenantColumn();
+      if (tenantColumn) {
+        const tenantValue: unknown = item.getColumnValue(tenantColumn);
+        if (tenantValue) {
+          attributes["projectId"] = String(tenantValue);
+        }
+      }
+
+      if (item.id) {
+        attributes[this.getTelemetryEntityIdKey()] = item.id.toString();
+      }
+
+      if (Object.keys(attributes).length > 0) {
+        TelemetryContext.setAttributes(attributes);
+      }
+    } catch {
+      // Telemetry must never break a database operation.
+    }
+  }
+
   @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
     const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
@@ -742,6 +833,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       createBy.data = await this.getRepository().save(createBy.data);
 
+      // Seed telemetry context with projectId + <model>Id for this create.
+      this.setTelemetryContextFromItem(createBy.data);
+
       if (!createBy.props.ignoreHooks) {
         createBy.data = await this.onCreateSuccess(
           {
@@ -750,6 +844,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           },
           createBy.data,
         );
+      }
+
+      /*
+       * Auto-owner-on-create for @OperationalResource models. Inserts the
+       * creating user into <Model>OwnerUser so the Owned permission scope
+       * covers the newly-created resource on the next request. See
+       * Internal/Docs/PermissionsSimplification.md. Best-effort: failures
+       * are logged but do not roll back the create.
+       */
+      if (!createBy.props.ignoreHooks) {
+        await this.autoOwnerOnCreate(createBy.data, createBy.props);
       }
 
       let tenantId: ObjectID | undefined = createBy.props.tenantId;
@@ -797,6 +902,105 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     } catch (error) {
       await this.onCreateError(error as Exception);
       throw this.getException(error as Exception);
+    }
+  }
+
+  /*
+   * Inserts the creating user into the resource's *OwnerUser table for
+   * operational resources. Mirrors the existing OwnerRule behavior for user
+   * assignment and gives the creator immediate access under the `Owned`
+   * permission scope.
+   */
+  private async autoOwnerOnCreate(
+    createdItem: TBaseModel,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    /*
+     * System/root creates don't get an owner; non-user callers (API keys,
+     * Probes) have no userId either. Both evaluate Owned as All elsewhere.
+     */
+    if (props.isRoot || props.isMasterAdmin || !props.userId) {
+      return;
+    }
+
+    // The @OperationalResource() decorator sets this on the model prototype.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!(createdItem as any).isOperationalResource) {
+      return;
+    }
+
+    const modelName: string = this.modelType.name;
+
+    /*
+     * Lazy require to avoid circular dependency: owner services extend
+     * DatabaseService, so importing them at top-level leaves DatabaseService
+     * undefined at class-extension time.
+     */
+    const ownerTableRegistry: Map<
+      string,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { ownerUserService: any; ownerTeamService: any; fkColumn: string }
+    > =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      require("../Types/Database/Permissions/OwnerTableRegistry").default;
+
+    const entry:
+      | {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ownerUserService: any;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ownerTeamService: any;
+          fkColumn: string;
+        }
+      | undefined = ownerTableRegistry.get(modelName);
+    if (!entry) {
+      /*
+       * Operational but no registered owner tables — not a configuration we
+       * know how to auto-own. Skip silently.
+       */
+      return;
+    }
+
+    const resourceId: ObjectID | undefined = createdItem.id || undefined;
+    if (!resourceId) {
+      logger.error(
+        `auto-owner-on-create: created ${modelName} has no id; skipping`,
+      );
+      return;
+    }
+
+    const tenantColumnName: string | null = createdItem.getTenantColumn();
+    let projectId: ObjectID | undefined = undefined;
+    if (tenantColumnName) {
+      projectId =
+        createdItem.getValue<ObjectID>(tenantColumnName) || props.tenantId;
+    } else {
+      projectId = props.tenantId;
+    }
+
+    if (!projectId) {
+      logger.error(
+        `auto-owner-on-create: no projectId for ${modelName} ${resourceId.toString()}; skipping`,
+      );
+      return;
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ownerModel: any = entry.ownerUserService.getModel();
+      ownerModel[entry.fkColumn] = resourceId;
+      ownerModel.userId = props.userId;
+      ownerModel.projectId = projectId;
+
+      await entry.ownerUserService.create({
+        data: ownerModel,
+        props: { isRoot: true },
+      });
+    } catch (err) {
+      logger.error(
+        `auto-owner-on-create failed for ${modelName} ${resourceId.toString()}`,
+      );
+      logger.error(err as Error);
     }
   }
 
@@ -1106,6 +1310,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
     try {
+      this.setTelemetryContextFromProps(deleteBy.props);
+
       if (this.doNotAllowDelete && !deleteBy.props.isRoot) {
         throw new BadDataException("Delete not allowed");
       }
@@ -1334,6 +1540,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     withDeleted?: boolean | undefined,
   ): Promise<Array<TBaseModel>> {
     try {
+      this.setTelemetryContextFromProps(findBy.props);
+
       let automaticallyAddedCreatedAtInSelect: boolean = false;
 
       if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
@@ -1528,6 +1736,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {
     try {
+      this.setTelemetryContextFromProps(updateBy.props);
+
       const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
         ? { updateBy, carryForward: [] }
         : await this.onBeforeUpdate(updateBy);
@@ -1783,6 +1993,105 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       select: updateById.select,
       props: updateById.props,
     });
+  }
+
+  /*
+   * Fast, side-effect-free single-statement column update by id.
+   *
+   * `updateOneById` is heavy: an access-control pre-check SELECT, then
+   * `_updateBy` (a `_findBy` SELECT to load the row, `getRepository().save()`,
+   * then workflow / realtime / audit-log hooks). That is several round
+   * trips, each holding the row's write lock and pinning a pool connection.
+   * On a hot row written on every ingest batch — e.g. a telemetry
+   * liveness/heartbeat timestamp — that pipeline becomes the head of a
+   * Postgres lock convoy: one slow writer (or a save() transaction left open
+   * across other async work) blocks every other writer of the same row, and
+   * the waiters each pin a pool connection until the whole pool is starved.
+   *
+   * This issues exactly ONE auto-committed UPDATE (raw parameterized SQL).
+   * The row's write lock is held only for that statement, so the write can
+   * never head a convoy and never spans other async work. It deliberately
+   * runs NO hooks, workflow triggers, realtime events, audit-log writes, or
+   * access-control checks, and does NOT bump the optimistic-lock `version`
+   * column. (We can't use the entity-aware QueryBuilder for the
+   * no-version-bump part: TypeORM resolves even a table-name string back to
+   * the entity metadata, whose UpdateQueryBuilder branch always appends
+   * `version = version + 1`.) `updatedAt` is refreshed to preserve the
+   * behaviour of the normal update path.
+   *
+   * Column and table identifiers are taken from entity metadata (never from
+   * the caller), and every value is bound as a parameter, so this is not an
+   * injection surface. Use ONLY for trusted, internal, side-effect-free
+   * column writes where the full pipeline is pure overhead.
+   */
+  @CaptureSpan()
+  public async updateColumnsByIdWithoutHooks(input: {
+    id: ObjectID;
+    data: PartialEntity<TBaseModel>;
+  }): Promise<void> {
+    if (!input.id) {
+      throw new BadDataException("id is required");
+    }
+
+    const repository: Repository<TBaseModel> = this.getRepository();
+    const metadata: EntityMetadata = repository.metadata;
+    const driver: Driver = repository.manager.connection.driver;
+
+    const setClauses: Array<string> = [];
+    const params: Array<unknown> = [];
+
+    for (const [propertyName, value] of Object.entries(
+      input.data as ObjectLiteral,
+    )) {
+      const column: ColumnMetadata | undefined =
+        metadata.findColumnWithPropertyName(propertyName);
+      if (!column) {
+        throw new BadDataException(
+          `updateColumnsByIdWithoutHooks: unknown column "${propertyName}" on "${metadata.tableName}"`,
+        );
+      }
+      /*
+       * PartialEntity permits `() => string` SQL-expression values, but this
+       * raw bind path can only parameterize literals (and the save()-based
+       * updateOneById it replaces doesn't support expressions either). Fail
+       * loudly rather than binding a function object.
+       */
+      if (typeof value === "function") {
+        throw new BadDataException(
+          `updateColumnsByIdWithoutHooks: SQL-expression values are not supported (column "${propertyName}"); pass a literal value.`,
+        );
+      }
+      /*
+       * Run the value through the driver's persist path so column
+       * transformers (e.g. ObjectID <-> uuid), JSON stringification, and
+       * boolean/date coercion are applied exactly as getRepository().save()
+       * would. Without this, the raw bind below would write an ObjectID
+       * object (or a raw JS object) straight to Postgres.
+       */
+      params.push(driver.preparePersistentValue(value, column));
+      setClauses.push(`"${column.databaseName}" = $${params.length}`);
+    }
+
+    if (setClauses.length === 0) {
+      return;
+    }
+
+    // The raw path has no entity machinery to touch updateDate — do it here.
+    if (metadata.updateDateColumn) {
+      setClauses.push(
+        `"${metadata.updateDateColumn.databaseName}" = CURRENT_TIMESTAMP`,
+      );
+    }
+
+    const primaryColumnName: string =
+      metadata.primaryColumns[0]?.databaseName || "_id";
+    params.push(input.id.toString());
+
+    const sql: string = `UPDATE "${metadata.tableName}" SET ${setClauses.join(
+      ", ",
+    )} WHERE "${primaryColumnName}" = $${params.length}`;
+
+    await repository.manager.query(sql, params);
   }
 
   @CaptureSpan()

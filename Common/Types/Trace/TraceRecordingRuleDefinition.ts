@@ -6,6 +6,11 @@ import TraceAggregationType from "./TraceAggregationType";
  * match. Each source is aliased (A, B, C, ...) and referenced from the rule's
  * expression string.
  */
+export interface TraceRecordingRuleAttributeFilter {
+  key: string;
+  value: string;
+}
+
 export interface TraceRecordingRuleSource {
   alias: string;
   aggregationType: TraceAggregationType;
@@ -13,8 +18,16 @@ export interface TraceRecordingRuleSource {
   spanNameRegex?: string;
   spanKind?: string;
   onlyErrors?: boolean;
+  /*
+   * Legacy single attribute filter — superseded by `filterAttributes` but
+   * still honored for rules saved before multi-filter support. Use
+   * TraceRecordingRuleDefinitionUtil.getSourceAttributeFilters to read the
+   * combined set.
+   */
   filterAttributeKey?: string;
   filterAttributeValue?: string;
+  // Multiple attribute equality filters — ANDed (e.g. http.route AND url.host).
+  filterAttributes?: Array<TraceRecordingRuleAttributeFilter>;
 }
 
 /*
@@ -79,6 +92,11 @@ export class TraceRecordingRuleDefinitionUtil {
         description: "Median span duration.",
       },
       {
+        value: TraceAggregationType.P90DurationSeconds,
+        label: "p90 Duration (s)",
+        description: "90th percentile span duration.",
+      },
+      {
         value: TraceAggregationType.P95DurationSeconds,
         label: "p95 Duration (s)",
         description: "95th percentile span duration.",
@@ -110,6 +128,38 @@ export class TraceRecordingRuleDefinitionUtil {
       { value: "SPAN_KIND_CONSUMER", label: "Consumer" },
       { value: "SPAN_KIND_INTERNAL", label: "Internal" },
     ];
+  }
+
+  /*
+   * Combined attribute filters for a source: the multi-filter array plus the
+   * legacy single pair (deduplicated by key, array entries win).
+   */
+  public static getSourceAttributeFilters(
+    source: TraceRecordingRuleSource,
+  ): Array<TraceRecordingRuleAttributeFilter> {
+    const filters: Array<TraceRecordingRuleAttributeFilter> = [];
+    const seenKeys: Set<string> = new Set<string>();
+
+    for (const filter of source.filterAttributes || []) {
+      if (!filter || typeof filter !== "object") {
+        continue;
+      }
+      const key: string = (filter.key || "").trim();
+      const value: string = (filter.value || "").trim();
+      if (!key || !value || seenKeys.has(key)) {
+        continue;
+      }
+      seenKeys.add(key);
+      filters.push({ key, value });
+    }
+
+    const legacyKey: string = (source.filterAttributeKey || "").trim();
+    const legacyValue: string = (source.filterAttributeValue || "").trim();
+    if (legacyKey && legacyValue && !seenKeys.has(legacyKey)) {
+      filters.push({ key: legacyKey, value: legacyValue });
+    }
+
+    return filters;
   }
 
   public static getNextAlias(
@@ -161,6 +211,12 @@ export class TraceRecordingRuleDefinitionUtil {
     const aliases: Set<string> = new Set<string>();
     for (let i: number = 0; i < sources.length; i++) {
       const source: TraceRecordingRuleSource = sources[i]!;
+
+      // Definitions arrive as JSON (deep links, API writes) — never throw.
+      if (!source || typeof source !== "object") {
+        return `Source #${i + 1}: Invalid source.`;
+      }
+
       const prefix: string = `Source ${source.alias || `#${i + 1}`}: `;
 
       if (!source.alias || !ALIAS_REGEX.test(source.alias)) {
@@ -183,6 +239,24 @@ export class TraceRecordingRuleDefinitionUtil {
 
       if (hasFilterKey !== hasFilterValue) {
         return `${prefix}Attribute filter needs both a key and a value (or leave both empty).`;
+      }
+
+      if (
+        source.filterAttributes !== undefined &&
+        !Array.isArray(source.filterAttributes)
+      ) {
+        return `${prefix}Invalid attribute filters.`;
+      }
+
+      for (const filter of source.filterAttributes || []) {
+        if (!filter || typeof filter !== "object") {
+          return `${prefix}Invalid attribute filter row.`;
+        }
+        const hasKey: boolean = Boolean(filter.key?.trim());
+        const hasValue: boolean = Boolean(filter.value?.trim());
+        if (hasKey !== hasValue) {
+          return `${prefix}Attribute filter needs both a key and a value (or remove the row).`;
+        }
       }
     }
 

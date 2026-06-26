@@ -36,8 +36,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   create: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
     Permission.CreateIncidentSeverity,
   ],
   read: [
@@ -45,22 +44,21 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
+    Permission.IncidentViewer,
     Permission.ReadIncidentSeverity,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
     Permission.DeleteIncidentSeverity,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
     Permission.EditIncidentSeverity,
   ],
 })
@@ -89,8 +87,7 @@ export default class IncidentSeverity extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
       Permission.CreateIncidentSeverity,
     ],
     read: [
@@ -98,9 +95,10 @@ export default class IncidentSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -129,8 +127,7 @@ export default class IncidentSeverity extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
       Permission.CreateIncidentSeverity,
     ],
     read: [
@@ -138,9 +135,10 @@ export default class IncidentSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -164,8 +162,7 @@ export default class IncidentSeverity extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
       Permission.CreateIncidentSeverity,
     ],
     read: [
@@ -173,15 +170,15 @@ export default class IncidentSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
       Permission.EditIncidentSeverity,
     ],
   })
@@ -208,9 +205,10 @@ export default class IncidentSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -233,8 +231,7 @@ export default class IncidentSeverity extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
       Permission.CreateIncidentSeverity,
     ],
     read: [
@@ -242,15 +239,15 @@ export default class IncidentSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
       Permission.EditIncidentSeverity,
     ],
   })
@@ -273,8 +270,7 @@ export default class IncidentSeverity extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
       Permission.CreateIncidentSeverity,
     ],
     read: [
@@ -282,9 +278,10 @@ export default class IncidentSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -314,8 +311,7 @@ export default class IncidentSeverity extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
       Permission.CreateIncidentSeverity,
     ],
     read: [
@@ -323,9 +319,10 @@ export default class IncidentSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -349,9 +346,10 @@ export default class IncidentSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -385,9 +383,10 @@ export default class IncidentSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -408,8 +407,7 @@ export default class IncidentSeverity extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
       Permission.CreateIncidentSeverity,
     ],
     read: [
@@ -417,15 +415,15 @@ export default class IncidentSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
       Permission.EditIncidentSeverity,
     ],
   })
@@ -452,8 +450,7 @@ export default class IncidentSeverity extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
       Permission.CreateIncidentSeverity,
     ],
     read: [
@@ -461,15 +458,15 @@ export default class IncidentSeverity extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentSeverity,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
       Permission.EditIncidentSeverity,
     ],
   })

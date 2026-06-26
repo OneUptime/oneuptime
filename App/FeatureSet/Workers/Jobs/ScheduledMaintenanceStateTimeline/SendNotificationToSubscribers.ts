@@ -41,6 +41,7 @@ import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 
 RunCron(
@@ -449,6 +450,30 @@ RunCron(
               MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
                 url: subscriber.microsoftTeamsIncomingWebhookUrl,
                 text: markdownMessage,
+              }).catch((err: Error) => {
+                logger.error(err);
+              });
+            }
+
+            if (subscriber.subscriberWebhook) {
+              StatusPageSubscriberWebhookUtil.sendWebhookNotification({
+                webhookUrl: subscriber.subscriberWebhook,
+                payload: {
+                  eventType: "ScheduledMaintenanceStateChanged",
+                  statusPageId: statuspage.id!.toString(),
+                  statusPageName: statusPageName,
+                  statusPageUrl: statusPageURL,
+                  unsubscribeUrl: unsubscribeUrl,
+                  data: {
+                    scheduledMaintenanceId: event.id?.toString() || "",
+                    scheduledMaintenanceTitle: event.title || "",
+                    scheduledMaintenanceState:
+                      scheduledEventStateTimeline.scheduledMaintenanceState
+                        ?.name || "",
+                    resourcesAffected: resourcesAffectedString,
+                    detailsUrl: scheduledEventDetailsUrl,
+                  },
+                },
               }).catch((err: Error) => {
                 logger.error(err);
               });

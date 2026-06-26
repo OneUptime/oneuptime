@@ -245,6 +245,43 @@ const StatusPageSubscriberSettings: FunctionComponent<
       />
 
       <CardModelDetail<StatusPage>
+        name="Status Page > Branding > Subscriber > Webhook"
+        cardProps={{
+          title: "Webhook Subscribers",
+          description:
+            "Webhook subscriber settings for this status page. Webhook subscribers receive a JSON POST request on each status page event.",
+        }}
+        isEditable={true}
+        formFields={[
+          {
+            field: {
+              enableWebhookSubscribers: true,
+            },
+            title: "Enable Webhook Subscribers",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            placeholder:
+              "Can webhook subscribers subscribe to this status page?",
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: StatusPage,
+          id: "model-detail-webhook-subscribers",
+          fields: [
+            {
+              field: {
+                enableWebhookSubscribers: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Enable Webhook Subscribers",
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      <CardModelDetail<StatusPage>
         name="Status Page > Branding > Subscriber > Advanced"
         cardProps={{
           title: "Advanced Subscriber Settings",
@@ -536,6 +573,9 @@ const StatusPageSubscriberSettings: FunctionComponent<
         modelType={StatusPageSubscriberNotificationTemplateStatusPage}
         id="status-page-subscriber-notification-templates-table"
         userPreferencesKey="status-page-subscriber-notification-templates-table"
+        saveFilterProps={{
+          tableId: "status-page-view-subscriber-notification-templates-table",
+        }}
         name="Status Page > Subscriber Notification Templates"
         isDeleteable={true}
         createVerb="Link"

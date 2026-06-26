@@ -3,7 +3,7 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Black } from "Common/Types/BrandColors";
+import { Black, Red500 } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -40,7 +40,17 @@ import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import TraceTable from "../../../Components/Traces/TraceTable";
 import MonitorElement from "../../../Components/Monitor/Monitor";
-import HostsElement from "../../../Components/Host/Hosts";
+import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
+import AffectedResourcesPicker, {
+  isAffectedResourcesPayload,
+} from "../../../Components/AffectedResources/AffectedResourcesPicker";
+import Host from "Common/Models/DatabaseModels/Host";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import Service from "Common/Models/DatabaseModels/Service";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import AlertEpisodeElement from "../../../Components/AlertEpisode/AlertEpisode";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import MetricView from "../../../Components/Metrics/MetricView";
@@ -51,6 +61,7 @@ import HeaderAlert, {
 import IconProp from "Common/Types/Icon/IconProp";
 import ColorSwatch from "Common/Types/ColorSwatch";
 import AlertFeedElement from "../../../Components/Alert/AlertFeed";
+import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import AlertAffectedResources from "./AffectedResources";
 import ExceptionInstanceTable from "../../../Components/Exceptions/ExceptionInstanceTable";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -313,10 +324,22 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             required: false,
             placeholder: "Labels",
           },
+          {
+            field: {
+              isPrivate: true,
+            },
+            title: "Private Alert",
+            stepId: "alert-details",
+            description:
+              "If enabled, only the alert's owner users and members of its owner teams (plus project admins and owners) can view this alert.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
         ]}
         modelDetailProps={{
           selectMoreFields: {
             alertNumberWithPrefix: true,
+            isPrivate: true,
             createdByUser: {
               _id: true,
               name: true,
@@ -412,6 +435,20 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
             {
               field: {
+                isPrivate: true,
+              },
+              title: "Visibility",
+              fieldType: FieldType.Element,
+              showIf: (item: Alert): boolean => {
+                return item.isPrivate === true;
+              },
+              getElement: (): ReactElement => {
+                return <Pill color={Red500} text="Private" />;
+              },
+            },
+
+            {
+              field: {
                 currentAlertState: {
                   color: true,
                   name: true,
@@ -455,29 +492,20 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
             },
             {
+              /*
+               * Alert.monitor is a singular relation set at creation, so it
+               * gets its own row separate from the multi-resource picker.
+               */
               field: {
                 monitor: {
                   name: true,
                   _id: true,
                 },
               },
-              title: "Monitors Affected",
+              title: "Monitor",
               fieldType: FieldType.Element,
               getElement: (item: Alert): ReactElement => {
                 return <MonitorElement monitor={item["monitor"]!} />;
-              },
-            },
-            {
-              field: {
-                hosts: {
-                  name: true,
-                  _id: true,
-                },
-              },
-              title: "Hosts Affected",
-              fieldType: FieldType.Element,
-              getElement: (item: Alert): ReactElement => {
-                return <HostsElement hosts={item["hosts"] || []} />;
               },
             },
             {
@@ -556,6 +584,162 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               fieldType: FieldType.Element,
               getElement: (item: Alert): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
+              },
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      <CardModelDetail<Alert>
+        name="Affected Resources"
+        cardProps={{
+          title: "Affected Resources",
+          description:
+            "Hosts, Kubernetes clusters, Docker hosts, and services affected by this alert.",
+        }}
+        isEditable={true}
+        formFields={[
+          {
+            /*
+             * Alert.monitor is singular and set at creation; this picker
+             * edits only the ManyToMany affected resources.
+             */
+            field: { hosts: true },
+            title: "",
+            description:
+              "Search and attach hosts, Kubernetes clusters, Docker hosts, or services affected by this alert.",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            getCustomElement: (
+              values: FormValues<Alert>,
+              elementProps: CustomElementProps,
+            ) => {
+              return (
+                <AffectedResourcesPicker
+                  hosts={values.hosts as Array<Host>}
+                  kubernetesClusters={
+                    values.kubernetesClusters as Array<KubernetesCluster>
+                  }
+                  dockerHosts={values.dockerHosts as Array<DockerHost>}
+                  podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                  services={values.services as Array<Service>}
+                  resourceTypes={[
+                    "Host",
+                    "KubernetesCluster",
+                    "DockerHost",
+                    "PodmanHost",
+                    "Service",
+                  ]}
+                  onChange={(payload: unknown) => {
+                    elementProps.onChange?.(payload);
+                  }}
+                />
+              );
+            },
+            onChange: (
+              value: unknown,
+              currentValues: FormValues<Alert>,
+              setNewFormValues: (values: FormValues<Alert>) => void,
+            ) => {
+              if (isAffectedResourcesPayload(value)) {
+                const payload: typeof value = value;
+                queueMicrotask(() => {
+                  setNewFormValues({
+                    ...currentValues,
+                    hosts: payload.hosts,
+                    kubernetesClusters: payload.kubernetesClusters,
+                    dockerHosts: payload.dockerHosts,
+                    podmanHosts: payload.podmanHosts,
+                    services: payload.services,
+                  } as FormValues<Alert>);
+                });
+              }
+            },
+          },
+          /*
+           * Hidden registrations so ModelForm.getSelectFields includes
+           * kubernetesClusters/dockerHosts/services.
+           */
+          {
+            field: { kubernetesClusters: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { dockerHosts: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { podmanHosts: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { services: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: Alert,
+          id: "model-detail-alert-affected-resources",
+          fields: [
+            {
+              field: {
+                hosts: {
+                  name: true,
+                  _id: true,
+                },
+                kubernetesClusters: {
+                  name: true,
+                  _id: true,
+                },
+                dockerHosts: {
+                  name: true,
+                  _id: true,
+                },
+                podmanHosts: {
+                  name: true,
+                  _id: true,
+                },
+                services: {
+                  name: true,
+                  _id: true,
+                  serviceColor: true,
+                },
+              },
+              title: "",
+              fieldType: FieldType.Element,
+              getElement: (item: Alert): ReactElement => {
+                return (
+                  <AffectedResourcesDisplay
+                    hosts={item.hosts || []}
+                    kubernetesClusters={item.kubernetesClusters || []}
+                    dockerHosts={item.dockerHosts || []}
+                    podmanHosts={item.podmanHosts || []}
+                    services={item.services || []}
+                    hideMonitors={true}
+                  />
+                );
               },
             },
           ],
@@ -655,6 +839,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         )}
 
       <AlertAffectedResources alertId={modelId} />
+
+      <EntityRunbooks alertId={modelId} hideIfEmpty={true} />
 
       <AlertFeedElement alertId={modelId} />
     </Fragment>

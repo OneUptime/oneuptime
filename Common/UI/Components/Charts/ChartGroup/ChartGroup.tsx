@@ -1,5 +1,6 @@
 import Text from "../../../../Types/Text";
 import Dictionary from "../../../../Types/Dictionary";
+import ValueFormatter from "../../../../Utils/ValueFormatter";
 import LineChart, { ComponentProps as LineChartProps } from "../Line/LineChart";
 import BarChartElement, {
   ComponentProps as BarChartProps,
@@ -48,7 +49,6 @@ export interface Chart {
 export interface ComponentProps {
   charts: Array<Chart>;
   hideCard?: boolean | undefined;
-  heightInPx?: number | undefined;
   chartCssClass?: string | undefined;
 }
 
@@ -79,7 +79,6 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
             key={index}
             {...(chart.props as LineChartProps)}
             syncid={syncId}
-            heightInPx={props.heightInPx}
             exemplarPoints={chart.exemplarPoints}
             onExemplarClick={chart.onExemplarClick}
             showLegend={showLegend}
@@ -91,7 +90,6 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
             key={index}
             {...(chart.props as BarChartProps)}
             syncid={syncId}
-            heightInPx={props.heightInPx}
             showLegend={showLegend}
           />
         );
@@ -101,7 +99,6 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
             key={index}
             {...(chart.props as AreaChartProps)}
             syncid={syncId}
-            heightInPx={props.heightInPx}
             exemplarPoints={chart.exemplarPoints}
             onExemplarClick={chart.onExemplarClick}
             showLegend={showLegend}
@@ -146,6 +143,17 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
       metricInfoModalChart.attributes || {};
     const attributeKeys: Array<string> = Object.keys(attributes);
 
+    /*
+     * OTel reports fraction metrics like `*.utilization` with unit "1".
+     * Translate that to a human label ("Percent") for the details modal,
+     * and hide the row entirely for truly dimensionless counts.
+     */
+    const displayUnit: string = metricInfoModalChart.unit
+      ? ValueFormatter.getReadableUnit(metricInfoModalChart.unit, {
+          metricName: metricInfoModalChart.metricName,
+        })
+      : "";
+
     return (
       <Modal
         title="Metric Details"
@@ -178,14 +186,12 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                     {metricInfoModalChart.aggregationType}
                   </td>
                 </tr>
-                {metricInfoModalChart.unit && (
+                {displayUnit && (
                   <tr className="border-b border-gray-200">
                     <td className="py-2.5 pr-4 font-medium text-gray-500 whitespace-nowrap">
                       Unit
                     </td>
-                    <td className="py-2.5 text-gray-900">
-                      {metricInfoModalChart.unit}
-                    </td>
+                    <td className="py-2.5 text-gray-900">{displayUnit}</td>
                   </tr>
                 )}
                 {metricInfoModalChart.groupByAttribute && (
@@ -211,7 +217,6 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                               <span className="inline-flex items-center rounded bg-gray-200 px-2 py-0.5 text-xs font-mono text-gray-700">
                                 {key}
                               </span>
-                              <span className="text-gray-400">=</span>
                               <span className="text-xs text-gray-900 font-mono">
                                 {attributes[key]}
                               </span>
@@ -235,14 +240,14 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
     return (
       <>
         {renderMetricInfoModal()}
-        <div className="space-y-3">
+        <div className="space-y-3 flex-col flex flex-1 w-full">
           {props.charts.map((chart: Chart, index: number) => {
             return (
               <div
                 key={index}
-                className={`bg-white ${props.chartCssClass || ""}`}
+                className={`bg-white ${props.chartCssClass || ""} flex-1 flex-col flex w-full`}
               >
-                <div className="px-5 pt-4 pb-4">
+                <div className="px-5 pt-4 pb-4 flex flex-col flex-1">
                   <div className="mb-3 pb-3 border-b border-gray-100">
                     <div className="flex items-center">
                       <h3 className="text-sm font-semibold text-gray-800 tracking-tight">
@@ -256,10 +261,10 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                       </p>
                     )}
                   </div>
+                  {getChartContent(chart, index)}
                   {chart.seriesControls ? (
                     <div className="mb-3">{chart.seriesControls}</div>
                   ) : null}
-                  {getChartContent(chart, index)}
                 </div>
               </div>
             );
@@ -283,7 +288,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
           return (
             <div
               key={index}
-              className={`p-5 rounded-lg border border-gray-200 bg-white shadow-sm ${props.chartCssClass || ""}`}
+              className={`p-5 rounded-lg border border-gray-200 bg-white shadow-sm flex flex-col gap-3 ${props.chartCssClass || ""}`}
             >
               <div className="flex items-center">
                 <h2
@@ -303,10 +308,10 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                   {chart.description}
                 </p>
               )}
-              {chart.seriesControls ? (
-                <div className="mt-3">{chart.seriesControls}</div>
-              ) : null}
-              {getChartContent(chart, index)}
+              {chart.seriesControls ? chart.seriesControls : null}
+              <div className="flex-1 flex flex-col min-h-80">
+                {getChartContent(chart, index)}
+              </div>
             </div>
           );
         })}

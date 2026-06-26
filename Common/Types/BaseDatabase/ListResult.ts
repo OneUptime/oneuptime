@@ -9,4 +9,10 @@ export default interface ListResult<
   count: number;
   skip: number;
   limit: number;
+  /*
+   * Optional. When set, the analytics endpoint produced this result
+   * without a full COUNT(*) — `count` is only a lower bound. Drive
+   * pagination off `hasMore` rather than computing total pages.
+   */
+  hasMore?: boolean | undefined;
 }

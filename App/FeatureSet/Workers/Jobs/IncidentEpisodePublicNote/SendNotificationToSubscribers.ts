@@ -43,6 +43,7 @@ import { IncidentEpisodeFeedEventType } from "Common/Models/DatabaseModels/Incid
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 
 RunCron(
@@ -344,6 +345,19 @@ RunCron(
             }),
           );
 
+        /*
+         * Pre-compute markdown conversions for the note once per public note.
+         * These values do not vary per status page or per subscriber, so
+         * memoizing here avoids N redundant markdown parses during fan-out.
+         */
+        const noteHtml: string = await Markdown.convertToHTML(
+          episodePublicNote.note || "",
+          MarkdownContentType.Email,
+        );
+        const notePlainText: string = Markdown.convertToPlainText(
+          episodePublicNote.note || "",
+        );
+
         let notificationSentToAtLeastOneSubscriber: boolean = false;
 
         for (const statuspage of statusPages) {
@@ -457,10 +471,13 @@ RunCron(
             note: episodePublicNote.note || "",
           };
 
-          // Prepare SMS-specific template variables with plain text (no HTML/Markdown)
+          /*
+           * Prepare SMS-specific template variables with plain text (no HTML/Markdown).
+           * Uses the memoized plain-text conversion computed once per public note above.
+           */
           const smsTemplateVariables: Record<string, string> = {
             ...templateVariables,
-            note: Markdown.convertToPlainText(episodePublicNote.note || ""),
+            note: notePlainText,
           };
 
           // Send email to Email subscribers.
@@ -623,10 +640,7 @@ RunCron(
                     templateType:
                       EmailTemplateType.SubscriberEpisodeNoteCreated,
                     vars: {
-                      note: await Markdown.convertToHTML(
-                        episodePublicNote.note!,
-                        MarkdownContentType.Email,
-                      ),
+                      note: noteHtml,
                       statusPageName: statusPageName,
                       statusPageUrl: statusPageURL,
                       detailsUrl: episodeDetailsUrl,
@@ -775,6 +789,32 @@ ${episodePublicNote.note || ""}
                   incidentEpisodeId: episode.id?.toString(),
                 },
               );
+            }
+
+            if (subscriber.subscriberWebhook) {
+              StatusPageSubscriberWebhookUtil.sendWebhookNotification({
+                webhookUrl: subscriber.subscriberWebhook,
+                payload: {
+                  eventType: "EpisodeNoteCreated",
+                  statusPageId: statuspage.id!.toString(),
+                  statusPageName: statusPageName,
+                  statusPageUrl: statusPageURL,
+                  unsubscribeUrl: unsubscribeUrl,
+                  data: {
+                    episodeId: episode.id?.toString() || "",
+                    episodeTitle: episode.title || "",
+                    incidentSeverity: episode.incidentSeverity?.name || "",
+                    resourcesAffected: resourcesAffectedString,
+                    note: episodePublicNote.note || "",
+                    detailsUrl: episodeDetailsUrl,
+                  },
+                },
+              }).catch((err: Error) => {
+                logger.error(err, {
+                  projectId: episode.projectId?.toString(),
+                  incidentEpisodeId: episode.id?.toString(),
+                });
+              });
             }
           }
         }

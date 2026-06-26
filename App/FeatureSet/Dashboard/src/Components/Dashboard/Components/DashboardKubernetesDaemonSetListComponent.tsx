@@ -1,7 +1,10 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import DashboardKubernetesDaemonSetListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesDaemonSetListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
-import { ResourceListColumn } from "./DashboardResourceListBase";
+import {
+  ResourceListColumn,
+  ResourceListViewMode,
+} from "./DashboardResourceListBase";
 import DashboardKubernetesResourceListBase from "./DashboardKubernetesResourceListBase";
 import IconProp from "Common/Types/Icon/IconProp";
 import KubernetesResource from "Common/Models/DatabaseModels/KubernetesResource";
@@ -11,6 +14,19 @@ import PageMap from "../../../Utils/PageMap";
 import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import { AttributeToColumnMap } from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
+import { HoneycombTile } from "./DashboardResourceHoneycomb";
+import {
+  buildReadinessTile,
+  READINESS_LEGEND,
+} from "./DashboardKubernetesTileHelpers";
+
+const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
+  "k8s.daemonset.name": "name",
+  "k8s.namespace.name": "namespaceKey",
+  "resource.k8s.daemonset.name": "name",
+  "resource.k8s.namespace.name": "namespaceKey",
+};
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardKubernetesDaemonSetListComponent;
@@ -59,11 +75,27 @@ function renderRow(r: KubernetesResource): ReactElement {
   );
 }
 
+function buildTile(r: KubernetesResource): HoneycombTile {
+  const id: string = (r._id as string) || "";
+  const clusterId: string = (r.kubernetesClusterId?.toString() as string) || "";
+  let route: Route | undefined = undefined;
+  if (clusterId && id) {
+    route = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSET_DETAIL] as Route,
+      { modelId: new ObjectID(clusterId), subModelId: new ObjectID(id) },
+    );
+  }
+  return buildReadinessTile({ resource: r, route: route });
+}
+
 const DashboardKubernetesDaemonSetListComponentElement: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
   const args: DashboardKubernetesDaemonSetListComponent["arguments"] =
     props.component.arguments;
+
+  const viewMode: ResourceListViewMode =
+    args.viewMode === "honeycomb" ? "honeycomb" : "list";
 
   return (
     <DashboardKubernetesResourceListBase
@@ -77,7 +109,12 @@ const DashboardKubernetesDaemonSetListComponentElement: FunctionComponent<
       kubernetesClusterIds={args.kubernetesClusterIds}
       namespaces={args.namespaces}
       refreshTick={props.refreshTick}
+      variables={props.variables}
+      attributeToColumn={ATTRIBUTE_TO_COLUMN}
       renderRow={renderRow}
+      viewMode={viewMode}
+      renderHoneycombTile={buildTile}
+      honeycombLegend={READINESS_LEGEND}
     />
   );
 };
@@ -94,10 +131,13 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     return false;
   }
 
-  return JSONFunctions.deepEqual(
-    prev.component.arguments,
-    next.component.arguments,
-  );
+  if (
+    !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(prev.variables, next.variables);
 }
 
 export default React.memo(

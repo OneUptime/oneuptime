@@ -22,7 +22,8 @@ import sv from "../Locales/sv.json";
 import ru from "../Locales/ru.json";
 import ja from "../Locales/ja.json";
 import ko from "../Locales/ko.json";
-import zh from "../Locales/zh.json";
+import zhCN from "../Locales/zh-CN.json";
+import zhTW from "../Locales/zh-TW.json";
 import hi from "../Locales/hi.json";
 
 export type SupportedLanguage = StatusPageLanguage;
@@ -32,6 +33,62 @@ export const SUPPORTED_LANGUAGES: Array<SupportedLanguage> =
 
 export const DEFAULT_LANGUAGE: string = DEFAULT_STATUS_PAGE_LANGUAGE;
 export const LANGUAGE_STORAGE_KEY: string = "statusPageLang";
+/*
+ * Separate key tracks whether the user explicitly chose a language (vs.
+ * the value being auto-detected from the browser). Without this we cannot
+ * distinguish a stored auto-detection from a real user choice, so the
+ * status page's configured default would be ignored after the first visit.
+ */
+export const LANGUAGE_USER_CHOICE_KEY: string = "statusPageLangUserChoice";
+
+/*
+ * Backward-compat: the language code "zh" was renamed to "zh-CN" when
+ * Traditional Chinese ("zh-TW") was added. Rewrite any legacy stored value so
+ * existing users keep their Simplified Chinese setting.
+ */
+if (
+  typeof window !== "undefined" &&
+  window.localStorage &&
+  window.localStorage.getItem(LANGUAGE_STORAGE_KEY) === "zh"
+) {
+  window.localStorage.setItem(LANGUAGE_STORAGE_KEY, "zh-CN");
+}
+
+/*
+ * Browsers report Chinese in many forms (zh, zh-CN, zh-SG, zh-Hans-CN,
+ * zh-TW, zh-HK, zh-MO, zh-Hant-HK, ...). Map them onto our two supported
+ * variants so detection actually resolves to a loaded resource instead of
+ * falling back to English. Also collapse regional variants of other
+ * languages (e.g. "es-ES" -> "es") whose resources we ship under the bare
+ * language code.
+ */
+const convertDetectedLanguage: (lng: string) => string = (
+  lng: string,
+): string => {
+  if (!lng) {
+    return lng;
+  }
+  const lower: string = lng.toLowerCase();
+  if (
+    lower === "zh-tw" ||
+    lower === "zh-hk" ||
+    lower === "zh-mo" ||
+    lower === "zh-hant" ||
+    lower.startsWith("zh-hant-")
+  ) {
+    return "zh-TW";
+  }
+  if (lower === "zh" || lower.startsWith("zh-") || lower.startsWith("zh_")) {
+    return "zh-CN";
+  }
+  if (lng.includes("-") || lng.includes("_")) {
+    const langPart: string = lng.split(/[-_]/)[0]!.toLowerCase();
+    if (SUPPORTED_STATUS_PAGE_LANGUAGE_CODES.includes(langPart)) {
+      return langPart;
+    }
+  }
+  return lng;
+};
 
 i18n
   .use(LanguageDetector)
@@ -51,13 +108,13 @@ i18n
       ru: { translation: ru },
       ja: { translation: ja },
       ko: { translation: ko },
-      zh: { translation: zh },
+      "zh-CN": { translation: zhCN },
+      "zh-TW": { translation: zhTW },
       hi: { translation: hi },
     },
     fallbackLng: DEFAULT_LANGUAGE,
     supportedLngs: SUPPORTED_STATUS_PAGE_LANGUAGE_CODES,
-    load: "languageOnly",
-    nonExplicitSupportedLngs: true,
+    load: "currentOnly",
     interpolation: {
       escapeValue: false,
     },
@@ -65,8 +122,31 @@ i18n
       order: ["localStorage", "navigator", "htmlTag"],
       lookupLocalStorage: LANGUAGE_STORAGE_KEY,
       caches: ["localStorage"],
+      convertDetectedLanguage,
     },
   });
+
+/*
+ * Keep the document's <html lang> attribute in sync with the active language so
+ * screen readers apply the correct pronunciation rules (WCAG 3.1.2 Language of
+ * Parts). The server template renders lang="en"; we update it on initial load
+ * and on every language switch.
+ */
+const syncDocumentLanguage: (lng: string | undefined) => void = (
+  lng: string | undefined,
+): void => {
+  if (typeof window !== "undefined" && window.document && lng) {
+    window.document.documentElement.lang = lng;
+  }
+};
+
+i18n.on("languageChanged", (lng: string) => {
+  syncDocumentLanguage(lng);
+});
+
+syncDocumentLanguage(
+  i18n.resolvedLanguage || i18n.language || DEFAULT_LANGUAGE,
+);
 
 export const applyStatusPageLanguageSettings: (settings: {
   defaultLanguage?: string | null | undefined;
@@ -88,15 +168,18 @@ export const applyStatusPageLanguageSettings: (settings: {
       ? settings.defaultLanguage
       : DEFAULT_LANGUAGE;
 
-  const userStoredChoice: string | null =
+  const userExplicitlyChose: boolean =
     typeof window !== "undefined" && window.localStorage
-      ? window.localStorage.getItem(LANGUAGE_STORAGE_KEY)
-      : null;
+      ? window.localStorage.getItem(LANGUAGE_USER_CHOICE_KEY) === "true"
+      : false;
 
   const current: string = i18n.resolvedLanguage || i18n.language || "";
 
-  // If the user has no stored choice, honor the status page's default.
-  if (!userStoredChoice && current !== configuredDefault) {
+  /*
+   * If the user has not explicitly chosen a language, honor the status
+   * page's configured default (overriding any browser-detected value).
+   */
+  if (!userExplicitlyChose && current !== configuredDefault) {
     i18n.changeLanguage(configuredDefault);
     return;
   }

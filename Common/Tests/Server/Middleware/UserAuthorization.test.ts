@@ -1,7 +1,9 @@
 import ProjectMiddleware from "../../../Server/Middleware/ProjectAuthorization";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import ProjectService from "../../../Server/Services/ProjectService";
+import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserService from "../../../Server/Services/UserService";
 import {
   ExpressRequest,
@@ -16,6 +18,7 @@ import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import SsoAuthorizationException from "../../../Types/Exception/SsoAuthorizationException";
+import TenantNotFoundException from "../../../Types/Exception/TenantNotFoundException";
 import HashedString from "../../../Types/HashedString";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
@@ -24,7 +27,6 @@ import {
   UserGlobalAccessPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
-import Project from "../../../Models/DatabaseModels/Project";
 import {
   describe,
   expect,
@@ -42,8 +44,10 @@ jest.mock("../../../Server/Middleware/ProjectAuthorization");
 jest.mock("../../../Server/Utils/JsonWebToken");
 jest.mock("../../../Server/Services/UserService");
 jest.mock("../../../Server/Services/AccessTokenService");
+jest.mock("../../../Server/Services/GlobalConfigService");
 jest.mock("../../../Server/Utils/Response");
 jest.mock("../../../Server/Services/ProjectService");
+jest.mock("../../../Server/Services/TeamMemberService");
 jest.mock("../../../Types/HashedString");
 jest.mock("../../../Types/JSONFunctions");
 
@@ -53,7 +57,6 @@ describe("UserMiddleware", () => {
   const mockedAccessToken: string = ObjectID.generate().toString();
   const projectId: ObjectID = ObjectID.generate();
   const userId: ObjectID = ObjectID.generate();
-  const mockedProject: Project = { _id: projectId.toString() } as Project;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -161,7 +164,11 @@ describe("UserMiddleware", () => {
   });
 
   describe("doesSsoTokenForProjectExist", () => {
-    const req: ExpressRequest = {} as ExpressRequest;
+    /*
+     * getGlobalSsoTokenData reads req.cookies and req.headers, so the request
+     * mock must carry both (matching the other blocks in this file).
+     */
+    const req: ExpressRequest = { cookies: {}, headers: {} } as ExpressRequest;
 
     beforeAll(() => {
       getJestSpyOn(UserMiddleware, "getSsoTokens").mockReturnValue({
@@ -290,6 +297,9 @@ describe("UserMiddleware", () => {
       ).mockReturnValue(mockedAccessToken);
       getJestSpyOn(JSONWebToken, "decode").mockReturnValue(jwtTokenData);
       getJestSpyOn(HashedString, "hashValue").mockResolvedValue(hashValue);
+      getJestSpyOn(TeamMemberService, "getTeamIdsForUser").mockResolvedValue(
+        [],
+      );
     });
 
     beforeEach(() => {
@@ -418,7 +428,6 @@ describe("UserMiddleware", () => {
           req,
           tenantId: projectId,
           userId,
-          isGlobalLogin: true,
         },
       );
       expect(next).not.toBeCalled();
@@ -449,7 +458,6 @@ describe("UserMiddleware", () => {
           req,
           tenantId: projectId,
           userId,
-          isGlobalLogin: true,
         },
       );
     });
@@ -574,7 +582,6 @@ describe("UserMiddleware", () => {
           req: mockedRequest,
           tenantId: projectId,
           userId,
-          isGlobalLogin: true,
         },
       );
     });
@@ -583,46 +590,53 @@ describe("UserMiddleware", () => {
   describe("getUserTenantAccessPermissionWithTenantId", () => {
     const req: ExpressRequest = {} as ExpressRequest;
 
-    const spyFindOneById: jest.SpyInstance = getJestSpyOn(
+    const spyGetRequireSsoForLogin: jest.SpyInstance = getJestSpyOn(
       ProjectService,
-      "findOneById",
+      "getRequireSsoForLogin",
+    );
+    const spyGetRequireSsoWithSsoProviderId: jest.SpyInstance = getJestSpyOn(
+      ProjectService,
+      "getRequireSsoWithSsoProviderId",
     );
     const spyDoesSsoTokenForProjectExist: jest.SpyInstance = getJestSpyOn(
       UserMiddleware,
       "doesSsoTokenForProjectExist",
+    );
+    const spyGetGlobalRequireSsoForLogin: jest.SpyInstance = getJestSpyOn(
+      GlobalConfigService,
+      "getRequireSsoForLogin",
     );
 
     afterEach(() => {
       jest.clearAllMocks();
     });
 
+    /*
+     * By default no project requires a specific SSO provider (discriminator),
+     * and the instance-wide "Require SSO for Login" flag is off.
+     */
+    beforeEach(() => {
+      spyGetRequireSsoWithSsoProviderId.mockResolvedValue(null);
+      spyGetGlobalRequireSsoForLogin.mockResolvedValue(false);
+    });
+
     test("should throw 'Invalid tenantId' error, when project is not found for the tenantId", async () => {
-      spyFindOneById.mockResolvedValueOnce(null);
+      spyGetRequireSsoForLogin.mockRejectedValueOnce(
+        new BadDataException("Project not found"),
+      );
 
       await expect(
         UserMiddleware.getUserTenantAccessPermissionWithTenantId({
           req,
           tenantId: projectId,
           userId,
-          isGlobalLogin: true,
         }),
-      ).rejects.toThrowError(new BadDataException("Invalid tenantId"));
-      expect(spyFindOneById).toHaveBeenCalledWith({
-        id: projectId,
-        select: {
-          requireSsoForLogin: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      ).rejects.toThrowError(new TenantNotFoundException("Invalid tenantId"));
+      expect(spyGetRequireSsoForLogin).toHaveBeenCalledWith(projectId);
     });
 
     test("should throw SsoAuthorizationException error, when sso login is required but sso token for the projectId does not exist", async () => {
-      spyFindOneById.mockResolvedValueOnce({
-        ...mockedProject,
-        requireSsoForLogin: true,
-      });
+      spyGetRequireSsoForLogin.mockResolvedValueOnce(true);
 
       spyDoesSsoTokenForProjectExist.mockReturnValueOnce(false);
 
@@ -631,18 +645,18 @@ describe("UserMiddleware", () => {
           req,
           tenantId: projectId,
           userId,
-          isGlobalLogin: true,
         }),
       ).rejects.toThrowError(new SsoAuthorizationException());
       expect(spyDoesSsoTokenForProjectExist).toHaveBeenCalledWith(
         req,
         projectId,
         userId,
+        undefined,
       );
     });
 
     test("should return null when getUserTenantAccessPermission returns null", async () => {
-      spyFindOneById.mockResolvedValueOnce(mockedProject);
+      spyGetRequireSsoForLogin.mockResolvedValueOnce(false);
 
       const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
         AccessTokenService,
@@ -654,7 +668,6 @@ describe("UserMiddleware", () => {
           req,
           tenantId: projectId,
           userId,
-          isGlobalLogin: true,
         });
 
       expect(result).toBeNull();
@@ -669,7 +682,7 @@ describe("UserMiddleware", () => {
         projectId,
       } as UserTenantAccessPermission;
 
-      spyFindOneById.mockResolvedValueOnce(mockedProject);
+      spyGetRequireSsoForLogin.mockResolvedValueOnce(false);
 
       const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
         AccessTokenService,
@@ -681,7 +694,6 @@ describe("UserMiddleware", () => {
           req,
           tenantId: projectId,
           userId,
-          isGlobalLogin: true,
         });
 
       expect(result).toEqual(mockedUserTenantAccessPermission);
@@ -698,14 +710,35 @@ describe("UserMiddleware", () => {
       projectId,
     } as UserTenantAccessPermission;
 
-    const spyFindBy: jest.SpyInstance = getJestSpyOn(ProjectService, "findBy");
+    const spyGetProjectRequireSsoForLogin: jest.SpyInstance = getJestSpyOn(
+      ProjectService,
+      "getRequireSsoForLogin",
+    );
+    const spyGetRequireSsoWithSsoProviderId: jest.SpyInstance = getJestSpyOn(
+      ProjectService,
+      "getRequireSsoWithSsoProviderId",
+    );
     const spyDoesSsoTokenForProjectExist: jest.SpyInstance = getJestSpyOn(
       UserMiddleware,
       "doesSsoTokenForProjectExist",
     );
+    const spyGetGlobalRequireSsoForLogin: jest.SpyInstance = getJestSpyOn(
+      GlobalConfigService,
+      "getRequireSsoForLogin",
+    );
 
     afterEach(() => {
       jest.clearAllMocks();
+    });
+
+    /*
+     * By default neither a project's own nor the instance-wide "Require SSO for
+     * Login" flag is on, and no project requires a specific SSO provider.
+     */
+    beforeEach(() => {
+      spyGetProjectRequireSsoForLogin.mockResolvedValue(false);
+      spyGetRequireSsoWithSsoProviderId.mockResolvedValue(null);
+      spyGetGlobalRequireSsoForLogin.mockResolvedValue(false);
     });
 
     test("should return null, when projectIds length is zero", async () => {
@@ -717,14 +750,12 @@ describe("UserMiddleware", () => {
         );
 
       expect(result).toBeNull();
-      expect(spyFindBy).not.toBeCalled();
+      expect(spyGetProjectRequireSsoForLogin).not.toBeCalled();
     });
 
     test("should return default tenant access permission, when project for a projectId is found, sso is required for login, but sso token does not exist for that projectId", async () => {
       spyDoesSsoTokenForProjectExist.mockReturnValueOnce(false);
-      spyFindBy.mockResolvedValueOnce([
-        { ...mockedProject, requireSsoForLogin: true },
-      ]);
+      spyGetProjectRequireSsoForLogin.mockResolvedValueOnce(true);
 
       const spyGetDefaultUserTenantAccessPermission: jest.SpyInstance =
         getJestSpyOn(
@@ -746,6 +777,7 @@ describe("UserMiddleware", () => {
         req,
         projectId,
         userId,
+        undefined,
       );
       expect(spyGetDefaultUserTenantAccessPermission).toHaveBeenCalledWith(
         projectId,
@@ -753,8 +785,6 @@ describe("UserMiddleware", () => {
     });
 
     test("should return user tenant access permission, when project for a projectId is found, sso is not required for login and project level permission exist for the projectId", async () => {
-      spyFindBy.mockResolvedValueOnce([mockedProject]);
-
       const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
         AccessTokenService,
         "getUserTenantAccessPermission",
@@ -778,8 +808,6 @@ describe("UserMiddleware", () => {
     });
 
     test("should return null, when project for a projectId is found, sso is not required for login but project level permission does not exist for the projectId", async () => {
-      spyFindBy.mockResolvedValueOnce([mockedProject]);
-
       const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
         AccessTokenService,
         "getUserTenantAccessPermission",
@@ -800,7 +828,9 @@ describe("UserMiddleware", () => {
     });
 
     test("should return user tenant access permission, when project for a projectId is not found, but project level permission exist for the projectId", async () => {
-      spyFindBy.mockResolvedValueOnce([]);
+      spyGetProjectRequireSsoForLogin.mockRejectedValueOnce(
+        new BadDataException("Project not found"),
+      );
 
       getJestSpyOn(
         AccessTokenService,
@@ -820,7 +850,9 @@ describe("UserMiddleware", () => {
     });
 
     test("should return null, when project for a projectId is not found, and project level permission does not exist for the projectId", async () => {
-      spyFindBy.mockResolvedValueOnce([]);
+      spyGetProjectRequireSsoForLogin.mockRejectedValueOnce(
+        new BadDataException("Project not found"),
+      );
 
       const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
         AccessTokenService,

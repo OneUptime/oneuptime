@@ -107,7 +107,7 @@ describe("AnalyticsDatabaseService", () => {
           "    count() as count\n" +
           "FROM {p0:Identifier}.{p1:Identifier}\n" +
           "WHERE TRUE <where-statement>" +
-          " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+          " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', max_memory_usage = 3221225472, max_bytes_before_external_group_by = 1610612736, max_bytes_before_external_sort = 1610612736",
       );
       expect(statement.query_params).toStrictEqual({
         p0: "oneuptime",
@@ -128,7 +128,7 @@ describe("AnalyticsDatabaseService", () => {
           "FROM {p0:Identifier}.{p1:Identifier}\n" +
           "WHERE TRUE <where-statement>\n" +
           "LIMIT {p2:Int32}\n" +
-          " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+          " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', max_memory_usage = 3221225472, max_bytes_before_external_group_by = 1610612736, max_bytes_before_external_sort = 1610612736",
       );
       expect(statement.query_params).toStrictEqual({
         p0: "oneuptime",
@@ -150,7 +150,7 @@ describe("AnalyticsDatabaseService", () => {
           "FROM {p0:Identifier}.{p1:Identifier}\n" +
           "WHERE TRUE <where-statement>\n" +
           "OFFSET {p2:Int32}\n" +
-          " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+          " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', max_memory_usage = 3221225472, max_bytes_before_external_group_by = 1610612736, max_bytes_before_external_sort = 1610612736",
       );
       expect(statement.query_params).toStrictEqual({
         p0: "oneuptime",
@@ -215,7 +215,7 @@ describe("AnalyticsDatabaseService", () => {
 
       expect(statement.query).toBe(
         "SELECT <select-statement> FROM {p0:Identifier}.{p1:Identifier} WHERE TRUE <where-statement> ORDER BY <sort-statement> LIMIT {p2:Int32} OFFSET {p3:Int32}\n" +
-          "SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+          "SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', max_memory_usage = 3221225472, max_bytes_before_external_group_by = 1610612736, max_bytes_before_external_sort = 1610612736",
       );
       expect(statement.query_params).toStrictEqual({
         p0: "oneuptime",
@@ -356,13 +356,93 @@ describe("AnalyticsDatabaseService", () => {
         tableName: "<table-name>",
       });
 
+      /*
+       * Cluster mode: deletes are an ALTER ... DELETE mutation on the local
+       * table, dispatched ON CLUSTER (lightweight DELETE can't hit a Distributed
+       * table).
+       */
       expect(statement.query).toBe(
-        "ALTER TABLE {p0:Identifier}.{p1:Identifier}\n" +
+        "ALTER TABLE {p0:Identifier}.{p1:Identifier} ON CLUSTER 'oneuptime'\n" +
           "DELETE WHERE TRUE <where-statement>",
       );
       expect(statement.query_params).toStrictEqual({
         p0: "oneuptime",
-        p1: "<table-name>",
+        p1: "<table-name>Local",
+      });
+    });
+  });
+
+  /*
+   * Per-call exec options (clickhouse_settings + query_id) added for the
+   * telemetry V3 backfill engine — long INSERT...SELECT statements need
+   * HTTP progress-header keepalive, dedup tokens and deterministic query
+   * ids per call. Must be strictly additive: option-less calls keep the
+   * exact pre-existing exec/query payload.
+   */
+  describe("execute / executeQuery per-call options", () => {
+    let exec: ReturnType<typeof jest.fn>;
+    let query: ReturnType<typeof jest.fn>;
+
+    beforeEach(() => {
+      exec = jest.fn(() => {
+        return Promise.resolve({});
+      });
+      query = jest.fn(() => {
+        return Promise.resolve({});
+      });
+      (service as any).database = {};
+      (service as any).databaseClient = { exec, query };
+    });
+
+    test("execute threads clickhouse settings and query id into client.exec", async () => {
+      await service.execute("INSERT INTO Foo SELECT 1", {
+        clickhouseSettings: {
+          insert_deduplication_token: "v3copy:Foo:1:202601",
+          send_progress_in_http_headers: 1,
+        },
+        queryId: "v3copy:Foo:1:202601:123",
+      });
+
+      expect(exec).toHaveBeenCalledWith({
+        query: "INSERT INTO Foo SELECT 1",
+        query_params: undefined,
+        clickhouse_settings: {
+          insert_deduplication_token: "v3copy:Foo:1:202601",
+          send_progress_in_http_headers: 1,
+        },
+        query_id: "v3copy:Foo:1:202601:123",
+      });
+    });
+
+    test("execute without options keeps the pre-existing exec payload", async () => {
+      await service.execute("SELECT 1");
+
+      expect(exec).toHaveBeenCalledWith({
+        query: "SELECT 1",
+        query_params: undefined,
+      });
+    });
+
+    test("executeQuery threads clickhouse settings into client.query", async () => {
+      await service.executeQuery("SELECT 1", {
+        clickhouseSettings: { max_execution_time: 1800 },
+      });
+
+      expect(query).toHaveBeenCalledWith({
+        query: "SELECT 1",
+        format: "JSON",
+        query_params: undefined,
+        clickhouse_settings: { max_execution_time: 1800 },
+      });
+    });
+
+    test("executeQuery without options keeps the pre-existing query payload", async () => {
+      await service.executeQuery("SELECT 1");
+
+      expect(query).toHaveBeenCalledWith({
+        query: "SELECT 1",
+        format: "JSON",
+        query_params: undefined,
       });
     });
   });

@@ -1,0 +1,127 @@
+{{- if and .Values.migrate.enabled (not .Values.deployment.disableDeployments) }}
+{{- /*
+  Block the deploy on migrations (as a Helm hook) only when migrate.hook is true.
+  When false (default), render a regular async Job for BOTH install and upgrade,
+  so helm returns immediately and migrations run in the background. NOTE: on a
+  FRESH install with hook=false the app pods come up against an un-migrated
+  database and stay unready (likely CrashLoopBackOff) until this async Job
+  finishes creating the schema — set hook=true if you need the install to block.
+*/ -}}
+{{- $useHook := .Values.migrate.hook }}
+# =============================================================================
+# Database migration Job.
+#
+# Runs schema + data migrations ONCE per release, in a single dedicated pod,
+# instead of on every app/worker/nginx replica on boot. The runtime pods are
+# then gated off (RUN_DATABASE_MIGRATIONS_ON_BOOT=false), so the data-migration
+# session advisory lock never runs on a pooled runtime connection — which is
+# what makes PgBouncer transaction-mode pooling safe.
+#
+# Connects DIRECTLY to the backend (DirectPostgres) so migrations never depend
+# on the pooler. Blocking (hook) vs async is controlled by migrate.hook.
+# =============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-migrate-{{ .Release.Revision }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-migrate
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: migrate
+    appname: oneuptime
+  {{- if $useHook }}
+  # Blocking: a Helm hook — the deploy waits for migrations before rolling the
+  # new pods (new code never runs against an un-migrated schema). post-install on
+  # a fresh install; pre-upgrade on an upgrade (only when migrate.hook=true).
+  annotations:
+    "helm.sh/hook": {{ ternary "post-install" "pre-upgrade" .Release.IsInstall }}
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation
+  {{- end }}
+spec:
+  backoffLimit: {{ .Values.migrate.backoffLimit | default 6 }}
+  {{- if not $useHook }}
+  # Async (non-hook) Job — `helm upgrade` does not wait for it. Auto-clean after
+  # it finishes so old per-revision Jobs don't accumulate.
+  ttlSecondsAfterFinished: {{ .Values.migrate.ttlSecondsAfterFinished | default 86400 }}
+  {{- end }}
+  {{- if .Values.migrate.activeDeadlineSeconds }}
+  activeDeadlineSeconds: {{ .Values.migrate.activeDeadlineSeconds }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-migrate
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: migrate
+        appname: oneuptime
+    spec:
+      restartPolicy: Never
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      {{- with .Values.migrate.nodeSelector | default .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.migrate.tolerations | default .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.migrate.affinity | default .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.migrate.priorityClassName }}
+      priorityClassName: {{ .Values.migrate.priorityClassName | quote }}
+      {{- end }}
+      {{- if .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- end }}
+      initContainers:
+        # Wait for Postgres to accept TCP connections before migrating. As a
+        # post-install hook this Job can start before the bundled Postgres /
+        # CNPG cluster is ready; waiting here (instead of letting the migrate
+        # container fail-and-retry) avoids racing the database bootstrap on a
+        # fresh install. Talks directly to the backend (never the pooler).
+        - name: wait-for-postgres
+          image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "app") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - bash
+            - -c
+            - |
+              until (exec 3<>/dev/tcp/"$PGHOST"/"$PGPORT") 2>/dev/null; do
+                echo "waiting for postgres at $PGHOST:$PGPORT ..."
+                sleep 3
+              done
+              echo "postgres reachable at $PGHOST:$PGPORT"
+          env:
+            - name: PGHOST
+              value: {{ include "oneuptime.postgres.backendHost" . }}
+            - name: PGPORT
+              value: {{ include "oneuptime.postgres.backendPort" . | quote }}
+      containers:
+        - name: {{ .Release.Name }}-migrate
+          image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "app") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          workingDir: /usr/src/app
+          command: ["npm", "run", "migrate"]
+          {{- if .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          {{- end }}
+          env:
+            {{- include "oneuptime.env.common" . | nindent 12 }}
+            {{- /* DirectPostgres bypasses pgbouncer so migrations talk straight to the backend. RUN_DATABASE_MIGRATIONS_ON_BOOT is intentionally NOT set here, so it defaults true and this Job runs migrations. */ -}}
+            {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release "DirectPostgres" true "DatabaseMaxOpenConnections" $.Values.deployment.databaseMaxOpenConnections) | nindent 12 }}
+          {{- with .Values.migrate.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

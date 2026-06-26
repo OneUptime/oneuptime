@@ -5,7 +5,9 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
@@ -23,9 +25,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 export type MonitorStepProbeResponse = Dictionary<ProbeMonitorResponse>;
 
 @EnableDocumentation()
+@CanAccessIfCanReadOn("monitor")
 @TenantColumn("projectId")
 @Index(["monitorId", "probeId"]) // Composite index for efficient monitor-probe relationship queries
 @Index(["monitorId", "projectId"]) // Alternative index for monitor queries within project
+@Index(["probeId", "isEnabled", "nextPingAt"]) // Scheduler hot path: pick due probes per probeId
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
@@ -37,9 +41,10 @@ export type MonitorStepProbeResponse = Dictionary<ProbeMonitorResponse>;
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.MonitorManager,
+    Permission.MonitorAdmin,
+    Permission.MonitorMember,
+    Permission.MonitorViewer,
     Permission.ReadMonitorProbe,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -61,6 +66,7 @@ export type MonitorStepProbeResponse = Dictionary<ProbeMonitorResponse>;
   tableDescription:
     "Add probes to monitor your resource from multiple locations around the world.",
 })
+@OwnedThrough("monitorId", Monitor)
 @Entity({
   name: "MonitorProbe",
 })
@@ -76,9 +82,10 @@ export default class MonitorProbe extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorProbe,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -115,9 +122,10 @@ export default class MonitorProbe extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorProbe,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -148,9 +156,10 @@ export default class MonitorProbe extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorProbe,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -187,9 +196,10 @@ export default class MonitorProbe extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorProbe,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -220,9 +230,10 @@ export default class MonitorProbe extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorProbe,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -259,9 +270,10 @@ export default class MonitorProbe extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorProbe,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -286,7 +298,8 @@ export default class MonitorProbe extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateMonitorProbe,
     ],
     read: [
@@ -294,9 +307,10 @@ export default class MonitorProbe extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorProbe,
-      Permission.ReadAllProjectResources,
     ],
 
     update: [],
@@ -317,7 +331,8 @@ export default class MonitorProbe extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.CreateMonitorProbe,
     ],
     read: [
@@ -325,9 +340,10 @@ export default class MonitorProbe extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorProbe,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -353,9 +369,10 @@ export default class MonitorProbe extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorProbe,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -393,9 +410,10 @@ export default class MonitorProbe extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorProbe,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -420,9 +438,10 @@ export default class MonitorProbe extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorProbe,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -457,9 +476,10 @@ export default class MonitorProbe extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorProbe,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -488,15 +508,17 @@ export default class MonitorProbe extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorProbe,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
       Permission.EditMonitorProbe,
     ],
   })
@@ -522,9 +544,10 @@ export default class MonitorProbe extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorManager,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
       Permission.ReadMonitorProbe,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

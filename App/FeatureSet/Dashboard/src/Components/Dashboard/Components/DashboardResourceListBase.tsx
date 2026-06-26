@@ -1,12 +1,18 @@
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import DashboardResourceHoneycomb, {
+  HoneycombLegendItem,
+  HoneycombTile,
+} from "./DashboardResourceHoneycomb";
 
 export interface ResourceListColumn {
   label: string;
   widthPct: string;
   alignRight?: boolean;
 }
+
+export type ResourceListViewMode = "list" | "honeycomb";
 
 export interface DashboardResourceListBaseProps {
   title?: string | undefined;
@@ -18,12 +24,17 @@ export interface DashboardResourceListBaseProps {
   isEmpty: boolean;
   emptyMessage: string;
   emptyIcon: IconProp;
-  children: ReactNode;
+  children?: ReactNode;
+  viewMode?: ResourceListViewMode | undefined;
+  honeycombTiles?: Array<HoneycombTile> | undefined;
+  honeycombLegend?: Array<HoneycombLegendItem> | undefined;
 }
 
 const DashboardResourceListBase: FunctionComponent<
   DashboardResourceListBaseProps
 > = (props: DashboardResourceListBaseProps): ReactElement => {
+  const viewMode: ResourceListViewMode = props.viewMode || "list";
+
   if (props.isLoading && props.count === 0) {
     return (
       <div className="h-full flex flex-col animate-pulse">
@@ -81,7 +92,7 @@ const DashboardResourceListBase: FunctionComponent<
 
   return (
     <div
-      className="h-full overflow-auto flex flex-col"
+      className="h-full overflow-hidden flex flex-col"
       style={{
         opacity: props.isLoading ? 0.5 : 1,
         transition: "opacity 0.2s ease-in-out",
@@ -97,41 +108,56 @@ const DashboardResourceListBase: FunctionComponent<
           </span>
         </div>
       )}
-      <div className="flex-1 overflow-auto rounded-md border border-gray-100">
-        <table className="w-full text-sm text-left">
-          <thead className="text-xs text-gray-400 uppercase bg-gray-50/80 sticky top-0 border-b border-gray-100">
-            <tr>
-              {props.columns.map((c: ResourceListColumn, i: number) => {
-                return (
-                  <th
-                    key={i}
-                    className={`px-3 py-2.5 font-medium tracking-wider${
-                      c.alignRight ? " text-right" : ""
-                    }`}
-                    style={{ width: c.widthPct }}
-                  >
-                    {c.label}
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {props.isEmpty ? (
+      {viewMode === "honeycomb" ? (
+        <div className="flex-1 overflow-hidden rounded-md border border-gray-100">
+          {props.isEmpty ? (
+            <div className="h-full flex items-center justify-center px-4 py-8 text-center text-gray-400 text-sm">
+              {props.emptyMessage}
+            </div>
+          ) : (
+            <DashboardResourceHoneycomb
+              tiles={props.honeycombTiles || []}
+              legend={props.honeycombLegend}
+            />
+          )}
+        </div>
+      ) : (
+        <div className="flex-1 overflow-auto rounded-md border border-gray-100">
+          <table className="w-full text-sm text-left">
+            <thead className="text-xs text-gray-400 uppercase bg-gray-50/80 sticky top-0 border-b border-gray-100">
               <tr>
-                <td
-                  colSpan={props.columns.length}
-                  className="px-4 py-8 text-center text-gray-400 text-sm"
-                >
-                  {props.emptyMessage}
-                </td>
+                {props.columns.map((c: ResourceListColumn, i: number) => {
+                  return (
+                    <th
+                      key={i}
+                      className={`px-3 py-2.5 font-medium tracking-wider${
+                        c.alignRight ? " text-right" : ""
+                      }`}
+                      style={{ width: c.widthPct }}
+                    >
+                      {c.label}
+                    </th>
+                  );
+                })}
               </tr>
-            ) : (
-              props.children
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {props.isEmpty ? (
+                <tr>
+                  <td
+                    colSpan={props.columns.length}
+                    className="px-4 py-8 text-center text-gray-400 text-sm"
+                  >
+                    {props.emptyMessage}
+                  </td>
+                </tr>
+              ) : (
+                props.children
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };

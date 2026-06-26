@@ -18,6 +18,9 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="api-keys-table"
         name="Settings > API Keys"
         userPreferencesKey="api-keys-table"
+        saveFilterProps={{
+          tableId: "settings-api-keys-table",
+        }}
         isDeleteable={false}
         isEditable={false}
         showViewIdButton={false}
@@ -65,6 +68,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
           {

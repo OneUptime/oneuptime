@@ -14,7 +14,12 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import {
+  ErrorFunction,
+  PromiseVoidFunction,
+  VoidFunction,
+} from "Common/Types/FunctionTypes";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -28,6 +33,10 @@ import Column from "Common/UI/Components/Table/Types/Column";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
+import Link from "Common/UI/Components/Link/Link";
+import Route from "Common/Types/API/Route";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 
 interface ProcessRow {
   key: string;
@@ -138,6 +147,7 @@ const HostProcesses: FunctionComponent<
         select: {
           hostIdentifier: true,
           name: true,
+          totalMemoryBytes: true,
         },
       });
 
@@ -182,8 +192,16 @@ const HostProcesses: FunctionComponent<
         };
       };
 
-      const [cpuResult, memBytesResult, memPctResult]: [
-        ListResult<Metric>,
+      /*
+       * We derive memory % client-side from `process.memory.usage`
+       * (RSS bytes) and `host.totalMemoryBytes` instead of trusting
+       * `process.memory.utilization`. Windows OTel emits that metric
+       * in percent (0–100) while the spec — and Linux —  emits it as
+       * a fraction (0–1), so a single `* 100` scaling can't be right
+       * for both. The usage / total ratio is OS-agnostic and stays
+       * consistent with the bytes column the user sees alongside.
+       */
+      const [cpuResult, memBytesResult]: [
         ListResult<Metric>,
         ListResult<Metric>,
       ] = await Promise.all([
@@ -191,20 +209,22 @@ const HostProcesses: FunctionComponent<
           buildQuery("process.cpu.utilization"),
         ),
         AnalyticsModelAPI.getList<Metric>(buildQuery("process.memory.usage")),
-        AnalyticsModelAPI.getList<Metric>(
-          buildQuery("process.memory.utilization"),
-        ),
       ]);
+
+      const totalMemoryBytes: number | null =
+        item.totalMemoryBytes !== undefined && item.totalMemoryBytes !== null
+          ? Number(item.totalMemoryBytes)
+          : null;
 
       const byKey: Map<string, ProcessRow> = new Map();
       let newestSample: Date | null = null;
 
       const upsert: (
         result: ListResult<Metric>,
-        field: "cpuPercent" | "memoryBytes" | "memoryPercent",
+        field: "cpuPercent" | "memoryBytes",
       ) => void = (
         result: ListResult<Metric>,
-        field: "cpuPercent" | "memoryBytes" | "memoryPercent",
+        field: "cpuPercent" | "memoryBytes",
       ): void => {
         for (const m of result.data) {
           if (m.time) {
@@ -251,8 +271,6 @@ const HostProcesses: FunctionComponent<
           }
           if (field === "cpuPercent") {
             row.cpuPercent = Number(m.value) * 100;
-          } else if (field === "memoryPercent") {
-            row.memoryPercent = Number(m.value) * 100;
           } else {
             row.memoryBytes = Number(m.value);
           }
@@ -261,7 +279,14 @@ const HostProcesses: FunctionComponent<
 
       upsert(cpuResult, "cpuPercent");
       upsert(memBytesResult, "memoryBytes");
-      upsert(memPctResult, "memoryPercent");
+
+      if (totalMemoryBytes !== null && totalMemoryBytes > 0) {
+        for (const row of byKey.values()) {
+          if (row.memoryBytes !== null) {
+            row.memoryPercent = (row.memoryBytes / totalMemoryBytes) * 100;
+          }
+        }
+      }
 
       const sorted: Array<ProcessRow> = Array.from(byKey.values()).sort(
         (a: ProcessRow, b: ProcessRow) => {
@@ -284,6 +309,21 @@ const HostProcesses: FunctionComponent<
     });
   }, []);
 
+  const processViewRouteFor: (row: ProcessRow) => Route | null = (
+    row: ProcessRow,
+  ): Route | null => {
+    if (!row.pid) {
+      return null;
+    }
+    return RouteUtil.populateRouteParams(
+      RouteMap[PageMap.HOST_VIEW_PROCESS_VIEW] as Route,
+      {
+        modelId: modelId,
+        subModelId: row.pid,
+      },
+    );
+  };
+
   const tableColumns: Array<Column<ProcessRow>> = useMemo(() => {
     return [
       {
@@ -292,12 +332,23 @@ const HostProcesses: FunctionComponent<
         key: "executable",
         disableSort: true,
         getElement: (row: ProcessRow): ReactElement => {
+          const route: Route | null = processViewRouteFor(row);
+          const nameNode: ReactElement = route ? (
+            <Link
+              to={route}
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-900 truncate"
+            >
+              {row.executable}
+            </Link>
+          ) : (
+            <span className="text-sm font-medium text-gray-900 truncate">
+              {row.executable}
+            </span>
+          );
           return (
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-900 truncate">
-                  {row.executable}
-                </span>
+                {nameNode}
                 {row.pid && (
                   <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
                     pid {row.pid}
@@ -376,8 +427,39 @@ const HostProcesses: FunctionComponent<
           );
         },
       },
+      {
+        title: "",
+        type: FieldType.Actions,
+        key: null,
+        disableSort: true,
+      },
     ];
-  }, []);
+  }, [modelId]);
+
+  const actionButtons: Array<ActionButtonSchema<ProcessRow>> = [
+    {
+      title: "View",
+      buttonStyleType: ButtonStyleType.NORMAL,
+      isVisible: (row: ProcessRow): boolean => {
+        return processViewRouteFor(row) !== null;
+      },
+      onClick: (
+        row: ProcessRow,
+        onCompleteAction: VoidFunction,
+        onError: ErrorFunction,
+      ): void => {
+        try {
+          const route: Route | null = processViewRouteFor(row);
+          if (route) {
+            Navigation.navigate(route);
+          }
+          onCompleteAction();
+        } catch (err) {
+          onError(err as Error);
+        }
+      },
+    },
+  ];
 
   const cardButtons: Array<CardButtonSchema> = [
     {
@@ -423,6 +505,7 @@ const HostProcesses: FunctionComponent<
       <Table<ProcessRow>
         id="host-processes-table"
         columns={tableColumns}
+        actionButtons={actionButtons}
         data={rows}
         singularLabel="Process"
         pluralLabel="Processes"

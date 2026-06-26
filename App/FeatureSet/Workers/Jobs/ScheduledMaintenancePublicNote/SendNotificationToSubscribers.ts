@@ -43,6 +43,7 @@ import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 
 RunCron(
   "ScheduledMaintenancePublicNote:SendNotificationToSubscribers",
@@ -240,6 +241,19 @@ RunCron(
           continue;
         }
 
+        /*
+         * Pre-compute markdown conversions for the note once per public note.
+         * These values do not vary per status page or per subscriber, so
+         * memoizing here avoids N redundant markdown parses during fan-out.
+         */
+        const noteHtml: string = await Markdown.convertToHTML(
+          publicNote.note || "",
+          MarkdownContentType.Email,
+        );
+        const notePlainText: string = Markdown.convertToPlainText(
+          publicNote.note || "",
+        );
+
         let notificationSentToAtLeastOneSubscriber: boolean = false;
 
         for (const statuspage of statusPages) {
@@ -343,10 +357,13 @@ RunCron(
             ),
           };
 
-          // Prepare SMS-specific template variables with plain text (no HTML/Markdown)
+          /*
+           * Prepare SMS-specific template variables with plain text (no HTML/Markdown).
+           * Uses the memoized plain-text conversion computed once per public note above.
+           */
           const smsTemplateVariables: Record<string, string> = {
             ...templateVariables,
-            note: Markdown.convertToPlainText(publicNote.note || ""),
+            note: notePlainText,
           };
 
           // Send email to Email subscribers.
@@ -507,6 +524,36 @@ RunCron(
               });
             }
 
+            if (subscriber.subscriberWebhook) {
+              const resourcesAffectedStr: string =
+                statusPageToResources[statuspage._id!]
+                  ?.map((r: StatusPageResource) => {
+                    return r.displayName;
+                  })
+                  .join(", ") || "";
+
+              StatusPageSubscriberWebhookUtil.sendWebhookNotification({
+                webhookUrl: subscriber.subscriberWebhook,
+                payload: {
+                  eventType: "ScheduledMaintenanceNoteCreated",
+                  statusPageId: statuspage.id!.toString(),
+                  statusPageName: statusPageName,
+                  statusPageUrl: statusPageURL,
+                  unsubscribeUrl: unsubscribeUrl,
+                  data: {
+                    scheduledMaintenanceId: event.id?.toString() || "",
+                    scheduledMaintenanceTitle: event.title || "",
+                    scheduledMaintenanceDescription: event.description || "",
+                    resourcesAffected: resourcesAffectedStr,
+                    note: publicNote.note || "",
+                    detailsUrl: scheduledEventDetailsUrl,
+                  },
+                },
+              }).catch((err: Error) => {
+                logger.error(err);
+              });
+            }
+
             if (subscriber.subscriberEmail) {
               // send email here.
               logger.debug(
@@ -555,10 +602,7 @@ RunCron(
                     templateType:
                       EmailTemplateType.SubscriberScheduledMaintenanceEventNoteCreated,
                     vars: {
-                      note: await Markdown.convertToHTML(
-                        publicNote.note!,
-                        MarkdownContentType.Email,
-                      ),
+                      note: noteHtml,
                       statusPageName: statusPageName,
                       statusPageUrl: statusPageURL,
                       detailsUrl: scheduledEventDetailsUrl,

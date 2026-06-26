@@ -18,10 +18,12 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricQueryConfigData, {
   MetricChartType,
 } from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
+import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardChartComponent;
@@ -40,6 +42,8 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     props.component.arguments.metricQueryConfig;
   const additionalQueryConfigs: Array<MetricQueryConfigData> | undefined =
     props.component.arguments.metricQueryConfigs;
+  const formulaConfigsArg: Array<MetricFormulaConfigData> | undefined =
+    props.component.arguments.metricFormulaConfigs;
 
   /*
    * Stabilize derived values so this component does not re-fetch (or
@@ -57,8 +61,17 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     if (additionalQueryConfigs && additionalQueryConfigs.length > 0) {
       configs.push(...additionalQueryConfigs);
     }
-    return configs;
-  }, [primaryQueryConfig, additionalQueryConfigs]);
+    return DashboardVariableInterpolation.applyToQueryConfigs(
+      configs,
+      props.variables,
+    );
+  }, [primaryQueryConfig, additionalQueryConfigs, props.variables]);
+
+  const formulaConfigs: Array<MetricFormulaConfigData> = useMemo(() => {
+    return formulaConfigsArg && formulaConfigsArg.length > 0
+      ? formulaConfigsArg
+      : [];
+  }, [formulaConfigsArg]);
 
   const startAndEndDate: ReturnType<
     typeof RangeStartAndEndDateTimeUtil.getStartAndEndDate
@@ -72,9 +85,9 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     return {
       queryConfigs: queryConfigs,
       startAndEndDate: startAndEndDate,
-      formulaConfigs: [],
+      formulaConfigs: formulaConfigs,
     };
-  }, [queryConfigs, startAndEndDate]);
+  }, [queryConfigs, startAndEndDate, formulaConfigs]);
 
   /*
    * Latest props in a ref so fetchAggregatedResults can stay stable
@@ -139,28 +152,10 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   }, [
     startAndEndDate,
     queryConfigs,
+    formulaConfigs,
     props.refreshTick,
     fetchAggregatedResults,
   ]);
-
-  const numberOfCharts: number = queryConfigs.length || 1;
-  // Account for widget-level header and per-chart overhead (title + legend + padding)
-  const hasWidgetHeader: boolean = Boolean(
-    props.component.arguments.chartTitle ||
-      props.component.arguments.chartDescription,
-  );
-  const widgetHeaderHeight: number = hasWidgetHeader ? 50 : 0;
-  // Each chart section: pt-5(20) + title(20) + legend(24) + pb-4(16) = ~80px overhead
-  const perChartOverhead: number = 80;
-  let heightOfChart: number | undefined =
-    ((props.dashboardComponentHeightInPx || 0) -
-      widgetHeaderHeight -
-      numberOfCharts * perChartOverhead) /
-    numberOfCharts;
-
-  if (heightOfChart < 50) {
-    heightOfChart = undefined;
-  }
 
   const getMetricChartType: () => MetricChartType = useCallback(() => {
     if (props.component.arguments.chartType === DashboardChartType.Bar) {
@@ -191,9 +186,14 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
         };
       }),
       startAndEndDate: startAndEndDate,
-      formulaConfigs: [],
+      formulaConfigs: formulaConfigs.map((config: MetricFormulaConfigData) => {
+        return {
+          ...config,
+          chartType: config.chartType || getMetricChartType(),
+        };
+      }),
     };
-  }, [queryConfigs, startAndEndDate, getMetricChartType]);
+  }, [queryConfigs, formulaConfigs, startAndEndDate, getMetricChartType]);
 
   if (isLoading && metricResults.length === 0) {
     // Skeleton loading for chart - only on initial load
@@ -254,13 +254,12 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           )}
         </div>
       )}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
         <MetricCharts
           metricResults={metricResults}
           metricTypes={props.metricTypes}
           metricViewData={chartMetricViewData}
           hideCard={true}
-          heightInPx={heightOfChart}
         />
       </div>
     </div>
@@ -298,6 +297,10 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
   if (
     !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
   ) {
+    return false;
+  }
+
+  if (!JSONFunctions.deepEqual(prev.variables, next.variables)) {
     return false;
   }
 

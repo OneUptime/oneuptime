@@ -10,10 +10,12 @@ import BlankDashboardUnitElement from "./BlankDashboardUnit";
 import DashboardBaseComponentElement from "../Components/DashboardBaseComponent";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentSettingsSideOver from "./ComponentSettingsSideOver";
+import ComponentSettingsModal from "./ComponentSettingsModal";
 import JSONFunctions from "Common/Types/JSONFunctions";
+import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 
 export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
@@ -29,6 +31,7 @@ export interface ComponentProps {
   };
   dashboardStartAndEndDate: RangeStartAndEndDateTime;
   refreshTick?: number | undefined;
+  variables?: Array<DashboardVariable> | undefined;
 }
 
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
@@ -231,6 +234,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         }}
         isSelected={isSelected}
         refreshTick={props.refreshTick}
+        variables={props.variables}
         onClick={() => {
           props.onComponentSelected(componentId);
         }}
@@ -256,7 +260,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     <div>
       {renderComponents()}
       {props.selectedComponentId && props.isEditMode && (
-        <ComponentSettingsSideOver
+        <ComponentSettingsModal
           title="Component Settings"
           description="Edit the settings of this component"
           dashboardViewConfig={props.dashboardViewConfig}
@@ -281,11 +285,37 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
 
             props.onDashboardViewConfigChange(updatedDashboardViewConfig);
           }}
+          onComponentDuplicate={(
+            componentToDuplicate: DashboardBaseComponent,
+          ) => {
+            /*
+             * Clone the component as-is but give it a brand-new id so it is
+             * treated as a separate widget. addComponentToDashboard places it
+             * on a fresh row at the bottom of the dashboard.
+             */
+            const duplicatedComponent: DashboardBaseComponent = {
+              ...componentToDuplicate,
+              componentId: ObjectID.generate(),
+            };
+
+            const updatedDashboardViewConfig: DashboardViewConfig =
+              JSONFunctions.deserializeValue(
+                DashboardViewConfigUtil.addComponentToDashboard({
+                  component: duplicatedComponent,
+                  dashboardViewConfig: props.dashboardViewConfig,
+                }),
+              ) as DashboardViewConfig;
+
+            props.onDashboardViewConfigChange(updatedDashboardViewConfig);
+            props.onComponentSelected(duplicatedComponent.componentId);
+          }}
           componentId={props.selectedComponentId}
           onComponentUpdate={(updatedComponent: DashboardBaseComponent) => {
             updateComponent(updatedComponent);
           }}
           metrics={props.metrics}
+          dashboardStartAndEndDate={props.dashboardStartAndEndDate}
+          totalCurrentDashboardWidthInPx={props.currentTotalDashboardWidthInPx}
         />
       )}
     </div>

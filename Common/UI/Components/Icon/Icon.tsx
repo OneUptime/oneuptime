@@ -35,6 +35,14 @@ export interface ComponentProps {
   onClick?: (() => void) | undefined;
   type?: IconType | undefined;
   style?: React.CSSProperties | undefined;
+  /*
+   * When the icon conveys meaning on its own (e.g. a standalone status or
+   * severity indicator that is not described by adjacent text), pass an
+   * ariaLabel so the icon is exposed to assistive technology as an image
+   * with an accessible name (WCAG 1.1.1). When omitted, the icon is treated
+   * as decorative and hidden from assistive technology.
+   */
+  ariaLabel?: string | undefined;
   "data-testid"?: string;
 }
 const Icon: FunctionComponent<ComponentProps> = ({
@@ -46,6 +54,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
   onClick,
   type,
   style,
+  ariaLabel,
   "data-testid": dataTestId,
 }: ComponentProps): ReactElement => {
   let sizeClassName: string = "";
@@ -65,7 +74,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
     } else if (size === SizeProp.Five) {
       sizeClassName = "h-5 w-5";
     } else if (size === SizeProp.Regular) {
-      sizeClassName = "h4 w4";
+      sizeClassName = "h-4 w-4";
     }
   }
 
@@ -113,7 +122,10 @@ const Icon: FunctionComponent<ComponentProps> = ({
       | undefined,
   ): ReactElement => {
     return (
-      <div role="icon">
+      <div
+        role={ariaLabel ? "img" : undefined}
+        aria-label={ariaLabel || undefined}
+      >
         <svg
           onClick={() => {
             if (onClick) {
@@ -2893,6 +2905,79 @@ const Icon: FunctionComponent<ComponentProps> = ({
           d="M2 14c1 2.5 3.5 4 7 4 5.5 0 9.5-2.5 11-7 1 0.2 2.2 0 3-0.7"
         />
       </>,
+    );
+  } else if (icon === IconProp.DockerSwarm) {
+    /*
+     * Docker Swarm glyph — a honeycomb cluster of three hexagonal nodes, an
+     * abstract "swarm of nodes" mark. Rendered as filled hexagons to sit with
+     * the other resource brand logos (Podman / Proxmox / Ceph) and stay clearly
+     * distinct from the single Docker whale. (Docker Swarm has no official
+     * standalone logo, so this is a themed cluster mark rather than a real one.)
+     */
+    return getSvgWrapper(
+      <>
+        {/* Top node */}
+        <polygon
+          fill="currentColor"
+          stroke="none"
+          points="12,3.2 15.55,5.25 15.55,9.35 12,11.4 8.45,9.35 8.45,5.25"
+        />
+        {/* Bottom-left node */}
+        <polygon
+          fill="currentColor"
+          stroke="none"
+          points="7.7,11 11.25,13.05 11.25,17.15 7.7,19.2 4.15,17.15 4.15,13.05"
+        />
+        {/* Bottom-right node */}
+        <polygon
+          fill="currentColor"
+          stroke="none"
+          points="16.3,11 19.85,13.05 19.85,17.15 16.3,19.2 12.75,17.15 12.75,13.05"
+        />
+      </>,
+    );
+  } else if (icon === IconProp.Podman) {
+    /*
+     * Podman mark — a simplified, bold silhouette of Podman's seal mascot.
+     * The official emblem (a finely detailed seal inside a hexagonal frame)
+     * collapses into an illegible blob at small sizes, so this is a cleaner
+     * single-path seal that stays recognizable down to ~16px and sits well
+     * beside the other resource brand logos (Docker / Proxmox / Ceph).
+     */
+    return getSvgWrapper(
+      <path
+        fill="currentColor"
+        stroke="none"
+        fillRule="evenodd"
+        d="M6.4 7.2C6.2 5.2 7.8 3.7 9.7 3.9C11.2 4.1 12.2 5.3 12.3 6.8C13 6.4 14 6.6 14.4 7.4C14.8 8.1 14.5 8.9 13.9 9.3C15.4 11 16.2 13.4 16.2 15.7C17.1 15.6 18.2 15.9 18.6 16.7C18.2 17.6 17 18.2 15.7 18.1C14 18 12.7 16.7 12.4 15C11.7 16.9 10.1 18.2 8.3 18.1C7.2 18 6.9 17.1 7.6 16.5C8.7 15.6 9.1 14 8.8 12.4C8.6 11 8 9.6 7.3 8.5C6.8 8.3 6.5 7.8 6.4 7.2ZM8.45 6.4a0.85 0.85 0 1 0 1.7 0a0.85 0.85 0 1 0 -1.7 0z"
+      />,
+    );
+  } else if (icon === IconProp.Proxmox) {
+    // Proxmox official logo mark (Simple Icons, CC0) — single filled path.
+    return getSvgWrapper(
+      <path
+        fill="currentColor"
+        stroke="none"
+        d="M4.928 1.825c-1.09.553-1.09.64-.07 1.78 5.655 6.295 7.004 7.782 7.107 7.782.139.017 7.971-8.542 8.058-8.801.034-.07-.208-.312-.519-.536-.415-.312-.864-.433-1.712-.467-1.59-.104-2.144.242-4.115 2.455-.899 1.003-1.66 1.833-1.66 1.833-.017 0-.76-.813-1.642-1.798S8.473 2.1 8.127 1.91c-.796-.45-2.421-.484-3.2-.086zM1.297 4.367C.45 4.695 0 5.007 0 5.248c0 .121 1.331 1.678 2.94 3.459 1.625 1.78 2.939 3.268 2.939 3.302 0 .035-1.331 1.522-2.94 3.303C1.314 17.11.017 18.683.035 18.822c.086.467 1.504 1.055 2.541 1.055 1.678-.018 2.058-.312 5.603-4.202 1.78-1.954 3.233-3.614 3.233-3.666 0-.069-1.435-1.694-3.199-3.63-2.3-2.508-3.423-3.632-3.96-3.874-.812-.398-2.126-.467-2.956-.138zm18.467.12c-.502.26-1.764 1.505-3.943 3.891-1.763 1.937-3.199 3.562-3.199 3.631 0 .07 1.453 1.712 3.234 3.666 3.544 3.89 3.925 4.184 5.602 4.202 1.038 0 2.455-.588 2.542-1.055.017-.156-1.28-1.712-2.905-3.493-1.608-1.78-2.94-3.285-2.94-3.32 0-.034 1.332-1.539 2.94-3.32C22.72 6.91 24.017 5.352 24 5.214c-.087-.45-1.366-.968-2.473-1.038-.795-.034-1.21.035-1.763.312zM7.954 16.973c-2.144 2.369-3.908 4.374-3.943 4.46-.034.07.208.312.52.537.414.311.864.432 1.711.467 1.574.103 2.161-.26 4.15-2.508.864-.968 1.608-1.78 1.625-1.78s.761.812 1.643 1.798c2.023 2.248 2.559 2.576 4.132 2.49.848-.035 1.297-.156 1.712-.467.311-.225.553-.467.519-.536-.087-.26-7.92-8.819-8.058-8.801-.069 0-1.867 1.954-4.011 4.34z"
+      />,
+    );
+  } else if (icon === IconProp.IoT) {
+    // IoT — wireless/connectivity mark (reuses the Signal icon path).
+    return getSvgWrapper(
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9.348 14.651a3.75 3.75 0 010-5.303m5.304 0a3.75 3.75 0 010 5.303m-7.425 2.122a6.75 6.75 0 010-9.546m9.546 0a6.75 6.75 0 010 9.546M5.106 18.894c-3.808-3.808-3.808-9.98 0-13.789m13.788 0c3.808 3.808 3.808 9.981 0 13.79M12 12h.008v.007H12V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
+      />,
+    );
+  } else if (icon === IconProp.Ceph) {
+    // Ceph official logo mark (Simple Icons, CC0) — single filled path.
+    return getSvgWrapper(
+      <path
+        fill="currentColor"
+        stroke="none"
+        d="M11.959.257A11.912 11.912 0 003.503 3.76 11.92 11.92 0 000 12.217a11.934 11.934 0 001.207 5.243c.72 1.474 1.888 2.944 3.208 4.044.86-.47 1.35-.99 1.453-1.545.1-.533-.134-1.107-.737-1.805a9.031 9.031 0 01-2.219-5.937c0-4.988 4.058-9.047 9.047-9.047h.08c4.99 0 9.048 4.059 9.048 9.047a9.03 9.03 0 01-2.218 5.936c-.599.693-.84 1.292-.735 1.83.108.556.595 1.068 1.449 1.522 1.322-1.1 2.489-2.57 3.209-4.046A11.898 11.898 0 0024 12.217a11.929 11.929 0 00-3.503-8.457A11.923 11.923 0 0012.04.257h-.041zm-.005 4.837a7.072 7.072 0 00-3.76 1.075A7.202 7.202 0 006.15 8.093a7.164 7.164 0 00-1.161 2.65 7.188 7.188 0 00.04 3.125 7.14 7.14 0 001.22 2.607c.154.207.326.396.509.597l.185.202.005.006c.007.007.017.016.026.027.635.738.957 1.533.957 2.36a3.4 3.4 0 01-1.788 2.989 11.924 11.924 0 002.685 1.087c.14-.088.614-.441 1.077-1.083a4.899 4.899 0 00.94-2.99 6.595 6.595 0 00-.49-2.37 6.717 6.717 0 00-1.302-2.033l-.002-.004-.124-.142c-.21-.245-.428-.497-.602-.792a4.104 4.104 0 01-.462-1.135 4.258 4.258 0 01-.024-1.85 4.25 4.25 0 01.686-1.564 4.216 4.216 0 013.432-1.773H12.042a4.202 4.202 0 013.432 1.773c.33.466.568 1.007.686 1.565a4.27 4.27 0 01-.023 1.849c-.093.39-.249.772-.463 1.135-.173.295-.391.547-.602.792l-.123.142-.004.004a6.736 6.736 0 00-1.301 2.033 6.607 6.607 0 00-.49 2.37 4.897 4.897 0 00.94 2.99c.463.642.937.995 1.076 1.083a11.776 11.776 0 002.687-1.087 3.399 3.399 0 01-1.789-2.988c0-.817.313-1.59.956-2.359.009-.012.02-.022.027-.03l.006-.004.184-.204c.183-.2.355-.39.51-.596a7.14 7.14 0 001.22-2.608 7.21 7.21 0 00.04-3.124 7.185 7.185 0 00-1.16-2.65 7.203 7.203 0 00-2.044-1.924 7.074 7.074 0 00-3.762-1.075h-.09zM12 9.97a2.365 2.365 0 00-2.362 2.361A2.364 2.364 0 0012 14.691c1.301 0 2.36-1.059 2.36-2.36A2.364 2.364 0 0012 9.968z"
+      />,
     );
   } else if (icon === IconProp.Gauge) {
     // Gauge/speedometer icon — semicircular meter with needle

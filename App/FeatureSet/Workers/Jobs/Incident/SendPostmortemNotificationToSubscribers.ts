@@ -40,6 +40,7 @@ import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed
 import { Blue500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 
 RunCron(
@@ -292,6 +293,17 @@ RunCron(
           },
         );
 
+        /*
+         * Pre-compute markdown→HTML conversion for the postmortem note once
+         * per incident. This value does not vary per status page or per
+         * subscriber, so memoizing here avoids N redundant markdown parses
+         * during fan-out.
+         */
+        const postmortemNoteHtml: string = await Markdown.convertToHTML(
+          incident.postmortemNote || "",
+          MarkdownContentType.Email,
+        );
+
         for (const statuspage of statusPages) {
           try {
             if (!statuspage.id) {
@@ -536,10 +548,7 @@ RunCron(
                           incidentSeverity:
                             incident.incidentSeverity?.name || " - ",
                           incidentTitle: incident.title || "",
-                          postmortemNote: await Markdown.convertToHTML(
-                            incident.postmortemNote || "",
-                            MarkdownContentType.Email,
-                          ),
+                          postmortemNote: postmortemNoteHtml,
                           unsubscribeUrl: unsubscribeUrl,
 
                           subscriberEmailNotificationFooterText:
@@ -754,6 +763,34 @@ RunCron(
                       incidentId: incident.id?.toString(),
                     },
                   );
+                }
+
+                if (subscriber.subscriberWebhook) {
+                  StatusPageSubscriberWebhookUtil.sendWebhookNotification({
+                    webhookUrl: subscriber.subscriberWebhook,
+                    payload: {
+                      eventType: "IncidentPostmortemPublished",
+                      statusPageId: statuspage.id!.toString(),
+                      statusPageName: statusPageName,
+                      statusPageUrl: statusPageURL,
+                      unsubscribeUrl: unsubscribeUrl,
+                      data: {
+                        incidentId: incident.id?.toString() || "",
+                        incidentNumber:
+                          incident.incidentNumber?.toString() || "",
+                        incidentTitle: incident.title || "",
+                        incidentSeverity: incident.incidentSeverity?.name || "",
+                        resourcesAffected: resourcesAffectedString,
+                        postmortemNote: incident.postmortemNote || "",
+                        detailsUrl: incidentDetailsUrl,
+                      },
+                    },
+                  }).catch((err: Error) => {
+                    logger.error(err, {
+                      projectId: incident.projectId?.toString(),
+                      incidentId: incident.id?.toString(),
+                    });
+                  });
                 }
               } catch (err) {
                 logger.error(err, {

@@ -20,7 +20,16 @@ export const SUPPORTED_STATUS_PAGE_LANGUAGES: Array<StatusPageLanguage> = [
   { code: "ru", nativeName: "Русский", englishName: "Russian" },
   { code: "ja", nativeName: "日本語", englishName: "Japanese" },
   { code: "ko", nativeName: "한국어", englishName: "Korean" },
-  { code: "zh", nativeName: "中文", englishName: "Chinese" },
+  {
+    code: "zh-CN",
+    nativeName: "简体中文",
+    englishName: "Chinese (Simplified)",
+  },
+  {
+    code: "zh-TW",
+    nativeName: "繁體中文",
+    englishName: "Chinese (Traditional)",
+  },
   { code: "hi", nativeName: "हिन्दी", englishName: "Hindi" },
 ];
 

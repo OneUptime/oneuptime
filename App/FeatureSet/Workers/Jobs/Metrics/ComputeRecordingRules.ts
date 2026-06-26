@@ -1,4 +1,5 @@
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
+import { getQuerySettings } from "Common/Server/Utils/AnalyticsDatabase/QuerySettingsHelper";
 import RunCron from "../../Utils/Cron";
 import logger from "Common/Server/Utils/Logger";
 import MetricRecordingRuleService from "Common/Server/Services/MetricRecordingRuleService";
@@ -11,10 +12,8 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
-import {
-  MetricPointType,
-  ServiceType,
-} from "Common/Models/AnalyticsModels/Metric";
+import { MetricPointType } from "Common/Models/AnalyticsModels/Metric";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { JSONObject } from "Common/Types/JSON";
 import {
   evaluate,
@@ -258,13 +257,14 @@ async function runSourceQuery(args: {
 
   const sql: string = `
     SELECT ${groupSqlSelect}, ${aggregateSql} AS value
-    FROM oneuptime.MetricItemV2
+    FROM oneuptime.MetricItemV3
     WHERE projectId = '${esc(projectIdStr)}'
       AND name = '${esc(source.metricName)}'
       AND time >= toDateTime64('${startIso}', 9)
       AND time < toDateTime64('${endIso}', 9)
       ${filterSql}
     ${groupSqlGroupBy}
+    ${getQuerySettings({ maxExecutionTimeInSeconds: 60, additionalSettings: { max_threads: 4 } })}
   `;
 
   const resultSet: {
@@ -348,13 +348,12 @@ function buildDerivedMetricRow(args: {
   const retentionDate: Date = OneUptimeDate.addRemoveDays(now, 15);
 
   return {
-    _id: ObjectID.generate().toString(),
+    _id: ObjectID.generateTimeOrdered().toString(),
     projectId: rule.projectId!.toString(),
     createdAt: OneUptimeDate.toClickhouseDateTime(now),
-    updatedAt: OneUptimeDate.toClickhouseDateTime(now),
     time: OneUptimeDate.toClickhouseDateTime(bucketStart),
     timeUnixNano: (bucketStart.getTime() * 1_000_000).toString(),
-    serviceType: ServiceType.OpenTelemetry,
+    primaryEntityType: ServiceType.OpenTelemetry,
     name: rule.outputMetricName,
     metricPointType: MetricPointType.Gauge,
     value: value,

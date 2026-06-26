@@ -86,11 +86,6 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
     });
   }, [props.exemplarPoints, props.xAxis]);
 
-  const className: string = props.heightInPx ? `` : "h-80";
-  const style: React.CSSProperties = props.heightInPx
-    ? { height: `${props.heightInPx}px` }
-    : {};
-
   const hasNoData: boolean =
     !props.data ||
     props.data.length === 0 ||
@@ -98,13 +93,29 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
       return series.data.length === 0;
     });
 
+  /*
+   * Translate yAxis.options.min/max into recharts inputs. "auto" maps to
+   * autoMinValue=true (or maxValue omitted) so recharts zooms to the
+   * data range — important for cumulative counters where the absolute
+   * value dwarfs per-bucket variation and a 0-anchored axis flattens
+   * the line.
+   */
+  const yAxisMinOption: number | "auto" = props.yAxis.options.min;
+  const yAxisMaxOption: number | "auto" = props.yAxis.options.max;
+  const autoMinValue: boolean = yAxisMinOption === "auto";
+  const minValueProp: { minValue: number } | Record<string, unknown> =
+    typeof yAxisMinOption === "number" ? { minValue: yAxisMinOption } : {};
+  const maxValueProp: { maxValue: number } | Record<string, unknown> =
+    typeof yAxisMaxOption === "number" ? { maxValue: yAxisMaxOption } : {};
+
   return (
-    <div className="relative">
+    <div
+      className="relative flex flex-1"
+      style={props.heightInPx ? { height: `${props.heightInPx}px` } : undefined}
+    >
       <LineChart
-        className={className}
-        style={style}
         data={records}
-        tickGap={1}
+        tickGap={30}
         index={"Time"}
         categories={categories}
         colors={LineChartPalette}
@@ -115,6 +126,9 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
         curve={props.curve}
         syncid={props.sync ? props.syncid : undefined}
         yAxisWidth={64}
+        autoMinValue={autoMinValue}
+        {...minValueProp}
+        {...maxValueProp}
         onValueChange={() => {}}
         referenceLines={props.referenceLines}
         formattedExemplarPoints={

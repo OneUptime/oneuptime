@@ -3,6 +3,15 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import KubernetesClusterOwnerTeam from "Common/Models/DatabaseModels/KubernetesClusterOwnerTeam";
+import KubernetesClusterOwnerUser from "Common/Models/DatabaseModels/KubernetesClusterOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners, {
+  ResourceFacet,
+  buildEnumFacetQuery,
+} from "../../Components/ResourceOwners/useResourceOwners";
+import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
+import IconProp from "Common/Types/Icon/IconProp";
 import React, {
   Fragment,
   FunctionComponent,
@@ -12,6 +21,8 @@ import React, {
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -22,6 +33,8 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import KubernetesDocumentationCard from "../../Components/Kubernetes/DocumentationCard";
+import AppLink from "../../Components/AppLink/AppLink";
+import ObjectID from "Common/Types/ObjectID";
 
 const KubernetesClusters: FunctionComponent<
   PageComponentProps
@@ -32,6 +45,53 @@ const KubernetesClusters: FunctionComponent<
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<KubernetesCluster>({ modelType: KubernetesCluster });
+
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<KubernetesCluster>({
+      ownerUserModelType: KubernetesClusterOwnerUser,
+      ownerTeamModelType: KubernetesClusterOwnerTeam,
+      resourceIdField: "kubernetesClusterId",
+    });
+
+  const { archiveBulkActions } = useBulkArchiveActions<KubernetesCluster>({
+    modelType: KubernetesCluster,
+  });
+
+  const kubernetesExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "otelCollectorStatus",
+      label: "Status",
+      icon: IconProp.Wifi,
+      isMultiSelect: false,
+      options: [
+        { value: "connected", label: "Connected" },
+        { value: "disconnected", label: "Disconnected" },
+      ],
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEnumFacetQuery(values, operator, false);
+      },
+    },
+  ];
+
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<KubernetesCluster>({
+    persistKey: "kubernetes-clusters-table",
+    ownerUserModelType: KubernetesClusterOwnerUser,
+    ownerTeamModelType: KubernetesClusterOwnerTeam,
+    resourceIdField: "kubernetesClusterId",
+    showLabelsFacet: true,
+    extraFacets: kubernetesExtraFacets,
+  });
 
   const fetchClusterCount: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -79,14 +139,27 @@ const KubernetesClusters: FunctionComponent<
         modelType={KubernetesCluster}
         id="kubernetes-clusters-table"
         userPreferencesKey="kubernetes-clusters-table"
+        topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery({ isArchived: false })}
+        onFetchSuccess={(data: Array<KubernetesCluster>) => {
+          onResourcesFetched(data);
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
+        showRefreshButton={true}
         bulkActions={{
-          buttons: [...labelBulkActions],
+          buttons: [
+            ...labelBulkActions,
+            ...ownerBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         name="Kubernetes Clusters"
         isViewable={true}
+        searchableFields={["name", "description"]}
         filters={[]}
         cardProps={{
           title: "Kubernetes Clusters",
@@ -147,7 +220,23 @@ const KubernetesClusters: FunctionComponent<
               name: true,
             },
             title: "Name",
-            type: FieldType.Text,
+            type: FieldType.Element,
+            getElement: (item: KubernetesCluster): ReactElement => {
+              const route: Route = RouteUtil.populateRouteParams(
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW] as Route,
+                {
+                  modelId: new ObjectID(item._id as string),
+                },
+              );
+              return (
+                <AppLink
+                  to={route}
+                  className="text-sm font-medium text-gray-900 hover:underline"
+                >
+                  {(item.name as string) || "—"}
+                </AppLink>
+              );
+            },
           },
           {
             field: {
@@ -185,17 +274,10 @@ const KubernetesClusters: FunctionComponent<
           },
           {
             field: {
-              nodeCount: true,
+              lastSeenAt: true,
             },
-            title: "Nodes",
-            type: FieldType.Number,
-          },
-          {
-            field: {
-              podCount: true,
-            },
-            title: "Pods",
-            type: FieldType.Number,
+            title: "Last Seen",
+            type: FieldType.DateTime,
           },
           {
             field: {
@@ -209,6 +291,22 @@ const KubernetesClusters: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: KubernetesCluster): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: KubernetesCluster): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}
@@ -226,6 +324,7 @@ const KubernetesClusters: FunctionComponent<
         }}
       />
       {labelBulkActionModals}
+      {ownerBulkActionModals}
     </Fragment>
   );
 };

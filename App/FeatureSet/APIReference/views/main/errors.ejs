@@ -8,13 +8,13 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                </svg>
             </div>
-            <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Guide</span>
+            <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider"><%= t('pages.errors.badge') %></span>
          </div>
-         <h1 class="font-bold text-3xl text-slate-900 tracking-tight mb-3">Errors</h1>
-         <p class="text-lg text-slate-600 leading-relaxed max-w-2xl">In this guide, we will talk about what happens when something goes wrong while you work with the API. Mistakes happen, and mostly they will be yours, not ours. Let's look at some status codes and error types you might encounter.</p>
+         <h1 class="font-bold text-3xl text-slate-900 tracking-tight mb-3"><%= t('pages.errors.title') %></h1>
+         <p class="text-lg text-slate-600 leading-relaxed max-w-2xl"><%= t('pages.errors.intro') %></p>
       </div>
 
-      <p class="text-slate-600 leading-relaxed">You can tell if your request was successful by checking the status code when receiving an API response. If a response comes back unsuccessful, you can use the status code and error message to figure out what has gone wrong and do some rudimentary debugging (before contacting support).</p>
+      <p class="text-slate-600 leading-relaxed"><%= t('pages.errors.body') %></p>
 
       <div class="my-6 flex gap-3 rounded-xl border border-indigo-500/20 bg-indigo-50/50 p-4">
          <div class="flex-shrink-0">
@@ -24,53 +24,53 @@
                <circle cx="8" cy="4" r=".5" fill="none"></circle>
             </svg>
          </div>
-         <p class="text-sm text-indigo-900">Before reaching out to support with an error, please be aware that 99% of all reported errors are, in fact, user errors. Therefore, please carefully check your code before contacting OneUptime support.</p>
+         <p class="text-sm text-indigo-900"><%= t('pages.errors.warning') %></p>
       </div>
 
       <h2 id="status-codes" class="scroll-mt-24 text-xl font-semibold text-slate-900 mb-4 mt-12 pt-8 border-t border-slate-200">
-         Status codes
+         <%= t('pages.errors.statusCodes') %>
       </h2>
-      <p class="text-slate-600 leading-relaxed mb-6">Here is a list of the different categories of status codes returned by the OneUptime API. Use these to understand if a request was successful.</p>
+      <p class="text-slate-600 leading-relaxed mb-6"><%= t('pages.errors.statusCodesBody') %></p>
 
       <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
          <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
             <li class="m-0 px-5 py-4">
                <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                   <dd><code class="inline-flex items-center rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">2xx</code></dd>
-                  <dd class="w-full flex-none text-sm text-slate-600 mt-1">A 2xx status code indicates a successful response.</dd>
+                  <dd class="w-full flex-none text-sm text-slate-600 mt-1"><%= t('pages.errors.status2xx') %></dd>
                </dl>
             </li>
             <li class="m-0 px-5 py-4">
                <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                   <dd><code class="inline-flex items-center rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">4xx</code></dd>
-                  <dd class="w-full flex-none text-sm text-slate-600 mt-1">A 4xx status code indicates a client error - this means it's a <em>you</em> problem.</dd>
+                  <dd class="w-full flex-none text-sm text-slate-600 mt-1"><%- t('pages.errors.status4xx') %></dd>
                </dl>
             </li>
             <li class="m-0 px-5 py-4">
                <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                   <dd><code class="inline-flex items-center rounded-md bg-orange-50 px-2 py-1 text-xs font-medium text-orange-700 ring-1 ring-inset ring-orange-600/20">429</code></dd>
-                  <dd class="w-full flex-none text-sm text-slate-600 mt-1">Request limit exceeded. Request limits are 100 operations per second per project (this includes all the API keys in the project).</dd>
+                  <dd class="w-full flex-none text-sm text-slate-600 mt-1"><%= t('pages.errors.status429') %></dd>
                </dl>
             </li>
             <li class="m-0 px-5 py-4">
                <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                   <dd><code class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">5xx</code></dd>
-                  <dd class="w-full flex-none text-sm text-slate-600 mt-1">A 5xx status code indicates a server error - you won't be seeing a lot of these.</dd>
+                  <dd class="w-full flex-none text-sm text-slate-600 mt-1"><%= t('pages.errors.status5xx') %></dd>
                </dl>
             </li>
          </ul>
       </div>
 
       <h2 id="error-types" class="scroll-mt-24 text-xl font-semibold text-slate-900 mb-4 mt-12 pt-8 border-t border-slate-200">
-         Error Messages
+         <%= t('pages.errors.errorMessages') %>
       </h2>
       <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-            <p class="text-slate-600 leading-relaxed">Whenever a request is unsuccessful, the OneUptime API will return an error response with an error message. You can use this information to understand better what has gone wrong and how to fix it. Most of the error messages are pretty helpful and actionable.</p>
-            <p class="text-slate-600 leading-relaxed">Here is an example of an error message:</p>
+            <p class="text-slate-600 leading-relaxed"><%= t('pages.errors.errorMessagesBody') %></p>
+            <p class="text-slate-600 leading-relaxed"><%= t('pages.errors.errorMessagesExample') %></p>
          </div>
          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-            <%- include('../partials/code', {title: "Example error response", requestUrl: "", requestType: "", code: "{ \"message\": \"Name is required\" }" }) -%>
+            <%- include('../partials/code', {title: t('pages.errors.exampleResponseTitle'), requestUrl: "", requestType: "", code: "{ \"message\": \"Name is required\" }" }) -%>
          </div>
       </div>
    </article>

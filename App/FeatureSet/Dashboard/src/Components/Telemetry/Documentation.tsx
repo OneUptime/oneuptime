@@ -10,7 +10,7 @@ import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
+import { APP_API_URL, HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -22,6 +22,15 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Protocol from "Common/Types/API/Protocol";
+import URL from "Common/Types/API/URL";
+import Route from "Common/Types/API/Route";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { JSONObject } from "Common/Types/JSON";
+import OneUptimeDate from "Common/Types/Date";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
+import AppLink from "../AppLink/AppLink";
 
 export type TelemetryType =
   | "logs"
@@ -705,6 +714,26 @@ export OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=<YOUR_ONEUPTIME_TOKEN>"
 export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"`;
 }
 
+function getOneuptimeServiceLabelsSnippet(): string {
+  return `# Pattern: any resource attribute prefixed "oneuptime.label." is promoted to a project label
+#   oneuptime.label.<dimension>=<value>  →  becomes a project label named "<dimension>:<value>"
+# The label is attached to this telemetry service automatically (and to the host, if the
+# same collector emits host metrics). Manual labels added via the OneUptime UI are never
+# removed by ingest. Existing labels are matched case-insensitively, so "production"
+# reuses an existing "Production" label rather than spawning a duplicate.
+
+# Universal — set via the standard OpenTelemetry resource-attribute env var:
+export OTEL_RESOURCE_ATTRIBUTES="oneuptime.label.team=payments,oneuptime.label.env=production,oneuptime.label.region=us-east-1"
+
+# Or pass the same attributes inline on your SDK's Resource:
+#   Node.js:  new Resource({ "oneuptime.label.team": "payments", "oneuptime.label.env": "production" })
+#   Python:   Resource.create({"oneuptime.label.team": "payments", "oneuptime.label.env": "production"})
+#   Go:       resource.NewWithAttributes(semconv.SchemaURL,
+#                 attribute.String("oneuptime.label.team", "payments"),
+#                 attribute.String("oneuptime.label.env", "production"))
+#   Java:     -Dotel.resource.attributes=oneuptime.label.team=payments,oneuptime.label.env=production`;
+}
+
 // --- Profile-specific snippets ---
 
 const profileLanguages: Array<Language> = [
@@ -739,16 +768,10 @@ function getProfileInstallSnippet(lang: Language): {
       };
     case "java":
       return {
-        code: `<!-- Add to pom.xml -->
-<dependency>
-  <groupId>io.pyroscope</groupId>
-  <artifactId>agent</artifactId>
-  <version>2.1.2</version>
-</dependency>
-
-# Or download the Java agent JAR:
-curl -L -o pyroscope.jar \\
-  https://github.com/grafana/pyroscope-java/releases/latest/download/pyroscope.jar`,
+        code: `# The Pyroscope Java agent uploads profiles in JFR format, which
+# OneUptime does not ingest yet (pprof and folded text only).
+# Profile Java services with the "Grafana Alloy (eBPF)" method above
+# instead — it captures JVM CPU profiles with no agent and no code changes.`,
         language: "bash",
       };
     case "dotnet":
@@ -854,29 +877,10 @@ func main() {
       };
     case "java":
       return {
-        code: `// Option 1: Start from code
-import io.pyroscope.javaagent.PyroscopeAgent;
-import io.pyroscope.javaagent.config.Config;
-import io.pyroscope.javaagent.EventType;
-import io.pyroscope.http.Format;
-
-PyroscopeAgent.start(
-    new Config.Builder()
-        .setApplicationName("my-service")
-        .setProfilingEvent(EventType.ITIMER)
-        .setFormat(Format.JFR)
-        .setServerAddress("<YOUR_ONEUPTIME_PYROSCOPE_URL>")
-        .setAuthToken("<YOUR_ONEUPTIME_TOKEN>")
-        .build()
-);
-
-// Option 2: Attach as Java agent (no code changes)
-// java -javaagent:pyroscope.jar \\
-//   -Dpyroscope.application.name=my-service \\
-//   -Dpyroscope.server.address=<YOUR_ONEUPTIME_PYROSCOPE_URL> \\
-//   -Dpyroscope.auth.token=<YOUR_ONEUPTIME_TOKEN> \\
-//   -jar my-app.jar`,
-        language: "java",
+        code: `# No SDK configuration for Java — the Pyroscope Java agent's JFR
+# upload format is not supported yet. Switch to the "Grafana Alloy
+# (eBPF)" integration method above to profile Java services.`,
+        language: "bash",
       };
     case "dotnet":
       return {
@@ -1101,6 +1105,20 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const [keyError, setKeyError] = useState<string>("");
 
+  /*
+   * Live ingest verification (profiles guide only). The guide polls the
+   * service-activity endpoint so the user gets confirmation on this page
+   * the moment their first profile lands, instead of having to navigate
+   * away and hunt for data. `isProfileDataConfirmed` is a one-way latch:
+   * once data has been seen, polling stops and the success state never
+   * flickers back even if a later window happens to be empty.
+   */
+  const [isProfileDataConfirmed, setIsProfileDataConfirmed] =
+    useState<boolean>(false);
+  const [profileSourceCount, setProfileSourceCount] = useState<number>(0);
+  const [hasProfileVerifyError, setHasProfileVerifyError] =
+    useState<boolean>(false);
+
   const telemetryType: TelemetryType = props.telemetryType || "logs";
 
   const showLogCollectors: boolean = telemetryType === "logs";
@@ -1121,6 +1139,84 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     loadIngestionKeys().catch(() => {});
   }, []);
+
+  useEffect(() => {
+    /*
+     * Only the profiles guide renders the verification step, so other
+     * telemetry types must not generate background traffic. Once data is
+     * confirmed the dependency change re-runs this effect, which bails
+     * out immediately — the previous run's cleanup clears the interval.
+     */
+    if (!isProfiles || isProfileDataConfirmed) {
+      return;
+    }
+
+    let cancelled: boolean = false;
+
+    const checkForProfiles: () => Promise<void> = async (): Promise<void> => {
+      try {
+        /*
+         * Recompute the window on every poll — a window captured once
+         * would drift out of "now" while the user is still wiring up
+         * their agent. 15 minutes comfortably covers agent flush
+         * intervals without picking up stale data from older runs.
+         */
+        const endTime: Date = OneUptimeDate.getCurrentDate();
+        const startTime: Date = OneUptimeDate.addRemoveMinutes(endTime, -15);
+
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              "/telemetry/profiles/service-activity",
+            ),
+            data: {
+              startTime: startTime.toISOString(),
+              endTime: endTime.toISOString(),
+            },
+            headers: {
+              ...ModelAPI.getCommonHeaders(),
+            },
+          });
+
+        if (cancelled) {
+          return;
+        }
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        const activity: Array<JSONObject> = (response.data["activity"] ||
+          []) as unknown as Array<JSONObject>;
+
+        if (activity.length > 0) {
+          setProfileSourceCount(activity.length);
+          setIsProfileDataConfirmed(true);
+        } else {
+          setHasProfileVerifyError(false);
+        }
+      } catch {
+        /*
+         * Transient failures (network blips, gateway restarts) are
+         * expected mid-setup. Surface a quiet retry note instead of an
+         * alarming error state — polling continues regardless.
+         */
+        if (!cancelled) {
+          setHasProfileVerifyError(true);
+        }
+      }
+    };
+
+    checkForProfiles().catch(() => {});
+    const pollIntervalId: ReturnType<typeof setInterval> = setInterval(() => {
+      checkForProfiles().catch(() => {});
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(pollIntervalId);
+    };
+  }, [isProfiles, isProfileDataConfirmed]);
 
   const loadIngestionKeys: () => Promise<void> = async (): Promise<void> => {
     try {
@@ -1182,7 +1278,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
           key: "opentelemetry" as IntegrationMethod,
           label: "Language SDK",
           description:
-            "In-process profiling using Pyroscope SDKs for fine-grained control.",
+            "In-process profiling with Pyroscope SDKs: Go, Node.js, .NET, Python, Ruby, Rust.",
         },
       ];
     }
@@ -1228,7 +1324,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     exceptions:
       "Capture and track exceptions from your application using OpenTelemetry SDKs.",
     profiles:
-      "Send continuous profiling data from your application to OneUptime using OpenTelemetry SDKs.",
+      "Send continuous profiling data to OneUptime using Grafana Alloy (eBPF) or Pyroscope language SDKs.",
   };
 
   const installSnippet: { code: string; language: string } = useMemo(() => {
@@ -1406,11 +1502,22 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    OTLP Endpoint
+                    {isProfiles ? "Profiling Endpoint" : "OTLP Endpoint"}
                   </div>
+                  {/*
+                   * Profiles are ingested over the Pyroscope-compatible API,
+                   * not OTLP — showing the OTLP URL here would point the
+                   * user's profiler at an endpoint it cannot push to.
+                   */}
                   <div className="text-sm text-gray-900 font-mono mt-0.5 break-all select-all">
-                    {otlpUrlValue}
+                    {isProfiles ? pyroscopeUrl : otlpUrlValue}
                   </div>
+                  {isProfiles && (
+                    <div className="text-xs text-gray-500 mt-1 leading-relaxed">
+                      Use this as the Pyroscope server address. SDKs and Grafana
+                      Alloy append the ingest path to it automatically.
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="px-4 py-3 flex items-start gap-3">
@@ -1517,6 +1624,77 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * Live verification card (profiles guide only). Rendered as the final
+   * step of every profiles integration method so the user never has to
+   * leave the guide to find out whether their agent is actually sending.
+   */
+  const renderProfileVerifyContent: () => ReactElement = (): ReactElement => {
+    if (isProfileDataConfirmed) {
+      return (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+              <Icon icon={IconProp.Check} className="w-4 h-4 text-green-600" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-green-800">
+                Profiles are flowing! {profileSourceCount}{" "}
+                {profileSourceCount === 1 ? "source" : "sources"} reporting.
+              </p>
+              <AppLink
+                className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm"
+                to={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.PROFILES] as Route,
+                )}
+              >
+                Open the Profiler
+              </AppLink>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+        <div className="flex items-center gap-3">
+          <svg
+            className="animate-spin h-4 w-4 text-indigo-500 flex-shrink-0"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+            ></path>
+          </svg>
+          <p className="text-sm text-gray-500">
+            Listening for your first profile… data usually appears within a
+            minute of the agent starting.
+          </p>
+        </div>
+        {hasProfileVerifyError && (
+          <p className="text-xs text-gray-400 mt-2">
+            Couldn&apos;t reach the server on the last check — retrying
+            automatically.
+          </p>
+        )}
+      </div>
+    );
+  };
+
   // OpenTelemetry content
   const renderOpenTelemetryContent: () => ReactElement = (): ReactElement => {
     return (
@@ -1567,8 +1745,16 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
               )}
               language={configSnippet.language}
             />,
-            Boolean(isProfiles),
           )}
+
+          {isProfiles &&
+            renderStep(
+              4,
+              "Verify It Is Working",
+              "Leave this page open while your service starts — incoming profiles are detected automatically.",
+              renderProfileVerifyContent(),
+              true,
+            )}
 
           {!isProfiles &&
             renderStep(
@@ -1578,6 +1764,23 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
               <CodeBlock
                 code={replacePlaceholders(
                   getEnvVarSnippet(),
+                  otlpUrlValue,
+                  otlpHostValue,
+                  tokenValue,
+                  pyroscopeUrl,
+                )}
+                language="bash"
+              />,
+            )}
+
+          {!isProfiles &&
+            renderStep(
+              5,
+              "Optional — Auto-tag this service with project labels",
+              "Promote any resource attribute prefixed `oneuptime.label.` into a project label and attach it to this service. Use it to tag services with team, environment, region, or any other dimension you organize by.",
+              <CodeBlock
+                code={replacePlaceholders(
+                  getOneuptimeServiceLabelsSnippet(),
                   otlpUrlValue,
                   otlpHostValue,
                   tokenValue,
@@ -1753,6 +1956,13 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             "Run Alloy",
             "Or run Alloy directly on the host.",
             <CodeBlock code="alloy run alloy-config.alloy" language="bash" />,
+          )}
+
+          {renderStep(
+            5,
+            "Verify It Is Working",
+            "Leave this page open while Alloy starts — incoming profiles are detected automatically.",
+            renderProfileVerifyContent(),
             true,
           )}
         </div>

@@ -6,6 +6,7 @@ import React, {
 } from "react";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Icon from "Common/UI/Components/Icon/Icon";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import IconProp from "Common/Types/Icon/IconProp";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 
@@ -49,7 +50,8 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
         type: DashboardComponentType.Table,
         label: "Table",
         icon: IconProp.TableCells,
-        description: "Tabular result from a metrics or data query.",
+        description:
+          "Tabular metric values — set a Group By (e.g. host.name) for one row per entity, or none for time-bucketed rows. Add formulas for derived columns like availability %.",
       },
       {
         type: DashboardComponentType.Text,
@@ -75,6 +77,20 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
         icon: IconProp.Waterfall,
         description: "Most recent traces for a service or operation.",
       },
+      {
+        type: DashboardComponentType.TraceChart,
+        label: "Trace Chart",
+        icon: IconProp.ChartBar,
+        description:
+          "Span counts or response-time percentiles over time, optionally split by an attribute (e.g. per tenant).",
+      },
+      {
+        type: DashboardComponentType.TraceTable,
+        label: "Trace Table",
+        icon: IconProp.TableCells,
+        description:
+          "Top dimensions by request count — requests, median, avg, min, and max response time per span name, status, or attribute.",
+      },
     ],
   },
   {
@@ -98,6 +114,20 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
         label: "Monitor List",
         icon: IconProp.AltGlobe,
         description: "Monitors with current operational status.",
+      },
+    ],
+  },
+  {
+    name: "Hosts",
+    description:
+      "Hosts auto-discovered from the host.name OTel resource attribute.",
+    items: [
+      {
+        type: DashboardComponentType.HostList,
+        label: "Hosts",
+        icon: IconProp.Server,
+        description:
+          "Hosts with connection status, OS, CPU/memory, and last-seen.",
       },
     ],
   },
@@ -194,6 +224,106 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
       },
     ],
   },
+  {
+    name: "Podman",
+    description:
+      "Live inventory from any connected Podman host — populated by the OneUptime Podman Agent.",
+    items: [
+      {
+        type: DashboardComponentType.PodmanHostList,
+        label: "Hosts",
+        icon: IconProp.Server,
+        description:
+          "Podman hosts with connection status and container counts.",
+      },
+      {
+        type: DashboardComponentType.PodmanContainerList,
+        label: "Containers",
+        icon: IconProp.Cube,
+        description: "Containers with state, image, and CPU/memory.",
+      },
+      {
+        type: DashboardComponentType.PodmanImageList,
+        label: "Images",
+        icon: IconProp.Cube,
+        description: "Images present on selected hosts.",
+      },
+      {
+        type: DashboardComponentType.PodmanNetworkList,
+        label: "Networks",
+        icon: IconProp.Globe,
+        description: "Networks defined on selected hosts.",
+      },
+      {
+        type: DashboardComponentType.PodmanVolumeList,
+        label: "Volumes",
+        icon: IconProp.Database,
+        description: "Volumes defined on selected hosts.",
+      },
+    ],
+  },
+  {
+    name: "Proxmox",
+    description:
+      "Live inventory from any connected Proxmox VE cluster — populated by the OneUptime Proxmox Agent.",
+    items: [
+      {
+        type: DashboardComponentType.ProxmoxNodeList,
+        label: "Nodes",
+        icon: IconProp.ServerStack,
+        description: "PVE nodes with online status and CPU/memory.",
+      },
+      {
+        type: DashboardComponentType.ProxmoxGuestList,
+        label: "Guests",
+        icon: IconProp.Cube,
+        description:
+          "QEMU VMs and LXC containers with run state, HA state, and node.",
+      },
+    ],
+  },
+  {
+    name: "Docker Swarm",
+    description:
+      "Live inventory from any connected Docker Swarm cluster — populated by the OneUptime Docker Swarm Agent.",
+    items: [
+      {
+        type: DashboardComponentType.DockerSwarmNodeList,
+        label: "Nodes",
+        icon: IconProp.ServerStack,
+        description:
+          "Swarm nodes with manager/worker role, ready state, and CPU/memory.",
+      },
+      {
+        type: DashboardComponentType.DockerSwarmServiceList,
+        label: "Services",
+        icon: IconProp.Cube,
+        description:
+          "Replicated and global services with replicas, image, and converge state.",
+      },
+    ],
+  },
+  {
+    name: "Ceph",
+    description:
+      "Live inventory from any connected Ceph cluster — populated by the OneUptime Ceph Agent.",
+    items: [
+      {
+        type: DashboardComponentType.CephOsdList,
+        label: "OSDs",
+        icon: IconProp.SquareStack,
+        description:
+          "The OSD wall — a honeycomb of OSDs colored by up/in state.",
+      },
+      {
+        type: DashboardComponentType.CephPoolList,
+        label: "Pools",
+        icon: IconProp.Database,
+        description:
+          "Pools with stored bytes, capacity-used bars, and object counts.",
+      },
+    ],
+  },
 ];
 
 export interface ComponentProps {
@@ -204,6 +334,7 @@ export interface ComponentProps {
 const AddWidgetModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   const [searchTerm, setSearchTerm] = useState<string>("");
   const trimmedSearch: string = searchTerm.trim().toLowerCase();
 
@@ -282,10 +413,10 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
               <div key={category.name}>
                 <div className="mb-2">
                   <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    {category.name}
+                    {translateString(category.name)}
                   </h4>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {category.description}
+                    {translateString(category.description)}
                   </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -305,10 +436,10 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="text-sm font-medium text-gray-800 truncate">
-                            {item.label}
+                            {translateString(item.label)}
                           </div>
                           <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-                            {item.description}
+                            {translateString(item.description)}
                           </div>
                         </div>
                       </button>

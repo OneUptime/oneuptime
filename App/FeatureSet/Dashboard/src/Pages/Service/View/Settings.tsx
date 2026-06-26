@@ -2,11 +2,21 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import TechStack from "Common/Types/Service/TechStack";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import Service from "Common/Models/DatabaseModels/Service";
+import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
+import TelemetryRetentionConfigForm from "Common/UI/Components/Telemetry/TelemetryRetentionConfigForm";
+import TelemetryRetentionConfigSummary from "Common/UI/Components/Telemetry/TelemetryRetentionConfigSummary";
+import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const ServiceSettings: FunctionComponent<
@@ -53,7 +63,7 @@ const ServiceSettings: FunctionComponent<
             },
             title: "Retain Telemetry Data For (Days)",
             description:
-              "Number of days to retain telemetry data (logs, traces, metrics) for this service. Leave blank to use the project-wide default.",
+              "Default retention for this service. Used when no per-type override below applies. Leave blank to use the project's default.",
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "Use project default",
@@ -89,13 +99,74 @@ const ServiceSettings: FunctionComponent<
               },
               title: "Retain Telemetry Data For (Days)",
               description:
-                "Number of days telemetry data (logs, traces, metrics) is retained for this service. Falls back to the project-wide default when not set.",
+                "Default retention for this service. Falls back to the project's default when not set.",
               fieldType: FieldType.Number,
               placeholder: "Using project default",
             },
           ],
           modelId: modelId,
         }}
+      />
+      <CardModelDetail<Service>
+        name="Retention by Telemetry Type"
+        cardProps={{
+          title: "Retention by Telemetry Type",
+          description:
+            "Override retention for specific telemetry types in this service. Any field left blank falls back to the service default, then the project's settings.",
+        }}
+        isEditable={true}
+        editButtonText="Edit Overrides"
+        createEditModalWidth={ModalWidth.Large}
+        formFields={[
+          {
+            field: { telemetryRetentionConfig: true },
+            title: "Retention Overrides",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            getCustomElement: (
+              value: FormValues<Service>,
+              props: CustomElementProps,
+            ) => {
+              return (
+                <TelemetryRetentionConfigForm
+                  {...props}
+                  value={
+                    value.telemetryRetentionConfig as
+                      | TelemetryRetentionConfig
+                      | undefined
+                  }
+                />
+              );
+            },
+          },
+        ]}
+        modelDetailProps={{
+          modelType: Service,
+          id: "model-detail-service-telemetry-retention-overrides",
+          fields: [
+            {
+              field: { telemetryRetentionConfig: true },
+              fieldType: FieldType.Element,
+              title: "Retention Overrides",
+              getElement: (item: Service) => {
+                return (
+                  <TelemetryRetentionConfigSummary
+                    config={item.telemetryRetentionConfig}
+                  />
+                );
+              },
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+      <ArchiveResourceCard<Service>
+        modelType={Service}
+        modelId={modelId}
+        singularName="service"
+        listRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.SERVICES] as Route,
+        )}
       />
     </Fragment>
   );

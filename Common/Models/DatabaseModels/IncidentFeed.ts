@@ -4,6 +4,7 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -40,6 +41,10 @@ export enum IncidentFeedEventType {
   OnCallNotification = "OnCallNotification",
   IncidentMemberAdded = "IncidentMemberAdded",
   IncidentMemberRemoved = "IncidentMemberRemoved",
+  LabelRuleExecuted = "LabelRuleExecuted",
+  OwnerRuleExecuted = "OwnerRuleExecuted",
+  PrivacyRuleExecuted = "PrivacyRuleExecuted",
+  OnCallRuleExecuted = "OnCallRuleExecuted",
 }
 
 @EnableDocumentation()
@@ -50,7 +55,8 @@ export enum IncidentFeedEventType {
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
     Permission.CreateIncidentFeed,
   ],
   read: [
@@ -58,9 +64,10 @@ export enum IncidentFeedEventType {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.IncidentManager,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
+    Permission.IncidentViewer,
     Permission.ReadIncidentFeed,
-    Permission.ReadAllProjectResources,
   ],
   delete: [],
   update: [],
@@ -72,6 +79,7 @@ export enum IncidentFeedEventType {
   read: true,
 })
 @CrudApiEndpoint(new Route("/incident-feed"))
+@OwnedThrough("incidentId", Incident)
 @Entity({
   name: "IncidentFeed",
 })
@@ -83,13 +91,15 @@ export enum IncidentFeedEventType {
   tableDescription:
     "Log of the entire incident state change. This is a log of all the incident state changes, public notes, more etc.",
 })
+@Index(["incidentId", "postedAt"]) // Incident detail page: feed sorted by postedAt
 export default class IncidentFeed extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentFeed,
     ],
     read: [
@@ -97,9 +107,10 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -130,7 +141,8 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentFeed,
     ],
     read: [
@@ -138,9 +150,10 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -165,7 +178,8 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentFeed,
     ],
     read: [
@@ -173,9 +187,10 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -206,7 +221,8 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentFeed,
     ],
     read: [
@@ -214,9 +230,10 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -240,7 +257,8 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentFeed,
     ],
     read: [
@@ -248,9 +266,10 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -282,7 +301,8 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentFeed,
     ],
     read: [
@@ -290,9 +310,10 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -363,7 +384,8 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentFeed,
     ],
     read: [
@@ -371,9 +393,10 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -397,7 +420,8 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentFeed,
     ],
     read: [
@@ -405,9 +429,10 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -431,7 +456,8 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentFeed,
     ],
     read: [
@@ -439,9 +465,10 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -464,7 +491,8 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateIncidentFeed,
     ],
     read: [
@@ -472,9 +500,10 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadIncidentFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -499,7 +528,8 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateScheduledMaintenanceFeed,
     ],
     read: [
@@ -507,9 +537,10 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -541,7 +572,8 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateScheduledMaintenanceFeed,
     ],
     read: [
@@ -549,9 +581,10 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -574,7 +607,8 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
       Permission.CreateScheduledMaintenanceFeed,
     ],
     read: [
@@ -582,9 +616,10 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.IncidentManager,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

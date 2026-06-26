@@ -20,9 +20,6 @@ export function getApiUrl(): string {
   return Host ? `${HttpProtocol}${Host}` : "https://oneuptime.com";
 }
 
-// Session header name
-export const SESSION_HEADER: string = "mcp-session-id";
-
 // API key header names
 export const API_KEY_HEADERS: string[] = ["x-api-key", "authorization"];
 

@@ -4,11 +4,13 @@ import { ButtonStyleType } from "../Button/Button";
 import Card from "../Card/Card";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Detail from "../Detail/Detail";
+import { DropdownOption } from "../Dropdown/Dropdown";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicFormModal from "../FormModal/BasicFormModal";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -16,6 +18,25 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
+
+const parseDropdownOptions: (value: unknown) => Array<DropdownOption> = (
+  value: unknown,
+): Array<DropdownOption> => {
+  if (typeof value !== "string" || !value) {
+    return [];
+  }
+  return value
+    .split("\n")
+    .map((line: string) => {
+      return line.trim();
+    })
+    .filter((line: string) => {
+      return line.length > 0;
+    })
+    .map((line: string) => {
+      return { label: line, value: line };
+    });
+};
 
 export interface ComponentProps {
   title: string;
@@ -54,6 +75,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
             name: true,
             customFieldType: true,
             description: true,
+            dropdownOptions: true,
           } as any,
           sort: {},
         });
@@ -137,12 +159,20 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
             id={props.name}
             item={(model as any)["customFields"] || {}}
             fields={schemaList.map((schemaItem: BaseModel) => {
+              const isDropdown: boolean =
+                (schemaItem as any).customFieldType ===
+                  CustomFieldType.Dropdown ||
+                (schemaItem as any).customFieldType ===
+                  CustomFieldType.MultiSelectDropdown;
               return {
                 key: (schemaItem as any).name,
                 title: (schemaItem as any).name,
                 description: (schemaItem as any).description,
                 fieldType: (schemaItem as any).customFieldType,
                 placeholder: "No data entered",
+                dropdownOptions: isDropdown
+                  ? parseDropdownOptions((schemaItem as any).dropdownOptions)
+                  : undefined,
               };
             })}
             showDetailsInNumberOfColumns={1}
@@ -161,6 +191,11 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
             formProps={{
               initialValues: (model as any)["customFields"] || {},
               fields: schemaList.map((schemaItem: BaseModel) => {
+                const isDropdown: boolean =
+                  (schemaItem as any).customFieldType ===
+                    CustomFieldType.Dropdown ||
+                  (schemaItem as any).customFieldType ===
+                    CustomFieldType.MultiSelectDropdown;
                 return {
                   field: {
                     [(schemaItem as any).name]: true,
@@ -170,6 +205,9 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
                   fieldType: (schemaItem as any).customFieldType,
                   required: false,
                   placeholder: "",
+                  dropdownOptions: isDropdown
+                    ? parseDropdownOptions((schemaItem as any).dropdownOptions)
+                    : undefined,
                 };
               }),
             }}

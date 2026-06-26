@@ -35,11 +35,33 @@ import IncidentStateTimelineService from "./IncidentStateTimelineService";
 import LabelService from "./LabelService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import DockerHostService from "./DockerHostService";
+import PodmanHostService from "./PodmanHostService";
+import ProxmoxClusterService from "./ProxmoxClusterService";
+import DockerSwarmClusterService from "./DockerSwarmClusterService";
+import CephClusterService from "./CephClusterService";
+import ProxmoxResourceService from "./ProxmoxResourceService";
+import DockerSwarmResourceService from "./DockerSwarmResourceService";
+import CephResourceService from "./CephResourceService";
+import ProxmoxClusterLabelRuleService from "./ProxmoxClusterLabelRuleService";
+import DockerSwarmClusterLabelRuleService from "./DockerSwarmClusterLabelRuleService";
+import ProxmoxClusterOwnerRuleService from "./ProxmoxClusterOwnerRuleService";
+import DockerSwarmClusterOwnerRuleService from "./DockerSwarmClusterOwnerRuleService";
+import ProxmoxClusterOwnerTeamService from "./ProxmoxClusterOwnerTeamService";
+import DockerSwarmClusterOwnerTeamService from "./DockerSwarmClusterOwnerTeamService";
+import ProxmoxClusterOwnerUserService from "./ProxmoxClusterOwnerUserService";
+import DockerSwarmClusterOwnerUserService from "./DockerSwarmClusterOwnerUserService";
+import CephClusterLabelRuleService from "./CephClusterLabelRuleService";
+import CephClusterOwnerRuleService from "./CephClusterOwnerRuleService";
+import CephClusterOwnerTeamService from "./CephClusterOwnerTeamService";
+import CephClusterOwnerUserService from "./CephClusterOwnerUserService";
 import LlmProviderService from "./LlmProviderService";
 import AuditLogService from "./AuditLogService";
 import LogService from "./LogService";
 import MailService from "./MailService";
 import MetricService from "./MetricService";
+import MetricItemAggMV1mService from "./MetricItemAggMV1mService";
+import MetricItemAggMV1mByHostV2Service from "./MetricItemAggMV1mByHostV2Service";
+import MetricBaselineService from "./MetricBaselineService";
 import MonitorCustomFieldService from "./MonitorCustomFieldService";
 import MonitorGroupOwnerTeamService from "./MonitorGroupOwnerTeamService";
 import MonitorGroupOwnerUserService from "./MonitorGroupOwnerUserService";
@@ -49,6 +71,7 @@ import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
 import MonitorSecretService from "./MonitorSecretService";
+import RunbookSecretService from "./RunbookSecretService";
 
 // Monitors
 import MonitorService from "./MonitorService";
@@ -82,6 +105,11 @@ import ProfileSampleService from "./ProfileSampleService";
 // Project SMTP Config.
 import ProjectSmtpConfigService from "./ProjectSmtpConfigService";
 import ProjectSsoService from "./ProjectSsoService";
+import ProjectOidcService from "./ProjectOidcService";
+import GlobalSsoService from "./GlobalSsoService";
+import GlobalOidcService from "./GlobalOidcService";
+import GlobalSsoProjectService from "./GlobalSsoProjectService";
+import GlobalOidcProjectService from "./GlobalOidcProjectService";
 import PromoCodeService from "./PromoCodeService";
 import EnterpriseLicenseService from "./EnterpriseLicenseService";
 import OpenSourceDeploymentService from "./OpenSourceDeploymentService";
@@ -99,7 +127,6 @@ import ScheduledMaintenanceStateTimelineService from "./ScheduledMaintenanceStat
 import ServiceOwnerTeamService from "./ServiceOwnerTeamService";
 import ServiceOwnerUserService from "./ServiceOwnerUserService";
 import ServiceService from "./ServiceService";
-import ServiceMonitorService from "./ServiceMonitorService";
 import ServiceCodeRepositoryService from "./ServiceCodeRepositoryService";
 import ShortLinkService from "./ShortLinkService";
 // SMS Log Service
@@ -126,6 +153,7 @@ import StatusPageResourceService from "./StatusPageResourceService";
 // Status Page
 import StatusPageService from "./StatusPageService";
 import StatusPageSsoService from "./StatusPageSsoService";
+import StatusPageOidcService from "./StatusPageOidcService";
 import StatusPageSubscriberService from "./StatusPageSubscriberService";
 import StatusPageSubscriberNotificationTemplateService from "./StatusPageSubscriberNotificationTemplateService";
 import StatusPageSubscriberNotificationTemplateStatusPageService from "./StatusPageSubscriberNotificationTemplateStatusPageService";
@@ -155,8 +183,9 @@ import WorkflowLogService from "./WorkflowLogService";
 import WorkflowService from "./WorkflowService";
 import WorkflowVariablesService from "./WorkflowVariableService";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import ServiceDependencyService from "./ServiceDependencyService";
 import TelemetryExceptionService from "./TelemetryExceptionService";
+import TelemetryEntityService from "./TelemetryEntityService";
+import TelemetryEntityRelationshipService from "./TelemetryEntityRelationshipService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import ScheduledMaintenanceTemplateService from "./ScheduledMaintenanceTemplateService";
 import ScheduledMaintenanceTemplateOwnerTeamService from "./ScheduledMaintenanceTemplateOwnerTeamService";
@@ -264,6 +293,25 @@ const services: Array<BaseService> = [
   LabelService,
   KubernetesClusterService,
   DockerHostService,
+  PodmanHostService,
+  ProxmoxClusterService,
+  DockerSwarmClusterService,
+  CephClusterService,
+  ProxmoxResourceService,
+  DockerSwarmResourceService,
+  CephResourceService,
+  ProxmoxClusterLabelRuleService,
+  DockerSwarmClusterLabelRuleService,
+  ProxmoxClusterOwnerRuleService,
+  DockerSwarmClusterOwnerRuleService,
+  ProxmoxClusterOwnerTeamService,
+  DockerSwarmClusterOwnerTeamService,
+  ProxmoxClusterOwnerUserService,
+  DockerSwarmClusterOwnerUserService,
+  CephClusterLabelRuleService,
+  CephClusterOwnerRuleService,
+  CephClusterOwnerTeamService,
+  CephClusterOwnerUserService,
   LlmProviderService,
 
   MailService,
@@ -275,6 +323,7 @@ const services: Array<BaseService> = [
   MonitorStatusService,
   MonitorStatusTimelineService,
   MonitorSecretService,
+  RunbookSecretService,
   MonitorFeedService,
 
   NotificationService,
@@ -297,6 +346,11 @@ const services: Array<BaseService> = [
   AIAgentTaskLogService,
   AIAgentTaskPullRequestService,
   ProjectSsoService,
+  ProjectOidcService,
+  GlobalSsoService,
+  GlobalOidcService,
+  GlobalSsoProjectService,
+  GlobalOidcProjectService,
 
   ScheduledMaintenanceCustomFieldService,
   ScheduledMaintenanceInternalNoteService,
@@ -330,6 +384,7 @@ const services: Array<BaseService> = [
   StatusPageResourceService,
   StatusPageService,
   StatusPageSsoService,
+  StatusPageOidcService,
   StatusPageSubscriberService,
   StatusPageSubscriberNotificationTemplateService,
   StatusPageSubscriberNotificationTemplateStatusPageService,
@@ -379,11 +434,11 @@ const services: Array<BaseService> = [
   ServiceService,
   ServiceOwnerTeamService,
   ServiceOwnerUserService,
-  ServiceDependencyService,
-  ServiceMonitorService,
   ServiceCodeRepositoryService,
 
   TelemetryExceptionService,
+  TelemetryEntityService,
+  TelemetryEntityRelationshipService,
 
   // scheduled maintenance templates
   ScheduledMaintenanceTemplateService,
@@ -444,6 +499,14 @@ export const AnalyticsServices: Array<
   LogService,
   SpanService,
   MetricService,
+  /*
+   * Materialized-view target tables. The auto-create flow runs
+   * `CREATE TABLE IF NOT EXISTS` for these, idempotent with the legacy
+   * DataMigrations that also create them. Both kept for backward compat.
+   */
+  MetricItemAggMV1mService,
+  MetricItemAggMV1mByHostV2Service,
+  MetricBaselineService,
   ExceptionInstanceService,
   MonitorLogService,
   ProfileService,

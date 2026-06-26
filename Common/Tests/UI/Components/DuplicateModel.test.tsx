@@ -236,7 +236,7 @@ describe("DuplicateModel", () => {
     );
     expect(
       within(errorDialog).getByTestId("confirm-modal-description")?.textContent,
-    ).toBe("Error: Could not create Foo");
+    ).toBe("Could not create Foo");
     expect(
       within(errorDialog).getByTestId("modal-footer-submit-button")
         ?.textContent,
@@ -274,7 +274,7 @@ describe("DuplicateModel", () => {
     );
     expect(
       within(errorDialog).getByTestId("confirm-modal-description")?.textContent,
-    ).toBe("Error: Could not find Foo with id foo");
+    ).toBe("Could not find Foo with id foo");
     expect(
       within(errorDialog).getByTestId("modal-footer-submit-button")
         ?.textContent,
