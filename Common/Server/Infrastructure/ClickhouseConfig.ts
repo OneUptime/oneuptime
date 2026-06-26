@@ -99,5 +99,26 @@ export const ingestDataSourceOptions: ClickHouseClientConfigOptions = {
   max_open_connections: MaxClickhouseIngestConnections,
 };
 
+/*
+ * Dedicated pool for schema sync + data migrations. The 58s request_timeout
+ * above is a socket *idle* timer (see the note on request_timeout) sized for
+ * dashboard reads sitting behind nginx's 60s proxy_read_timeout. Migrations
+ * do NOT go through nginx (the app connects straight to clickhouse:8123), and
+ * a single migration statement — an ON CLUSTER DDL, an MV / projection
+ * rebuild, or a type/codec-rewrite MODIFY COLUMN on a multi-billion-row
+ * telemetry table — can legitimately stream zero bytes for many minutes,
+ * which the 58s idle timer would destroy mid-flight ("Timeout error.") and
+ * crash the boot process. Give migrations a much higher idle ceiling. It is
+ * finite (not 0) on purpose: a genuinely dead connection / network black hole
+ * must still fail eventually rather than hang forever. Long statements should
+ * additionally carry send_progress_in_http_headers (see MigrationExecuteOptions
+ * in AnalyticsDatabaseService) so the socket stays non-idle, and a server-side
+ * SETTINGS max_execution_time so ClickHouse remains the authoritative cap.
+ */
+export const migrationDataSourceOptions: ClickHouseClientConfigOptions = {
+  ...options,
+  request_timeout: 30 * 60 * 1000, // 30 minutes
+};
+
 export const testDataSourceOptions: ClickHouseClientConfigOptions =
   dataSourceOptions;

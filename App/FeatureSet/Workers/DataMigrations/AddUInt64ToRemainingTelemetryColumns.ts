@@ -1,5 +1,6 @@
 import DataMigrationBase from "./DataMigrationBase";
 import MetricService from "Common/Server/Services/MetricService";
+import { MigrationExecuteOptions } from "Common/Server/Services/AnalyticsDatabaseService";
 import logger from "Common/Server/Utils/Logger";
 
 /**
@@ -54,6 +55,7 @@ export default class AddUInt64ToRemainingTelemetryColumns extends DataMigrationB
       try {
         await MetricService.execute(
           `ALTER TABLE ${table} MODIFY COLUMN ${column} ${type} ${codec}`,
+          MigrationExecuteOptions,
         );
         logger.info(
           `AddUInt64ToRemainingTelemetryColumns: ${table}.${column} -> ${type}`,

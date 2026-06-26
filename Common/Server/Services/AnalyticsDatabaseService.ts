@@ -3,6 +3,7 @@ import ClickhouseDatabase, {
   ClickhouseAppInstance,
   ClickhouseClient,
   ClickhouseIngestInstance,
+  ClickhouseMigrationInstance,
 } from "../Infrastructure/ClickhouseDatabase";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import CountBy from "../Types/AnalyticsDatabase/CountBy";
@@ -96,7 +97,40 @@ export type { ClickHouseSettings } from "@clickhouse/client";
 export interface ClickhouseExecuteOptions {
   clickhouseSettings?: ClickHouseSettings | undefined;
   queryId?: string | undefined;
+  /**
+   * Route this statement through the dedicated migration pool
+   * (ClickhouseMigrationInstance) instead of the App pool. The migration pool
+   * has a much higher `request_timeout` (socket-idle ceiling) so a long DDL /
+   * mutation / INSERT...SELECT is not destroyed at the App pool's 58s. Schema
+   * sync and data migrations set this (via MigrationExecuteOptions); the read /
+   * write hot path leaves it unset and keeps the 58s App pool.
+   */
+  useMigrationConnection?: boolean | undefined;
 }
+
+/**
+ * Standard options for every schema-sync / data-migration statement. Two
+ * layers of protection against the socket-idle `request_timeout` killing a
+ * long migration:
+ *   1. `useMigrationConnection` routes through ClickhouseMigrationInstance
+ *      (30-minute idle ceiling) — reliable even for pure-DDL / ON CLUSTER
+ *      coordination that streams no bytes at all.
+ *   2. `send_progress_in_http_headers` makes the server emit periodic
+ *      X-ClickHouse-Progress header lines for data-rewriting statements
+ *      (MODIFY COLUMN rewrites, MATERIALIZE, INSERT...SELECT), keeping the
+ *      socket non-idle so the request completes instead of timing out.
+ * Pass this as the second arg to `execute` / `executeQuery` from migration
+ * code. The schema-mutating helpers on this service default to it already.
+ */
+export const MigrationExecuteOptions: ClickhouseExecuteOptions = {
+  useMigrationConnection: true,
+  clickhouseSettings: {
+    send_progress_in_http_headers: 1,
+    // Emit a progress header every 10s — well under the App pool's 58s and the
+    // migration pool's 30-minute idle ceiling.
+    http_headers_progress_interval_ms: "10000",
+  },
+};
 
 /**
  * Ambient context that makes ClickHouse inserts idempotent across queue
@@ -140,9 +174,11 @@ export default class AnalyticsDatabaseService<
   public modelType!: { new (): TBaseModel };
   public database!: ClickhouseDatabase;
   public ingestDatabase!: ClickhouseDatabase;
+  public migrationDatabase!: ClickhouseDatabase;
   public model!: TBaseModel;
   public databaseClient!: ClickhouseClient | null;
   public ingestDatabaseClient!: ClickhouseClient | null;
+  public migrationDatabaseClient!: ClickhouseClient | null;
   public statementGenerator!: StatementGenerator<TBaseModel>;
 
   public constructor(data: {
@@ -165,8 +201,16 @@ export default class AnalyticsDatabaseService<
       this.ingestDatabase = ClickhouseIngestInstance;
     }
 
+    /*
+     * Migrations route through their own pool (higher socket-idle timeout) via
+     * MigrationExecuteOptions. In tests `data.database` is the in-test instance,
+     * so reuse it there to keep tests on a single mocked client.
+     */
+    this.migrationDatabase = data.database || ClickhouseMigrationInstance;
+
     this.databaseClient = this.database.getDataSource();
     this.ingestDatabaseClient = this.ingestDatabase.getDataSource();
+    this.migrationDatabaseClient = this.migrationDatabase.getDataSource();
 
     this.statementGenerator = new StatementGenerator<TBaseModel>({
       modelType: this.modelType,
@@ -443,13 +487,16 @@ export default class AnalyticsDatabaseService<
   ): Promise<void> {
     const statement: Statement =
       this.statementGenerator.toAddColumnStatement(column);
-    await this.execute(statement);
+    // Schema-sync / migration-only path: route through the migration pool so a
+    // column add that backfills a DEFAULT/MATERIALIZED expression on a large
+    // table is not destroyed at the App pool's 58s socket-idle timeout.
+    await this.execute(statement, MigrationExecuteOptions);
 
     // Add skip index separately (ClickHouse requires ADD INDEX as a separate ALTER statement)
     const indexStatement: Statement | null =
       this.statementGenerator.toAddSkipIndexStatement(column);
     if (indexStatement) {
-      await this.execute(indexStatement);
+      await this.execute(indexStatement, MigrationExecuteOptions);
     }
   }
 
@@ -467,11 +514,13 @@ export default class AnalyticsDatabaseService<
     if (column?.skipIndex) {
       await this.execute(
         this.statementGenerator.toDropSkipIndexStatement(column.skipIndex.name),
+        MigrationExecuteOptions,
       );
     }
 
     await this.execute(
       this.statementGenerator.toDropColumnStatement(columnName),
+      MigrationExecuteOptions,
     );
   }
 
@@ -552,6 +601,7 @@ export default class AnalyticsDatabaseService<
 
     await this.execute(
       `ALTER TABLE ${tableName} MODIFY COLUMN ${data.columnName} ${data.columnType} CODEC(${data.codec}) SETTINGS mutations_sync=0`,
+      MigrationExecuteOptions,
     );
     logger.info(
       `Applied ${data.codec} codec to ${tableName}.${data.columnName} (async)`,
@@ -1471,6 +1521,8 @@ export default class AnalyticsDatabaseService<
     this.databaseClient = this.database.getDataSource();
     this.ingestDatabase = ClickhouseIngestInstance;
     this.ingestDatabaseClient = this.ingestDatabase.getDataSource();
+    this.migrationDatabase = ClickhouseMigrationInstance;
+    this.migrationDatabaseClient = this.migrationDatabase.getDataSource();
   }
 
   @CaptureSpan()
@@ -1478,7 +1530,9 @@ export default class AnalyticsDatabaseService<
     statement: Statement | string,
     options?: ClickhouseExecuteOptions,
   ): Promise<ExecResult<Stream>> {
-    const client: ClickhouseClient = this.getDatabaseClient();
+    const client: ClickhouseClient = options?.useMigrationConnection
+      ? this.getMigrationClient()
+      : this.getDatabaseClient();
 
     const query: string =
       statement instanceof Statement ? statement.query : statement;
@@ -1500,7 +1554,9 @@ export default class AnalyticsDatabaseService<
     statement: Statement | string,
     options?: ClickhouseExecuteOptions,
   ): Promise<ResultSet<"JSON">> {
-    const client: ClickhouseClient = this.getDatabaseClient();
+    const client: ClickhouseClient = options?.useMigrationConnection
+      ? this.getMigrationClient()
+      : this.getDatabaseClient();
 
     const query: string =
       statement instanceof Statement ? statement.query : statement;
@@ -1558,6 +1614,25 @@ export default class AnalyticsDatabaseService<
     }
 
     return this.ingestDatabaseClient;
+  }
+
+  private getMigrationClient(): ClickhouseClient {
+    if (!this.migrationDatabase) {
+      this.useDefaultDatabase();
+    }
+
+    if (!this.migrationDatabaseClient && this.migrationDatabase) {
+      this.migrationDatabaseClient = this.migrationDatabase.getDataSource();
+    }
+
+    if (!this.migrationDatabaseClient) {
+      throw new Exception(
+        ExceptionCode.DatabaseNotConnectedException,
+        "ClickHouse migration client is not connected",
+      );
+    }
+
+    return this.migrationDatabaseClient;
   }
 
   protected async onUpdateSuccess(

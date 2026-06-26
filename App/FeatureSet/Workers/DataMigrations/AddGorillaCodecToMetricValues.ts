@@ -1,5 +1,6 @@
 import DataMigrationBase from "./DataMigrationBase";
 import MetricService from "Common/Server/Services/MetricService";
+import { MigrationExecuteOptions } from "Common/Server/Services/AnalyticsDatabaseService";
 import logger from "Common/Server/Utils/Logger";
 
 /**
@@ -26,6 +27,7 @@ export default class AddGorillaCodecToMetricValues extends DataMigrationBase {
       try {
         await MetricService.execute(
           `ALTER TABLE MetricItemV3 MODIFY COLUMN ${column} Nullable(Float64) CODEC(Gorilla, ZSTD(1))`,
+          MigrationExecuteOptions,
         );
         logger.info(
           `AddGorillaCodecToMetricValues: applied Gorilla codec to MetricItemV3.${column}`,
