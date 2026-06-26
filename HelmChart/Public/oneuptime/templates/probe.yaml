@@ -165,6 +165,10 @@ spec:
 {{- end }}
 ---
 
+# OneUptime probe PodDisruptionBudget
+{{- include "oneuptime.pdb" (dict "ServiceName" (printf "probe-%s" $key) "Override" $val.podDisruptionBudget "Release" $.Release "Values" $.Values) }}
+---
+
 {{- end }}
 
 # OneUptime probe Service

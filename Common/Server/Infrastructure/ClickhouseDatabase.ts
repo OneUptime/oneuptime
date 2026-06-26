@@ -3,6 +3,7 @@ import {
   ClickHouseClientConfigOptions,
   dataSourceOptions,
   ingestDataSourceOptions,
+  migrationDataSourceOptions,
   testDataSourceOptions,
 } from "./ClickhouseConfig";
 import { PingResult, createClient, ClickHouseClient } from "@clickhouse/client";
@@ -200,3 +201,14 @@ export const ClickhouseAppInstance: ClickhouseDatabase = new ClickhouseDatabase(
  */
 export const ClickhouseIngestInstance: ClickhouseDatabase =
   new ClickhouseDatabase(ingestDataSourceOptions);
+
+/*
+ * Separate pool for schema sync + data migrations. Identical to the App pool
+ * except for a much higher request_timeout (see migrationDataSourceOptions):
+ * the App pool's 58s socket-idle timer is correct for dashboard reads but
+ * would destroy a long-running migration DDL/mutation mid-flight and crash
+ * boot. Schema sync and migrations route through this instance via
+ * MigrationExecuteOptions (AnalyticsDatabaseService).
+ */
+export const ClickhouseMigrationInstance: ClickhouseDatabase =
+  new ClickhouseDatabase(migrationDataSourceOptions);

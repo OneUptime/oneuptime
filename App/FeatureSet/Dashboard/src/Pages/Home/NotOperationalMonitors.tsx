@@ -13,7 +13,7 @@ const NotOperationalMonitors: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   return (
     <Page
-      title={"Home"}
+      title={"Inoperational Monitors"}
       breadcrumbLinks={[
         {
           title: "Project",

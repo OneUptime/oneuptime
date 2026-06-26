@@ -169,7 +169,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
 
       {/* Time labels: Visible on all screen sizes */}
       {props.showHistoryChart && (
-        <div className="text-xs sm:text-sm text-gray-400 mt-1 justify-between flex">
+        <div className="text-xs sm:text-sm text-gray-500 mt-1 justify-between flex">
           <div>
             {t("monitorOverview.daysAgo", {
               days: props.uptimeHistoryDays || 90,

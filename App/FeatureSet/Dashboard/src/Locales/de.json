@@ -64,6 +64,8 @@
       "performanceProfilesDescription": "Langsame Funktionen und Speicher-Hotspots finden.",
       "exceptionsTitle": "Ausnahmen",
       "exceptionsDescription": "Bugs über Ihre Dienste hinweg verfolgen und beheben.",
+      "llmObservabilityTitle": "AI / LLM",
+      "llmObservabilityDescription": "Beobachten Sie LLM- und KI-Agent-Aufrufe – Tokens, Kosten, Latenz, Prompts und Completions.",
       "servicesTitle": "Dienste",
       "servicesDescription": "Katalogisieren Sie jeden Dienst, den Sie betreiben.",
       "kubernetesTitle": "Kubernetes",

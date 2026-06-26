@@ -64,6 +64,8 @@
       "performanceProfilesDescription": "遅い関数とメモリホットスポットを発見。",
       "exceptionsTitle": "例外",
       "exceptionsDescription": "サービス全体のバグを追跡・解決。",
+      "llmObservabilityTitle": "AI / LLM",
+      "llmObservabilityDescription": "LLM および AI エージェントの呼び出しを観測 — トークン、コスト、レイテンシ、プロンプト、補完。",
       "servicesTitle": "サービス",
       "servicesDescription": "実行中のすべてのサービスをカタログ化。",
       "kubernetesTitle": "Kubernetes",

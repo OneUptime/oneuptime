@@ -925,6 +925,63 @@ spec:
 {{- end }}
 
 
+{{/*
+PodDisruptionBudget template for a stateless deployment.
+
+Merges the global ".Values.podDisruptionBudget" defaults with an optional
+per-service override object, then renders a policy/v1 PodDisruptionBudget that
+selects the deployment by its "app: <release>-<service>" label (the same label
+the Deployment uses, so the names line up across resource kinds).
+
+minAvailable takes precedence over maxUnavailable when both resolve to a value
+(the PDB spec permits only one). Empty / null values are treated as unset, so a
+service can switch from the default maxUnavailable to minAvailable just by
+setting minAvailable in its override. If neither resolves, nothing is rendered.
+
+Usage:
+  include "oneuptime.pdb" (dict
+    "ServiceName" "app"
+    "Override" $.Values.app.podDisruptionBudget
+    "Release" $.Release
+    "Values" $.Values)
+*/}}
+{{- define "oneuptime.pdb" -}}
+{{- $g := .Values.podDisruptionBudget | default dict -}}
+{{- $o := .Override | default dict -}}
+{{- $enabled := $g.enabled -}}
+{{- if hasKey $o "enabled" -}}{{- $enabled = $o.enabled -}}{{- end -}}
+{{- if $enabled -}}
+{{- $minAvailable := $g.minAvailable -}}
+{{- $maxUnavailable := $g.maxUnavailable -}}
+{{- if hasKey $o "minAvailable" -}}{{- $minAvailable = $o.minAvailable -}}{{- end -}}
+{{- if hasKey $o "maxUnavailable" -}}{{- $maxUnavailable = $o.maxUnavailable -}}{{- end -}}
+{{- $hasMin := and (not (kindIs "invalid" $minAvailable)) (ne ($minAvailable | toString) "") -}}
+{{- $hasMax := and (not (kindIs "invalid" $maxUnavailable)) (ne ($maxUnavailable | toString) "") -}}
+{{- if or $hasMin $hasMax }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name $.ServiceName }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" $.Release.Name $.ServiceName }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+spec:
+  {{- if $hasMin }}
+  minAvailable: {{ $minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ $maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ printf "%s-%s" $.Release.Name $.ServiceName }}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+
 {{- define "oneuptime.pvc" }}
 apiVersion: v1
 kind: PersistentVolumeClaim

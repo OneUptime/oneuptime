@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | AI / LLM Observability - Tokens, Cost, Traces & Prompts</title>
+  <meta name="description"
+    content="Observe LLM and AI-agent apps over OpenTelemetry: per-call traces, token usage, cost, latency, errors, and full prompts and completions. Works with OpenLLMetry, OpenInference and native OTel. Open source.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white" id="ai-hero-section">
+      <!-- Subtle grid pattern background -->
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <!-- Grid glow effect that follows cursor - violet color -->
+      <div id="ai-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(124, 58, 237, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(124, 58, 237, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+      <div class="py-20 sm:py-28 lg:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <p class="text-sm font-medium text-violet-600 mb-4">OpenTelemetry Native AI / LLM Observability</p>
+
+            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              See inside every LLM and agent call
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              Trace every model, embedding, agent and tool call your app makes — with token usage, cost, latency, errors, and the actual prompts and completions. Pure OpenTelemetry, no proprietary SDK to adopt.
+            </p>
+
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+              <a href="/accounts/register"
+                class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+                Get started
+              </a>
+              <a href="/docs/telemetry/ai-llm-observability" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Read the docs <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+              <span>Token usage &amp; cost</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Prompts &amp; completions</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Agent &amp; tool traces</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Latency &amp; errors</span>
+            </div>
+          </div>
+
+          <!-- Hero visual - AI observability dashboard mockup -->
+          <div class="mt-16 sm:mt-20">
+            <div class="relative mx-auto max-w-5xl">
+              <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+                <div class="rounded-lg bg-white shadow-lg overflow-hidden">
+                  <!-- Header bar -->
+                  <div class="bg-gray-50 px-6 py-3 flex items-center justify-between border-b border-gray-200">
+                    <div class="flex items-center gap-3">
+                      <div class="flex gap-1.5">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <%- include('./Partials/icons/ai-observability', {iconClass: 'h-4 w-4'}) %>
+                        <span class="text-sm text-gray-700 font-semibold">AI / LLM Observability</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-md border border-gray-200 text-xs text-gray-500">
+                        <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Last 7 days
+                      </div>
+                      <span class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 rounded-md text-xs font-medium text-emerald-600 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        live
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Dashboard content -->
+                  <div class="p-5">
+                    <!-- Top stats row -->
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">LLM calls</div>
+                        <div class="text-xl font-bold text-gray-900 mt-1">128,402</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Input tokens</div>
+                        <div class="text-xl font-bold text-gray-900 mt-1">84.2M</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Output tokens</div>
+                        <div class="text-xl font-bold text-gray-900 mt-1">21.7M</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Cost</div>
+                        <div class="text-xl font-bold text-gray-900 mt-1">$1,284</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Error rate</div>
+                        <div class="text-xl font-bold text-gray-900 mt-1">0.4%</div>
+                      </div>
+                    </div>
+
+                    <!-- Calls table -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                      <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-gray-700">Recent LLM calls</span>
+                        <span class="text-[10px] text-gray-400">model &middot; tokens &middot; cost &middot; latency</span>
+                      </div>
+                      <div class="divide-y divide-gray-100">
+                        <div class="px-4 py-2.5 flex items-center justify-between">
+                          <div class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span class="text-xs font-mono text-gray-700">chat &middot; gpt-4o</span>
+                          </div>
+                          <div class="flex items-center gap-4 text-[11px] text-gray-500 font-mono">
+                            <span>1,540 tok</span><span>$0.018</span><span>820 ms</span>
+                          </div>
+                        </div>
+                        <div class="px-4 py-2.5 flex items-center justify-between">
+                          <div class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span class="text-xs font-mono text-gray-700">invoke_agent &middot; research-agent</span>
+                          </div>
+                          <div class="flex items-center gap-4 text-[11px] text-gray-500 font-mono">
+                            <span>9,210 tok</span><span>$0.094</span><span>4.1 s</span>
+                          </div>
+                        </div>
+                        <div class="px-4 py-2.5 flex items-center justify-between">
+                          <div class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span class="text-xs font-mono text-gray-700">chat &middot; claude-sonnet-4-6</span>
+                          </div>
+                          <div class="flex items-center gap-4 text-[11px] text-gray-500 font-mono">
+                            <span>2,330 tok</span><span>$0.011</span><span>1.2 s</span>
+                          </div>
+                        </div>
+                        <div class="px-4 py-2.5 flex items-center justify-between">
+                          <div class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                            <span class="text-xs font-mono text-gray-700">execute_tool &middot; web_search</span>
+                          </div>
+                          <div class="flex items-center gap-4 text-[11px] text-gray-500 font-mono">
+                            <span>—</span><span>—</span><span class="text-red-600">timeout</span>
+                          </div>
+                        </div>
+                        <div class="px-4 py-2.5 flex items-center justify-between">
+                          <div class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span class="text-xs font-mono text-gray-700">embeddings &middot; text-embedding-3-large</span>
+                          </div>
+                          <div class="flex items-center gap-4 text-[11px] text-gray-500 font-mono">
+                            <span>512 tok</span><span>$0.0001</span><span>90 ms</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('logo-roll') -%>
+
+    <!-- How It Works Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-violet-600 uppercase tracking-wide mb-3">How It Works</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            From an LLM app to full traces in minutes
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Standard OpenTelemetry. Use the instrumentation you already know — OneUptime does the rest.
+          </p>
+        </div>
+
+        <div class="mx-auto max-w-5xl">
+          <div class="hidden lg:block relative">
+            <div class="absolute top-8 left-[calc(12.5%+24px)] right-[calc(12.5%+24px)] h-px bg-violet-200"></div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Step 1 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-violet-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-violet-600 ring-2 ring-violet-600">1</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Create an ingestion key</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">In Project Settings, create a Telemetry Ingestion Key. You will pass it as an OTLP header.</p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-violet-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" /></svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-violet-600 ring-2 ring-violet-600">2</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Instrument your app</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Add OpenLLMetry, OpenInference, or native OpenTelemetry GenAI instrumentation — a few lines of code.</p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-violet-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-violet-600 ring-2 ring-violet-600">3</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Calls appear automatically</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Point the OTLP exporter at OneUptime. Every LLM, agent and tool call shows up with model, tokens, cost and content.</p>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-violet-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-violet-600 ring-2 ring-violet-600">4</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Dashboard &amp; alert</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Build token and cost dashboards, and alert on spend, latency or error rate — all on standard metrics.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why OneUptime Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-20">
+          <div class="inline-flex items-center gap-2 rounded-full bg-violet-50 px-4 py-1.5 text-sm font-medium text-violet-700 ring-1 ring-inset ring-violet-600/20 mb-6">
+            <svg class="h-4 w-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 3.75 11 6.75l3 1.187-3 1.188-1.188 3-1.187-3-3-1.188 3-1.187 1.187-3Z" /></svg>
+            <span class="text-sm font-medium text-violet-700">Why OneUptime for AI</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            LLM observability without a new silo
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Your AI app does not run in isolation — it calls databases, queues and other services. OneUptime puts LLM spans in the same traces as the rest of your stack, so you debug the whole request, not just the model call.
+          </p>
+        </div>
+
+        <div class="space-y-24">
+
+          <!-- Feature 1: Per-call traces with content -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200">
+                  <svg class="h-5 w-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 7.5l.415-.207a.75.75 0 011.085.67V10.5m0 0h6m-6 0h-1.5m1.5 0v5.25m0-5.25h.375a.75.75 0 01.75.75v3.75m-9 0h12a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0018.75 4.5H5.25A2.25 2.25 0 003 6.75v9.75A2.25 2.25 0 005.25 18.75z" /></svg>
+                </div>
+                <span class="text-sm font-semibold text-violet-600 uppercase tracking-wide">Prompts &amp; Completions</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Read exactly what the model saw and said</h3>
+              <p class="mt-4 text-lg text-gray-600">Every LLM span gets a first-class panel with the provider, model, request parameters, token counts, cost, and the full prompt and completion rendered as readable messages. Debug a bad answer by reading the actual conversation — not by guessing.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600"><svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>System, user, assistant and tool messages</li>
+                <li class="flex items-center gap-3 text-gray-600"><svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Nested agent and tool-call spans in one trace</li>
+                <li class="flex items-center gap-3 text-gray-600"><svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Scrub rules to redact sensitive content</li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">Get started<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg></a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5"><div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div><div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div><div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div></div>
+                    <div class="flex-1 text-center"><span class="text-xs text-gray-400">LLM Call &middot; gpt-4o</span></div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <div class="grid grid-cols-3 gap-2">
+                      <div class="rounded-lg bg-gray-50 border border-gray-200 p-2"><div class="text-[9px] uppercase text-gray-400">In</div><div class="text-sm font-bold text-gray-900">1,204</div></div>
+                      <div class="rounded-lg bg-gray-50 border border-gray-200 p-2"><div class="text-[9px] uppercase text-gray-400">Out</div><div class="text-sm font-bold text-gray-900">336</div></div>
+                      <div class="rounded-lg bg-gray-50 border border-gray-200 p-2"><div class="text-[9px] uppercase text-gray-400">Cost</div><div class="text-sm font-bold text-gray-900">$0.018</div></div>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 overflow-hidden">
+                      <div class="px-3 py-1 bg-gray-100 text-[10px] font-semibold uppercase text-gray-500">system</div>
+                      <div class="px-3 py-2 text-xs text-gray-700">You are a helpful support assistant. Be concise.</div>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 overflow-hidden">
+                      <div class="px-3 py-1 bg-emerald-50 text-[10px] font-semibold uppercase text-emerald-700">user</div>
+                      <div class="px-3 py-2 text-xs text-gray-700">How do I rotate my ingestion key?</div>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 overflow-hidden">
+                      <div class="px-3 py-1 bg-indigo-50 text-[10px] font-semibold uppercase text-indigo-700">assistant</div>
+                      <div class="px-3 py-2 text-xs text-gray-700">Open Project Settings → Telemetry Ingestion Keys, create a new key, then revoke the old one.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 2: Token & cost -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5"><div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div><div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div><div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div></div>
+                    <div class="flex-1 text-center"><span class="text-xs text-gray-400">Tokens by model</span></div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <div class="flex items-center justify-between"><span class="text-xs font-mono text-gray-700">gpt-4o</span><div class="flex items-center gap-2"><div class="w-28 bg-gray-100 rounded-full h-1.5"><div class="bg-violet-400 h-1.5 rounded-full" style="width:72%"></div></div><span class="text-[10px] text-gray-400 w-10 text-right">61.0M</span></div></div>
+                    <div class="flex items-center justify-between"><span class="text-xs font-mono text-gray-700">claude-sonnet-4-6</span><div class="flex items-center gap-2"><div class="w-28 bg-gray-100 rounded-full h-1.5"><div class="bg-violet-400 h-1.5 rounded-full" style="width:34%"></div></div><span class="text-[10px] text-gray-400 w-10 text-right">28.4M</span></div></div>
+                    <div class="flex items-center justify-between"><span class="text-xs font-mono text-gray-700">text-embedding-3-large</span><div class="flex items-center gap-2"><div class="w-28 bg-gray-100 rounded-full h-1.5"><div class="bg-violet-400 h-1.5 rounded-full" style="width:18%"></div></div><span class="text-[10px] text-gray-400 w-10 text-right">15.1M</span></div></div>
+                    <div class="mt-2 flex items-center justify-between p-2 bg-violet-50 rounded-lg border border-violet-100"><span class="text-xs text-gray-600">Total cost (7d)</span><span class="text-xs text-violet-700 font-medium">$1,284</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200">
+                  <svg class="h-5 w-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" /></svg>
+                </div>
+                <span class="text-sm font-semibold text-violet-600 uppercase tracking-wide">Tokens &amp; Cost</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Know what your AI features actually cost</h3>
+              <p class="mt-4 text-lg text-gray-600">Token usage is denormalized at ingest, so you can slice spend by model, operation, agent or service — and chart or alert on it like any other metric. When your instrumentation reports cost, OneUptime shows it directly; no separate billing scraper to wire up.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600"><svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Input / output / total tokens per call</li>
+                <li class="flex items-center gap-3 text-gray-600"><svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Dashboards on GenAI token &amp; latency metrics</li>
+                <li class="flex items-center gap-3 text-gray-600"><svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Alerts on spend, latency or error spikes</li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">Get started<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg></a>
+            </div>
+          </div>
+
+          <!-- Feature 3: Open standards -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200">
+                  <svg class="h-5 w-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" /></svg>
+                </div>
+                <span class="text-sm font-semibold text-violet-600 uppercase tracking-wide">Open Standards</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">No proprietary SDK, no lock-in</h3>
+              <p class="mt-4 text-lg text-gray-600">OneUptime reads the OpenTelemetry GenAI semantic conventions, with fallbacks for OpenLLMetry and OpenInference. Use the instrumentation you prefer — if it speaks OTLP, it works here. And OneUptime is open source, so you can self-host the whole thing.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600"><svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>OpenLLMetry, OpenInference &amp; native OTel</li>
+                <li class="flex items-center gap-3 text-gray-600"><svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Same backend as your logs, metrics &amp; traces</li>
+                <li class="flex items-center gap-3 text-gray-600"><svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Open source, self-hostable, usage-based pricing</li>
+              </ul>
+              <a href="/docs/telemetry/ai-llm-observability" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">Read the docs<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg></a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+                <div class="relative bg-gray-900 rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-800">
+                  <div class="bg-gray-800 px-4 py-2.5 flex items-center gap-3 border-b border-white/5">
+                    <div class="flex gap-1.5"><div class="w-2.5 h-2.5 rounded-full bg-gray-600"></div><div class="w-2.5 h-2.5 rounded-full bg-gray-600"></div><div class="w-2.5 h-2.5 rounded-full bg-gray-600"></div></div>
+                    <div class="flex-1 text-center"><span class="text-xs text-gray-500">instrument.py</span></div>
+                  </div>
+                  <div class="p-4 font-mono text-[11px] leading-relaxed text-gray-300">
+                    <div><span class="text-violet-400">from</span> traceloop.sdk <span class="text-violet-400">import</span> Traceloop</div>
+                    <div class="mt-3">Traceloop.init(</div>
+                    <div class="pl-4">app_name=<span class="text-emerald-400">"my-ai-agent"</span>,</div>
+                    <div class="pl-4">api_endpoint=<span class="text-emerald-400">"https://oneuptime.com/otlp"</span>,</div>
+                    <div class="pl-4">headers={<span class="text-emerald-400">"x-oneuptime-token"</span>: token},</div>
+                    <div>)</div>
+                    <div class="mt-3 text-gray-500"># your OpenAI / Anthropic calls are now traced</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <%- include('./Partials/enterprise-ready') -%>
+    <%- include('features-table') -%>
+    <%- include('cta') -%>
+  </main>
+
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+
+  <!-- Grid glow cursor effect -->
+  <script>
+    (function() {
+      const heroSection = document.getElementById('ai-hero-section');
+      const gridGlow = document.getElementById('ai-grid-glow');
+
+      if (heroSection && gridGlow) {
+        heroSection.addEventListener('mousemove', (e) => {
+          const rect = heroSection.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          gridGlow.style.setProperty('--mouse-x', x + 'px');
+          gridGlow.style.setProperty('--mouse-y', y + 'px');
+          gridGlow.style.opacity = '1';
+        });
+
+        heroSection.addEventListener('mouseleave', () => {
+          gridGlow.style.opacity = '0';
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html>

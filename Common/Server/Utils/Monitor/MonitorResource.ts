@@ -188,6 +188,21 @@ export default class MonitorResourceUtil {
      * below guarantees the lock is released on every exit path (return or
      * throw); acquireTimeout/retryInterval cap the acquire spin so a contended
      * lock fails fast instead of polling Redis for 10s.
+     *
+     * On acquire timeout we DO NOT continue unlocked. Falling through without
+     * the lock silently abandons the per-monitor serialization this lock exists
+     * to provide — concurrent results for the same monitor would then race
+     * incident/alert dedup and status-timeline writes (duplicate
+     * incidents/alerts, status flaps) exactly under the high contention the
+     * lock is meant to handle. Instead we surface the contention so the work is
+     * retried once the lock frees: the Telemetry queue re-runs each ingest job
+     * up to 3x with exponential backoff, and the per-monitor crons catch-and-
+     * skip to re-evaluate on their next tick. The dominant source of
+     * same-monitor contention (an external sender hammering one Incoming
+     * Request URL) is collapsed upstream by BullMQ job coalescing at enqueue
+     * time (see TelemetryQueueService.addIncomingRequestIngestJob), so this
+     * throw is a correctness backstop for the rare residual collision (e.g.
+     * cron vs ingest), not the steady-state path.
      */
     let mutex: SemaphoreMutex | null = null;
 
@@ -200,7 +215,10 @@ export default class MonitorResourceUtil {
         acquireAttemptsLimit: 20,
       });
     } catch (err) {
-      logger.error(err);
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} - Could not acquire per-monitor processing lock within the acquire window; another worker is processing this monitor. Deferring to retry to preserve serialization.`,
+      );
+      throw err;
     }
 
     const releaseMutex: () => Promise<void> = async (): Promise<void> => {

@@ -8,6 +8,7 @@ import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
+import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
 import Service from "../../../Models/DatabaseModels/Service";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
@@ -217,11 +218,19 @@ export default class MonitorAlert {
           continue;
         }
 
+        /*
+         * Mirror the create path: `createdCriteriaId` is only set when the
+         * criteria has an `id`. Guard the `.toString()` with `?.` (a criteria
+         * with a missing id otherwise threw "Cannot read properties of
+         * undefined (reading 'toString')" and failed the queue job every
+         * cycle) and normalise both sides to `undefined` on missing so dedupe
+         * stays correct instead of creating a duplicate alert each cycle.
+         */
         const alreadyOpenAlert: Alert | undefined = openAlerts.find(
           (alert: Alert) => {
             return (
-              alert.createdCriteriaId ===
-                input.criteriaInstance.data?.id.toString() &&
+              (alert.createdCriteriaId || undefined) ===
+                (input.criteriaInstance.data?.id?.toString() || undefined) &&
               (alert.seriesFingerprint || undefined) === seriesFingerprint
             );
           },
@@ -318,7 +327,9 @@ export default class MonitorAlert {
           JSON.stringify(input.dataToProcess, null, 2),
         );
 
-        alert.createdCriteriaId = input.criteriaInstance.data.id.toString();
+        if (input.criteriaInstance.data?.id) {
+          alert.createdCriteriaId = input.criteriaInstance.data.id.toString();
+        }
 
         if (seriesFingerprint) {
           alert.seriesFingerprint = seriesFingerprint;
@@ -427,6 +438,15 @@ export default class MonitorAlert {
               const cluster: DockerSwarmCluster = new DockerSwarmCluster();
               cluster._id = id;
               return cluster;
+            },
+          );
+        }
+        if (clusterContext.iotFleetIds.length > 0) {
+          alert.iotFleets = clusterContext.iotFleetIds.map(
+            (id: string): IoTFleet => {
+              const fleet: IoTFleet = new IoTFleet();
+              fleet._id = id;
+              return fleet;
             },
           );
         }
@@ -610,7 +630,7 @@ export default class MonitorAlert {
 
     if (
       input.openAlert.createdCriteriaId?.toString() ===
-      input.criteriaInstance?.data?.id.toString()
+      input.criteriaInstance?.data?.id?.toString()
     ) {
       // same alert active. So, do not close.
       return false;

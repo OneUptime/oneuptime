@@ -64,6 +64,8 @@
       "performanceProfilesDescription": "Find slow functions and memory hotspots.",
       "exceptionsTitle": "Exceptions",
       "exceptionsDescription": "Track and resolve bugs across your services.",
+      "llmObservabilityTitle": "AI / LLM",
+      "llmObservabilityDescription": "Observe LLM and AI-agent calls — tokens, cost, latency, prompts and completions.",
       "entitiesTitle": "Entities",
       "entitiesDescription": "Explore entities discovered from your telemetry.",
       "topologyTitle": "Topology",

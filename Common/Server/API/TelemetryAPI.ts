@@ -856,51 +856,92 @@ router.post(
       const sampledKeys: Array<string> = facetKeys.filter(
         (key: string): boolean => {
           return (
-            !ResourceFacetResolver.isResourceFacet(key) && key !== "statusCode"
+            !ResourceFacetResolver.isResourceFacet(key) &&
+            key !== "statusCode" &&
+            // isRootSpan / hasException are counted exactly below, not sampled.
+            key !== "isRootSpan" &&
+            key !== "hasException"
           );
         },
       );
-
-      let facets: Record<string, Array<TraceFacetValue>> = {};
-      if (sampledKeys.length > 0) {
-        try {
-          facets = await TraceAggregationService.getFacetValuesFromSample({
-            ...multiRequest,
-            facetKeys: sampledKeys,
-          });
-        } catch {
-          facets = Object.fromEntries(
-            sampledKeys.map((key: string): [string, Array<TraceFacetValue>] => {
-              return [key, []];
-            }),
-          );
-        }
-      }
 
       const needsAccurateCounts: boolean =
         facetKeys.includes("statusCode") ||
         facetKeys.some((key: string): boolean => {
           return ResourceFacetResolver.isResourceFacet(key);
         });
+      const wantsRootSpan: boolean = facetKeys.includes("isRootSpan");
+      const wantsHasException: boolean = facetKeys.includes("hasException");
 
-      let serviceCounts: Map<string, number> = new Map<string, number>();
-      let statusCounts: Map<string, number> = new Map<string, number>();
-      if (needsAccurateCounts) {
-        try {
-          const accurate: {
-            serviceCounts: Map<string, number>;
-            statusCounts: Map<string, number>;
-          } =
-            await TraceAggregationService.getResourceFacetCounts(multiRequest);
-          serviceCounts = accurate.serviceCounts;
-          statusCounts = accurate.statusCounts;
-        } catch {
-          /*
-           * Degrade gracefully: resource facets still enumerate via Postgres
-           * (count 0), statusCode falls back to empty.
-           */
-        }
-      }
+      const emptyAccurate: {
+        serviceCounts: Map<string, number>;
+        statusCounts: Map<string, number>;
+      } = {
+        serviceCounts: new Map<string, number>(),
+        statusCounts: new Map<string, number>(),
+      };
+
+      /*
+       * Run the independent count queries concurrently. They share no state and
+       * were previously awaited one after another, so their latencies added up.
+       * getHasExceptionCounts in particular is a base-table GROUP BY
+       * (hasException is not a proj_hist_by_minute key), so overlapping it with
+       * the projection-backed sample / resource / root-span queries keeps it
+       * off the critical path. Each query keeps its own degrade-to-empty catch.
+       */
+      const [sampledFacets, accurate, rootSpanCounts, exceptionCounts]: [
+        Record<string, Array<TraceFacetValue>>,
+        {
+          serviceCounts: Map<string, number>;
+          statusCounts: Map<string, number>;
+        },
+        { rootCount: number; nonRootCount: number } | null,
+        { withExceptionCount: number; withoutExceptionCount: number } | null,
+      ] = await Promise.all([
+        sampledKeys.length > 0
+          ? TraceAggregationService.getFacetValuesFromSample({
+              ...multiRequest,
+              facetKeys: sampledKeys,
+            }).catch((): Record<string, Array<TraceFacetValue>> => {
+              return Object.fromEntries(
+                sampledKeys.map(
+                  (key: string): [string, Array<TraceFacetValue>] => {
+                    return [key, []];
+                  },
+                ),
+              );
+            })
+          : Promise.resolve({} as Record<string, Array<TraceFacetValue>>),
+        needsAccurateCounts
+          ? TraceAggregationService.getResourceFacetCounts(multiRequest).catch(
+              () => {
+                /*
+                 * Degrade gracefully: resource facets still enumerate via
+                 * Postgres (count 0), statusCode falls back to empty.
+                 */
+                return emptyAccurate;
+              },
+            )
+          : Promise.resolve(emptyAccurate),
+        wantsRootSpan
+          ? TraceAggregationService.getRootSpanCounts(multiRequest).catch(
+              () => {
+                return null;
+              },
+            )
+          : Promise.resolve(null),
+        wantsHasException
+          ? TraceAggregationService.getHasExceptionCounts(multiRequest).catch(
+              () => {
+                return null;
+              },
+            )
+          : Promise.resolve(null),
+      ]);
+
+      const facets: Record<string, Array<TraceFacetValue>> = sampledFacets;
+      const serviceCounts: Map<string, number> = accurate.serviceCounts;
+      const statusCounts: Map<string, number> = accurate.statusCounts;
 
       if (facetKeys.includes("statusCode")) {
         facets["statusCode"] = Array.from(statusCounts.entries())
@@ -911,6 +952,34 @@ router.post(
             return b.count - a.count;
           })
           .slice(0, limit);
+      }
+
+      /*
+       * Span-type facet: exact root vs non-root counts off the projection,
+       * computed ignoring rootOnly so both buckets survive (see
+       * getRootSpanCounts). Backs the "Span Type" sidebar choice.
+       */
+      if (wantsRootSpan) {
+        facets["isRootSpan"] = rootSpanCounts
+          ? [
+              { value: "true", count: rootSpanCounts.rootCount },
+              { value: "false", count: rootSpanCounts.nonRootCount },
+            ]
+          : [];
+      }
+
+      /*
+       * Has-exception facet: exact counts (exception spans are rare and the
+       * recent-N sample would under-report or miss them — see
+       * getHasExceptionCounts).
+       */
+      if (wantsHasException) {
+        facets["hasException"] = exceptionCounts
+          ? [
+              { value: "true", count: exceptionCounts.withExceptionCount },
+              { value: "false", count: exceptionCounts.withoutExceptionCount },
+            ]
+          : [];
       }
 
       /*

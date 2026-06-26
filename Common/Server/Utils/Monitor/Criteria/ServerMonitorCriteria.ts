@@ -192,7 +192,7 @@ export default class ServerMonitorCriteria {
 
       const diskMetric: BasicDiskMetrics | undefined = (
         input.dataToProcess as ServerMonitorResponse
-      ).basicInfrastructureMetrics?.diskMetrics.find(
+      ).basicInfrastructureMetrics?.diskMetrics?.find(
         (item: BasicDiskMetrics) => {
           return normalizeDiskPath(item.diskPath) === normalizedDiskPath;
         },

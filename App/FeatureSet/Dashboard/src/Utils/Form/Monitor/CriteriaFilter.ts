@@ -767,7 +767,11 @@ export default class CriteriaFilterUtil {
   }): boolean {
     const { checkOn } = data;
 
-    if (checkOn === CheckOn.ScreenSizeType || checkOn === CheckOn.BrowserType) {
+    if (
+      checkOn === CheckOn.ScreenSizeType ||
+      checkOn === CheckOn.BrowserType ||
+      checkOn === CheckOn.ExternalStatusPageComponentStatus
+    ) {
       return true;
     }
 
@@ -785,6 +789,23 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.BrowserType) {
       return DropdownUtil.getDropdownOptionsFromEnum(BrowserType);
+    }
+
+    if (checkOn === CheckOn.ExternalStatusPageComponentStatus) {
+      /*
+       * Canonical component status values reported by external status page
+       * providers (Atlassian Statuspage, incident.io, etc.). The stored value
+       * remains the provider's snake_case string so criteria evaluation is
+       * unaffected; only the user-facing label is friendly.
+       */
+      return [
+        { label: "Operational", value: "operational" },
+        { label: "Under Maintenance", value: "under_maintenance" },
+        { label: "Degraded Performance", value: "degraded_performance" },
+        { label: "Partial Outage", value: "partial_outage" },
+        { label: "Major Outage", value: "major_outage" },
+        { label: "Full Outage", value: "full_outage" },
+      ];
     }
 
     return [];

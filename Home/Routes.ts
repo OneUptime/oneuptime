@@ -1287,6 +1287,20 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
+    app.get(
+      "/product/ai-observability",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/ai-observability",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/ai-observability`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
     app.get("/product/ceph", (_req: ExpressRequest, res: ExpressResponse) => {
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
         "/product/ceph",
@@ -1311,6 +1325,17 @@ const HomeFeatureSet: FeatureSet = {
         });
       },
     );
+
+    app.get("/product/iot", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/product/iot",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/iot`, {
+        enableGoogleTagManager: IsBillingEnabled,
+        seo,
+      });
+    });
 
     app.get(
       "/product/services",

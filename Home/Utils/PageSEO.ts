@@ -607,6 +607,41 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/ai-observability": {
+    title:
+      "AI / LLM Observability | Tokens, Cost, Traces & Prompts | OneUptime",
+    description:
+      "Observe LLM and AI-agent apps with OpenTelemetry: per-call traces, token usage, cost, latency, errors, and full prompts and completions. Works with OpenLLMetry, OpenInference and native OTel. Open source.",
+    canonicalPath: "/product/ai-observability",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "AI / LLM Observability", url: "/product/ai-observability" },
+    ],
+    softwareApplication: {
+      name: "OneUptime AI / LLM Observability",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Observe LLM and AI-agent applications over OpenTelemetry: per-call traces, token usage, cost, latency, errors, prompts and completions, plus dashboards and alerts on GenAI metrics.",
+      features: [
+        "OpenTelemetry GenAI native — no proprietary SDK",
+        "Works with OpenLLMetry, OpenInference and native OTel",
+        "Per-call traces for LLM, embedding, agent and tool spans",
+        "Token usage (input / output / total) and cost rollups",
+        "Prompt and completion content rendering",
+        "Latency and error-rate tracking per model",
+        "Filter calls by provider, model and operation",
+        "Token / cost / latency dashboards and alerts",
+        "Scrub rules for sensitive prompt data",
+        "Usage-based pricing, not per-seat",
+        "Open source",
+      ],
+    },
+  },
+
   "/product/ceph": {
     title:
       "Ceph Monitoring | Cluster Health, OSDs, Pools & Capacity | OneUptime",
@@ -672,6 +707,41 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "Per-container CPU and memory metrics",
         "Container and service logs",
         "Usage-based pricing",
+        "OpenTelemetry native",
+        "Open source",
+      ],
+    },
+  },
+
+  "/product/iot": {
+    title:
+      "IoT Device Monitoring | Fleets, Sensors, Battery & Signal | OneUptime",
+    description:
+      "Monitor your entire IoT fleet from one dashboard: per-device health, battery, signal strength, temperature, and connectivity alerting. Standard OpenTelemetry, no proprietary agent, usage-based pricing. Open source.",
+    canonicalPath: "/product/iot",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "IoT Devices", url: "/product/iot" },
+    ],
+    softwareApplication: {
+      name: "OneUptime IoT Device Monitoring",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitor IoT device fleets over standard OpenTelemetry: per-device health, battery, signal strength, temperature, CPU, and memory, with auto-discovery, per-device drill-down, alert templates, and on-call escalation in a single product.",
+      features: [
+        "Fleet view across every device",
+        "Auto-discovery from first reading",
+        "Per-device battery, signal, temperature, CPU & memory",
+        "Device-offline detection from missed check-ins",
+        "Low-battery and weak-signal alert templates",
+        "High-temperature and high-CPU alerting",
+        "One incident per device.id, auto-resolving",
+        "Gateway-friendly via OpenTelemetry Collector",
+        "Usage-based pricing, not per-device",
         "OpenTelemetry native",
         "Open source",
       ],

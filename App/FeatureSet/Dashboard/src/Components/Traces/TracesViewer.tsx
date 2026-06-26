@@ -52,6 +52,7 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import TraceRow from "./TraceRow";
+import SpanDetailsPanel from "./SpanDetailsPanel";
 import TelemetrySavedViewsControl, {
   serializeTimeRange,
   deserializeTimeRange,
@@ -73,6 +74,16 @@ import TraceRecordingRuleDefinition, {
 
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
+
+/*
+ * Synthetic "Span Type" facet. It is not a real Span column — selecting its
+ * single "Root spans" value drives the `rootOnly` state (restricting the view
+ * to root spans), rather than adding a normal filter chip. This facet is the
+ * sole control for root-only mode. Kept distinct from the backend `isRootSpan`
+ * key so it never collides with generic column-chip query building.
+ */
+const SPAN_TYPE_FACET_KEY: string = "spanType";
+const SPAN_TYPE_ROOT_VALUE: string = "root";
 
 async function postApi(
   path: string,
@@ -325,8 +336,12 @@ function readInitialUrlState(): InitialUrlState {
   const viewMode: "spans" | "analytics" =
     params.get("view") === "analytics" ? "analytics" : "spans";
 
-  // Root-spans-only is the default; only `rootOnly=false` switches it off.
-  const rootOnly: boolean = params.get("rootOnly") !== "false";
+  /*
+   * Show all spans by default; only `rootOnly=true` restricts to root spans.
+   * Downstream services (e.g. a callee behind a gateway/queue) never own the
+   * trace root, so a root-only default would hide all their spans.
+   */
+  const rootOnly: boolean = params.get("rootOnly") === "true";
 
   return { search, filters, timeRange, page, pageSize, viewMode, rootOnly };
 }
@@ -459,6 +474,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   const livePollRef: React.MutableRefObject<ReturnType<
     typeof setInterval
   > | null> = useRef(null);
+
+  // spanId of the row whose inline detail panel is open (null = all collapsed).
+  const [expandedSpanId, setExpandedSpanId] = useState<string | null>(null);
 
   // Telemetry attribute state for attribute-based search
   const [telemetryAttributes, setTelemetryAttributes] = useState<Array<string>>(
@@ -696,13 +714,21 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
      * routing, keeping the histogram consistent with the list.
      */
     const TEXT_CHIP_FIELDS: Set<string> = new Set(["name", "statusMessage"]);
-    for (const textKey of TEXT_CHIP_FIELDS) {
-      const tokenValues: Array<string> | undefined = fieldFilters[textKey];
+    /*
+     * Merge typed search tokens for these fields into the chip groups so a
+     * clicked facet value and a typed token for the same field resolve through
+     * one path. Deduped so a chip plus an identical token stays single-valued
+     * (preserving substring / boolean semantics) instead of flipping to a
+     * multi-value exact match. hasException is included so its chip and any
+     * `hasException:` token resolve together (both buckets → no filter),
+     * matching the aggregation side below.
+     */
+    for (const mergeKey of [...TEXT_CHIP_FIELDS, "hasException"]) {
+      const tokenValues: Array<string> | undefined = fieldFilters[mergeKey];
       if (tokenValues && tokenValues.length > 0) {
-        facetGroups[textKey] = [
-          ...(facetGroups[textKey] || []),
-          ...tokenValues,
-        ];
+        facetGroups[mergeKey] = Array.from(
+          new Set([...(facetGroups[mergeKey] || []), ...tokenValues]),
+        );
       }
     }
     for (const key of Object.keys(facetGroups)) {
@@ -710,6 +736,24 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         continue;
       }
       const values: Array<string> = facetGroups[key]!;
+      if (key === "hasException") {
+        /*
+         * Boolean column — a chip value "true"/"false" must compile to a
+         * boolean, not a string, or ClickHouse can't compare it. Selecting
+         * both buckets is equivalent to no filter.
+         */
+        const bools: Array<boolean> = Array.from(
+          new Set(
+            values.map((v: string): boolean => {
+              return v.toLowerCase() === "true";
+            }),
+          ),
+        );
+        if (bools.length === 1) {
+          (query as Record<string, unknown>)[key] = bools[0]!;
+        }
+        continue;
+      }
       if (TEXT_CHIP_FIELDS.has(key) && values.length === 1) {
         (query as Record<string, unknown>)[key] = new Search(values[0]!);
         continue;
@@ -749,9 +793,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         (query as Record<string, unknown>)[key] =
           mapped.length === 1 ? mapped[0] : new Includes(mapped);
       } else if (key === "hasException") {
-        // Boolean field
-        const boolVal: boolean = values[0]!.toLowerCase() === "true";
-        (query as Record<string, unknown>)[key] = boolVal;
+        // Already merged into the chip groups above (boolean, both → no filter).
+        continue;
       } else if (key === "durationUnixNano") {
         // Duration filter: duration:>500 or duration:<200 (in milliseconds)
         const raw: string = values[0]!;
@@ -900,8 +943,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     if (viewMode === "analytics") {
       params.set("view", "analytics");
     }
-    if (!rootOnly) {
-      params.set("rootOnly", "false");
+    if (rootOnly) {
+      params.set("rootOnly", "true");
     }
 
     const query: string = params.toString();
@@ -1262,10 +1305,15 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
      * spanNames preserves.
      */
     if (groups["name"] && groups["name"].length > 0) {
-      if (groups["name"].length === 1) {
-        payload["spanNameSearches"] = groups["name"];
+      /*
+       * Dedupe so a chip plus an identical token stays a single substring
+       * match (mirrors baseQuery) instead of flipping to a multi-value exact.
+       */
+      const names: Array<string> = Array.from(new Set(groups["name"]));
+      if (names.length === 1) {
+        payload["spanNameSearches"] = names;
       } else {
-        payload["spanNames"] = groups["name"];
+        payload["spanNames"] = names;
       }
     }
 
@@ -1278,8 +1326,20 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     if (groups["hasException"] && groups["hasException"].length > 0) {
-      payload["hasException"] =
-        groups["hasException"][0]!.toLowerCase() === "true";
+      /*
+       * Mirror baseQuery: a single distinct boolean filters; both buckets
+       * selected means no filter, so the chart never disagrees with the list.
+       */
+      const bools: Array<boolean> = Array.from(
+        new Set(
+          groups["hasException"].map((v: string): boolean => {
+            return v.toLowerCase() === "true";
+          }),
+        ),
+      );
+      if (bools.length === 1) {
+        payload["hasException"] = bools[0];
+      }
     }
 
     /*
@@ -1287,10 +1347,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
      * (mirrors the list's Search), several match exactly (mirrors Includes).
      */
     if (groups["statusMessage"] && groups["statusMessage"].length > 0) {
-      if (groups["statusMessage"].length === 1) {
-        payload["statusMessageSearchText"] = groups["statusMessage"][0];
+      const statusMessages: Array<string> = Array.from(
+        new Set(groups["statusMessage"]),
+      );
+      if (statusMessages.length === 1) {
+        payload["statusMessageSearchText"] = statusMessages[0];
       } else {
-        payload["statusMessages"] = groups["statusMessage"];
+        payload["statusMessages"] = statusMessages;
       }
     }
 
@@ -1396,6 +1459,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         "kubernetesClusterId",
         "statusCode",
         "kind",
+        // Backs the "Span Type" facet (root vs non-root counts).
+        "isRootSpan",
+        // Backs the "Has Exception" facet (exact exception-span counts).
+        "hasException",
+        // Backs the "Span Name" facet (top operation names, sampled).
+        "name",
         ...Array.from(ATTRIBUTE_FACET_KEYS),
       ],
     };
@@ -1454,6 +1523,37 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           },
         );
       }
+
+      /*
+       * Span Type facet: collapse the backend's root/non-root buckets into a
+       * single "Root spans" choice whose count is the exact number of root
+       * spans in the window. Selecting it drives the same `rootOnly` state as
+       * the toolbar toggle (see SPAN_TYPE_FACET_KEY handling); leaving it
+       * unselected shows all spans (the default).
+       */
+      const rootSpanBucket: FacetValue | undefined = facetsRaw[
+        "isRootSpan"
+      ]?.find((f: FacetValue): boolean => {
+        return f.value === "true" || f.value === "1";
+      });
+      mappedFacets[SPAN_TYPE_FACET_KEY] = [
+        { value: SPAN_TYPE_ROOT_VALUE, count: rootSpanBucket?.count ?? 0 },
+      ];
+      delete mappedFacets["isRootSpan"];
+
+      /*
+       * Has Exception facet: keep just the "with exceptions" bucket as a single
+       * "Has exception" choice. It is a normal filter chip (value "true"),
+       * which baseQuery/aggregationRequest already compile to hasException.
+       */
+      const hasExceptionBucket: FacetValue | undefined = facetsRaw[
+        "hasException"
+      ]?.find((f: FacetValue): boolean => {
+        return f.value === "true" || f.value === "1";
+      });
+      mappedFacets["hasException"] = [
+        { value: "true", count: hasExceptionBucket?.count ?? 0 },
+      ];
       setFacetData(mappedFacets);
     } else {
       setFacetData({});
@@ -1603,11 +1703,44 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         valueColorMap: statusColorMap,
         priority: 6,
       },
+      /*
+       * Span Type: a single "Root spans" choice that toggles root-only mode.
+       * Selecting it scopes to root spans (trace entry points); leaving it
+       * unselected shows all spans. Count is the exact number of root spans.
+       */
+      {
+        key: SPAN_TYPE_FACET_KEY,
+        title: "Span Type",
+        valueDisplayMap: { [SPAN_TYPE_ROOT_VALUE]: "Root spans" },
+        priority: 6.5,
+      },
+      /*
+       * Has Exception: a single "Has exception" choice. Count is the exact
+       * number of spans that recorded an exception (computed server-side, not
+       * sampled, so rare exceptions are never under-reported).
+       */
+      {
+        key: "hasException",
+        title: "Has Exception",
+        valueDisplayMap: { true: "Has exception" },
+        valueColorMap: { true: SPAN_STATUS_COLOR[SpanStatus.Error]! },
+        priority: 6.7,
+      },
       {
         key: "kind",
         title: "Span Kind",
         valueDisplayMap: SPAN_KIND_LABEL,
         priority: 7,
+      },
+      /*
+       * Span Name: top operation names in the window (sampled, like other
+       * non-projection facets). Selecting one filters the list to a substring
+       * match on the span name, mirroring a typed `name:` search.
+       */
+      {
+        key: "name",
+        title: "Span Name",
+        priority: 7.5,
       },
       /*
        * Attribute-backed instance facets (see ATTRIBUTE_FACET_KEYS) — a
@@ -1668,6 +1801,15 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     useCallback(
       (facetKey: string, value: string) => {
         /*
+         * Span Type is a synthetic facet: selecting "Root spans" sets
+         * rootOnly instead of adding a filter chip.
+         */
+        if (facetKey === SPAN_TYPE_FACET_KEY) {
+          setRootOnly(value === SPAN_TYPE_ROOT_VALUE);
+          setPage(1);
+          return;
+        }
+        /*
          * Attribute-backed facets (Service Instance / Host Name) filter via
          * the attributes map — store their chips under the same
          * `attributes.<key>` scheme as typed `@key:value` filters so query
@@ -1709,6 +1851,15 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
   const handleRemoveFilter: (facetKey: string, value: string) => void =
     useCallback((facetKey: string, value: string) => {
+      /*
+       * Removing the synthetic Span Type chip clears the root-only scope back
+       * to the default (all spans) — it lives in rootOnly, not activeFilters.
+       */
+      if (facetKey === SPAN_TYPE_FACET_KEY) {
+        setRootOnly(false);
+        setPage(1);
+        return;
+      }
       setActiveFilters((prev: Array<ActiveFilter>): Array<ActiveFilter> => {
         return prev.filter((f: ActiveFilter): boolean => {
           return !(f.facetKey === facetKey && f.value === value);
@@ -1719,6 +1870,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
   const handleClearAllFilters: () => void = useCallback(() => {
     setActiveFilters([]);
+    /*
+     * Span Type lives in rootOnly, not activeFilters — clear it too so "Clear
+     * all" truly resets every chip (incl. the synthetic "Root spans" one).
+     */
+    setRootOnly(false);
     setPage(1);
   }, []);
 
@@ -1777,13 +1933,32 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         });
       }
     }
-    return [...base, ...activeFilters.map(resolveDisplay)];
+    /*
+     * Surface the root-only scope as a (removable) chip so the Span Type facet
+     * row shows selected and the active-filter bar reflects it. It lives in
+     * `rootOnly`, not `activeFilters`, so it's injected here for display only —
+     * removing it routes to handleRemoveFilter, which clears rootOnly. Shown
+     * only when active; the default (all spans) is the no-chip state, matching
+     * every other facet.
+     */
+    const spanTypeChip: Array<ActiveFilter> = rootOnly
+      ? [
+          {
+            facetKey: SPAN_TYPE_FACET_KEY,
+            value: SPAN_TYPE_ROOT_VALUE,
+            displayKey: "Span Type",
+            displayValue: "Root spans",
+          },
+        ]
+      : [];
+    return [...base, ...activeFilters.map(resolveDisplay), ...spanTypeChip];
   }, [
     props.primaryEntityId,
     props.attributeFilters,
     props.attributeFilterDisplayKeys,
     activeFilters,
     facetConfigs,
+    rootOnly,
   ]);
 
   /*
@@ -1984,8 +2159,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       if (state.pageSize) {
         setPageSize(state.pageSize);
       }
-      // Views saved before the toggle existed default to root-spans-only.
-      setRootOnly(state.rootOnly ?? true);
+      // Views saved before the toggle existed default to showing all spans.
+      setRootOnly(state.rootOnly ?? false);
       setPage(1);
     }, []);
 
@@ -2039,26 +2214,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
               },
             )}
           </div>
-          {/* Root-spans-only toggle */}
-          <button
-            type="button"
-            className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors ${
-              rootOnly
-                ? "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                : "border-indigo-300 bg-indigo-50 text-indigo-700"
-            }`}
-            onClick={() => {
-              setRootOnly(!rootOnly);
-              setPage(1);
-            }}
-            title={
-              rootOnly
-                ? "Showing root spans only — click to include all spans (e.g. when http.route / url.host live on a non-root span)"
-                : "Showing all spans — click to show root spans only"
-            }
-          >
-            {rootOnly ? "Root spans" : "All spans"}
-          </button>
+          {/*
+           * The root-spans-only toggle lives in the "Span Type" facet
+           * (sidebar), which drives the same `rootOnly` state — so no separate
+           * toolbar button is needed here.
+           */}
         </>
       }
       emptyMessage="No traces found"
@@ -2067,13 +2227,32 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         const service: Service | undefined = span.primaryEntityId
           ? serviceById[span.primaryEntityId.toString()]
           : undefined;
+        const spanKey: string = span.spanId?.toString() || "";
+        const isExpanded: boolean =
+          spanKey !== "" && expandedSpanId === spanKey;
         return (
-          <TraceRow
-            span={span}
-            service={service}
-            maxDurationNano={maxDurationNano}
-            to={getTraceRoute(span)}
-          />
+          <>
+            <TraceRow
+              span={span}
+              service={service}
+              maxDurationNano={maxDurationNano}
+              isExpanded={isExpanded}
+              onToggle={() => {
+                setExpandedSpanId(isExpanded ? null : spanKey || null);
+              }}
+            />
+            {isExpanded && (
+              <SpanDetailsPanel
+                span={span}
+                service={service}
+                traceRoute={getTraceRoute(span)}
+                onFilterByAttribute={(key: string, value: string) => {
+                  handleFacetInclude(`attributes.${key}`, value);
+                  setExpandedSpanId(null);
+                }}
+              />
+            )}
+          </>
         );
       }}
       getRowKey={(span: Span, index: number): string => {

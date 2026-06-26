@@ -166,3 +166,8 @@ spec:
 {{- include "oneuptime.service" $appServiceArgs }}
 ---
 {{- end }}
+
+{{- if and $.Values.app.enabled (not $.Values.deployment.disableDeployments) }}
+# OneUptime app PodDisruptionBudget
+{{- include "oneuptime.pdb" (dict "ServiceName" "app" "Override" $.Values.app.podDisruptionBudget "Release" $.Release "Values" $.Values) }}
+{{- end }}

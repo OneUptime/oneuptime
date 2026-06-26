@@ -15,11 +15,12 @@ const DisplaySection: ComponentArgumentSection = {
   order: 1,
 };
 
-const QuerySection: ComponentArgumentSection = {
-  name: "Query",
-  description: "Which spans to aggregate and how to split them",
-  order: 2,
-};
+/*
+ * The "Query" section (span-name filter, attribute filters, split-by, max
+ * series, include-child-spans) is rendered by a bespoke, structured editor —
+ * TraceChartQueryEditor — rather than these declarative free-text fields, so
+ * those arguments are deliberately not listed here. See ArgumentsForm.tsx.
+ */
 
 export default class DashboardTraceChartComponentUtil extends DashboardBaseComponentUtil {
   public static override getDefaultComponent(): DashboardTraceChartComponent {
@@ -74,59 +75,6 @@ export default class DashboardTraceChartComponentUtil extends DashboardBaseCompo
         { label: "Min Response Time", value: "minDuration" },
         { label: "Max Response Time", value: "maxDuration" },
       ],
-    });
-
-    componentArguments.push({
-      name: "Span Name Contains",
-      description:
-        "Only include spans whose name contains this text (e.g. /Shipment/ShipShipment)",
-      required: false,
-      type: ComponentInputType.Text,
-      id: "spanNameContains",
-      placeholder: "/Shipment/ShipShipment",
-      section: QuerySection,
-    });
-
-    componentArguments.push({
-      name: "Attribute Filters",
-      description:
-        "Attribute equality filters, ANDed — key=value pairs separated by semicolons (e.g. url.host=torginol.starship.online; http.method=POST)",
-      required: false,
-      type: ComponentInputType.Text,
-      id: "attributeFilters",
-      placeholder: "url.host=torginol.starship.online",
-      section: QuerySection,
-    });
-
-    componentArguments.push({
-      name: "Split By",
-      description:
-        "Optional dimension — a span attribute key (e.g. url.host, resource.service.instance.id) or one of: name, primaryEntityId, statusCode, kind. One series per value.",
-      required: false,
-      type: ComponentInputType.Text,
-      id: "groupByAttribute",
-      placeholder: "url.host",
-      section: QuerySection,
-    });
-
-    componentArguments.push({
-      name: "Top Series",
-      description: "Cap on the number of series when split (default 10)",
-      required: false,
-      type: ComponentInputType.Number,
-      id: "topLimit",
-      placeholder: "10",
-      section: QuerySection,
-    });
-
-    componentArguments.push({
-      name: "Include Child Spans",
-      description:
-        "Count every span instead of root spans only (the traces explorer defaults to root spans)",
-      required: false,
-      type: ComponentInputType.Boolean,
-      id: "includeChildSpans",
-      section: QuerySection,
     });
 
     return componentArguments;

@@ -375,7 +375,8 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   <button
                     type="button"
                     className="flex items-center justify-center rounded-lg w-8 h-8 bg-gray-50 border border-gray-200/60 hover:bg-gray-100 transition-colors cursor-pointer"
-                    title="More options"
+                    title="More dashboard options"
+                    aria-label="More dashboard options"
                   >
                     <Icon
                       icon={IconProp.EllipsisHorizontal}

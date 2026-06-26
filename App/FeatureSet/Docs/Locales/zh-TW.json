@@ -156,6 +156,7 @@
     "Host OpenTelemetry Collector": "主機 OpenTelemetry Collector",
     "Kubernetes Agent": "Kubernetes 代理程式",
     "Docker Agent": "Docker 代理程式",
+    "IoT Devices": "IoT 裝置",
     "AI Agents": "AI 代理程式",
     "LLM Providers": "LLM 提供者",
     "MCP Server": "MCP 伺服器",

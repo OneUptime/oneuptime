@@ -21,6 +21,10 @@ import ProxmoxClusterOwnerUser from "./ProxmoxClusterOwnerUser";
 import DockerSwarmClusterOwnerUser from "./DockerSwarmClusterOwnerUser";
 import ProxmoxResource from "./ProxmoxResource";
 import DockerSwarmResource from "./DockerSwarmResource";
+import IoTFleet from "./IoTFleet";
+import IoTFleetOwnerTeam from "./IoTFleetOwnerTeam";
+import IoTFleetOwnerUser from "./IoTFleetOwnerUser";
+import IoTDevice from "./IoTDevice";
 import CephCluster from "./CephCluster";
 import CephClusterOwnerTeam from "./CephClusterOwnerTeam";
 import CephClusterOwnerUser from "./CephClusterOwnerUser";
@@ -350,6 +354,8 @@ import ProxmoxClusterOwnerRule from "./ProxmoxClusterOwnerRule";
 import DockerSwarmClusterOwnerRule from "./DockerSwarmClusterOwnerRule";
 import ProxmoxClusterLabelRule from "./ProxmoxClusterLabelRule";
 import DockerSwarmClusterLabelRule from "./DockerSwarmClusterLabelRule";
+import IoTFleetOwnerRule from "./IoTFleetOwnerRule";
+import IoTFleetLabelRule from "./IoTFleetLabelRule";
 import CephClusterOwnerRule from "./CephClusterOwnerRule";
 import CephClusterLabelRule from "./CephClusterLabelRule";
 import RunbookOwnerRule from "./RunbookOwnerRule";
@@ -524,6 +530,8 @@ const AllModelTypes: Array<{
   DockerSwarmClusterOwnerRule,
   ProxmoxClusterLabelRule,
   DockerSwarmClusterLabelRule,
+  IoTFleetOwnerRule,
+  IoTFleetLabelRule,
   CephClusterOwnerRule,
   CephClusterLabelRule,
   RunbookOwnerRule,
@@ -756,6 +764,10 @@ const AllModelTypes: Array<{
   DockerSwarmClusterOwnerUser,
   ProxmoxResource,
   DockerSwarmResource,
+  IoTFleet,
+  IoTFleetOwnerTeam,
+  IoTFleetOwnerUser,
+  IoTDevice,
   CephCluster,
   CephClusterOwnerTeam,
   CephClusterOwnerUser,

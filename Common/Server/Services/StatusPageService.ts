@@ -45,6 +45,10 @@ import StatusPageSubscriberService from "./StatusPageSubscriberService";
 import StatusPageSubscriber from "../../Models/DatabaseModels/StatusPageSubscriber";
 import MailService from "./MailService";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
+import StatusPageSubscriberNotificationTemplateService from "./StatusPageSubscriberNotificationTemplateService";
+import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
+import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
+import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import { StatusPageApiRoute } from "../../ServiceRoute";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
@@ -867,6 +871,25 @@ export class Service extends DatabaseService<StatusPage> {
       historyDays: statuspage.reportDataInDays || 14,
     });
 
+    /*
+     * Look up a custom report email template for this status page (if any).
+     * When present (and a custom SMTP is configured, mirroring the gating used
+     * for other subscriber notifications), the subscriber receives the custom
+     * template instead of the built-in StatusPageSubscriberReport.hbs. The
+     * custom body is rendered through Handlebars on the notification side
+     * (templateType omitted => MailService compiles the body string with the
+     * same `report` vars, helpers and partials), so it supports loops/
+     * conditionals such as {{#each report.resources}}.
+     */
+    const customReportEmailTemplate: StatusPageSubscriberNotificationTemplate | null =
+      await StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+        {
+          statusPageId: statuspage.id!,
+          eventType: StatusPageSubscriberNotificationEventType.SubscriberReport,
+          notificationMethod: StatusPageSubscriberNotificationMethod.Email,
+        },
+      );
+
     type SendEmailFunction = (
       email: Email,
       unsubscribeUrl: URL | null,
@@ -878,33 +901,53 @@ export class Service extends DatabaseService<StatusPage> {
     ): Promise<void> => {
       // send email here.
 
-      MailService.sendMail(
-        {
-          toEmail: email,
-          templateType: EmailTemplateType.StatusPageSubscriberReport,
-          vars: {
-            statusPageName: statusPageName,
-            subscriberEmailNotificationFooterText:
-              Service.getSubscriberEmailFooterText(statuspage),
-            statusPageUrl: statusPageURL,
-            detailsUrl: statusPageURL,
-            hasResources: report.totalResources > 0 ? "true" : "false",
-            report: report as any,
-            logoUrl:
-              statuspage.logoFileId && statusPageIdString
-                ? new URL(httpProtocol, host)
-                    .addRoute(StatusPageApiRoute)
-                    .addRoute(`/logo/${statusPageIdString}`)
-                    .toString()
-                : "",
-            isPublicStatusPage: statuspage.isPublicStatusPage
-              ? "true"
-              : "false",
+      const vars: Dictionary<string | JSONObject> = {
+        statusPageName: statusPageName,
+        subscriberEmailNotificationFooterText:
+          Service.getSubscriberEmailFooterText(statuspage),
+        statusPageUrl: statusPageURL,
+        detailsUrl: statusPageURL,
+        hasResources: report.totalResources > 0 ? "true" : "false",
+        report: report as any,
+        logoUrl:
+          statuspage.logoFileId && statusPageIdString
+            ? new URL(httpProtocol, host)
+                .addRoute(StatusPageApiRoute)
+                .addRoute(`/logo/${statusPageIdString}`)
+                .toString()
+            : "",
+        isPublicStatusPage: statuspage.isPublicStatusPage ? "true" : "false",
 
-            unsubscribeUrl: unsubscribeUrl?.toString() || "",
-          },
-          subject: "[Report] " + statusPageName,
-        },
+        unsubscribeUrl: unsubscribeUrl?.toString() || "",
+      };
+
+      /*
+       * Use the custom template only when a custom SMTP is configured for the
+       * status page, matching the gating used by the other subscriber
+       * notifications (e.g. Incident). Custom-authored HTML is then sent from
+       * the customer's own mail server rather than the shared servers.
+       */
+      const useCustomTemplate: boolean = Boolean(
+        customReportEmailTemplate?.templateBody && statuspage.smtpConfig,
+      );
+
+      MailService.sendMail(
+        useCustomTemplate
+          ? {
+              toEmail: email,
+              // templateType omitted => body is compiled as a Handlebars string.
+              body: customReportEmailTemplate!.templateBody!,
+              vars: vars,
+              subject: customReportEmailTemplate!.emailSubject
+                ? customReportEmailTemplate!.emailSubject
+                : "[Report] " + statusPageName,
+            }
+          : {
+              toEmail: email,
+              templateType: EmailTemplateType.StatusPageSubscriberReport,
+              vars: vars,
+              subject: "[Report] " + statusPageName,
+            },
         {
           mailServer: ProjectSMTPConfigService.toEmailServer(
             statuspage.smtpConfig,

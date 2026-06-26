@@ -87,6 +87,7 @@ import RebuildMetricBaselineHourlyWithBFloat16Quantiles from "./RebuildMetricBas
 import AddDedupWindowToTelemetryTables from "./AddDedupWindowToTelemetryTables";
 import DropUnusedTelemetryTables from "./DropUnusedTelemetryTables";
 import RebuildMetricAggTablesMissingPrimaryEntityId from "./RebuildMetricAggTablesMissingPrimaryEntityId";
+import DropPreclusteredAnalyticsBackupTables from "./DropPreclusteredAnalyticsBackupTables";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -204,6 +205,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * must already be the live V3 generation by the time it runs.
    */
   new RebuildMetricAggTablesMissingPrimaryEntityId(),
+  /*
+   * Reclaims the `<table>_preclustered` ClickHouse backups left by a single-node
+   * -> cluster conversion (the boot schema-sync renames the legacy table aside
+   * before swapping in the Distributed wrapper). Telemetry history is forward-only
+   * across the conversion, so the abandoned backups are dropped to free their
+   * disk rather than left as a standing "un-backfilled history" warning. A clean
+   * no-op on installs that never converted. Ordered right before the conversion
+   * migration; both run after every schema migration is already in place.
+   */
+  new DropPreclusteredAnalyticsBackupTables(),
   /*
    * Cluster conversion. Runs only when CLICKHOUSE_CLUSTER_NAME is set (a no-op
    * otherwise) and after every legacy ClickHouse migration has been baselined,

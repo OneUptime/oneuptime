@@ -1,5 +1,6 @@
 import DataMigrationBase from "./DataMigrationBase";
 import MetricService from "Common/Server/Services/MetricService";
+import { MigrationExecuteOptions } from "Common/Server/Services/AnalyticsDatabaseService";
 import logger from "Common/Server/Utils/Logger";
 
 /**
@@ -39,6 +40,7 @@ export default class AddUInt64TimestampsToTelemetryV3 extends DataMigrationBase 
       try {
         await MetricService.execute(
           `ALTER TABLE ${table} MODIFY COLUMN ${column} ${type} CODEC(DoubleDelta, ZSTD(1))`,
+          MigrationExecuteOptions,
         );
         logger.info(
           `AddUInt64TimestampsToTelemetryV3: ${table}.${column} -> ${type} + DoubleDelta`,

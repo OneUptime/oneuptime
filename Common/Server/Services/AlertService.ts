@@ -772,11 +772,32 @@ ${alert.remediationNotes || "No remediation notes provided."}
         },
       });
 
-    if (!timeline || !timeline.startsAt) {
-      throw new BadDataException("Alert identified date not found.");
+    if (timeline && timeline.startsAt) {
+      return timeline.startsAt;
     }
 
-    return timeline.startsAt;
+    /*
+     * The identified-state timeline is created asynchronously after the alert
+     * is committed (see onCreateSuccess), so it may not exist yet, or may be
+     * missing entirely if that step failed. Fall back to the alert's creation
+     * date instead of throwing, otherwise the owner-notification cron fails
+     * permanently for this alert and retries every minute forever.
+     */
+    const alert: Model | null = await this.findOneById({
+      id: alertId,
+      select: {
+        createdAt: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (alert && alert.createdAt) {
+      return alert.createdAt;
+    }
+
+    throw new BadDataException("Alert identified date not found.");
   }
 
   @CaptureSpan()

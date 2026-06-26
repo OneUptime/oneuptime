@@ -31,6 +31,12 @@ export interface MaintainedResourceKeys {
    */
   proxmoxClusters: ResourceKeySet;
   cephClusters: ResourceKeySet;
+  /*
+   * IoT fleets, like Proxmox/Ceph clusters, have no `oneuptime.*.id`
+   * label stamp, so only the name set is ever matched; the id set
+   * exists for shape parity.
+   */
+  iotFleets: ResourceKeySet;
   services: ResourceKeySet;
 }
 
@@ -134,6 +140,7 @@ export default class MonitorMaintenanceSuppression {
           refs.cephClusterNames,
           input.maintained.cephClusters.names,
         ) ||
+        this.intersects(refs.iotFleetNames, input.maintained.iotFleets.names) ||
         this.intersects(refs.serviceIds, input.maintained.services.ids) ||
         this.intersects(refs.serviceNames, input.maintained.services.names);
 
@@ -170,6 +177,8 @@ export default class MonitorMaintenanceSuppression {
       maintained.proxmoxClusters.names.size > 0 ||
       maintained.cephClusters.ids.size > 0 ||
       maintained.cephClusters.names.size > 0 ||
+      maintained.iotFleets.ids.size > 0 ||
+      maintained.iotFleets.names.size > 0 ||
       maintained.services.ids.size > 0 ||
       maintained.services.names.size > 0
     );
@@ -193,6 +202,7 @@ export default class MonitorMaintenanceSuppression {
       kubernetesClusters: { ids: new Set<string>(), names: new Set<string>() },
       proxmoxClusters: { ids: new Set<string>(), names: new Set<string>() },
       cephClusters: { ids: new Set<string>(), names: new Set<string>() },
+      iotFleets: { ids: new Set<string>(), names: new Set<string>() },
       services: { ids: new Set<string>(), names: new Set<string>() },
     };
 
@@ -212,6 +222,7 @@ export default class MonitorMaintenanceSuppression {
           kubernetesClusters: { _id: true, clusterIdentifier: true },
           proxmoxClusters: { _id: true, name: true },
           cephClusters: { _id: true, name: true },
+          iotFleets: { _id: true, name: true },
           services: { _id: true, name: true },
         },
         skip: 0,
@@ -255,6 +266,9 @@ export default class MonitorMaintenanceSuppression {
       }
       for (const cephCluster of event.cephClusters || []) {
         this.addKey(maintained.cephClusters, cephCluster._id, cephCluster.name);
+      }
+      for (const iotFleet of event.iotFleets || []) {
+        this.addKey(maintained.iotFleets, iotFleet._id, iotFleet.name);
       }
       for (const service of event.services || []) {
         this.addKey(maintained.services, service._id, service.name);

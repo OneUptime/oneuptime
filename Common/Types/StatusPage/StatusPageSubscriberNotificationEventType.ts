@@ -27,6 +27,9 @@ enum StatusPageSubscriberNotificationEventType {
   SubscriberScheduledMaintenanceCreated = "Subscriber Scheduled Maintenance Created",
   SubscriberScheduledMaintenanceStateChanged = "Subscriber Scheduled Maintenance State Changed",
   SubscriberScheduledMaintenanceNoteCreated = "Subscriber Scheduled Maintenance Note Created",
+
+  // Recurring report events
+  SubscriberReport = "Subscriber Report",
 }
 
 export default StatusPageSubscriberNotificationEventType;

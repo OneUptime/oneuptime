@@ -232,20 +232,33 @@ describe("ClickHouse cluster-aware schema (always-on)", () => {
       );
     });
 
-    test("schema ALTERs target the local table", () => {
+    test("schema ALTERs target the local table ON CLUSTER", () => {
       const column: AnalyticsTableColumn = new SpanModel().tableColumns[1]!;
-      expect(fullText(spanGen.toAddColumnStatement(column))).toContain(
-        "SpanItemV3Local",
+
+      /*
+       * Column / skip-index ADD + DROP must carry ON CLUSTER: the local storage
+       * table is Replicated per shard, and Keeper only replicates within a
+       * shard. Without ON CLUSTER a reconciled column/index lands on a single
+       * shard, so a scatter-gather read through the Distributed wrapper hits a
+       * shard that lacks it and fails with "Missing columns" (Code 47).
+       */
+      const addColumn: string = fullText(spanGen.toAddColumnStatement(column));
+      expect(addColumn).toContain("SpanItemV3Local");
+      expect(addColumn).toContain("ON CLUSTER 'oneuptime'");
+
+      const addIndex: string = fullText(
+        spanGen.toAddSkipIndexStatement(column)!,
       );
-      expect(fullText(spanGen.toAddSkipIndexStatement(column)!)).toContain(
-        "SpanItemV3Local",
-      );
-      expect(spanGen.toDropColumnStatement("traceId")).toContain(
-        "SpanItemV3Local",
-      );
-      expect(spanGen.toDropSkipIndexStatement("idx_trace_id")).toContain(
-        "SpanItemV3Local",
-      );
+      expect(addIndex).toContain("SpanItemV3Local");
+      expect(addIndex).toContain("ON CLUSTER 'oneuptime'");
+
+      const dropColumn: string = spanGen.toDropColumnStatement("traceId");
+      expect(dropColumn).toContain("SpanItemV3Local");
+      expect(dropColumn).toContain("ON CLUSTER 'oneuptime'");
+
+      const dropIndex: string = spanGen.toDropSkipIndexStatement("idx_trace_id");
+      expect(dropIndex).toContain("SpanItemV3Local");
+      expect(dropIndex).toContain("ON CLUSTER 'oneuptime'");
     });
 
     test("ALTER UPDATE mutates the local table with ON CLUSTER", () => {

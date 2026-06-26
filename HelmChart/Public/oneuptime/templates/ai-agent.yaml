@@ -133,3 +133,8 @@ spec:
 {{- $aiAgentServiceArgs := dict "ServiceName" "ai-agent" "Ports" $aiAgentPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $aiAgentServiceArgs }}
 ---
+
+{{- if and $.Values.aiAgent.enabled (not $.Values.deployment.disableDeployments) }}
+# OneUptime AI Agent PodDisruptionBudget
+{{- include "oneuptime.pdb" (dict "ServiceName" "ai-agent" "Override" $.Values.aiAgent.podDisruptionBudget "Release" $.Release "Values" $.Values) }}
+{{- end }}

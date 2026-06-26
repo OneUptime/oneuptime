@@ -76,13 +76,11 @@ RunCron(
       const alertDisplayNumber: string =
         alert.alertNumberWithPrefix || "#" + alert.alertNumber!;
 
-      const alertFeedText: string = `🔔 **Owner Alert Created Notification Sent**:
-      Notification sent to owners because [Alert ${alertDisplayNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}) was created.`;
-      let moreAlertFeedInformationInMarkdown: string = "";
-
-      const alertIdentifiedDate: Date =
-        await AlertService.getAlertIdentifiedDate(alert.id!);
-
+      /*
+       * Mark the alert as notified first (matching the MonitorOwner worker) so
+       * that a failure while building or sending the notification below can
+       * never cause this alert to be re-picked on every cron run.
+       */
       await AlertService.updateOneById({
         id: alert.id!,
         data: {
@@ -92,6 +90,13 @@ RunCron(
           isRoot: true,
         },
       });
+
+      const alertFeedText: string = `🔔 **Owner Alert Created Notification Sent**:
+      Notification sent to owners because [Alert ${alertDisplayNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}) was created.`;
+      let moreAlertFeedInformationInMarkdown: string = "";
+
+      const alertIdentifiedDate: Date =
+        await AlertService.getAlertIdentifiedDate(alert.id!);
 
       // now find owners.
 

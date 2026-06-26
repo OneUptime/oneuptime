@@ -548,6 +548,12 @@ enum Permission {
   ReadProxmoxClusterOwnerRule = "ReadProxmoxClusterOwnerRule",
   ReadDockerSwarmClusterOwnerRule = "ReadDockerSwarmClusterOwnerRule",
 
+  // IoT Fleet Owner Rule Permissions
+  CreateIoTFleetOwnerRule = "CreateIoTFleetOwnerRule",
+  DeleteIoTFleetOwnerRule = "DeleteIoTFleetOwnerRule",
+  EditIoTFleetOwnerRule = "EditIoTFleetOwnerRule",
+  ReadIoTFleetOwnerRule = "ReadIoTFleetOwnerRule",
+
   /*
    * Proxmox Cluster Label Rule Permissions
    * Docker Swarm Cluster Label Rule Permissions
@@ -560,6 +566,12 @@ enum Permission {
   EditDockerSwarmClusterLabelRule = "EditDockerSwarmClusterLabelRule",
   ReadProxmoxClusterLabelRule = "ReadProxmoxClusterLabelRule",
   ReadDockerSwarmClusterLabelRule = "ReadDockerSwarmClusterLabelRule",
+
+  // IoT Fleet Label Rule Permissions
+  CreateIoTFleetLabelRule = "CreateIoTFleetLabelRule",
+  DeleteIoTFleetLabelRule = "DeleteIoTFleetLabelRule",
+  EditIoTFleetLabelRule = "EditIoTFleetLabelRule",
+  ReadIoTFleetLabelRule = "ReadIoTFleetLabelRule",
 
   // Ceph Cluster Owner Rule Permissions
   CreateCephClusterOwnerRule = "CreateCephClusterOwnerRule",
@@ -1183,6 +1195,11 @@ enum Permission {
   ReadProxmoxCluster = "ReadProxmoxCluster",
   ReadDockerSwarmCluster = "ReadDockerSwarmCluster",
 
+  CreateIoTFleet = "CreateIoTFleet",
+  DeleteIoTFleet = "DeleteIoTFleet",
+  EditIoTFleet = "EditIoTFleet",
+  ReadIoTFleet = "ReadIoTFleet",
+
   CreateCephCluster = "CreateCephCluster",
   DeleteCephCluster = "DeleteCephCluster",
   EditCephCluster = "EditCephCluster",
@@ -1197,6 +1214,11 @@ enum Permission {
   ReadProxmoxClusterOwnerTeam = "ReadProxmoxClusterOwnerTeam",
   ReadDockerSwarmClusterOwnerTeam = "ReadDockerSwarmClusterOwnerTeam",
 
+  CreateIoTFleetOwnerTeam = "CreateIoTFleetOwnerTeam",
+  DeleteIoTFleetOwnerTeam = "DeleteIoTFleetOwnerTeam",
+  EditIoTFleetOwnerTeam = "EditIoTFleetOwnerTeam",
+  ReadIoTFleetOwnerTeam = "ReadIoTFleetOwnerTeam",
+
   CreateProxmoxClusterOwnerUser = "CreateProxmoxClusterOwnerUser",
   CreateDockerSwarmClusterOwnerUser = "CreateDockerSwarmClusterOwnerUser",
   DeleteProxmoxClusterOwnerUser = "DeleteProxmoxClusterOwnerUser",
@@ -1205,6 +1227,11 @@ enum Permission {
   EditDockerSwarmClusterOwnerUser = "EditDockerSwarmClusterOwnerUser",
   ReadProxmoxClusterOwnerUser = "ReadProxmoxClusterOwnerUser",
   ReadDockerSwarmClusterOwnerUser = "ReadDockerSwarmClusterOwnerUser",
+
+  CreateIoTFleetOwnerUser = "CreateIoTFleetOwnerUser",
+  DeleteIoTFleetOwnerUser = "DeleteIoTFleetOwnerUser",
+  EditIoTFleetOwnerUser = "EditIoTFleetOwnerUser",
+  ReadIoTFleetOwnerUser = "ReadIoTFleetOwnerUser",
 
   CreateCephClusterOwnerTeam = "CreateCephClusterOwnerTeam",
   DeleteCephClusterOwnerTeam = "DeleteCephClusterOwnerTeam",
@@ -7577,6 +7604,43 @@ export class PermissionHelper {
       },
 
       {
+        permission: Permission.CreateIoTFleet,
+        title: "Create IoT Fleet",
+        description: "This permission can create IoT Fleet in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteIoTFleet,
+        title: "Delete IoT Fleet",
+        description: "This permission can delete IoT Fleet of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditIoTFleet,
+        title: "Edit IoT Fleet",
+        description: "This permission can edit IoT Fleet of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadIoTFleet,
+        title: "Read IoT Fleet",
+        description: "This permission can read IoT Fleet of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
         permission: Permission.CreateCephCluster,
         title: "Create Ceph Cluster",
         description: "This permission can create Ceph Cluster in this project.",
@@ -8395,6 +8459,47 @@ export class PermissionHelper {
       },
 
       {
+        permission: Permission.CreateIoTFleetOwnerTeam,
+        title: "Create IoT Fleet Team Owner",
+        description:
+          "This permission can create IoT Fleet Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteIoTFleetOwnerTeam,
+        title: "Delete IoT Fleet Team Owner",
+        description:
+          "This permission can delete IoT Fleet Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditIoTFleetOwnerTeam,
+        title: "Edit IoT Fleet Team Owner",
+        description:
+          "This permission can edit IoT Fleet Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadIoTFleetOwnerTeam,
+        title: "Read IoT Fleet Team Owner",
+        description:
+          "This permission can read IoT Fleet Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
         permission: Permission.CreateProxmoxClusterOwnerUser,
         title: "Create Proxmox Cluster User Owner",
         description:
@@ -8469,6 +8574,47 @@ export class PermissionHelper {
         title: "Read Docker Swarm Cluster User Owner",
         description:
           "This permission can read Docker Swarm Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateIoTFleetOwnerUser,
+        title: "Create IoT Fleet User Owner",
+        description:
+          "This permission can create IoT Fleet User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteIoTFleetOwnerUser,
+        title: "Delete IoT Fleet User Owner",
+        description:
+          "This permission can delete IoT Fleet User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditIoTFleetOwnerUser,
+        title: "Edit IoT Fleet User Owner",
+        description:
+          "This permission can edit IoT Fleet User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadIoTFleetOwnerUser,
+        title: "Read IoT Fleet User Owner",
+        description:
+          "This permission can read IoT Fleet User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10779,6 +10925,48 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
 
+      // IoT Fleet Owner Rule Permissions
+      {
+        permission: Permission.CreateIoTFleetOwnerRule,
+        title: "Create IoT Fleet Owner Rule",
+        description:
+          "This permission can create IoT Fleet Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteIoTFleetOwnerRule,
+        title: "Delete IoT Fleet Owner Rule",
+        description:
+          "This permission can delete IoT Fleet Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditIoTFleetOwnerRule,
+        title: "Edit IoT Fleet Owner Rule",
+        description:
+          "This permission can edit IoT Fleet Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadIoTFleetOwnerRule,
+        title: "Read IoT Fleet Owner Rule",
+        description:
+          "This permission can read IoT Fleet Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
       /*
        * Proxmox Cluster Label Rule Permissions
        * Docker Swarm Cluster Label Rule Permissions
@@ -10858,6 +11046,48 @@ export class PermissionHelper {
         title: "Read Docker Swarm Cluster Label Rule",
         description:
           "This permission can read Docker Swarm Cluster Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // IoT Fleet Label Rule Permissions
+      {
+        permission: Permission.CreateIoTFleetLabelRule,
+        title: "Create IoT Fleet Label Rule",
+        description:
+          "This permission can create IoT Fleet Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteIoTFleetLabelRule,
+        title: "Delete IoT Fleet Label Rule",
+        description:
+          "This permission can delete IoT Fleet Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditIoTFleetLabelRule,
+        title: "Edit IoT Fleet Label Rule",
+        description:
+          "This permission can edit IoT Fleet Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadIoTFleetLabelRule,
+        title: "Read IoT Fleet Label Rule",
+        description:
+          "This permission can read IoT Fleet Label Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

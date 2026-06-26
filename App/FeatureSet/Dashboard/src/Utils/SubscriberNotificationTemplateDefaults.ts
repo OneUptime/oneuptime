@@ -765,6 +765,121 @@ const episodeNoteCreatedDefaults: EventDefaults = {
   },
 };
 
+/*
+ * The recurring report is the one subscriber notification rendered through the
+ * real Handlebars engine (templateType omitted on the notification side), so
+ * the default body below can use loops ({{#each report.resources}}) and
+ * conditionals ({{#if report.totalResources}}) over the structured `report`
+ * object. It is kept self-contained with inline CSS so it renders correctly in
+ * email clients without depending on OneUptime's chrome partials (those remain
+ * available to power users who add {{> Start this}} etc.).
+ * SMS / Slack / Microsoft Teams / Webhook reports have no worker send path
+ * today, so their defaults are best-effort summaries (like Webhook is for the
+ * other events) and exist only so the form is usable.
+ */
+const reportDefaults: EventDefaults = {
+  [StatusPageSubscriberNotificationMethod.Email]: {
+    subject: "[Report] {{statusPageName}}",
+    body: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b;">
+  <h2 style="color: #1a1a2e; font-size: 24px; line-height: 32px; font-weight: 700; margin: 0 0 8px 0;">Uptime Report: {{statusPageName}}</h2>
+  <p style="color: #374151; font-size: 15px; line-height: 26px; margin: 0 0 24px 0;">Here is your status summary for the last {{report.reportDates}}.</p>
+  {{#if report.totalResources}}
+  <div style="background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 12px; padding: 28px 24px; text-align: center; margin: 0 0 14px 0;">
+    <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: #64748b;">Average Uptime</p>
+    <p style="margin: 0; font-size: 52px; line-height: 56px; font-weight: 700; color: #1a1a2e;">{{report.averageUptimePercent}}</p>
+    <p style="margin: 10px 0 0 0; font-size: 13px; color: #64748b;">across {{report.reportDates}}</p>
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 12px; margin: 0 0 24px 0;">
+    <tr>
+      <td width="33%" align="center" style="padding: 18px 8px; border-right: 1px solid #e2e8f0;">
+        <p style="margin: 0; font-size: 24px; font-weight: 700; color: #1a1a2e;">{{report.totalDowntimeInHoursAndMinutes}}</p>
+        <p style="margin: 6px 0 0 0; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b;">Downtime</p>
+      </td>
+      <td width="33%" align="center" style="padding: 18px 8px; border-right: 1px solid #e2e8f0;">
+        <p style="margin: 0; font-size: 24px; font-weight: 700; color: #1a1a2e;">{{report.totalIncidents}}</p>
+        <p style="margin: 6px 0 0 0; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b;">Incidents</p>
+      </td>
+      <td width="34%" align="center" style="padding: 18px 8px;">
+        <p style="margin: 0; font-size: 24px; font-weight: 700; color: #1a1a2e;">{{report.totalResources}}</p>
+        <p style="margin: 6px 0 0 0; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b;">Resources</p>
+      </td>
+    </tr>
+  </table>
+  <h3 style="color: #1a1a2e; font-size: 16px; font-weight: 700; margin: 0 0 12px 0;">Per-resource breakdown</h3>
+  <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: separate; border-spacing: 0; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin: 0 0 24px 0;">
+    <thead>
+      <tr>
+        <th align="left" style="background-color: #1a1a2e; color: #ffffff; padding: 12px 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Resource</th>
+        <th align="right" style="background-color: #1a1a2e; color: #ffffff; padding: 12px 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Uptime</th>
+        <th align="right" style="background-color: #1a1a2e; color: #ffffff; padding: 12px 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Downtime</th>
+        <th align="right" style="background-color: #1a1a2e; color: #ffffff; padding: 12px 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Incidents</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each report.resources}}
+      <tr>
+        <td align="left" style="padding: 12px 14px; border-top: 1px solid #e5e8f0; font-size: 14px; color: #374151; font-weight: 500;">{{this.resourceName}}</td>
+        <td align="right" style="padding: 12px 14px; border-top: 1px solid #e5e8f0; font-size: 14px; color: #1e293b; font-weight: 600;">{{this.uptimePercentAsString}}</td>
+        <td align="right" style="padding: 12px 14px; border-top: 1px solid #e5e8f0; font-size: 14px; color: #374151;">{{this.downtimeInHoursAndMinutes}}</td>
+        <td align="right" style="padding: 12px 14px; border-top: 1px solid #e5e8f0; font-size: 14px; color: #1e293b; font-weight: 600;">{{this.totalIncidentCount}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  {{else}}
+  <p style="color: #374151; font-size: 15px; line-height: 26px; margin: 0 0 24px 0;">No resources have been added to this status page yet, so there is nothing to report this period. Once you add resources, their uptime and incident history will appear in future reports.</p>
+  {{/if}}
+  <p style="margin: 0 0 24px 0;">
+    <a href="{{detailsUrl}}" style="display: inline-block; background-color: #111827; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">View Full Status Page</a>
+  </p>
+  {{#if subscriberEmailNotificationFooterText}}
+  <p style="color: #6b7280; font-size: 13px; line-height: 20px; margin: 0 0 16px 0;">{{subscriberEmailNotificationFooterText}}</p>
+  {{/if}}
+  {{#if unsubscribeUrl}}
+  <p style="color: #6b7280; font-size: 12px; line-height: 18px; margin: 32px 0 0 0;">
+    If you no longer wish to receive these notifications, you can <a href="{{unsubscribeUrl}}" style="color: #6b7280;">unsubscribe</a>.
+  </p>
+  {{/if}}
+</div>`,
+  },
+  [StatusPageSubscriberNotificationMethod.SMS]: {
+    body: `{{statusPageName}} uptime report ({{report.reportDates}}): {{report.averageUptimePercent}} average uptime, {{report.totalIncidents}} incidents, {{report.totalDowntimeInHoursAndMinutes}} downtime. {{statusPageUrl}}`,
+  },
+  [StatusPageSubscriberNotificationMethod.Slack]: {
+    body: `## 📊 Uptime Report - {{statusPageName}}
+
+**Period:** {{report.reportDates}}
+**Average Uptime:** {{report.averageUptimePercent}}
+**Total Downtime:** {{report.totalDowntimeInHoursAndMinutes}}
+**Incidents:** {{report.totalIncidents}}
+
+[View Status Page]({{statusPageUrl}})`,
+  },
+  [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
+    body: `## 📊 Uptime Report - {{statusPageName}}
+**Period:** {{report.reportDates}}
+**Average Uptime:** {{report.averageUptimePercent}}
+**Total Downtime:** {{report.totalDowntimeInHoursAndMinutes}}
+**Incidents:** {{report.totalIncidents}}
+[View Status Page]({{statusPageUrl}})`,
+  },
+  [StatusPageSubscriberNotificationMethod.Webhook]: {
+    body: `{
+  "event": "subscriber.report",
+  "statusPage": "{{statusPageName}}",
+  "statusPageUrl": "{{statusPageUrl}}",
+  "report": {
+    "reportDates": "{{report.reportDates}}",
+    "averageUptimePercent": "{{report.averageUptimePercent}}",
+    "totalDowntimeInHoursAndMinutes": "{{report.totalDowntimeInHoursAndMinutes}}",
+    "totalIncidents": "{{report.totalIncidents}}",
+    "totalResources": "{{report.totalResources}}"
+  },
+  "unsubscribeUrl": "{{unsubscribeUrl}}"
+}`,
+  },
+};
+
 const defaultsByEvent: Record<
   StatusPageSubscriberNotificationEventType,
   EventDefaults
@@ -797,6 +912,7 @@ const defaultsByEvent: Record<
     episodeStateChangedDefaults,
   [StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteCreated]:
     episodeNoteCreatedDefaults,
+  [StatusPageSubscriberNotificationEventType.SubscriberReport]: reportDefaults,
 };
 
 export const getDefaultSubscriberNotificationTemplate: (

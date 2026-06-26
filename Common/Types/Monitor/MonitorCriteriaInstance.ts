@@ -528,14 +528,19 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             filterType: FilterType.True,
             value: undefined,
           },
+          {
+            checkOn: CheckOn.ExternalStatusPageActiveIncidents,
+            filterType: FilterType.EqualTo,
+            value: 0,
+          },
         ],
         incidents: [],
         alerts: [],
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the ${arg.monitorName} external status page is reachable`,
+        name: `Check if ${arg.monitorName} is operational`,
+        description: `This criteria checks if the ${arg.monitorName} external status page is reachable and has no active incidents`,
       };
 
       return monitorCriteriaInstance;
@@ -773,11 +778,36 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             filterType: FilterType.False,
             value: undefined,
           },
+          {
+            checkOn: CheckOn.ExternalStatusPageActiveIncidents,
+            filterType: FilterType.GreaterThan,
+            value: 0,
+          },
+          {
+            checkOn: CheckOn.ExternalStatusPageComponentStatus,
+            filterType: FilterType.EqualTo,
+            value: "degraded_performance",
+          },
+          {
+            checkOn: CheckOn.ExternalStatusPageComponentStatus,
+            filterType: FilterType.EqualTo,
+            value: "partial_outage",
+          },
+          {
+            checkOn: CheckOn.ExternalStatusPageComponentStatus,
+            filterType: FilterType.EqualTo,
+            value: "major_outage",
+          },
+          {
+            checkOn: CheckOn.ExternalStatusPageComponentStatus,
+            filterType: FilterType.EqualTo,
+            value: "full_outage",
+          },
         ],
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} external status page is currently unreachable.`,
+            title: `${arg.monitorName} has an active incident or outage`,
+            description: `${arg.monitorName} external status page is reporting an active incident or a non-operational component.`,
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -789,16 +819,16 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} external status page is currently unreachable.`,
+            title: `${arg.monitorName} has an active incident or outage`,
+            description: `${arg.monitorName} external status page is reporting an active incident or a non-operational component.`,
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
           },
         ],
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} external status page is unreachable`,
+        name: `Check if ${arg.monitorName} has an active incident or outage`,
+        description: `This criteria checks if the ${arg.monitorName} external status page is unreachable, has an active incident, or has a degraded, partial, or major outage`,
       };
     }
 

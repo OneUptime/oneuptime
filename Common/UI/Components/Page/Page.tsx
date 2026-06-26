@@ -40,6 +40,33 @@ const Page: FunctionComponent<ComponentProps> = (
     }
   }, [props.breadcrumbLinks]);
 
+  /*
+   * Give each page a unique, descriptive document title (WCAG 2.4.2 Page
+   * Titled). Without this, every page keeps the generic title set once at app
+   * startup (e.g. "OneUptime | Dashboard"), which does not describe the page.
+   * Prefer the breadcrumb trail (most specific page last) and fall back to the
+   * page title.
+   */
+  useEffect(() => {
+    const breadcrumbTitle: string | undefined =
+      props.breadcrumbLinks && props.breadcrumbLinks.length > 0
+        ? props.breadcrumbLinks
+            .map((link: Link) => {
+              return translateString(link.title);
+            })
+            .filter((value: string | undefined): value is string => {
+              return Boolean(value);
+            })
+            .join(" - ")
+        : undefined;
+
+    const pageTitle: string | undefined = breadcrumbTitle || translatedTitle;
+
+    if (pageTitle) {
+      document.title = `OneUptime | ${pageTitle}`;
+    }
+  }, [translatedTitle, props.breadcrumbLinks]);
+
   if (props.error) {
     return <ErrorMessage message={props.error} />;
   }
@@ -47,8 +74,7 @@ const Page: FunctionComponent<ComponentProps> = (
   return (
     <div
       className={
-        props.className ||
-        "mb-auto max-w-full px-4 sm:px-6 lg:px-8 mt-5 mb-20 h-max"
+        props.className || "mb-auto max-w-full px-4 sm:px-6 lg:px-8 mt-5 h-max"
       }
     >
       {((props.breadcrumbLinks && props.breadcrumbLinks.length > 0) ||
@@ -105,7 +131,7 @@ const Page: FunctionComponent<ComponentProps> = (
       )}
 
       {props.sideMenu && (
-        <main className="mx-auto max-w-full pb-10">
+        <div className="mx-auto max-w-full pb-10">
           <div className="flex flex-col md:flex-row md:gap-4 lg:gap-5">
             {props.sideMenu}
 
@@ -118,7 +144,7 @@ const Page: FunctionComponent<ComponentProps> = (
               </div>
             )}
           </div>
-        </main>
+        </div>
       )}
 
       {!props.sideMenu && !props.isLoading && props.children}

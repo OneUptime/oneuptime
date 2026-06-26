@@ -224,3 +224,8 @@ spec:
   type: ClusterIP
   {{- end }}
 ---
+
+{{- if and $.Values.nginx.enabled (not $.Values.deployment.disableDeployments) }}
+# OneUptime nginx PodDisruptionBudget
+{{- include "oneuptime.pdb" (dict "ServiceName" "nginx" "Override" $.Values.nginx.podDisruptionBudget "Release" $.Release "Values" $.Values) }}
+{{- end }}

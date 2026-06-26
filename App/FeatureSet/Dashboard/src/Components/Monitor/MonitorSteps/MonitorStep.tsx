@@ -381,6 +381,33 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
       },
       {
         key: "externalStatusPageMonitor",
+        title: "Provider",
+        description: "How OneUptime reads this status page.",
+        fieldType: FieldType.Element,
+        placeholder: "Auto",
+        getElement: (item: MonitorStepType): ReactElement => {
+          const externalStatusPageMonitor: any = item.externalStatusPageMonitor;
+          return <p>{externalStatusPageMonitor?.provider || "Auto"}</p>;
+        },
+      },
+      {
+        key: "externalStatusPageMonitor",
+        title: "Component Group Filter",
+        description:
+          "If set, only components in this group are monitored and incidents elsewhere are ignored.",
+        fieldType: FieldType.Element,
+        placeholder: "All groups",
+        getElement: (item: MonitorStepType): ReactElement => {
+          const externalStatusPageMonitor: any = item.externalStatusPageMonitor;
+          return (
+            <p>
+              {externalStatusPageMonitor?.componentGroupName || "All groups"}
+            </p>
+          );
+        },
+      },
+      {
+        key: "externalStatusPageMonitor",
         title: "Component Name Filter",
         description: "If set, only this specific component will be monitored.",
         fieldType: FieldType.Element,

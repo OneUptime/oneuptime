@@ -64,6 +64,8 @@
       "performanceProfilesDescription": "查找慢函数和内存热点。",
       "exceptionsTitle": "异常",
       "exceptionsDescription": "跨服务跟踪和解决错误。",
+      "llmObservabilityTitle": "AI / LLM",
+      "llmObservabilityDescription": "观测 LLM 和 AI 智能体调用 — 令牌、成本、延迟、提示词和补全。",
       "servicesTitle": "服务",
       "servicesDescription": "为运行的每个服务建立目录。",
       "kubernetesTitle": "Kubernetes",

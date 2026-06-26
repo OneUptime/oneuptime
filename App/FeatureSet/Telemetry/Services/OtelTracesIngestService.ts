@@ -34,6 +34,9 @@ import logger, {
   type RequestLike,
 } from "Common/Server/Utils/Logger";
 import SpanService from "Common/Server/Services/SpanService";
+import LlmSpanUtil, {
+  LlmSpanFields,
+} from "Common/Server/Utils/Telemetry/LlmSpan";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import Text from "Common/Types/Text";
@@ -574,6 +577,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     spanLinks = [];
                   }
 
+                  /*
+                   * Denormalize first-class LLM / GenAI / agent fields (if any)
+                   * from the span attributes for fast AI-observability queries.
+                   */
+                  const llmFields: LlmSpanFields =
+                    LlmSpanUtil.extract(spanAttributes);
+
                   let spanRow: JSONObject = this.buildSpanRow({
                     projectId: projectId,
                     primaryEntityId: primaryEntityId,
@@ -594,6 +604,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     links: spanLinks,
                     hasException: hasException,
                     isRootSpan: !parentSpanId || parentSpanId === "",
+                    llmFields: llmFields,
                     serviceMetadata: serviceDictionary[serviceName]!,
                   });
 
@@ -960,6 +971,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     links: Array<JSONObject>;
     hasException: boolean;
     isRootSpan: boolean;
+    llmFields: LlmSpanFields;
     serviceMetadata: TelemetryServiceMetadata;
   }): JSONObject {
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
@@ -1005,6 +1017,17 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       links: data.links,
       hasException: data.hasException,
       isRootSpan: data.isRootSpan,
+      isLlmSpan: data.llmFields.isLlmSpan,
+      llmSystem: data.llmFields.llmSystem,
+      llmOperation: data.llmFields.llmOperation,
+      llmRequestModel: data.llmFields.llmRequestModel,
+      llmResponseModel: data.llmFields.llmResponseModel,
+      llmAgentName: data.llmFields.llmAgentName,
+      llmToolName: data.llmFields.llmToolName,
+      llmInputTokens: data.llmFields.llmInputTokens,
+      llmOutputTokens: data.llmFields.llmOutputTokens,
+      llmTotalTokens: data.llmFields.llmTotalTokens,
+      llmCost: data.llmFields.llmCost,
       retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     };
   }

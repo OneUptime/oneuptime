@@ -28,6 +28,7 @@ import DockerSwarmCluster from "../../Models/DatabaseModels/DockerSwarmCluster";
 import ServerlessFunction from "../../Models/DatabaseModels/ServerlessFunction";
 import CloudResource from "../../Models/DatabaseModels/CloudResource";
 import RumApplication from "../../Models/DatabaseModels/RumApplication";
+import IoTFleet from "../../Models/DatabaseModels/IoTFleet";
 import HostService from "./HostService";
 import DockerHostService from "./DockerHostService";
 import PodmanHostService from "./PodmanHostService";
@@ -38,6 +39,7 @@ import DockerSwarmClusterService from "./DockerSwarmClusterService";
 import ServerlessFunctionService from "./ServerlessFunctionService";
 import CloudResourceService from "./CloudResourceService";
 import RumApplicationService from "./RumApplicationService";
+import IoTFleetService from "./IoTFleetService";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import EntityType from "../../Types/Telemetry/EntityType";
@@ -726,6 +728,20 @@ export default class OTelIngestService {
           retainTelemetryDataForDays:
             cluster?.retainTelemetryDataForDays ?? null,
           telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+        };
+      }
+      if (primaryEntityType === ServiceType.IoTDevice) {
+        const fleet: IoTFleet | null = await IoTFleetService.findOneById({
+          id: resourceId,
+          select: {
+            retainTelemetryDataForDays: true,
+            telemetryRetentionConfig: true,
+          },
+          props: { isRoot: true },
+        });
+        return {
+          retainTelemetryDataForDays: fleet?.retainTelemetryDataForDays ?? null,
+          telemetryRetentionConfig: fleet?.telemetryRetentionConfig ?? null,
         };
       }
       if (primaryEntityType === ServiceType.CephCluster) {

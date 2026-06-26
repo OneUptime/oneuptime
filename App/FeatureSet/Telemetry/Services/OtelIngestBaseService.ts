@@ -10,6 +10,8 @@ import PodmanHostService from "Common/Server/Services/PodmanHostService";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import IoTFleetService from "Common/Server/Services/IoTFleetService";
+import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import CephClusterService from "Common/Server/Services/CephClusterService";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import DockerSwarmClusterService from "Common/Server/Services/DockerSwarmClusterService";
@@ -312,6 +314,7 @@ export default abstract class OtelIngestBaseService {
     serverlessFunctionId?: ObjectID | null;
     cloudResourceId?: ObjectID | null;
     rumApplicationId?: ObjectID | null;
+    iotFleetId?: ObjectID | null;
     /*
      * OTLP `Resource.entity_refs` decoded for this batch (see
      * `OtelPayloadDecoder.getEntityRefsFromResource`). When present and
@@ -431,6 +434,7 @@ export default abstract class OtelIngestBaseService {
     serverlessFunctionId?: ObjectID | null;
     cloudResourceId?: ObjectID | null;
     rumApplicationId?: ObjectID | null;
+    iotFleetId?: ObjectID | null;
   }): Promise<TelemetryServiceMetadata> {
     const serviceName: string | null = await this.getServiceNameFromAttributes(
       data.req,
@@ -559,6 +563,18 @@ export default abstract class OtelIngestBaseService {
         serviceName: appName ? `rum/${appName}` : "RUM Application",
         resourceId: data.rumApplicationId,
         primaryEntityType: ServiceType.RealUserMonitor,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.iotFleetId) {
+      const fleetName: string | null = this.getIoTFleetNameFromAttributes(
+        data.attributes,
+      );
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: fleetName ? `iot/${fleetName}` : "IoT Fleet",
+        resourceId: data.iotFleetId,
+        primaryEntityType: ServiceType.IoTDevice,
         projectId: data.projectId,
       });
     }
@@ -1103,6 +1119,139 @@ export default abstract class OtelIngestBaseService {
     } catch (err) {
       logger.warn(
         `Proxmox cluster label promotion failed for ${data.proxmoxClusterId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  /*
+   * `iot.fleet.name` is the IoT Fleet join key — a OneUptime-defined
+   * resource attribute (no upstream semconv exists) stamped by the IoT
+   * device / gateway SDK from the IOT_FLEET_NAME env (via
+   * OTEL_RESOURCE_ATTRIBUTES). Some flattened forms prefix resource
+   * attributes with `resource.`, so accept that alias too.
+   */
+  @CaptureSpan()
+  protected static getIoTFleetNameFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    return (
+      this.getStringAttribute(attributes, "iot.fleet.name") ||
+      this.getStringAttribute(attributes, "resource.iot.fleet.name")
+    );
+  }
+
+  private static readonly IOT_FLEET_ID_CACHE_NAMESPACE: string = "iot-fleet-id";
+  private static readonly IOT_FLEET_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  @CaptureSpan()
+  protected static async autoDiscoverIoTFleet(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    try {
+      const fleetName: string | null = this.getIoTFleetNameFromAttributes(
+        data.attributes,
+      );
+
+      if (!fleetName) {
+        return null;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${fleetName}`;
+      let fleetIdStr: string | null = await GlobalCache.getString(
+        this.IOT_FLEET_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!fleetIdStr) {
+        const fleet: IoTFleet = await IoTFleetService.findOrCreateByName({
+          projectId: data.projectId,
+          name: fleetName,
+        });
+
+        if (fleet && fleet.id) {
+          const newFleetIdStr: string = fleet.id.toString();
+          fleetIdStr = newFleetIdStr;
+          await GlobalCache.setString(
+            this.IOT_FLEET_ID_CACHE_NAMESPACE,
+            cacheKey,
+            newFleetIdStr,
+            { expiresInSeconds: this.IOT_FLEET_ID_CACHE_EXPIRY_SECONDS },
+          );
+        }
+      }
+
+      if (fleetIdStr) {
+        const fleetId: ObjectID = new ObjectID(fleetIdStr);
+        /*
+         * Same fence rationale as the Kubernetes path — skip the
+         * per-batch maintenance UPDATE + label upsert when we
+         * already ran it within the fence window.
+         */
+        if (await this.shouldRunMaintenance("iot-fleet", fleetIdStr)) {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          await IoTFleetService.updateLastSeen(fleetId, {
+            agentVersion: agentVersion || undefined,
+          });
+          await this.promoteOneuptimeLabelsToIoTFleet({
+            projectId: data.projectId,
+            iotFleetId: fleetId,
+            attributes: data.attributes,
+          });
+        }
+        return fleetId;
+      }
+
+      return null;
+    } catch (err) {
+      logger.error(
+        "Error auto-discovering IoT fleet: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Promote `oneuptime.label.<dim>=<val>` resource attributes into
+   * project labels and attach them to the discovered IoT fleet.
+   * Mirrors the Proxmox cluster label promotion. Throttled
+   * per-fleet inside `attachLabels` so steady-state ingest with
+   * unchanged labels costs one in-memory cache lookup.
+   */
+  @CaptureSpan()
+  protected static async promoteOneuptimeLabelsToIoTFleet(data: {
+    projectId: ObjectID;
+    iotFleetId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await IoTFleetService.attachLabels({
+        iotFleetId: data.iotFleetId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `IoT fleet label promotion failed for ${data.iotFleetId.toString()}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );

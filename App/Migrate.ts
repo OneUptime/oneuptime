@@ -3,6 +3,7 @@ import Redis from "Common/Server/Infrastructure/Redis";
 import {
   ClickhouseAppInstance,
   ClickhouseIngestInstance,
+  ClickhouseMigrationInstance,
 } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import RunDatabaseMigrations from "./FeatureSet/Workers/Utils/DataMigration";
 import AnalyticsTableManagement from "./FeatureSet/Workers/Utils/AnalyticsDatabase/TableManegement";
@@ -45,6 +46,12 @@ const migrate: PromiseVoidFunction = async (): Promise<void> => {
   );
   await ClickhouseIngestInstance.connect(
     ClickhouseIngestInstance.getDatasourceOptions(),
+  );
+  // Migration pool (higher socket-idle timeout) — the schema sync and data
+  // migrations below route through this so long DDL/mutations are not
+  // destroyed at the App pool's 58s idle timeout.
+  await ClickhouseMigrationInstance.connect(
+    ClickhouseMigrationInstance.getDatasourceOptions(),
   );
 
   /*

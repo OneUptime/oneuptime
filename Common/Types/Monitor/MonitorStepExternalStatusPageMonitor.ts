@@ -4,7 +4,8 @@ import ExternalStatusPageProviderType from "./ExternalStatusPageProviderType";
 export default interface MonitorStepExternalStatusPageMonitor {
   statusPageUrl: string;
   provider: ExternalStatusPageProviderType;
-  componentName?: string | undefined; // optional: filter to a specific component
+  componentGroupName?: string | undefined; // optional: scope to a specific component group (e.g. "APIs")
+  componentName?: string | undefined; // optional: filter to a specific component (applied within the group when a group is set)
   timeout: number;
   retries: number;
 }
@@ -14,6 +15,7 @@ export class MonitorStepExternalStatusPageMonitorUtil {
     return {
       statusPageUrl: "",
       provider: ExternalStatusPageProviderType.Auto,
+      componentGroupName: undefined,
       componentName: undefined,
       timeout: 10000,
       retries: 3,
@@ -28,6 +30,7 @@ export class MonitorStepExternalStatusPageMonitorUtil {
       provider:
         (json["provider"] as ExternalStatusPageProviderType) ||
         ExternalStatusPageProviderType.Auto,
+      componentGroupName: (json["componentGroupName"] as string) || undefined,
       componentName: (json["componentName"] as string) || undefined,
       timeout: (json["timeout"] as number) || 10000,
       retries: (json["retries"] as number) || 3,
@@ -40,6 +43,7 @@ export class MonitorStepExternalStatusPageMonitorUtil {
     return {
       statusPageUrl: monitor.statusPageUrl,
       provider: monitor.provider,
+      componentGroupName: monitor.componentGroupName,
       componentName: monitor.componentName,
       timeout: monitor.timeout,
       retries: monitor.retries,

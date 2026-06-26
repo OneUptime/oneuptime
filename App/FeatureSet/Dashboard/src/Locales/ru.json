@@ -64,6 +64,8 @@
       "performanceProfilesDescription": "Найдите медленные функции и горячие точки памяти.",
       "exceptionsTitle": "Исключения",
       "exceptionsDescription": "Отслеживайте и устраняйте баги во всех ваших сервисах.",
+      "llmObservabilityTitle": "AI / LLM",
+      "llmObservabilityDescription": "Наблюдайте за вызовами LLM и ИИ-агентов — токены, стоимость, задержка, промпты и ответы.",
       "servicesTitle": "Сервисы",
       "servicesDescription": "Каталогизируйте каждый сервис, который вы запускаете.",
       "kubernetesTitle": "Kubernetes",

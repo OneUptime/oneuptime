@@ -524,6 +524,10 @@ const DocsNav: NavGroup[] = [
     links: [
       { title: "OpenTelemetry", url: "/docs/telemetry/open-telemetry" },
       {
+        title: "AI / LLM Observability",
+        url: "/docs/telemetry/ai-llm-observability",
+      },
+      {
         title: "Continuous Profiling",
         url: "/docs/telemetry/profiles",
       },
@@ -542,6 +546,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Docker Agent",
         url: "/docs/telemetry/docker-host",
+      },
+      {
+        title: "IoT Devices",
+        url: "/docs/telemetry/iot-devices",
       },
       {
         title: "Podman Agent",

@@ -1,6 +1,7 @@
 import { AnalyticsServices } from "Common/Server/Services/Index";
 import AnalyticsDatabaseService, {
   DbJSONResponse,
+  MigrationExecuteOptions,
   Results,
 } from "Common/Server/Services/AnalyticsDatabaseService";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
@@ -14,6 +15,7 @@ import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementG
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import {
   applyClusterToMaterializedViewQuery,
+  getDistributedEngine,
   getStorageTableName,
   onClusterClause,
 } from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
@@ -33,6 +35,7 @@ export default class AnalyticsTableManagement {
       // create a table if it does not exist
       await service.execute(
         service.statementGenerator.toTableCreateStatement(),
+        MigrationExecuteOptions,
       );
 
       /*
@@ -134,6 +137,7 @@ export default class AnalyticsTableManagement {
         });
         await service.execute(
           `RENAME TABLE ${tableName} TO ${preclustered}${onClusterClause()}`,
+          MigrationExecuteOptions,
         );
       } catch (error) {
         /*
@@ -150,12 +154,177 @@ export default class AnalyticsTableManagement {
     }
 
     /*
-     * <tableName> is now absent (just renamed) or already Distributed — safe to
-     * create / re-sync the Distributed wrapper.
+     * <tableName> is now absent (just renamed / never created) or already
+     * Distributed.
+     *
+     * If it already exists as a CORRECT Distributed wrapper, do NOT re-run
+     * CREATE OR REPLACE. CREATE OR REPLACE swaps the table's UUID every time,
+     * and an in-flight async insert (telemetry ingests with
+     * async_insert=1, wait_for_async_insert=0) buffered against the old UUID
+     * then fails on flush with TABLE_UUID_MISMATCH / UNKNOWN_TABLE ("While
+     * executing WaitForAsyncInsert"). With many app/worker replicas booting
+     * (and KEDA scaling workers up/down), an unconditional replace on every boot
+     * is a continuous UUID-churn that races ingestion. Only (re)create when the
+     * wrapper is absent or has actually drifted from the model — i.e. a column
+     * was reconciled onto the local table (the wrapper is `AS <local>`, so it
+     * must be re-synced to expose it) or the Distributed engine changed.
      */
+    if (existingEngine && existingEngine.startsWith("Distributed")) {
+      if (await this.isDistributedTableUpToDate(service)) {
+        return;
+      }
+      logger.info(
+        `Distributed wrapper ${tableName} has drifted from ${getStorageTableName(
+          tableName,
+        )} (column or engine change) - re-syncing it.`,
+      );
+    }
+
     await service.execute(
       service.statementGenerator.toDistributedTableCreateStatement(),
+      MigrationExecuteOptions,
     );
+  }
+
+  /**
+   * True when <tableName> already exists as a Distributed wrapper that matches
+   * the model — same Distributed(...) engine AND the same columns as its local
+   * storage table (the wrapper is created `AS <local>`). Lets
+   * reconcileDistributedTable skip a needless CREATE OR REPLACE (which churns
+   * the table UUID and races async inserts).
+   *
+   * CONSERVATIVE: any read failure, missing table, or ambiguity returns false,
+   * so the caller falls back to the original always-re-sync behavior rather
+   * than risk leaving a stale wrapper (e.g. one missing a reconciled column,
+   * which would surface as Code 47 "Missing columns" on a scatter-gather read).
+   */
+  private static async isDistributedTableUpToDate(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+  ): Promise<boolean> {
+    const distributedTableName: string = service.model.tableName;
+    const localTableName: string = getStorageTableName(distributedTableName);
+
+    try {
+      // 1. Engine must match the model's expected Distributed(...) definition.
+      const actualEngine: string | null = await this.getTableEngineFull(
+        service,
+        distributedTableName,
+      );
+      if (!actualEngine) {
+        return false;
+      }
+      const expectedEngine: string = getDistributedEngine(
+        localTableName,
+        service.model.shardingKey,
+      );
+      if (
+        this.normalizeEngineDefinition(actualEngine) !==
+        this.normalizeEngineDefinition(expectedEngine)
+      ) {
+        return false;
+      }
+
+      // 2. Columns must match the local table (the wrapper is `AS <local>`).
+      const distributedColumns: Map<string, string> = await this.getColumnTypes(
+        service,
+        distributedTableName,
+      );
+      const localColumns: Map<string, string> = await this.getColumnTypes(
+        service,
+        localTableName,
+      );
+
+      // Either read came back empty ⇒ can't verify ⇒ re-sync to be safe.
+      if (distributedColumns.size === 0 || localColumns.size === 0) {
+        return false;
+      }
+      if (distributedColumns.size !== localColumns.size) {
+        return false;
+      }
+      for (const [name, type] of localColumns) {
+        if (distributedColumns.get(name) !== type) {
+          return false;
+        }
+      }
+
+      return true;
+    } catch (error) {
+      logger.error({
+        message: `Failed to check whether Distributed wrapper ${distributedTableName} is up to date - will re-sync it.`,
+        error: (error as Error).message,
+      });
+      return false;
+    }
+  }
+
+  /**
+   * The full ClickHouse engine definition of a table from system.tables (e.g.
+   * `Distributed('oneuptime', 'oneuptime', 'SpanItemV3Local', cityHash64(projectId))`),
+   * or null if the table does not exist.
+   */
+  private static async getTableEngineFull(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+    tableName: string,
+  ): Promise<string | null> {
+    const escaped: string = this.escapeForQuery(tableName);
+    let result: Results;
+    try {
+      result = await service.executeQuery(
+        `SELECT engine_full FROM system.tables WHERE database = currentDatabase() AND name = '${escaped}' LIMIT 1`,
+      );
+    } catch (error) {
+      logger.error({
+        message: `Failed to read engine_full for ${tableName}`,
+        error: (error as Error).message,
+      });
+      return null;
+    }
+
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+    if (!response.data || response.data.length === 0) {
+      return null;
+    }
+    const value: unknown = (response.data[0] as JSONObject)["engine_full"];
+    return typeof value === "string" ? value : null;
+  }
+
+  /**
+   * name -> type for every column of a table (from system.columns). Empty map
+   * if the table does not exist or has no columns.
+   */
+  private static async getColumnTypes(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+    tableName: string,
+  ): Promise<Map<string, string>> {
+    const escaped: string = this.escapeForQuery(tableName);
+    const result: Results = await service.executeQuery(
+      `SELECT name, type FROM system.columns WHERE database = currentDatabase() AND table = '${escaped}'`,
+    );
+
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const columns: Map<string, string> = new Map<string, string>();
+    for (const row of response.data || []) {
+      const record: JSONObject = row as JSONObject;
+      columns.set(String(record["name"]), String(record["type"] ?? ""));
+    }
+    return columns;
+  }
+
+  /**
+   * Normalize an engine definition for comparison by dropping the
+   * quoting/backticks and whitespace that differ between our generated SQL
+   * (unquoted db/table args) and ClickHouse's stored engine_full (string-literal
+   * args), so a semantically-identical Distributed(...) compares equal. If the
+   * normalization ever fails to match a genuinely-correct engine, the only
+   * effect is a (harmless, idempotent) CREATE OR REPLACE — never a wrong skip.
+   */
+  private static normalizeEngineDefinition(engine: string): string {
+    return engine.replace(/[`'\s]/g, "");
   }
 
   /**
@@ -348,7 +517,7 @@ export default class AnalyticsTableManagement {
         logger.info(
           `Skip index ${indexName} is missing on ${service.model.tableName} - adding it.`,
         );
-        await service.execute(indexStatement);
+        await service.execute(indexStatement, MigrationExecuteOptions);
       } catch (error) {
         logger.error({
           message: `Failed to add missing skip index ${indexName} on ${service.model.tableName}`,
@@ -688,6 +857,7 @@ export default class AnalyticsTableManagement {
               `DROP VIEW IF EXISTS ${this.escapeIdentifier(
                 materializedView.name,
               )}${onClusterClause()} SYNC`,
+              MigrationExecuteOptions,
             );
           } else {
             /*
@@ -969,6 +1139,7 @@ export default class AnalyticsTableManagement {
 
         await service.execute(
           `ALTER TABLE ${escapedDatabase}.${escapedTable} ADD PROJECTION IF NOT EXISTS ${escapedProjection} (${projection.query})`,
+          MigrationExecuteOptions,
         );
 
         /*
@@ -980,6 +1151,7 @@ export default class AnalyticsTableManagement {
          */
         await service.execute(
           `ALTER TABLE ${escapedDatabase}.${escapedTable} MATERIALIZE PROJECTION ${escapedProjection} SETTINGS mutations_sync=0`,
+          MigrationExecuteOptions,
         );
       } catch (error) {
         logger.error({
@@ -1055,7 +1227,7 @@ export default class AnalyticsTableManagement {
     );
 
     try {
-      await service.execute(statement);
+      await service.execute(statement, MigrationExecuteOptions);
     } catch (error) {
       const clickhouseError: { code?: string } = error as { code?: string };
 
@@ -1124,6 +1296,7 @@ export default class AnalyticsTableManagement {
        */
       await service.execute(
         applyClusterToMaterializedViewQuery(materializedView.query),
+        MigrationExecuteOptions,
       );
     } catch (error) {
       const clickhouseError: { code?: string } = error as { code?: string };

@@ -246,7 +246,8 @@ ${contextBlock}
       input.monitor.monitorType !== MonitorType.Podman &&
       input.monitor.monitorType !== MonitorType.DockerSwarm &&
       input.monitor.monitorType !== MonitorType.Proxmox &&
-      input.monitor.monitorType !== MonitorType.Ceph
+      input.monitor.monitorType !== MonitorType.Ceph &&
+      input.monitor.monitorType !== MonitorType.IoTDevice
     ) {
       return [];
     }
@@ -697,7 +698,8 @@ ${contextBlock}
       input.monitor.monitorType === MonitorType.Podman ||
       input.monitor.monitorType === MonitorType.DockerSwarm ||
       input.monitor.monitorType === MonitorType.Proxmox ||
-      input.monitor.monitorType === MonitorType.Ceph
+      input.monitor.monitorType === MonitorType.Ceph ||
+      input.monitor.monitorType === MonitorType.IoTDevice
     ) {
       const metricMonitorResult: string | null =
         await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet({

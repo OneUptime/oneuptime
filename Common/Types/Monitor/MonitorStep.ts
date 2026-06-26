@@ -65,6 +65,9 @@ import MonitorStepDockerSwarmMonitor, {
 import MonitorStepCephMonitor, {
   MonitorStepCephMonitorUtil,
 } from "./MonitorStepCephMonitor";
+import MonitorStepIoTMonitor, {
+  MonitorStepIoTMonitorUtil,
+} from "./MonitorStepIoTMonitor";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
 /*
@@ -199,6 +202,9 @@ export interface MonitorStepType {
 
   // Ceph monitor
   cephMonitor?: MonitorStepCephMonitor | undefined;
+
+  // IoT monitor
+  iotMonitor?: MonitorStepIoTMonitor | undefined;
 }
 
 export default class MonitorStep extends DatabaseProperty {
@@ -243,6 +249,7 @@ export default class MonitorStep extends DatabaseProperty {
       proxmoxMonitor: undefined,
       dockerSwarmMonitor: undefined,
       cephMonitor: undefined,
+      iotMonitor: undefined,
     };
   }
 
@@ -292,6 +299,7 @@ export default class MonitorStep extends DatabaseProperty {
       proxmoxMonitor: undefined,
       dockerSwarmMonitor: undefined,
       cephMonitor: undefined,
+      iotMonitor: undefined,
     };
 
     return monitorStep;
@@ -512,6 +520,11 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setIoTMonitor(iotMonitor: MonitorStepIoTMonitor): MonitorStep {
+    this.data!.iotMonitor = iotMonitor;
+    return this;
+  }
+
   public setCustomCode(customCode: string): MonitorStep {
     this.data!.customCode = customCode;
     return this;
@@ -553,6 +566,7 @@ export default class MonitorStep extends DatabaseProperty {
         proxmoxMonitor: undefined,
         dockerSwarmMonitor: undefined,
         cephMonitor: undefined,
+        iotMonitor: undefined,
       },
     };
   }
@@ -769,6 +783,16 @@ export default class MonitorStep extends DatabaseProperty {
       }
     }
 
+    if (monitorType === MonitorType.IoTDevice) {
+      if (!value.data.iotMonitor) {
+        return "IoT monitor configuration is required";
+      }
+
+      if (!value.data.iotMonitor.fleetIdentifier) {
+        return "IoT fleet is required";
+      }
+    }
+
     return null;
   }
 
@@ -868,6 +892,9 @@ export default class MonitorStep extends DatabaseProperty {
             : undefined,
           cephMonitor: this.data.cephMonitor
             ? MonitorStepCephMonitorUtil.toJSON(this.data.cephMonitor)
+            : undefined,
+          iotMonitor: this.data.iotMonitor
+            ? MonitorStepIoTMonitorUtil.toJSON(this.data.iotMonitor)
             : undefined,
         },
       });
@@ -1022,6 +1049,9 @@ export default class MonitorStep extends DatabaseProperty {
       cephMonitor: json["cephMonitor"]
         ? (json["cephMonitor"] as JSONObject)
         : undefined,
+      iotMonitor: json["iotMonitor"]
+        ? (json["iotMonitor"] as JSONObject)
+        : undefined,
     }) as any;
 
     return monitorStep;
@@ -1065,6 +1095,7 @@ export default class MonitorStep extends DatabaseProperty {
         proxmoxMonitor: Zod.any().optional(),
         dockerSwarmMonitor: Zod.any().optional(),
         cephMonitor: Zod.any().optional(),
+        iotMonitor: Zod.any().optional(),
       }).openapi({
         type: "object",
         example: {

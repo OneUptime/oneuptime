@@ -225,4 +225,8 @@ spec:
   selector:
     app: {{ .Release.Name }}-pgbouncer
     app.kubernetes.io/component: pgbouncer
+---
+
+# PgBouncer PodDisruptionBudget
+{{- include "oneuptime.pdb" (dict "ServiceName" "pgbouncer" "Override" .Values.pgbouncer.podDisruptionBudget "Release" .Release "Values" .Values) }}
 {{- end }}

@@ -4,6 +4,7 @@ import React, {
   useState,
   useEffect,
 } from "react";
+import { createPortal } from "react-dom";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -368,9 +369,18 @@ const Navbar: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
+      {/*
+       * Render the full-screen products modal in a portal on document.body so it
+       * is not a flex child of this `justify-between` nav. Otherwise it counts as
+       * a third flex item and shifts the right-side user/settings menu toward the
+       * middle whenever the modal opens. The modal is `fixed inset-0`, so its
+       * visual position is identical when portaled.
+       */}
       {isMoreMenuVisible &&
         props.moreMenuItems &&
-        props.moreMenuItems.length > 0 && (
+        props.moreMenuItems.length > 0 &&
+        typeof document !== "undefined" &&
+        createPortal(
           <NavBarMenuModal
             items={props.moreMenuItems}
             footer={props.moreMenuFooter}
@@ -379,7 +389,8 @@ const Navbar: FunctionComponent<ComponentProps> = (
             keyboardHint={props.moreMenuKeyboardHint}
             recentLabel={props.moreMenuRecentLabel}
             onClose={closeMoreMenu}
-          />
+          />,
+          document.body,
         )}
     </nav>
   );

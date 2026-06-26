@@ -17,6 +17,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import {
   ClickhouseAppInstance,
   ClickhouseIngestInstance,
+  ClickhouseMigrationInstance,
 } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import Redis from "Common/Server/Infrastructure/Redis";
@@ -26,6 +27,7 @@ import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import Profiling from "Common/Server/Utils/Profiling";
+import { RunDatabaseMigrationsOnBoot } from "Common/Server/EnvironmentConfig";
 import "ejs";
 import OpenAPIUtil from "Common/Server/Utils/OpenAPI";
 
@@ -97,6 +99,20 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await ClickhouseIngestInstance.connect(
       ClickhouseIngestInstance.getDatasourceOptions(),
     );
+    /*
+     * Migration pool (higher socket-idle timeout) — only connect it where it
+     * is actually used: the boot schema sync + data migrations run here only
+     * when RunDatabaseMigrationsOnBoot is set (same gate as Workers/Index.ts).
+     * When migrations are handled by the dedicated migrate Job
+     * (RUN_DATABASE_MIGRATIONS_ON_BOOT=false), runtime pods never touch this
+     * pool, so connecting it would just waste an HTTP socket pool + a
+     * CREATE DATABASE/ping on every boot.
+     */
+    if (RunDatabaseMigrationsOnBoot) {
+      await ClickhouseMigrationInstance.connect(
+        ClickhouseMigrationInstance.getDatasourceOptions(),
+      );
+    }
 
     // Initialize the app with service name and status checks
     await App.init({

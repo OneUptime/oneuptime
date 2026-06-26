@@ -29,11 +29,13 @@ import PodmanHostService from "./PodmanHostService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import CephClusterService from "./CephClusterService";
+import IoTFleetService from "./IoTFleetService";
 import Host from "../../Models/DatabaseModels/Host";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
+import IoTFleet from "../../Models/DatabaseModels/IoTFleet";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import {
@@ -474,6 +476,22 @@ export class Service extends DatabaseService<Model> {
         retentionByServiceId.set(
           cephCluster.id.toString(),
           cephCluster.retainTelemetryDataForDays,
+        );
+      }
+    }
+
+    const iotFleets: Array<IoTFleet> = await IoTFleetService.findBy({
+      query: { projectId: projectId },
+      select: { _id: true, retainTelemetryDataForDays: true },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: { isRoot: true },
+    });
+    for (const iotFleet of iotFleets) {
+      if (iotFleet.id && iotFleet.retainTelemetryDataForDays) {
+        retentionByServiceId.set(
+          iotFleet.id.toString(),
+          iotFleet.retainTelemetryDataForDays,
         );
       }
     }

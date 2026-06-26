@@ -31,7 +31,10 @@ export function parseFilterQuery(
   const conditions: Array<FilterConditionData> = [];
 
   for (const part of parts) {
-    const trimmed: string = part.trim().replace(/^\(|\)$/g, "");
+    let trimmed: string = part.trim();
+    if (trimmed.startsWith("(") && trimmed.endsWith(")")) {
+      trimmed = trimmed.slice(1, -1).trim();
+    }
 
     const likeMatch: RegExpMatchArray | null = trimmed.match(
       /^(\S+)\s+(LIKE)\s+'([^']*)'$/i,

@@ -12,6 +12,7 @@ import {
 } from "../../Utils/OtelPayloadDecoder";
 import { headerValueToString } from "Common/Server/Utils/Express";
 import TelemetryBodyStore from "../../Utils/TelemetryBodyStore";
+import { INCOMING_REQUEST_INGEST_COALESCE_ENABLED } from "../../Config";
 
 export enum TelemetryType {
   Logs = "logs",
@@ -519,6 +520,27 @@ export default class TelemetryQueueService {
            * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
+          /*
+           * Coalesce same-monitor incoming requests. An external sender can
+           * hammer one monitor's incoming-request URL at an arbitrary rate;
+           * without coalescing each call becomes its own job and they fan out
+           * into many concurrent monitorResource() calls all contending on the
+           * same per-monitor Redis lock ("Acquire mutex ... timeout"). With
+           * keepLastIfActive BullMQ keeps at most one active + one waiting job
+           * per monitor and preserves the latest payload, so same-monitor
+           * processing is serialized at enqueue time (no worker slots, no lock
+           * contention) while liveness stays fresh. Keyed by secretKey because
+           * the monitorId is only resolved later in the worker; the secret key
+           * is 1:1 with the monitor. Gated so ops can disable without a deploy.
+           */
+          ...(INCOMING_REQUEST_INGEST_COALESCE_ENABLED
+            ? {
+                deduplication: {
+                  id: `incoming-request-${data.secretKey}`,
+                  keepLastIfActive: true,
+                },
+              }
+            : {}),
         },
       );
 

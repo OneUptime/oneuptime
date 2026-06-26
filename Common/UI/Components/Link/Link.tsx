@@ -33,6 +33,28 @@ const Link: FunctionComponent<ComponentProps> = (
     children = props.children;
   }
 
+  /*
+   * Neither a destination nor an action: this is static text, not a link or a
+   * button. Render a <span> rather than an <a> with no href, which is
+   * ambiguous to assistive technology (is it a link, a button, or just text?
+   * WCAG 4.1.2 Name, Role, Value).
+   */
+  if (!props.to && !props.onClick) {
+    return (
+      <span
+        id={props.id}
+        className={`cursor-default ${props.className || ""}`}
+        onMouseOver={props.onMouseOver}
+        onMouseOut={props.onMouseOut}
+        onMouseLeave={props.onMouseLeave}
+        style={props.style}
+        title={props.title}
+      >
+        {children}
+      </span>
+    );
+  }
+
   const linkProps: JSONObject = {};
 
   /*

@@ -44,6 +44,8 @@ import CriticalPathUtil, {
   SpanData,
   SpanSelfTime,
 } from "Common/Utils/Traces/CriticalPath";
+import LlmSpanPanel from "../Traces/LlmSpanPanel";
+import LlmSpanDisplayUtil from "../../Utils/LlmSpanDisplay";
 
 export interface ComponentProps {
   id: string;
@@ -203,6 +205,17 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
       CriticalPathUtil.computeSelfTimes(spanDataList);
     return selfTimes.get(span.spanId!) || null;
   }, [span, props.allTraceSpans]);
+
+  // Must be before early returns to preserve hook order.
+  const isLlmSpan: boolean = React.useMemo(() => {
+    if (!span) {
+      return false;
+    }
+    return LlmSpanDisplayUtil.parse({
+      attributes: span.attributes as JSONObject | undefined,
+      events: span.events,
+    }).isLlmSpan;
+  }, [span]);
 
   /*
    * Filter-by-attribute from a span/event/exception attribute row. Navigates
@@ -666,6 +679,23 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const getLlmContentElement: GetReactElementFunction = (): ReactElement => {
+    if (!span) {
+      return <ErrorMessage message="Span not found" />;
+    }
+
+    return (
+      <LlmSpanPanel
+        attributes={span.attributes as JSONObject | undefined}
+        events={span.events}
+        durationLabel={SpanUtil.getSpanDurationAsString({
+          divisibilityFactor: props.divisibilityFactor,
+          spanDurationInUnixNano: span.durationUnixNano!,
+        })}
+      />
+    );
+  };
+
   const getBasicInfo: GetReactElementFunction = (): ReactElement => {
     if (!span) {
       return <ErrorMessage message="Span not found" />;
@@ -846,6 +876,14 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
             name: "Basic Info",
             children: getBasicInfo(),
           },
+          ...(isLlmSpan
+            ? [
+                {
+                  name: "AI / LLM",
+                  children: getLlmContentElement(),
+                },
+              ]
+            : []),
           {
             name: "Logs",
             children: getLogsContentElement(),

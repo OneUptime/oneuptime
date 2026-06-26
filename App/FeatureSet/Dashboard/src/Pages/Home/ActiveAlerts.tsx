@@ -54,7 +54,7 @@ const Home: FunctionComponent<PageComponentProps> = (
 
   return (
     <Page
-      title={"Home"}
+      title={"Active Alerts"}
       breadcrumbLinks={[
         {
           title: "Project",

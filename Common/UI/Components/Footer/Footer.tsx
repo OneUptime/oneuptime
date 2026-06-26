@@ -66,7 +66,7 @@ const Footer: FunctionComponent<ComponentProps> = (
           {/* Copyright: Show on mobile, hide on larger screens unless specified */}
           <div className="mt-5 md:order-1 md:mt-0 block md:hidden lg:block">
             {props.copyright && (
-              <p className="text-center text-sm text-gray-400">
+              <p className="text-center text-sm text-gray-500">
                 &copy; {props.copyright}
               </p>
             )}

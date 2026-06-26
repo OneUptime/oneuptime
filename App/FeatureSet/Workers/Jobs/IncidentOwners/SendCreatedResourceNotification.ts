@@ -78,13 +78,11 @@ RunCron(
       const incidentNumberDisplay: string =
         incident.incidentNumberWithPrefix || "#" + incidentNumber;
 
-      const incidentFeedText: string = `🔔 **Owner Incident Created Notification Sent**:
-Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) was created.`;
-      let moreIncidentFeedInformationInMarkdown: string = "";
-
-      const incidentIdentifiedDate: Date =
-        await IncidentService.getIncidentIdentifiedDate(incident.id!);
-
+      /*
+       * Mark the incident as notified first (matching the MonitorOwner worker)
+       * so that a failure while building or sending the notification below can
+       * never cause this incident to be re-picked on every cron run.
+       */
       await IncidentService.updateOneById({
         id: incident.id!,
         data: {
@@ -94,6 +92,13 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
           isRoot: true,
         },
       });
+
+      const incidentFeedText: string = `🔔 **Owner Incident Created Notification Sent**:
+Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) was created.`;
+      let moreIncidentFeedInformationInMarkdown: string = "";
+
+      const incidentIdentifiedDate: Date =
+        await IncidentService.getIncidentIdentifiedDate(incident.id!);
 
       // now find owners.
 

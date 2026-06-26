@@ -893,6 +893,192 @@ export default class Span extends AnalyticsBaseModel {
       },
     });
 
+    /*
+     * First-class LLM / GenAI / AI-agent columns. Denormalized at ingest from
+     * gen_ai.* (and OpenLLMetry/OpenInference) span attributes so LLM calls can
+     * be listed, filtered, and aggregated (tokens/cost/latency) cheaply without
+     * scanning the attributes map. See Common/Server/Utils/Telemetry/LlmSpan.ts.
+     */
+    const llmColumnAccessControl: {
+      read: Array<Permission>;
+      create: Array<Permission>;
+      update: Array<Permission>;
+    } = {
+      read: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.Viewer,
+        Permission.TelemetryAdmin,
+        Permission.TelemetryMember,
+        Permission.TelemetryViewer,
+        Permission.ReadTelemetryServiceTraces,
+      ],
+      create: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.TelemetryAdmin,
+        Permission.TelemetryMember,
+        Permission.CreateTelemetryServiceTraces,
+      ],
+      update: [],
+    };
+
+    const isLlmSpanColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "isLlmSpan",
+      title: "Is LLM Span",
+      description:
+        "Whether this span is an LLM / GenAI / AI-agent operation, populated at ingest time for fast filtering of AI calls",
+      required: true,
+      defaultValue: false,
+      type: TableColumnType.Boolean,
+      skipIndex: {
+        name: "idx_is_llm_span",
+        type: SkipIndexType.Set,
+        params: [2],
+        granularity: 4,
+      },
+      accessControl: llmColumnAccessControl,
+    });
+
+    const llmSystemColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "llmSystem",
+      isLowCardinality: true,
+      title: "LLM System",
+      description:
+        "GenAI provider / system, e.g. openai, anthropic, aws.bedrock (gen_ai.system)",
+      required: false,
+      type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_llm_system",
+        type: SkipIndexType.Set,
+        params: [100],
+        granularity: 4,
+      },
+      accessControl: llmColumnAccessControl,
+    });
+
+    const llmOperationColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "llmOperation",
+      isLowCardinality: true,
+      title: "LLM Operation",
+      description:
+        "GenAI operation, e.g. chat, embeddings, execute_tool, invoke_agent (gen_ai.operation.name)",
+      required: false,
+      type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_llm_operation",
+        type: SkipIndexType.Set,
+        params: [100],
+        granularity: 4,
+      },
+      accessControl: llmColumnAccessControl,
+    });
+
+    const llmRequestModelColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "llmRequestModel",
+        isLowCardinality: true,
+        title: "LLM Request Model",
+        description: "Model requested by the caller (gen_ai.request.model)",
+        required: false,
+        type: TableColumnType.Text,
+        skipIndex: {
+          name: "idx_llm_request_model",
+          type: SkipIndexType.Set,
+          params: [1000],
+          granularity: 4,
+        },
+        accessControl: llmColumnAccessControl,
+      });
+
+    const llmResponseModelColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "llmResponseModel",
+        isLowCardinality: true,
+        title: "LLM Response Model",
+        description:
+          "Model the provider actually served (gen_ai.response.model)",
+        required: false,
+        type: TableColumnType.Text,
+        accessControl: llmColumnAccessControl,
+      });
+
+    const llmAgentNameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "llmAgentName",
+      codec: { codec: "ZSTD", level: 1 },
+      title: "LLM Agent Name",
+      description:
+        "Name of the agent for agent-framework spans (gen_ai.agent.name)",
+      required: false,
+      type: TableColumnType.Text,
+      accessControl: llmColumnAccessControl,
+    });
+
+    const llmToolNameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "llmToolName",
+      codec: { codec: "ZSTD", level: 1 },
+      title: "LLM Tool Name",
+      description:
+        "Name of the tool invoked for tool-call spans (gen_ai.tool.name)",
+      required: false,
+      type: TableColumnType.Text,
+      accessControl: llmColumnAccessControl,
+    });
+
+    const llmInputTokensColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
+      {
+        key: "llmInputTokens",
+        title: "LLM Input Tokens",
+        description: "Input/prompt token count (gen_ai.usage.input_tokens)",
+        required: true,
+        defaultValue: 0,
+        type: TableColumnType.Number,
+        accessControl: llmColumnAccessControl,
+      },
+    );
+
+    const llmOutputTokensColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "llmOutputTokens",
+        title: "LLM Output Tokens",
+        description:
+          "Output/completion token count (gen_ai.usage.output_tokens)",
+        required: true,
+        defaultValue: 0,
+        type: TableColumnType.Number,
+        accessControl: llmColumnAccessControl,
+      });
+
+    const llmTotalTokensColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
+      {
+        key: "llmTotalTokens",
+        title: "LLM Total Tokens",
+        description:
+          "Total token count (gen_ai.usage.total_tokens, or input + output)",
+        required: true,
+        defaultValue: 0,
+        type: TableColumnType.Number,
+        accessControl: llmColumnAccessControl,
+      },
+    );
+
+    const llmCostColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "llmCost",
+      title: "LLM Cost (USD)",
+      description:
+        "Cost of this LLM call in USD. Only populated when the instrumentation reports it (gen_ai.usage.cost); OneUptime does not compute pricing.",
+      required: true,
+      defaultValue: 0,
+      /*
+       * Decimal (ClickHouse Double) — cost is fractional; an Int column would
+       * reject the fractional JSONEachRow value and poison the whole batch.
+       */
+      type: TableColumnType.Decimal,
+      accessControl: llmColumnAccessControl,
+    });
+
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
       codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
@@ -974,6 +1160,17 @@ export default class Span extends AnalyticsBaseModel {
         kindColumn,
         hasExceptionColumn,
         isRootSpanColumn,
+        isLlmSpanColumn,
+        llmSystemColumn,
+        llmOperationColumn,
+        llmRequestModelColumn,
+        llmResponseModelColumn,
+        llmAgentNameColumn,
+        llmToolNameColumn,
+        llmInputTokensColumn,
+        llmOutputTokensColumn,
+        llmTotalTokensColumn,
+        llmCostColumn,
         retentionDateColumn,
       ],
       projections: [
@@ -1198,5 +1395,93 @@ export default class Span extends AnalyticsBaseModel {
 
   public set retentionDate(v: Date | undefined) {
     this.setColumnValue("retentionDate", v);
+  }
+
+  public get isLlmSpan(): boolean | undefined {
+    return this.getColumnValue("isLlmSpan") as boolean | undefined;
+  }
+
+  public set isLlmSpan(v: boolean | undefined) {
+    this.setColumnValue("isLlmSpan", v);
+  }
+
+  public get llmSystem(): string | undefined {
+    return this.getColumnValue("llmSystem") as string | undefined;
+  }
+
+  public set llmSystem(v: string | undefined) {
+    this.setColumnValue("llmSystem", v);
+  }
+
+  public get llmOperation(): string | undefined {
+    return this.getColumnValue("llmOperation") as string | undefined;
+  }
+
+  public set llmOperation(v: string | undefined) {
+    this.setColumnValue("llmOperation", v);
+  }
+
+  public get llmRequestModel(): string | undefined {
+    return this.getColumnValue("llmRequestModel") as string | undefined;
+  }
+
+  public set llmRequestModel(v: string | undefined) {
+    this.setColumnValue("llmRequestModel", v);
+  }
+
+  public get llmResponseModel(): string | undefined {
+    return this.getColumnValue("llmResponseModel") as string | undefined;
+  }
+
+  public set llmResponseModel(v: string | undefined) {
+    this.setColumnValue("llmResponseModel", v);
+  }
+
+  public get llmAgentName(): string | undefined {
+    return this.getColumnValue("llmAgentName") as string | undefined;
+  }
+
+  public set llmAgentName(v: string | undefined) {
+    this.setColumnValue("llmAgentName", v);
+  }
+
+  public get llmToolName(): string | undefined {
+    return this.getColumnValue("llmToolName") as string | undefined;
+  }
+
+  public set llmToolName(v: string | undefined) {
+    this.setColumnValue("llmToolName", v);
+  }
+
+  public get llmInputTokens(): number | undefined {
+    return this.getColumnValue("llmInputTokens") as number | undefined;
+  }
+
+  public set llmInputTokens(v: number | undefined) {
+    this.setColumnValue("llmInputTokens", v);
+  }
+
+  public get llmOutputTokens(): number | undefined {
+    return this.getColumnValue("llmOutputTokens") as number | undefined;
+  }
+
+  public set llmOutputTokens(v: number | undefined) {
+    this.setColumnValue("llmOutputTokens", v);
+  }
+
+  public get llmTotalTokens(): number | undefined {
+    return this.getColumnValue("llmTotalTokens") as number | undefined;
+  }
+
+  public set llmTotalTokens(v: number | undefined) {
+    this.setColumnValue("llmTotalTokens", v);
+  }
+
+  public get llmCost(): number | undefined {
+    return this.getColumnValue("llmCost") as number | undefined;
+  }
+
+  public set llmCost(v: number | undefined) {
+    this.setColumnValue("llmCost", v);
   }
 }

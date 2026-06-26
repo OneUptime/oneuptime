@@ -64,6 +64,8 @@
       "performanceProfilesDescription": "느린 함수와 메모리 핫스팟을 찾으세요.",
       "exceptionsTitle": "예외",
       "exceptionsDescription": "서비스 전반의 버그를 추적하고 해결하세요.",
+      "llmObservabilityTitle": "AI / LLM",
+      "llmObservabilityDescription": "LLM 및 AI 에이전트 호출을 관측 — 토큰, 비용, 지연 시간, 프롬프트 및 완성.",
       "servicesTitle": "서비스",
       "servicesDescription": "실행 중인 모든 서비스를 카탈로그화하세요.",
       "kubernetesTitle": "Kubernetes",

@@ -400,6 +400,9 @@ import { OptimizeTelemetryExceptionWritePath1782500000000 } from "./178250000000
 import { AddArchiveToResources1782600000000 } from "./1782600000000-AddArchiveToResources";
 import { RemoveDeprecatedEnableSubscribersFromStatusPage1782700000000 } from "./1782700000000-RemoveDeprecatedEnableSubscribersFromStatusPage";
 import { WidenDockerResourceImageColumns1782800000000 } from "./1782800000000-WidenDockerResourceImageColumns";
+import { AddIoTFleetAndDeviceTables1782900000000 } from "./1782900000000-AddIoTFleetAndDeviceTables";
+import { AddIoTFleetActivityJoinTables1783000000000 } from "./1783000000000-AddIoTFleetActivityJoinTables";
+import { MigrationName1783010000000 } from "./1783010000000-MigrationName";
 
 export default [
   InitialMigration,
@@ -804,4 +807,7 @@ export default [
   AddArchiveToResources1782600000000,
   RemoveDeprecatedEnableSubscribersFromStatusPage1782700000000,
   WidenDockerResourceImageColumns1782800000000,
+  AddIoTFleetAndDeviceTables1782900000000,
+  AddIoTFleetActivityJoinTables1783000000000,
+  MigrationName1783010000000,
 ];
