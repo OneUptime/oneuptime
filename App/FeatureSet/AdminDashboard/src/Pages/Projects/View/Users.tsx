@@ -253,6 +253,18 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                   field: {
                     user: true,
                   },
+                  title: "User Name",
+                  description:
+                    "Enter the name of the user you would like to invite. This is optional and will only be used if this user does not already have an account.",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  placeholder: "John Smith",
+                  overrideFieldKey: "name",
+                },
+                {
+                  field: {
+                    user: true,
+                  },
                   title: "User Email",
                   description:
                     "Enter the email of the user you would like to invite. We will send them an email letting them know they have been invited to the team you selected.",

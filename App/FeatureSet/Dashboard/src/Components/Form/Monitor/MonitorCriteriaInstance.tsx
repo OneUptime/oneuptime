@@ -122,10 +122,10 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
   const updateIncidentGrouping: (
     patch: Partial<IncidentGroupingConfig>,
   ) => void = (patch: Partial<IncidentGroupingConfig>): void => {
-    const current: IncidentGroupingConfig =
-      monitorCriteriaInstance?.data?.incidentGrouping || {
-        groupByJSONPath: "",
-      };
+    const current: IncidentGroupingConfig = monitorCriteriaInstance?.data
+      ?.incidentGrouping || {
+      groupByJSONPath: "",
+    };
     monitorCriteriaInstance.setIncidentGrouping({ ...current, ...patch });
     if (props.onChange) {
       props.onChange(MonitorCriteriaInstance.clone(monitorCriteriaInstance));
@@ -591,101 +591,103 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           defaultCollapsed={!showIncidentGrouping}
           className="mb-4"
         >
-          <div className="mt-2">
-            <Toggle
-              value={showIncidentGrouping}
-              title="Group incidents and alerts by a payload field"
-              description="When enabled, this criteria opens a separate incident and alert per distinct value extracted from the request body, so a single webhook endpoint (e.g. Grafana) can keep multiple incidents active at once. Leave off for the default one-active-incident-per-criteria behaviour."
-              onChange={(value: boolean) => {
-                setShowIncidentGrouping(value);
-                if (value) {
-                  monitorCriteriaInstance.setIncidentGrouping(
-                    monitorCriteriaInstance?.data?.incidentGrouping || {
-                      groupByJSONPath: "",
-                    },
-                  );
-                } else {
-                  monitorCriteriaInstance.setIncidentGrouping(undefined);
-                }
-                if (props.onChange) {
-                  props.onChange(
-                    MonitorCriteriaInstance.clone(monitorCriteriaInstance),
-                  );
-                }
-              }}
-            />
-          </div>
-
-          {showIncidentGrouping && (
-            <div className="mt-4 ml-6 p-3 bg-gray-50 rounded-md border border-gray-100">
-              <FieldLabelElement
-                title="Group by (JSON path)"
-                description="Path into the request body whose value keys each incident. Supports a single [*] wildcard to fan out over an array. Example (Grafana): alerts[*].labels.alertname"
-                required={true}
-              />
-              <Input
-                value={incidentGrouping?.groupByJSONPath || ""}
-                placeholder="alerts[*].labels.alertname"
-                onChange={(value: string) => {
-                  updateIncidentGrouping({ groupByJSONPath: value });
+          <div>
+            <div className="mt-2">
+              <Toggle
+                value={showIncidentGrouping}
+                title="Group incidents and alerts by a payload field"
+                description="When enabled, this criteria opens a separate incident and alert per distinct value extracted from the request body, so a single webhook endpoint (e.g. Grafana) can keep multiple incidents active at once. Leave off for the default one-active-incident-per-criteria behaviour."
+                onChange={(value: boolean) => {
+                  setShowIncidentGrouping(value);
+                  if (value) {
+                    monitorCriteriaInstance.setIncidentGrouping(
+                      monitorCriteriaInstance?.data?.incidentGrouping || {
+                        groupByJSONPath: "",
+                      },
+                    );
+                  } else {
+                    monitorCriteriaInstance.setIncidentGrouping(undefined);
+                  }
+                  if (props.onChange) {
+                    props.onChange(
+                      MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+                    );
+                  }
                 }}
               />
-
-              <div className="mt-4">
-                <FieldLabelElement
-                  title="Resolved when path (optional)"
-                  description="Path whose value marks a key as resolved. For Grafana use alerts[*].status (per alert) or status (whole payload). Required for per-key auto-resolve — without it, grouped incidents only resolve manually."
-                />
-                <Input
-                  value={incidentGrouping?.resolvedWhenJSONPath || ""}
-                  placeholder="alerts[*].status"
-                  onChange={(value: string) => {
-                    updateIncidentGrouping({
-                      resolvedWhenJSONPath: value || undefined,
-                    });
-                  }}
-                />
-              </div>
-
-              <div className="mt-4">
-                <FieldLabelElement
-                  title="Resolved when value (optional)"
-                  description="The value at the path above that means recovered. For Grafana: resolved"
-                />
-                <Input
-                  value={incidentGrouping?.resolvedWhenValue || ""}
-                  placeholder="resolved"
-                  onChange={(value: string) => {
-                    updateIncidentGrouping({
-                      resolvedWhenValue: value || undefined,
-                    });
-                  }}
-                />
-              </div>
-
-              <div className="mt-4">
-                <FieldLabelElement
-                  title="Max keys per payload (optional)"
-                  description="Safety cap on how many distinct incidents a single payload may open. Defaults to 100."
-                />
-                <Input
-                  value={
-                    incidentGrouping?.maxKeysPerPayload !== undefined
-                      ? incidentGrouping.maxKeysPerPayload.toString()
-                      : ""
-                  }
-                  placeholder="100"
-                  onChange={(value: string) => {
-                    const parsed: number = parseInt(value, 10);
-                    updateIncidentGrouping({
-                      maxKeysPerPayload:
-                        value && !isNaN(parsed) ? parsed : undefined,
-                    });
-                  }}
-                />
-              </div>
             </div>
-          )}
+
+            {showIncidentGrouping && (
+              <div className="mt-4 ml-6 p-3 bg-gray-50 rounded-md border border-gray-100">
+                <FieldLabelElement
+                  title="Group by (JSON path)"
+                  description="Path into the request body whose value keys each incident. Supports a single [*] wildcard to fan out over an array. Example (Grafana): alerts[*].labels.alertname"
+                  required={true}
+                />
+                <Input
+                  value={incidentGrouping?.groupByJSONPath || ""}
+                  placeholder="alerts[*].labels.alertname"
+                  onChange={(value: string) => {
+                    updateIncidentGrouping({ groupByJSONPath: value });
+                  }}
+                />
+
+                <div className="mt-4">
+                  <FieldLabelElement
+                    title="Resolved when path (optional)"
+                    description="Path whose value marks a key as resolved. For Grafana use alerts[*].status (per alert) or status (whole payload). Required for per-key auto-resolve — without it, grouped incidents only resolve manually."
+                  />
+                  <Input
+                    value={incidentGrouping?.resolvedWhenJSONPath || ""}
+                    placeholder="alerts[*].status"
+                    onChange={(value: string) => {
+                      updateIncidentGrouping({
+                        resolvedWhenJSONPath: value || undefined,
+                      });
+                    }}
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <FieldLabelElement
+                    title="Resolved when value (optional)"
+                    description="The value at the path above that means recovered. For Grafana: resolved"
+                  />
+                  <Input
+                    value={incidentGrouping?.resolvedWhenValue || ""}
+                    placeholder="resolved"
+                    onChange={(value: string) => {
+                      updateIncidentGrouping({
+                        resolvedWhenValue: value || undefined,
+                      });
+                    }}
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <FieldLabelElement
+                    title="Max keys per payload (optional)"
+                    description="Safety cap on how many distinct incidents a single payload may open. Defaults to 100."
+                  />
+                  <Input
+                    value={
+                      incidentGrouping?.maxKeysPerPayload !== undefined
+                        ? incidentGrouping.maxKeysPerPayload.toString()
+                        : ""
+                    }
+                    placeholder="100"
+                    onChange={(value: string) => {
+                      const parsed: number = parseInt(value, 10);
+                      updateIncidentGrouping({
+                        maxKeysPerPayload:
+                          value && !isNaN(parsed) ? parsed : undefined,
+                      });
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </CollapsibleSection>
       )}
 

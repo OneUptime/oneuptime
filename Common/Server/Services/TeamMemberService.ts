@@ -28,6 +28,7 @@ import SubscriptionPlan, {
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Email from "../../Types/Email";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
+import Name from "../../Types/Name";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -133,9 +134,14 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
 
       if (!user) {
         isNewUser = true;
+
+        const nameValue: string | undefined = createBy.miscDataProps["name"]
+          ? (createBy.miscDataProps["name"] as string).trim()
+          : undefined;
+
         user = await UserService.createByEmail({
           email,
-          name: undefined, // name is not required for now.
+          name: nameValue ? new Name(nameValue) : undefined,
           props: {
             isRoot: true,
           },
