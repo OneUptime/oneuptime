@@ -126,9 +126,11 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     if (createBy.miscDataProps && createBy.miscDataProps["email"]) {
       const email: Email = new Email(createBy.miscDataProps["email"] as string);
 
-      // Optional name supplied on the invite form. Used only to set the name on
-      // a brand-new user, or to backfill an existing user who has no name yet —
-      // we never overwrite a name the user has already set.
+      /*
+       * Optional name supplied on the invite form. Used only to set the name on
+       * a brand-new user, or to backfill an existing user who has no name yet —
+       * we never overwrite a name the user has already set.
+       */
       const nameValue: string | undefined = createBy.miscDataProps["name"]
         ? (createBy.miscDataProps["name"] as string).trim()
         : undefined;
@@ -150,8 +152,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
           },
         });
       } else if (nameValue) {
-        // User already exists. Backfill their name only if they don't have one
-        // yet; if they already have a name, leave it untouched.
+        /*
+         * User already exists. Backfill their name only if they don't have one
+         * yet; if they already have a name, leave it untouched.
+         */
         const existingUser: User | null = await UserService.findOneById({
           id: user.id!,
           select: {

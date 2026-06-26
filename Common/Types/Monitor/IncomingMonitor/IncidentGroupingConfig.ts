@@ -19,12 +19,21 @@ import Zod, { ZodSchema } from "../../../Utils/Schema/Zod";
  */
 export default interface IncidentGroupingConfig {
   /**
-   * JSON path into the request body used to derive the grouping / dedupe
-   * key. Supports dotted paths and array indexing (`[0]`, `[last]`) per
-   * the shared `VMUtil.deepFind` syntax, plus a single `[*]` wildcard to
-   * fan out over an array — one incident per element. For Grafana's
+   * Path into the incoming request body used to derive the grouping /
+   * dedupe key. Uses the same `requestBody`-rooted convention as incident
+   * templates and JavaScript-expression filters; both of these resolve
+   * identically (the `{{ … }}` template wrapper is optional):
+   *
+   *   `{{requestBody.alerts[*].labels.alertname}}`
+   *   `requestBody.alerts[*].labels.alertname`
+   *
+   * The `requestBody` root is required. Supports dotted paths and array
+   * indexing (`[0]`, `[last]`) per the
+   * shared `VMUtil.deepFind` syntax, plus a single `[*]` wildcard to fan
+   * out over an array — one incident per element. For Grafana's
    * Alertmanager-shaped webhook this is typically
-   * `alerts[*].labels.alertname` or `commonLabels.alertname`.
+   * `requestBody.alerts[*].labels.alertname` or
+   * `requestBody.commonLabels.alertname`.
    */
   groupByJSONPath: string;
 
@@ -37,9 +46,11 @@ export default interface IncidentGroupingConfig {
    * Instead, when the value at `resolvedWhenJSONPath` equals
    * `resolvedWhenValue`, the event resolves the incident for that key.
    *
-   * For Grafana this is `status` == `resolved` (payload-level), or
-   * `alerts[*].status` == `resolved` when `groupByJSONPath` also fans out
-   * over `alerts[*]` (the resolve check is then evaluated per element).
+   * Uses the same `requestBody`-rooted convention as `groupByJSONPath`.
+   * For Grafana this is `requestBody.status` == `resolved` (payload-level),
+   * or `requestBody.alerts[*].status` == `resolved` when `groupByJSONPath`
+   * also fans out over `alerts[*]` (the resolve check is then evaluated per
+   * element).
    *
    * When unset, every matching event is treated as firing and grouped
    * incidents are only ever resolved manually.

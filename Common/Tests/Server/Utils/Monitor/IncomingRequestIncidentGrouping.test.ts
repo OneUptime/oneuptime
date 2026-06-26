@@ -52,7 +52,7 @@ describe("IncomingRequestIncidentGrouping", () => {
         IncomingRequestIncidentGrouping.collectFiringMatches({
           dataToProcess: makeRequest(firingAlertmanagerPayload()),
           criteriaInstance: makeCriteria({
-            groupByJSONPath: "alerts[*].labels.alertname",
+            groupByJSONPath: "requestBody.alerts[*].labels.alertname",
           }),
         });
 
@@ -87,7 +87,7 @@ describe("IncomingRequestIncidentGrouping", () => {
             commonLabels: { alertname: "Disk Full" },
           }),
           criteriaInstance: makeCriteria({
-            groupByJSONPath: "commonLabels.alertname",
+            groupByJSONPath: "requestBody.commonLabels.alertname",
           }),
         });
 
@@ -112,7 +112,7 @@ describe("IncomingRequestIncidentGrouping", () => {
             onlyCheckForIncomingRequestReceivedAt: true,
           }),
           criteriaInstance: makeCriteria({
-            groupByJSONPath: "alerts[*].labels.alertname",
+            groupByJSONPath: "requestBody.alerts[*].labels.alertname",
           }),
         });
 
@@ -126,7 +126,7 @@ describe("IncomingRequestIncidentGrouping", () => {
             JSON.stringify({ commonLabels: { alertname: "Stringified" } }),
           ),
           criteriaInstance: makeCriteria({
-            groupByJSONPath: "commonLabels.alertname",
+            groupByJSONPath: "requestBody.commonLabels.alertname",
           }),
         });
 
@@ -147,8 +147,8 @@ describe("IncomingRequestIncidentGrouping", () => {
         IncomingRequestIncidentGrouping.collectFiringMatches({
           dataToProcess: makeRequest(payload),
           criteriaInstance: makeCriteria({
-            groupByJSONPath: "alerts[*].labels.alertname",
-            resolvedWhenJSONPath: "alerts[*].status",
+            groupByJSONPath: "requestBody.alerts[*].labels.alertname",
+            resolvedWhenJSONPath: "requestBody.alerts[*].status",
             resolvedWhenValue: "resolved",
           }),
         });
@@ -167,8 +167,8 @@ describe("IncomingRequestIncidentGrouping", () => {
         IncomingRequestIncidentGrouping.collectFiringMatches({
           dataToProcess: makeRequest(payload),
           criteriaInstance: makeCriteria({
-            groupByJSONPath: "commonLabels.alertname",
-            resolvedWhenJSONPath: "status",
+            groupByJSONPath: "requestBody.commonLabels.alertname",
+            resolvedWhenJSONPath: "requestBody.status",
             resolvedWhenValue: "resolved",
           }),
         });
@@ -188,7 +188,7 @@ describe("IncomingRequestIncidentGrouping", () => {
         IncomingRequestIncidentGrouping.collectFiringMatches({
           dataToProcess: makeRequest(payload),
           criteriaInstance: makeCriteria({
-            groupByJSONPath: "alerts[*].labels.alertname",
+            groupByJSONPath: "requestBody.alerts[*].labels.alertname",
           }),
         });
 
@@ -206,7 +206,7 @@ describe("IncomingRequestIncidentGrouping", () => {
         IncomingRequestIncidentGrouping.collectFiringMatches({
           dataToProcess: makeRequest(payload),
           criteriaInstance: makeCriteria({
-            groupByJSONPath: "alerts[*].labels.alertname",
+            groupByJSONPath: "requestBody.alerts[*].labels.alertname",
             maxKeysPerPayload: 3,
           }),
         });
@@ -225,8 +225,8 @@ describe("IncomingRequestIncidentGrouping", () => {
       };
 
       const grouping: IncidentGroupingConfig = {
-        groupByJSONPath: "alerts[*].labels.alertname",
-        resolvedWhenJSONPath: "alerts[*].status",
+        groupByJSONPath: "requestBody.alerts[*].labels.alertname",
+        resolvedWhenJSONPath: "requestBody.alerts[*].status",
         resolvedWhenValue: "resolved",
       };
 
@@ -258,7 +258,9 @@ describe("IncomingRequestIncidentGrouping", () => {
         IncomingRequestIncidentGrouping.collectResolvedFingerprints({
           dataToProcess: makeRequest({ status: "resolved" }),
           criteriaInstances: [
-            makeCriteria({ groupByJSONPath: "commonLabels.alertname" }),
+            makeCriteria({
+              groupByJSONPath: "requestBody.commonLabels.alertname",
+            }),
           ],
         });
 
@@ -270,7 +272,9 @@ describe("IncomingRequestIncidentGrouping", () => {
     it("is true only when a group-by path is set", () => {
       expect(
         IncomingRequestIncidentGrouping.isGroupingConfigured(
-          makeCriteria({ groupByJSONPath: "commonLabels.alertname" }),
+          makeCriteria({
+            groupByJSONPath: "requestBody.commonLabels.alertname",
+          }),
         ),
       ).toBe(true);
       expect(
@@ -286,7 +290,9 @@ describe("IncomingRequestIncidentGrouping", () => {
       const matches: Array<PerSeriesCriteriaMatch> =
         IncomingRequestIncidentGrouping.collectFiringMatches({
           dataToProcess: makeRequest({ tags: ["RAM", "CPU", "Disk"] }),
-          criteriaInstance: makeCriteria({ groupByJSONPath: "tags[*]" }),
+          criteriaInstance: makeCriteria({
+            groupByJSONPath: "requestBody.tags[*]",
+          }),
         });
 
       expect(matches).toHaveLength(3);
@@ -295,6 +301,63 @@ describe("IncomingRequestIncidentGrouping", () => {
           return m.labels;
         }),
       ).toEqual([{ tags: "RAM" }, { tags: "CPU" }, { tags: "Disk" }]);
+    });
+  });
+
+  describe("requestBody-rooted convention (matches incident templates)", () => {
+    it("accepts the `{{requestBody. … }}` template wrapper", () => {
+      const matches: Array<PerSeriesCriteriaMatch> =
+        IncomingRequestIncidentGrouping.collectFiringMatches({
+          dataToProcess: makeRequest({
+            commonLabels: { alertname: "Disk Full" },
+          }),
+          criteriaInstance: makeCriteria({
+            groupByJSONPath: "{{requestBody.commonLabels.alertname}}",
+          }),
+        });
+
+      expect(matches).toHaveLength(1);
+      expect(matches[0]!.labels).toEqual({ alertname: "Disk Full" });
+    });
+
+    it("ignores a bare path that is not rooted at requestBody (not supported)", () => {
+      const matches: Array<PerSeriesCriteriaMatch> =
+        IncomingRequestIncidentGrouping.collectFiringMatches({
+          dataToProcess: makeRequest(firingAlertmanagerPayload()),
+          criteriaInstance: makeCriteria({
+            groupByJSONPath: "alerts[*].labels.alertname",
+          }),
+        });
+
+      expect(matches).toEqual([]);
+    });
+
+    it("the plain and `{{ }}`-wrapped forms produce identical fingerprints", () => {
+      const plain: Array<PerSeriesCriteriaMatch> =
+        IncomingRequestIncidentGrouping.collectFiringMatches({
+          dataToProcess: makeRequest(firingAlertmanagerPayload()),
+          criteriaInstance: makeCriteria({
+            groupByJSONPath: "requestBody.alerts[*].labels.alertname",
+          }),
+        });
+
+      const wrapped: Array<PerSeriesCriteriaMatch> =
+        IncomingRequestIncidentGrouping.collectFiringMatches({
+          dataToProcess: makeRequest(firingAlertmanagerPayload()),
+          criteriaInstance: makeCriteria({
+            groupByJSONPath: "{{requestBody.alerts[*].labels.alertname}}",
+          }),
+        });
+
+      expect(
+        wrapped.map((m: PerSeriesCriteriaMatch) => {
+          return m.fingerprint;
+        }),
+      ).toEqual(
+        plain.map((m: PerSeriesCriteriaMatch) => {
+          return m.fingerprint;
+        }),
+      );
     });
   });
 
@@ -312,8 +375,8 @@ describe("IncomingRequestIncidentGrouping", () => {
             commonLabels: { alertname: "High CPU Usage" },
           }),
           criteriaInstance: makeCriteria({
-            groupByJSONPath: "commonLabels.alertname",
-            resolvedWhenJSONPath: "alerts[*].status",
+            groupByJSONPath: "requestBody.commonLabels.alertname",
+            resolvedWhenJSONPath: "requestBody.alerts[*].status",
             resolvedWhenValue: "resolved",
           }),
         });

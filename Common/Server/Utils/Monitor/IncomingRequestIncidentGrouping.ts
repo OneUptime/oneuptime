@@ -199,7 +199,7 @@ export default class IncomingRequestIncidentGrouping {
   }): Array<IncomingRequestGroupingItem> {
     const { requestBody, grouping } = input;
 
-    const groupByPath: string = grouping.groupByJSONPath;
+    const groupByPath: string = this.normalizePath(grouping.groupByJSONPath);
     if (!groupByPath) {
       return [];
     }
@@ -339,18 +339,18 @@ export default class IncomingRequestIncidentGrouping {
       return false;
     }
 
-    const wildcardIndex: number =
-      grouping.resolvedWhenJSONPath.indexOf(ARRAY_WILDCARD);
+    const resolvedPath: string = this.normalizePath(
+      grouping.resolvedWhenJSONPath,
+    );
+    const wildcardIndex: number = resolvedPath.indexOf(ARRAY_WILDCARD);
 
     let scope: JSONObject = rootScope;
-    let path: string = grouping.resolvedWhenJSONPath;
+    let path: string = resolvedPath;
 
     if (wildcardIndex !== -1 && isElementContext) {
       scope = elementScope;
       path = this.stripLeadingDot(
-        grouping.resolvedWhenJSONPath.slice(
-          wildcardIndex + ARRAY_WILDCARD.length,
-        ),
+        resolvedPath.slice(wildcardIndex + ARRAY_WILDCARD.length),
       );
     }
 
@@ -381,6 +381,32 @@ export default class IncomingRequestIncidentGrouping {
 
   private static stripLeadingDot(path: string): string {
     return path.startsWith(".") ? path.slice(1) : path;
+  }
+
+  /**
+   * Resolve the `requestBody`-rooted path users write — the same convention
+   * incident templates and JavaScript-expression filters use — into a path
+   * relative to the body (the actual scope `deepFind` resolves against).
+   * Both of these forms are accepted and resolve identically:
+   *
+   *   `{{requestBody.alerts[*].labels.alertname}}`   (template wrapper)
+   *   `requestBody.alerts[*].labels.alertname`
+   *
+   * The `requestBody` root is REQUIRED — a path not rooted there resolves
+   * to nothing, so the field has exactly one convention.
+   */
+  private static normalizePath(rawPath: string): string {
+    let path: string = rawPath.trim();
+
+    if (path.startsWith("{{") && path.endsWith("}}")) {
+      path = path.slice(2, -2).trim();
+    }
+
+    if (path.startsWith("requestBody.")) {
+      return path.slice("requestBody.".length);
+    }
+
+    return "";
   }
 
   /**

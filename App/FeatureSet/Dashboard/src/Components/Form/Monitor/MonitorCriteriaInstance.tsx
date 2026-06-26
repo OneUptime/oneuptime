@@ -18,7 +18,7 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import Input from "Common/UI/Components/Input/Input";
+import Input, { InputType } from "Common/UI/Components/Input/Input";
 import Radio from "Common/UI/Components/Radio/Radio";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
@@ -28,6 +28,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useState,
 } from "react";
 import MonitorCriteriaAlertsForm from "./MonitorCriteriaAlertsForm";
@@ -117,6 +118,16 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 
   const incidentGrouping: IncidentGroupingConfig | undefined =
     monitorCriteriaInstance?.data?.incidentGrouping;
+
+  /*
+   * Stable ids so every grouping input has a programmatically-associated
+   * label (WCAG 1.3.1 / 4.1.2) — the shared Input has no aria-label
+   * fallback, so without these it would be announced by placeholder only.
+   */
+  const groupByLabelId: string = useId();
+  const resolvedPathInputId: string = useId();
+  const resolvedValueInputId: string = useId();
+  const maxKeysLabelId: string = useId();
 
   // Merge a partial update into the criteria's incidentGrouping config.
   const updateIncidentGrouping: (
@@ -551,13 +562,13 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
         </div>
       </CollapsibleSection>
 
-      {/* Settings Section - Collapsible */}
+      {/* Settings — criteria enable toggle + (incoming request) incident grouping */}
       <CollapsibleSection
         title="Settings"
         description="Configure additional settings for this criteria."
         badge={isEnabled ? "Enabled" : "Disabled"}
         variant="bordered"
-        defaultCollapsed={true}
+        defaultCollapsed={!showIncidentGrouping}
         className="mb-4"
       >
         <div className="mt-2">
@@ -574,25 +585,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               }
             }}
           />
-        </div>
-      </CollapsibleSection>
 
-      {/* Advanced Settings - Incoming Request incident/alert grouping */}
-      {props.monitorType === MonitorType.IncomingRequest && (
-        <CollapsibleSection
-          title="Advanced Settings"
-          description="Group incidents and alerts by a field in the incoming request payload — open one incident and alert per distinct value (e.g. one per Grafana alert name) instead of a single active incident for the whole monitor."
-          badge={
-            showIncidentGrouping && incidentGrouping?.groupByJSONPath
-              ? "Configured"
-              : undefined
-          }
-          variant="bordered"
-          defaultCollapsed={!showIncidentGrouping}
-          className="mb-4"
-        >
-          <div>
-            <div className="mt-2">
+          {props.monitorType === MonitorType.IncomingRequest && (
+            <div className="mt-6 border-t border-gray-100 pt-4">
               <Toggle
                 value={showIncidentGrouping}
                 title="Group incidents and alerts by a payload field"
@@ -615,81 +610,166 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                   }
                 }}
               />
+
+              {showIncidentGrouping && (
+                <div className="mt-4 ml-6 space-y-3">
+                  {/* Step 1 — what splits incidents apart */}
+                  <div className="rounded-md border border-gray-200 bg-white p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-600">
+                        1
+                      </span>
+                      <span
+                        id={groupByLabelId}
+                        className="text-sm font-medium text-gray-900"
+                      >
+                        Open a separate incident for each…
+                      </span>
+                    </div>
+                    <p className="mb-2 ml-7 mt-1 text-xs text-gray-500">
+                      A path into the request body — the same{" "}
+                      <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
+                        requestBody
+                      </code>{" "}
+                      you reference in incident templates. Every distinct value
+                      opens its own incident; add{" "}
+                      <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
+                        [*]
+                      </code>{" "}
+                      to fan out over an array.
+                    </p>
+                    <div className="ml-7 font-mono">
+                      <Input
+                        ariaLabelledby={groupByLabelId}
+                        value={incidentGrouping?.groupByJSONPath || ""}
+                        placeholder="requestBody.alerts[*].labels.alertname"
+                        onChange={(value: string) => {
+                          updateIncidentGrouping({ groupByJSONPath: value });
+                        }}
+                      />
+                    </div>
+                    <p className="ml-7 mt-1.5 text-xs text-gray-500">
+                      e.g. one incident per Grafana alert name.
+                    </p>
+                  </div>
+
+                  {/* Step 2 — how each grouped incident auto-resolves */}
+                  <div className="rounded-md border border-gray-200 bg-white p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-600">
+                        2
+                      </span>
+                      <span className="text-sm font-medium text-gray-900">
+                        Auto-resolve each incident when…{" "}
+                        <span className="font-normal text-gray-500">
+                          (optional)
+                        </span>
+                      </span>
+                    </div>
+                    <p className="mb-3 ml-7 mt-1 text-xs text-gray-500">
+                      A webhook only describes what is firing right now, so
+                      OneUptime cannot tell an incident has recovered unless the
+                      payload says so. Set the field and value that signal
+                      recovery. Leave blank to resolve these incidents manually.
+                    </p>
+                    <div className="ml-7 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <label
+                          htmlFor={resolvedPathInputId}
+                          className="block text-xs font-medium text-gray-600"
+                        >
+                          Field that signals recovery
+                        </label>
+                        <div className="mt-1 font-mono">
+                          <Input
+                            id={resolvedPathInputId}
+                            value={incidentGrouping?.resolvedWhenJSONPath || ""}
+                            placeholder="requestBody.alerts[*].status"
+                            onChange={(value: string) => {
+                              updateIncidentGrouping({
+                                resolvedWhenJSONPath: value || undefined,
+                              });
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor={resolvedValueInputId}
+                          className="block text-xs font-medium text-gray-600"
+                        >
+                          Value that means recovered
+                        </label>
+                        <div className="mt-1 font-mono">
+                          <Input
+                            id={resolvedValueInputId}
+                            value={incidentGrouping?.resolvedWhenValue || ""}
+                            placeholder="resolved"
+                            onChange={(value: string) => {
+                              updateIncidentGrouping({
+                                resolvedWhenValue: value || undefined,
+                              });
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    {incidentGrouping?.resolvedWhenJSONPath &&
+                      incidentGrouping?.resolvedWhenValue && (
+                        <p className="ml-7 mt-2 text-xs text-gray-500">
+                          Resolves an incident when{" "}
+                          <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
+                            {incidentGrouping.resolvedWhenJSONPath}
+                          </code>{" "}
+                          equals{" "}
+                          <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
+                            {incidentGrouping.resolvedWhenValue}
+                          </code>
+                          .
+                        </p>
+                      )}
+                  </div>
+
+                  {/* Safety cap — kept compact and out of the way */}
+                  <div className="flex items-center justify-between gap-3 rounded-md border border-gray-200 bg-white px-3 py-2.5">
+                    <div className="min-w-0">
+                      <p
+                        id={maxKeysLabelId}
+                        className="text-sm font-medium text-gray-900"
+                      >
+                        Max incidents per request
+                      </p>
+                      <p className="mt-0.5 text-xs text-gray-500">
+                        Safety cap so a high-cardinality field cannot open
+                        unbounded incidents. Defaults to 100.
+                      </p>
+                    </div>
+                    <div className="w-24 flex-shrink-0">
+                      <Input
+                        ariaLabelledby={maxKeysLabelId}
+                        type={InputType.NUMBER}
+                        value={
+                          incidentGrouping?.maxKeysPerPayload !== undefined
+                            ? incidentGrouping.maxKeysPerPayload.toString()
+                            : ""
+                        }
+                        placeholder="100"
+                        onChange={(value: string) => {
+                          const parsed: number = parseInt(value, 10);
+                          updateIncidentGrouping({
+                            maxKeysPerPayload:
+                              value && !isNaN(parsed) ? parsed : undefined,
+                          });
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-
-            {showIncidentGrouping && (
-              <div className="mt-4 ml-6 p-3 bg-gray-50 rounded-md border border-gray-100">
-                <FieldLabelElement
-                  title="Group by (JSON path)"
-                  description="Path into the request body whose value keys each incident. Supports a single [*] wildcard to fan out over an array. Example (Grafana): alerts[*].labels.alertname"
-                  required={true}
-                />
-                <Input
-                  value={incidentGrouping?.groupByJSONPath || ""}
-                  placeholder="alerts[*].labels.alertname"
-                  onChange={(value: string) => {
-                    updateIncidentGrouping({ groupByJSONPath: value });
-                  }}
-                />
-
-                <div className="mt-4">
-                  <FieldLabelElement
-                    title="Resolved when path (optional)"
-                    description="Path whose value marks a key as resolved. For Grafana use alerts[*].status (per alert) or status (whole payload). Required for per-key auto-resolve — without it, grouped incidents only resolve manually."
-                  />
-                  <Input
-                    value={incidentGrouping?.resolvedWhenJSONPath || ""}
-                    placeholder="alerts[*].status"
-                    onChange={(value: string) => {
-                      updateIncidentGrouping({
-                        resolvedWhenJSONPath: value || undefined,
-                      });
-                    }}
-                  />
-                </div>
-
-                <div className="mt-4">
-                  <FieldLabelElement
-                    title="Resolved when value (optional)"
-                    description="The value at the path above that means recovered. For Grafana: resolved"
-                  />
-                  <Input
-                    value={incidentGrouping?.resolvedWhenValue || ""}
-                    placeholder="resolved"
-                    onChange={(value: string) => {
-                      updateIncidentGrouping({
-                        resolvedWhenValue: value || undefined,
-                      });
-                    }}
-                  />
-                </div>
-
-                <div className="mt-4">
-                  <FieldLabelElement
-                    title="Max keys per payload (optional)"
-                    description="Safety cap on how many distinct incidents a single payload may open. Defaults to 100."
-                  />
-                  <Input
-                    value={
-                      incidentGrouping?.maxKeysPerPayload !== undefined
-                        ? incidentGrouping.maxKeysPerPayload.toString()
-                        : ""
-                    }
-                    placeholder="100"
-                    onChange={(value: string) => {
-                      const parsed: number = parseInt(value, 10);
-                      updateIncidentGrouping({
-                        maxKeysPerPayload:
-                          value && !isNaN(parsed) ? parsed : undefined,
-                      });
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </CollapsibleSection>
-      )}
+          )}
+        </div>
+      </CollapsibleSection>
 
       {/* Delete Criteria Button */}
       <div className="mt-4 -ml-3">

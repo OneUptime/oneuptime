@@ -139,10 +139,12 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
               fetchFilterDropdownOptions: async (): Promise<
                 Array<DropdownOption>
               > => {
-                // The Users table is keyed on TeamMember, so name/email live on
-                // the related User. Build the dropdown from the project's team
-                // members and label each option with both name and email so an
-                // admin can find a user by typing either.
+                /*
+                 * The Users table is keyed on TeamMember, so name/email live on
+                 * the related User. Build the dropdown from the project's team
+                 * members and label each option with both name and email so an
+                 * admin can find a user by typing either.
+                 */
                 const teamMembers: ListResult<TeamMember> =
                   await AdminModelAPI.getList<TeamMember>({
                     modelType: TeamMember,
@@ -163,8 +165,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                 const options: Array<DropdownOption> = [];
 
                 for (const teamMember of teamMembers.data) {
-                  const userId: string =
-                    teamMember.user?._id?.toString() || "";
+                  const userId: string = teamMember.user?._id?.toString() || "";
                   if (!userId || seenUserIds.has(userId)) {
                     continue;
                   }

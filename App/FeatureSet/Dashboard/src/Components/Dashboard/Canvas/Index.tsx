@@ -288,9 +288,11 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           onComponentDuplicate={(
             componentToDuplicate: DashboardBaseComponent,
           ) => {
-            // Clone the component as-is but give it a brand-new id so it is
-            // treated as a separate widget. addComponentToDashboard places it
-            // on a fresh row at the bottom of the dashboard.
+            /*
+             * Clone the component as-is but give it a brand-new id so it is
+             * treated as a separate widget. addComponentToDashboard places it
+             * on a fresh row at the bottom of the dashboard.
+             */
             const duplicatedComponent: DashboardBaseComponent = {
               ...componentToDuplicate,
               componentId: ObjectID.generate(),
