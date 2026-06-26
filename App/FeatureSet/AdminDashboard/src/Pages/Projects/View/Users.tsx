@@ -12,6 +12,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import User from "Common/Models/DatabaseModels/User";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -126,6 +127,65 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
           filters={[
             {
               field: {
+                user: true,
+              },
+              title: "User",
+              type: FieldType.Entity,
+              filterEntityType: User,
+              filterDropdownField: {
+                label: "name",
+                value: "_id",
+              },
+              fetchFilterDropdownOptions: async (): Promise<
+                Array<DropdownOption>
+              > => {
+                // The Users table is keyed on TeamMember, so name/email live on
+                // the related User. Build the dropdown from the project's team
+                // members and label each option with both name and email so an
+                // admin can find a user by typing either.
+                const teamMembers: ListResult<TeamMember> =
+                  await AdminModelAPI.getList<TeamMember>({
+                    modelType: TeamMember,
+                    query: { projectId: projectId },
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
+                      user: {
+                        _id: true,
+                        name: true,
+                        email: true,
+                      },
+                    },
+                    sort: {},
+                  });
+
+                const seenUserIds: Set<string> = new Set<string>();
+                const options: Array<DropdownOption> = [];
+
+                for (const teamMember of teamMembers.data) {
+                  const userId: string =
+                    teamMember.user?._id?.toString() || "";
+                  if (!userId || seenUserIds.has(userId)) {
+                    continue;
+                  }
+                  seenUserIds.add(userId);
+
+                  const name: string = teamMember.user?.name?.toString() || "";
+                  const email: string =
+                    teamMember.user?.email?.toString() || "";
+                  const label: string =
+                    name && email
+                      ? `${name} (${email})`
+                      : name || email || userId;
+
+                  options.push({ value: userId, label: label });
+                }
+
+                return options;
+              },
+            },
+            {
+              field: {
                 team: {
                   name: true,
                 },
@@ -147,6 +207,20 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
               },
               title: "Status",
               type: FieldType.Boolean,
+            },
+            {
+              field: {
+                createdAt: true,
+              },
+              title: "Invited At",
+              type: FieldType.Date,
+            },
+            {
+              field: {
+                invitationAcceptedAt: true,
+              },
+              title: "Accepted Invitation At",
+              type: FieldType.Date,
             },
           ]}
           columns={[
