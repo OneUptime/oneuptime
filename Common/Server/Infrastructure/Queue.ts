@@ -113,18 +113,32 @@ export default class Queue {
     });
 
     /*
-     * On (re)start, sweep terminal (completed/failed) jobs so their counts do
-     * not linger across restarts. Gated by the process-static cleanedQueueNames
-     * set, so it runs exactly once per queue per process lifetime — i.e. once
-     * on every service restart, the first time the queue is touched. Fire and
-     * forget so it never blocks the enqueue/processing path.
+     * Lazy fallback for the startup sweep: the first time a queue is created in
+     * this process, kick off its once-per-process terminal-job cleanup. The
+     * eager path (cleanAllQueuesOnStartup, called at service boot) normally
+     * wins; whichever runs first is the only one to sweep, via the gate inside
+     * cleanQueueOnStartup(). Fire and forget so it never blocks enqueue.
      */
-    if (!this.cleanedQueueNames.has(queueName)) {
-      this.cleanedQueueNames.add(queueName);
-      void this.cleanQueueOnStartup(queue, queueName);
-    }
+    void this.cleanQueueOnStartup(queueName);
 
     return queue;
+  }
+
+  /**
+   * Eagerly sweeps every queue's terminal (completed/failed) jobs at process
+   * startup, so the Completed/Failed counts on the admin Health page reset on a
+   * pod (re)start regardless of when — or whether — each queue next produces a
+   * job. Call once during service boot (see App/Index.ts). Each queue is swept
+   * at most once per process via the cleanedQueueNames gate, so this is safe to
+   * call alongside the lazy getQueue() path and from any service role.
+   */
+  @CaptureSpan()
+  public static async cleanAllQueuesOnStartup(): Promise<void> {
+    await Promise.all(
+      Object.values(QueueName).map((queueName: QueueName) => {
+        return this.cleanQueueOnStartup(queueName);
+      }),
+    );
   }
 
   /*
@@ -142,16 +156,26 @@ export default class Queue {
   private static readonly STARTUP_CLEANUP_MAX_BATCHES: number = 1000;
 
   /**
-   * Removes terminal (completed/failed) jobs for a single queue when the
-   * process starts. Drains in batches because BullMQ's clean() caps each call
-   * at `limit` job removals. Leaves live states (waiting/active/delayed)
-   * untouched. Best-effort: any error is logged and swallowed so a transient
-   * Redis hiccup at boot never breaks queue setup.
+   * Removes terminal (completed/failed) jobs for a single queue, at most once
+   * per process (gated by cleanedQueueNames). Drains in batches because
+   * BullMQ's clean() caps each call at `limit` removals. Leaves live states
+   * (waiting/active/delayed) untouched. Best-effort: any error is logged and
+   * swallowed so a transient Redis hiccup at boot never breaks queue setup.
    */
   private static async cleanQueueOnStartup(
-    queue: BullQueue,
     queueName: QueueName,
   ): Promise<void> {
+    /*
+     * Gate synchronously, before any await, so the lazy getQueue() trigger and
+     * the eager cleanAllQueuesOnStartup() call can't both sweep the same queue.
+     */
+    if (this.cleanedQueueNames.has(queueName)) {
+      return;
+    }
+    this.cleanedQueueNames.add(queueName);
+
+    const queue: BullQueue = this.getQueue(queueName);
+
     const terminalStates: Array<"completed" | "failed"> = [
       "completed",
       "failed",

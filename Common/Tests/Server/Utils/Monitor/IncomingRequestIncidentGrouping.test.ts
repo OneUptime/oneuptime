@@ -280,4 +280,47 @@ describe("IncomingRequestIncidentGrouping", () => {
       ).toBe(false);
     });
   });
+
+  describe("array-of-scalars fan-out (`prefix[*]`)", () => {
+    it("fans out one match per scalar array element", () => {
+      const matches: Array<PerSeriesCriteriaMatch> =
+        IncomingRequestIncidentGrouping.collectFiringMatches({
+          dataToProcess: makeRequest({ tags: ["RAM", "CPU", "Disk"] }),
+          criteriaInstance: makeCriteria({ groupByJSONPath: "tags[*]" }),
+        });
+
+      expect(matches).toHaveLength(3);
+      expect(
+        matches.map((m: PerSeriesCriteriaMatch) => {
+          return m.labels;
+        }),
+      ).toEqual([{ tags: "RAM" }, { tags: "CPU" }, { tags: "Disk" }]);
+    });
+  });
+
+  describe("mixed-mode resolve config (resolve has [*], group-by does not)", () => {
+    it("does not silently mis-scope a [*] resolve path onto a top-level field", () => {
+      /*
+       * Self-contradictory config: group-by is non-array but resolve uses [*].
+       * The top-level `status: resolved` must NOT be treated as a per-element
+       * resolve — otherwise this single key would be wrongly classified.
+       */
+      const matches: Array<PerSeriesCriteriaMatch> =
+        IncomingRequestIncidentGrouping.collectFiringMatches({
+          dataToProcess: makeRequest({
+            status: "resolved",
+            commonLabels: { alertname: "High CPU Usage" },
+          }),
+          criteriaInstance: makeCriteria({
+            groupByJSONPath: "commonLabels.alertname",
+            resolvedWhenJSONPath: "alerts[*].status",
+            resolvedWhenValue: "resolved",
+          }),
+        });
+
+      // Treated as firing (not mis-scoped to top-level status) ⇒ stays open.
+      expect(matches).toHaveLength(1);
+      expect(matches[0]!.labels).toEqual({ alertname: "High CPU Usage" });
+    });
+  });
 });

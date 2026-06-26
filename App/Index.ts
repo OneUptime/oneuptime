@@ -20,6 +20,7 @@ import {
   ClickhouseMigrationInstance,
 } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
+import Queue from "Common/Server/Infrastructure/Queue";
 import Redis from "Common/Server/Infrastructure/Redis";
 import InfrastructureStatus from "Common/Server/Infrastructure/Status";
 import logger from "Common/Server/Utils/Logger";
@@ -91,6 +92,18 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     // Connect to Redis
     await Redis.connect();
+
+    /*
+     * Reset stale completed/failed job counts left over from prior runs. Sweeps
+     * every BullMQ queue once at startup so the admin Health page's Completed/
+     * Failed counts don't linger across a pod (re)start, regardless of when each
+     * queue next produces a job. Fire-and-forget: a large backlog shouldn't
+     * delay readiness, and the sweep self-gates to run at most once per queue.
+     */
+    Queue.cleanAllQueuesOnStartup().catch((err: unknown) => {
+      logger.error("Failed to clean queues on startup");
+      logger.error(err);
+    });
 
     // Connect to Clickhouse database
     await ClickhouseAppInstance.connect(

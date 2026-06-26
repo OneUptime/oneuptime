@@ -217,6 +217,7 @@ ${contextBlock}
         if (perSeriesMatches.length > 0) {
           input.probeApiIngestResponse.perSeriesMatches = perSeriesMatches;
         } else if (
+          input.monitor.monitorType === MonitorType.IncomingRequest &&
           IncomingRequestIncidentGrouping.isGroupingConfigured(criteriaInstance)
         ) {
           /*

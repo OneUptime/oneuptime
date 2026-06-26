@@ -72,6 +72,14 @@ export default class MonitorIncident {
      * incidents are treated like any other for dedupe/resolve.
      */
     breachingSeriesFingerprints?: Set<string> | undefined;
+    /**
+     * Event-driven (incoming-request / webhook) mode. When true, an open
+     * incident carrying a seriesFingerprint is never auto-resolved here —
+     * webhooks resolve per-key only via resolveSeriesIncidentsByFingerprint,
+     * never by absence. Must be passed on BOTH the criteria-met and the
+     * no-criteria-met code paths for grouped incoming-request monitors.
+     */
+    disableSeriesAbsenceResolution?: boolean | undefined;
   }): Promise<Array<Incident>> {
     // check active incidents and if there are open incidents, do not create another incident.
     const openIncidents: Array<Incident> = await IncidentService.findBy({
@@ -109,6 +117,7 @@ export default class MonitorIncident {
           input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
         criteriaInstance: input.criteriaInstance,
         breachingSeriesFingerprints: input.breachingSeriesFingerprints,
+        disableSeriesAbsenceResolution: input.disableSeriesAbsenceResolution,
       });
 
       if (shouldClose) {
@@ -313,6 +322,7 @@ export default class MonitorIncident {
         dataToProcess: input.dataToProcess,
         evaluationSummary: input.evaluationSummary,
         breachingSeriesFingerprints,
+        disableSeriesAbsenceResolution: input.disableSeriesAbsenceResolution,
       });
 
     if (!input.criteriaInstance.data?.createIncidents) {
@@ -1100,9 +1110,25 @@ export default class MonitorIncident {
     >;
     criteriaInstance: MonitorCriteriaInstance | null; // null if no criteia met.
     breachingSeriesFingerprints?: Set<string> | undefined;
+    disableSeriesAbsenceResolution?: boolean | undefined;
   }): boolean {
     const openSeriesFingerprint: string | undefined =
       input.openIncident.seriesFingerprint || undefined;
+
+    /*
+     * Event-driven (incoming-request / webhook) per-key incidents must
+     * NEVER be resolved by absence — only explicitly, via
+     * resolveSeriesIncidentsByFingerprint, when the payload reports the
+     * key as recovered. A single webhook describes only the keys in its
+     * own payload, so neither the per-series breaching-set path nor the
+     * legacy cross-criteria path below may close a series incident here.
+     * Without this guard, a heartbeat-timeout cron tick or a webhook that
+     * the grouping criteria rejects would bulk-resolve all open per-key
+     * incidents by absence.
+     */
+    if (input.disableSeriesAbsenceResolution && openSeriesFingerprint) {
+      return false;
+    }
 
     /*
      * Per-series auto-resolve: when the monitor emits a breaching-

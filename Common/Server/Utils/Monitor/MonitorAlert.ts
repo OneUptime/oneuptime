@@ -47,6 +47,14 @@ export default class MonitorAlert {
     dataToProcess: DataToProcess;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
     breachingSeriesFingerprints?: Set<string> | undefined;
+    /**
+     * Event-driven (incoming-request / webhook) mode. When true, an open
+     * alert carrying a seriesFingerprint is never auto-resolved here —
+     * webhooks resolve per-key only via resolveSeriesAlertsByFingerprint,
+     * never by absence. Passed on BOTH the criteria-met and no-criteria-met
+     * code paths for grouped incoming-request monitors.
+     */
+    disableSeriesAbsenceResolution?: boolean | undefined;
   }): Promise<Array<Alert>> {
     // check active alerts and if there are open alerts, do not create another alert.
     const openAlerts: Array<Alert> = await AlertService.findBy({
@@ -83,6 +91,7 @@ export default class MonitorAlert {
           input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
         criteriaInstance: input.criteriaInstance,
         breachingSeriesFingerprints: input.breachingSeriesFingerprints,
+        disableSeriesAbsenceResolution: input.disableSeriesAbsenceResolution,
       });
 
       if (shouldClose) {
@@ -110,6 +119,95 @@ export default class MonitorAlert {
     return openAlerts;
   }
 
+  /**
+   * Event-driven (incoming-request / webhook) resolution: resolve the open
+   * alerts for the given payload-derived fingerprints — and only those —
+   * when the criteria that created them has auto-resolve enabled. Mirrors
+   * MonitorIncident.resolveSeriesIncidentsByFingerprint; never resolves by
+   * absence (a webhook describes only the keys in its payload).
+   */
+  @CaptureSpan()
+  public static async resolveSeriesAlertsByFingerprint(input: {
+    monitor: Monitor;
+    fingerprints: Array<string>;
+    rootCause: string;
+    dataToProcess: DataToProcess;
+    autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
+    evaluationSummary?: MonitorEvaluationSummary | undefined;
+  }): Promise<void> {
+    if (!input.fingerprints || input.fingerprints.length === 0) {
+      return;
+    }
+
+    const fingerprintSet: Set<string> = new Set<string>(input.fingerprints);
+
+    const openAlerts: Array<Alert> = await AlertService.findBy({
+      query: {
+        monitor: input.monitor.id!,
+        currentAlertState: {
+          isResolvedState: false,
+        },
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      select: {
+        _id: true,
+        title: true,
+        createdCriteriaId: true,
+        projectId: true,
+        alertNumber: true,
+        alertNumberWithPrefix: true,
+        seriesFingerprint: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const openAlert of openAlerts) {
+      const fingerprint: string | undefined =
+        openAlert.seriesFingerprint || undefined;
+
+      if (!fingerprint || !fingerprintSet.has(fingerprint)) {
+        continue;
+      }
+
+      const createdCriteriaId: string | undefined =
+        openAlert.createdCriteriaId?.toString();
+
+      if (!createdCriteriaId) {
+        continue;
+      }
+
+      // Only auto-resolve when the creating criteria opted into it.
+      const autoResolveTemplates: Array<string> | undefined =
+        input.autoResolveCriteriaInstanceIdAlertIdsDictionary[
+          createdCriteriaId
+        ];
+
+      if (!autoResolveTemplates || autoResolveTemplates.length === 0) {
+        continue;
+      }
+
+      await this.resolveOpenAlert({
+        openAlert: openAlert,
+        rootCause: input.rootCause,
+        dataToProcess: input.dataToProcess,
+      });
+
+      input.evaluationSummary?.events.push({
+        type: "alert-resolved",
+        title: `Alert resolved: ${openAlert.id?.toString()}`,
+        message:
+          "Alert auto-resolved because the incoming payload reported this key as resolved.",
+        relatedAlertId: openAlert.id?.toString(),
+        relatedAlertNumber: openAlert.alertNumber,
+        relatedAlertNumberWithPrefix: openAlert.alertNumberWithPrefix,
+        at: OneUptimeDate.getCurrentDate(),
+      });
+    }
+  }
+
   @CaptureSpan()
   public static async criteriaMetCreateAlertsAndUpdateMonitorStatus(input: {
     criteriaInstance: MonitorCriteriaInstance;
@@ -129,6 +227,16 @@ export default class MonitorAlert {
      * evaluating. See MonitorMaintenanceSuppression.
      */
     suppressedSeriesFingerprints?: Set<string> | undefined;
+    /**
+     * Event-driven monitors (incoming-request / webhook fan-out) must not
+     * use the metric snapshot model where a series absent from this tick's
+     * breaching set is auto-resolved — a single webhook only describes the
+     * keys in that payload, so absence is not recovery. When true, the
+     * per-series absence-resolve pass is skipped; those alerts are resolved
+     * explicitly elsewhere (see IncomingRequestIncidentGrouping +
+     * resolveSeriesAlertsByFingerprint). Per-key create + dedupe still run.
+     */
+    disableSeriesAbsenceResolution?: boolean | undefined;
   }): Promise<void> {
     const alertLogAttributes: LogAttributes = {
       projectId: input.monitor.projectId?.toString(),
@@ -141,7 +249,7 @@ export default class MonitorAlert {
     );
 
     const breachingSeriesFingerprints: Set<string> | undefined =
-      input.matchesPerSeries
+      input.matchesPerSeries && !input.disableSeriesAbsenceResolution
         ? new Set<string>(
             input.matchesPerSeries.map((m: PerSeriesCriteriaMatch) => {
               return m.fingerprint;
@@ -160,6 +268,7 @@ export default class MonitorAlert {
         dataToProcess: input.dataToProcess,
         evaluationSummary: input.evaluationSummary,
         breachingSeriesFingerprints,
+        disableSeriesAbsenceResolution: input.disableSeriesAbsenceResolution,
       });
 
     if (!input.criteriaInstance.data?.createAlerts) {
@@ -179,8 +288,15 @@ export default class MonitorAlert {
         monitor: input.monitor,
       });
 
+    /*
+     * `undefined` matchesPerSeries → legacy single-alert path. A defined
+     * (even empty) array → per-series mode: iterate exactly the matches.
+     * An empty array therefore creates nothing — used by grouped
+     * incoming-request criteria on a payload with no firing key so they
+     * don't fall back to a single whole-monitor alert.
+     */
     const seriesToProcess: Array<PerSeriesCriteriaMatch | undefined> =
-      input.matchesPerSeries && input.matchesPerSeries.length > 0
+      input.matchesPerSeries !== undefined
         ? input.matchesPerSeries
         : [undefined];
 
@@ -572,12 +688,33 @@ export default class MonitorAlert {
       );
     }
 
-    await AlertStateTimelineService.create({
-      data: alertStateTimeline,
-      props: {
-        isRoot: true,
-      },
-    });
+    try {
+      await AlertStateTimelineService.create({
+        data: alertStateTimeline,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (err) {
+      /*
+       * Idempotent concurrency race: two evaluations for the same monitor
+       * (e.g. the explicit per-key resolveSeriesAlertsByFingerprint path and
+       * the checkOpenAlertsAndCloseIfResolved path) can both decide to resolve
+       * the same open alert near-simultaneously. The loser's onBeforeCreate
+       * dedupe throws this exact BadDataException. Treat as a no-op at debug
+       * level instead of failing the queue job. Mirrors resolveOpenIncident.
+       */
+      if (
+        err instanceof BadDataException &&
+        err.message === "Alert state cannot be same as previous state."
+      ) {
+        logger.debug(
+          `${input.openAlert.id?.toString()} - Alert already in resolved state; skipping duplicate state timeline (concurrent race).`,
+        );
+      } else {
+        throw err;
+      }
+    }
   }
 
   private static shouldCloseAlert(input: {
@@ -585,9 +722,22 @@ export default class MonitorAlert {
     autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
     criteriaInstance: MonitorCriteriaInstance | null; // null if no criteia met.
     breachingSeriesFingerprints?: Set<string> | undefined;
+    disableSeriesAbsenceResolution?: boolean | undefined;
   }): boolean {
     const openSeriesFingerprint: string | undefined =
       input.openAlert.seriesFingerprint || undefined;
+
+    /*
+     * Event-driven (incoming-request / webhook) per-key alerts must NEVER
+     * be resolved by absence — only explicitly, via
+     * resolveSeriesAlertsByFingerprint, when the payload reports the key as
+     * recovered. Mirrors MonitorIncident.shouldCloseIncident. Without this
+     * guard, a heartbeat-timeout cron tick or a rejected webhook would
+     * bulk-resolve all open per-key alerts by absence.
+     */
+    if (input.disableSeriesAbsenceResolution && openSeriesFingerprint) {
+      return false;
+    }
 
     /*
      * Per-series auto-resolve: when a breaching-series set is given and

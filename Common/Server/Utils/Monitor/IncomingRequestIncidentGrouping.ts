@@ -244,7 +244,7 @@ export default class IncomingRequestIncidentGrouping {
 
       addItem(
         keyValue,
-        this.isResolvedForScope(requestBody, requestBody, grouping),
+        this.isResolvedForScope(requestBody, requestBody, grouping, false),
       );
       return items;
     }
@@ -273,25 +273,41 @@ export default class IncomingRequestIncidentGrouping {
         break;
       }
 
-      if (!element || typeof element !== Typeof.Object) {
-        continue;
+      const isObjectElement: boolean =
+        Boolean(element) && typeof element === Typeof.Object;
+
+      let keyValue: string | null;
+
+      if (elementSuffix) {
+        // `prefix[*].sub.path` — element must be an object to dig into.
+        if (!isObjectElement) {
+          continue;
+        }
+        keyValue = this.toScalarString(
+          VMUtil.deepFind(element as JSONObject, elementSuffix),
+        );
+      } else {
+        // `prefix[*]` — the array element itself is the key (array of scalars).
+        keyValue = this.toScalarString(element as JSONValue);
       }
-
-      const elementObject: JSONObject = element as JSONObject;
-
-      const keyValue: string | null = this.toScalarString(
-        elementSuffix
-          ? VMUtil.deepFind(elementObject, elementSuffix)
-          : (elementObject as unknown as JSONValue),
-      );
 
       if (keyValue === null) {
         continue;
       }
 
+      /*
+       * Per-element resolve classification only applies when the element
+       * is an object (so `[*].status` can be read off it). For scalar
+       * elements there is no per-element field, so fall back to root scope.
+       */
       addItem(
         keyValue,
-        this.isResolvedForScope(elementObject, requestBody, grouping),
+        this.isResolvedForScope(
+          isObjectElement ? (element as JSONObject) : requestBody,
+          requestBody,
+          grouping,
+          isObjectElement,
+        ),
       );
     }
 
@@ -300,14 +316,21 @@ export default class IncomingRequestIncidentGrouping {
 
   /**
    * Classify whether the configured resolve condition holds. When the
-   * resolve path itself uses `[*]`, it is evaluated relative to the array
-   * element (`elementScope`); otherwise it is evaluated against the whole
-   * payload (`rootScope`).
+   * resolve path uses `[*]` AND we are evaluating a specific array element
+   * (`isElementContext`), it is read off that element (`elementScope`).
+   * Otherwise it is evaluated against the whole payload (`rootScope`).
+   *
+   * If the resolve path uses `[*]` but the group-by path does NOT (so we
+   * are not in element context — a self-contradictory config), the path is
+   * evaluated verbatim against the root: `deepFind` does not interpret
+   * `[*]`, so it returns undefined (not resolved) rather than silently
+   * rebinding to a same-named top-level field.
    */
   private static isResolvedForScope(
     elementScope: JSONObject,
     rootScope: JSONObject,
     grouping: IncidentGroupingConfig,
+    isElementContext: boolean,
   ): boolean {
     if (
       !grouping.resolvedWhenJSONPath ||
@@ -322,7 +345,7 @@ export default class IncomingRequestIncidentGrouping {
     let scope: JSONObject = rootScope;
     let path: string = grouping.resolvedWhenJSONPath;
 
-    if (wildcardIndex !== -1) {
+    if (wildcardIndex !== -1 && isElementContext) {
       scope = elementScope;
       path = this.stripLeadingDot(
         grouping.resolvedWhenJSONPath.slice(
