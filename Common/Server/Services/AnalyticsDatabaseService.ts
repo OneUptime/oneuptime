@@ -126,8 +126,10 @@ export const MigrationExecuteOptions: ClickhouseExecuteOptions = {
   useMigrationConnection: true,
   clickhouseSettings: {
     send_progress_in_http_headers: 1,
-    // Emit a progress header every 10s — well under the App pool's 58s and the
-    // migration pool's 30-minute idle ceiling.
+    /*
+     * Emit a progress header every 10s — well under the App pool's 58s and the
+     * migration pool's 30-minute idle ceiling.
+     */
     http_headers_progress_interval_ms: "10000",
   },
 };
@@ -487,9 +489,11 @@ export default class AnalyticsDatabaseService<
   ): Promise<void> {
     const statement: Statement =
       this.statementGenerator.toAddColumnStatement(column);
-    // Schema-sync / migration-only path: route through the migration pool so a
-    // column add that backfills a DEFAULT/MATERIALIZED expression on a large
-    // table is not destroyed at the App pool's 58s socket-idle timeout.
+    /*
+     * Schema-sync / migration-only path: route through the migration pool so a
+     * column add that backfills a DEFAULT/MATERIALIZED expression on a large
+     * table is not destroyed at the App pool's 58s socket-idle timeout.
+     */
     await this.execute(statement, MigrationExecuteOptions);
 
     // Add skip index separately (ClickHouse requires ADD INDEX as a separate ALTER statement)

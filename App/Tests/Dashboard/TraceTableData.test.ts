@@ -62,7 +62,9 @@ describe("TraceTableData.buildTraceTableRequest", () => {
   });
 
   test("blank group-by is omitted (caller guards before querying)", () => {
-    expect(buildRequest({ groupByAttribute: "   " })["groupBy"]).toBeUndefined();
+    expect(
+      buildRequest({ groupByAttribute: "   " })["groupBy"],
+    ).toBeUndefined();
   });
 
   test("max rows sets request.limit; missing/zero fall back to 10", () => {
@@ -78,9 +80,9 @@ describe("TraceTableData.buildTraceTableRequest", () => {
   });
 
   test("string max rows is coerced to a number", () => {
-    expect(
-      buildRequest({ topLimit: "5" as unknown as number })["limit"],
-    ).toBe(5);
+    expect(buildRequest({ topLimit: "5" as unknown as number })["limit"]).toBe(
+      5,
+    );
   });
 
   test("include child spans flips rootOnly off", () => {
