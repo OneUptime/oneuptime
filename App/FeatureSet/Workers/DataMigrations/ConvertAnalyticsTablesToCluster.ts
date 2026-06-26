@@ -25,28 +25,32 @@ import AnalyticsTableManagement from "../Utils/AnalyticsDatabase/TableManegement
  * working views. (An earlier version of this migration force-dropped every MV
  * first; that was both non-idempotent on re-run and bypassed those safety gates.)
  *
- * BACKFILL OF OLD ROWS IS INTENTIONALLY NOT DONE HERE.
+ * BACKFILL OF OLD ROWS IS INTENTIONALLY NOT DONE HERE, AND THE BACKUPS ARE
+ * DROPPED — telemetry history is forward-only across the conversion.
  *
  * Copying the OLD rows out of the `<table>_preclustered` backups into the cluster
  * tables streams the entire legacy dataset (often billions of rows) through one
  * coordinator node. Doing that automatically inside a boot data-migration is
  * unsafe at scale: it OOMs / hits the client's socket-idle timeout, and the
  * atomic table swaps race live ingestion (TABLE_UUID_MISMATCH / UNKNOWN_TABLE on
- * a high-throughput instance). It must instead be run by an operator in a
- * maintenance window — with ingestion quiesced — directly against ClickHouse,
- * table-by-table, biggest first, watching per-node memory:
+ * a high-throughput instance). So new telemetry simply starts fresh in the
+ * cluster tables, and the abandoned `<table>_preclustered` backups are reclaimed
+ * by the DropPreclusteredAnalyticsBackupTables migration (ordered just before
+ * this one) instead of being kept around indefinitely.
+ *
+ * Operators who want to carry pre-conversion history forward must do it BEFORE
+ * upgrading: copy it out by hand, or rename the source aside to a non-
+ * `_preclustered` name (e.g. `…_backup`, which the drop migration does not
+ * match), then run — in a maintenance window with ingestion quiesced — directly
+ * against ClickHouse, table-by-table, biggest first, watching per-node memory:
  *
  *   INSERT INTO <table> (<cols>) SELECT <cols>
- *     FROM clusterAllReplicas('<cluster>', currentDatabase(), <table>_preclustered)
+ *     FROM clusterAllReplicas('<cluster>', currentDatabase(), <table>_backup)
  *     SETTINGS send_progress_in_http_headers = 1;
- *   -- verify counts match, then:
- *   DROP TABLE <table>_preclustered ON CLUSTER '<cluster>' SYNC;
  *
  * (clusterAllReplicas reads EVERY node's backup — `cluster()` would read only one
  * replica per shard and miss data split across the others; the INSERT into the
- * Distributed table re-shards + replicates, reunifying split data.) The
- * `<table>_preclustered` backups are left in place untouched until that manual
- * copy is verified, so no data is lost by skipping the automatic backfill.
+ * Distributed table re-shards + replicates, reunifying split data.)
  *
  * BEST-EFFORT / NEVER RETRIES: createMaterializedViews swallows per-view errors
  * and migrate() never throws — the migration always records as complete.
@@ -78,20 +82,21 @@ export default class ConvertAnalyticsTablesToCluster extends DataMigrationBase {
     /*
      * This migration ALWAYS records as complete and NEVER retries. New telemetry
      * is already in the cluster tables (reconcileDistributedTable switched the
-     * Distributed wrappers in at schema-sync). The OLD rows remain in the
-     * `<table>_preclustered` backups for an operator to copy over manually — see
-     * the class doc comment for the procedure.
+     * Distributed wrappers in at schema-sync). The OLD rows left in the
+     * `<table>_preclustered` backups are reclaimed by
+     * DropPreclusteredAnalyticsBackupTables — see the class doc comment.
      */
   }
 
   public override async rollback(): Promise<void> {
     /*
      * Forward-only. The `<table>_preclustered` backups (created by the boot
-     * schema-sync) are never touched by this migration, so no automated rollback
-     * is needed — the legacy data stays safe in them for manual recovery.
+     * schema-sync) are not touched by THIS migration —
+     * DropPreclusteredAnalyticsBackupTables drops them — so there is nothing
+     * here to roll back.
      */
     logger.warn(
-      "ConvertAnalyticsTablesToCluster rollback is a no-op; *_preclustered backups (if any) preserve the legacy data for manual recovery.",
+      "ConvertAnalyticsTablesToCluster rollback is a no-op; the cluster cutover is forward-only and the *_preclustered backups are dropped by DropPreclusteredAnalyticsBackupTables.",
     );
   }
 }

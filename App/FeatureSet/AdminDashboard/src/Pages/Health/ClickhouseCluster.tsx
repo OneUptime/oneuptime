@@ -42,21 +42,6 @@ const formatNumber: (value: unknown) => string = (value: unknown): string => {
   return isNaN(parsed) ? "—" : parsed.toLocaleString();
 };
 
-const formatBytes: (value: unknown) => string = (value: unknown): string => {
-  const bytes: number = Number(value);
-  if (isNaN(bytes) || bytes <= 0) {
-    return "—";
-  }
-  const units: Array<string> = ["B", "KB", "MB", "GB", "TB", "PB"];
-  let size: number = bytes;
-  let unitIndex: number = 0;
-  while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024;
-    unitIndex++;
-  }
-  return `${size.toFixed(1)} ${units[unitIndex]}`;
-};
-
 const ClickhouseCluster: FunctionComponent = (): ReactElement => {
   const [data, setData] = useState<JSONObject | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
@@ -209,7 +194,6 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
     const ddlUnfinished: number = toNum(ddl["unfinished"]);
     const ddlItems: JSONArray = asArray(ddl["items"]);
     const unhealthyReplicas: JSONArray = asArray(data?.["unhealthyReplicas"]);
-    const preclustered: JSONArray = asArray(data?.["preclusteredTables"]);
 
     const shardsRecovering: number = shards.filter(
       (value: unknown): boolean => {
@@ -233,7 +217,7 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
       statusText = "Needs attention";
       statusColor = Red;
       shouldAnimate = false;
-    } else if (shardsRecovering > 0 || preclustered.length > 0) {
+    } else if (shardsRecovering > 0) {
       statusText = "Degraded";
       statusColor = Yellow;
       shouldAnimate = false;
@@ -366,44 +350,6 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
                       </span>
                       <span className="text-red-700 whitespace-nowrap">
                         {flags.join(", ") || "—"}
-                      </span>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
-        ) : (
-          <></>
-        )}
-
-        {/* Stranded history in *_preclustered backups. */}
-        {preclustered.length > 0 ? (
-          <div>
-            <div className="text-sm font-semibold text-gray-900 mb-2">
-              Un-backfilled history
-            </div>
-            <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3 space-y-1">
-              <div className="text-xs text-yellow-800">
-                {preclustered.length} legacy backup
-                {preclustered.length === 1 ? "" : "s"} from a cluster conversion
-                still hold history that has not been backfilled into the cluster
-                tables (recoverable; not lost).
-              </div>
-              {preclustered
-                .slice(0, MAX_ROWS_TO_SHOW)
-                .map((value: unknown, index: number): ReactElement => {
-                  const table: JSONObject = asObject(value);
-                  return (
-                    <div
-                      key={index}
-                      className="flex justify-between gap-4 text-xs"
-                    >
-                      <span className="font-mono text-gray-900 truncate">
-                        {String(table["name"])}
-                      </span>
-                      <span className="text-gray-600 whitespace-nowrap tabular-nums">
-                        {formatNumber(table["rows"])} rows ·{" "}
-                        {formatBytes(table["sizeInBytes"])}
                       </span>
                     </div>
                   );

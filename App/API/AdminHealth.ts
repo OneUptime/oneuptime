@@ -1253,7 +1253,6 @@ async function getClickhouseDiagnostics(): Promise<JSONObject> {
       distributedDdlQueue: { unfinished: null, byStatus: [], items: [] },
       unhealthyReplicas: [],
       replicationQueue: [],
-      preclusteredTables: [],
       keeperConnection: [],
     },
   };
@@ -1401,7 +1400,6 @@ async function getClickhouseDiagnostics(): Promise<JSONObject> {
       distributedDdlQueue: { unfinished: null, byStatus: [], items: [] },
       unhealthyReplicas: [],
       replicationQueue: [],
-      preclusteredTables: [],
       keeperConnection: [],
     };
 
@@ -1546,34 +1544,7 @@ async function getClickhouseDiagnostics(): Promise<JSONObject> {
       logger.debug("AdminHealth: system.replication_queue unavailable");
     }
 
-    /*
-     * 5. Leftover *_preclustered backups ⇒ an incomplete cluster conversion:
-     *    history is stranded in them and not yet backfilled into the cluster
-     *    tables (invisible in the UI, but recoverable).
-     */
-    try {
-      const preclusteredResult: ClickhouseJsonResult = (await (
-        await client.query({
-          query:
-            "SELECT name, total_rows AS rows, total_bytes AS bytes FROM system.tables WHERE database = currentDatabase() AND name LIKE '%\\_preclustered' ORDER BY total_bytes DESC" +
-            CH_DIAG_QUERY_SETTINGS,
-          format: "JSON",
-        })
-      ).json()) as ClickhouseJsonResult;
-      clusterHealth["preclusteredTables"] = (preclusteredResult.data || []).map(
-        (row: JSONObject): JSONObject => {
-          return {
-            name: String(row["name"]),
-            rows: toNumberOrNull(row["rows"]),
-            sizeInBytes: toNumberOrNull(row["bytes"]),
-          };
-        },
-      );
-    } catch {
-      logger.debug("AdminHealth: preclustered-table probe failed");
-    }
-
-    // 6. Keeper/ZooKeeper connection state (is this node talking to Keeper?).
+    // 5. Keeper/ZooKeeper connection state (is this node talking to Keeper?).
     try {
       const keeperResult: ClickhouseJsonResult = (await (
         await client.query({
@@ -2173,9 +2144,9 @@ router.get(
 
 /*
  * ClickHouse cluster health for the dashboard: shard reachability, the
- * distributed-DDL queue, replica / replication-queue state, leftover
- * *_preclustered backups and the Keeper connection — the signals that reveal a
- * wedged ON CLUSTER schema sync (where the migrate Job or boot schema-sync times
+ * distributed-DDL queue, replica / replication-queue state and the Keeper
+ * connection — the signals that reveal a wedged ON CLUSTER schema sync (where
+ * the migrate Job or boot schema-sync times
  * out because a DDL task never finishes on some shards). Enterprise Edition +
  * master-admin only, like the overview and logs beside it. Reuses the support
  * bundle's diagnostics so the dashboard and the downloaded bundle never disagree.
