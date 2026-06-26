@@ -84,6 +84,13 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
         description:
           "Span counts or response-time percentiles over time, optionally split by an attribute (e.g. per tenant).",
       },
+      {
+        type: DashboardComponentType.TraceTable,
+        label: "Trace Table",
+        icon: IconProp.TableCells,
+        description:
+          "Top dimensions by request count — requests, median, avg, min, and max response time per span name, status, or attribute.",
+      },
     ],
   },
   {

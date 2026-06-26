@@ -1264,6 +1264,16 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
+      {componentType === DashboardComponentType.TraceTable && (
+        <div className="mt-3">
+          <TraceChartQueryEditor
+            component={component}
+            onChange={commitComponent}
+            mode="table"
+          />
+        </div>
+      )}
+
       {/* If no Data Source section exists, render multi-query/formula at end */}
       {!sectionGroups.some((g: SectionGroup) => {
         return g.section.name === "Data Source";
