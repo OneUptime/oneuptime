@@ -19,6 +19,7 @@ import IsNull from "../../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../../Types/BaseDatabase/NotNull";
 import GreaterThan from "../../../../Types/BaseDatabase/GreaterThan";
 import Includes from "../../../../Types/BaseDatabase/Includes";
+import IncludesNone from "../../../../Types/BaseDatabase/IncludesNone";
 import Search from "../../../../Types/BaseDatabase/Search";
 import StartsWith from "../../../../Types/BaseDatabase/StartsWith";
 
@@ -360,6 +361,37 @@ describe("StatementGenerator", () => {
          * An empty multi-select is the user's "All" — must not emit
          * `IN ()` (which ClickHouse treats as match-nothing).
          */
+        expect(statement.query).toBe("");
+        expect(statement.query_params).toStrictEqual({});
+      });
+
+      test("emits direct map subscript NOT IN(...) for IncludesNone wrapper", () => {
+        const statement: Statement = mapGenerator.toWhereStatement({
+          attributes: {
+            "k8s.cluster.name": new IncludesNone(["prod-east", "prod-west"]),
+          },
+        } as any);
+        /*
+         * "is none of" emits the same O(1) Map subscript fast path as
+         * IN, negated. Missing keys (subscript returns '') pass NOT IN,
+         * matching NotEqual's map semantics.
+         */
+        expect(statement.query).toBe(
+          "AND {p0:Identifier}[{p1:String}] NOT IN {p2:Array(String)}",
+        );
+        expect(statement.query_params).toStrictEqual({
+          p0: "attributes",
+          p1: "k8s.cluster.name",
+          p2: ["prod-east", "prod-west"],
+        });
+      });
+
+      test("drops empty IncludesNone wrapper instead of producing NOT IN ()", () => {
+        const statement: Statement = mapGenerator.toWhereStatement({
+          attributes: {
+            "k8s.cluster.name": new IncludesNone([]),
+          },
+        } as any);
         expect(statement.query).toBe("");
         expect(statement.query_params).toStrictEqual({});
       });

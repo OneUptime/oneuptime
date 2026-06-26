@@ -11,6 +11,7 @@ import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import { ObjectType } from "../../../Types/JSON";
 
 /*
@@ -22,6 +23,7 @@ export enum DictionaryFilterOperator {
   EqualTo = "EqualTo",
   NotEqual = "NotEqual",
   IsAnyOf = "IsAnyOf",
+  IsNoneOf = "IsNoneOf",
   Contains = "Contains",
   NotContains = "NotContains",
   StartsWith = "StartsWith",
@@ -42,8 +44,10 @@ export interface DictionaryFilterOperatorOption {
   hidesValueInput?: boolean | undefined;
   // Numeric operators force a numeric value input.
   expectsNumericValue?: boolean | undefined;
-  // Multi-value operators (IsAnyOf) take an array of values and render a
-  // multi-select instead of a single value input.
+  /*
+   * Multi-value operators (IsAnyOf) take an array of values and render a
+   * multi-select instead of a single value input.
+   */
   expectsMultiValue?: boolean | undefined;
 }
 
@@ -63,6 +67,12 @@ export const DICTIONARY_FILTER_OPERATOR_OPTIONS: ReadonlyArray<DictionaryFilterO
       operator: DictionaryFilterOperator.IsAnyOf,
       label: "is any of",
       symbol: "is any of",
+      expectsMultiValue: true,
+    },
+    {
+      operator: DictionaryFilterOperator.IsNoneOf,
+      label: "is none of",
+      symbol: "is none of",
       expectsMultiValue: true,
     },
     {
@@ -139,7 +149,8 @@ export type DictionaryEntryValue =
   | LessThanOrEqual<number>
   | IsNull
   | NotNull
-  | Includes;
+  | Includes
+  | IncludesNone;
 
 export const getOperatorOption: (
   operator: DictionaryFilterOperator,
@@ -174,9 +185,11 @@ const matchesObjectType: (value: unknown, type: ObjectType) => boolean = (
 
 interface RawValueAndOperator {
   operator: DictionaryFilterOperator;
-  // For multi-value operators (IsAnyOf) this is a display-friendly joined
-  // string (e.g. "system, user") so existing chip/viewer consumers render
-  // it without changes; `rawValues` carries the structured array.
+  /*
+   * For multi-value operators (IsAnyOf) this is a display-friendly joined
+   * string (e.g. "system, user") so existing chip/viewer consumers render
+   * it without changes; `rawValues` carries the structured array.
+   */
   rawValue: string;
   rawValues?: Array<string> | undefined;
 }
@@ -232,6 +245,26 @@ export const detectOperatorFromValue: (
       : [];
     return {
       operator: DictionaryFilterOperator.IsAnyOf,
+      rawValue: values.join(", "),
+      rawValues: values,
+    };
+  }
+
+  if (
+    value instanceof IncludesNone ||
+    matchesObjectType(value, ObjectType.IncludesNone)
+  ) {
+    const rawArray: unknown =
+      value instanceof IncludesNone
+        ? value.values
+        : (value as { value?: unknown }).value;
+    const values: Array<string> = Array.isArray(rawArray)
+      ? rawArray.map((entry: unknown) => {
+          return String(entry);
+        })
+      : [];
+    return {
+      operator: DictionaryFilterOperator.IsNoneOf,
       rawValue: values.join(", "),
       rawValues: values,
     };
@@ -373,6 +406,18 @@ export const buildDictionaryValue: (input: {
        * predicate rather than emitting `IN ()`).
        */
       return new Includes(
+        (input.rawValues ?? []).filter((entry: string) => {
+          return entry !== "";
+        }),
+      );
+    case DictionaryFilterOperator.IsNoneOf:
+      /*
+       * Multi-value exclusion → SQL `attributes['k'] NOT IN (...)`. Drop
+       * empty entries; an empty IncludesNone is treated as "All" downstream
+       * (sanitizeAttributeFilters drops it and StatementGenerator skips the
+       * predicate rather than emitting `NOT IN ()`).
+       */
+      return new IncludesNone(
         (input.rawValues ?? []).filter((entry: string) => {
           return entry !== "";
         }),

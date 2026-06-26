@@ -117,7 +117,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
        */
       let restoredValue: string | number | boolean | Array<string> =
         detected.rawValue;
-      if (detected.operator === DictionaryFilterOperator.IsAnyOf) {
+      if (getOperatorOption(detected.operator).expectsMultiValue) {
         restoredValue = detected.rawValues ?? [];
       } else if (valueType === ValueType.Number && detected.rawValue !== "") {
         const parsed: number = Number(detected.rawValue);

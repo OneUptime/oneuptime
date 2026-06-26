@@ -29,6 +29,7 @@ import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import ObjectID from "../../../Types/ObjectID";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
@@ -881,6 +882,36 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 type: TableColumnType.Text,
               }}] IN ${{
                 value: new Includes(includesValues),
+                type: TableColumnType.Text,
+              }}`,
+            );
+            continue;
+          }
+
+          /*
+           * Multi-value exclusion (IncludesNone / "is none of"):
+           * `attributes['k'] NOT IN (...)`. Map subscript returns '' for a
+           * missing key, so (like NotEqual above) rows lacking the attribute
+           * pass the NOT IN test, which matches "the value is none of these".
+           * An empty IncludesNone is treated as "All" — skip the predicate
+           * rather than emit `NOT IN ()`. Values bind via a fresh `Includes`
+           * since Statement only types `Includes` as Array(String).
+           */
+          if (mapEntry instanceof IncludesNone) {
+            const excludeValues: Array<string> = (
+              (mapEntry as IncludesNone).values || []
+            ).map((v: string | ObjectID | number) => {
+              return String(v);
+            });
+            if (excludeValues.length === 0) {
+              continue;
+            }
+            whereStatement.append(
+              SQL`AND ${key}[${{
+                value: mapKey,
+                type: TableColumnType.Text,
+              }}] NOT IN ${{
+                value: new Includes(excludeValues),
                 type: TableColumnType.Text,
               }}`,
             );
