@@ -1226,6 +1226,352 @@ async function getPostgresDiagnostics(): Promise<JSONObject> {
 }
 
 /*
+ * Postgres cluster health for the dashboard: streaming-replication lag, slot
+ * health, connection saturation, lock/blocking pressure, cache-hit ratio and
+ * transaction-ID wraparound headroom — the signals behind a failed
+ * CloudNativePG failover, a stalled primary, a runaway connection pool or a
+ * lock convoy. The app always connects to the read-write (primary) service, so
+ * pg_stat_replication here lists the standbys from the primary's point of view.
+ * Each probe is independently guarded so the default single-instance
+ * StatefulSet (no replication) and a clustered CloudNativePG deployment both
+ * render gracefully, and so a missing pg_monitor grant on one view never drops
+ * the whole payload. We read only counts, durations, settings and topology —
+ * never query text or row data — so this stays safe to share.
+ */
+async function getPostgresClusterHealth(): Promise<JSONObject> {
+  const result: JSONObject = {
+    connected: false,
+    clusterName: null,
+    serverVersion: null,
+    isInRecovery: false,
+    role: null,
+    uptimeSeconds: null,
+    replication: [],
+    replicationSlots: [],
+    connections: null,
+    database: null,
+    wraparound: null,
+    topTablesByDeadTuples: [],
+    databaseSizeInBytes: null,
+  };
+
+  try {
+    const dataSource: ReturnType<typeof PostgresAppInstance.getDataSource> =
+      PostgresAppInstance.getDataSource();
+
+    if (!dataSource) {
+      return result;
+    }
+
+    result["connected"] = true;
+
+    // 1. Node identity & role — is this the primary or a standby, and for how long.
+    try {
+      const identityRows: Array<{
+        cluster_name: string | null;
+        server_version: string | null;
+        in_recovery: boolean;
+        uptime_seconds: string | null;
+      }> = await dataSource.query(
+        `SELECT
+           current_setting('cluster_name', true) AS cluster_name,
+           current_setting('server_version') AS server_version,
+           pg_is_in_recovery() AS in_recovery,
+           ROUND(EXTRACT(EPOCH FROM (now() - pg_postmaster_start_time()))) AS uptime_seconds`,
+      );
+
+      const identity: (typeof identityRows)[number] | undefined =
+        identityRows?.[0];
+
+      if (identity) {
+        result["clusterName"] = identity.cluster_name || null;
+        result["serverVersion"] = identity.server_version || null;
+        result["isInRecovery"] = Boolean(identity.in_recovery);
+        result["role"] = identity.in_recovery ? "standby" : "primary";
+        result["uptimeSeconds"] = toNumberOrNull(identity.uptime_seconds);
+      }
+    } catch (err) {
+      logger.debug("AdminHealth: postgres identity probe failed");
+      logger.debug(err);
+    }
+
+    // 2. Streaming replication — the primary's view of every connected standby.
+    try {
+      const replicationRows: Array<{
+        application_name: string | null;
+        client_addr: string | null;
+        state: string | null;
+        sync_state: string | null;
+        write_lag_seconds: string | null;
+        flush_lag_seconds: string | null;
+        replay_lag_seconds: string | null;
+        bytes_behind: string | null;
+      }> = await dataSource.query(
+        `SELECT
+           application_name,
+           host(client_addr) AS client_addr,
+           state,
+           sync_state,
+           COALESCE(EXTRACT(EPOCH FROM write_lag), 0) AS write_lag_seconds,
+           COALESCE(EXTRACT(EPOCH FROM flush_lag), 0) AS flush_lag_seconds,
+           COALESCE(EXTRACT(EPOCH FROM replay_lag), 0) AS replay_lag_seconds,
+           CASE WHEN pg_is_in_recovery() THEN NULL
+                ELSE pg_wal_lsn_diff(pg_current_wal_lsn(), replay_lsn) END AS bytes_behind
+         FROM pg_stat_replication
+         ORDER BY application_name ASC`,
+      );
+
+      result["replication"] = replicationRows.map(
+        (row: (typeof replicationRows)[number]): JSONObject => {
+          return {
+            applicationName: row.application_name
+              ? String(row.application_name)
+              : null,
+            clientAddr: row.client_addr ? String(row.client_addr) : null,
+            state: row.state ? String(row.state) : null,
+            syncState: row.sync_state ? String(row.sync_state) : null,
+            writeLagSeconds: toNumberOrNull(row.write_lag_seconds),
+            flushLagSeconds: toNumberOrNull(row.flush_lag_seconds),
+            replayLagSeconds: toNumberOrNull(row.replay_lag_seconds),
+            bytesBehind: toNumberOrNull(row.bytes_behind),
+          };
+        },
+      );
+    } catch (err) {
+      logger.debug("AdminHealth: pg_stat_replication unavailable");
+      logger.debug(err);
+    }
+
+    // 3. Replication slots — inactive or 'lost' slots silently retain or drop WAL.
+    try {
+      const slotRows: Array<{
+        slot_name: string | null;
+        slot_type: string | null;
+        active: boolean;
+        wal_status: string | null;
+        retained_bytes: string | null;
+        safe_wal_size: string | null;
+      }> = await dataSource.query(
+        `SELECT
+           slot_name,
+           slot_type,
+           active,
+           COALESCE(wal_status, 'unknown') AS wal_status,
+           CASE WHEN pg_is_in_recovery() THEN NULL
+                ELSE pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn) END AS retained_bytes,
+           safe_wal_size
+         FROM pg_replication_slots
+         ORDER BY slot_name ASC`,
+      );
+
+      result["replicationSlots"] = slotRows.map(
+        (row: (typeof slotRows)[number]): JSONObject => {
+          return {
+            slotName: row.slot_name ? String(row.slot_name) : null,
+            slotType: row.slot_type ? String(row.slot_type) : null,
+            active: Boolean(row.active),
+            walStatus: row.wal_status ? String(row.wal_status) : null,
+            retainedBytes: toNumberOrNull(row.retained_bytes),
+            safeWalSizeBytes: toNumberOrNull(row.safe_wal_size),
+          };
+        },
+      );
+    } catch (err) {
+      logger.debug("AdminHealth: pg_replication_slots unavailable");
+      logger.debug(err);
+    }
+
+    // 4. Connection saturation + lock/blocking pressure (aggregate, no query text).
+    try {
+      const connectionRows: Array<{
+        max_connections: string;
+        total: string;
+        active: string;
+        idle: string;
+        idle_in_transaction: string;
+        waiting_on_lock: string;
+        blocked: string;
+        longest_transaction_seconds: string;
+        longest_active_query_seconds: string;
+        longest_idle_in_transaction_seconds: string;
+      }> = await dataSource.query(
+        `SELECT
+           (SELECT setting::int FROM pg_settings WHERE name = 'max_connections') AS max_connections,
+           count(*) FILTER (WHERE backend_type = 'client backend') AS total,
+           count(*) FILTER (WHERE backend_type = 'client backend' AND state = 'active') AS active,
+           count(*) FILTER (WHERE backend_type = 'client backend' AND state = 'idle') AS idle,
+           count(*) FILTER (WHERE backend_type = 'client backend' AND state = 'idle in transaction') AS idle_in_transaction,
+           count(*) FILTER (WHERE wait_event_type = 'Lock') AS waiting_on_lock,
+           count(*) FILTER (WHERE cardinality(pg_blocking_pids(pid)) > 0) AS blocked,
+           COALESCE(ROUND(EXTRACT(EPOCH FROM max(now() - xact_start))), 0) AS longest_transaction_seconds,
+           COALESCE(ROUND(EXTRACT(EPOCH FROM max(now() - query_start)) FILTER (WHERE state = 'active')), 0) AS longest_active_query_seconds,
+           COALESCE(ROUND(EXTRACT(EPOCH FROM max(now() - state_change)) FILTER (WHERE state = 'idle in transaction')), 0) AS longest_idle_in_transaction_seconds
+         FROM pg_stat_activity`,
+      );
+
+      const conn: (typeof connectionRows)[number] | undefined =
+        connectionRows?.[0];
+
+      if (conn) {
+        result["connections"] = {
+          maxConnections: toNumberOrNull(conn.max_connections),
+          total: toNumberOrNull(conn.total),
+          active: toNumberOrNull(conn.active),
+          idle: toNumberOrNull(conn.idle),
+          idleInTransaction: toNumberOrNull(conn.idle_in_transaction),
+          waitingOnLock: toNumberOrNull(conn.waiting_on_lock),
+          blocked: toNumberOrNull(conn.blocked),
+          longestTransactionSeconds: toNumberOrNull(
+            conn.longest_transaction_seconds,
+          ),
+          longestActiveQuerySeconds: toNumberOrNull(
+            conn.longest_active_query_seconds,
+          ),
+          longestIdleInTransactionSeconds: toNumberOrNull(
+            conn.longest_idle_in_transaction_seconds,
+          ),
+        };
+      }
+    } catch (err) {
+      logger.debug("AdminHealth: postgres connection probe failed");
+      logger.debug(err);
+    }
+
+    // 5. Database throughput + cache-hit ratio (per-node counters, since last reset).
+    try {
+      const databaseRows: Array<{
+        numbackends: string;
+        xact_commit: string;
+        xact_rollback: string;
+        cache_hit_ratio: string | null;
+        deadlocks: string;
+        conflicts: string;
+        temp_files: string;
+        temp_bytes: string;
+        stats_reset: string | Date | null;
+      }> = await dataSource.query(
+        `SELECT
+           numbackends,
+           xact_commit,
+           xact_rollback,
+           CASE WHEN (blks_hit + blks_read) > 0
+                THEN ROUND(blks_hit::numeric / (blks_hit + blks_read) * 100, 2)
+                ELSE NULL END AS cache_hit_ratio,
+           deadlocks,
+           conflicts,
+           temp_files,
+           temp_bytes,
+           stats_reset
+         FROM pg_stat_database
+         WHERE datname = current_database()`,
+      );
+
+      const db: (typeof databaseRows)[number] | undefined = databaseRows?.[0];
+
+      if (db) {
+        result["database"] = {
+          numBackends: toNumberOrNull(db.numbackends),
+          xactCommit: toNumberOrNull(db.xact_commit),
+          xactRollback: toNumberOrNull(db.xact_rollback),
+          cacheHitRatio: toNumberOrNull(db.cache_hit_ratio),
+          deadlocks: toNumberOrNull(db.deadlocks),
+          conflicts: toNumberOrNull(db.conflicts),
+          tempFiles: toNumberOrNull(db.temp_files),
+          tempBytes: toNumberOrNull(db.temp_bytes),
+          statsReset: toIsoOrNull(db.stats_reset),
+        };
+      }
+    } catch (err) {
+      logger.debug("AdminHealth: pg_stat_database probe failed");
+      logger.debug(err);
+    }
+
+    // 6. Transaction-ID wraparound headroom — the one silent failure that halts writes.
+    try {
+      const wraparoundRows: Array<{
+        max_xid_age: string | null;
+        freeze_max_age: string | null;
+      }> = await dataSource.query(
+        `SELECT
+           max(age(datfrozenxid)) AS max_xid_age,
+           (SELECT setting::bigint FROM pg_settings WHERE name = 'autovacuum_freeze_max_age') AS freeze_max_age
+         FROM pg_database`,
+      );
+
+      const wrap: (typeof wraparoundRows)[number] | undefined =
+        wraparoundRows?.[0];
+
+      if (wrap) {
+        result["wraparound"] = {
+          maxXidAge: toNumberOrNull(wrap.max_xid_age),
+          autovacuumFreezeMaxAge: toNumberOrNull(wrap.freeze_max_age),
+        };
+      }
+    } catch (err) {
+      logger.debug("AdminHealth: wraparound probe failed");
+      logger.debug(err);
+    }
+
+    // 7. Dead-tuple / autovacuum hotspots — bloat and stalled autovacuum.
+    try {
+      const tableRows: Array<{
+        schemaname: string;
+        relname: string;
+        dead_tuples: string;
+        live_tuples: string;
+        last_autovacuum: string | Date | null;
+        last_autoanalyze: string | Date | null;
+        total_bytes: string;
+      }> = await dataSource.query(
+        `SELECT
+           schemaname,
+           relname,
+           n_dead_tup AS dead_tuples,
+           n_live_tup AS live_tuples,
+           last_autovacuum,
+           last_autoanalyze,
+           pg_total_relation_size(relid) AS total_bytes
+         FROM pg_stat_user_tables
+         ORDER BY n_dead_tup DESC
+         LIMIT 8`,
+      );
+
+      result["topTablesByDeadTuples"] = tableRows.map(
+        (row: (typeof tableRows)[number]): JSONObject => {
+          return {
+            name: `${row.schemaname}.${row.relname}`,
+            deadTuples: toNumberOrNull(row.dead_tuples),
+            liveTuples: toNumberOrNull(row.live_tuples),
+            lastAutovacuum: toIsoOrNull(row.last_autovacuum),
+            lastAutoanalyze: toIsoOrNull(row.last_autoanalyze),
+            totalSizeInBytes: toNumberOrNull(row.total_bytes),
+          };
+        },
+      );
+    } catch (err) {
+      logger.debug("AdminHealth: pg_stat_user_tables probe failed");
+      logger.debug(err);
+    }
+
+    // 8. Total database size.
+    try {
+      const sizeRows: Array<{ size: string }> = await dataSource.query(
+        "SELECT pg_database_size(current_database()) AS size",
+      );
+      result["databaseSizeInBytes"] = toNumberOrNull(sizeRows?.[0]?.size);
+    } catch (err) {
+      logger.debug("AdminHealth: pg_database_size probe failed");
+      logger.debug(err);
+    }
+  } catch (err) {
+    logger.error("AdminHealth: failed to read Postgres cluster health");
+    logger.error(err);
+  }
+
+  return result;
+}
+
+/*
  * Hard server-side wall-clock cap for the (read-only, system-table) diagnostic
  * queries so a slow introspection on a large instance can't tie up a ClickHouse
  * thread for the full client request timeout.
@@ -2183,6 +2529,39 @@ router.get(
 );
 
 /*
+ * Postgres cluster health for the dashboard: streaming-replication lag, slot
+ * health, connection saturation, lock/blocking pressure, cache-hit ratio and
+ * transaction-ID wraparound headroom — the signals behind a failed
+ * CloudNativePG failover or a stalled primary. Enterprise Edition + master-admin
+ * only, like the ClickHouse cluster endpoint beside it. Reuses the same probe
+ * used by the support bundle so the dashboard and the downloaded bundle agree.
+ */
+router.get(
+  "/postgres-cluster",
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!IsEnterpriseEdition) {
+        throw new PaymentRequiredException(
+          "The instance health dashboard is only available on the OneUptime Enterprise Edition. " +
+            "Please switch to the Enterprise Edition build to enable this feature. " +
+            "See https://oneuptime.com/enterprise/overview for details.",
+        );
+      }
+
+      const data: JSONObject = await getPostgresClusterHealth();
+      return Response.sendJsonObjectResponse(req, res, data);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
  * Migration status is intentionally NOT gated behind the Enterprise Edition:
  * every self-hosting operator (Community included) needs to confirm their
  * schema is fully migrated, and this is the data we ask them for when they
@@ -2236,6 +2615,7 @@ router.get(
         queueStats,
         queueDiagnostics,
         postgresDiagnostics,
+        postgresClusterHealth,
         clickhouseDiagnostics,
         logs,
       ] = await Promise.all([
@@ -2248,6 +2628,7 @@ router.get(
         getQueueStats(),
         getQueueDiagnostics(),
         getPostgresDiagnostics(),
+        getPostgresClusterHealth(),
         getClickhouseDiagnostics(),
         getDiagnosticLogs(),
       ]);
@@ -2272,6 +2653,7 @@ router.get(
         migrations,
         queueDiagnostics,
         postgresDiagnostics,
+        postgresClusterHealth,
         clickhouseDiagnostics,
         logs,
         postgres: postgresSchema,

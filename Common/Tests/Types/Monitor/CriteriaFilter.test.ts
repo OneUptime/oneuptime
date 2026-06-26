@@ -80,6 +80,105 @@ describe("CriteriaFilterUtil", () => {
         ).toBe(false);
       },
     );
+
+    test.each([
+      CheckOn.DnssecChainValid,
+      CheckOn.DnssecDnskeyExists,
+      CheckOn.DnssecDsExists,
+      CheckOn.DnssecResolverConsensus,
+      CheckOn.DnssecNameserverConsistent,
+      CheckOn.ExternalStatusPageIsOnline,
+    ])(
+      "returns false for the rest of the boolean checkOn group %s",
+      (checkOn: CheckOn) => {
+        expect(
+          CriteriaFilterUtil.hasValueField({
+            checkOn,
+            filterType: FilterType.GreaterThan,
+          }),
+        ).toBe(false);
+      },
+    );
+
+    test.each([CheckOn.DnssecIsValid, CheckOn.DnsRecordExists])(
+      "returns false for the existence-style checkOn %s",
+      (checkOn: CheckOn) => {
+        expect(
+          CriteriaFilterUtil.hasValueField({
+            checkOn,
+            filterType: FilterType.GreaterThan,
+          }),
+        ).toBe(false);
+      },
+    );
+
+    test.each([
+      FilterType.AnomalouslyHigh,
+      FilterType.AnomalouslyLow,
+      FilterType.Anomalous,
+    ])(
+      "anomaly filter type %s short-circuits even for a normally-valued checkOn",
+      (filterType: FilterType) => {
+        expect(
+          CriteriaFilterUtil.hasValueField({
+            checkOn: CheckOn.ResponseTime,
+            filterType,
+          }),
+        ).toBe(false);
+      },
+    );
+
+    test("returns true for ResponseTime with GreaterThan", () => {
+      expect(
+        CriteriaFilterUtil.hasValueField({
+          checkOn: CheckOn.ResponseTime,
+          filterType: FilterType.GreaterThan,
+        }),
+      ).toBe(true);
+    });
+
+    test("returns true for ResponseStatusCode with EqualTo", () => {
+      expect(
+        CriteriaFilterUtil.hasValueField({
+          checkOn: CheckOn.ResponseStatusCode,
+          filterType: FilterType.EqualTo,
+        }),
+      ).toBe(true);
+    });
+
+    test("returns true for a string-comparison filter that falls through all guards", () => {
+      expect(
+        CriteriaFilterUtil.hasValueField({
+          checkOn: CheckOn.ResponseBody,
+          filterType: FilterType.Contains,
+        }),
+      ).toBe(true);
+    });
+
+    test("returns true when filterType is undefined and checkOn is not valueless", () => {
+      expect(
+        CriteriaFilterUtil.hasValueField({
+          checkOn: CheckOn.ResponseTime,
+          filterType: undefined,
+        }),
+      ).toBe(true);
+    });
+
+    test.each([
+      CheckOn.IsExpiredCertificate,
+      CheckOn.IsNotAValidCertificate,
+      CheckOn.IsSelfSignedCertificate,
+    ])(
+      "returns false for the rest of the certificate checkOn group %s",
+      (checkOn: CheckOn) => {
+        expect(
+          CriteriaFilterUtil.hasValueField({
+            checkOn,
+            filterType: FilterType.GreaterThan,
+          }),
+        ).toBe(false);
+      },
+    );
   });
 
   describe("getEvaluateOverTimeTypeByCriteriaFilter", () => {
@@ -140,6 +239,22 @@ describe("CriteriaFilterUtil", () => {
       );
     });
 
+    test.each([
+      FilterType.Contains,
+      FilterType.NotContains,
+      FilterType.StartsWith,
+      FilterType.EndsWith,
+      FilterType.IsEmpty,
+      FilterType.True,
+    ])(
+      "returns %s itself for non-invertible filter types",
+      (filterType: FilterType) => {
+        expect(CriteriaFilterUtil.getInverseFilterType(filterType)).toBe(
+          filterType,
+        );
+      },
+    );
+
     test("inversion is reversible for comparison filters", () => {
       const inverse: FilterType = CriteriaFilterUtil.getInverseFilterType(
         FilterType.GreaterThan,
@@ -171,5 +286,63 @@ describe("CriteriaFilterUtil", () => {
         );
       },
     );
+
+    test.each([
+      CheckOn.ResponseStatusCode,
+      CheckOn.ResponseTime,
+      CheckOn.DiskUsagePercent,
+      CheckOn.CPUUsagePercent,
+      CheckOn.MemoryUsagePercent,
+      CheckOn.LoadAverage1Min,
+      CheckOn.LoadAverage5Min,
+      CheckOn.LoadAverage15Min,
+      CheckOn.SwapUsagePercent,
+      CheckOn.CPUIoWaitPercent,
+      CheckOn.IsOnline,
+      CheckOn.SnmpResponseTime,
+      CheckOn.SnmpIsOnline,
+      CheckOn.DnsResponseTime,
+      CheckOn.DnsIsOnline,
+      CheckOn.ExternalStatusPageResponseTime,
+      CheckOn.ExternalStatusPageIsOnline,
+    ])(
+      "returns true for every evaluate-over-time checkOn %s",
+      (checkOn: CheckOn) => {
+        expect(CriteriaFilterUtil.isEvaluateOverTimeFilter(checkOn)).toBe(true);
+      },
+    );
+
+    test.each([
+      CheckOn.ResponseBody,
+      CheckOn.IncomingRequest,
+      CheckOn.MetricValue,
+    ])(
+      "returns false for non-evaluate-over-time checkOn %s",
+      (checkOn: CheckOn) => {
+        expect(CriteriaFilterUtil.isEvaluateOverTimeFilter(checkOn)).toBe(
+          false,
+        );
+      },
+    );
+  });
+
+  describe("getEvaluateOverTimeTypeByCriteriaFilter (non-IsOnline)", () => {
+    test("returns the full 6-element aggregation set in order for a non-IsOnline checkOn", () => {
+      const result: Array<EvaluateOverTimeType> =
+        CriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter({
+          checkOn: CheckOn.CPUUsagePercent,
+          filterType: FilterType.GreaterThan,
+          value: 90,
+        } as CriteriaFilter);
+
+      expect(result).toEqual([
+        EvaluateOverTimeType.Average,
+        EvaluateOverTimeType.Sum,
+        EvaluateOverTimeType.MaximumValue,
+        EvaluateOverTimeType.MunimumValue,
+        EvaluateOverTimeType.AllValues,
+        EvaluateOverTimeType.AnyValue,
+      ]);
+    });
   });
 });

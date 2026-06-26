@@ -24,6 +24,7 @@ export interface ComponentProps {
   onClose: () => void;
   onComponentUpdate: (component: DashboardBaseComponent) => void;
   onComponentDelete: (component: DashboardBaseComponent) => void;
+  onComponentDuplicate: (component: DashboardBaseComponent) => void;
   componentId: ObjectID;
   dashboardViewConfig: DashboardViewConfig;
   dashboardStartAndEndDate: RangeStartAndEndDateTime;
@@ -91,14 +92,24 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
       }}
       closeButtonText="Done"
       leftFooterElement={
-        <Button
-          title={`Delete Widget`}
-          icon={IconProp.Trash}
-          buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-          onClick={() => {
-            setShowDeleteConfirmation(true);
-          }}
-        />
+        <div className="flex items-center gap-2">
+          <Button
+            title={`Duplicate Widget`}
+            icon={IconProp.Copy}
+            buttonStyle={ButtonStyleType.NORMAL}
+            onClick={() => {
+              props.onComponentDuplicate(component);
+            }}
+          />
+          <Button
+            title={`Delete Widget`}
+            icon={IconProp.Trash}
+            buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+            onClick={() => {
+              setShowDeleteConfirmation(true);
+            }}
+          />
+        </div>
       }
       rightElement={
         <div className="flex items-center gap-2">
