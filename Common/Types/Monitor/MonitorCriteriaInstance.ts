@@ -1491,6 +1491,16 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     return this;
   }
 
+  public setIncidentGrouping(
+    incidentGrouping: IncidentGroupingConfig | undefined,
+  ): MonitorCriteriaInstance {
+    if (this.data) {
+      this.data.incidentGrouping = incidentGrouping;
+    }
+
+    return this;
+  }
+
   public override toJSON(): JSONObject {
     if (!this.data) {
       return MonitorCriteriaInstance.getNewMonitorCriteriaInstanceAsJSON();
