@@ -1,6 +1,7 @@
 import { AnalyticsServices } from "Common/Server/Services/Index";
 import AnalyticsDatabaseService, {
   DbJSONResponse,
+  MigrationExecuteOptions,
   Results,
 } from "Common/Server/Services/AnalyticsDatabaseService";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
@@ -34,6 +35,7 @@ export default class AnalyticsTableManagement {
       // create a table if it does not exist
       await service.execute(
         service.statementGenerator.toTableCreateStatement(),
+        MigrationExecuteOptions,
       );
 
       /*
@@ -135,6 +137,7 @@ export default class AnalyticsTableManagement {
         });
         await service.execute(
           `RENAME TABLE ${tableName} TO ${preclustered}${onClusterClause()}`,
+          MigrationExecuteOptions,
         );
       } catch (error) {
         /*
@@ -179,6 +182,7 @@ export default class AnalyticsTableManagement {
 
     await service.execute(
       service.statementGenerator.toDistributedTableCreateStatement(),
+      MigrationExecuteOptions,
     );
   }
 
@@ -513,7 +517,7 @@ export default class AnalyticsTableManagement {
         logger.info(
           `Skip index ${indexName} is missing on ${service.model.tableName} - adding it.`,
         );
-        await service.execute(indexStatement);
+        await service.execute(indexStatement, MigrationExecuteOptions);
       } catch (error) {
         logger.error({
           message: `Failed to add missing skip index ${indexName} on ${service.model.tableName}`,
@@ -853,6 +857,7 @@ export default class AnalyticsTableManagement {
               `DROP VIEW IF EXISTS ${this.escapeIdentifier(
                 materializedView.name,
               )}${onClusterClause()} SYNC`,
+              MigrationExecuteOptions,
             );
           } else {
             /*
@@ -1134,6 +1139,7 @@ export default class AnalyticsTableManagement {
 
         await service.execute(
           `ALTER TABLE ${escapedDatabase}.${escapedTable} ADD PROJECTION IF NOT EXISTS ${escapedProjection} (${projection.query})`,
+          MigrationExecuteOptions,
         );
 
         /*
@@ -1145,6 +1151,7 @@ export default class AnalyticsTableManagement {
          */
         await service.execute(
           `ALTER TABLE ${escapedDatabase}.${escapedTable} MATERIALIZE PROJECTION ${escapedProjection} SETTINGS mutations_sync=0`,
+          MigrationExecuteOptions,
         );
       } catch (error) {
         logger.error({
@@ -1220,7 +1227,7 @@ export default class AnalyticsTableManagement {
     );
 
     try {
-      await service.execute(statement);
+      await service.execute(statement, MigrationExecuteOptions);
     } catch (error) {
       const clickhouseError: { code?: string } = error as { code?: string };
 
@@ -1289,6 +1296,7 @@ export default class AnalyticsTableManagement {
        */
       await service.execute(
         applyClusterToMaterializedViewQuery(materializedView.query),
+        MigrationExecuteOptions,
       );
     } catch (error) {
       const clickhouseError: { code?: string } = error as { code?: string };
