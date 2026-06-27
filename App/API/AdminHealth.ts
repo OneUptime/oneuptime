@@ -20,7 +20,9 @@ import Express, {
   NextFunction,
   OneUptimeRequest,
 } from "Common/Server/Utils/Express";
-import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -3165,7 +3167,7 @@ function parseRedisCommandLine(line: string): Array<string> {
       continue;
     }
 
-    if (/\s/.test(ch)) {
+    if (ch === " " || ch === "\t" || ch === "\n" || ch === "\r") {
       if (current.length > 0) {
         tokens.push(current);
         current = "";

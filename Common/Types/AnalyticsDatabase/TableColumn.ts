@@ -17,6 +17,13 @@ export interface SkipIndex {
   // e.g. 0.01 for bloom_filter, 10 for set, or [10240, 3, 0] for tokenbf_v1
   params?: Array<number> | undefined;
   granularity: number;
+  /*
+   * Optional indexed EXPRESSION instead of the bare column. Lets an index
+   * target e.g. `mapValues(attributes)` / `mapKeys(attributes)` so equality
+   * and key-existence filters on a Map column become granule-prunable. When
+   * omitted the index is on the column's own `key`.
+   */
+  expression?: string | undefined;
 }
 
 /*
@@ -159,6 +166,43 @@ export default class AnalyticsTableColumn {
     this._skipIndex = v;
   }
 
+  /*
+   * Additional skip indexes on the SAME column beyond the primary `skipIndex`
+   * — e.g. the `attributes` Map carries both a `mapKeys(...)` and a
+   * `mapValues(...)` bloom filter. Use `getSkipIndexes()` to read the full set.
+   */
+  private _skipIndexes: Array<SkipIndex> | undefined;
+  public get skipIndexes(): Array<SkipIndex> | undefined {
+    return this._skipIndexes;
+  }
+  public set skipIndexes(v: Array<SkipIndex> | undefined) {
+    this._skipIndexes = v;
+  }
+
+  // The merged set of every skip index defined on this column.
+  public getSkipIndexes(): Array<SkipIndex> {
+    return [
+      ...(this._skipIndex ? [this._skipIndex] : []),
+      ...(this._skipIndexes || []),
+    ];
+  }
+
+  /*
+   * A ClickHouse `MATERIALIZED <expr>` column: the value is computed by
+   * ClickHouse from other columns at insert time (and on-read for parts that
+   * predate the column), never sent by the app. Used by `attributeValueTokens`
+   * = arrayMap over the attributes map → cityHash64 per key=value, so equality
+   * filters become an indexed `has(...)` lookup. Such columns are emitted with
+   * the MATERIALIZED clause in DDL and EXCLUDED from INSERT column lists.
+   */
+  private _computedExpression: string | undefined;
+  public get computedExpression(): string | undefined {
+    return this._computedExpression;
+  }
+  public set computedExpression(v: string | undefined) {
+    this._computedExpression = v;
+  }
+
   private _codec: ColumnCodecValue | undefined;
   public get codec(): ColumnCodecValue | undefined {
     return this._codec;
@@ -214,6 +258,8 @@ export default class AnalyticsTableColumn {
       | (() => Date | string | number | boolean)
       | undefined;
     skipIndex?: SkipIndex | undefined;
+    skipIndexes?: Array<SkipIndex> | undefined;
+    computedExpression?: string | undefined;
     codec?: ColumnCodecValue | undefined;
     isLowCardinality?: boolean | undefined;
     aggregateFunctionDefinition?: string | undefined;
@@ -231,6 +277,8 @@ export default class AnalyticsTableColumn {
     this.allowAccessIfSubscriptionIsUnpaid =
       data.allowAccessIfSubscriptionIsUnpaid || false;
     this.skipIndex = data.skipIndex;
+    this.skipIndexes = data.skipIndexes;
+    this.computedExpression = data.computedExpression;
     this.codec = data.codec;
     this.isLowCardinality = data.isLowCardinality || false;
     this.aggregateFunctionDefinition = data.aggregateFunctionDefinition;

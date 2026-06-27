@@ -214,8 +214,9 @@ const QueryConsole: FunctionComponent<ComponentProps> = (
     }
 
     const columns: Array<string> = (result["columns"] || []) as Array<string>;
-    const rows: Array<Array<JSONValue>> = (result["rows"] ||
-      []) as Array<Array<JSONValue>>;
+    const rows: Array<Array<JSONValue>> = (result["rows"] || []) as Array<
+      Array<JSONValue>
+    >;
 
     if (columns.length > 0) {
       return (
