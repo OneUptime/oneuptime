@@ -18,8 +18,11 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  OneUptimeRequest,
 } from "Common/Server/Utils/Express";
-import logger from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -2661,6 +2664,806 @@ router.get(
       };
 
       return Response.sendJsonObjectResponse(req, res, bundle);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * ──────────────────────────────────────────────────────────────────────────
+ * Database query console (master-admin only)
+ *
+ * Lets a master admin run ad-hoc queries against Postgres, ClickHouse and Redis
+ * straight from the admin UI, so they can debug a live instance without shelling
+ * into the cluster (kubectl exec -> psql / clickhouse-client / redis-cli).
+ *
+ * This is a powerful, deliberately-dangerous tool, so it is defended in depth:
+ *   - Master-admin gated (same middleware as every other endpoint here).
+ *   - Read-only by DEFAULT. Writes / DDL only run when the caller passes
+ *     allowWrite=true, which the UI gates behind an explicit toggle + a
+ *     confirmation dialog. Read-only is ALSO enforced at the engine level, not
+ *     just by inspecting the statement: a Postgres READ ONLY transaction,
+ *     ClickHouse readonly=2, and a Redis read-command allow-list. So even a
+ *     statement our classifier misreads still cannot mutate data.
+ *   - Every statement runs under a hard timeout (statement_timeout /
+ *     max_execution_time / a Promise race for Redis).
+ *   - Result rows and per-cell size are capped, so one query can neither OOM
+ *     the pod nor the browser.
+ *   - Each execution is audit-logged (who, datastore, write-mode, and a
+ *     credential-scrubbed preview of the statement).
+ *
+ * Unlike the support bundle, result VALUES are returned verbatim (not
+ * secret-scrubbed): inspecting live data is the whole point, the master admin
+ * already has full database access, and the payload travels only to their
+ * authenticated browser over TLS. For that same reason result bodies are kept
+ * OUT of the audit log (see the logBody override on the endpoint).
+ * ──────────────────────────────────────────────────────────────────────────
+ */
+
+type ConsoleDatastore = "postgres" | "clickhouse" | "redis";
+
+const CONSOLE_VALID_DATASTORES: Array<ConsoleDatastore> = [
+  "postgres",
+  "clickhouse",
+  "redis",
+];
+
+// Hard ceilings so a single console query cannot exhaust memory or run forever.
+const CONSOLE_QUERY_TIMEOUT_MS: number = 30000;
+const CONSOLE_MAX_ROWS: number = 1000;
+const CONSOLE_MAX_CELL_CHARS: number = 20000;
+const CONSOLE_MAX_QUERY_LENGTH: number = 100000;
+
+/*
+ * ClickHouse statements that return a result set. Anything else (INSERT,
+ * CREATE, ALTER, DROP, OPTIMIZE, SYSTEM, KILL, ...) is run through .command()
+ * and is only reachable in write mode.
+ */
+const CLICKHOUSE_READ_STATEMENT_PREFIXES: Array<string> = [
+  "SELECT",
+  "WITH",
+  "SHOW",
+  "DESCRIBE",
+  "DESC",
+  "EXISTS",
+  "EXPLAIN",
+  "CHECK",
+];
+
+/*
+ * Redis commands that only ever read. Anything not on this list — writes, and
+ * commands like CONFIG / CLIENT / SLOWLOG / SCRIPT whose subcommands can mutate
+ * — requires write mode. Compared case-insensitively against the first token.
+ */
+const REDIS_READ_ONLY_COMMANDS: Set<string> = new Set([
+  "GET",
+  "MGET",
+  "STRLEN",
+  "GETRANGE",
+  "SUBSTR",
+  "EXISTS",
+  "TYPE",
+  "TTL",
+  "PTTL",
+  "EXPIRETIME",
+  "PEXPIRETIME",
+  "KEYS",
+  "SCAN",
+  "RANDOMKEY",
+  "DBSIZE",
+  "DUMP",
+  "HGET",
+  "HMGET",
+  "HGETALL",
+  "HKEYS",
+  "HVALS",
+  "HLEN",
+  "HEXISTS",
+  "HSCAN",
+  "HSTRLEN",
+  "HRANDFIELD",
+  "LRANGE",
+  "LINDEX",
+  "LLEN",
+  "LPOS",
+  "SMEMBERS",
+  "SISMEMBER",
+  "SMISMEMBER",
+  "SCARD",
+  "SSCAN",
+  "SRANDMEMBER",
+  "SINTER",
+  "SUNION",
+  "SDIFF",
+  "SINTERCARD",
+  "ZRANGE",
+  "ZRANGEBYSCORE",
+  "ZRANGEBYLEX",
+  "ZREVRANGE",
+  "ZREVRANGEBYSCORE",
+  "ZREVRANGEBYLEX",
+  "ZCARD",
+  "ZSCORE",
+  "ZMSCORE",
+  "ZRANK",
+  "ZREVRANK",
+  "ZCOUNT",
+  "ZLEXCOUNT",
+  "ZSCAN",
+  "ZRANDMEMBER",
+  "XRANGE",
+  "XREVRANGE",
+  "XLEN",
+  "XINFO",
+  "XREAD",
+  "GETBIT",
+  "BITCOUNT",
+  "BITPOS",
+  "GEOPOS",
+  "GEODIST",
+  "GEOHASH",
+  "GEOSEARCH",
+  "PFCOUNT",
+  "OBJECT",
+  "MEMORY",
+  "INFO",
+  "TIME",
+  "PING",
+  "ECHO",
+  "COMMAND",
+  "LOLWUT",
+  "LATENCY",
+]);
+
+interface ConsoleTabularResult {
+  columns: Array<string>;
+  rows: Array<Array<JSONValue>>;
+  rowCount: number;
+  truncated: boolean;
+}
+
+// JSON-safe representation of one result cell, with a per-cell size cap.
+function toConsoleCellValue(value: unknown): JSONValue {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const valueType: string = typeof value;
+
+  if (valueType === "number" || valueType === "boolean") {
+    return value as number | boolean;
+  }
+
+  if (valueType === "bigint") {
+    return (value as bigint).toString();
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (typeof Buffer !== "undefined" && Buffer.isBuffer(value)) {
+    const asString: string = (value as Buffer).toString("utf8");
+    return asString.length > CONSOLE_MAX_CELL_CHARS
+      ? `${asString.substring(0, CONSOLE_MAX_CELL_CHARS)}… (truncated)`
+      : asString;
+  }
+
+  if (valueType === "string") {
+    const str: string = value as string;
+    return str.length > CONSOLE_MAX_CELL_CHARS
+      ? `${str.substring(0, CONSOLE_MAX_CELL_CHARS)}… (truncated)`
+      : str;
+  }
+
+  // Arrays / objects (jsonb, array columns, composite types) — serialise compactly.
+  try {
+    const serialized: string = JSON.stringify(value);
+
+    if (serialized === undefined) {
+      return String(value);
+    }
+
+    return serialized.length > CONSOLE_MAX_CELL_CHARS
+      ? `${serialized.substring(0, CONSOLE_MAX_CELL_CHARS)}… (truncated)`
+      : (JSON.parse(serialized) as JSONValue);
+  } catch {
+    return String(value);
+  }
+}
+
+/*
+ * Turn an array of row objects into an ordered { columns, rows } grid, capping
+ * the row count. Column order comes from explicitColumns when provided (so
+ * ClickHouse's reported column order is preserved); otherwise it is the
+ * first-seen union of keys across the returned rows.
+ */
+function buildTabularResult(
+  rows: Array<Record<string, unknown>>,
+  explicitColumns?: Array<string>,
+): ConsoleTabularResult {
+  const truncated: boolean = rows.length > CONSOLE_MAX_ROWS;
+  const limitedRows: Array<Record<string, unknown>> = truncated
+    ? rows.slice(0, CONSOLE_MAX_ROWS)
+    : rows;
+
+  let columns: Array<string> = [];
+
+  if (explicitColumns && explicitColumns.length > 0) {
+    columns = explicitColumns;
+  } else {
+    const seen: Set<string> = new Set();
+    for (const row of limitedRows) {
+      if (row && typeof row === "object" && !Array.isArray(row)) {
+        for (const key of Object.keys(row)) {
+          if (!seen.has(key)) {
+            seen.add(key);
+            columns.push(key);
+          }
+        }
+      }
+    }
+  }
+
+  const tableRows: Array<Array<JSONValue>> = limitedRows.map(
+    (row: Record<string, unknown>): Array<JSONValue> => {
+      return columns.map((column: string): JSONValue => {
+        return toConsoleCellValue(row ? row[column] : null);
+      });
+    },
+  );
+
+  return {
+    columns,
+    rows: tableRows,
+    rowCount: limitedRows.length,
+    truncated,
+  };
+}
+
+/*
+ * Run an ad-hoc Postgres statement. In read-only mode the statement runs inside
+ * a READ ONLY transaction, so writes are refused by the server itself (not just
+ * by guessing from the SQL text). A transaction-local statement_timeout bounds
+ * runtime without polluting the pooled connection's session settings.
+ */
+async function runPostgresConsoleQuery(
+  query: string,
+  allowWrite: boolean,
+): Promise<JSONObject> {
+  const dataSource: ReturnType<typeof PostgresAppInstance.getDataSource> =
+    PostgresAppInstance.getDataSource();
+
+  if (!dataSource) {
+    throw new BadDataException("PostgreSQL is not connected on this instance.");
+  }
+
+  const queryRunner: ReturnType<typeof dataSource.createQueryRunner> =
+    dataSource.createQueryRunner();
+
+  await queryRunner.connect();
+
+  try {
+    let rawResult: unknown;
+
+    if (!allowWrite) {
+      /*
+       * Read-only mode: run inside a READ ONLY transaction so writes are
+       * refused by the server itself (not just guessed from the SQL text). The
+       * statement_timeout is transaction-local, so it resets when the
+       * transaction ends and never leaks into the pooled connection.
+       */
+      await queryRunner.startTransaction();
+      try {
+        // SET TRANSACTION READ ONLY must precede the first data statement.
+        await queryRunner.query("SET TRANSACTION READ ONLY");
+        await queryRunner.query(
+          `SET LOCAL statement_timeout = ${Math.round(CONSOLE_QUERY_TIMEOUT_MS)}`,
+        );
+        rawResult = await queryRunner.query(query, undefined, true);
+        await queryRunner.commitTransaction();
+      } catch (err) {
+        await queryRunner.rollbackTransaction().catch((): void => {
+          // The original error is what matters; a rollback failure must not mask it.
+        });
+        throw err;
+      }
+    } else {
+      /*
+       * Write mode: run in autocommit (NO surrounding transaction) so that
+       * statements which cannot run inside a transaction block still work —
+       * VACUUM, REINDEX, CREATE INDEX CONCURRENTLY, ALTER SYSTEM, CREATE/DROP
+       * DATABASE, and the like. We set a session statement_timeout for this
+       * connection and restore its previous value afterwards, because
+       * node-postgres does not reset session state when the connection is
+       * returned to the pool.
+       */
+      const before: unknown = await queryRunner.query("SHOW statement_timeout");
+      const previousTimeout: string =
+        Array.isArray(before) &&
+        before[0] &&
+        typeof (before[0] as { statement_timeout?: unknown })
+          .statement_timeout === "string"
+          ? (before[0] as { statement_timeout: string }).statement_timeout
+          : "0";
+
+      await queryRunner.query(
+        `SET statement_timeout = ${Math.round(CONSOLE_QUERY_TIMEOUT_MS)}`,
+      );
+
+      try {
+        rawResult = await queryRunner.query(query, undefined, true);
+      } finally {
+        /*
+         * Restore the connection's prior statement_timeout. previousTimeout is
+         * a server-formatted value read from SHOW (e.g. '2min', '0'), so it is
+         * safe to quote directly.
+         */
+        await queryRunner
+          .query(`SET statement_timeout = '${previousTimeout}'`)
+          .catch((): void => {
+            // Best-effort restore; never mask the statement's own outcome.
+          });
+      }
+    }
+
+    /*
+     * useStructuredResult => { records, affected, raw }. We tolerate the older
+     * "plain array of rows" return shape too, in case the driver ignores the flag.
+     */
+    let records: Array<Record<string, unknown>> = [];
+    let affected: number | null = null;
+
+    if (Array.isArray(rawResult)) {
+      records = rawResult as Array<Record<string, unknown>>;
+    } else if (rawResult && typeof rawResult === "object") {
+      const structured: { records?: unknown; affected?: unknown } =
+        rawResult as { records?: unknown; affected?: unknown };
+      records = Array.isArray(structured.records)
+        ? (structured.records as Array<Record<string, unknown>>)
+        : [];
+      affected =
+        typeof structured.affected === "number" ? structured.affected : null;
+    }
+
+    const tabular: ConsoleTabularResult = buildTabularResult(records);
+
+    let message: string | null = null;
+    if (tabular.rowCount === 0) {
+      message =
+        affected !== null
+          ? `Statement executed successfully. ${affected} row(s) affected.`
+          : "Statement executed successfully. No rows returned.";
+    }
+
+    return {
+      datastore: "postgres",
+      columns: tabular.columns,
+      rows: tabular.rows,
+      rowCount: tabular.rowCount,
+      truncated: tabular.truncated,
+      affectedRows: affected,
+      message,
+    };
+  } finally {
+    await queryRunner.release();
+  }
+}
+
+/*
+ * Strip leading whitespace, SQL comments and opening parens so the first real
+ * keyword can be read. Operators routinely paste a "-- note" line or a block
+ * comment above a query; without this a commented SELECT would be misread as a
+ * write and wrongly rejected in read-only mode.
+ */
+function stripLeadingSqlNoise(query: string): string {
+  let text: string = query;
+  let changed: boolean = true;
+
+  while (changed) {
+    const before: string = text;
+    text = text
+      .replace(/^\s+/, "") // whitespace
+      .replace(/^--[^\n]*\n?/, "") // -- line comment
+      .replace(/^\/\*[\s\S]*?\*\//, "") // block comment
+      .replace(/^\(+/, ""); // opening parens
+    changed = text !== before;
+  }
+
+  return text;
+}
+
+// Does this ClickHouse statement return a result set (vs. being a command)?
+function isClickhouseReadStatement(query: string): boolean {
+  const firstWord: string = (
+    stripLeadingSqlNoise(query).split(/[\s(;]/)[0] || ""
+  ).toUpperCase();
+  return CLICKHOUSE_READ_STATEMENT_PREFIXES.includes(firstWord);
+}
+
+/*
+ * Run an ad-hoc ClickHouse statement. Reads go through .query() with a JSON
+ * format and a server-side row cap; writes / DDL go through .command() and are
+ * only reachable in write mode. In read-only mode we additionally pin
+ * readonly=2 (read queries only, but still allows the per-query setting
+ * overrides below — readonly=1 would reject them).
+ */
+async function runClickhouseConsoleQuery(
+  query: string,
+  allowWrite: boolean,
+): Promise<JSONObject> {
+  const client: ReturnType<typeof ClickhouseAppInstance.getDataSource> =
+    ClickhouseAppInstance.getDataSource();
+
+  if (!client) {
+    throw new BadDataException("ClickHouse is not connected on this instance.");
+  }
+
+  const isRead: boolean = isClickhouseReadStatement(query);
+  const maxExecutionTimeSeconds: number = Math.round(
+    CONSOLE_QUERY_TIMEOUT_MS / 1000,
+  );
+
+  if (!allowWrite && !isRead) {
+    throw new BadDataException(
+      "This looks like a write or DDL statement. Enable “Allow write queries” to run it.",
+    );
+  }
+
+  if (isRead) {
+    // +1 so we can detect (and flag) truncation at exactly the cap.
+    const rowLimit: string = String(CONSOLE_MAX_ROWS + 1);
+
+    const resultSet: Awaited<ReturnType<typeof client.query>> = allowWrite
+      ? await client.query({
+          query,
+          format: "JSON",
+          clickhouse_settings: {
+            max_execution_time: maxExecutionTimeSeconds,
+            max_result_rows: rowLimit,
+            result_overflow_mode: "break",
+          },
+        })
+      : await client.query({
+          query,
+          format: "JSON",
+          clickhouse_settings: {
+            max_execution_time: maxExecutionTimeSeconds,
+            readonly: "2",
+            max_result_rows: rowLimit,
+            result_overflow_mode: "break",
+          },
+        });
+
+    const json: {
+      meta?: Array<{ name: string; type?: string }>;
+      data?: Array<Record<string, unknown>>;
+    } = (await resultSet.json()) as {
+      meta?: Array<{ name: string; type?: string }>;
+      data?: Array<Record<string, unknown>>;
+    };
+
+    const columns: Array<string> = (json.meta || []).map(
+      (column: { name: string }): string => {
+        return column.name;
+      },
+    );
+
+    const tabular: ConsoleTabularResult = buildTabularResult(
+      json.data || [],
+      columns.length > 0 ? columns : undefined,
+    );
+
+    return {
+      datastore: "clickhouse",
+      columns: tabular.columns,
+      rows: tabular.rows,
+      rowCount: tabular.rowCount,
+      truncated: tabular.truncated,
+      affectedRows: null,
+      message:
+        tabular.rowCount === 0
+          ? "Statement executed successfully. No rows returned."
+          : null,
+    };
+  }
+
+  // Write / DDL path — only reached when allowWrite is true.
+  await client.command({
+    query,
+    clickhouse_settings: {
+      max_execution_time: maxExecutionTimeSeconds,
+    },
+  });
+
+  return {
+    datastore: "clickhouse",
+    columns: [],
+    rows: [],
+    rowCount: 0,
+    truncated: false,
+    affectedRows: null,
+    message: "Statement executed successfully.",
+  };
+}
+
+/*
+ * Split a Redis command line into tokens, honouring single / double quotes (so
+ * values containing spaces work, e.g. SET key "hello world"). Mirrors how
+ * redis-cli parses a line — good enough for an interactive console.
+ */
+function parseRedisCommandLine(line: string): Array<string> {
+  const tokens: Array<string> = [];
+  let current: string = "";
+  let inSingle: boolean = false;
+  let inDouble: boolean = false;
+
+  for (let i: number = 0; i < line.length; i++) {
+    const ch: string = line[i] as string;
+
+    if (inSingle) {
+      if (ch === "'") {
+        inSingle = false;
+      } else {
+        current += ch;
+      }
+      continue;
+    }
+
+    if (inDouble) {
+      if (ch === '"') {
+        inDouble = false;
+      } else if (ch === "\\" && i + 1 < line.length) {
+        current += line[i + 1];
+        i++;
+      } else {
+        current += ch;
+      }
+      continue;
+    }
+
+    if (ch === "'") {
+      inSingle = true;
+      continue;
+    }
+
+    if (ch === '"') {
+      inDouble = true;
+      continue;
+    }
+
+    if (ch === " " || ch === "\t" || ch === "\n" || ch === "\r") {
+      if (current.length > 0) {
+        tokens.push(current);
+        current = "";
+      }
+      continue;
+    }
+
+    current += ch;
+  }
+
+  if (current.length > 0) {
+    tokens.push(current);
+  }
+
+  return tokens;
+}
+
+// JSON-safe, depth/size-capped representation of an arbitrary Redis reply.
+function toRedisDisplayValue(value: unknown, depth: number): JSONValue {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof Buffer !== "undefined" && Buffer.isBuffer(value)) {
+    return (value as Buffer).toString("utf8");
+  }
+
+  if (Array.isArray(value)) {
+    if (depth > 6) {
+      return "[nested]";
+    }
+    return value.slice(0, 5000).map((item: unknown): JSONValue => {
+      return toRedisDisplayValue(item, depth + 1);
+    });
+  }
+
+  const valueType: string = typeof value;
+
+  if (valueType === "bigint") {
+    return (value as bigint).toString();
+  }
+
+  if (valueType === "number" || valueType === "boolean") {
+    return value as number | boolean;
+  }
+
+  if (valueType === "string") {
+    const str: string = value as string;
+    return str.length > CONSOLE_MAX_CELL_CHARS
+      ? `${str.substring(0, CONSOLE_MAX_CELL_CHARS)}… (truncated)`
+      : str;
+  }
+
+  if (valueType === "object") {
+    if (depth > 6) {
+      return "[nested]";
+    }
+    const out: JSONObject = {};
+    for (const [key, item] of Object.entries(
+      value as Record<string, unknown>,
+    )) {
+      out[key] = toRedisDisplayValue(item, depth + 1);
+    }
+    return out;
+  }
+
+  return String(value);
+}
+
+/*
+ * Run an ad-hoc Redis command. In read-only mode the first token must be on the
+ * read-only allow-list. A Promise race bounds the runtime (ioredis has no
+ * per-call timeout).
+ */
+async function runRedisConsoleQuery(
+  query: string,
+  allowWrite: boolean,
+): Promise<JSONObject> {
+  const tokens: Array<string> = parseRedisCommandLine(query);
+
+  if (tokens.length === 0) {
+    throw new BadDataException("Enter a Redis command, e.g. GET mykey");
+  }
+
+  const command: string = (tokens[0] as string).toUpperCase();
+
+  if (!allowWrite && !REDIS_READ_ONLY_COMMANDS.has(command)) {
+    throw new BadDataException(
+      `“${command}” is not a read-only command. Enable “Allow write queries” to run it.`,
+    );
+  }
+
+  const client: ReturnType<typeof Redis.getClient> = Redis.getClient();
+
+  if (!client || !Redis.isConnected()) {
+    throw new BadDataException("Redis is not connected on this instance.");
+  }
+
+  const args: Array<string> = tokens.slice(1);
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout: Promise<never> = new Promise<never>(
+    (_resolve: (value: never) => void, reject: (reason: Error) => void) => {
+      timer = setTimeout(() => {
+        reject(
+          new BadDataException(
+            `Command timed out after ${Math.round(CONSOLE_QUERY_TIMEOUT_MS / 1000)}s.`,
+          ),
+        );
+      }, CONSOLE_QUERY_TIMEOUT_MS);
+    },
+  );
+
+  let reply: unknown;
+  try {
+    reply = await Promise.race([client.call(command, ...args), timeout]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+
+  return {
+    datastore: "redis",
+    command,
+    columns: [],
+    rows: [],
+    rowCount: 0,
+    truncated: false,
+    redisResult: toRedisDisplayValue(reply, 0),
+    message: null,
+  };
+}
+
+/*
+ * Database query console. Runs one ad-hoc statement against the chosen
+ * datastore and returns the result. Master-admin only, available on every
+ * edition (a self-hosting operator needs this to debug just as much as an
+ * Enterprise customer). See the long comment above for the safety model.
+ */
+router.post(
+  "/query",
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const body: JSONObject = (req.body || {}) as JSONObject;
+      const datastore: ConsoleDatastore = String(
+        body["datastore"] || "",
+      ) as ConsoleDatastore;
+      const rawQuery: string =
+        typeof body["query"] === "string" ? (body["query"] as string) : "";
+      const allowWrite: boolean = body["allowWrite"] === true;
+
+      if (!CONSOLE_VALID_DATASTORES.includes(datastore)) {
+        throw new BadDataException(
+          "Invalid datastore. Must be one of: postgres, clickhouse, redis.",
+        );
+      }
+
+      const query: string = rawQuery.trim();
+
+      if (!query) {
+        throw new BadDataException("Query cannot be empty.");
+      }
+
+      if (query.length > CONSOLE_MAX_QUERY_LENGTH) {
+        throw new BadDataException(
+          `Query is too long (max ${CONSOLE_MAX_QUERY_LENGTH} characters).`,
+        );
+      }
+
+      /*
+       * Audit who ran what. We log a credential-scrubbed preview of the
+       * statement and the write-mode flag, but never the result rows.
+       */
+      logger.info(
+        `Admin DB console: datastore=${datastore} allowWrite=${allowWrite} query=${scrubSecretsFromText(
+          query,
+        ).substring(0, 1000)}`,
+        getLogAttributesFromRequest(req as OneUptimeRequest),
+      );
+
+      const startedAt: number = Date.now();
+      let result: JSONObject;
+
+      try {
+        if (datastore === "postgres") {
+          result = await runPostgresConsoleQuery(query, allowWrite);
+        } else if (datastore === "clickhouse") {
+          result = await runClickhouseConsoleQuery(query, allowWrite);
+        } else {
+          result = await runRedisConsoleQuery(query, allowWrite);
+        }
+      } catch (queryErr) {
+        /*
+         * Surface the datastore's own error message (syntax error, read-only
+         * violation, etc.) to the console — scrubbed of any credentials it
+         * might quote. Returned as a 400 so it reads as a user error, not a
+         * server fault.
+         */
+        const message: string = scrubSecretsFromText(
+          queryErr instanceof Error ? queryErr.message : String(queryErr),
+        );
+        throw new BadDataException(message || "Query failed.");
+      }
+
+      result["durationMs"] = Date.now() - startedAt;
+      result["allowWrite"] = allowWrite;
+
+      Response.sendJsonObjectResponse(req, res, result);
+
+      /*
+       * Keep raw result rows OUT of any response-body audit log — the rows can
+       * contain customer data. We replace the logged body with a small summary.
+       */
+      (res as unknown as { logBody?: JSONObject }).logBody = {
+        datastore,
+        allowWrite,
+        rowCount:
+          typeof result["rowCount"] === "number"
+            ? (result["rowCount"] as number)
+            : null,
+        durationMs: result["durationMs"],
+      };
+
+      return;
     } catch (err) {
       return next(err);
     }

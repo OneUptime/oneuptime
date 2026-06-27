@@ -28,6 +28,7 @@ import ResourceUsageBar from "Common/UI/Components/ResourceUsageBar/ResourceUsag
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
+import Navigation from "Common/UI/Utils/Navigation";
 import { APP_API_URL, IS_ENTERPRISE_EDITION } from "Common/UI/Config";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import React, {
@@ -118,6 +119,34 @@ const Health: FunctionComponent = (): ReactElement => {
     });
   }, []);
 
+  /*
+   * Link to the database query console. Rendered on every edition (the console
+   * itself is master-admin-only but not Enterprise-gated), so it appears in
+   * both the Community and Enterprise branches below.
+   */
+  const renderDatabaseConsoleCard: () => ReactElement = (): ReactElement => {
+    return (
+      <Card
+        title="Database console"
+        description="Run ad-hoc Postgres, Redis and ClickHouse queries to debug this instance — without shelling into the cluster. Read-only by default."
+        buttons={[
+          {
+            title: "Open Database Console",
+            icon: IconProp.Terminal,
+            buttonStyle: ButtonStyleType.NORMAL,
+            onClick: () => {
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.HEALTH_DATABASE_CONSOLE] as Route,
+                ),
+              );
+            },
+          },
+        ]}
+      />
+    );
+  };
+
   if (!IS_ENTERPRISE_EDITION) {
     return (
       <Page
@@ -173,6 +202,7 @@ const Health: FunctionComponent = (): ReactElement => {
          * edition — Community self-hosters need these to verify upgrades and
          * to send diagnostics to OneUptime. They sit at the end of the page.
          */}
+        {renderDatabaseConsoleCard()}
         <MigrationStatus />
         <SupportBundle />
       </Page>
@@ -497,7 +527,8 @@ const Health: FunctionComponent = (): ReactElement => {
       {/* Diagnostic logs (Enterprise-only, like the overview above). */}
       <DiagnosticLogs />
 
-      {/* Migration status and support bundle sit at the end — they apply to every edition. */}
+      {/* Database console + migration status + support bundle apply to every edition. */}
+      {renderDatabaseConsoleCard()}
       <MigrationStatus />
       <SupportBundle />
     </Page>

@@ -8,6 +8,7 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INIT]: new Route(`/admin`),
   [PageMap.HOME]: new Route(`/admin`),
   [PageMap.HEALTH]: new Route(`/admin/health`),
+  [PageMap.HEALTH_DATABASE_CONSOLE]: new Route(`/admin/database-console`),
   [PageMap.LOGOUT]: new Route(`/admin/logout`),
   [PageMap.SETTINGS]: new Route(`/admin/settings/host`),
 
