@@ -6,6 +6,10 @@ import AnalyticsTableColumn, {
   SkipIndexType,
 } from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import {
+  attributeMapSkipIndexes,
+  attributeValueTokensColumn,
+} from "./AnalyticsModelAttributeIndexing";
 import OperationalResource from "../../Types/Database/AccessControl/OperationalResource";
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import { JSONObject } from "../../Types/JSON";
@@ -253,6 +257,7 @@ export default class Log extends AnalyticsBaseModel {
       required: true,
       defaultValue: {},
       type: TableColumnType.MapStringString,
+      skipIndexes: attributeMapSkipIndexes(),
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -676,6 +681,7 @@ export default class Log extends AnalyticsBaseModel {
         severityTextColumn,
         severityNumberColumn,
         attributesColumn,
+        attributeValueTokensColumn(attributesColumn.accessControl!),
         attributeKeysColumn,
         entityKeysColumn,
         ...scalarEntityKeyColumns,

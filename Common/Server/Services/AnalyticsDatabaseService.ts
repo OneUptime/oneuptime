@@ -515,9 +515,10 @@ export default class AnalyticsDatabaseService<
         return col.key === columnName;
       });
 
-    if (column?.skipIndex) {
+    // Drop every skip index on this column (a column may carry several).
+    for (const idx of column?.getSkipIndexes() || []) {
       await this.execute(
-        this.statementGenerator.toDropSkipIndexStatement(column.skipIndex.name),
+        this.statementGenerator.toDropSkipIndexStatement(idx.name),
         MigrationExecuteOptions,
       );
     }

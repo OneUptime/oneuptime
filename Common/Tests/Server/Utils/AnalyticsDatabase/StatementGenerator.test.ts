@@ -12,6 +12,10 @@ import Route from "../../../../Types/API/Route";
 import AnalyticsTableEngine from "../../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableColumn from "../../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType";
+import {
+  attributeMapSkipIndexes,
+  attributeValueTokensColumn,
+} from "../../../../Models/AnalyticsModels/AnalyticsModelAttributeIndexing";
 import OneUptimeDate from "../../../../Types/Date";
 import EqualTo from "../../../../Types/BaseDatabase/EqualTo";
 import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
@@ -394,6 +398,104 @@ describe("StatementGenerator", () => {
         } as any);
         expect(statement.query).toBe("");
         expect(statement.query_params).toStrictEqual({});
+      });
+    });
+
+    describe("attributeValueTokens rewrite", () => {
+      // A model whose `attributes` Map carries the materialized
+      // `attributeValueTokens` column — equality filters must rewrite to the
+      // bloom-indexed has(...) form with a raw-subscript OR fallback.
+      class TokenModel extends AnalyticsBaseModel {
+        public constructor() {
+          super({
+            tableName: "<token-table>",
+            singularName: "<singular>",
+            pluralName: "<plural>",
+            tableColumns: [
+              new AnalyticsTableColumn({
+                key: "_id",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                type: TableColumnType.ObjectID,
+              }),
+              new AnalyticsTableColumn({
+                key: "attributes",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                defaultValue: {},
+                type: TableColumnType.MapStringString,
+              }),
+              new AnalyticsTableColumn({
+                key: "attributeValueTokens",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                defaultValue: [],
+                type: TableColumnType.ArrayText,
+                computedExpression:
+                  "arrayMap((k, v) -> toString(cityHash64(concat(k, '=', v))), mapKeys(attributes), mapValues(attributes))",
+              }),
+            ],
+            crudApiPath: new Route("route"),
+            primaryKeys: ["_id"],
+            sortKeys: ["_id"],
+            partitionKey: "_id",
+            tableEngine: AnalyticsTableEngine.MergeTree,
+          });
+        }
+      }
+
+      let tokenGenerator: StatementGenerator<TokenModel>;
+      beforeEach(() => {
+        tokenGenerator = new StatementGenerator<TokenModel>({
+          modelType: TokenModel,
+          database: ClickhouseAppInstance,
+        });
+      });
+
+      const expectedTokenEquality: string =
+        "AND (has({p0:Identifier}, toString(cityHash64(concat({p1:String}, '=', {p2:String})))) " +
+        "OR {p3:Identifier}[{p4:String}] = {p5:String})";
+
+      test("rewrites bare-value equality to the indexed has(...) OR fallback", () => {
+        const statement: Statement = tokenGenerator.toWhereStatement({
+          attributes: { requestId: "uuid-123" },
+        } as any);
+        expect(statement.query).toBe(expectedTokenEquality);
+        expect(statement.query_params).toStrictEqual({
+          p0: "attributeValueTokens",
+          p1: "requestId",
+          p2: "uuid-123",
+          p3: "attributes",
+          p4: "requestId",
+          p5: "uuid-123",
+        });
+      });
+
+      test("rewrites EqualTo equality the same way", () => {
+        const statement: Statement = tokenGenerator.toWhereStatement({
+          attributes: { requestId: new EqualTo("uuid-123") },
+        } as any);
+        expect(statement.query).toBe(expectedTokenEquality);
+        expect(statement.query_params).toStrictEqual({
+          p0: "attributeValueTokens",
+          p1: "requestId",
+          p2: "uuid-123",
+          p3: "attributes",
+          p4: "requestId",
+          p5: "uuid-123",
+        });
+      });
+
+      test("leaves NotEqual unchanged (no token rewrite)", () => {
+        const statement: Statement = tokenGenerator.toWhereStatement({
+          attributes: { requestId: new NotEqual("uuid-123") },
+        } as any);
+        expect(statement.query).toBe(
+          "AND {p0:Identifier}[{p1:String}] != {p2:String}",
+        );
       });
     });
 
@@ -868,6 +970,45 @@ describe("StatementGenerator", () => {
       expectStatement(
         statement,
         SQL`col_zstd String CODEC(ZSTD(1)), col_pipe DateTime64(9) CODEC(DoubleDelta, ZSTD(1))`,
+      );
+    });
+
+    test("emits MATERIALIZED column + mapKeys/mapValues expression skip indexes", () => {
+      const attributesCol: AnalyticsTableColumn = new AnalyticsTableColumn({
+        key: "attributes",
+        title: "<title>",
+        description: "<description>",
+        required: true,
+        defaultValue: {},
+        type: TableColumnType.MapStringString,
+        skipIndexes: attributeMapSkipIndexes(),
+      });
+      const tokensCol: AnalyticsTableColumn = attributeValueTokensColumn({
+        read: [],
+        create: [],
+        update: [],
+      } as any);
+
+      const statement: Statement = generator.toColumnsCreateStatement([
+        attributesCol,
+        tokensCol,
+      ]);
+
+      // The MATERIALIZED token column — its expression must byte-match the
+      // read-side rewrite (toString(cityHash64(concat(k, '=', v)))).
+      expect(statement.query).toContain(
+        "attributeValueTokens Array(String) MATERIALIZED arrayMap((k, v) -> toString(cityHash64(concat(k, '=', v))), mapKeys(attributes), mapValues(attributes)) CODEC(ZSTD(1))",
+      );
+      // Expression-based bloom indexes on the attributes Map.
+      expect(statement.query).toContain(
+        ", INDEX idx_attributes_keys mapKeys(attributes) TYPE bloom_filter(0.01) GRANULARITY 1",
+      );
+      expect(statement.query).toContain(
+        ", INDEX idx_attributes_values mapValues(attributes) TYPE bloom_filter(0.01) GRANULARITY 1",
+      );
+      // The token column's own bloom index (plain column expression).
+      expect(statement.query).toContain(
+        ", INDEX idx_attribute_value_tokens attributeValueTokens TYPE bloom_filter(0.01) GRANULARITY 1",
       );
     });
   });

@@ -6,6 +6,10 @@ import AnalyticsTableColumn, {
   SkipIndexType,
 } from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import {
+  attributeMapSkipIndexes,
+  attributeValueTokensColumn,
+} from "./AnalyticsModelAttributeIndexing";
 import OperationalResource from "../../Types/Database/AccessControl/OperationalResource";
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import { JSONObject } from "../../Types/JSON";
@@ -366,6 +370,7 @@ export default class Metric extends AnalyticsBaseModel {
       description: "Attributes",
       required: true,
       type: TableColumnType.MapStringString,
+      skipIndexes: attributeMapSkipIndexes(),
       defaultValue: {},
       accessControl: {
         read: [
@@ -1182,6 +1187,7 @@ export default class Metric extends AnalyticsBaseModel {
         timeUnixNanoColumn,
         startTimeUnixNanoColumn,
         attributesColumn,
+        attributeValueTokensColumn(attributesColumn.accessControl!),
         attributeKeysColumn,
         entityKeysColumn,
         ...scalarEntityKeyColumns,

@@ -9,7 +9,9 @@ import logger from "Common/Server/Utils/Logger";
 import MaterializedView from "Common/Types/AnalyticsDatabase/MaterializedView";
 import { JSONObject } from "Common/Types/JSON";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
-import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
+import AnalyticsTableColumn, {
+  SkipIndex,
+} from "Common/Types/AnalyticsDatabase/TableColumn";
 import Projection from "Common/Types/AnalyticsDatabase/Projection";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
@@ -480,7 +482,7 @@ export default class AnalyticsTableManagement {
   ): Promise<void> {
     const indexedColumns: Array<AnalyticsTableColumn> =
       service.model.tableColumns.filter((column: AnalyticsTableColumn) => {
-        return Boolean(column.skipIndex);
+        return column.getSkipIndexes().length > 0;
       });
 
     if (indexedColumns.length === 0) {
@@ -499,15 +501,27 @@ export default class AnalyticsTableManagement {
       return;
     }
 
+    /*
+     * A column may carry several skip indexes (e.g. attributes -> mapKeys +
+     * mapValues bloom filters), so reconcile each one independently.
+     */
+    const missingIndexes: Array<{
+      column: AnalyticsTableColumn;
+      idx: SkipIndex;
+    }> = [];
     for (const column of indexedColumns) {
-      const indexName: string = column.skipIndex!.name;
-
-      if (existingIndexNames.has(indexName)) {
-        continue;
+      for (const idx of column.getSkipIndexes()) {
+        if (!existingIndexNames.has(idx.name)) {
+          missingIndexes.push({ column, idx });
+        }
       }
+    }
+
+    for (const { column, idx } of missingIndexes) {
+      const indexName: string = idx.name;
 
       const indexStatement: Statement | null =
-        service.statementGenerator.toAddSkipIndexStatement(column);
+        service.statementGenerator.toAddSkipIndexStatement(column, idx);
 
       if (!indexStatement) {
         continue;

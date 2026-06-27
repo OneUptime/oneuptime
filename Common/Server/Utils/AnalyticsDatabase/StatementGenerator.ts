@@ -21,6 +21,7 @@ import CommonModel, {
 import AnalyticsTableColumn, {
   ColumnCodecConfig,
   ColumnCodecValue,
+  SkipIndex,
   SkipIndexType,
 } from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
@@ -166,8 +167,16 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       throw new BadDataException("Item cannot be null");
     }
 
+    /*
+     * MATERIALIZED columns (computedExpression) are computed by ClickHouse and
+     * MUST NOT appear in the INSERT column list — ClickHouse rejects an insert
+     * that supplies a value for them. getRecord() applies the same filter so
+     * the column list and value tuples stay aligned.
+     */
     const columnNames: Array<string> = this.getColumnNames(
-      this.model.getTableColumns(),
+      this.model.getTableColumns().filter((c: AnalyticsTableColumn) => {
+        return !c.computedExpression;
+      }),
     );
 
     const records: Array<AnalyticsRecord> = [];
@@ -201,7 +210,12 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   private getRecord(item: CommonModel): AnalyticsRecord {
     const record: AnalyticsRecord = [];
 
-    for (const column of item.getTableColumns()) {
+    // Skip MATERIALIZED columns — ClickHouse computes them (see toCreateStatement).
+    for (const column of item
+      .getTableColumns()
+      .filter((c: AnalyticsTableColumn) => {
+        return !c.computedExpression;
+      })) {
       const value: RecordValue | undefined = this.sanitizeValue(
         item.getColumnValue(column.key),
         column,
@@ -790,13 +804,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
           if (mapEntry instanceof EqualTo) {
             whereStatement.append(
-              SQL`AND ${key}[${{
-                value: mapKey,
-                type: TableColumnType.Text,
-              }}] = ${{
-                value: String((mapEntry as EqualTo<any>).value ?? ""),
-                type: TableColumnType.Text,
-              }}`,
+              this.buildMapEqualityPredicate(
+                key,
+                mapKey,
+                String((mapEntry as EqualTo<any>).value ?? ""),
+              ),
             );
             continue;
           }
@@ -918,15 +930,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             continue;
           }
 
-          // Bare string/number/boolean — direct Map subscript.
+          // Bare string/number/boolean — direct Map subscript (token-indexed).
           whereStatement.append(
-            SQL`AND ${key}[${{
-              value: mapKey,
-              type: TableColumnType.Text,
-            }}] = ${{
-              value: String(mapEntry),
-              type: TableColumnType.Text,
-            }}`,
+            this.buildMapEqualityPredicate(key, mapKey, String(mapEntry)),
           );
         }
       } else if (
@@ -1169,6 +1175,14 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         .append(SQL` `)
         .append(this.toFullColumnType(column));
 
+      /*
+       * A ClickHouse MATERIALIZED column: value computed by ClickHouse, not
+       * inserted by the app. Must come after the type and before CODEC.
+       */
+      if (column.computedExpression) {
+        columns.append(` MATERIALIZED ${column.computedExpression}`);
+      }
+
       // Append CODEC if specified
       if (column.codec) {
         columns.append(
@@ -1180,28 +1194,14 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     // Append skip indexes after column definitions
     const skipIndexColumns: Array<AnalyticsTableColumn> = tableColumns.filter(
       (col: AnalyticsTableColumn) => {
-        return col.skipIndex !== undefined;
+        return col.getSkipIndexes().length > 0;
       },
     );
 
     for (const col of skipIndexColumns) {
-      const idx: AnalyticsTableColumn["skipIndex"] = col.skipIndex!;
-      const paramsStr: string =
-        idx.params && idx.params.length > 0 ? `(${idx.params.join(", ")})` : "";
-      /*
-       * tokenbf_v1 and ngrambf_v1 indexes do not support Nullable columns in ClickHouse.
-       * Wrap with assumeNotNull() for Nullable (non-required) columns.
-       */
-      const needsAssumeNotNull: boolean =
-        !col.required &&
-        (idx.type === SkipIndexType.TokenBF ||
-          idx.type === SkipIndexType.NgramBF);
-      const columnExpr: string = needsAssumeNotNull
-        ? `assumeNotNull(${col.key})`
-        : col.key;
-      columns.append(
-        `, INDEX ${idx.name} ${columnExpr} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`,
-      );
+      for (const idx of col.getSkipIndexes()) {
+        columns.append(`, ${this.buildSkipIndexClause(col, idx)}`);
+      }
     }
 
     // Append projections after indexes
@@ -1352,6 +1352,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       .append(SQL` `)
       .append(this.toFullColumnType(column));
 
+    // MATERIALIZED column: ClickHouse computes it; the app never inserts it.
+    if (column.computedExpression) {
+      columnDef.append(` MATERIALIZED ${column.computedExpression}`);
+    }
+
     if (column.codec) {
       columnDef.append(
         ` CODEC(${StatementGenerator.buildCodecString(column.codec)})`,
@@ -1385,24 +1390,107 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     return statement;
   }
 
-  public toAddSkipIndexStatement(
-    column: AnalyticsTableColumn,
-  ): Statement | null {
-    if (!column.skipIndex) {
-      return null;
+  /*
+   * Equality predicate for a Map subscript `attributes['k'] = 'v'`.
+   *
+   * When the model has the `attributeValueTokens` MATERIALIZED column
+   * (Array of cityHash64('key=value') for every entry of `attributes`, with a
+   * bloom-filter skip index), this rewrites to:
+   *
+   *   ( has(attributeValueTokens, toString(cityHash64(concat('k', '=', 'v'))))
+   *     OR attributes['k'] = 'v' )
+   *
+   * The `has(...)` side is granule-pruned by the token bloom index (tight,
+   * key+value). The raw-subscript fallback keeps it correct for rows ingested
+   * before the column existed (their tokens are empty), and that fallback is
+   * itself granule-pruned by the mapValues(attributes) bloom index — so the
+   * OR does NOT defeat pruning. ClickHouse computes cityHash64 on both the
+   * ingest (MATERIALIZED) and read sides, so the hashes byte-match by
+   * construction. cityHash64 collision risk is ~1/2^64 (same class as the
+   * 16-hex entity keys) and the '=' separator is unambiguous because OTel
+   * attribute keys never contain '='.
+   *
+   * Only `attributes` carries the token column; other Map columns (and models
+   * without it) fall back to the plain subscript unchanged.
+   */
+  private buildMapEqualityPredicate(
+    columnKey: string,
+    mapKey: string,
+    value: string,
+  ): Statement {
+    const tokensColumn: AnalyticsTableColumn | null = this.model.getTableColumn(
+      "attributeValueTokens",
+    );
+
+    const canUseTokens: boolean =
+      columnKey === "attributes" &&
+      Boolean(tokensColumn) &&
+      tokensColumn!.type === TableColumnType.ArrayText;
+
+    if (canUseTokens) {
+      return SQL`AND (has(${tokensColumn!.key}, toString(cityHash64(concat(${{
+        value: mapKey,
+        type: TableColumnType.Text,
+      }}, '=', ${{
+        value: value,
+        type: TableColumnType.Text,
+      }})))) OR ${columnKey}[${{
+        value: mapKey,
+        type: TableColumnType.Text,
+      }}] = ${{
+        value: value,
+        type: TableColumnType.Text,
+      }})`;
     }
 
-    const idx: AnalyticsTableColumn["skipIndex"] = column.skipIndex;
+    return SQL`AND ${columnKey}[${{
+      value: mapKey,
+      type: TableColumnType.Text,
+    }}] = ${{
+      value: value,
+      type: TableColumnType.Text,
+    }}`;
+  }
+
+  /*
+   * The `INDEX <name> <expr> TYPE <type>(<params>) GRANULARITY <g>` clause for
+   * one skip index — shared by the inline CREATE TABLE path and ADD INDEX.
+   * Indexes the column's own `key` by default, or `idx.expression` when set
+   * (e.g. `mapValues(attributes)`). tokenbf_v1 / ngrambf_v1 cannot index a
+   * Nullable column, so a non-required bare-column index of those types is
+   * wrapped in assumeNotNull(); an explicit expression is used verbatim.
+   */
+  private buildSkipIndexClause(
+    column: AnalyticsTableColumn,
+    idx: SkipIndex,
+  ): string {
     const paramsStr: string =
       idx.params && idx.params.length > 0 ? `(${idx.params.join(", ")})` : "";
 
-    const needsAssumeNotNull: boolean =
-      !column.required &&
-      (idx.type === SkipIndexType.TokenBF ||
-        idx.type === SkipIndexType.NgramBF);
-    const columnExpr: string = needsAssumeNotNull
-      ? `assumeNotNull(${column.key})`
-      : column.key;
+    let indexExpr: string;
+    if (idx.expression) {
+      indexExpr = idx.expression;
+    } else {
+      const needsAssumeNotNull: boolean =
+        !column.required &&
+        (idx.type === SkipIndexType.TokenBF ||
+          idx.type === SkipIndexType.NgramBF);
+      indexExpr = needsAssumeNotNull
+        ? `assumeNotNull(${column.key})`
+        : column.key;
+    }
+
+    return `INDEX ${idx.name} ${indexExpr} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`;
+  }
+
+  public toAddSkipIndexStatement(
+    column: AnalyticsTableColumn,
+    idx?: SkipIndex | undefined,
+  ): Statement | null {
+    const skipIndex: SkipIndex | undefined = idx || column.getSkipIndexes()[0];
+    if (!skipIndex) {
+      return null;
+    }
 
     const databaseName: string = this.database.getDatasourceOptions().database!;
     const statement: Statement = new Statement();
@@ -1413,7 +1501,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
      * fails with "Missing columns: '<col>'" (Code 47).
      */
     statement.append(
-      `ALTER TABLE ${databaseName}.${getStorageTableName(this.model.tableName)}${onClusterClause()} ADD INDEX IF NOT EXISTS ${idx.name} ${columnExpr} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`,
+      `ALTER TABLE ${databaseName}.${getStorageTableName(this.model.tableName)}${onClusterClause()} ADD INDEX IF NOT EXISTS ${this.buildSkipIndexClause(column, skipIndex)}`,
     );
 
     logger.debug(`${this.model.tableName} Add Skip Index Statement`);
