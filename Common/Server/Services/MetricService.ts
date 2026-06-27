@@ -18,6 +18,10 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { keyForHost } from "../../Utils/Telemetry/EntityKey";
 import ObjectID from "../../Types/ObjectID";
 import logger, { LogAttributes } from "../Utils/Logger";
+import {
+  getStorageTableName,
+  onClusterClause,
+} from "../Utils/AnalyticsDatabase/ClusterConfig";
 
 export class MetricService extends AnalyticsDatabaseService<Metric> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
@@ -70,14 +74,28 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     for (const tableName of cascadeTargets) {
       try {
         /*
-         * Lightweight delete — see toDeleteStatement() in
-         * AnalyticsDatabaseService for the rationale (avoids the
-         * ALTER mutations queue which is capped at 1000 per table).
+         * `ALTER TABLE <Local> ON CLUSTER … DELETE` mutation — NOT a
+         * lightweight `DELETE FROM`. These MV targets are
+         * AggregatingMergeTree, which rejects lightweight deletes with
+         * Code 36 BAD_ARGUMENTS (the previous implementation did exactly
+         * that and silently failed in the catch below, so deleted/edited
+         * entities kept inflating MV-backed aggregates). The mutation
+         * targets the local storage table and propagates via Keeper,
+         * mirroring AnalyticsDatabaseService.toDeleteStatement. This path
+         * is rare — only genuine entity deletion and manual state-timeline
+         * deletion reach it (routine metric refresh is append-only and
+         * never deletes) — so the per-table mutation queue does not
+         * accumulate.
          */
-        const statement: Statement =
-          SQL`DELETE FROM ${databaseName}.${tableName} WHERE TRUE `.append(
-            whereStatement,
-          );
+        const localTableName: string = getStorageTableName(tableName);
+        const statement: Statement = SQL`
+            ALTER TABLE ${databaseName}.${localTableName}`
+          .append(onClusterClause())
+          .append(
+            SQL`
+            DELETE WHERE TRUE `,
+          )
+          .append(whereStatement);
         await this.execute(statement);
       } catch (err) {
         logger.error(

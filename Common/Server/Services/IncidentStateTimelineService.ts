@@ -1027,6 +1027,22 @@ ${createdItem.rootCause}`,
           },
         });
       }
+
+      /*
+       * Deleting a state-timeline entry re-stitches the surrounding
+       * segments (onBeforeDelete adjusts the neighbours' startsAt/endsAt),
+       * so the already-emitted time-varying metrics are now stale. Unlike a
+       * routine forward transition (pure append), this must recompute — so
+       * pass recomputeExistingMetrics to delete-and-re-derive them from the
+       * current timeline. Rare admin action, so the one corrective mutation
+       * does not reintroduce the metric-mutation storm.
+       */
+      IncidentService.refreshIncidentMetrics({
+        incidentId: incidentId,
+        recomputeExistingMetrics: true,
+      }).catch((error: Error) => {
+        logger.error(error);
+      });
     }
 
     return onDelete;
