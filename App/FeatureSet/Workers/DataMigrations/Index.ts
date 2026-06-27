@@ -88,6 +88,7 @@ import AddDedupWindowToTelemetryTables from "./AddDedupWindowToTelemetryTables";
 import DropUnusedTelemetryTables from "./DropUnusedTelemetryTables";
 import RebuildMetricAggTablesMissingPrimaryEntityId from "./RebuildMetricAggTablesMissingPrimaryEntityId";
 import DropPreclusteredAnalyticsBackupTables from "./DropPreclusteredAnalyticsBackupTables";
+import KillStuckMetricDeleteMutations from "./KillStuckMetricDeleteMutations";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -215,6 +216,13 @@ const DataMigrations: Array<DataMigrationBase> = [
    * migration; both run after every schema migration is already in place.
    */
   new DropPreclusteredAnalyticsBackupTables(),
+  /*
+   * One-time drain of the legacy incident/alert metric mutation storm:
+   * cancels still-pending ALTER DELETE mutations on MetricItemV3Local that
+   * the old delete-and-rewrite refresh piled up. Safe no-op once drained;
+   * runs after the boot schema-sync has ensured the local table exists.
+   */
+  new KillStuckMetricDeleteMutations(),
   /*
    * Cluster conversion. Runs only when CLICKHOUSE_CLUSTER_NAME is set (a no-op
    * otherwise) and after every legacy ClickHouse migration has been baselined,
