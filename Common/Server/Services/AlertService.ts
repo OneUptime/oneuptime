@@ -41,6 +41,7 @@ import OneUptimeDate from "../../Types/Date";
 import Metric, { MetricPointType } from "../../Models/AnalyticsModels/Metric";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import AlertMetricType from "../../Types/Alerts/AlertMetricType";
+import Includes from "../../Types/BaseDatabase/Includes";
 import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
@@ -1279,7 +1280,17 @@ ${alertSeverity.name}
   }
 
   @CaptureSpan()
-  public async refreshAlertMetrics(data: { alertId: ObjectID }): Promise<void> {
+  public async refreshAlertMetrics(data: {
+    alertId: ObjectID;
+    /*
+     * See IncidentService.refreshIncidentMetrics: set on the rare paths
+     * (manual state-timeline deletion) that change already-emitted metrics,
+     * so the refresh-managed time-varying metrics are deleted and
+     * re-derived from the current timeline. Routine transitions leave it
+     * false (pure append, no mutation).
+     */
+    recomputeExistingMetrics?: boolean;
+  }): Promise<void> {
     const alert: Model | null = await this.findOneById({
       id: data.alertId,
       select: {
@@ -1335,15 +1346,38 @@ ${alertSeverity.name}
     const firstAlertStateTimeline: AlertStateTimeline | undefined =
       alertStateTimelines[0];
 
-    // delete all the alert metrics with this alert id because it's a refresh
-    await MetricService.deleteBy({
-      query: {
-        primaryEntityId: data.alertId,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    /*
+     * Append-once, never delete. This refresh runs on EVERY alert state
+     * transition (AlertStateTimelineService.onCreateSuccess). The old
+     * implementation deleted ALL alert metrics here and re-created them
+     * (including AlertCount, unconditionally) on every refresh. The delete
+     * compiled to a ClickHouse `ALTER TABLE … DELETE` mutation — the
+     * "metric mutation storm" — and the unconditional AlertCount re-emit
+     * inflated the aggregating MV (`MetricItemAggMV1m_mv`) because that MV
+     * accumulates `sumState`/`countState` on insert and an `ALTER DELETE`
+     * cannot roll those states back. Each metric is now emitted EXACTLY
+     * ONCE, guarded by `existsBy`, mirroring the IncidentService fix. The
+     * one corrective path (manual state-timeline deletion) passes
+     * `recomputeExistingMetrics` to delete-and-re-derive the time-varying
+     * metrics, scoped so it never touches the constant AlertCount.
+     */
+
+    if (data.recomputeExistingMetrics) {
+      await MetricService.deleteBy({
+        query: {
+          projectId: alert.projectId,
+          primaryEntityId: alert.id!,
+          name: new Includes([
+            AlertMetricType.TimeToAcknowledge,
+            AlertMetricType.TimeToResolve,
+            AlertMetricType.AlertDuration,
+          ]),
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
     const itemsToSave: Array<Metric> = [];
     const metricTypesMap: Dictionary<MetricType> = {};
@@ -1386,7 +1420,24 @@ ${alertSeverity.name}
     alertCountMetric.metricPointType = MetricPointType.Sum;
     alertCountMetric.retentionDate = alertMetricRetentionDate;
 
-    itemsToSave.push(alertCountMetric);
+    /*
+     * Emit once: AlertCount is a constant value=1 per alert. Re-emitting it
+     * on every refresh permanently inflates the aggregating MV.
+     */
+    const alertCountExists: boolean = await MetricService.existsBy({
+      query: {
+        projectId: alert.projectId,
+        primaryEntityId: alert.id!,
+        name: AlertMetricType.AlertCount,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alertCountExists) {
+      itemsToSave.push(alertCountMetric);
+    }
 
     const metricType: MetricType = new MetricType();
     metricType.name = alertCountMetric.name;
@@ -1441,7 +1492,21 @@ ${alertSeverity.name}
         timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
         timeToAcknowledgeMetric.retentionDate = alertMetricRetentionDate;
 
-        itemsToSave.push(timeToAcknowledgeMetric);
+        // Emit once: final the moment the alert is acknowledged.
+        const timeToAcknowledgeExists: boolean = await MetricService.existsBy({
+          query: {
+            projectId: alert.projectId,
+            primaryEntityId: alert.id!,
+            name: AlertMetricType.TimeToAcknowledge,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (!timeToAcknowledgeExists) {
+          itemsToSave.push(timeToAcknowledgeMetric);
+        }
 
         const metricType: MetricType = new MetricType();
         metricType.name = timeToAcknowledgeMetric.name;
@@ -1498,7 +1563,21 @@ ${alertSeverity.name}
         timeToResolveMetric.metricPointType = MetricPointType.Sum;
         timeToResolveMetric.retentionDate = alertMetricRetentionDate;
 
-        itemsToSave.push(timeToResolveMetric);
+        // Emit once: final the moment the alert is resolved.
+        const timeToResolveExists: boolean = await MetricService.existsBy({
+          query: {
+            projectId: alert.projectId,
+            primaryEntityId: alert.id!,
+            name: AlertMetricType.TimeToResolve,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (!timeToResolveExists) {
+          itemsToSave.push(timeToResolveMetric);
+        }
 
         const metricType: MetricType = new MetricType();
         metricType.name = timeToResolveMetric.name;
@@ -1514,7 +1593,12 @@ ${alertSeverity.name}
     const lastAlertStateTimeline: AlertStateTimeline | undefined =
       alertStateTimelines[alertStateTimelines.length - 1];
 
-    if (lastAlertStateTimeline) {
+    /*
+     * Only emit AlertDuration once the alert is resolved, so the single
+     * emit-once row holds the FINAL duration (see the matching note in
+     * IncidentService.refreshIncidentMetrics).
+     */
+    if (lastAlertStateTimeline && isAlertResolved) {
       const alertEndsAt: Date =
         lastAlertStateTimeline.startsAt || OneUptimeDate.getCurrentDate();
 
@@ -1548,7 +1632,21 @@ ${alertSeverity.name}
       alertDurationMetric.metricPointType = MetricPointType.Sum;
       alertDurationMetric.retentionDate = alertMetricRetentionDate;
 
-      itemsToSave.push(alertDurationMetric);
+      // Emit once.
+      const alertDurationExists: boolean = await MetricService.existsBy({
+        query: {
+          projectId: alert.projectId,
+          primaryEntityId: alert.id!,
+          name: AlertMetricType.AlertDuration,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!alertDurationExists) {
+        itemsToSave.push(alertDurationMetric);
+      }
 
       const metricType: MetricType = new MetricType();
       metricType.name = alertDurationMetric.name;

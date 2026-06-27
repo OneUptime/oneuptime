@@ -52,7 +52,7 @@ import ServiceType from "../../Types/Telemetry/ServiceType";
 import OneUptimeDate from "../../Types/Date";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
 import logger, { LogAttributes } from "../Utils/Logger";
-import NotEqual from "../../Types/BaseDatabase/NotEqual";
+import Includes from "../../Types/BaseDatabase/Includes";
 import IncidentFeedService from "./IncidentFeedService";
 import IncidentSlaService from "./IncidentSlaService";
 import { setIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
@@ -2633,6 +2633,17 @@ ${incidentSeverity.name}
   @CaptureSpan()
   public async refreshIncidentMetrics(data: {
     incidentId: ObjectID;
+    /*
+     * When the underlying state timeline is mutated in a way that changes
+     * ALREADY-EMITTED metrics (a manual state-timeline deletion re-stitches
+     * neighbouring segments, so their durations change), the emit-once
+     * append path can't self-correct. Callers on those rare paths pass
+     * `recomputeExistingMetrics: true` to first delete the refresh-managed
+     * time-varying metrics so they are re-derived from the now-current
+     * timeline. Routine forward transitions leave this false (pure append,
+     * no mutation — see the storm note below).
+     */
+    recomputeExistingMetrics?: boolean;
   }): Promise<void> {
     const incident: Model | null = await this.findOneById({
       id: data.incidentId,
@@ -2765,29 +2776,51 @@ ${incidentSeverity.name}
       incidentStateTimelines[0];
 
     /*
-     * Delete the existing metrics for this incident so the time-varying
-     * ones (TimeToAcknowledge / TimeToResolve / IncidentDuration /
-     * TimeInState) get rewritten with the latest state-timeline values
-     * on this refresh. IncidentCount is excluded from the delete: it is
-     * a constant `value = 1` keyed by `primaryEntityId + bucketTime` that
-     * never changes. Re-emitting it across refreshes inflated the
-     * 1-minute aggregating materialized view (`MetricItemAggMV1m_mv`),
-     * because the MV trigger only fires on inserts — ALTER DELETE
-     * mutations don't roll back the previously-accumulated
-     * `sumState` / `countState`. That's why the Incident Dashboard
-     * sum-of-IncidentCount widget read ~33% higher than the actual
-     * unique-incident count.
+     * Append-once, never delete. This refresh runs on EVERY incident state
+     * transition (IncidentStateTimelineService.onCreateSuccess). The old
+     * implementation deleted-and-rewrote the time-varying metrics here via
+     * `MetricService.deleteBy(...)`, which compiles to a ClickHouse
+     * `ALTER TABLE … DELETE` mutation. On a busy install that produced a
+     * non-draining mutation backlog (the "metric mutation storm") that
+     * blocked merges and starved IO, and it also fired a per-refresh
+     * lightweight DELETE against the aggregating MV target tables that
+     * always fails (Code 36 BAD_ARGUMENTS — those tables are
+     * AggregatingMergeTree).
+     *
+     * Instead, each lifecycle metric is emitted EXACTLY ONCE, the first
+     * time it is final, guarded by `existsBy` (same idiom IncidentCount
+     * already used). This is mandatory — not just an optimisation —
+     * because these rows flow into the insert-triggered aggregating MV
+     * (`MetricItemAggMV1m_mv`), and an `ALTER DELETE` cannot roll back the
+     * already-accumulated `sumState`/`countState`, so any re-emit
+     * permanently inflates dashboard sums (the same bug the IncidentCount
+     * guard was added to avoid). Every metric below is a pure function of
+     * fixed state-timeline points, so on routine forward transitions its
+     * value never changes once written. The ONE exception is a manual
+     * state-timeline deletion, which re-stitches neighbouring segments and
+     * thus changes already-emitted metrics — that rare path calls in with
+     * `recomputeExistingMetrics: true` to delete-and-re-derive (below),
+     * scoped to ONLY the refresh-managed metric names so it never touches
+     * IncidentCount / SeverityChange / PostmortemCompletionTime.
      */
-    await MetricService.deleteBy({
-      query: {
-        projectId: incident.projectId,
-        primaryEntityId: data.incidentId,
-        name: new NotEqual<string>(IncidentMetricType.IncidentCount),
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+
+    if (data.recomputeExistingMetrics) {
+      await MetricService.deleteBy({
+        query: {
+          projectId: incident.projectId,
+          primaryEntityId: data.incidentId,
+          name: new Includes([
+            IncidentMetricType.TimeToAcknowledge,
+            IncidentMetricType.TimeToResolve,
+            IncidentMetricType.IncidentDuration,
+            IncidentMetricType.TimeInState,
+          ]),
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
     const itemsToSave: Array<Metric> = [];
 
@@ -2929,7 +2962,24 @@ ${incidentSeverity.name}
         timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
         timeToAcknowledgeMetric.retentionDate = incidentMetricRetentionDate;
 
-        itemsToSave.push(timeToAcknowledgeMetric);
+        /*
+         * Emit once: TimeToAcknowledge is final the moment the incident is
+         * acknowledged (ack time and start time are both fixed).
+         */
+        const timeToAcknowledgeExists: boolean = await MetricService.existsBy({
+          query: {
+            projectId: incident.projectId,
+            primaryEntityId: data.incidentId,
+            name: IncidentMetricType.TimeToAcknowledge,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (!timeToAcknowledgeExists) {
+          itemsToSave.push(timeToAcknowledgeMetric);
+        }
 
         // add metric type for this to map.
         const metricType: MetricType = new MetricType();
@@ -2983,7 +3033,24 @@ ${incidentSeverity.name}
         timeToResolveMetric.metricPointType = MetricPointType.Sum;
         timeToResolveMetric.retentionDate = incidentMetricRetentionDate;
 
-        itemsToSave.push(timeToResolveMetric);
+        /*
+         * Emit once: TimeToResolve is final the moment the incident is
+         * resolved (resolve time and start time are both fixed).
+         */
+        const timeToResolveExists: boolean = await MetricService.existsBy({
+          query: {
+            projectId: incident.projectId,
+            primaryEntityId: data.incidentId,
+            name: IncidentMetricType.TimeToResolve,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (!timeToResolveExists) {
+          itemsToSave.push(timeToResolveMetric);
+        }
 
         // add metric type for this to map.
         const metricType: MetricType = new MetricType();
@@ -3002,7 +3069,16 @@ ${incidentSeverity.name}
     const lastIncidentStateTimeline: IncidentStateTimeline | undefined =
       incidentStateTimelines[incidentStateTimelines.length - 1];
 
-    if (lastIncidentStateTimeline) {
+    /*
+     * Only emit IncidentDuration once the incident has reached a resolved
+     * state, so the single emit-once row holds the FINAL duration. The
+     * previous delete-and-rewrite implementation re-derived a "duration so
+     * far" on every transition; with append-once we cannot keep updating a
+     * row, and a premature pre-resolution duration would be locked in
+     * forever. An unresolved incident therefore has no duration metric yet
+     * (its running age is derived live from the incident record instead).
+     */
+    if (lastIncidentStateTimeline && isIncidentResolved) {
       const incidentEndsAt: Date =
         lastIncidentStateTimeline.startsAt || OneUptimeDate.getCurrentDate();
 
@@ -3032,7 +3108,21 @@ ${incidentSeverity.name}
       incidentDurationMetric.metricPointType = MetricPointType.Sum;
       incidentDurationMetric.retentionDate = incidentMetricRetentionDate;
 
-      itemsToSave.push(incidentDurationMetric);
+      // Emit once.
+      const incidentDurationExists: boolean = await MetricService.existsBy({
+        query: {
+          projectId: incident.projectId,
+          primaryEntityId: data.incidentId,
+          name: IncidentMetricType.IncidentDuration,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!incidentDurationExists) {
+        itemsToSave.push(incidentDurationMetric);
+      }
 
       // add metric type for this to map.
       const metricType: MetricType = new MetricType();
@@ -3047,6 +3137,28 @@ ${incidentSeverity.name}
     // time-in-state metrics — emit one metric per state transition that has a completed duration
     for (const timeline of incidentStateTimelines) {
       if (!timeline.startsAt || !timeline.endsAt) {
+        continue;
+      }
+
+      /*
+       * Emit once per completed state segment. A segment is uniquely
+       * identified by its startsAt, which is also the metric `time`; once
+       * the segment has an endsAt its duration is final, so we never need
+       * to rewrite it.
+       */
+      const timeInStateExists: boolean = await MetricService.existsBy({
+        query: {
+          projectId: incident.projectId,
+          primaryEntityId: data.incidentId,
+          name: IncidentMetricType.TimeInState,
+          time: timeline.startsAt,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (timeInStateExists) {
         continue;
       }
 

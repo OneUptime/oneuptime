@@ -727,6 +727,18 @@ ${createdItem.rootCause}`,
           },
         });
       }
+
+      /*
+       * Deleting a state-timeline entry changes already-emitted time-varying
+       * metrics, so recompute them from the current timeline (see the
+       * matching note in IncidentStateTimelineService.onDeleteSuccess).
+       */
+      AlertService.refreshAlertMetrics({
+        alertId: alertId,
+        recomputeExistingMetrics: true,
+      }).catch((error: Error) => {
+        logger.error(error);
+      });
     }
 
     return onDelete;
