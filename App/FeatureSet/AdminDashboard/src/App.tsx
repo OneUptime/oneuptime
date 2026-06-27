@@ -1,6 +1,7 @@
 import MasterPage from "./Components/MasterPage/MasterPage";
 import Init from "./Pages/Init/Init";
 import Health from "./Pages/Health/Index";
+import DatabaseConsole from "./Pages/Health/DatabaseConsole";
 import Logout from "./Pages/Logout/Logout";
 import Projects from "./Pages/Projects/Index";
 import SettingsAPIKey from "./Pages/Settings/APIKey/Index";
@@ -75,6 +76,11 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.HEALTH]?.toString() || ""}
           element={<Health />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.HEALTH_DATABASE_CONSOLE]?.toString() || ""}
+          element={<DatabaseConsole />}
         />
 
         <PageRoute

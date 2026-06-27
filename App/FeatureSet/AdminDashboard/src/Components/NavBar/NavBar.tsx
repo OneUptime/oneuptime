@@ -64,6 +64,17 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
       category: monitoringCategory,
     },
     {
+      title: "Database Console",
+      description: "Run ad-hoc Postgres, Redis & ClickHouse queries to debug.",
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.HEALTH_DATABASE_CONSOLE] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.HEALTH_DATABASE_CONSOLE],
+      icon: IconProp.Terminal,
+      iconColor: "violet",
+      category: toolsCategory,
+    },
+    {
       title: "Send Email",
       description: "Send a broadcast email to all users.",
       route: RouteUtil.populateRouteParams(
