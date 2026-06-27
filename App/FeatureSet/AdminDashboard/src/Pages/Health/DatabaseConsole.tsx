@@ -83,6 +83,29 @@ const DatabaseConsole: FunctionComponent = (): ReactElement => {
               query:
                 "SELECT pid, wait_event_type, wait_event, left(query, 100) AS query\nFROM pg_stat_activity\nWHERE wait_event_type = 'Lock';",
             },
+            {
+              label: "Cancel a query (write)",
+              query:
+                "-- Politely cancel a running statement by its PID (see “Active queries”).\nSELECT pg_cancel_backend(PID);",
+            },
+            {
+              label: "Terminate a backend (write)",
+              query:
+                "-- Forcefully kill a backend connection by its PID.\nSELECT pg_terminate_backend(PID);",
+            },
+            {
+              label: "Delete rows (write)",
+              query: "DELETE FROM table_name\nWHERE condition;",
+            },
+            {
+              label: "Drop a table (write)",
+              query: "DROP TABLE IF EXISTS table_name;",
+            },
+            {
+              label: "Vacuum a table (write)",
+              query:
+                "-- Reclaims dead-tuple bloat. Runs in autocommit (write mode).\nVACUUM (VERBOSE, ANALYZE) table_name;",
+            },
           ]}
           state={consoleStates.postgres}
           onStateChange={makeOnStateChange("postgres")}
@@ -105,6 +128,13 @@ const DatabaseConsole: FunctionComponent = (): ReactElement => {
             { label: "Keyspace", query: "INFO keyspace" },
             { label: "DB size", query: "DBSIZE" },
             { label: "Sample keys", query: "SCAN 0 COUNT 20" },
+            { label: "Delete a key (write)", query: "DEL my-key" },
+            {
+              label: "Set with TTL (write)",
+              query: 'SET my-key "value" EX 60',
+            },
+            { label: "Expire a key (write)", query: "EXPIRE my-key 60" },
+            { label: "Flush this DB (write)", query: "FLUSHDB" },
           ]}
           state={consoleStates.redis}
           onStateChange={makeOnStateChange("redis")}
@@ -140,6 +170,34 @@ const DatabaseConsole: FunctionComponent = (): ReactElement => {
               label: "Tables",
               query:
                 "SELECT name, engine, total_rows\nFROM system.tables\nWHERE database = currentDatabase()\nORDER BY total_rows DESC",
+            },
+            {
+              label: "Kill a mutation (write)",
+              query:
+                "-- Find mutation_id via “Running mutations”, then kill it.\nKILL MUTATION\nWHERE database = currentDatabase()\n  AND table = 'TABLE_NAME'\n  AND mutation_id = 'MUTATION_ID';",
+            },
+            {
+              label: "Kill all stuck mutations (write)",
+              query:
+                "-- Cancels every unfinished mutation in this database. Use with care.\nKILL MUTATION\nWHERE database = currentDatabase()\n  AND is_done = 0;",
+            },
+            {
+              label: "Kill a query (write)",
+              query:
+                "-- Find query_id via “Running queries”, then kill it.\nKILL QUERY WHERE query_id = 'QUERY_ID';",
+            },
+            {
+              label: "Optimize table (write)",
+              query: "OPTIMIZE TABLE TABLE_NAME FINAL;",
+            },
+            {
+              label: "Truncate table (write)",
+              query: "TRUNCATE TABLE IF EXISTS TABLE_NAME;",
+            },
+            {
+              label: "Drop a table (write)",
+              query:
+                "-- On a clustered ClickHouse add: ON CLUSTER '<cluster>'\nDROP TABLE IF EXISTS TABLE_NAME;",
             },
           ]}
           state={consoleStates.clickhouse}

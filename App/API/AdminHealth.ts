@@ -2945,24 +2945,73 @@ async function runPostgresConsoleQuery(
   await queryRunner.connect();
 
   try {
-    await queryRunner.startTransaction();
+    let rawResult: unknown;
 
-    // Engine-level read-only enforcement — must precede the first data statement.
     if (!allowWrite) {
-      await queryRunner.query("SET TRANSACTION READ ONLY");
-    }
+      /*
+       * Read-only mode: run inside a READ ONLY transaction so writes are
+       * refused by the server itself (not just guessed from the SQL text). The
+       * statement_timeout is transaction-local, so it resets when the
+       * transaction ends and never leaks into the pooled connection.
+       */
+      await queryRunner.startTransaction();
+      try {
+        // SET TRANSACTION READ ONLY must precede the first data statement.
+        await queryRunner.query("SET TRANSACTION READ ONLY");
+        await queryRunner.query(
+          `SET LOCAL statement_timeout = ${Math.round(CONSOLE_QUERY_TIMEOUT_MS)}`,
+        );
+        rawResult = await queryRunner.query(query, undefined, true);
+        await queryRunner.commitTransaction();
+      } catch (err) {
+        await queryRunner.rollbackTransaction().catch((): void => {
+          // The original error is what matters; a rollback failure must not mask it.
+        });
+        throw err;
+      }
+    } else {
+      /*
+       * Write mode: run in autocommit (NO surrounding transaction) so that
+       * statements which cannot run inside a transaction block still work —
+       * VACUUM, REINDEX, CREATE INDEX CONCURRENTLY, ALTER SYSTEM, CREATE/DROP
+       * DATABASE, and the like. We set a session statement_timeout for this
+       * connection and restore its previous value afterwards, because
+       * node-postgres does not reset session state when the connection is
+       * returned to the pool.
+       */
+      const before: unknown = await queryRunner.query("SHOW statement_timeout");
+      const previousTimeout: string =
+        Array.isArray(before) &&
+        before[0] &&
+        typeof (before[0] as { statement_timeout?: unknown })
+          .statement_timeout === "string"
+          ? (before[0] as { statement_timeout: string }).statement_timeout
+          : "0";
 
-    // Transaction-local timeout: reset automatically when the transaction ends.
-    await queryRunner.query(
-      `SET LOCAL statement_timeout = ${Math.round(CONSOLE_QUERY_TIMEOUT_MS)}`,
-    );
+      await queryRunner.query(
+        `SET statement_timeout = ${Math.round(CONSOLE_QUERY_TIMEOUT_MS)}`,
+      );
+
+      try {
+        rawResult = await queryRunner.query(query, undefined, true);
+      } finally {
+        /*
+         * Restore the connection's prior statement_timeout. previousTimeout is
+         * a server-formatted value read from SHOW (e.g. '2min', '0'), so it is
+         * safe to quote directly.
+         */
+        await queryRunner
+          .query(`SET statement_timeout = '${previousTimeout}'`)
+          .catch((): void => {
+            // Best-effort restore; never mask the statement's own outcome.
+          });
+      }
+    }
 
     /*
      * useStructuredResult => { records, affected, raw }. We tolerate the older
      * "plain array of rows" return shape too, in case the driver ignores the flag.
      */
-    const rawResult: unknown = await queryRunner.query(query, undefined, true);
-
     let records: Array<Record<string, unknown>> = [];
     let affected: number | null = null;
 
@@ -2977,8 +3026,6 @@ async function runPostgresConsoleQuery(
       affected =
         typeof structured.affected === "number" ? structured.affected : null;
     }
-
-    await queryRunner.commitTransaction();
 
     const tabular: ConsoleTabularResult = buildTabularResult(records);
 
@@ -2999,20 +3046,39 @@ async function runPostgresConsoleQuery(
       affectedRows: affected,
       message,
     };
-  } catch (err) {
-    await queryRunner.rollbackTransaction().catch((): void => {
-      // The original error is what matters; a rollback failure must not mask it.
-    });
-    throw err;
   } finally {
     await queryRunner.release();
   }
 }
 
+/*
+ * Strip leading whitespace, SQL comments and opening parens so the first real
+ * keyword can be read. Operators routinely paste a "-- note" line or a block
+ * comment above a query; without this a commented SELECT would be misread as a
+ * write and wrongly rejected in read-only mode.
+ */
+function stripLeadingSqlNoise(query: string): string {
+  let text: string = query;
+  let changed: boolean = true;
+
+  while (changed) {
+    const before: string = text;
+    text = text
+      .replace(/^\s+/, "") // whitespace
+      .replace(/^--[^\n]*\n?/, "") // -- line comment
+      .replace(/^\/\*[\s\S]*?\*\//, "") // block comment
+      .replace(/^\(+/, ""); // opening parens
+    changed = text !== before;
+  }
+
+  return text;
+}
+
 // Does this ClickHouse statement return a result set (vs. being a command)?
 function isClickhouseReadStatement(query: string): boolean {
-  const trimmed: string = query.trim().replace(/^\(+/, "").trimStart();
-  const firstWord: string = (trimmed.split(/[\s(;]/)[0] || "").toUpperCase();
+  const firstWord: string = (
+    stripLeadingSqlNoise(query).split(/[\s(;]/)[0] || ""
+  ).toUpperCase();
   return CLICKHOUSE_READ_STATEMENT_PREFIXES.includes(firstWord);
 }
 
