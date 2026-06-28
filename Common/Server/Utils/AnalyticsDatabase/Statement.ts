@@ -194,6 +194,8 @@ export class Statement implements BaseQueryParams {
       [TableColumnType.ArrayNumber]: "Array(Int32)",
       [TableColumnType.ArrayText]: "Array(String)",
       [TableColumnType.LongNumber]: "Int128",
+      [TableColumnType.BigNumber]: "Int64",
+      [TableColumnType.UInt64]: "UInt64",
     };
 
     if ((statementParam as StatementParameter).value instanceof Includes) {

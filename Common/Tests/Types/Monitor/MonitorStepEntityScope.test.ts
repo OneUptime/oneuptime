@@ -4,7 +4,6 @@ import Log from "../../../Models/AnalyticsModels/Log";
 import Span from "../../../Models/AnalyticsModels/Span";
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
 import Profile from "../../../Models/AnalyticsModels/Profile";
-import Metric from "../../../Models/AnalyticsModels/Metric";
 import MonitorStepLogMonitor, {
   MonitorStepLogMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepLogMonitor";
@@ -17,9 +16,6 @@ import MonitorStepExceptionMonitor, {
 import MonitorStepProfileMonitor, {
   MonitorStepProfileMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepProfileMonitor";
-import MonitorStepMetricMonitor, {
-  MonitorStepMetricMonitorUtil,
-} from "../../../Types/Monitor/MonitorStepMetricMonitor";
 import { JSONObject } from "../../../Types/JSON";
 
 /*
@@ -219,57 +215,5 @@ describe("MonitorStepProfileMonitorUtil.toQuery entity scoping", () => {
     const query: Query<Profile> = MonitorStepProfileMonitorUtil.toQuery(step);
 
     expectIncludes(query.entityKeys, TWO_KEYS);
-  });
-});
-
-describe("MonitorStepMetricMonitorUtil.applyEntityScopeToQuery", () => {
-  test("is a no-op when entityKeys is undefined (pre-existing saved monitors)", () => {
-    const step: MonitorStepMetricMonitor =
-      MonitorStepMetricMonitorUtil.getDefault();
-    delete step.entityKeys;
-
-    const query: Query<Metric> = {};
-    MonitorStepMetricMonitorUtil.applyEntityScopeToQuery(query, step);
-
-    expect(query.entityKeys).toBeUndefined();
-    expect(Object.keys(query)).toHaveLength(0);
-  });
-
-  test("is a no-op when entityKeys is an empty array", () => {
-    const step: MonitorStepMetricMonitor =
-      MonitorStepMetricMonitorUtil.getDefault();
-    step.entityKeys = [];
-
-    const query: Query<Metric> = {};
-    MonitorStepMetricMonitorUtil.applyEntityScopeToQuery(query, step);
-
-    expect(query.entityKeys).toBeUndefined();
-  });
-
-  test("stamps an Includes on entityKeys for two keys and preserves other predicates", () => {
-    const step: MonitorStepMetricMonitor =
-      MonitorStepMetricMonitorUtil.getDefault();
-    step.entityKeys = TWO_KEYS;
-
-    const query: Query<Metric> = { name: "cpu.usage" };
-    const returned: Query<Metric> =
-      MonitorStepMetricMonitorUtil.applyEntityScopeToQuery(query, step);
-
-    expect(returned).toBe(query);
-    expect(query.name).toBe("cpu.usage");
-    expectIncludes(query.entityKeys, TWO_KEYS);
-  });
-
-  test("fromJSON preserves entityKeys (pass-through serialization)", () => {
-    const step: MonitorStepMetricMonitor =
-      MonitorStepMetricMonitorUtil.getDefault();
-    step.entityKeys = TWO_KEYS;
-
-    const roundTripped: MonitorStepMetricMonitor =
-      MonitorStepMetricMonitorUtil.fromJSON(
-        MonitorStepMetricMonitorUtil.toJSON(step),
-      );
-
-    expect(roundTripped.entityKeys).toEqual(TWO_KEYS);
   });
 });

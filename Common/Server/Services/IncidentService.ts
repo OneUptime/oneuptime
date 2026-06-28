@@ -43,11 +43,12 @@ import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
 import User from "../../Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
-import MetricService from "./MetricService";
+import MutableMetricService from "./MutableMetricService";
 import GlobalConfigService from "./GlobalConfigService";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import IncidentMetricType from "../../Types/Incident/IncidentMetricType";
-import Metric, { MetricPointType } from "../../Models/AnalyticsModels/Metric";
+import MutableMetric from "../../Models/AnalyticsModels/MutableMetric";
+import { MetricPointType } from "../../Models/AnalyticsModels/Metric";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import OneUptimeDate from "../../Types/Date";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
@@ -1765,11 +1766,13 @@ ${incident.remediationNotes || "No remediation notes provided."}
 
             // only emit if the incident has been resolved
             if (resolvedTimeline && resolvedTimeline.startsAt) {
-              const postmortemMetric: Metric = new Metric();
+              const postmortemMetric: MutableMetric = new MutableMetric();
               postmortemMetric.projectId = projectId;
               postmortemMetric.primaryEntityId = incidentId;
               postmortemMetric.primaryEntityType = ServiceType.Incident;
               postmortemMetric.name =
+                IncidentMetricType.PostmortemCompletionTime;
+              postmortemMetric.metricPointId =
                 IncidentMetricType.PostmortemCompletionTime;
               postmortemMetric.value = OneUptimeDate.getDifferenceInSeconds(
                 postmortemPostedAt,
@@ -1794,11 +1797,8 @@ ${incident.remediationNotes || "No remediation notes provided."}
                 postmortemRetentionDays,
               );
 
-              await MetricService.create({
-                data: postmortemMetric,
-                props: {
-                  isRoot: true,
-                },
+              await MutableMetricService.createMutableMetrics({
+                metrics: [postmortemMetric],
               });
 
               const postmortemMetricType: MetricType = new MetricType();
@@ -2019,11 +2019,12 @@ ${incidentSeverity.name}
 
             // emit severity change metric
             try {
-              const severityChangeMetric: Metric = new Metric();
+              const severityChangeMetric: MutableMetric = new MutableMetric();
               severityChangeMetric.projectId = projectId;
               severityChangeMetric.primaryEntityId = incidentId;
               severityChangeMetric.primaryEntityType = ServiceType.Incident;
               severityChangeMetric.name = IncidentMetricType.SeverityChange;
+              severityChangeMetric.metricPointId = `severity-change:${ObjectID.generate().toString()}`;
               severityChangeMetric.value = 1;
               severityChangeMetric.attributes = {
                 incidentId: incidentId.toString(),
@@ -2046,11 +2047,8 @@ ${incidentSeverity.name}
                 severityRetentionDays,
               );
 
-              await MetricService.create({
-                data: severityChangeMetric,
-                props: {
-                  isRoot: true,
-                },
+              await MutableMetricService.createMutableMetrics({
+                metrics: [severityChangeMetric],
               });
 
               const severityChangeMetricType: MetricType = new MetricType();
@@ -2492,14 +2490,18 @@ ${incidentSeverity.name}
         }
 
         if (incident.projectId && incident.id) {
-          await MetricService.deleteBy({
-            query: {
-              projectId: incident.projectId,
-              primaryEntityId: incident.id,
-            },
-            props: {
-              isRoot: true,
-            },
+          const metricRetentionDays: number =
+            await this.getMetricRetentionDays();
+
+          await MutableMetricService.tombstoneEntityMetrics({
+            projectId: incident.projectId,
+            primaryEntityId: incident.id,
+            primaryEntityType: ServiceType.Incident,
+            metricNames: Object.values(IncidentMetricType),
+            retentionDate: OneUptimeDate.addRemoveDays(
+              OneUptimeDate.getCurrentDate(),
+              metricRetentionDays,
+            ),
           });
         }
       }
@@ -2639,6 +2641,7 @@ ${incidentSeverity.name}
       select: {
         projectId: true,
         declaredAt: true,
+        postmortemPostedAt: true,
         monitors: {
           _id: true,
           name: true,
@@ -2740,6 +2743,7 @@ ${incidentSeverity.name}
           incidentId: data.incidentId,
         },
         select: {
+          _id: true,
           projectId: true,
           incidentStateId: true,
           incidentState: {
@@ -2765,18 +2769,10 @@ ${incidentSeverity.name}
       incidentStateTimelines[0];
 
     /*
-     * Serialize concurrent refreshes for this incident across pods. The
-     * write-once guard below is read-then-insert (findBy existing, then a
-     * conditional createMany). Both call sites fire refresh fire-and-forget
-     * after releasing the per-incident state-timeline mutex, so two
-     * close-together transitions (e.g. auto-acknowledge then auto-resolve)
-     * could interleave: both read a snapshot missing a metric and both
-     * insert it. The Metric table is a plain MergeTree with no row collapse,
-     * so those duplicates would be permanent and re-inflate the very Sum/Avg
-     * widgets this change fixes. A best-effort distributed lock keyed on the
-     * incident makes the read+insert atomic; if the lock can't be taken we
-     * still proceed (the existence check alone covers the common sequential
-     * case).
+     * Serialize concurrent refreshes for this incident across pods. Mutable
+     * metrics are versioned inserts, but the replace operation also tombstones
+     * stale metric-point identities. The lock keeps that read+insert cycle
+     * ordered for each incident.
      */
     let metricRefreshMutex: SemaphoreMutex | null = null;
     try {
@@ -2796,84 +2792,7 @@ ${incidentSeverity.name}
     }
 
     try {
-      /*
-       * Write-once metrics — no deletes.
-       *
-       * The raw Metric table (`MetricItemV3`) feeds an AggregatingMergeTree
-       * materialized view (`MetricItemAggMV1m_mv`) that accumulates
-       * `sumState`/`countState` per (projectId, name, primaryEntityId,
-       * minute). The MV trigger fires only on INSERT — an `ALTER ... DELETE`
-       * mutation on the source rolls back nothing in the MV. So the old
-       * "delete every metric for this incident, then re-insert" refresh both
-       * (a) inflated those rollups (the Sum-of-IncidentCount widget read high)
-       * and (b) issued one heavy `ALTER ... DELETE` mutation per state
-       * transition per incident — a mutation storm.
-       *
-       * Every incident metric has a single eventually-final value:
-       * IncidentCount is constant `value = 1`; MTTA/MTTR/duration/time-in-state
-       * are each fixed once the relevant state transition has happened. So we
-       * load what we've already emitted for this incident and insert each
-       * metric exactly once, when it becomes final. Repeat refreshes that find
-       * nothing new are pure no-ops (no insert, no mutation).
-       */
-      const existingMetrics: Array<Metric> = await MetricService.findBy({
-        query: {
-          projectId: incident.projectId,
-          primaryEntityId: data.incidentId,
-        },
-        select: {
-          name: true,
-          time: true,
-          attributes: true,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      const existingMetricNames: Set<string> = new Set<string>(
-        existingMetrics
-          .map((metric: Metric) => {
-            return metric.name;
-          })
-          .filter(Boolean) as Array<string>,
-      );
-
-      /*
-       * Identity of a TimeInState row: the state plus the instant that state
-       * began (a state can be entered more than once over a re-opened
-       * incident). Second granularity is robust against DateTime64 round-trip
-       * jitter and two distinct entries into the same state within one second
-       * never happen.
-       */
-      const buildTimeInStateKey: (
-        stateId: string | undefined,
-        startsAt: Date | undefined,
-      ) => string = (
-        stateId: string | undefined,
-        startsAt: Date | undefined,
-      ): string => {
-        return `${stateId || ""}|${
-          startsAt ? OneUptimeDate.toUnixTimestamp(startsAt) : ""
-        }`;
-      };
-
-      const existingTimeInStateKeys: Set<string> = new Set<string>(
-        existingMetrics
-          .filter((metric: Metric) => {
-            return metric.name === IncidentMetricType.TimeInState;
-          })
-          .map((metric: Metric) => {
-            return buildTimeInStateKey(
-              metric.attributes?.["incidentStateId"] as string | undefined,
-              metric.time,
-            );
-          }),
-      );
-
-      const itemsToSave: Array<Metric> = [];
+      const itemsToSave: Array<MutableMetric> = [];
 
       const metricRetentionDays: number = await this.getMetricRetentionDays();
       const incidentMetricRetentionDate: Date = OneUptimeDate.addRemoveDays(
@@ -2921,36 +2840,27 @@ ${incidentSeverity.name}
         ownerTeamNames: ownerTeamNames.join(", "),
       };
 
-      /*
-       * Only emit IncidentCount on the very first refresh (i.e. when no
-       * existing IncidentCount row is present for this primaryEntityId). See
-       * the write-once note above — emitting it on every refresh would
-       * accumulate phantom `sumState` entries in the MV. By keeping the
-       * original row alive and never re-emitting, the dashboard Sum stays
-       * equal to the true count of distinct incidents.
-       */
-      if (!existingMetricNames.has(IncidentMetricType.IncidentCount)) {
-        const incidentCountMetric: Metric = new Metric();
+      const incidentCountMetric: MutableMetric = new MutableMetric();
 
-        incidentCountMetric.projectId = incident.projectId;
-        incidentCountMetric.primaryEntityId = incident.id!;
-        incidentCountMetric.primaryEntityType = ServiceType.Incident;
-        incidentCountMetric.name = IncidentMetricType.IncidentCount;
-        incidentCountMetric.value = 1;
-        incidentCountMetric.attributes = { ...baseMetricAttributes };
-        incidentCountMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
-          incidentCountMetric.attributes,
-        );
+      incidentCountMetric.projectId = incident.projectId;
+      incidentCountMetric.primaryEntityId = incident.id!;
+      incidentCountMetric.primaryEntityType = ServiceType.Incident;
+      incidentCountMetric.name = IncidentMetricType.IncidentCount;
+      incidentCountMetric.metricPointId = IncidentMetricType.IncidentCount;
+      incidentCountMetric.value = 1;
+      incidentCountMetric.attributes = { ...baseMetricAttributes };
+      incidentCountMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+        incidentCountMetric.attributes,
+      );
 
-        incidentCountMetric.time = incidentStartsAt;
-        incidentCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-          incidentCountMetric.time,
-        );
-        incidentCountMetric.metricPointType = MetricPointType.Sum;
-        incidentCountMetric.retentionDate = incidentMetricRetentionDate;
+      incidentCountMetric.time = incidentStartsAt;
+      incidentCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+        incidentCountMetric.time,
+      );
+      incidentCountMetric.metricPointType = MetricPointType.Sum;
+      incidentCountMetric.retentionDate = incidentMetricRetentionDate;
 
-        itemsToSave.push(incidentCountMetric);
-      }
+      itemsToSave.push(incidentCountMetric);
 
       // Always register the metric type so it shows up in the type catalog.
       const metricType: MetricType = new MetricType();
@@ -2982,39 +2892,35 @@ ${incidentSeverity.name}
           metricType.unit = "seconds";
           metricTypesMap[IncidentMetricType.TimeToAcknowledge] = metricType;
 
-          // write-once: MTTA is fixed once the incident is first acknowledged.
-          if (!existingMetricNames.has(IncidentMetricType.TimeToAcknowledge)) {
-            const timeToAcknowledgeMetric: Metric = new Metric();
+          const timeToAcknowledgeMetric: MutableMetric = new MutableMetric();
 
-            timeToAcknowledgeMetric.projectId = incident.projectId;
-            timeToAcknowledgeMetric.primaryEntityId = incident.id!;
-            timeToAcknowledgeMetric.primaryEntityType = ServiceType.Incident;
-            timeToAcknowledgeMetric.name = IncidentMetricType.TimeToAcknowledge;
-            timeToAcknowledgeMetric.value =
-              OneUptimeDate.getDifferenceInSeconds(
-                ackIncidentStateTimeline?.startsAt ||
-                  OneUptimeDate.getCurrentDate(),
-                incidentStartsAt,
-              );
-            timeToAcknowledgeMetric.attributes = { ...baseMetricAttributes };
-            timeToAcknowledgeMetric.attributeKeys =
-              TelemetryUtil.getAttributeKeys(
-                timeToAcknowledgeMetric.attributes,
-              );
+          timeToAcknowledgeMetric.projectId = incident.projectId;
+          timeToAcknowledgeMetric.primaryEntityId = incident.id!;
+          timeToAcknowledgeMetric.primaryEntityType = ServiceType.Incident;
+          timeToAcknowledgeMetric.name = IncidentMetricType.TimeToAcknowledge;
+          timeToAcknowledgeMetric.metricPointId =
+            IncidentMetricType.TimeToAcknowledge;
+          timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
+            ackIncidentStateTimeline?.startsAt ||
+              OneUptimeDate.getCurrentDate(),
+            incidentStartsAt,
+          );
+          timeToAcknowledgeMetric.attributes = { ...baseMetricAttributes };
+          timeToAcknowledgeMetric.attributeKeys =
+            TelemetryUtil.getAttributeKeys(timeToAcknowledgeMetric.attributes);
 
-            timeToAcknowledgeMetric.time =
-              ackIncidentStateTimeline?.startsAt ||
-              incident.declaredAt ||
-              incident.createdAt ||
-              OneUptimeDate.getCurrentDate();
-            timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-              timeToAcknowledgeMetric.time,
-            );
-            timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
-            timeToAcknowledgeMetric.retentionDate = incidentMetricRetentionDate;
+          timeToAcknowledgeMetric.time =
+            ackIncidentStateTimeline?.startsAt ||
+            incident.declaredAt ||
+            incident.createdAt ||
+            OneUptimeDate.getCurrentDate();
+          timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+            timeToAcknowledgeMetric.time,
+          );
+          timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
+          timeToAcknowledgeMetric.retentionDate = incidentMetricRetentionDate;
 
-            itemsToSave.push(timeToAcknowledgeMetric);
-          }
+          itemsToSave.push(timeToAcknowledgeMetric);
         }
       }
 
@@ -3038,50 +2944,37 @@ ${incidentSeverity.name}
         metricType.unit = "seconds";
         metricTypesMap[IncidentMetricType.TimeToResolve] = metricType;
 
-        // write-once: MTTR is fixed once the incident is first resolved.
-        if (!existingMetricNames.has(IncidentMetricType.TimeToResolve)) {
-          const timeToResolveMetric: Metric = new Metric();
+        const timeToResolveMetric: MutableMetric = new MutableMetric();
 
-          timeToResolveMetric.projectId = incident.projectId;
-          timeToResolveMetric.primaryEntityId = incident.id!;
-          timeToResolveMetric.primaryEntityType = ServiceType.Incident;
-          timeToResolveMetric.name = IncidentMetricType.TimeToResolve;
-          timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
-            resolvedIncidentStateTimeline?.startsAt ||
-              OneUptimeDate.getCurrentDate(),
-            incidentStartsAt,
-          );
-          timeToResolveMetric.attributes = { ...baseMetricAttributes };
-          timeToResolveMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
-            timeToResolveMetric.attributes,
-          );
+        timeToResolveMetric.projectId = incident.projectId;
+        timeToResolveMetric.primaryEntityId = incident.id!;
+        timeToResolveMetric.primaryEntityType = ServiceType.Incident;
+        timeToResolveMetric.name = IncidentMetricType.TimeToResolve;
+        timeToResolveMetric.metricPointId = IncidentMetricType.TimeToResolve;
+        timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
+          resolvedIncidentStateTimeline?.startsAt ||
+            OneUptimeDate.getCurrentDate(),
+          incidentStartsAt,
+        );
+        timeToResolveMetric.attributes = { ...baseMetricAttributes };
+        timeToResolveMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+          timeToResolveMetric.attributes,
+        );
 
-          timeToResolveMetric.time =
-            resolvedIncidentStateTimeline?.startsAt ||
-            incident.declaredAt ||
-            incident.createdAt ||
-            OneUptimeDate.getCurrentDate();
-          timeToResolveMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-            timeToResolveMetric.time,
-          );
-          timeToResolveMetric.metricPointType = MetricPointType.Sum;
-          timeToResolveMetric.retentionDate = incidentMetricRetentionDate;
+        timeToResolveMetric.time =
+          resolvedIncidentStateTimeline?.startsAt ||
+          incident.declaredAt ||
+          incident.createdAt ||
+          OneUptimeDate.getCurrentDate();
+        timeToResolveMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+          timeToResolveMetric.time,
+        );
+        timeToResolveMetric.metricPointType = MetricPointType.Sum;
+        timeToResolveMetric.retentionDate = incidentMetricRetentionDate;
 
-          itemsToSave.push(timeToResolveMetric);
-        }
+        itemsToSave.push(timeToResolveMetric);
       }
 
-      /*
-       * Incident duration — write-once, finalized at resolution.
-       *
-       * The previous implementation recomputed duration as
-       * (latest state transition − start) on every refresh, so an open
-       * incident's duration grew and had to be deleted + re-inserted each
-       * time. With no deletes we emit a single final duration once the
-       * incident reaches a resolved state: (first resolution − start). An
-       * incident that is never resolved has no duration row (its lifetime is
-       * not yet final), which keeps the "Avg Duration" widget meaningful.
-       */
       if (isIncidentResolved && resolvedIncidentStateTimeline) {
         // register the metric type so the catalog stays complete across refreshes.
         const metricType: MetricType = new MetricType();
@@ -3090,34 +2983,70 @@ ${incidentSeverity.name}
         metricType.unit = "seconds";
         metricTypesMap[IncidentMetricType.IncidentDuration] = metricType;
 
-        if (!existingMetricNames.has(IncidentMetricType.IncidentDuration)) {
-          const incidentEndsAt: Date =
-            resolvedIncidentStateTimeline.startsAt ||
-            OneUptimeDate.getCurrentDate();
+        const incidentEndsAt: Date =
+          resolvedIncidentStateTimeline.startsAt ||
+          OneUptimeDate.getCurrentDate();
 
-          const incidentDurationMetric: Metric = new Metric();
+        const incidentDurationMetric: MutableMetric = new MutableMetric();
 
-          incidentDurationMetric.projectId = incident.projectId;
-          incidentDurationMetric.primaryEntityId = incident.id!;
-          incidentDurationMetric.primaryEntityType = ServiceType.Incident;
-          incidentDurationMetric.name = IncidentMetricType.IncidentDuration;
-          incidentDurationMetric.value = OneUptimeDate.getDifferenceInSeconds(
+        incidentDurationMetric.projectId = incident.projectId;
+        incidentDurationMetric.primaryEntityId = incident.id!;
+        incidentDurationMetric.primaryEntityType = ServiceType.Incident;
+        incidentDurationMetric.name = IncidentMetricType.IncidentDuration;
+        incidentDurationMetric.metricPointId =
+          IncidentMetricType.IncidentDuration;
+        incidentDurationMetric.value = OneUptimeDate.getDifferenceInSeconds(
+          incidentEndsAt,
+          incidentStartsAt,
+        );
+        incidentDurationMetric.attributes = { ...baseMetricAttributes };
+        incidentDurationMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+          incidentDurationMetric.attributes,
+        );
+
+        incidentDurationMetric.time = incidentEndsAt;
+        incidentDurationMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+          incidentDurationMetric.time,
+        );
+        incidentDurationMetric.metricPointType = MetricPointType.Sum;
+        incidentDurationMetric.retentionDate = incidentMetricRetentionDate;
+
+        itemsToSave.push(incidentDurationMetric);
+
+        if (incident.postmortemPostedAt) {
+          const postmortemMetricType: MetricType = new MetricType();
+          postmortemMetricType.name =
+            IncidentMetricType.PostmortemCompletionTime;
+          postmortemMetricType.description =
+            "Time from incident resolution to postmortem publication";
+          postmortemMetricType.unit = "seconds";
+          metricTypesMap[IncidentMetricType.PostmortemCompletionTime] =
+            postmortemMetricType;
+
+          const postmortemMetric: MutableMetric = new MutableMetric();
+
+          postmortemMetric.projectId = incident.projectId;
+          postmortemMetric.primaryEntityId = incident.id!;
+          postmortemMetric.primaryEntityType = ServiceType.Incident;
+          postmortemMetric.name = IncidentMetricType.PostmortemCompletionTime;
+          postmortemMetric.metricPointId =
+            IncidentMetricType.PostmortemCompletionTime;
+          postmortemMetric.value = OneUptimeDate.getDifferenceInSeconds(
+            incident.postmortemPostedAt,
             incidentEndsAt,
-            incidentStartsAt,
           );
-          incidentDurationMetric.attributes = { ...baseMetricAttributes };
-          incidentDurationMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
-            incidentDurationMetric.attributes,
+          postmortemMetric.attributes = { ...baseMetricAttributes };
+          postmortemMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+            postmortemMetric.attributes,
           );
+          postmortemMetric.time = incident.postmortemPostedAt;
+          postmortemMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+            postmortemMetric.time,
+          );
+          postmortemMetric.metricPointType = MetricPointType.Sum;
+          postmortemMetric.retentionDate = incidentMetricRetentionDate;
 
-          incidentDurationMetric.time = incidentEndsAt;
-          incidentDurationMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-            incidentDurationMetric.time,
-          );
-          incidentDurationMetric.metricPointType = MetricPointType.Sum;
-          incidentDurationMetric.retentionDate = incidentMetricRetentionDate;
-
-          itemsToSave.push(incidentDurationMetric);
+          itemsToSave.push(postmortemMetric);
         }
       }
 
@@ -3127,24 +3056,16 @@ ${incidentSeverity.name}
           continue;
         }
 
-        // write-once: each completed state transition is emitted exactly once.
-        const timeInStateKey: string = buildTimeInStateKey(
-          timeline.incidentStateId?.toString(),
-          timeline.startsAt,
-        );
-        if (existingTimeInStateKeys.has(timeInStateKey)) {
-          continue;
-        }
-
         const stateName: string =
           timeline.incidentState?.name?.toString() || "Unknown";
 
-        const timeInStateMetric: Metric = new Metric();
+        const timeInStateMetric: MutableMetric = new MutableMetric();
 
         timeInStateMetric.projectId = incident.projectId;
         timeInStateMetric.primaryEntityId = incident.id!;
         timeInStateMetric.primaryEntityType = ServiceType.Incident;
         timeInStateMetric.name = IncidentMetricType.TimeInState;
+        timeInStateMetric.metricPointId = `time-in-state:${timeline.id!.toString()}`;
         timeInStateMetric.value = OneUptimeDate.getDifferenceInSeconds(
           timeline.endsAt,
           timeline.startsAt,
@@ -3188,15 +3109,21 @@ ${incidentSeverity.name}
         metricTypesMap[timeInStateMetricType.name] = timeInStateMetricType;
       }
 
-      // write-once: a refresh that finds nothing new inserts nothing.
-      if (itemsToSave.length > 0) {
-        await MetricService.createMany({
-          items: itemsToSave,
-          props: {
-            isRoot: true,
-          },
-        });
-      }
+      await MutableMetricService.replaceEntityMetrics({
+        projectId: incident.projectId,
+        primaryEntityId: incident.id!,
+        primaryEntityType: ServiceType.Incident,
+        metricNames: [
+          IncidentMetricType.IncidentCount,
+          IncidentMetricType.TimeToAcknowledge,
+          IncidentMetricType.TimeToResolve,
+          IncidentMetricType.IncidentDuration,
+          IncidentMetricType.TimeInState,
+          IncidentMetricType.PostmortemCompletionTime,
+        ],
+        metrics: itemsToSave,
+        retentionDate: incidentMetricRetentionDate,
+      });
 
       TelemetryUtil.indexMetricNameServiceNameMap({
         metricNameServiceNameMap: metricTypesMap,

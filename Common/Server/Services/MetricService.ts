@@ -1,5 +1,6 @@
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
 import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
+import { MutableMetricService as MutableMetricServiceClass } from "./MutableMetricService";
 import Metric from "../../Models/AnalyticsModels/Metric";
 import AggregateBy, {
   AggregateUtil,
@@ -172,6 +173,15 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     statement: Statement;
     columns: Array<string>;
   } {
+    const mutableMetricStatement: {
+      statement: Statement;
+      columns: Array<string>;
+    } | null = this.tryBuildMutableMetricAggregateStatement(aggregateBy);
+
+    if (mutableMetricStatement) {
+      return mutableMetricStatement;
+    }
+
     if (!isPercentileAggregation(aggregateBy.aggregationType)) {
       /*
        * Try the per-host MV first — host detail pages are the
@@ -385,6 +395,224 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     } as LogAttributes);
 
     return { statement, columns };
+  }
+
+  private tryBuildMutableMetricAggregateStatement(
+    aggregateBy: AggregateBy<Metric>,
+  ): { statement: Statement; columns: Array<string> } | null {
+    const metricName: string | null = this.getExactMetricNameFromQuery(
+      aggregateBy.query,
+    );
+
+    if (
+      !MutableMetricServiceClass.isMutableMetricName(metricName || undefined)
+    ) {
+      return null;
+    }
+
+    if (!this.canRouteAggregateToMutableMetricTable(aggregateBy)) {
+      return null;
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+
+    const select: { statement: Statement; columns: Array<string> } =
+      this.statementGenerator.toAggregateSelectStatement(aggregateBy);
+
+    const innerWhereStatement: Statement =
+      this.statementGenerator.toWhereStatement(
+        this.getMutableMetricInnerQuery(aggregateBy.query),
+      );
+    const outerWhereStatement: Statement =
+      this.statementGenerator.toWhereStatement(aggregateBy.query);
+    const sortStatement: Statement = this.statementGenerator.toSortStatement(
+      aggregateBy.sort!,
+    );
+
+    const statement: Statement = SQL``;
+
+    statement
+      .append(SQL`SELECT `)
+      .append(select.statement)
+      .append(
+        SQL`
+          FROM (
+            SELECT
+              projectId,
+              name,
+              primaryEntityId,
+              primaryEntityType,
+              metricPointId,
+              argMax(metricPointType, version) AS metricPointType,
+              argMax(time, version) AS time,
+              argMax(timeUnixNano, version) AS timeUnixNano,
+              argMax(attributes, version) AS attributes,
+              argMax(attributeKeys, version) AS attributeKeys,
+              argMax(value, version) AS value,
+              argMax(retentionDate, version) AS retentionDate,
+              argMax(isDeleted, version) AS isDeleted
+            FROM ${databaseName}.${AnalyticsTableName.MutableMetric}
+            WHERE TRUE
+        `,
+      )
+      .append(innerWhereStatement)
+      .append(
+        SQL`
+            GROUP BY
+              projectId,
+              name,
+              primaryEntityId,
+              primaryEntityType,
+              metricPointId
+          )
+          WHERE isDeleted = false
+        `,
+      )
+      .append(outerWhereStatement)
+      .append(SQL` AND retentionDate >= now()`);
+
+    statement
+      .append(SQL` GROUP BY `)
+      .append(`${aggregateBy.aggregationTimestampColumnName.toString()}`);
+
+    if (aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0) {
+      statement
+        .append(SQL` , `)
+        .append(
+          this.statementGenerator.toGroupByStatement(aggregateBy.groupBy),
+        );
+    }
+
+    statement.append(SQL` ORDER BY `).append(sortStatement);
+
+    statement.append(
+      SQL` LIMIT ${{
+        value: Number(aggregateBy.limit),
+        type: TableColumnType.Number,
+      }}`,
+    );
+
+    statement.append(
+      SQL` OFFSET ${{
+        value: Number(aggregateBy.skip),
+        type: TableColumnType.Number,
+      }}`,
+    );
+
+    statement.append(
+      getQuerySettings({
+        additionalSettings: {
+          optimize_move_to_prewhere: 1,
+          max_threads: 4,
+        },
+      }),
+    );
+
+    logger.debug("Mutable metric aggregate statement", {
+      metricName: metricName || "",
+    } as LogAttributes);
+    logger.debug(statement, {
+      metricName: metricName || "",
+    } as LogAttributes);
+
+    return {
+      statement,
+      columns: select.columns,
+    };
+  }
+
+  private getMutableMetricInnerQuery(query: Query<Metric>): Query<Metric> {
+    const queryRecord: Record<string, unknown> = query as unknown as Record<
+      string,
+      unknown
+    >;
+    const allowedInnerKeys: Array<string> = [
+      "projectId",
+      "name",
+      "primaryEntityId",
+      "primaryEntityType",
+    ];
+    const innerQuery: Record<string, unknown> = {};
+
+    for (const key of allowedInnerKeys) {
+      if (queryRecord[key] !== undefined) {
+        innerQuery[key] = queryRecord[key];
+      }
+    }
+
+    return innerQuery as unknown as Query<Metric>;
+  }
+
+  private getExactMetricNameFromQuery(query: Query<Metric>): string | null {
+    const queryRecord: Record<string, unknown> = query as unknown as Record<
+      string,
+      unknown
+    >;
+    const metricName: unknown = queryRecord["name"];
+
+    if (typeof metricName !== "string") {
+      return null;
+    }
+
+    return metricName;
+  }
+
+  private canRouteAggregateToMutableMetricTable(
+    aggregateBy: AggregateBy<Metric>,
+  ): boolean {
+    const supportedColumns: Set<string> = new Set<string>([
+      "projectId",
+      "name",
+      "primaryEntityId",
+      "primaryEntityType",
+      "metricPointType",
+      "time",
+      "timeUnixNano",
+      "attributes",
+      "attributeKeys",
+      "value",
+      "retentionDate",
+    ]);
+
+    const queryRecord: Record<string, unknown> =
+      aggregateBy.query as unknown as Record<string, unknown>;
+
+    for (const key of Object.keys(queryRecord)) {
+      if (!supportedColumns.has(key)) {
+        return false;
+      }
+    }
+
+    if (
+      !supportedColumns.has(aggregateBy.aggregateColumnName.toString()) ||
+      !supportedColumns.has(
+        aggregateBy.aggregationTimestampColumnName.toString(),
+      )
+    ) {
+      return false;
+    }
+
+    if (aggregateBy.groupBy) {
+      for (const key of Object.keys(aggregateBy.groupBy)) {
+        if (!supportedColumns.has(key)) {
+          return false;
+        }
+      }
+    }
+
+    if (aggregateBy.sort) {
+      for (const key of Object.keys(aggregateBy.sort)) {
+        if (!supportedColumns.has(key)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 
   /*
