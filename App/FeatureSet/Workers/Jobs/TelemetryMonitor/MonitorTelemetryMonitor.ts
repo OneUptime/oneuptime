@@ -27,6 +27,24 @@ import Semaphore, {
   SemaphoreMutex,
 } from "Common/Server/Infrastructure/Semaphore";
 import runWithConcurrency from "Common/Utils/ConcurrencyLimiter";
+import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
+import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
+import {
+  TelemetryMonitorSchedulerFanoutEnabled,
+  TelemetryMonitorShapeCollapseEnabled,
+  TelemetryMonitorReactiveFastPathEnabled,
+} from "Common/Server/EnvironmentConfig";
+import {
+  MetricReadPlan,
+  computeShapeKey,
+  groupReadPlansByShape,
+  seriesCacheKey,
+  computeCollapseRatio,
+} from "Common/Server/Utils/Monitor/MetricMonitorShapeCollapse";
+import { getFreshMetricNamesSince } from "Common/Server/Utils/Monitor/TelemetryMonitorFreshShapeSignal";
+import monitorStepCanAlertOnAbsence from "Common/Server/Utils/Monitor/MonitorAbsenceSensitivity";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import { JSONValue } from "Common/Types/JSON";
 import Query from "Common/Server/Types/AnalyticsDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
 import PositiveNumber from "Common/Types/PositiveNumber";
@@ -138,6 +156,311 @@ const TICK_LOCK_TIMEOUT_MS: number = 5 * 60 * 1000;
  */
 const EVALUATION_CONCURRENCY_LIMIT: number = 10;
 
+/*
+ * Phase 1 — per-tick collapsed-series cache. Populated by prefetchCollapsedSeries
+ * before the in-process evaluation pool runs, consulted by monitorMetric. Module
+ * state is safe because the global tick lock guarantees only one tick runs at a
+ * time, and every monitor in a tick reads (never writes) the same cache.
+ * Always null unless TELEMETRY_MONITOR_SHAPE_COLLAPSE_ENABLED is set, so the
+ * per-monitor path stays authoritative by default.
+ */
+let currentTickCollapsedSeriesCache: Map<string, AggregatedResult> | null = null;
+
+const MV_ELIGIBLE_AGGREGATIONS: ReadonlyArray<MetricsAggregationType> = [
+  MetricsAggregationType.Sum,
+  MetricsAggregationType.Avg,
+  MetricsAggregationType.Min,
+  MetricsAggregationType.Max,
+  MetricsAggregationType.Count,
+];
+
+/**
+ * Build the collapse read-plan for a metric monitor, or null when it is not
+ * eligible for the shape-collapsed MV path. Eligibility deliberately mirrors
+ * MetricService.tryBuildMinuteAggregateMVStatement (the project-wide MV path):
+ * a single queryConfig, no formulas, no entity-key scope, no attribute filter,
+ * no group-by, and an MV-eligible aggregation — i.e. a project-wide read over
+ * one metric name. The window is floored to the MV's 1-minute bucket so the
+ * prefetch and the consult compute the SAME key within a tick.
+ */
+const buildMetricCollapsePlan: (input: {
+  monitorId: string;
+  projectId: ObjectID;
+  metricMonitorConfig: MonitorStepMetricMonitor;
+  startAndEndDate: InBetween<Date>;
+}) => MetricReadPlan | null = (input: {
+  monitorId: string;
+  projectId: ObjectID;
+  metricMonitorConfig: MonitorStepMetricMonitor;
+  startAndEndDate: InBetween<Date>;
+}): MetricReadPlan | null => {
+  const config: MonitorStepMetricMonitor = input.metricMonitorConfig;
+  const queryConfigs: Array<MetricQueryConfigData> =
+    config.metricViewConfig.queryConfigs;
+
+  if (queryConfigs.length !== 1) {
+    return null;
+  }
+  if ((config.metricViewConfig.formulaConfigs || []).length > 0) {
+    return null;
+  }
+  if (config.entityKeys && config.entityKeys.length > 0) {
+    return null;
+  }
+
+  const queryConfig: MetricQueryConfigData = queryConfigs[0]!;
+  const filterData = queryConfig.metricQueryData?.filterData;
+
+  if (
+    filterData?.attributes &&
+    Object.keys(filterData.attributes).length > 0
+  ) {
+    return null;
+  }
+  if (
+    queryConfig.metricQueryData?.groupByAttributeKeys &&
+    queryConfig.metricQueryData.groupByAttributeKeys.length > 0
+  ) {
+    return null;
+  }
+
+  const aggregationType: MetricsAggregationType =
+    (filterData?.aggegationType as MetricsAggregationType) ||
+    MetricsAggregationType.Avg;
+  if (!MV_ELIGIBLE_AGGREGATIONS.includes(aggregationType)) {
+    return null;
+  }
+
+  const metricName: string | undefined = filterData?.metricName?.toString();
+  if (!metricName) {
+    return null;
+  }
+
+  const start: Date | undefined = input.startAndEndDate.startValue as Date;
+  const end: Date | undefined = input.startAndEndDate.endValue as Date;
+  if (!start || !end) {
+    return null;
+  }
+
+  return {
+    monitorId: input.monitorId,
+    projectId: input.projectId.toString(),
+    metricName,
+    aggregationType,
+    windowStartEpochSec: Math.floor(start.getTime() / 60000) * 60,
+    windowEndEpochSec: Math.floor(end.getTime() / 60000) * 60,
+    primaryEntityIds: null,
+    collapsible: true,
+  };
+};
+
+/**
+ * Prefetch one batched MV read per shape across all collapse-eligible metric
+ * monitors due this tick, returning a cache keyed by seriesCacheKey. monitorMetric
+ * consults it and falls back to its per-monitor read on any miss, so a wrong or
+ * empty cache can never change results — only save (or fail to save) a query.
+ */
+const prefetchCollapsedSeries: (
+  monitors: Array<Monitor>,
+) => Promise<Map<string, AggregatedResult>> = async (
+  monitors: Array<Monitor>,
+): Promise<Map<string, AggregatedResult>> => {
+  const cache: Map<string, AggregatedResult> = new Map();
+  const plans: Array<MetricReadPlan> = [];
+
+  for (const monitor of monitors) {
+    if (monitor.monitorType !== MonitorType.Metrics) {
+      continue;
+    }
+    const config: MonitorStepMetricMonitor | undefined =
+      monitor.monitorSteps?.data?.monitorStepsInstanceArray?.[0]?.data
+        ?.metricMonitor;
+    if (!config || !monitor.id || !monitor.projectId) {
+      continue;
+    }
+    const startAndEndDate: InBetween<Date> =
+      RollingTimeUtil.convertToStartAndEndDate(
+        config.rollingTime || RollingTime.Past1Minute,
+      );
+    const plan: MetricReadPlan | null = buildMetricCollapsePlan({
+      monitorId: monitor.id.toString(),
+      projectId: monitor.projectId,
+      metricMonitorConfig: config,
+      startAndEndDate,
+    });
+    if (plan) {
+      plans.push(plan);
+    }
+  }
+
+  if (plans.length === 0) {
+    return cache;
+  }
+
+  const { buckets } = groupReadPlansByShape(plans);
+  let readsIssued: number = 0;
+  let monitorsEvaluated: number = 0;
+
+  for (const bucket of buckets) {
+    try {
+      readsIssued++;
+      monitorsEvaluated += bucket.plans.length;
+      const seriesMap: Map<string, AggregatedResult> =
+        await MetricService.aggregateMultiSeriesByName({
+          projectId: new ObjectID(bucket.projectId),
+          metricNames: bucket.metricNames,
+          primaryEntityIds: bucket.primaryEntityIds,
+          startTimestamp: new Date(bucket.windowStartEpochSec * 1000),
+          endTimestamp: new Date(bucket.windowEndEpochSec * 1000),
+          aggregationType: bucket.aggregationType as unknown as AggregationType,
+        });
+      for (const [metricName, series] of seriesMap.entries()) {
+        cache.set(
+          seriesCacheKey({
+            shapeKey: bucket.shapeKey,
+            metricName,
+            primaryEntityId: null,
+          }),
+          series,
+        );
+      }
+    } catch (err) {
+      // A failed bucket just means those monitors fall back to per-monitor reads.
+      logger.error(err);
+    }
+  }
+
+  logger.debug("Telemetry-monitor shape collapse prefetch", {
+    service: "workers",
+    monitorsEvaluated: monitorsEvaluated,
+    readsIssued: readsIssued,
+    collapseRatio: computeCollapseRatio({ monitorsEvaluated, readsIssued }),
+  } as LogAttributes);
+
+  return cache;
+};
+
+// A metric is "fresh" if it received data within this lookback.
+const FRESHNESS_LOOKBACK_MS: number = 120_000;
+
+/**
+ * Phase 4 — reactive skip. Decide whether a single monitor must be evaluated
+ * this tick. Returns true (evaluate) for everything EXCEPT a monitor that is
+ * provably safe to skip: a collapse-eligible (single project-wide metric)
+ * Metrics monitor that (a) cannot alert on absence — no Trigger/TreatAsZero
+ * no-data policy — and (b) whose metric received no data in the freshness
+ * window, where the freshness signal is actually available. Any uncertainty
+ * (non-Metrics, multi/attribute/entity-scoped, absence-sensitive, signal
+ * unavailable, error) defaults to true, preserving the scan-all floor.
+ */
+const shouldEvaluateMonitorThisTick: (
+  monitor: Monitor,
+  freshByProject: Map<string, Set<string> | null>,
+  sinceEpochMs: number,
+) => Promise<boolean> = async (
+  monitor: Monitor,
+  freshByProject: Map<string, Set<string> | null>,
+  sinceEpochMs: number,
+): Promise<boolean> => {
+  if (monitor.monitorType !== MonitorType.Metrics || !monitor.projectId) {
+    return true;
+  }
+
+  const step: MonitorStep | undefined =
+    monitor.monitorSteps?.data?.monitorStepsInstanceArray?.[0];
+  const config: MonitorStepMetricMonitor | undefined =
+    step?.data?.metricMonitor;
+  if (!step || !config) {
+    return true;
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      config.rollingTime || RollingTime.Past1Minute,
+    );
+  const plan: MetricReadPlan | null = buildMetricCollapsePlan({
+    monitorId: monitor.id?.toString() || "",
+    projectId: monitor.projectId,
+    metricMonitorConfig: config,
+    startAndEndDate,
+  });
+  if (!plan) {
+    return true;
+  }
+
+  // Never skip a monitor whose outcome depends on the absence of data.
+  if (monitorStepCanAlertOnAbsence(step.data as unknown as JSONValue)) {
+    return true;
+  }
+
+  const projectId: string = monitor.projectId.toString();
+  let freshSet: Set<string> | null | undefined = freshByProject.get(projectId);
+  if (freshSet === undefined) {
+    freshSet = await getFreshMetricNamesSince({
+      projectId,
+      sinceEpochMs,
+    });
+    freshByProject.set(projectId, freshSet);
+  }
+
+  // null = signal unavailable → scan-all floor.
+  if (freshSet === null) {
+    return true;
+  }
+
+  // Fresh → evaluate; otherwise it is provably safe to skip this tick.
+  return freshSet.has(plan.metricName);
+};
+
+/**
+ * Filter the due set down to the monitors that actually need a read this tick
+ * (reactive fast-path). No-op + identity unless the flag is on.
+ */
+const selectMonitorsToEvaluate: (
+  monitors: Array<Monitor>,
+) => Promise<Array<Monitor>> = async (
+  monitors: Array<Monitor>,
+): Promise<Array<Monitor>> => {
+  if (!TelemetryMonitorReactiveFastPathEnabled) {
+    return monitors;
+  }
+
+  const sinceEpochMs: number =
+    OneUptimeDate.getCurrentDate().getTime() - FRESHNESS_LOOKBACK_MS;
+  const freshByProject: Map<string, Set<string> | null> = new Map();
+  const toEvaluate: Array<Monitor> = [];
+  let skipped: number = 0;
+
+  for (const monitor of monitors) {
+    let keep: boolean = true;
+    try {
+      keep = await shouldEvaluateMonitorThisTick(
+        monitor,
+        freshByProject,
+        sinceEpochMs,
+      );
+    } catch (err) {
+      // Any error → evaluate (scan-all floor).
+      logger.error(err);
+      keep = true;
+    }
+    if (keep) {
+      toEvaluate.push(monitor);
+    } else {
+      skipped++;
+    }
+  }
+
+  if (skipped > 0) {
+    logger.debug(
+      `Telemetry-monitor reactive fast-path skipped ${skipped} idle monitors`,
+      { service: "workers" } as LogAttributes,
+    );
+  }
+
+  return toEvaluate;
+};
+
 /**
  * Evaluate a single telemetry monitor and then advance its schedule.
  *
@@ -236,6 +559,97 @@ const evaluateAndStampMonitor: (monitor: Monitor) => Promise<void> = async (
   }
 };
 
+/*
+ * Phase 2 — scheduler/worker fan-out producer. The claim advances each
+ * monitor's next-run by one interval so the next producer tick will not
+ * re-select an in-flight monitor; that same advance is the crash-recovery
+ * bound (a monitor whose worker dies before stamping is re-selected one
+ * interval later). Claim + enqueue is itself bounded so a very large tick does
+ * not burst Postgres / Redis.
+ */
+const PRODUCER_CLAIM_CONCURRENCY: number = 20;
+
+const produceTelemetryMonitorEvalJobs: (
+  monitors: Array<Monitor>,
+) => Promise<void> = async (monitors: Array<Monitor>): Promise<void> => {
+  // yyyy-mm-ddThh:mm — dedups same-monitor enqueues within a tick window.
+  const minuteBucket: string = OneUptimeDate.getCurrentDate()
+    .toISOString()
+    .slice(0, 16);
+
+  await runWithConcurrency(
+    monitors,
+    PRODUCER_CLAIM_CONCURRENCY,
+    async (monitor: Monitor) => {
+      let nextPing: Date = OneUptimeDate.addRemoveMinutes(
+        OneUptimeDate.getCurrentDate(),
+        1,
+      );
+      if (monitor.monitoringInterval) {
+        try {
+          nextPing = CronTab.getNextExecutionTime(
+            monitor.monitoringInterval as string,
+          );
+        } catch {
+          // keep the +1m default
+        }
+      }
+
+      await MonitorService.updateOneById({
+        id: monitor.id!,
+        data: {
+          telemetryMonitorNextMonitorAt: nextPing,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      await Queue.addJob(
+        QueueName.TelemetryMonitorEval,
+        `${monitor.id!.toString()}-${minuteBucket}`,
+        "EvaluateTelemetryMonitor",
+        { monitorId: monitor.id!.toString() },
+        { skipExistenceCheck: true },
+      );
+    },
+  );
+};
+
+/**
+ * Worker-fleet entry point (Phase 2). Loads a single monitor by id and runs the
+ * shared evaluate-and-stamp logic. Exported so the TelemetryMonitorEval queue
+ * consumer (registered in the Workers feature-set) can invoke it per dequeued
+ * job. evaluateAndStampMonitor stamps last/next-run after evaluation.
+ */
+export const evaluateTelemetryMonitorById: (
+  monitorId: string,
+) => Promise<void> = async (monitorId: string): Promise<void> => {
+  const monitor: Monitor | null = await MonitorService.findOneById({
+    id: new ObjectID(monitorId),
+    select: {
+      _id: true,
+      monitorSteps: true,
+      monitoringInterval: true,
+      monitorType: true,
+      projectId: true,
+    },
+    props: {
+      isRoot: true,
+    },
+  });
+
+  if (!monitor) {
+    logger.debug(
+      `TelemetryMonitorEval: monitor ${monitorId} not found; skipping`,
+      { service: "workers" },
+    );
+    return;
+  }
+
+  await evaluateAndStampMonitor(monitor);
+};
+
 RunCron(
   "TelemetryMonitor:MonitorTelemetryMonitor",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -306,25 +720,73 @@ RunCron(
         },
       });
 
-      logger.debug(`Found ${telemetryMonitors.length} telemetry monitors`, {
-        service: "workers",
-      });
+      /*
+       * Phase 0 observability — emit the per-tick due-monitor volume broken
+       * down by type, execution-unchanged. This is the signal used to size the
+       * scheduler/worker fan-out and to validate the shape-collapse assumption
+       * before enabling the scale-out path.
+       */
+      const dueCountByType: { [type: string]: number } = {};
+      for (const monitor of telemetryMonitors) {
+        const typeKey: string = monitor.monitorType?.toString() || "Unknown";
+        dueCountByType[typeKey] = (dueCountByType[typeKey] || 0) + 1;
+      }
+      logger.debug(
+        `TelemetryMonitor tick: ${telemetryMonitors.length} due monitors`,
+        {
+          service: "workers",
+          dueMonitorCount: telemetryMonitors.length,
+          dueCountByType: JSON.stringify(dueCountByType),
+        } as LogAttributes,
+      );
 
       /*
-       * Evaluate with a bounded fan-out instead of launching every due
-       * monitor's query at once. runWithConcurrency keeps at most
-       * EVALUATION_CONCURRENCY_LIMIT count/aggregate queries in flight and
-       * settles every monitor (one failure never aborts the others). Each
-       * monitor advances its own schedule inside evaluateAndStampMonitor.
+       * Phase 4 — reactive fast-path. Drop monitors that are provably safe to
+       * skip (idle metric, no absence policy). Identity when the flag is off.
+       * Skipped monitors are NOT claimed/stamped, so they stay due and are
+       * re-checked cheaply next tick until their data arrives.
        */
-      await runWithConcurrency(
-        telemetryMonitors,
-        EVALUATION_CONCURRENCY_LIMIT,
-        (monitor: Monitor) => {
-          return evaluateAndStampMonitor(monitor);
-        },
-      );
+      const monitorsToEvaluate: Array<Monitor> =
+        await selectMonitorsToEvaluate(telemetryMonitors);
+
+      if (TelemetryMonitorSchedulerFanoutEnabled) {
+        /*
+         * Phase 2 — PRODUCER mode. Claim each due monitor and hand it to the
+         * TelemetryMonitorEval queue; the horizontally-scaled worker fleet does
+         * the actual evaluation. Throughput becomes replicas * concurrency
+         * rather than this single process's bounded pool.
+         */
+        await produceTelemetryMonitorEvalJobs(monitorsToEvaluate);
+      } else {
+        /*
+         * Phase 1 — prefetch one batched MV read per shape so monitorMetric can
+         * serve a whole shape-bucket from it (falling back per-monitor on any
+         * miss). Flag-gated; no-op + null cache otherwise.
+         */
+        if (TelemetryMonitorShapeCollapseEnabled) {
+          currentTickCollapsedSeriesCache =
+            await prefetchCollapsedSeries(monitorsToEvaluate);
+        }
+
+        /*
+         * Legacy in-process mode (default). Evaluate with a bounded fan-out
+         * instead of launching every due monitor's query at once.
+         * runWithConcurrency keeps at most EVALUATION_CONCURRENCY_LIMIT
+         * count/aggregate queries in flight and settles every monitor (one
+         * failure never aborts the others). Each monitor advances its own
+         * schedule inside evaluateAndStampMonitor.
+         */
+        await runWithConcurrency(
+          monitorsToEvaluate,
+          EVALUATION_CONCURRENCY_LIMIT,
+          (monitor: Monitor) => {
+            return evaluateAndStampMonitor(monitor);
+          },
+        );
+      }
     } finally {
+      // Drop the per-tick collapsed cache so it never leaks across ticks.
+      currentTickCollapsedSeriesCache = null;
       if (tickMutex) {
         try {
           await Semaphore.release(tickMutex);
@@ -374,6 +836,34 @@ const loadNativeUnitsByMetricName: (input: {
     return new Map<string, string>();
   }
 
+  /*
+   * Phase 0 — cache native units per (projectId, metric-name-set). A metric's
+   * native unit is effectively static, so this removes a Postgres round-trip
+   * from every telemetry-monitor evaluation. Cache miss falls through to the
+   * authoritative query below.
+   */
+  const sortedNames: Array<string> = Array.from(names).sort();
+  const cacheNamespace: string = "telemetry-monitor-native-units";
+  const cacheKey: string = `${input.projectId.toString()}:${sortedNames.join(
+    ",",
+  )}`;
+
+  try {
+    const cached: JSONObject | null = await GlobalCache.getJSONObject(
+      cacheNamespace,
+      cacheKey,
+    );
+    if (cached) {
+      const fromCache: Map<string, string> = new Map<string, string>();
+      for (const [name, unit] of Object.entries(cached)) {
+        fromCache.set(name, String(unit));
+      }
+      return fromCache;
+    }
+  } catch {
+    // Cache read failures are non-fatal — fall through to the DB.
+  }
+
   const metricTypes: Array<MetricType> = await MetricTypeService.findBy({
     query: {
       projectId: input.projectId,
@@ -396,6 +886,19 @@ const loadNativeUnitsByMetricName: (input: {
       unitsByName.set(metricType.name.toLowerCase(), metricType.unit);
     }
   }
+
+  try {
+    const toCache: JSONObject = {};
+    for (const [name, unit] of unitsByName.entries()) {
+      toCache[name] = unit;
+    }
+    await GlobalCache.setJSON(cacheNamespace, cacheKey, toCache, {
+      expiresInSeconds: 3600,
+    });
+  } catch {
+    // Cache write failures are non-fatal.
+  }
+
   return unitsByName;
 };
 
@@ -940,6 +1443,21 @@ const monitorMetric: MonitorMetricFunction = async (data: {
     metricMonitorConfig.metricViewConfig.queryConfigs,
   );
 
+  /*
+   * Phase 1 — if this monitor is collapse-eligible and the per-tick prefetch
+   * ran, we may serve its read from the shared batched MV result instead of
+   * issuing a per-monitor aggregateBy. collapsePlan is null (and the cache is
+   * null unless the flag is on), so this is a no-op by default.
+   */
+  const collapsePlan: MetricReadPlan | null = currentTickCollapsedSeriesCache
+    ? buildMetricCollapsePlan({
+        monitorId: data.monitorId.toString(),
+        projectId: data.projectId,
+        metricMonitorConfig,
+        startAndEndDate,
+      })
+    : null;
+
   for (const queryConfig of metricMonitorConfig.metricViewConfig.queryConfigs) {
     const query: Query<Metric> =
       MonitorStepMetricMonitorUtil.applyEntityScopeToQuery(
@@ -999,23 +1517,46 @@ const monitorMetric: MonitorMetricFunction = async (data: {
         aggregationType,
       });
     } else {
-      aggregatedResults = await MetricService.aggregateBy({
-        query: query,
-        aggregationType,
-        aggregateColumnName: "value",
-        aggregationTimestampColumnName: "time",
-        startTimestamp:
-          (startAndEndDate?.startValue as Date) ||
-          OneUptimeDate.getCurrentDate(),
-        endTimestamp:
-          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        groupBy: queryConfig.metricQueryData.groupBy,
-        props: {
-          isRoot: true,
-        },
-      });
+      /*
+       * Phase 1 consult: if this monitor is collapse-eligible and the prefetch
+       * produced its series, use it; otherwise fall through to the authoritative
+       * per-monitor aggregateBy. The cache key matches the prefetch exactly
+       * (same shape key + project-wide entity), so a hit is the same value the
+       * per-monitor MV read would return.
+       */
+      const collapsedSeries: AggregatedResult | undefined =
+        currentTickCollapsedSeriesCache && collapsePlan
+          ? currentTickCollapsedSeriesCache.get(
+              seriesCacheKey({
+                shapeKey: computeShapeKey(collapsePlan),
+                metricName: collapsePlan.metricName,
+                primaryEntityId: null,
+              }),
+            )
+          : undefined;
+
+      if (collapsedSeries) {
+        aggregatedResults = collapsedSeries;
+      } else {
+        aggregatedResults = await MetricService.aggregateBy({
+          query: query,
+          aggregationType,
+          aggregateColumnName: "value",
+          aggregationTimestampColumnName: "time",
+          startTimestamp:
+            (startAndEndDate?.startValue as Date) ||
+            OneUptimeDate.getCurrentDate(),
+          endTimestamp:
+            (startAndEndDate?.endValue as Date) ||
+            OneUptimeDate.getCurrentDate(),
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          groupBy: queryConfig.metricQueryData.groupBy,
+          props: {
+            isRoot: true,
+          },
+        });
+      }
     }
 
     logger.debug("Aggregated results", {

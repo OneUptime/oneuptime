@@ -17,6 +17,11 @@ import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { keyForHost } from "../../Utils/Telemetry/EntityKey";
 import ObjectID from "../../Types/ObjectID";
+import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
+import AggregatedModel from "../../Types/BaseDatabase/AggregatedModel";
+import { JSONObject } from "../../Types/JSON";
+import { TelemetryMonitorAttributeKeyMVEnabled } from "../EnvironmentConfig";
+import { ResultSet, ResponseJSON } from "@clickhouse/client";
 import logger, { LogAttributes } from "../Utils/Logger";
 
 export class MetricService extends AnalyticsDatabaseService<Metric> {
@@ -186,6 +191,18 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       } | null = this.tryBuildHostAggregateMVStatement(aggregateBy);
       if (hostMvStatement) {
         return hostMvStatement;
+      }
+      /*
+       * Phase 3 — generic single-attribute rollup (off unless enabled). Tried
+       * after the specialized host MV and before the project/primaryEntityId
+       * MV, so a `resource.host.name` filter still prefers the host MV.
+       */
+      const attributeKeyMvStatement: {
+        statement: Statement;
+        columns: Array<string>;
+      } | null = this.tryBuildAttributeKeyMVStatement(aggregateBy);
+      if (attributeKeyMvStatement) {
+        return attributeKeyMvStatement;
       }
       const mvStatement: {
         statement: Statement;
@@ -407,6 +424,154 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
    * timestampColumn) matches the base statement so downstream code
    * needs no changes.
    */
+  /**
+   * Phase 1 — batched multi-series rollup read for shape-collapsed monitor
+   * evaluation. Reads the MetricItemAggMV1m rollup for many (metric name,
+   * entity) series in ONE query: `name IN (...) [AND primaryEntityId IN (...)]
+   * GROUP BY name[, primaryEntityId], bucketTime`. Returns one AggregatedResult
+   * per series keyed by metric name (project-wide) or `name|primaryEntityId`
+   * (entity-scoped), so a whole shape-bucket of monitors is served by a single
+   * ClickHouse round-trip instead of one query per monitor.
+   *
+   * Only MV-eligible flat aggregations are supported here (Sum/Avg/Min/Max/Count,
+   * no attribute filters, no group-by); callers gate eligibility upstream via
+   * MetricMonitorShapeCollapse and fall back to per-monitor reads otherwise.
+   * Granularity is preserved at the MV's 1-minute bucket so EvaluateOverTime
+   * semantics match the single-monitor path.
+   */
+  public async aggregateMultiSeriesByName(input: {
+    projectId: ObjectID;
+    metricNames: Array<string>;
+    primaryEntityIds: Array<string> | null;
+    startTimestamp: Date;
+    endTimestamp: Date;
+    aggregationType: AggregationType;
+  }): Promise<Map<string, AggregatedResult>> {
+    const result: Map<string, AggregatedResult> = new Map();
+
+    if (input.metricNames.length === 0) {
+      return result;
+    }
+
+    const entityScoped: boolean = Boolean(
+      input.primaryEntityIds && input.primaryEntityIds.length > 0,
+    );
+
+    let mergedExpr: string;
+    if (input.aggregationType === AggregationType.Sum) {
+      mergedExpr = "sumMerge(valueSumState)";
+    } else if (input.aggregationType === AggregationType.Count) {
+      mergedExpr = "countMerge(valueCountState)";
+    } else if (input.aggregationType === AggregationType.Min) {
+      mergedExpr = "minMerge(valueMinState)";
+    } else if (input.aggregationType === AggregationType.Max) {
+      mergedExpr = "maxMerge(valueMaxState)";
+    } else {
+      mergedExpr =
+        "if(countMerge(valueCountState) = 0, 0, sumMerge(valueSumState) / countMerge(valueCountState))";
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+
+    const groupCols: string = entityScoped
+      ? "name, primaryEntityId, bucketTime"
+      : "name, bucketTime";
+
+    const statement: Statement = SQL``;
+    statement.append(
+      `SELECT name, ${
+        entityScoped ? "primaryEntityId, " : ""
+      }${mergedExpr} as value, bucketTime as time`,
+    );
+    statement.append(SQL` FROM ${databaseName}.MetricItemAggMV1m`);
+    statement.append(
+      SQL` WHERE projectId = ${{
+        value: input.projectId,
+        type: TableColumnType.ObjectID,
+      }}`,
+    );
+
+    statement.append(SQL` AND name IN (`);
+    input.metricNames.forEach((metricName: string, index: number) => {
+      if (index > 0) {
+        statement.append(SQL`, `);
+      }
+      statement.append(
+        SQL`${{ value: metricName, type: TableColumnType.Text }}`,
+      );
+    });
+    statement.append(SQL`)`);
+
+    if (entityScoped) {
+      statement.append(SQL` AND primaryEntityId IN (`);
+      input.primaryEntityIds!.forEach((entityId: string, index: number) => {
+        if (index > 0) {
+          statement.append(SQL`, `);
+        }
+        statement.append(
+          SQL`${{ value: entityId, type: TableColumnType.Text }}`,
+        );
+      });
+      statement.append(SQL`)`);
+    }
+
+    statement.append(
+      ` AND bucketTime >= toDateTime('${this.formatDateTime(
+        input.startTimestamp,
+      )}') AND bucketTime <= toDateTime('${this.formatDateTime(
+        input.endTimestamp,
+      )}')${this.getRetentionReadFilter()}`,
+    );
+    statement.append(` GROUP BY ${groupCols} ORDER BY ${groupCols}`);
+    statement.append(
+      getQuerySettings({
+        additionalSettings: {
+          optimize_aggregation_in_order: 1,
+          optimize_move_to_prewhere: 1,
+          max_threads: 4,
+        },
+      }),
+    );
+
+    const dbResult: ResultSet<"JSON"> = await this.executeQuery(statement);
+    const json: ResponseJSON<JSONObject> = await dbResult.json<JSONObject>();
+    const rows: Array<JSONObject> = (json.data as Array<JSONObject>) || [];
+
+    for (const row of rows) {
+      const metricName: string = String(row["name"] ?? "");
+      const entityId: string | null = entityScoped
+        ? String(row["primaryEntityId"] ?? "")
+        : null;
+      const seriesKey: string = entityScoped
+        ? `${metricName}|${entityId}`
+        : metricName;
+
+      const value: number = Number(row["value"]);
+      const timestamp: Date = row["time"]
+        ? new Date(row["time"] as string)
+        : new Date();
+
+      if (!Number.isFinite(value)) {
+        continue;
+      }
+
+      let series: AggregatedResult | undefined = result.get(seriesKey);
+      if (!series) {
+        series = { data: [] };
+        result.set(seriesKey, series);
+      }
+      series.data.push({
+        timestamp,
+        value,
+      } as AggregatedModel);
+    }
+
+    return result;
+  }
+
   private tryBuildMinuteAggregateMVStatement(
     aggregateBy: AggregateBy<Metric>,
   ): { statement: Statement; columns: Array<string> } | null {
@@ -588,6 +753,168 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
    * shape (columns: aggregateColumn, timestampColumn) matches
    * the base statement so downstream code needs no changes.
    */
+  /**
+   * Phase 3 — generic per-attribute-key MV fast path. Serves a metric
+   * aggregate filtered by exactly ONE attribute (any key) and a bare-string
+   * value from the MetricItemAggMV1mByAttributeKeys rollup. Gated behind the
+   * flag (and the MV only exists when the flag is on), so it returns null —
+   * falling back to the raw table — unless explicitly enabled. Mirrors
+   * tryBuildHostAggregateMVStatement but keyed by (attributeKey, attributeValue)
+   * instead of the host-specific entity key.
+   */
+  private tryBuildAttributeKeyMVStatement(
+    aggregateBy: AggregateBy<Metric>,
+  ): { statement: Statement; columns: Array<string> } | null {
+    if (!TelemetryMonitorAttributeKeyMVEnabled) {
+      return null;
+    }
+
+    const aggType: AggregationType = aggregateBy.aggregationType;
+    const supported: ReadonlyArray<AggregationType> = [
+      AggregationType.Sum,
+      AggregationType.Avg,
+      AggregationType.Min,
+      AggregationType.Max,
+      AggregationType.Count,
+    ];
+    if (!supported.includes(aggType)) {
+      return null;
+    }
+
+    if (
+      aggregateBy.aggregateColumnName.toString() !== "value" ||
+      aggregateBy.aggregationTimestampColumnName.toString() !== "time"
+    ) {
+      return null;
+    }
+
+    if (aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0) {
+      return null;
+    }
+
+    const queryRecord: Record<string, unknown> =
+      (aggregateBy.query as unknown as Record<string, unknown>) || {};
+    const attrs: unknown = queryRecord["attributes"];
+    if (!attrs || typeof attrs !== "object") {
+      return null;
+    }
+    const attrEntries: Array<[string, unknown]> = Object.entries(
+      attrs as Record<string, unknown>,
+    );
+    // Exactly one attribute, bare-string value (NotEqual/Search/etc. fall back).
+    if (attrEntries.length !== 1) {
+      return null;
+    }
+    const [attrKey, attrValue] = attrEntries[0]!;
+    if (typeof attrValue !== "string" || attrValue === "") {
+      return null;
+    }
+
+    // The MV only carries projectId/name/attributeKey/attributeValue/bucketTime.
+    const mvQueryableColumns: ReadonlyArray<string> = [
+      "projectId",
+      "name",
+      "time", // stripped; bucketTime range added explicitly
+      "attributes", // rewritten into the attributeKey/attributeValue predicate
+    ];
+    for (const queryKey of Object.keys(queryRecord)) {
+      if (!mvQueryableColumns.includes(queryKey)) {
+        return null;
+      }
+    }
+
+    const interval: AggregationInterval = AggregateUtil.getAggregationInterval({
+      startDate: aggregateBy.startTimestamp!,
+      endDate: aggregateBy.endTimestamp!,
+    });
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+    const intervalLower: string = interval.toLowerCase();
+
+    let mergedExpr: string;
+    if (aggType === AggregationType.Sum) {
+      mergedExpr = `sumMerge(valueSumState)`;
+    } else if (aggType === AggregationType.Count) {
+      mergedExpr = `countMerge(valueCountState)`;
+    } else if (aggType === AggregationType.Min) {
+      mergedExpr = `minMerge(valueMinState)`;
+    } else if (aggType === AggregationType.Max) {
+      mergedExpr = `maxMerge(valueMaxState)`;
+    } else {
+      mergedExpr = `if(countMerge(valueCountState) = 0, 0, sumMerge(valueSumState) / countMerge(valueCountState))`;
+    }
+
+    const filteredQuery: typeof aggregateBy.query =
+      this.stripAttributesAndTimeFromQuery(
+        aggregateBy.query,
+      ) as typeof aggregateBy.query;
+    const nonTimeWhere: Statement =
+      this.statementGenerator.toWhereStatement(filteredQuery);
+    const sortStatement: Statement = this.statementGenerator.toSortStatement(
+      aggregateBy.sort!,
+    );
+
+    const statement: Statement = SQL``;
+
+    statement.append(
+      `SELECT ${mergedExpr} as value, date_trunc('${intervalLower}', toStartOfInterval(bucketTime, INTERVAL 1 ${intervalLower})) as time`,
+    );
+    statement.append(
+      SQL` FROM ${databaseName}.MetricItemAggMV1mByAttributeKeys`,
+    );
+    statement.append(
+      ` WHERE bucketTime >= toDateTime('${this.formatDateTime(
+        aggregateBy.startTimestamp!,
+      )}') AND bucketTime <= toDateTime('${this.formatDateTime(
+        aggregateBy.endTimestamp!,
+      )}')${this.getRetentionReadFilter()}`,
+    );
+    statement.append(
+      SQL` AND attributeKey = ${{
+        value: attrKey,
+        type: TableColumnType.Text,
+      }} AND attributeValue = ${{
+        value: attrValue,
+        type: TableColumnType.Text,
+      }}`,
+    );
+    statement.append(SQL` `).append(nonTimeWhere);
+    statement.append(SQL` GROUP BY `).append(`time`);
+    statement.append(SQL` ORDER BY `).append(sortStatement);
+    statement.append(
+      SQL` LIMIT ${{
+        value: Number(aggregateBy.limit),
+        type: TableColumnType.Number,
+      }}`,
+    );
+    statement.append(
+      SQL` OFFSET ${{
+        value: Number(aggregateBy.skip),
+        type: TableColumnType.Number,
+      }} `,
+    );
+    statement.append(
+      getQuerySettings({
+        additionalSettings: {
+          optimize_aggregation_in_order: 1,
+          optimize_move_to_prewhere: 1,
+          max_threads: 4,
+        },
+      }),
+    );
+
+    return {
+      statement,
+      columns: [
+        aggregateBy.aggregateColumnName.toString(),
+        aggregateBy.aggregationTimestampColumnName.toString(),
+      ],
+    };
+  }
+
   private tryBuildHostAggregateMVStatement(
     aggregateBy: AggregateBy<Metric>,
   ): { statement: Statement; columns: Array<string> } | null {

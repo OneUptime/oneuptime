@@ -20,6 +20,13 @@ enum AnalyticsTableName {
    * hostEntityKey instead of the raw host.name spelling.
    */
   MetricItemAggMV1mByHostV2 = "MetricItemAggMV1mByHostV2",
+  /*
+   * Per-(attributeKey, attributeValue, minute) rollup for shape-collapsed
+   * monitor evaluation of single-attribute-filtered metrics (Phase 3). Created
+   * ONLY when TELEMETRY_MONITOR_ATTRIBUTE_KEY_MV_ENABLED is set, because its MV
+   * fans each ingested metric row out across its attributes — see the model.
+   */
+  MetricItemAggMV1mByAttributeKeys = "MetricItemAggMV1mByAttributeKeys",
   MetricBaselineHourly = "MetricBaselineHourly",
 }
 

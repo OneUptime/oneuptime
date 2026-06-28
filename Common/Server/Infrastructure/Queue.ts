@@ -17,6 +17,11 @@ export enum QueueName {
   Worker = "Worker",
   Telemetry = "Telemetry",
   Runbook = "Runbook",
+  /*
+   * Telemetry-monitor scale-out (Phase 2): dedicated queue drained by the
+   * worker fleet so monitor-evaluation load never starves general worker jobs.
+   */
+  TelemetryMonitorEval = "TelemetryMonitorEval",
 }
 
 export type QueueJob = Job;
@@ -496,6 +501,31 @@ export default class Queue {
     };
   }
 
+  /**
+   * Coalesce a BullMQ `failedReason` to something the failed-jobs view can
+   * display. BullMQ stores the reason as the thrown error's `.message`
+   * verbatim, so a `new Error(null)` surfaces here as the literal string
+   * "null" (and an empty message as ""). A plain `|| "No reason provided"`
+   * misses both — "null" is a truthy string — so normalize empty / "null" /
+   * "undefined" / whitespace-only reasons to the placeholder too. The worker
+   * (QueueWorker.toReportableError) now prevents these at the source; this is
+   * the read-side backstop for jobs already failed before that fix.
+   */
+  private static normalizeFailedReason(reason: string | undefined): string {
+    if (typeof reason !== "string") {
+      return "No reason provided";
+    }
+    const normalized: string = reason.trim().toLowerCase();
+    if (
+      normalized.length === 0 ||
+      normalized === "null" ||
+      normalized === "undefined"
+    ) {
+      return "No reason provided";
+    }
+    return reason;
+  }
+
   @CaptureSpan()
   public static async getFailedJobs(
     queueName: QueueName,
@@ -534,7 +564,7 @@ export default class Queue {
         id: job.id || "unknown",
         name: job.name || "unknown",
         data: job.data as JSONObject,
-        failedReason: job.failedReason || "No reason provided",
+        failedReason: Queue.normalizeFailedReason(job.failedReason),
         processedOn: job.processedOn ? new Date(job.processedOn) : null,
         finishedOn: job.finishedOn ? new Date(job.finishedOn) : null,
         attemptsMade: job.attemptsMade || 0,
@@ -641,7 +671,7 @@ export default class Queue {
         opts: (job.opts as unknown as JSONObject) || {},
         returnValue: job.returnvalue ?? null,
         progress: (job.progress as number | Record<string, unknown>) ?? null,
-        failedReason: job.failedReason || "No reason provided",
+        failedReason: Queue.normalizeFailedReason(job.failedReason),
         stackTrace: job.stacktrace || [],
         logs: logs,
         attemptsMade: job.attemptsMade || 0,

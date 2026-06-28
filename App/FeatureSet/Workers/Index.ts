@@ -129,8 +129,8 @@ import "./Jobs/AIAgent/SendOwnerAddedNotification";
 import "./Jobs/AIAgent/UpdateConnectionStatus";
 import "./Jobs/AIAgent/TimeoutStuckTasks";
 
-// Telemetry Monitors.
-import "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
+// Telemetry Monitors. Named import also runs the module's RunCron side effects.
+import { evaluateTelemetryMonitorById } from "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 
 // Derived / recording-rule metrics.
 import "./Jobs/Metrics/ComputeRecordingRules";
@@ -207,8 +207,12 @@ import {
   EnableQueueDashboard,
   QueueDashboardSecret,
   RunDatabaseMigrationsOnBoot,
+  TelemetryMonitorSchedulerFanoutEnabled,
 } from "Common/Server/EnvironmentConfig";
-import { WORKER_CONCURRENCY } from "./Config";
+import {
+  WORKER_CONCURRENCY,
+  TELEMETRY_MONITOR_EVAL_CONCURRENCY,
+} from "./Config";
 import MetricsAPI from "./API/Metrics";
 
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
@@ -323,6 +327,41 @@ const WorkersFeatureSet: FeatureSet = {
           },
           { concurrency: WORKER_CONCURRENCY },
         );
+
+        /*
+         * Telemetry-monitor scale-out (Phase 2): the dedicated evaluation
+         * worker fleet. Each replica drains TelemetryMonitorEval at its own
+         * concurrency, so fleet throughput = replicas * concurrency. Only
+         * registered when the fan-out flag is on; otherwise the in-process
+         * tick (default) does the evaluation.
+         */
+        if (TelemetryMonitorSchedulerFanoutEnabled) {
+          QueueWorker.getWorker(
+            QueueName.TelemetryMonitorEval,
+            async (job: QueueJob) => {
+              const monitorId: string | undefined = (
+                job.data as { monitorId?: string } | undefined
+              )?.monitorId;
+
+              if (!monitorId) {
+                return;
+              }
+
+              await QueueWorker.runJobWithTimeout(
+                120000, // 2 minutes
+                async () => {
+                  await evaluateTelemetryMonitorById(monitorId);
+                },
+              );
+            },
+            { concurrency: TELEMETRY_MONITOR_EVAL_CONCURRENCY },
+          );
+
+          logger.info(
+            "TelemetryMonitorEval worker registered (scheduler fan-out enabled).",
+            { service: "workers" },
+          );
+        }
       }
     } catch (err) {
       logger.error("App Init Failed:", { service: "workers" });

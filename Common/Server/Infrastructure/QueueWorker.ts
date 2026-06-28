@@ -92,7 +92,23 @@ export default class QueueWorker {
           (err as { name?: string })?.name === "TimeoutException"
             ? "timeout"
             : "failure";
-        throw err;
+
+        /*
+         * Normalize before the error leaves the worker. BullMQ records a failed
+         * job's reason as `err.message` verbatim, so a thrown `null`/`undefined`,
+         * a `new Error(null)` (whose `.message` is the string "null"), or any
+         * Exception constructed with an empty message surfaces in the
+         * failed-jobs health view as a useless "null" / "" — hiding the real
+         * cause and defeating retry triage. Re-throw a descriptive error
+         * (carrying the original stack and queue/job context) so the reason is
+         * always diagnosable. Errors that already have a meaningful message —
+         * including TimeoutException — pass through unchanged, so the outcome
+         * classification above stays correct.
+         */
+        throw QueueWorker.toReportableError(
+          err,
+          `${queueName}/${job.name || "unknown"} (job ${job.id ?? "unknown"})`,
+        );
       } finally {
         const elapsedNs: bigint = process.hrtime.bigint() - startNs;
         const durationMs: number = Number(elapsedNs) / 1e6;
@@ -132,6 +148,78 @@ export default class QueueWorker {
     );
 
     return worker;
+  }
+
+  /**
+   * Coerce an arbitrary thrown value into an error with a non-empty, useful
+   * message so downstream consumers (BullMQ's `failedReason`, the failed-jobs
+   * health view) never display a bare "null" / "undefined" / "". Values that
+   * are already `Error`s with a meaningful message are returned untouched so
+   * their type and stack are preserved; everything else is wrapped in a new
+   * `Error` that reports the queue/job context plus whatever name/message/serialized
+   * detail can be salvaged, while keeping the original throw site's stack.
+   */
+  private static toReportableError(err: unknown, context: string): unknown {
+    const messageIsUseful: (value: unknown) => boolean = (
+      value: unknown,
+    ): boolean => {
+      const message: unknown = (value as { message?: unknown })?.message;
+      if (typeof message !== "string") {
+        return false;
+      }
+      const normalized: string = message.trim().toLowerCase();
+      return (
+        normalized.length > 0 &&
+        normalized !== "null" &&
+        normalized !== "undefined"
+      );
+    };
+
+    if (err instanceof Error && messageIsUseful(err)) {
+      return err;
+    }
+
+    // Salvage the most descriptive detail we can from a non-descriptive throw.
+    const detailParts: Array<string> = [];
+
+    const name: unknown = (err as { name?: unknown })?.name;
+    if (typeof name === "string" && name && name !== "Error") {
+      detailParts.push(name);
+    }
+
+    const rawMessage: unknown = (err as { message?: unknown })?.message;
+    if (typeof rawMessage === "string" && rawMessage.trim()) {
+      detailParts.push(rawMessage.trim());
+    }
+
+    if (detailParts.length === 0) {
+      let serialized: string;
+      try {
+        serialized =
+          typeof err === "object" && err !== null
+            ? JSON.stringify(err)
+            : String(err);
+      } catch {
+        serialized = Object.prototype.toString.call(err);
+      }
+      detailParts.push(
+        serialized && serialized !== "{}" ? serialized : String(err),
+      );
+    }
+
+    const reportable: Error = new Error(
+      `${context} failed with a non-descriptive error (original message was empty/null). Detail: ${detailParts.join(
+        ": ",
+      )}`,
+    );
+
+    // Preserve the original throw site so the stack trace still points there.
+    const originalStack: unknown = (err as { stack?: unknown })?.stack;
+    if (typeof originalStack === "string" && originalStack) {
+      reportable.stack = originalStack;
+    }
+
+    return reportable;
   }
 
   @CaptureSpan()

@@ -102,6 +102,11 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   tableDescription:
     "Monitor is anything that monitors your API, Websites, IP, Network or more. You can also create static monitor that does not monitor anything.",
 })
+/*
+ * Telemetry-monitor scheduler hot path: keyset-scan due monitors
+ * (telemetryMonitorNextMonitorAt <= now) ordered by _id for batched claiming.
+ */
+@Index(["telemetryMonitorNextMonitorAt", "_id"])
 export default class Monitor extends BaseModel {
   @ColumnAccessControl({
     create: [

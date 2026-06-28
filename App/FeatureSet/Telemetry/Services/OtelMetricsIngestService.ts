@@ -37,6 +37,8 @@ import MetricPipelineRuleService, {
 import OneUptimeDate from "Common/Types/Date";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import MetricService from "Common/Server/Services/MetricService";
+import { recordFreshShapes } from "Common/Server/Utils/Monitor/TelemetryMonitorFreshShapeSignal";
+import { TelemetryMonitorReactiveFastPathEnabled } from "Common/Server/EnvironmentConfig";
 import Text from "Common/Types/Text";
 import KubernetesResourceService, {
   ResourceLatestMetric,
@@ -285,6 +287,42 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       }
 
       await MetricService.insertJsonRows(batch);
+
+      /*
+       * Phase 4 — emit the reactive fresh-shape signal so the telemetry-monitor
+       * scheduler can skip idle shapes. Flag-gated and best-effort: a no-op
+       * unless TELEMETRY_MONITOR_REACTIVE_FASTPATH_ENABLED is set, and any
+       * failure is swallowed so it can never affect ingest.
+       */
+      if (TelemetryMonitorReactiveFastPathEnabled) {
+        const namesByProject: Map<string, Set<string>> = new Map();
+        for (const row of batch) {
+          const projectId: string | undefined = row["projectId"]
+            ? String(row["projectId"])
+            : undefined;
+          const metricName: string | undefined = row["name"]
+            ? String(row["name"])
+            : undefined;
+          if (!projectId || !metricName) {
+            continue;
+          }
+          let names: Set<string> | undefined = namesByProject.get(projectId);
+          if (!names) {
+            names = new Set<string>();
+            namesByProject.set(projectId, names);
+          }
+          names.add(metricName);
+        }
+
+        const nowEpochMs: number = OneUptimeDate.getCurrentDate().getTime();
+        for (const [projectId, names] of namesByProject.entries()) {
+          await recordFreshShapes({
+            projectId,
+            metricNames: Array.from(names),
+            atEpochMs: nowEpochMs,
+          });
+        }
+      }
     }
   }
 
