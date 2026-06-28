@@ -614,6 +614,23 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       },
     });
 
+    const attributeKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "attributeKeys",
+      codec: { codec: "ZSTD", level: 3 },
+      title: "Attribute Keys",
+      description: "Attribute keys extracted from attributes",
+      required: true,
+      defaultValue: [],
+      type: TableColumnType.ArrayText,
+      skipIndex: {
+        name: "idx_attribute_keys",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
+      accessControl: attributesColumn.accessControl,
+    });
+
     const entityKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "entityKeys",
       codec: { codec: "ZSTD", level: 3 },
@@ -788,6 +805,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
         environmentColumn,
         parsedFramesColumn,
         attributesColumn,
+        attributeKeysColumn,
         entityKeysColumn,
         ...scalarEntityKeyColumns,
         retentionDateColumn,
@@ -916,6 +934,14 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
 
   public set attributes(v: Record<string, any>) {
     this.setColumnValue("attributes", v);
+  }
+
+  public get attributeKeys(): Array<string> | undefined {
+    return this.getColumnValue("attributeKeys") as Array<string> | undefined;
+  }
+
+  public set attributeKeys(v: Array<string> | undefined) {
+    this.setColumnValue("attributeKeys", v);
   }
 
   public get entityKeys(): Array<string> | undefined {

@@ -139,6 +139,8 @@ spec:
               value: {{ $.Values.worker.enableProfiling | quote }}
             - name: TELEMETRY_CONCURRENCY
               value: {{ $.Values.worker.telemetryConcurrency | default 100 | squote }}
+            - name: TELEMETRY_MONITOR_EVALUATION_CONCURRENCY
+              value: {{ $.Values.worker.telemetryMonitorEvaluationConcurrency | default 5 | squote }}
             {{- include "oneuptime.env.registerProbeKey" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
           ports:
             - containerPort: {{ $.Values.worker.ports.http }}

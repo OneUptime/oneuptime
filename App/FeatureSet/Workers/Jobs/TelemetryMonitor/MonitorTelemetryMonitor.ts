@@ -109,6 +109,65 @@ import {
 } from "Common/Types/Monitor/DockerSwarmMetricCatalog";
 import { JSONObject } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { TELEMETRY_MONITOR_EVALUATION_CONCURRENCY } from "../../Config";
+
+type TelemetryMonitorResponse =
+  | LogMonitorResponse
+  | TraceMonitorResponse
+  | MetricMonitorResponse
+  | ExceptionMonitorResponse
+  | ProfileMonitorResponse;
+
+type TelemetryMonitorEvaluationTask = {
+  monitor: Monitor;
+  run: () => Promise<TelemetryMonitorResponse>;
+};
+
+const runTelemetryMonitorEvaluationTasks: (input: {
+  tasks: Array<TelemetryMonitorEvaluationTask>;
+  concurrency: number;
+}) => Promise<
+  Array<PromiseSettledResult<TelemetryMonitorResponse>>
+> = async (input: {
+  tasks: Array<TelemetryMonitorEvaluationTask>;
+  concurrency: number;
+}): Promise<Array<PromiseSettledResult<TelemetryMonitorResponse>>> => {
+  const tasks: Array<TelemetryMonitorEvaluationTask> = input.tasks;
+  if (tasks.length === 0) {
+    return [];
+  }
+
+  const concurrency: number = Math.max(
+    1,
+    Math.min(input.concurrency, tasks.length),
+  );
+  const results: Array<PromiseSettledResult<TelemetryMonitorResponse>> =
+    new Array<PromiseSettledResult<TelemetryMonitorResponse>>(tasks.length);
+  let nextIndex: number = 0;
+
+  await Promise.all(
+    Array.from({ length: concurrency }).map(async () => {
+      while (nextIndex < tasks.length) {
+        const currentIndex: number = nextIndex;
+        nextIndex += 1;
+
+        try {
+          results[currentIndex] = {
+            status: "fulfilled",
+            value: await tasks[currentIndex]!.run(),
+          };
+        } catch (reason) {
+          results[currentIndex] = {
+            status: "rejected",
+            reason,
+          };
+        }
+      }
+    }),
+  );
+
+  return results;
+};
 
 RunCron(
   "TelemetryMonitor:MonitorTelemetryMonitor",
@@ -200,22 +259,7 @@ RunCron(
 
     logger.debug(telemetryMonitors, { service: "workers" });
 
-    const monitorResponses: Array<
-      Promise<
-        | LogMonitorResponse
-        | TraceMonitorResponse
-        | MetricMonitorResponse
-        | ExceptionMonitorResponse
-        | ProfileMonitorResponse
-      >
-    > = [];
-
-    /*
-     * Tracks which monitor each promise in monitorResponses belongs to
-     * (same index). Monitors without steps are skipped above, so
-     * telemetryMonitors cannot be used to attribute failures by index.
-     */
-    const evaluatedMonitors: Array<Monitor> = [];
+    const monitorEvaluationTasks: Array<TelemetryMonitorEvaluationTask> = [];
 
     for (const monitor of telemetryMonitors) {
       try {
@@ -231,16 +275,18 @@ RunCron(
           continue;
         }
 
-        monitorResponses.push(
-          monitorTelemetryMonitor({
-            monitorStep:
-              monitor.monitorSteps.data!.monitorStepsInstanceArray[0]!,
-            monitorType: monitor.monitorType!,
-            monitorId: monitor.id!,
-            projectId: monitor.projectId!,
-          }),
-        );
-        evaluatedMonitors.push(monitor);
+        monitorEvaluationTasks.push({
+          monitor,
+          run: () => {
+            return monitorTelemetryMonitor({
+              monitorStep:
+                monitor.monitorSteps!.data!.monitorStepsInstanceArray[0]!,
+              monitorType: monitor.monitorType!,
+              monitorId: monitor.id!,
+              projectId: monitor.projectId!,
+            });
+          },
+        });
       } catch (error) {
         const attrs: LogAttributes = {
           projectId: monitor.projectId?.toString(),
@@ -254,24 +300,21 @@ RunCron(
     }
 
     /*
-     * Settle every evaluation instead of failing fast. A single rejected
-     * evaluation (e.g. a monitor step missing its type-specific config)
-     * must not abort criteria evaluation for every other monitor in this
-     * tick — telemetryMonitorLastMonitorAt has already been stamped above,
-     * so a skipped evaluation would not be retried until the next tick.
+     * Evaluate monitors with a small local cap. Each telemetry monitor can
+     * issue ClickHouse reads over raw telemetry; launching all due monitors at
+     * once piles up those reads and can starve API traffic. Still settle every
+     * evaluation so one bad monitor does not abort the rest of the tick.
      */
     const settledResponses: Array<
-      PromiseSettledResult<
-        | LogMonitorResponse
-        | TraceMonitorResponse
-        | MetricMonitorResponse
-        | ExceptionMonitorResponse
-        | ProfileMonitorResponse
-      >
-    > = await Promise.allSettled(monitorResponses);
+      PromiseSettledResult<TelemetryMonitorResponse>
+    > = await runTelemetryMonitorEvaluationTasks({
+      tasks: monitorEvaluationTasks,
+      concurrency: TELEMETRY_MONITOR_EVALUATION_CONCURRENCY,
+    });
 
     for (const [index, settledResponse] of settledResponses.entries()) {
-      const evaluatedMonitor: Monitor | undefined = evaluatedMonitors[index];
+      const evaluatedMonitor: Monitor | undefined =
+        monitorEvaluationTasks[index]?.monitor;
 
       if (settledResponse.status === "rejected") {
         const attrs: LogAttributes = {
@@ -309,13 +352,7 @@ type MonitorTelemetryMonitorFunction = (data: {
   monitorType: MonitorType;
   monitorId: ObjectID;
   projectId: ObjectID;
-}) => Promise<
-  | LogMonitorResponse
-  | TraceMonitorResponse
-  | MetricMonitorResponse
-  | ExceptionMonitorResponse
-  | ProfileMonitorResponse
->;
+}) => Promise<TelemetryMonitorResponse>;
 
 /**
  * Fetch the native unit (as reported by OpenTelemetry and stored in

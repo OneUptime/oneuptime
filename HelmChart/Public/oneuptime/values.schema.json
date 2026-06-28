@@ -2282,6 +2282,10 @@
                 "telemetryConcurrency": {
                     "type": "integer"
                 },
+                "telemetryMonitorEvaluationConcurrency": {
+                    "type": "integer",
+                    "minimum": 1
+                },
                 "disableTelemetryCollection": {
                     "type": "boolean"
                 },
@@ -2403,6 +2407,10 @@
                 },
                 "telemetryConcurrency": {
                     "type": "integer"
+                },
+                "telemetryMonitorEvaluationConcurrency": {
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "disableTelemetryCollection": {
                     "type": "boolean"

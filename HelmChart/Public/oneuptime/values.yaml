@@ -1120,6 +1120,8 @@ app:
   workerConcurrency: 100
   # Max concurrent telemetry ingestion jobs processed by each pod
   telemetryConcurrency: 100
+  # Max concurrent telemetry monitor evaluations (ClickHouse reads) per pod
+  telemetryMonitorEvaluationConcurrency: 5
   disableTelemetryCollection: false
   enableProfiling: false
   disableAutoscaler: false
@@ -1189,6 +1191,8 @@ worker:
   # Max concurrent telemetry ingestion jobs processed by each worker pod.
   # This is the telemetry hot path; tune it together with pod CPU/memory.
   telemetryConcurrency: 100
+  # Max concurrent telemetry monitor evaluations (ClickHouse reads) per worker pod.
+  telemetryMonitorEvaluationConcurrency: 5
   disableTelemetryCollection: false
   enableProfiling: false
   disableAutoscaler: false

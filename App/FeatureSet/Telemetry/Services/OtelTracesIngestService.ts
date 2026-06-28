@@ -989,7 +989,6 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       ingestionDate,
       retentionDays,
     );
-
     return {
       _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: ingestionTimestamp,
@@ -1048,6 +1047,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       ingestionDate,
       retentionDays,
     );
+    const attributes: JSONObject = data.attributes || {};
 
     return {
       _id: ObjectID.generateTimeOrdered().toString(),
@@ -1074,7 +1074,8 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       release: data.release || "",
       environment: data.environment || "",
       parsedFrames: data.parsedFrames || "[]",
-      attributes: data.attributes || {},
+      attributes: attributes,
+      attributeKeys: TelemetryUtil.getAttributeKeys(attributes),
       retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     };
   }
