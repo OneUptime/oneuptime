@@ -420,6 +420,24 @@ describe("AnalyticsDatabaseService", () => {
           tableEngine: AnalyticsTableEngine.MergeTree,
         });
       }
+
+      // checkRequiredFields reads columns via property accessors, so the model
+      // must expose getters/setters that delegate to get/setColumnValue (real
+      // analytics models do the same for every column).
+      public get requiredText(): string | undefined {
+        return this.getColumnValue("requiredText") as string | undefined;
+      }
+      public set requiredText(v: string | undefined) {
+        this.setColumnValue("requiredText", v);
+      }
+      public get requiredBoolWithDefault(): boolean | undefined {
+        return this.getColumnValue("requiredBoolWithDefault") as
+          | boolean
+          | undefined;
+      }
+      public set requiredBoolWithDefault(v: boolean | undefined) {
+        this.setColumnValue("requiredBoolWithDefault", v);
+      }
     }
 
     let requiredFieldsService: AnalyticsDatabaseService<RequiredFieldsModel>;
