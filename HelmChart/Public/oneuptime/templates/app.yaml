@@ -129,8 +129,6 @@ spec:
               value: {{ $.Values.app.enableProfiling | quote }}
             - name: TELEMETRY_CONCURRENCY
               value: {{ $.Values.app.telemetryConcurrency | default 100 | squote }}
-            - name: TELEMETRY_MONITOR_EVALUATION_CONCURRENCY
-              value: {{ $.Values.app.telemetryMonitorEvaluationConcurrency | default 5 | squote }}
             # When the dedicated worker deployment is enabled, the app stops
             # consuming BullMQ queues so heavy background/telemetry processing
             # can't stall API requests on the shared event loop. Flips

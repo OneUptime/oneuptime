@@ -1,8 +1,6 @@
 import OneUptimeDate from "Common/Types/Date";
-import RunCron from "../../Utils/Cron";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import MonitorService from "Common/Server/Services/MonitorService";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
@@ -109,7 +107,9 @@ import {
 } from "Common/Types/Monitor/DockerSwarmMetricCatalog";
 import { JSONObject } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { TELEMETRY_MONITOR_EVALUATION_CONCURRENCY } from "../../Config";
+import TelemetryQueueService, {
+  TelemetryMonitorEvaluationJobData,
+} from "../../../Telemetry/Services/Queue/TelemetryQueueService";
 
 type TelemetryMonitorResponse =
   | LogMonitorResponse
@@ -118,61 +118,8 @@ type TelemetryMonitorResponse =
   | ExceptionMonitorResponse
   | ProfileMonitorResponse;
 
-type TelemetryMonitorEvaluationTask = {
-  monitor: Monitor;
-  run: () => Promise<TelemetryMonitorResponse>;
-};
-
-const runTelemetryMonitorEvaluationTasks: (input: {
-  tasks: Array<TelemetryMonitorEvaluationTask>;
-  concurrency: number;
-}) => Promise<
-  Array<PromiseSettledResult<TelemetryMonitorResponse>>
-> = async (input: {
-  tasks: Array<TelemetryMonitorEvaluationTask>;
-  concurrency: number;
-}): Promise<Array<PromiseSettledResult<TelemetryMonitorResponse>>> => {
-  const tasks: Array<TelemetryMonitorEvaluationTask> = input.tasks;
-  if (tasks.length === 0) {
-    return [];
-  }
-
-  const concurrency: number = Math.max(
-    1,
-    Math.min(input.concurrency, tasks.length),
-  );
-  const results: Array<PromiseSettledResult<TelemetryMonitorResponse>> =
-    new Array<PromiseSettledResult<TelemetryMonitorResponse>>(tasks.length);
-  let nextIndex: number = 0;
-
-  await Promise.all(
-    Array.from({ length: concurrency }).map(async () => {
-      while (nextIndex < tasks.length) {
-        const currentIndex: number = nextIndex;
-        nextIndex += 1;
-
-        try {
-          results[currentIndex] = {
-            status: "fulfilled",
-            value: await tasks[currentIndex]!.run(),
-          };
-        } catch (reason) {
-          results[currentIndex] = {
-            status: "rejected",
-            reason,
-          };
-        }
-      }
-    }),
-  );
-
-  return results;
-};
-
-RunCron(
-  "TelemetryMonitor:MonitorTelemetryMonitor",
-  { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
+  async (): Promise<void> => {
     logger.debug("Checking TelemetryMonitor:MonitorTelemetryMonitor", {
       service: "workers",
     });
@@ -259,7 +206,10 @@ RunCron(
 
     logger.debug(telemetryMonitors, { service: "workers" });
 
-    const monitorEvaluationTasks: Array<TelemetryMonitorEvaluationTask> = [];
+    const enqueueTasks: Array<{
+      monitor: Monitor;
+      run: () => Promise<void>;
+    }> = [];
 
     for (const monitor of telemetryMonitors) {
       try {
@@ -275,13 +225,10 @@ RunCron(
           continue;
         }
 
-        monitorEvaluationTasks.push({
+        enqueueTasks.push({
           monitor,
           run: () => {
-            return monitorTelemetryMonitor({
-              monitorStep:
-                monitor.monitorSteps!.data!.monitorStepsInstanceArray[0]!,
-              monitorType: monitor.monitorType!,
+            return TelemetryQueueService.addTelemetryMonitorEvaluationJob({
               monitorId: monitor.id!,
               projectId: monitor.projectId!,
             });
@@ -299,53 +246,84 @@ RunCron(
       }
     }
 
-    /*
-     * Evaluate monitors with a small local cap. Each telemetry monitor can
-     * issue ClickHouse reads over raw telemetry; launching all due monitors at
-     * once piles up those reads and can starve API traffic. Still settle every
-     * evaluation so one bad monitor does not abort the rest of the tick.
-     */
-    const settledResponses: Array<
-      PromiseSettledResult<TelemetryMonitorResponse>
-    > = await runTelemetryMonitorEvaluationTasks({
-      tasks: monitorEvaluationTasks,
-      concurrency: TELEMETRY_MONITOR_EVALUATION_CONCURRENCY,
-    });
+    const settledEnqueues: Array<PromiseSettledResult<void>> =
+      await Promise.allSettled(
+        enqueueTasks.map((task: { monitor: Monitor; run: () => Promise<void> }) => {
+          return task.run();
+        }),
+      );
 
-    for (const [index, settledResponse] of settledResponses.entries()) {
-      const evaluatedMonitor: Monitor | undefined =
-        monitorEvaluationTasks[index]?.monitor;
-
-      if (settledResponse.status === "rejected") {
+    for (const [index, settledEnqueue] of settledEnqueues.entries()) {
+      if (settledEnqueue.status === "rejected") {
+        const monitor: Monitor | undefined = enqueueTasks[index]?.monitor;
         const attrs: LogAttributes = {
-          projectId: evaluatedMonitor?.projectId?.toString(),
+          projectId: monitor?.projectId?.toString(),
         };
         logger.error(
-          `Error while evaluating telemetry monitor: ${evaluatedMonitor?.id?.toString()}`,
+          `Error while enqueueing telemetry monitor evaluation: ${monitor?.id?.toString()}`,
           attrs,
         );
-        logger.error(settledResponse.reason, attrs);
-        continue;
+        logger.error(settledEnqueue.reason, attrs);
       }
-
-      /*
-       * Fire-and-forget per monitor (we intentionally do not await each
-       * evaluation serially). monitorResource() can reject — notably it now
-       * throws when the per-monitor lock is contended so the work is retried
-       * rather than run unlocked — so attach a catch to keep one monitor's
-       * failure from surfacing as an unhandled promise rejection.
-       */
-      MonitorResourceUtil.monitorResource(settledResponse.value).catch(
-        (err: Error) => {
-          logger.error(
-            `Error while processing telemetry monitor resource: ${evaluatedMonitor?.id?.toString()}`,
-          );
-          logger.error(err);
-        },
-      );
     }
-  },
-);
+  };
+
+export const processTelemetryMonitorEvaluationFromQueue: ((
+  data: TelemetryMonitorEvaluationJobData,
+) => Promise<void>) = async (
+  data: TelemetryMonitorEvaluationJobData,
+): Promise<void> => {
+  const monitorId: ObjectID = new ObjectID(data.monitorId);
+  const monitor: Monitor | null = await MonitorService.findOneById({
+    id: monitorId,
+    select: {
+      _id: true,
+      monitorSteps: true,
+      monitorType: true,
+      projectId: true,
+      disableActiveMonitoring: true,
+      disableActiveMonitoringBecauseOfManualIncident: true,
+      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+    },
+    props: {
+      isRoot: true,
+    },
+  });
+
+  if (!monitor || !monitor.id) {
+    logger.debug(`Telemetry monitor ${data.monitorId} not found. Skipping.`);
+    return;
+  }
+
+  if (
+    monitor.disableActiveMonitoring ||
+    monitor.disableActiveMonitoringBecauseOfManualIncident ||
+    monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
+  ) {
+    logger.debug(
+      `Telemetry monitor ${data.monitorId} is disabled. Skipping evaluation.`,
+    );
+    return;
+  }
+
+  if (
+    !monitor.monitorSteps ||
+    !monitor.monitorSteps.data?.monitorStepsInstanceArray?.length ||
+    monitor.monitorSteps.data.monitorStepsInstanceArray.length === 0
+  ) {
+    logger.debug(`Telemetry monitor ${data.monitorId} has no steps. Skipping.`);
+    return;
+  }
+
+  const response: TelemetryMonitorResponse = await monitorTelemetryMonitor({
+    monitorStep: monitor.monitorSteps.data.monitorStepsInstanceArray[0]!,
+    monitorType: monitor.monitorType!,
+    monitorId: monitor.id,
+    projectId: monitor.projectId!,
+  });
+
+  await MonitorResourceUtil.monitorResource(response);
+};
 
 type MonitorTelemetryMonitorFunction = (data: {
   monitorStep: MonitorStep;

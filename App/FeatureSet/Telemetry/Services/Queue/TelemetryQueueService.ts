@@ -24,6 +24,7 @@ export enum TelemetryType {
   ProbeIngest = "probe-ingest",
   ServerMonitorIngest = "server-monitor-ingest",
   IncomingRequestIngest = "incoming-request-ingest",
+  TelemetryMonitorEvaluation = "telemetry-monitor-evaluation",
 }
 
 export type ProbeIngestJobType =
@@ -73,6 +74,12 @@ export interface IncomingRequestIngestJobData {
   receivedViaProbeId?: string | undefined;
 }
 
+export interface TelemetryMonitorEvaluationJobData {
+  monitorId: string;
+  projectId?: string | undefined;
+  queuedAt: Date;
+}
+
 export interface TelemetryIngestJobData {
   type: TelemetryType;
   projectId?: string;
@@ -109,6 +116,8 @@ export interface TelemetryIngestJobData {
   serverMonitorIngest?: ServerMonitorIngestJobData;
   // IncomingRequestIngest-specific
   incomingRequestIngest?: IncomingRequestIngestJobData;
+  // TelemetryMonitorEvaluation-specific
+  telemetryMonitorEvaluation?: TelemetryMonitorEvaluationJobData;
 }
 
 // Legacy interfaces for backward compatibility
@@ -547,6 +556,54 @@ export default class TelemetryQueueService {
       logger.debug(`Added incoming request ingestion job: ${jobId}`);
     } catch (error) {
       logger.error(`Error adding incoming request ingestion job:`);
+      logger.error(error);
+      throw error;
+    }
+  }
+
+  public static async addTelemetryMonitorEvaluationJob(data: {
+    monitorId: ObjectID;
+    projectId?: ObjectID | undefined;
+  }): Promise<void> {
+    try {
+      const monitorId: string = data.monitorId.toString();
+      const telemetryMonitorEvaluation: TelemetryMonitorEvaluationJobData = {
+        monitorId,
+        projectId: data.projectId?.toString(),
+        queuedAt: OneUptimeDate.getCurrentDate(),
+      };
+
+      const jobData: TelemetryIngestJobData = {
+        type: TelemetryType.TelemetryMonitorEvaluation,
+        projectId: data.projectId?.toString(),
+        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+        telemetryMonitorEvaluation,
+      };
+
+      const jobId: string = `telemetry-monitor-evaluation-${monitorId}-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
+
+      await Queue.addJob(
+        QueueName.Telemetry,
+        jobId,
+        "ProcessTelemetry",
+        jobData as unknown as JSONObject,
+        {
+          skipExistenceCheck: true,
+          /*
+           * Serialize evaluations per monitor at enqueue time. If one evaluation
+           * is active and another tick arrives, BullMQ keeps the latest waiting
+           * job instead of letting same-monitor ClickHouse reads pile up.
+           */
+          deduplication: {
+            id: `telemetry-monitor-evaluation-${monitorId}`,
+            keepLastIfActive: true,
+          },
+        },
+      );
+
+      logger.debug(`Added telemetry monitor evaluation job: ${jobId}`);
+    } catch (error) {
+      logger.error(`Error adding telemetry monitor evaluation job:`);
       logger.error(error);
       throw error;
     }

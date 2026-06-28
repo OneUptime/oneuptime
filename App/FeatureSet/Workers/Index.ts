@@ -130,7 +130,7 @@ import "./Jobs/AIAgent/UpdateConnectionStatus";
 import "./Jobs/AIAgent/TimeoutStuckTasks";
 
 // Telemetry Monitors.
-import "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
+import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
 
 // Derived / recording-rule metrics.
 import "./Jobs/Metrics/ComputeRecordingRules";
