@@ -4,6 +4,9 @@ import LogDatabaseService from "./LogService";
 import MetricDatabaseService from "./MetricService";
 import SpanDatabaseService from "./SpanService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
+import MutableMetricDatabaseService, {
+  MutableMetricService as MutableMetricServiceClass,
+} from "./MutableMetricService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -25,6 +28,7 @@ type TelemetrySource = {
    */
   attributeKeysColumn?: string | undefined;
   timeColumn: string;
+  isMutableMetricSource?: boolean | undefined;
 };
 
 type TelemetryAttributesCacheEntry = {
@@ -51,6 +55,7 @@ export class TelemetryAttributeService {
 
   private getTelemetrySource(
     telemetryType: TelemetryType,
+    metricName?: string | undefined,
   ): TelemetrySource | null {
     switch (telemetryType) {
       case TelemetryType.Log:
@@ -62,6 +67,17 @@ export class TelemetryAttributeService {
           timeColumn: "time",
         };
       case TelemetryType.Metric:
+        if (MutableMetricServiceClass.isMutableMetricName(metricName)) {
+          return {
+            service: MutableMetricDatabaseService,
+            tableName: MutableMetricDatabaseService.model.tableName,
+            attributesColumn: "attributes",
+            attributeKeysColumn: "attributeKeys",
+            timeColumn: "time",
+            isMutableMetricSource: true,
+          };
+        }
+
         return {
           service: MetricDatabaseService,
           tableName: MetricDatabaseService.model.tableName,
@@ -98,6 +114,7 @@ export class TelemetryAttributeService {
   }): Promise<string[]> {
     const source: TelemetrySource | null = this.getTelemetrySource(
       data.telemetryType,
+      data.metricName,
     );
 
     if (!source) {
@@ -108,6 +125,7 @@ export class TelemetryAttributeService {
       data.projectId,
       data.telemetryType,
       data.metricName,
+      source.tableName,
     );
 
     const cachedEntry: TelemetryAttributesCacheEntry | null =
@@ -149,8 +167,11 @@ export class TelemetryAttributeService {
     projectId: ObjectID,
     telemetryType: TelemetryType,
     metricName?: string | undefined,
+    sourceTableName?: string | undefined,
   ): string {
-    const base: string = `${projectId.toString()}:${telemetryType}`;
+    const base: string = `${projectId.toString()}:${telemetryType}:${
+      sourceTableName || "default"
+    }`;
     if (metricName) {
       return `${base}:${metricName}`;
     }
@@ -251,9 +272,22 @@ export class TelemetryAttributeService {
     attributeKeysColumn?: string | undefined;
     timeColumn: string;
     metricName?: string | undefined;
+    isMutableMetricSource?: boolean | undefined;
   }): Statement {
     const lookbackStartDate: Date =
       TelemetryAttributeService.getLookbackStartDate();
+
+    if (data.isMutableMetricSource) {
+      return TelemetryAttributeService.buildMutableMetricAttributesStatement({
+        projectId: data.projectId,
+        tableName: data.tableName,
+        attributesColumn: data.attributesColumn,
+        attributeKeysColumn: data.attributeKeysColumn,
+        timeColumn: data.timeColumn,
+        metricName: data.metricName,
+        lookbackStartDate,
+      });
+    }
 
     /*
      * Two notable choices here:
@@ -332,6 +366,7 @@ export class TelemetryAttributeService {
         attributeKeysColumn: data.source.attributeKeysColumn,
         timeColumn: data.source.timeColumn,
         metricName: data.metricName,
+        isMutableMetricSource: data.source.isMutableMetricSource,
       });
 
     const dbResult: Results = await data.source.service.executeQuery(statement);
@@ -377,6 +412,7 @@ export class TelemetryAttributeService {
   }): Promise<string[]> {
     const source: TelemetrySource | null = this.getTelemetrySource(
       data.telemetryType,
+      data.metricName,
     );
 
     if (!source) {
@@ -401,6 +437,19 @@ export class TelemetryAttributeService {
   }): Statement {
     const lookbackStartDate: Date =
       TelemetryAttributeService.getLookbackStartDate();
+
+    if (data.source.isMutableMetricSource) {
+      return TelemetryAttributeService.buildMutableMetricAttributeValuesStatement(
+        {
+          projectId: data.projectId,
+          source: data.source,
+          metricName: data.metricName,
+          attributeKey: data.attributeKey,
+          searchText: data.searchText,
+          lookbackStartDate,
+        },
+      );
+    }
 
     const statement: Statement = SQL`
       SELECT DISTINCT ${data.source.attributesColumn}[${{
@@ -498,6 +547,139 @@ export class TelemetryAttributeService {
       .filter((val: string | null): val is string => {
         return Boolean(val);
       });
+  }
+
+  private static buildMutableMetricAttributesStatement(data: {
+    projectId: ObjectID;
+    tableName: string;
+    attributesColumn: string;
+    attributeKeysColumn?: string | undefined;
+    timeColumn: string;
+    metricName?: string | undefined;
+    lookbackStartDate: Date;
+  }): Statement {
+    const attributeKeysColumn: string =
+      data.attributeKeysColumn || "attributeKeys";
+
+    const statement: Statement = SQL`
+      SELECT arrayDistinct(arrayFlatten(groupUniqArrayArray(${attributeKeysColumn}))) AS keys
+      FROM (
+        SELECT
+          argMax(${data.timeColumn}, version) AS ${data.timeColumn},
+          argMax(${data.attributesColumn}, version) AS ${data.attributesColumn},
+          argMax(${attributeKeysColumn}, version) AS ${attributeKeysColumn},
+          argMax(retentionDate, version) AS retentionDate,
+          argMax(isDeleted, version) AS isDeleted
+        FROM ${data.tableName}
+        WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.projectId,
+        }}`;
+
+    if (data.metricName) {
+      statement.append(
+        SQL`
+        AND name = ${{
+          type: TableColumnType.Text,
+          value: data.metricName,
+        }}`,
+      );
+    }
+
+    statement.append(SQL`
+        GROUP BY projectId, name, primaryEntityId, primaryEntityType, metricPointId
+      )
+      WHERE isDeleted = false
+        AND retentionDate >= now()
+        AND ${data.timeColumn} >= ${{
+          type: TableColumnType.Date,
+          value: data.lookbackStartDate,
+        }}
+        AND NOT empty(${attributeKeysColumn})`);
+
+    statement.append(
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+    );
+
+    return statement;
+  }
+
+  private static buildMutableMetricAttributeValuesStatement(data: {
+    projectId: ObjectID;
+    source: TelemetrySource;
+    metricName?: string | undefined;
+    attributeKey: string;
+    searchText?: string | undefined;
+    lookbackStartDate: Date;
+  }): Statement {
+    const statement: Statement = SQL`
+      SELECT DISTINCT ${data.source.attributesColumn}[${{
+        type: TableColumnType.Text,
+        value: data.attributeKey,
+      }}] AS attributeValue
+      FROM (
+        SELECT
+          argMax(${data.source.timeColumn}, version) AS ${data.source.timeColumn},
+          argMax(${data.source.attributesColumn}, version) AS ${data.source.attributesColumn},
+          argMax(retentionDate, version) AS retentionDate,
+          argMax(isDeleted, version) AS isDeleted
+        FROM ${data.source.tableName}
+        WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.projectId,
+        }}`;
+
+    if (data.metricName) {
+      statement.append(
+        SQL`
+        AND name = ${{
+          type: TableColumnType.Text,
+          value: data.metricName,
+        }}`,
+      );
+    }
+
+    statement.append(SQL`
+        GROUP BY projectId, name, primaryEntityId, primaryEntityType, metricPointId
+      )
+      WHERE isDeleted = false
+        AND retentionDate >= now()
+        AND ${data.source.timeColumn} >= ${{
+          type: TableColumnType.Date,
+          value: data.lookbackStartDate,
+        }}
+        AND mapContains(${data.source.attributesColumn}, ${{
+          type: TableColumnType.Text,
+          value: data.attributeKey,
+        }})`);
+
+    if (data.searchText && data.searchText.trim().length > 0) {
+      statement.append(
+        SQL`
+        AND ${data.source.attributesColumn}[${{
+          type: TableColumnType.Text,
+          value: data.attributeKey,
+        }}] ILIKE ${{
+          type: TableColumnType.Text,
+          value: `%${data.searchText.trim()}%`,
+        }}`,
+      );
+    }
+
+    statement.append(
+      SQL`
+      ORDER BY attributeValue ASC
+      LIMIT ${{
+        type: TableColumnType.Number,
+        value: TelemetryAttributeService.ATTRIBUTE_VALUES_LIMIT,
+      }}`,
+    );
+
+    statement.append(
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+    );
+
+    return statement;
   }
 }
 
