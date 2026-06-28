@@ -1,7 +1,8 @@
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import IncidentPublicNoteService from "./IncidentPublicNoteService";
 import IncidentService from "./IncidentService";
@@ -641,6 +642,113 @@ ${createdItem.rootCause}`,
     }
 
     return createdItem;
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<IncidentStateTimeline>,
+  ): Promise<OnUpdate<IncidentStateTimeline>> {
+    const incidentIds: Array<ObjectID> =
+      await this.getIncidentIdsForTimelineQuery(updateBy);
+
+    return {
+      updateBy,
+      carryForward: incidentIds,
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<IncidentStateTimeline>,
+    updatedItemIds: ObjectID[],
+  ): Promise<OnUpdate<IncidentStateTimeline>> {
+    const incidentIds: Array<ObjectID> = [
+      ...(Array.isArray(onUpdate.carryForward)
+        ? (onUpdate.carryForward as Array<ObjectID>)
+        : []),
+    ];
+
+    if (updatedItemIds.length > 0) {
+      const updatedTimelines: Array<IncidentStateTimeline> = await this.findBy({
+        query: {
+          _id: QueryHelper.any(updatedItemIds),
+        },
+        select: {
+          incidentId: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+
+      incidentIds.push(...this.getIncidentIdsFromTimelines(updatedTimelines));
+    }
+
+    this.refreshIncidentMetricsForIncidentIds(incidentIds);
+
+    return onUpdate;
+  }
+
+  private async getIncidentIdsForTimelineQuery(
+    updateBy: UpdateBy<IncidentStateTimeline>,
+  ): Promise<Array<ObjectID>> {
+    const timelines: Array<IncidentStateTimeline> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        incidentId: true,
+      },
+      skip: updateBy.skip,
+      limit: updateBy.limit,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    return this.getIncidentIdsFromTimelines(timelines);
+  }
+
+  private getIncidentIdsFromTimelines(
+    timelines: Array<IncidentStateTimeline>,
+  ): Array<ObjectID> {
+    const incidentIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const timeline of timelines) {
+      if (timeline.incidentId) {
+        incidentIds.set(timeline.incidentId.toString(), timeline.incidentId);
+      }
+    }
+
+    return Array.from(incidentIds.values());
+  }
+
+  private refreshIncidentMetricsForIncidentIds(
+    incidentIds: Array<ObjectID>,
+  ): void {
+    const uniqueIncidentIds: Map<string, ObjectID> = new Map<
+      string,
+      ObjectID
+    >();
+
+    for (const incidentId of incidentIds) {
+      uniqueIncidentIds.set(incidentId.toString(), incidentId);
+    }
+
+    for (const incidentId of uniqueIncidentIds.values()) {
+      IncidentService.refreshIncidentMetrics({
+        incidentId: incidentId,
+      }).catch((error: Error) => {
+        logger.error(`Error while refreshing incident metrics:`, {
+          incidentId: incidentId.toString(),
+        } as LogAttributes);
+        logger.error(error, {
+          incidentId: incidentId.toString(),
+        } as LogAttributes);
+      });
+    }
   }
 
   private async isLastIncidentState(data: {

@@ -1,7 +1,8 @@
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import AlertService from "./AlertService";
 import AlertStateService from "./AlertStateService";
@@ -503,6 +504,111 @@ ${createdItem.rootCause}`,
     }
 
     return createdItem;
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<AlertStateTimeline>,
+  ): Promise<OnUpdate<AlertStateTimeline>> {
+    const alertIds: Array<ObjectID> =
+      await this.getAlertIdsForTimelineQuery(updateBy);
+
+    return {
+      updateBy,
+      carryForward: alertIds,
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<AlertStateTimeline>,
+    updatedItemIds: ObjectID[],
+  ): Promise<OnUpdate<AlertStateTimeline>> {
+    const alertIds: Array<ObjectID> = [
+      ...(Array.isArray(onUpdate.carryForward)
+        ? (onUpdate.carryForward as Array<ObjectID>)
+        : []),
+    ];
+
+    if (updatedItemIds.length > 0) {
+      const updatedTimelines: Array<AlertStateTimeline> = await this.findBy({
+        query: {
+          _id: QueryHelper.any(updatedItemIds),
+        },
+        select: {
+          alertId: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+
+      alertIds.push(...this.getAlertIdsFromTimelines(updatedTimelines));
+    }
+
+    this.refreshAlertMetricsForAlertIds(alertIds);
+
+    return onUpdate;
+  }
+
+  private async getAlertIdsForTimelineQuery(
+    updateBy: UpdateBy<AlertStateTimeline>,
+  ): Promise<Array<ObjectID>> {
+    const timelines: Array<AlertStateTimeline> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        alertId: true,
+      },
+      skip: updateBy.skip,
+      limit: updateBy.limit,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    return this.getAlertIdsFromTimelines(timelines);
+  }
+
+  private getAlertIdsFromTimelines(
+    timelines: Array<AlertStateTimeline>,
+  ): Array<ObjectID> {
+    const alertIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const timeline of timelines) {
+      if (timeline.alertId) {
+        alertIds.set(timeline.alertId.toString(), timeline.alertId);
+      }
+    }
+
+    return Array.from(alertIds.values());
+  }
+
+  private refreshAlertMetricsForAlertIds(alertIds: Array<ObjectID>): void {
+    const uniqueAlertIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const alertId of alertIds) {
+      uniqueAlertIds.set(alertId.toString(), alertId);
+    }
+
+    for (const alertId of uniqueAlertIds.values()) {
+      AlertService.refreshAlertMetrics({
+        alertId: alertId,
+      }).catch((error: Error) => {
+        logger.error(
+          "Error while refreshing alert metrics after alert state timeline update",
+          {
+            alertId: alertId.toString(),
+          } as LogAttributes,
+        );
+        logger.error(error, {
+          alertId: alertId.toString(),
+        } as LogAttributes);
+      });
+    }
   }
 
   private async isLastAlertState(data: {
