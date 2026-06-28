@@ -395,6 +395,214 @@ describe("StatementGenerator", () => {
         expect(statement.query).toBe("");
         expect(statement.query_params).toStrictEqual({});
       });
+
+      describe("map key-array pruning", () => {
+        class MapModelWithAttributeKeys extends AnalyticsBaseModel {
+          public constructor() {
+            super({
+              tableName: "<map-table-with-attribute-keys>",
+              singularName: "<singular>",
+              pluralName: "<plural>",
+              tableColumns: [
+                new AnalyticsTableColumn({
+                  key: "_id",
+                  title: "<title>",
+                  description: "<description>",
+                  required: true,
+                  type: TableColumnType.ObjectID,
+                }),
+                new AnalyticsTableColumn({
+                  key: "attributes",
+                  title: "<title>",
+                  description: "<description>",
+                  required: true,
+                  defaultValue: {},
+                  type: TableColumnType.MapStringString,
+                  mapKeysColumn: "attributeKeys",
+                }),
+                new AnalyticsTableColumn({
+                  key: "attributeKeys",
+                  title: "<title>",
+                  description: "<description>",
+                  required: true,
+                  defaultValue: [],
+                  type: TableColumnType.ArrayText,
+                }),
+              ],
+              crudApiPath: new Route("route"),
+              primaryKeys: ["_id"],
+              sortKeys: ["_id"],
+              partitionKey: "_id",
+              tableEngine: AnalyticsTableEngine.MergeTree,
+            });
+          }
+        }
+
+        class MapModelWithCustomMapKeys extends AnalyticsBaseModel {
+          public constructor() {
+            super({
+              tableName: "<map-table-with-custom-key-column>",
+              singularName: "<singular>",
+              pluralName: "<plural>",
+              tableColumns: [
+                new AnalyticsTableColumn({
+                  key: "_id",
+                  title: "<title>",
+                  description: "<description>",
+                  required: true,
+                  type: TableColumnType.ObjectID,
+                }),
+                new AnalyticsTableColumn({
+                  key: "tags",
+                  title: "<title>",
+                  description: "<description>",
+                  required: true,
+                  defaultValue: {},
+                  type: TableColumnType.MapStringString,
+                  mapKeysColumn: "tagKeys",
+                }),
+                new AnalyticsTableColumn({
+                  key: "tagKeys",
+                  title: "<title>",
+                  description: "<description>",
+                  required: true,
+                  defaultValue: [],
+                  type: TableColumnType.ArrayText,
+                }),
+              ],
+              crudApiPath: new Route("route"),
+              primaryKeys: ["_id"],
+              sortKeys: ["_id"],
+              partitionKey: "_id",
+              tableEngine: AnalyticsTableEngine.MergeTree,
+            });
+          }
+        }
+
+        let mapGeneratorWithAttributeKeys: StatementGenerator<MapModelWithAttributeKeys>;
+
+        beforeEach(() => {
+          mapGeneratorWithAttributeKeys =
+            new StatementGenerator<MapModelWithAttributeKeys>({
+              modelType: MapModelWithAttributeKeys,
+              database: ClickhouseAppInstance,
+            });
+        });
+
+        test("adds linked key-array bloom-index predicate for positive equality filters", () => {
+          const statement: Statement =
+            mapGeneratorWithAttributeKeys.toWhereStatement({
+              attributes: { requestId: "uuid-123" },
+            } as any);
+
+          expect(statement.query).toBe(
+            "AND (empty({p0:Identifier}) OR hasAny({p1:Identifier}, {p2:Array(String)})) AND {p3:Identifier}[{p4:String}] = {p5:String}",
+          );
+          expect(statement.query_params).toStrictEqual({
+            p0: "attributeKeys",
+            p1: "attributeKeys",
+            p2: ["requestId"],
+            p3: "attributes",
+            p4: "requestId",
+            p5: "uuid-123",
+          });
+        });
+
+        test("does not add linked key-array predicate for empty equality because missing keys also match", () => {
+          const statement: Statement =
+            mapGeneratorWithAttributeKeys.toWhereStatement({
+              attributes: { requestId: "" },
+            } as any);
+
+          expect(statement.query).toBe(
+            "AND {p0:Identifier}[{p1:String}] = {p2:String}",
+          );
+          expect(statement.query_params).toStrictEqual({
+            p0: "attributes",
+            p1: "requestId",
+            p2: "",
+          });
+        });
+
+        test("adds linked key-array bloom-index predicate for positive Includes filters", () => {
+          const statement: Statement =
+            mapGeneratorWithAttributeKeys.toWhereStatement({
+              attributes: {
+                "k8s.cluster.name": new Includes(["prod-east", "prod-west"]),
+              },
+            } as any);
+
+          expect(statement.query).toBe(
+            "AND (empty({p0:Identifier}) OR hasAny({p1:Identifier}, {p2:Array(String)})) AND {p3:Identifier}[{p4:String}] IN {p5:Array(String)}",
+          );
+          expect(statement.query_params).toStrictEqual({
+            p0: "attributeKeys",
+            p1: "attributeKeys",
+            p2: ["k8s.cluster.name"],
+            p3: "attributes",
+            p4: "k8s.cluster.name",
+            p5: ["prod-east", "prod-west"],
+          });
+        });
+
+        test("does not add linked key-array predicate for Includes containing empty string", () => {
+          const statement: Statement =
+            mapGeneratorWithAttributeKeys.toWhereStatement({
+              attributes: {
+                "k8s.cluster.name": new Includes(["", "prod-east"]),
+              },
+            } as any);
+
+          expect(statement.query).toBe(
+            "AND {p0:Identifier}[{p1:String}] IN {p2:Array(String)}",
+          );
+          expect(statement.query_params).toStrictEqual({
+            p0: "attributes",
+            p1: "k8s.cluster.name",
+            p2: ["", "prod-east"],
+          });
+        });
+
+        test("does not add linked key-array predicate for NotEqual because missing keys still match", () => {
+          const statement: Statement =
+            mapGeneratorWithAttributeKeys.toWhereStatement({
+              attributes: { requestId: new NotEqual("uuid-123") },
+            } as any);
+
+          expect(statement.query).toBe(
+            "AND {p0:Identifier}[{p1:String}] != {p2:String}",
+          );
+          expect(statement.query_params).toStrictEqual({
+            p0: "attributes",
+            p1: "requestId",
+            p2: "uuid-123",
+          });
+        });
+
+        test("uses mapKeysColumn metadata instead of hardcoded telemetry column names", () => {
+          const customMapGenerator: StatementGenerator<MapModelWithCustomMapKeys> =
+            new StatementGenerator<MapModelWithCustomMapKeys>({
+              modelType: MapModelWithCustomMapKeys,
+              database: ClickhouseAppInstance,
+            });
+
+          const statement: Statement = customMapGenerator.toWhereStatement({
+            tags: { region: "us-east" },
+          } as any);
+
+          expect(statement.query).toBe(
+            "AND (empty({p0:Identifier}) OR hasAny({p1:Identifier}, {p2:Array(String)})) AND {p3:Identifier}[{p4:String}] = {p5:String}",
+          );
+          expect(statement.query_params).toStrictEqual({
+            p0: "tagKeys",
+            p1: "tagKeys",
+            p2: ["region"],
+            p3: "tags",
+            p4: "region",
+            p5: "us-east",
+          });
+        });
+      });
     });
 
     describe("ArrayText columns", () => {

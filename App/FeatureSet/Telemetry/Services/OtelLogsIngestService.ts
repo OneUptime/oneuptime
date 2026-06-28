@@ -1265,6 +1265,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     const ingestionTimestamp: string = OneUptimeDate.toClickhouseDateTime(
       OneUptimeDate.getCurrentDate(),
     );
+    const exceptionAttributes: JSONObject = {
+      "exception.source": "log",
+      "log.severityText": String(data.severityText),
+    };
 
     data.dbExceptions.push({
       _id: ObjectID.generateTimeOrdered().toString(),
@@ -1288,10 +1292,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       release: release,
       environment: environment,
       parsedFrames: extracted.parsedFrames || "[]",
-      attributes: {
-        "exception.source": "log",
-        "log.severityText": String(data.severityText),
-      },
+      attributes: exceptionAttributes,
+      attributeKeys: TelemetryUtil.getAttributeKeys(exceptionAttributes),
       retentionDate: OneUptimeDate.toClickhouseDateTime(data.retentionDate),
     });
 

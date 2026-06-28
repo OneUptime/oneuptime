@@ -82,6 +82,38 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     this.database = data.database;
   }
 
+  private appendMapKeyPresenceFilter(input: {
+    whereStatement: Statement;
+    mapColumn: AnalyticsTableColumn;
+    mapKey: string;
+    skip?: boolean;
+  }): void {
+    const mapKeysColumnName: string | undefined = input.mapColumn.mapKeysColumn;
+
+    if (input.skip || !mapKeysColumnName) {
+      return;
+    }
+
+    const mapKeysColumn: AnalyticsTableColumn | null =
+      this.model.getTableColumn(mapKeysColumnName);
+
+    if (!mapKeysColumn || mapKeysColumn.type !== TableColumnType.ArrayText) {
+      return;
+    }
+
+    /*
+     * Keep empty key-array rows eligible so data written before the
+     * denormalized column existed, or by a lagging ingest path, is still
+     * checked by the canonical map['key'] predicate that follows.
+     */
+    input.whereStatement.append(
+      SQL`AND (empty(${mapKeysColumn.key}) OR hasAny(${mapKeysColumn.key}, ${{
+        value: [input.mapKey],
+        type: TableColumnType.ArrayText,
+      }})) `,
+    );
+  }
+
   public toUpdateStatement(updateBy: UpdateBy<TBaseModel>): Statement {
     const setStatement: Statement = this.toSetStatement(updateBy.data);
     const whereStatement: Statement = this.toWhereStatement(updateBy.query);
@@ -708,6 +740,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           if (mapEntry instanceof NotNull) {
+            this.appendMapKeyPresenceFilter({
+              whereStatement,
+              mapColumn: tableColumn,
+              mapKey,
+            });
             whereStatement.append(
               SQL`AND mapContains(${key}, ${{
                 value: mapKey,
@@ -789,12 +826,21 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           if (mapEntry instanceof EqualTo) {
+            const equalityValue: string = String(
+              (mapEntry as EqualTo<any>).value ?? "",
+            );
+            this.appendMapKeyPresenceFilter({
+              whereStatement,
+              mapColumn: tableColumn,
+              mapKey,
+              skip: equalityValue === "",
+            });
             whereStatement.append(
               SQL`AND ${key}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
               }}] = ${{
-                value: String((mapEntry as EqualTo<any>).value ?? ""),
+                value: equalityValue,
                 type: TableColumnType.Text,
               }}`,
             );
@@ -809,6 +855,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
            * threshold and naturally drops those rows.
            */
           if (mapEntry instanceof GreaterThan) {
+            this.appendMapKeyPresenceFilter({
+              whereStatement,
+              mapColumn: tableColumn,
+              mapKey,
+            });
             whereStatement.append(
               SQL`AND toFloat64OrNull(${key}[${{
                 value: mapKey,
@@ -822,6 +873,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           if (mapEntry instanceof GreaterThanOrEqual) {
+            this.appendMapKeyPresenceFilter({
+              whereStatement,
+              mapColumn: tableColumn,
+              mapKey,
+            });
             whereStatement.append(
               SQL`AND toFloat64OrNull(${key}[${{
                 value: mapKey,
@@ -835,6 +891,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           if (mapEntry instanceof LessThan) {
+            this.appendMapKeyPresenceFilter({
+              whereStatement,
+              mapColumn: tableColumn,
+              mapKey,
+            });
             whereStatement.append(
               SQL`AND toFloat64OrNull(${key}[${{
                 value: mapKey,
@@ -848,6 +909,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           if (mapEntry instanceof LessThanOrEqual) {
+            this.appendMapKeyPresenceFilter({
+              whereStatement,
+              mapColumn: tableColumn,
+              mapKey,
+            });
             whereStatement.append(
               SQL`AND toFloat64OrNull(${key}[${{
                 value: mapKey,
@@ -876,6 +942,12 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             if (includesValues.length === 0) {
               continue;
             }
+            this.appendMapKeyPresenceFilter({
+              whereStatement,
+              mapColumn: tableColumn,
+              mapKey,
+              skip: includesValues.includes(""),
+            });
             whereStatement.append(
               SQL`AND ${key}[${{
                 value: mapKey,
@@ -919,12 +991,19 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           // Bare string/number/boolean — direct Map subscript.
+          const equalityValue: string = String(mapEntry);
+          this.appendMapKeyPresenceFilter({
+            whereStatement,
+            mapColumn: tableColumn,
+            mapKey,
+            skip: equalityValue === "",
+          });
           whereStatement.append(
             SQL`AND ${key}[${{
               value: mapKey,
               type: TableColumnType.Text,
             }}] = ${{
-              value: String(mapEntry),
+              value: equalityValue,
               type: TableColumnType.Text,
             }}`,
           );

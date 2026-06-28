@@ -20,9 +20,8 @@ type TelemetrySource = {
   tableName: string;
   attributesColumn: string;
   /*
-   * Some tables (e.g. ExceptionInstance) don't have a separate
-   * attributeKeys array column — only the attributes map. Leave this
-   * undefined for those; the SQL falls back to mapKeys(attributes).
+   * Older telemetry tables may lack a separate attributeKeys array column.
+   * Leave this undefined for those; the SQL falls back to mapKeys(attributes).
    */
   attributeKeysColumn?: string | undefined;
   timeColumn: string;
@@ -83,7 +82,7 @@ export class TelemetryAttributeService {
           service: ExceptionInstanceService,
           tableName: ExceptionInstanceService.model.tableName,
           attributesColumn: "attributes",
-          // ExceptionInstance has no attributeKeys column.
+          attributeKeysColumn: "attributeKeys",
           timeColumn: "time",
         };
       default:
