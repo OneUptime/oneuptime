@@ -9,6 +9,7 @@ import DashboardVariable, { DashboardVariableType } from "./DashboardVariable";
 import IconProp from "../Icon/IconProp";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 import IncidentMetricType from "../Incident/IncidentMetricType";
+import AlertMetricType from "../Alerts/AlertMetricType";
 import MonitorMetricType from "../Monitor/MonitorMetricType";
 import MetricDashboardMetricType from "../Metrics/MetricDashboardMetricType";
 import { DashboardValueTrendDirection } from "./DashboardComponents/DashboardValueComponent";
@@ -24,6 +25,7 @@ export enum DashboardTemplateType {
   Blank = "Blank",
   Monitor = "Monitor",
   Incident = "Incident",
+  Alert = "Alert",
   Kubernetes = "Kubernetes",
   Host = "Host",
   Proxmox = "Proxmox",
@@ -32,11 +34,32 @@ export enum DashboardTemplateType {
   Metrics = "Metrics",
 }
 
+/*
+ * Templates are grouped into categories so the "Create from Template"
+ * modal can render them under labelled sections instead of one flat
+ * grid. The enum values double as the section headings, and
+ * DashboardTemplateCategories below fixes the display order.
+ */
+export enum DashboardTemplateCategory {
+  GetStarted = "Get Started",
+  Monitoring = "Monitoring & APM",
+  IncidentResponse = "Incident Response",
+  Infrastructure = "Infrastructure",
+}
+
+export const DashboardTemplateCategories: Array<DashboardTemplateCategory> = [
+  DashboardTemplateCategory.GetStarted,
+  DashboardTemplateCategory.Monitoring,
+  DashboardTemplateCategory.IncidentResponse,
+  DashboardTemplateCategory.Infrastructure,
+];
+
 export interface DashboardTemplate {
   type: DashboardTemplateType;
   name: string;
   description: string;
   icon: IconProp;
+  category: DashboardTemplateCategory;
 }
 
 export const DashboardTemplates: Array<DashboardTemplate> = [
@@ -45,6 +68,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     name: "Blank Dashboard",
     description: "Start from scratch with an empty dashboard.",
     icon: IconProp.Add,
+    category: DashboardTemplateCategory.GetStarted,
   },
   {
     type: DashboardTemplateType.Monitor,
@@ -52,48 +76,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     description:
       "Response time, uptime, status codes, CPU/memory health gauges, and breakdown table for synthetic and server monitors.",
     icon: IconProp.Heartbeat,
-  },
-  {
-    type: DashboardTemplateType.Incident,
-    name: "Incident Dashboard",
-    description:
-      "Incident count, MTTR/MTTA gauges, duration trends, severity breakdown, time-in-state, and longest-incident tables.",
-    icon: IconProp.Alert,
-  },
-  {
-    type: DashboardTemplateType.Kubernetes,
-    name: "Kubernetes Dashboard",
-    description:
-      "Pod/node CPU and memory averages, utilization gauges, live pod and node lists, network I/O, restarts, and cluster logs.",
-    icon: IconProp.Kubernetes,
-  },
-  {
-    type: DashboardTemplateType.Host,
-    name: "Hosts Dashboard",
-    description:
-      "Per-host CPU, memory, disk and network charts, a live host inventory, CPU utilization gauge, process counts, and recent logs.",
-    icon: IconProp.Server,
-  },
-  {
-    type: DashboardTemplateType.Proxmox,
-    name: "Proxmox Dashboard",
-    description:
-      "Live node and guest inventories with status, CPU/memory trends, network throughput, and cluster logs.",
-    icon: IconProp.ServerStack,
-  },
-  {
-    type: DashboardTemplateType.Ceph,
-    name: "Ceph Dashboard",
-    description:
-      "OSD wall and pool capacity lists, health and capacity stats, degraded-PG trends, client throughput, and cluster logs.",
-    icon: IconProp.Database,
-  },
-  {
-    type: DashboardTemplateType.DockerSwarm,
-    name: "Docker Swarm Dashboard",
-    description:
-      "Live node and service inventories with role/status, container CPU and memory trends, PID counts, and cluster logs.",
-    icon: IconProp.Cube,
+    category: DashboardTemplateCategory.Monitoring,
   },
   {
     type: DashboardTemplateType.Metrics,
@@ -101,8 +84,77 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     description:
       "HTTP request rate, latency, error rate, CPU utilization gauge, memory usage, disk and network I/O, and runtime metrics.",
     icon: IconProp.ChartBar,
+    category: DashboardTemplateCategory.Monitoring,
+  },
+  {
+    type: DashboardTemplateType.Incident,
+    name: "Incident Dashboard",
+    description:
+      "Incident count, MTTR/MTTA gauges, duration trends, severity breakdown, time-in-state, and longest-incident tables.",
+    icon: IconProp.Alert,
+    category: DashboardTemplateCategory.IncidentResponse,
+  },
+  {
+    type: DashboardTemplateType.Alert,
+    name: "Alert Dashboard",
+    description:
+      "Alert count, MTTR/MTTA gauges, duration trends, alert volume over time, and longest-alert / acknowledgement tables.",
+    icon: IconProp.Bell,
+    category: DashboardTemplateCategory.IncidentResponse,
+  },
+  {
+    type: DashboardTemplateType.Kubernetes,
+    name: "Kubernetes Dashboard",
+    description:
+      "Pod/node CPU and memory averages, utilization gauges, live pod and node lists, network I/O, restarts, and cluster logs.",
+    icon: IconProp.Kubernetes,
+    category: DashboardTemplateCategory.Infrastructure,
+  },
+  {
+    type: DashboardTemplateType.Host,
+    name: "Hosts Dashboard",
+    description:
+      "Per-host CPU, memory, disk and network charts, a live host inventory, CPU utilization gauge, process counts, and recent logs.",
+    icon: IconProp.Server,
+    category: DashboardTemplateCategory.Infrastructure,
+  },
+  {
+    type: DashboardTemplateType.Proxmox,
+    name: "Proxmox Dashboard",
+    description:
+      "Live node and guest inventories with status, CPU/memory trends, network throughput, and cluster logs.",
+    icon: IconProp.ServerStack,
+    category: DashboardTemplateCategory.Infrastructure,
+  },
+  {
+    type: DashboardTemplateType.Ceph,
+    name: "Ceph Dashboard",
+    description:
+      "OSD wall and pool capacity lists, health and capacity stats, degraded-PG trends, client throughput, and cluster logs.",
+    icon: IconProp.Database,
+    category: DashboardTemplateCategory.Infrastructure,
+  },
+  {
+    type: DashboardTemplateType.DockerSwarm,
+    name: "Docker Swarm Dashboard",
+    description:
+      "Live node and service inventories with role/status, container CPU and memory trends, PID counts, and cluster logs.",
+    icon: IconProp.Cube,
+    category: DashboardTemplateCategory.Infrastructure,
   },
 ];
+
+/*
+ * Templates for a category in their declared order. The modal uses this
+ * to render one labelled section per category.
+ */
+export function getDashboardTemplatesByCategory(
+  category: DashboardTemplateCategory,
+): Array<DashboardTemplate> {
+  return DashboardTemplates.filter((template: DashboardTemplate): boolean => {
+    return template.category === category;
+  });
+}
 
 // -- Metric query config helpers --
 
@@ -1102,6 +1154,212 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
     _type: ObjectType.DashboardViewConfig,
     components,
     heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 17),
+  };
+}
+
+function createAlertDashboardConfig(): DashboardViewConfig {
+  /*
+   * Alert metrics (TimeToResolve, TimeToAcknowledge, AlertDuration) are
+   * emitted with unit "seconds" by AlertService, and AlertCount is a
+   * unitless "1 per alert" counter — the same shape as the Incident
+   * metrics. As with the Incident template we drop legendUnit overrides
+   * (ValueFormatter scales `seconds` to sec/min/hr based on magnitude)
+   * and author the MTTR/MTTA gauge ranges in seconds so the 0-100% sweep
+   * is meaningful.
+   *
+   * Alerts have a leaner metric catalog than incidents: there are no
+   * severity-change, time-in-state, or postmortem metrics, so this
+   * template trades those widgets for the four alert metrics that are
+   * actually emitted.
+   */
+  const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
+    createTextComponent({
+      text: "Alert Dashboard",
+      top: 0,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 1: Key alert metrics — every one is "higher = worse".
+    createValueComponent({
+      title: "Alert Count",
+      top: 1,
+      left: 0,
+      width: 3,
+      metricConfig: {
+        metricName: AlertMetricType.AlertCount,
+        aggregationType: MetricsAggregationType.Sum,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "MTTR",
+      top: 1,
+      left: 3,
+      width: 3,
+      metricConfig: {
+        metricName: AlertMetricType.TimeToResolve,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "MTTA",
+      top: 1,
+      left: 6,
+      width: 3,
+      metricConfig: {
+        metricName: AlertMetricType.TimeToAcknowledge,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "Avg Duration",
+      top: 1,
+      left: 9,
+      width: 3,
+      metricConfig: {
+        metricName: AlertMetricType.AlertDuration,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+
+    // Row 2-4: Alert trends
+    createChartComponent({
+      title: "Alerts Over Time",
+      chartType: DashboardChartType.Bar,
+      top: 2,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: AlertMetricType.AlertCount,
+        aggregationType: MetricsAggregationType.Sum,
+        legend: "Alerts",
+      },
+    }),
+    createChartComponent({
+      title: "Alert Duration Over Time",
+      chartType: DashboardChartType.Line,
+      top: 2,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: AlertMetricType.AlertDuration,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Avg Duration",
+      },
+    }),
+
+    // Row 5: Section header
+    createTextComponent({
+      text: "Response Performance",
+      top: 5,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Row 6-8: MTTR/MTTA gauges. Ranges and thresholds are in seconds
+     * (matching the stored metric unit) and mirror the Incident
+     * template: MTTR full scale 2 hours (warn 1 hour, critical 1.5
+     * hours); MTTA full scale 1 hour (warn 15 min, critical 30 min).
+     */
+    createGaugeComponent({
+      title: "MTTR",
+      top: 6,
+      left: 0,
+      width: 3,
+      height: 3,
+      minValue: 0,
+      maxValue: 7200,
+      warningThreshold: 3600,
+      criticalThreshold: 5400,
+      metricConfig: {
+        metricName: AlertMetricType.TimeToResolve,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+    }),
+    createGaugeComponent({
+      title: "MTTA",
+      top: 6,
+      left: 3,
+      width: 3,
+      height: 3,
+      minValue: 0,
+      maxValue: 3600,
+      warningThreshold: 900,
+      criticalThreshold: 1800,
+      metricConfig: {
+        metricName: AlertMetricType.TimeToAcknowledge,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+    }),
+    createChartComponent({
+      title: "MTTR and MTTA Over Time",
+      chartType: DashboardChartType.Area,
+      top: 6,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: AlertMetricType.TimeToResolve,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "MTTR",
+      },
+    }),
+
+    // Row 9: Section header
+    createTextComponent({
+      text: "Alert Details",
+      top: 9,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Row 10-12: Operational tables. Like the Incident template, logs /
+     * traces are intentionally absent — alert records are rows in
+     * Postgres, not log/trace sources.
+     */
+    createTableComponent({
+      title: "Alerts by Duration",
+      top: 10,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: AlertMetricType.AlertDuration,
+        aggregationType: MetricsAggregationType.Max,
+      },
+    }),
+    createTableComponent({
+      title: "Time to Acknowledge",
+      top: 10,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: AlertMetricType.TimeToAcknowledge,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+    }),
+  ];
+
+  return {
+    _type: ObjectType.DashboardViewConfig,
+    components,
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 13),
   };
 }
 
@@ -2427,6 +2685,8 @@ export function getTemplateConfig(
       return createMonitorDashboardConfig();
     case DashboardTemplateType.Incident:
       return createIncidentDashboardConfig();
+    case DashboardTemplateType.Alert:
+      return createAlertDashboardConfig();
     case DashboardTemplateType.Kubernetes:
       return createKubernetesDashboardConfig();
     case DashboardTemplateType.Host:

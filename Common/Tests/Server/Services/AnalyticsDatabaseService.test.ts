@@ -421,9 +421,11 @@ describe("AnalyticsDatabaseService", () => {
         });
       }
 
-      // checkRequiredFields reads columns via property accessors, so the model
-      // must expose getters/setters that delegate to get/setColumnValue (real
-      // analytics models do the same for every column).
+      /*
+       * checkRequiredFields reads columns via property accessors, so the model
+       * must expose getters/setters that delegate to get/setColumnValue (real
+       * analytics models do the same for every column).
+       */
       public get requiredText(): string | undefined {
         return this.getColumnValue("requiredText") as string | undefined;
       }
