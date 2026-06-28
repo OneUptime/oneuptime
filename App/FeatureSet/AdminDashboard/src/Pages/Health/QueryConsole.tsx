@@ -549,7 +549,12 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
   const renderTableResult: (tableResult: TableResult) => ReactElement = (
     tableResult: TableResult,
   ): ReactElement => {
-    if (tableResult.rows.length === 0 || tableResult.columns.length === 0) {
+    // Only statements with NO result set at all (DDL, writes, ClickHouse
+    // command() no-ops) collapse into a success alert. A read that returns
+    // columns but zero rows is still a real (empty) result set — render it as
+    // an empty table below so "ran but matched nothing" is distinguishable
+    // from "non-query statement".
+    if (tableResult.columns.length === 0) {
       return (
         <Alert
           type={AlertType.SUCCESS}
@@ -648,6 +653,18 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
+              {tableResult.rows.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={tableResult.columns.length + 1}
+                    className="px-3 py-6 text-center text-sm text-gray-400"
+                  >
+                    0 rows — the query ran successfully but matched no rows.
+                  </td>
+                </tr>
+              ) : (
+                <></>
+              )}
               {tableResult.rows.map(
                 (row: JSONValue, rowIndex: number): ReactElement => {
                   const rowObject: JSONObject = (row || {}) as JSONObject;
