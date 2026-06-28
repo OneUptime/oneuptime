@@ -21,6 +21,7 @@ enum AnalyticsTableName {
    */
   MetricItemAggMV1mByHostV2 = "MetricItemAggMV1mByHostV2",
   MetricBaselineHourly = "MetricBaselineHourly",
+  MutableMetric = "MutableMetricItem",
 }
 
 export default AnalyticsTableName;

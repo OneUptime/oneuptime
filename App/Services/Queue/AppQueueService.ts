@@ -8,11 +8,11 @@ export default class AppQueueService {
       number,
       number,
     ] = await Promise.all([
-        Queue.getQueueSize(QueueName.Worker),
-        Queue.getQueueSize(QueueName.Workflow),
-        Queue.getQueueSize(QueueName.Telemetry),
-        Queue.getQueueSize(QueueName.Runbook),
-      ]);
+      Queue.getQueueSize(QueueName.Worker),
+      Queue.getQueueSize(QueueName.Workflow),
+      Queue.getQueueSize(QueueName.Telemetry),
+      Queue.getQueueSize(QueueName.Runbook),
+    ]);
     return workerSize + workflowSize + telemetrySize + runbookSize;
   }
 }

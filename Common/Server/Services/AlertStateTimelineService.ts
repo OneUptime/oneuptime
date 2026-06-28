@@ -727,6 +727,20 @@ ${createdItem.rootCause}`,
           },
         });
       }
+
+      AlertService.refreshAlertMetrics({
+        alertId: alertId,
+      }).catch((error: Error) => {
+        logger.error(
+          "Error while refreshing alert metrics after alert state timeline deletion",
+          {
+            alertId: alertId?.toString(),
+          } as LogAttributes,
+        );
+        logger.error(error, {
+          alertId: alertId?.toString(),
+        } as LogAttributes);
+      });
     }
 
     return onDelete;

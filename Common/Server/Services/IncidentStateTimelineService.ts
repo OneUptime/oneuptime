@@ -1027,6 +1027,17 @@ ${createdItem.rootCause}`,
           },
         });
       }
+
+      IncidentService.refreshIncidentMetrics({
+        incidentId: incidentId,
+      }).catch((error: Error) => {
+        logger.error(`Error while refreshing incident metrics:`, {
+          incidentId: incidentId?.toString(),
+        } as LogAttributes);
+        logger.error(error, {
+          incidentId: incidentId?.toString(),
+        } as LogAttributes);
+      });
     }
 
     return onDelete;

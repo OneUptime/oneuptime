@@ -89,6 +89,7 @@ import DropUnusedTelemetryTables from "./DropUnusedTelemetryTables";
 import RebuildMetricAggTablesMissingPrimaryEntityId from "./RebuildMetricAggTablesMissingPrimaryEntityId";
 import DropPreclusteredAnalyticsBackupTables from "./DropPreclusteredAnalyticsBackupTables";
 import AddAttributeKeysToExceptionInstance from "./AddAttributeKeysToExceptionInstance";
+import AddMutableMetricTable from "./AddMutableMetricTable";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -217,6 +218,7 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new AddAttributeKeysToExceptionInstance(),
   new DropPreclusteredAnalyticsBackupTables(),
+  new AddMutableMetricTable(),
   /*
    * Cluster conversion. Runs only when CLICKHOUSE_CLUSTER_NAME is set (a no-op
    * otherwise) and after every legacy ClickHouse migration has been baselined,
