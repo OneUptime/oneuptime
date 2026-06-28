@@ -1515,20 +1515,38 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(findBy.props);
 
-      let automaticallyAddedCreatedAtInSelect: boolean = false;
+      // Columns we add to the select purely to satisfy the ORDER BY, and which
+      // must be stripped from the returned items so the caller only gets back
+      // what it asked for.
+      const automaticallyAddedSortKeysInSelect: Array<string> = [];
 
       if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
         findBy.sort = {
           createdAt: SortOrder.Descending,
         };
+      }
 
-        if (!findBy.select) {
-          findBy.select = {} as any;
+      /*
+       * Ensure every column we sort by is also selected. When a query loads
+       * relations (e.g. via @CanAccessIfCanReadOn), TypeORM paginates with a
+       * DISTINCT subquery and references the sort columns in the outer ORDER BY.
+       * If a sort column is not part of the select, it is absent from the inner
+       * subquery and Postgres fails with "column ... does not exist". This also
+       * covers the default createdAt sort added above.
+       */
+      if (!findBy.select) {
+        findBy.select = {} as any;
+      }
+
+      for (const sortKey of Object.keys(findBy.sort)) {
+        // Only scalar columns need to be selected; skip nested/relation sorts.
+        if (typeof (findBy.sort as any)[sortKey] === Typeof.Object) {
+          continue;
         }
 
-        if (!(findBy.select as any)["createdAt"]) {
-          (findBy.select as any)["createdAt"] = true;
-          automaticallyAddedCreatedAtInSelect = true;
+        if (!(findBy.select as any)[sortKey]) {
+          (findBy.select as any)[sortKey] = true;
+          automaticallyAddedSortKeysInSelect.push(sortKey);
         }
       }
 
@@ -1597,8 +1615,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       decryptedItems = this.sanitizeFindByItems(decryptedItems, onBeforeFind);
 
       for (const item of decryptedItems) {
-        if (automaticallyAddedCreatedAtInSelect) {
-          delete (item as any).createdAt;
+        for (const sortKey of automaticallyAddedSortKeysInSelect) {
+          delete (item as any)[sortKey];
         }
       }
 
