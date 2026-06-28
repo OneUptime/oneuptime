@@ -62,7 +62,6 @@ import MetricService from "./MetricService";
 import MetricItemAggMV1mService from "./MetricItemAggMV1mService";
 import MetricItemAggMV1mByHostV2Service from "./MetricItemAggMV1mByHostV2Service";
 import MetricItemAggMV1mByAttributeKeysService from "./MetricItemAggMV1mByAttributeKeysService";
-import { TelemetryMonitorAttributeKeyMVEnabled } from "../EnvironmentConfig";
 import MetricBaselineService from "./MetricBaselineService";
 import MonitorCustomFieldService from "./MonitorCustomFieldService";
 import MonitorGroupOwnerTeamService from "./MonitorGroupOwnerTeamService";
@@ -509,14 +508,11 @@ export const AnalyticsServices: Array<
   MetricItemAggMV1mService,
   MetricItemAggMV1mByHostV2Service,
   /*
-   * Phase 3 per-attribute-key rollup. Registered (and therefore created + fired
-   * on ingest) unless TELEMETRY_MONITOR_ATTRIBUTE_KEY_MV_ENABLED="false",
-   * because its MV fans each metric insert across its attributes. Set the env
-   * var to "false" to skip it entirely (zero ingest impact).
+   * Phase 3 per-attribute-key rollup. Its MV fans each metric insert across its
+   * attributes — bound the fan-out by setting the MV's `attributeKey IN (...)`
+   * allowlist (see the model) before relying on it on a high-cardinality fleet.
    */
-  ...(TelemetryMonitorAttributeKeyMVEnabled
-    ? [MetricItemAggMV1mByAttributeKeysService]
-    : []),
+  MetricItemAggMV1mByAttributeKeysService,
   MetricBaselineService,
   ExceptionInstanceService,
   MonitorLogService,

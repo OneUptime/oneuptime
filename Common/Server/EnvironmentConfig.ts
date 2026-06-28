@@ -441,49 +441,6 @@ export const MaxClickhouseBackgroundConnections: number = parseInt(
   10,
 );
 
-/*
- * ---------------------------------------------------------------------------
- * Telemetry-monitor scale-out feature flags.
- *
- * The scale-out evaluation path (shape-collapsed reads + scheduler/worker
- * fan-out + per-attribute-key rollup MV + reactive fast-path) now defaults ON.
- * Each flag is on unless its env var is explicitly set to "false", which is the
- * per-deployment opt-out / kill-switch. These paths must still be validated on
- * a live ClickHouse / Redis / BullMQ stack before shipping (see
- * Docs/TelemetryMonitorScaleOut.md) — in particular the Phase 3 MV fans every
- * metric insert across its attributes, so set its attribute allowlist before
- * relying on it in production.
- * ---------------------------------------------------------------------------
- */
-
-// Phase 1 — collapse same-shape metric monitors into one batched MV read.
-export const TelemetryMonitorShapeCollapseEnabled: boolean =
-  process.env["TELEMETRY_MONITOR_SHAPE_COLLAPSE_ENABLED"] !== "false";
-
-/*
- * Phase 2 — run the slim scheduler + BullMQ worker fleet instead of the
- * in-process tick. Set the env var to "false" to fall back to the legacy
- * in-process evaluation cron.
- */
-export const TelemetryMonitorSchedulerFanoutEnabled: boolean =
-  process.env["TELEMETRY_MONITOR_SCHEDULER_FANOUT_ENABLED"] !== "false";
-
-/*
- * Phase 3 — create + read the MetricItemAggMV1mByAttributeKeys rollup for
- * single-attribute-filtered metric reads. WARNING: its MV fans every metric
- * insert across its attributes (see the model). On by default; set the env var
- * to "false" to skip creating the MV and routing reads to it.
- */
-export const TelemetryMonitorAttributeKeyMVEnabled: boolean =
-  process.env["TELEMETRY_MONITOR_ATTRIBUTE_KEY_MV_ENABLED"] !== "false";
-
-/*
- * Phase 4 — emit a fresh-shape signal on metric ingest so the scheduler can
- * skip provably-idle monitors. On by default; set the env var to "false" to
- * leave the ingest hot path untouched.
- */
-export const TelemetryMonitorReactiveFastPathEnabled: boolean =
-  process.env["TELEMETRY_MONITOR_REACTIVE_FASTPATH_ENABLED"] !== "false";
 
 /*
  * Cluster name. The analytics schema ALWAYS runs as a sharded + replicated

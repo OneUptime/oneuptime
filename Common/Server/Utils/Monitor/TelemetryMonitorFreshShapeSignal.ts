@@ -1,5 +1,4 @@
 import Redis, { ClientType } from "../../Infrastructure/Redis";
-import { TelemetryMonitorReactiveFastPathEnabled } from "../../EnvironmentConfig";
 
 /**
  * Phase 4 — reactive fresh-shape signal.
@@ -34,9 +33,6 @@ export async function recordFreshShapes(input: {
   metricNames: Array<string>;
   atEpochMs: number;
 }): Promise<void> {
-  if (!TelemetryMonitorReactiveFastPathEnabled) {
-    return;
-  }
   if (input.metricNames.length === 0) {
     return;
   }
@@ -66,22 +62,17 @@ export async function recordFreshShapes(input: {
 
 /**
  * The set of metric names in `projectId` that received data at or after
- * `sinceEpochMs`, or `null` when the signal is UNAVAILABLE (fast-path disabled,
- * Redis down, or a read error). The null-vs-empty distinction is correctness-
- * critical for the scheduler skip: `null` means "unknown — scan everything"
- * (the scan-all floor), whereas an empty set means "the signal works and
- * genuinely nothing arrived" (eligible-safe monitors may be skipped). Returning
- * an empty set on failure would wrongly skip everything, so failures return
- * null.
+ * `sinceEpochMs`, or `null` when the signal is UNAVAILABLE (Redis down or a
+ * read error). The null-vs-empty distinction is correctness-critical for the
+ * scheduler skip: `null` means "unknown — scan everything" (the scan-all
+ * floor), whereas an empty set means "the signal works and genuinely nothing
+ * arrived" (eligible-safe monitors may be skipped). Returning an empty set on
+ * failure would wrongly skip everything, so failures return null.
  */
 export async function getFreshMetricNamesSince(input: {
   projectId: string;
   sinceEpochMs: number;
 }): Promise<Set<string> | null> {
-  if (!TelemetryMonitorReactiveFastPathEnabled) {
-    return null;
-  }
-
   const client: ClientType | null = Redis.getClient();
   if (!client) {
     return null;

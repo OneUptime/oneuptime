@@ -20,7 +20,6 @@ import ObjectID from "../../Types/ObjectID";
 import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "../../Types/BaseDatabase/AggregatedModel";
 import { JSONObject } from "../../Types/JSON";
-import { TelemetryMonitorAttributeKeyMVEnabled } from "../EnvironmentConfig";
 import { ResultSet, ResponseJSON } from "@clickhouse/client";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -756,19 +755,14 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   /**
    * Phase 3 — generic per-attribute-key MV fast path. Serves a metric
    * aggregate filtered by exactly ONE attribute (any key) and a bare-string
-   * value from the MetricItemAggMV1mByAttributeKeys rollup. Gated behind the
-   * flag (and the MV only exists when the flag is on), so it returns null —
-   * falling back to the raw table — unless explicitly enabled. Mirrors
-   * tryBuildHostAggregateMVStatement but keyed by (attributeKey, attributeValue)
-   * instead of the host-specific entity key.
+   * value from the MetricItemAggMV1mByAttributeKeys rollup. Returns null —
+   * falling back to the raw table — for any query that does not fit the MV.
+   * Mirrors tryBuildHostAggregateMVStatement but keyed by (attributeKey,
+   * attributeValue) instead of the host-specific entity key.
    */
   private tryBuildAttributeKeyMVStatement(
     aggregateBy: AggregateBy<Metric>,
   ): { statement: Statement; columns: Array<string> } | null {
-    if (!TelemetryMonitorAttributeKeyMVEnabled) {
-      return null;
-    }
-
     const aggType: AggregationType = aggregateBy.aggregationType;
     const supported: ReadonlyArray<AggregationType> = [
       AggregationType.Sum,
