@@ -13,6 +13,8 @@ import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import GenericObject from "../../../Types/GenericObject";
+import ObjectID from "../../../Types/ObjectID";
+import OneUptimeDate from "../../../Types/Date";
 import {
   describe,
   expect,
@@ -379,6 +381,129 @@ describe("AnalyticsDatabaseService", () => {
    * ids per call. Must be strictly additive: option-less calls keep the
    * exact pre-existing exec/query payload.
    */
+  /*
+   * Required-field validation. A required column is satisfied by any present
+   * value (including the boolean `false`); only null/undefined triggers a
+   * default-fill or a "<field> is required" error. This is regression coverage
+   * for the boolean branch that previously rejected every required Boolean
+   * column (both true and false), which made models like MutableMetric — whose
+   * `isDeleted` tombstone flag is a required Boolean — impossible to insert.
+   */
+  describe("checkRequiredFields", () => {
+    class RequiredFieldsModel extends AnalyticsBaseModel {
+      public constructor() {
+        super({
+          tableName: "<required-fields-table>",
+          singularName: "<singular-name>",
+          pluralName: "<plural-name>",
+          tableColumns: [
+            new AnalyticsTableColumn({
+              key: "requiredText",
+              title: "<title>",
+              description: "<description>",
+              required: true,
+              type: TableColumnType.Text,
+            }),
+            new AnalyticsTableColumn({
+              key: "requiredBoolWithDefault",
+              title: "<title>",
+              description: "<description>",
+              required: true,
+              type: TableColumnType.Boolean,
+              defaultValue: false,
+            }),
+          ],
+          crudApiPath: new Route("route"),
+          primaryKeys: ["requiredText"],
+          sortKeys: ["requiredText"],
+          partitionKey: "requiredText",
+          tableEngine: AnalyticsTableEngine.MergeTree,
+        });
+      }
+    }
+
+    let requiredFieldsService: AnalyticsDatabaseService<RequiredFieldsModel>;
+
+    beforeEach(() => {
+      requiredFieldsService = new AnalyticsDatabaseService({
+        modelType: RequiredFieldsModel,
+      });
+    });
+
+    // Build a model with every required column satisfied except as overridden.
+    const buildModel: (
+      overrides?: (model: RequiredFieldsModel) => void,
+    ) => RequiredFieldsModel = (
+      overrides?: (model: RequiredFieldsModel) => void,
+    ): RequiredFieldsModel => {
+      const model: RequiredFieldsModel = new RequiredFieldsModel();
+      // _id and createdAt are required on the base model and carry no default.
+      model.setColumnValue("_id", ObjectID.generate());
+      model.setColumnValue("createdAt", OneUptimeDate.getCurrentDate());
+      model.setColumnValue("requiredText", "value");
+      if (overrides) {
+        overrides(model);
+      }
+      return model;
+    };
+
+    const check: (model: RequiredFieldsModel) => RequiredFieldsModel = (
+      model: RequiredFieldsModel,
+    ): RequiredFieldsModel => {
+      return (requiredFieldsService as any).checkRequiredFields(model);
+    };
+
+    test("accepts a required boolean set to false (regression)", () => {
+      const model: RequiredFieldsModel = buildModel(
+        (m: RequiredFieldsModel): void => {
+          m.setColumnValue("requiredBoolWithDefault", false);
+        },
+      );
+
+      expect(() => {
+        return check(model);
+      }).not.toThrow();
+      expect(model.getColumnValue("requiredBoolWithDefault")).toBe(false);
+    });
+
+    test("accepts a required boolean set to true", () => {
+      const model: RequiredFieldsModel = buildModel(
+        (m: RequiredFieldsModel): void => {
+          m.setColumnValue("requiredBoolWithDefault", true);
+        },
+      );
+
+      expect(() => {
+        return check(model);
+      }).not.toThrow();
+      expect(model.getColumnValue("requiredBoolWithDefault")).toBe(true);
+    });
+
+    test("fills the default when a required boolean is unset", () => {
+      const model: RequiredFieldsModel = buildModel();
+
+      expect(() => {
+        return check(model);
+      }).not.toThrow();
+      expect(model.getColumnValue("requiredBoolWithDefault")).toBe(false);
+    });
+
+    test("throws when a required column without a default is missing", () => {
+      const model: RequiredFieldsModel = new RequiredFieldsModel();
+      model.setColumnValue("_id", ObjectID.generate());
+      model.setColumnValue("createdAt", OneUptimeDate.getCurrentDate());
+      model.setColumnValue("requiredBoolWithDefault", false);
+      // requiredText (required, no default) intentionally left unset.
+
+      expect(() => {
+        return check(model);
+      }).toThrow(BadDataException);
+      expect(() => {
+        return check(model);
+      }).toThrow("requiredText is required");
+    });
+  });
+
   describe("execute / executeQuery per-call options", () => {
     let exec: ReturnType<typeof jest.fn>;
     let query: ReturnType<typeof jest.fn>;

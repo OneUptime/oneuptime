@@ -1953,34 +1953,30 @@ export default class AnalyticsDatabaseService<
 
     for (const columns of data.getRequiredColumns()) {
       const requiredField: string = columns.key;
-      if (typeof (data as any)[requiredField] === Typeof.Boolean) {
-        if (
-          !(data as any)[requiredField] &&
-          (data as any)[requiredField] !== false &&
-          data.isDefaultValueColumn(requiredField)
-        ) {
-          data.setColumnValue(
-            requiredField,
-            data.getDefaultValueForColumn(requiredField),
-          );
-        } else {
-          throw new BadDataException(`${requiredField} is required`);
-        }
-      } else if (
-        ((data as any)[requiredField] === null ||
-          (data as any)[requiredField] === undefined) &&
-        data.isDefaultValueColumn(requiredField)
-      ) {
+      const value: unknown = (data as any)[requiredField];
+
+      /*
+       * A present value satisfies the requirement — including `false`, `0` and
+       * `""`, which are all valid column values. Only a genuinely absent value
+       * (null/undefined) triggers a default-fill or a validation error.
+       *
+       * This deliberately treats booleans like every other type. The previous
+       * implementation special-cased booleans with `!val && val !== false`,
+       * which can never be true for a real boolean, so it threw for EVERY
+       * required boolean (both true and false) — making any required Boolean
+       * column impossible to insert via createMany.
+       */
+      if (value !== null && value !== undefined) {
+        continue;
+      }
+
+      if (data.isDefaultValueColumn(requiredField)) {
         // add default value.
         data.setColumnValue(
           requiredField,
           data.getDefaultValueForColumn(requiredField),
         );
-      } else if (
-        ((data as any)[requiredField] === null ||
-          (data as any)[requiredField] === undefined) &&
-        !data.isDefaultValueColumn(requiredField)
-      ) {
+      } else {
         throw new BadDataException(`${requiredField} is required`);
       }
     }

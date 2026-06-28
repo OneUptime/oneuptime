@@ -151,19 +151,11 @@ export default class MutableMetric extends AnalyticsBaseModel {
       type: TableColumnType.UInt64,
     });
 
-    /*
-     * Not marked required: AnalyticsDatabaseService.checkRequiredFields throws
-     * for a required Boolean column that already holds a real boolean (its
-     * `!val && val !== false` guard never accepts true or false), which would
-     * reject every insert — both live rows (isDeleted=false) and tombstones
-     * (isDeleted=true). MutableMetricService always sets this explicitly, and
-     * the defaultValue covers any unset path, so required validation is unneeded.
-     */
     const isDeletedColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "isDeleted",
       title: "Is Deleted",
       description: "Tombstone marker for this metric point identity.",
-      required: false,
+      required: true,
       type: TableColumnType.Boolean,
       defaultValue: false,
     });
