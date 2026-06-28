@@ -567,18 +567,22 @@ export default class TelemetryQueueService {
   }): Promise<void> {
     try {
       const monitorId: string = data.monitorId.toString();
+      const projectId: string | undefined = data.projectId?.toString();
       const telemetryMonitorEvaluation: TelemetryMonitorEvaluationJobData = {
         monitorId,
-        projectId: data.projectId?.toString(),
         queuedAt: OneUptimeDate.getCurrentDate(),
       };
 
       const jobData: TelemetryIngestJobData = {
         type: TelemetryType.TelemetryMonitorEvaluation,
-        projectId: data.projectId?.toString(),
         ingestionTimestamp: OneUptimeDate.getCurrentDate(),
         telemetryMonitorEvaluation,
       };
+
+      if (projectId) {
+        telemetryMonitorEvaluation.projectId = projectId;
+        jobData.projectId = projectId;
+      }
 
       const jobId: string = `telemetry-monitor-evaluation-${monitorId}-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
 

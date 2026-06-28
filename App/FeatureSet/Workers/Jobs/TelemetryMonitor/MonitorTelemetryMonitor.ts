@@ -248,9 +248,11 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
 
     const settledEnqueues: Array<PromiseSettledResult<void>> =
       await Promise.allSettled(
-        enqueueTasks.map((task: { monitor: Monitor; run: () => Promise<void> }) => {
-          return task.run();
-        }),
+        enqueueTasks.map(
+          (task: { monitor: Monitor; run: () => Promise<void> }) => {
+            return task.run();
+          },
+        ),
       );
 
     for (const [index, settledEnqueue] of settledEnqueues.entries()) {
@@ -268,9 +270,9 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
     }
   };
 
-export const processTelemetryMonitorEvaluationFromQueue: ((
+export const processTelemetryMonitorEvaluationFromQueue: (
   data: TelemetryMonitorEvaluationJobData,
-) => Promise<void>) = async (
+) => Promise<void> = async (
   data: TelemetryMonitorEvaluationJobData,
 ): Promise<void> => {
   const monitorId: ObjectID = new ObjectID(data.monitorId);
