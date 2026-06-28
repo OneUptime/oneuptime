@@ -396,7 +396,7 @@ describe("StatementGenerator", () => {
         expect(statement.query_params).toStrictEqual({});
       });
 
-      describe("attributeKeys pruning", () => {
+      describe("map key-array pruning", () => {
         class MapModelWithAttributeKeys extends AnalyticsBaseModel {
           public constructor() {
             super({
@@ -418,9 +418,51 @@ describe("StatementGenerator", () => {
                   required: true,
                   defaultValue: {},
                   type: TableColumnType.MapStringString,
+                  mapKeysColumn: "attributeKeys",
                 }),
                 new AnalyticsTableColumn({
                   key: "attributeKeys",
+                  title: "<title>",
+                  description: "<description>",
+                  required: true,
+                  defaultValue: [],
+                  type: TableColumnType.ArrayText,
+                }),
+              ],
+              crudApiPath: new Route("route"),
+              primaryKeys: ["_id"],
+              sortKeys: ["_id"],
+              partitionKey: "_id",
+              tableEngine: AnalyticsTableEngine.MergeTree,
+            });
+          }
+        }
+
+        class MapModelWithCustomMapKeys extends AnalyticsBaseModel {
+          public constructor() {
+            super({
+              tableName: "<map-table-with-custom-key-column>",
+              singularName: "<singular>",
+              pluralName: "<plural>",
+              tableColumns: [
+                new AnalyticsTableColumn({
+                  key: "_id",
+                  title: "<title>",
+                  description: "<description>",
+                  required: true,
+                  type: TableColumnType.ObjectID,
+                }),
+                new AnalyticsTableColumn({
+                  key: "tags",
+                  title: "<title>",
+                  description: "<description>",
+                  required: true,
+                  defaultValue: {},
+                  type: TableColumnType.MapStringString,
+                  mapKeysColumn: "tagKeys",
+                }),
+                new AnalyticsTableColumn({
+                  key: "tagKeys",
                   title: "<title>",
                   description: "<description>",
                   required: true,
@@ -447,7 +489,7 @@ describe("StatementGenerator", () => {
             });
         });
 
-        test("adds attributeKeys bloom-index predicate for positive equality filters", () => {
+        test("adds linked key-array bloom-index predicate for positive equality filters", () => {
           const statement: Statement =
             mapGeneratorWithAttributeKeys.toWhereStatement({
               attributes: { requestId: "uuid-123" },
@@ -466,7 +508,7 @@ describe("StatementGenerator", () => {
           });
         });
 
-        test("does not add attributeKeys predicate for empty equality because missing keys also match", () => {
+        test("does not add linked key-array predicate for empty equality because missing keys also match", () => {
           const statement: Statement =
             mapGeneratorWithAttributeKeys.toWhereStatement({
               attributes: { requestId: "" },
@@ -482,7 +524,7 @@ describe("StatementGenerator", () => {
           });
         });
 
-        test("adds attributeKeys bloom-index predicate for positive Includes filters", () => {
+        test("adds linked key-array bloom-index predicate for positive Includes filters", () => {
           const statement: Statement =
             mapGeneratorWithAttributeKeys.toWhereStatement({
               attributes: {
@@ -503,7 +545,7 @@ describe("StatementGenerator", () => {
           });
         });
 
-        test("does not add attributeKeys predicate for Includes containing empty string", () => {
+        test("does not add linked key-array predicate for Includes containing empty string", () => {
           const statement: Statement =
             mapGeneratorWithAttributeKeys.toWhereStatement({
               attributes: {
@@ -521,7 +563,7 @@ describe("StatementGenerator", () => {
           });
         });
 
-        test("does not add attributeKeys predicate for NotEqual because missing keys still match", () => {
+        test("does not add linked key-array predicate for NotEqual because missing keys still match", () => {
           const statement: Statement =
             mapGeneratorWithAttributeKeys.toWhereStatement({
               attributes: { requestId: new NotEqual("uuid-123") },
@@ -534,6 +576,30 @@ describe("StatementGenerator", () => {
             p0: "attributes",
             p1: "requestId",
             p2: "uuid-123",
+          });
+        });
+
+        test("uses mapKeysColumn metadata instead of hardcoded telemetry column names", () => {
+          const customMapGenerator: StatementGenerator<MapModelWithCustomMapKeys> =
+            new StatementGenerator<MapModelWithCustomMapKeys>({
+              modelType: MapModelWithCustomMapKeys,
+              database: ClickhouseAppInstance,
+            });
+
+          const statement: Statement = customMapGenerator.toWhereStatement({
+            tags: { region: "us-east" },
+          } as any);
+
+          expect(statement.query).toBe(
+            "AND (empty({p0:Identifier}) OR hasAny({p1:Identifier}, {p2:Array(String)})) AND {p3:Identifier}[{p4:String}] = {p5:String}",
+          );
+          expect(statement.query_params).toStrictEqual({
+            p0: "tagKeys",
+            p1: "tagKeys",
+            p2: ["region"],
+            p3: "tags",
+            p4: "region",
+            p5: "us-east",
           });
         });
       });
