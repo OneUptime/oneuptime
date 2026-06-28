@@ -455,6 +455,23 @@ export default class Queue {
     }
   }
 
+  private static normalizeFailedReason(reason: string | undefined): string {
+    if (typeof reason !== "string") {
+      return "No reason provided";
+    }
+
+    const normalized: string = reason.trim().toLowerCase();
+    if (
+      normalized.length === 0 ||
+      normalized === "null" ||
+      normalized === "undefined"
+    ) {
+      return "No reason provided";
+    }
+
+    return reason;
+  }
+
   @CaptureSpan()
   public static async getQueueSize(queueName: QueueName): Promise<number> {
     const queue: BullQueue = this.getQueue(queueName);
@@ -534,7 +551,7 @@ export default class Queue {
         id: job.id || "unknown",
         name: job.name || "unknown",
         data: job.data as JSONObject,
-        failedReason: job.failedReason || "No reason provided",
+        failedReason: Queue.normalizeFailedReason(job.failedReason),
         processedOn: job.processedOn ? new Date(job.processedOn) : null,
         finishedOn: job.finishedOn ? new Date(job.finishedOn) : null,
         attemptsMade: job.attemptsMade || 0,
@@ -641,7 +658,7 @@ export default class Queue {
         opts: (job.opts as unknown as JSONObject) || {},
         returnValue: job.returnvalue ?? null,
         progress: (job.progress as number | Record<string, unknown>) ?? null,
-        failedReason: job.failedReason || "No reason provided",
+        failedReason: Queue.normalizeFailedReason(job.failedReason),
         stackTrace: job.stacktrace || [],
         logs: logs,
         attemptsMade: job.attemptsMade || 0,
