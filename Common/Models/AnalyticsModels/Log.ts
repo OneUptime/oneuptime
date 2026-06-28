@@ -253,6 +253,7 @@ export default class Log extends AnalyticsBaseModel {
       required: true,
       defaultValue: {},
       type: TableColumnType.MapStringString,
+      mapKeysColumn: "attributeKeys",
       accessControl: {
         read: [
           Permission.ProjectOwner,

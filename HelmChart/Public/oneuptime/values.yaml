@@ -681,6 +681,24 @@ redis:
     podSecurityContext: {}
     containerSecurityContext: {}
     resources: {}
+  # Liveness/readiness probes for the Redis container. Both run "redis-cli ping"
+  # inside the pod. Under transient disk fsync or CPU contention (common on
+  # slower disks such as GCP pd-standard) a single PING can take longer than a
+  # second, so the defaults below are deliberately tolerant: a few slow PINGs
+  # must not flap readiness or trigger a liveness kill and restart loop. Raise
+  # the timeouts/thresholds further if you run Redis on constrained nodes.
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    timeoutSeconds: 5
+    periodSeconds: 10
+    failureThreshold: 5
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 5
+    timeoutSeconds: 3
+    periodSeconds: 5
+    failureThreshold: 3
   commonConfiguration: |-
     appendonly no
     save ""
@@ -1122,12 +1140,12 @@ app:
   podSecurityContext: {}
   hostAliases: []
   containerSecurityContext: {}
-  # KEDA autoscaling configuration based on combined queue metrics (worker + workflow + telemetry)
+  # KEDA autoscaling configuration based on combined queue metrics (worker + workflow + telemetry + runbook)
   keda:
     enabled: false
     minReplicas: 1
     maxReplicas: 100
-    # Scale up when combined queue size (worker + workflow + telemetry) exceeds this threshold
+    # Scale up when combined queue size (worker + workflow + telemetry + runbook) exceeds this threshold
     queueSizeThreshold: 10
     # Scale up when average CPU utilization exceeds this percentage (0 to disable).
     # If enabled, app.resources.requests.cpu must also be set.
@@ -1153,7 +1171,7 @@ app:
 # deployment drains them instead — so heavy telemetry/background processing
 # never stalls API requests on the shared event loop. It runs the same image
 # as `app` (no external ingress, no gRPC), scaled on combined queue depth
-# (worker + workflow + telemetry) via KEDA.
+# (worker + workflow + telemetry + runbook) via KEDA.
 # NOTE: with the split enabled the worker is REQUIRED for ALL background work
 # (notifications, incident/alert state, telemetry ingestion) — keep
 # keda.minReplicas >= 1. Also set app.keda.targetCPUUtilizationPercentage (and
@@ -1181,12 +1199,12 @@ worker:
   podSecurityContext: {}
   hostAliases: []
   containerSecurityContext: {}
-  # KEDA autoscaling based on combined queue depth (worker + workflow + telemetry)
+  # KEDA autoscaling based on combined queue depth (worker + workflow + telemetry + runbook)
   keda:
     enabled: false
     minReplicas: 1
     maxReplicas: 100
-    # Scale up when combined queue size (worker + workflow + telemetry) exceeds this threshold
+    # Scale up when combined queue size (worker + workflow + telemetry + runbook) exceeds this threshold
     queueSizeThreshold: 10
     # Scale up when average CPU utilization exceeds this percentage (0 to disable).
     # If enabled, worker.resources.requests.cpu must also be set.

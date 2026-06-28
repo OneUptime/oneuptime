@@ -1037,6 +1037,48 @@
                     },
                     "additionalProperties": false
                 },
+                "livenessProbe": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "initialDelaySeconds": {
+                            "type": "integer"
+                        },
+                        "timeoutSeconds": {
+                            "type": "integer"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
+                        },
+                        "failureThreshold": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "readinessProbe": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "initialDelaySeconds": {
+                            "type": "integer"
+                        },
+                        "timeoutSeconds": {
+                            "type": "integer"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
+                        },
+                        "failureThreshold": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "commonConfiguration": {
                     "type": "string"
                 }

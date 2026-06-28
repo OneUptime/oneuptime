@@ -88,6 +88,7 @@ import AddDedupWindowToTelemetryTables from "./AddDedupWindowToTelemetryTables";
 import DropUnusedTelemetryTables from "./DropUnusedTelemetryTables";
 import RebuildMetricAggTablesMissingPrimaryEntityId from "./RebuildMetricAggTablesMissingPrimaryEntityId";
 import DropPreclusteredAnalyticsBackupTables from "./DropPreclusteredAnalyticsBackupTables";
+import AddAttributeKeysToExceptionInstance from "./AddAttributeKeysToExceptionInstance";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -214,6 +215,7 @@ const DataMigrations: Array<DataMigrationBase> = [
    * no-op on installs that never converted. Ordered right before the conversion
    * migration; both run after every schema migration is already in place.
    */
+  new AddAttributeKeysToExceptionInstance(),
   new DropPreclusteredAnalyticsBackupTables(),
   /*
    * Cluster conversion. Runs only when CLICKHOUSE_CLUSTER_NAME is set (a no-op

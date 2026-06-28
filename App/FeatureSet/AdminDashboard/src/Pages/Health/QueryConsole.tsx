@@ -549,11 +549,13 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
   const renderTableResult: (tableResult: TableResult) => ReactElement = (
     tableResult: TableResult,
   ): ReactElement => {
-    // Only statements with NO result set at all (DDL, writes, ClickHouse
-    // command() no-ops) collapse into a success alert. A read that returns
-    // columns but zero rows is still a real (empty) result set — render it as
-    // an empty table below so "ran but matched nothing" is distinguishable
-    // from "non-query statement".
+    /*
+     * Only statements with NO result set at all (DDL, writes, ClickHouse
+     * command() no-ops) collapse into a success alert. A read that returns
+     * columns but zero rows is still a real (empty) result set - render it as
+     * an empty table below so "ran but matched nothing" is distinguishable
+     * from "non-query statement".
+     */
     if (tableResult.columns.length === 0) {
       return (
         <Alert
