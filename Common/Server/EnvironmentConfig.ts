@@ -427,6 +427,21 @@ export const MaxClickhouseIngestConnections: number = parseInt(
 );
 
 /*
+ * Background / cron read pool size. Telemetry-monitor evaluation (and other
+ * background analytics reads) route through a dedicated pool so a burst of
+ * heavy count/aggregate queries cannot consume the HTTP sockets the
+ * user-facing dashboard query pool (MaxClickhouseConnections) needs. Kept
+ * small on purpose — paired with the bounded fan-out in the telemetry-monitor
+ * job, a handful of sockets is plenty, and a small cap is itself a
+ * back-pressure mechanism. Override when running a very large number of
+ * monitors.
+ */
+export const MaxClickhouseBackgroundConnections: number = parseInt(
+  process.env["CLICKHOUSE_BACKGROUND_MAX_OPEN_CONNECTIONS"] || "10",
+  10,
+);
+
+/*
  * Cluster name. The analytics schema ALWAYS runs as a sharded + replicated
  * cluster (Distributed tables over local ReplicatedMergeTree, `ON CLUSTER
  * '<name>'`); a single node is just a 1-shard/1-replica cluster backed by an

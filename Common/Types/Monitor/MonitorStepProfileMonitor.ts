@@ -7,6 +7,10 @@ import OneUptimeDate from "../Date";
 import Dictionary from "../Dictionary";
 import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
+import {
+  DEFAULT_TELEMETRY_MONITOR_WINDOW_SECONDS,
+  clampTelemetryMonitorWindowSeconds,
+} from "./TelemetryMonitorWindow";
 
 export default interface MonitorStepProfileMonitor {
   attributes: Dictionary<string | number | boolean>;
@@ -64,14 +68,18 @@ export class MonitorStepProfileMonitorUtil {
       query.profileType = new Search(monitorStepProfileMonitor.profileType);
     }
 
-    if (monitorStepProfileMonitor.lastXSecondsOfProfiles) {
-      const endDate: Date = OneUptimeDate.getCurrentDate();
-      const startDate: Date = OneUptimeDate.addRemoveSeconds(
-        endDate,
-        monitorStepProfileMonitor.lastXSecondsOfProfiles * -1,
-      );
-      query.startTime = new InBetween(startDate, endDate);
-    }
+    /*
+     * Always apply a bounded rolling-time window so the count() can never
+     * become an unbounded full-table scan (see TelemetryMonitorWindow).
+     */
+    const endDate: Date = OneUptimeDate.getCurrentDate();
+    const startDate: Date = OneUptimeDate.addRemoveSeconds(
+      endDate,
+      clampTelemetryMonitorWindowSeconds(
+        monitorStepProfileMonitor.lastXSecondsOfProfiles,
+      ) * -1,
+    );
+    query.startTime = new InBetween(startDate, endDate);
 
     return query;
   }
@@ -97,7 +105,9 @@ export class MonitorStepProfileMonitorUtil {
         json["telemetryServiceIds"] as Array<JSONObject>,
       ),
       entityKeys: (json["entityKeys"] as Array<string>) || [],
-      lastXSecondsOfProfiles: json["lastXSecondsOfProfiles"] as number,
+      lastXSecondsOfProfiles:
+        (json["lastXSecondsOfProfiles"] as number | undefined) ||
+        DEFAULT_TELEMETRY_MONITOR_WINDOW_SECONDS,
     };
   }
 

@@ -14,7 +14,19 @@ import MonitorStepLogMonitor, {
   MonitorStepLogMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepLogMonitor";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import LogService from "Common/Server/Services/LogService";
+import {
+  BackgroundLogService as LogService,
+  BackgroundSpanService as SpanService,
+  BackgroundExceptionInstanceService as ExceptionInstanceService,
+  BackgroundProfileService as ProfileService,
+  BackgroundMetricService as MetricService,
+  BACKGROUND_COUNT_MAX_EXECUTION_SECONDS,
+  backgroundCountExecuteOptions,
+} from "./BackgroundTelemetryServices";
+import Semaphore, {
+  SemaphoreMutex,
+} from "Common/Server/Infrastructure/Semaphore";
+import runWithConcurrency from "Common/Utils/ConcurrencyLimiter";
 import Query from "Common/Server/Types/AnalyticsDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
 import PositiveNumber from "Common/Types/PositiveNumber";
@@ -25,7 +37,6 @@ import TraceMonitorResponse from "Common/Types/Monitor/TraceMonitor/TraceMonitor
 import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepTraceMonitor";
-import SpanService from "Common/Server/Services/SpanService";
 import MetricMonitorResponse, {
   KubernetesResourceBreakdown,
   KubernetesAffectedResource,
@@ -43,7 +54,6 @@ import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
-import MetricService from "Common/Server/Services/MetricService";
 import MetricTypeService from "Common/Server/Services/MetricTypeService";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
@@ -60,13 +70,11 @@ import ExceptionMonitorResponse from "Common/Types/Monitor/ExceptionMonitor/Exce
 import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
-import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import ProfileMonitorResponse from "Common/Types/Monitor/ProfileMonitor/ProfileMonitorResponse";
 import MonitorStepProfileMonitor, {
   MonitorStepProfileMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepProfileMonitor";
-import ProfileService from "Common/Server/Services/ProfileService";
 import Profile from "Common/Models/AnalyticsModels/Profile";
 import MonitorStepKubernetesMonitor, {
   KubernetesResourceFilters,
@@ -110,6 +118,124 @@ import {
 import { JSONObject } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
+/*
+ * Only one telemetry-monitor tick runs at a time across all replicas. Without
+ * this guard, a tick whose evaluations run longer than the 1-minute schedule
+ * has the next tick pile on top of it; combined with the (now bounded) fan-out
+ * below, that pile-up of overlapping count() queries is what saturated the
+ * shared ClickHouse pool and broke portal connectivity. lockTimeout is the
+ * crash-safety ceiling: if a tick dies without releasing, the lock auto-expires
+ * after this long and monitoring resumes.
+ */
+const TICK_LOCK_TIMEOUT_MS: number = 5 * 60 * 1000;
+
+/*
+ * Maximum telemetry-monitor evaluations (ClickHouse count/aggregate queries) in
+ * flight at once within a tick. Caps the load a single tick can put on the
+ * background ClickHouse pool regardless of how many monitors are due, so a large
+ * project cannot launch hundreds of simultaneous queries. Sized to the
+ * background pool (CLICKHOUSE_BACKGROUND_MAX_OPEN_CONNECTIONS, default 10).
+ */
+const EVALUATION_CONCURRENCY_LIMIT: number = 10;
+
+/**
+ * Evaluate a single telemetry monitor and then advance its schedule.
+ *
+ * The schedule is stamped AFTER evaluation (not before, as the old code did for
+ * the whole batch up front): a monitor whose query is slow or fails is retried
+ * on its own interval rather than re-picked by the very next tick while still
+ * running. Stamping happens in `finally` so even a failed/empty evaluation
+ * advances and a transient error cannot wedge a monitor into being re-selected
+ * every tick.
+ */
+const evaluateAndStampMonitor: (monitor: Monitor) => Promise<void> = async (
+  monitor: Monitor,
+): Promise<void> => {
+  let nextPing: Date = OneUptimeDate.addRemoveMinutes(
+    OneUptimeDate.getCurrentDate(),
+    1,
+  );
+
+  if (monitor.monitoringInterval) {
+    try {
+      nextPing = CronTab.getNextExecutionTime(
+        monitor.monitoringInterval as string,
+      );
+    } catch (err) {
+      logger.error(err, {
+        service: "workers",
+        projectId: monitor.projectId?.toString(),
+      } as LogAttributes);
+    }
+  }
+
+  try {
+    if (
+      !monitor.monitorSteps ||
+      !monitor.monitorSteps.data?.monitorStepsInstanceArray?.length ||
+      monitor.monitorSteps.data.monitorStepsInstanceArray.length === 0
+    ) {
+      logger.debug("Monitor has no steps. Skipping...", {
+        service: "workers",
+        projectId: monitor.projectId?.toString(),
+      });
+      return;
+    }
+
+    const response:
+      | LogMonitorResponse
+      | TraceMonitorResponse
+      | MetricMonitorResponse
+      | ExceptionMonitorResponse
+      | ProfileMonitorResponse = await monitorTelemetryMonitor({
+      monitorStep: monitor.monitorSteps.data!.monitorStepsInstanceArray[0]!,
+      monitorType: monitor.monitorType!,
+      monitorId: monitor.id!,
+      projectId: monitor.projectId!,
+    });
+
+    /*
+     * Fire-and-forget the write / criteria-processing side. It has its own
+     * per-monitor lock and can reject under contention so the work is retried
+     * rather than run unlocked — attach a catch so one monitor's failure does
+     * not surface as an unhandled rejection or block the evaluation pool.
+     */
+    MonitorResourceUtil.monitorResource(response).catch((err: Error) => {
+      logger.error(
+        `Error while processing telemetry monitor resource: ${monitor.id?.toString()}`,
+      );
+      logger.error(err);
+    });
+  } catch (error) {
+    const attrs: LogAttributes = {
+      projectId: monitor.projectId?.toString(),
+    };
+    logger.error(
+      `Error while evaluating telemetry monitor: ${monitor.id?.toString()}`,
+      attrs,
+    );
+    logger.error(error, attrs);
+  } finally {
+    try {
+      await MonitorService.updateOneById({
+        id: monitor.id!,
+        data: {
+          telemetryMonitorLastMonitorAt: OneUptimeDate.getCurrentDate(),
+          telemetryMonitorNextMonitorAt: nextPing,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        `Failed to advance telemetry monitor schedule: ${monitor.id?.toString()}`,
+      );
+      logger.error(err);
+    }
+  }
+};
+
 RunCron(
   "TelemetryMonitor:MonitorTelemetryMonitor",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -118,188 +244,94 @@ RunCron(
       service: "workers",
     });
 
-    const telemetryMonitors: Array<Monitor> = await MonitorService.findAllBy({
-      query: {
-        disableActiveMonitoring: false,
-        disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
-        disableActiveMonitoringBecauseOfManualIncident: false,
-
-        monitorType: DatabaseQueryHelper.any([
-          MonitorType.Logs,
-          MonitorType.Traces,
-          MonitorType.Metrics,
-          MonitorType.Exceptions,
-          MonitorType.Profiles,
-          MonitorType.Kubernetes,
-          MonitorType.Docker,
-          MonitorType.Host,
-          MonitorType.Podman,
-          MonitorType.DockerSwarm,
-          MonitorType.Proxmox,
-          MonitorType.Ceph,
-          MonitorType.IoTDevice,
-        ]),
-        telemetryMonitorNextMonitorAt:
-          DatabaseQueryHelper.lessThanEqualToOrNull(
-            OneUptimeDate.getCurrentDate(),
-          ),
-      },
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-        monitorSteps: true,
-        createdAt: true,
-        monitoringInterval: true,
-        monitorType: true,
-        projectId: true,
-      },
-    });
-
-    const updatePromises: Array<Promise<void>> = [];
-
-    for (const telemetryMonitor of telemetryMonitors) {
-      let nextPing: Date = OneUptimeDate.addRemoveMinutes(
-        OneUptimeDate.getCurrentDate(),
-        1,
+    /*
+     * Overlap guard — skip this tick entirely if a previous one is still
+     * running (acquireAttemptsLimit: 1 means we do not queue behind it). This
+     * is what stops per-minute ticks from stacking when evaluations run long.
+     */
+    let tickMutex: SemaphoreMutex | null = null;
+    try {
+      tickMutex = await Semaphore.lock({
+        key: "global",
+        namespace: "TelemetryMonitor:MonitorTelemetryMonitor",
+        lockTimeout: TICK_LOCK_TIMEOUT_MS,
+        acquireTimeout: 1000,
+        acquireAttemptsLimit: 1,
+      });
+    } catch {
+      logger.debug(
+        "TelemetryMonitor:MonitorTelemetryMonitor tick already running; skipping this tick",
+        { service: "workers" },
       );
-
-      if (telemetryMonitor.monitoringInterval) {
-        try {
-          nextPing = CronTab.getNextExecutionTime(
-            telemetryMonitor.monitoringInterval as string,
-          );
-        } catch (err) {
-          logger.error(err, {
-            service: "workers",
-            projectId: telemetryMonitor.projectId?.toString(),
-          });
-        }
-      }
-
-      updatePromises.push(
-        MonitorService.updateOneById({
-          id: telemetryMonitor.id!,
-          data: {
-            telemetryMonitorLastMonitorAt: OneUptimeDate.getCurrentDate(),
-            telemetryMonitorNextMonitorAt: nextPing,
-          },
-          props: {
-            isRoot: true,
-          },
-        }),
-      );
+      return;
     }
 
-    await Promise.all(updatePromises);
+    try {
+      const telemetryMonitors: Array<Monitor> = await MonitorService.findAllBy({
+        query: {
+          disableActiveMonitoring: false,
+          disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
+          disableActiveMonitoringBecauseOfManualIncident: false,
 
-    logger.debug(`Found ${telemetryMonitors.length} telemetry monitors`, {
-      service: "workers",
-    });
+          monitorType: DatabaseQueryHelper.any([
+            MonitorType.Logs,
+            MonitorType.Traces,
+            MonitorType.Metrics,
+            MonitorType.Exceptions,
+            MonitorType.Profiles,
+            MonitorType.Kubernetes,
+            MonitorType.Docker,
+            MonitorType.Host,
+            MonitorType.Podman,
+            MonitorType.DockerSwarm,
+            MonitorType.Proxmox,
+            MonitorType.Ceph,
+            MonitorType.IoTDevice,
+          ]),
+          telemetryMonitorNextMonitorAt:
+            DatabaseQueryHelper.lessThanEqualToOrNull(
+              OneUptimeDate.getCurrentDate(),
+            ),
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          monitorSteps: true,
+          createdAt: true,
+          monitoringInterval: true,
+          monitorType: true,
+          projectId: true,
+        },
+      });
 
-    logger.debug(telemetryMonitors, { service: "workers" });
-
-    const monitorResponses: Array<
-      Promise<
-        | LogMonitorResponse
-        | TraceMonitorResponse
-        | MetricMonitorResponse
-        | ExceptionMonitorResponse
-        | ProfileMonitorResponse
-      >
-    > = [];
-
-    /*
-     * Tracks which monitor each promise in monitorResponses belongs to
-     * (same index). Monitors without steps are skipped above, so
-     * telemetryMonitors cannot be used to attribute failures by index.
-     */
-    const evaluatedMonitors: Array<Monitor> = [];
-
-    for (const monitor of telemetryMonitors) {
-      try {
-        if (
-          !monitor.monitorSteps ||
-          !monitor.monitorSteps.data?.monitorStepsInstanceArray?.length ||
-          monitor.monitorSteps.data.monitorStepsInstanceArray.length === 0
-        ) {
-          logger.debug("Monitor has no steps. Skipping...", {
-            service: "workers",
-            projectId: monitor.projectId?.toString(),
-          });
-          continue;
-        }
-
-        monitorResponses.push(
-          monitorTelemetryMonitor({
-            monitorStep:
-              monitor.monitorSteps.data!.monitorStepsInstanceArray[0]!,
-            monitorType: monitor.monitorType!,
-            monitorId: monitor.id!,
-            projectId: monitor.projectId!,
-          }),
-        );
-        evaluatedMonitors.push(monitor);
-      } catch (error) {
-        const attrs: LogAttributes = {
-          projectId: monitor.projectId?.toString(),
-        };
-        logger.error(
-          `Error while processing incoming request monitor: ${monitor.id?.toString()}`,
-          attrs,
-        );
-        logger.error(error, attrs);
-      }
-    }
-
-    /*
-     * Settle every evaluation instead of failing fast. A single rejected
-     * evaluation (e.g. a monitor step missing its type-specific config)
-     * must not abort criteria evaluation for every other monitor in this
-     * tick — telemetryMonitorLastMonitorAt has already been stamped above,
-     * so a skipped evaluation would not be retried until the next tick.
-     */
-    const settledResponses: Array<
-      PromiseSettledResult<
-        | LogMonitorResponse
-        | TraceMonitorResponse
-        | MetricMonitorResponse
-        | ExceptionMonitorResponse
-        | ProfileMonitorResponse
-      >
-    > = await Promise.allSettled(monitorResponses);
-
-    for (const [index, settledResponse] of settledResponses.entries()) {
-      const evaluatedMonitor: Monitor | undefined = evaluatedMonitors[index];
-
-      if (settledResponse.status === "rejected") {
-        const attrs: LogAttributes = {
-          projectId: evaluatedMonitor?.projectId?.toString(),
-        };
-        logger.error(
-          `Error while evaluating telemetry monitor: ${evaluatedMonitor?.id?.toString()}`,
-          attrs,
-        );
-        logger.error(settledResponse.reason, attrs);
-        continue;
-      }
+      logger.debug(`Found ${telemetryMonitors.length} telemetry monitors`, {
+        service: "workers",
+      });
 
       /*
-       * Fire-and-forget per monitor (we intentionally do not await each
-       * evaluation serially). monitorResource() can reject — notably it now
-       * throws when the per-monitor lock is contended so the work is retried
-       * rather than run unlocked — so attach a catch to keep one monitor's
-       * failure from surfacing as an unhandled promise rejection.
+       * Evaluate with a bounded fan-out instead of launching every due
+       * monitor's query at once. runWithConcurrency keeps at most
+       * EVALUATION_CONCURRENCY_LIMIT count/aggregate queries in flight and
+       * settles every monitor (one failure never aborts the others). Each
+       * monitor advances its own schedule inside evaluateAndStampMonitor.
        */
-      MonitorResourceUtil.monitorResource(settledResponse.value).catch(
-        (err: Error) => {
-          logger.error(
-            `Error while processing telemetry monitor resource: ${evaluatedMonitor?.id?.toString()}`,
-          );
-          logger.error(err);
+      await runWithConcurrency(
+        telemetryMonitors,
+        EVALUATION_CONCURRENCY_LIMIT,
+        (monitor: Monitor) => {
+          return evaluateAndStampMonitor(monitor);
         },
       );
+    } finally {
+      if (tickMutex) {
+        try {
+          await Semaphore.release(tickMutex);
+        } catch (err) {
+          logger.error(err);
+        }
+      }
     }
   },
 );
@@ -857,14 +889,18 @@ const monitorTrace: MonitorTraceFunction = async (data: {
 
   query.projectId = data.projectId;
 
-  const countTraces: PositiveNumber = await SpanService.countBy({
-    query: query,
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    props: {
-      isRoot: true,
+  const countTraces: PositiveNumber = await SpanService.countBy(
+    {
+      query: query,
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+      maxExecutionTimeInSeconds: BACKGROUND_COUNT_MAX_EXECUTION_SECONDS,
     },
-  });
+    backgroundCountExecuteOptions(),
+  );
 
   return {
     projectId: data.projectId,
@@ -1088,7 +1124,9 @@ const monitorException: MonitorExceptionFunction = async (data: {
       props: {
         isRoot: true,
       },
+      maxExecutionTimeInSeconds: BACKGROUND_COUNT_MAX_EXECUTION_SECONDS,
     },
+    backgroundCountExecuteOptions(),
   );
 
   return {
@@ -1124,14 +1162,18 @@ const monitorProfile: MonitorProfileFunction = async (data: {
 
   analyticsQuery.projectId = data.projectId;
 
-  const profileCount: PositiveNumber = await ProfileService.countBy({
-    query: analyticsQuery,
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    props: {
-      isRoot: true,
+  const profileCount: PositiveNumber = await ProfileService.countBy(
+    {
+      query: analyticsQuery,
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+      maxExecutionTimeInSeconds: BACKGROUND_COUNT_MAX_EXECUTION_SECONDS,
     },
-  });
+    backgroundCountExecuteOptions(),
+  );
 
   return {
     projectId: data.projectId,
@@ -3068,14 +3110,18 @@ const monitorLogs: MonitorLogsFunction = async (data: {
   const query: Query<Log> = MonitorStepLogMonitorUtil.toQuery(logQuery);
   query.projectId = data.projectId;
 
-  const countLogs: PositiveNumber = await LogService.countBy({
-    query: query,
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    props: {
-      isRoot: true,
+  const countLogs: PositiveNumber = await LogService.countBy(
+    {
+      query: query,
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+      maxExecutionTimeInSeconds: BACKGROUND_COUNT_MAX_EXECUTION_SECONDS,
     },
-  });
+    backgroundCountExecuteOptions(),
+  );
 
   return {
     projectId: data.projectId,

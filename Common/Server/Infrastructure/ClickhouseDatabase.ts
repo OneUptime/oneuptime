@@ -3,6 +3,7 @@ import {
   ClickHouseClientConfigOptions,
   dataSourceOptions,
   ingestDataSourceOptions,
+  backgroundDataSourceOptions,
   migrationDataSourceOptions,
   testDataSourceOptions,
 } from "./ClickhouseConfig";
@@ -201,6 +202,15 @@ export const ClickhouseAppInstance: ClickhouseDatabase = new ClickhouseDatabase(
  */
 export const ClickhouseIngestInstance: ClickhouseDatabase =
   new ClickhouseDatabase(ingestDataSourceOptions);
+
+/*
+ * Separate pool for background / cron analytics reads (telemetry-monitor
+ * evaluation, etc). Isolates heavy background count/aggregate bursts from the
+ * App pool so dashboard reads keep their HTTP sockets. Connected at boot in
+ * App/Index.ts alongside the App + Ingest pools.
+ */
+export const ClickhouseBackgroundInstance: ClickhouseDatabase =
+  new ClickhouseDatabase(backgroundDataSourceOptions);
 
 /*
  * Separate pool for schema sync + data migrations. Identical to the App pool

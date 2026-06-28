@@ -11,6 +11,7 @@ import {
   ClickhouseUsername,
   MaxClickhouseConnections,
   MaxClickhouseIngestConnections,
+  MaxClickhouseBackgroundConnections,
   ShouldClickhouseSslEnable,
 } from "../EnvironmentConfig";
 import Hostname from "../../Types/API/Hostname";
@@ -97,6 +98,20 @@ export const dataSourceOptions: ClickHouseClientConfigOptions = options;
 export const ingestDataSourceOptions: ClickHouseClientConfigOptions = {
   ...options,
   max_open_connections: MaxClickhouseIngestConnections,
+};
+
+/*
+ * Dedicated pool for background / cron analytics reads (telemetry-monitor
+ * evaluation, etc). Identical to the App pool except for its own
+ * `max_open_connections` budget, so a storm of heavy background count /
+ * aggregate queries draws from this pool's sockets and can never starve the
+ * App pool that serves user-facing dashboard reads. The 58s socket-idle
+ * request_timeout is retained; background counts additionally carry a tighter
+ * per-query max_execution_time so they return well before it.
+ */
+export const backgroundDataSourceOptions: ClickHouseClientConfigOptions = {
+  ...options,
+  max_open_connections: MaxClickhouseBackgroundConnections,
 };
 
 /*

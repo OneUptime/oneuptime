@@ -8,6 +8,10 @@ import Dictionary from "../Dictionary";
 import { JSONObject } from "../JSON";
 import LogSeverity from "../Log/LogSeverity";
 import ObjectID from "../ObjectID";
+import {
+  DEFAULT_TELEMETRY_MONITOR_WINDOW_SECONDS,
+  clampTelemetryMonitorWindowSeconds,
+} from "./TelemetryMonitorWindow";
 
 export default interface MonitorStepLogMonitor {
   attributes: Dictionary<string | number | boolean>;
@@ -64,14 +68,20 @@ export class MonitorStepLogMonitorUtil {
       query.body = new Search(monitorStepLogMonitor.body);
     }
 
-    if (monitorStepLogMonitor.lastXSecondsOfLogs) {
-      const endDate: Date = OneUptimeDate.getCurrentDate();
-      const startDate: Date = OneUptimeDate.addRemoveSeconds(
-        endDate,
-        monitorStepLogMonitor.lastXSecondsOfLogs * -1,
-      );
-      query.time = new InBetween(startDate, endDate);
-    }
+    /*
+     * Always apply a bounded rolling-time window. clampTelemetryMonitorWindowSeconds
+     * coalesces a missing / zero / invalid value to a safe default and caps an
+     * absurdly large one, so the count() can never become an unbounded full-table
+     * scan (see TelemetryMonitorWindow).
+     */
+    const endDate: Date = OneUptimeDate.getCurrentDate();
+    const startDate: Date = OneUptimeDate.addRemoveSeconds(
+      endDate,
+      clampTelemetryMonitorWindowSeconds(
+        monitorStepLogMonitor.lastXSecondsOfLogs,
+      ) * -1,
+    );
+    query.time = new InBetween(startDate, endDate);
 
     return query;
   }
@@ -97,7 +107,9 @@ export class MonitorStepLogMonitorUtil {
         json["telemetryServiceIds"] as Array<JSONObject>,
       ),
       entityKeys: (json["entityKeys"] as Array<string>) || [],
-      lastXSecondsOfLogs: json["lastXSecondsOfLogs"] as number,
+      lastXSecondsOfLogs:
+        (json["lastXSecondsOfLogs"] as number | undefined) ||
+        DEFAULT_TELEMETRY_MONITOR_WINDOW_SECONDS,
     };
   }
 

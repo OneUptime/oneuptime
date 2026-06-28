@@ -6,6 +6,10 @@ import Search from "../BaseDatabase/Search";
 import OneUptimeDate from "../Date";
 import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
+import {
+  DEFAULT_TELEMETRY_MONITOR_WINDOW_SECONDS,
+  clampTelemetryMonitorWindowSeconds,
+} from "./TelemetryMonitorWindow";
 
 export default interface MonitorStepExceptionMonitor {
   telemetryServiceIds: Array<ObjectID>;
@@ -59,14 +63,18 @@ export class MonitorStepExceptionMonitorUtil {
       query.message = new Search(monitorStepExceptionMonitor.message);
     }
 
-    if (monitorStepExceptionMonitor.lastXSecondsOfExceptions) {
-      const endDate: Date = OneUptimeDate.getCurrentDate();
-      const startDate: Date = OneUptimeDate.addRemoveSeconds(
-        endDate,
-        monitorStepExceptionMonitor.lastXSecondsOfExceptions * -1,
-      );
-      query.time = new InBetween(startDate, endDate);
-    }
+    /*
+     * Always apply a bounded rolling-time window so the count() can never
+     * become an unbounded full-table scan (see TelemetryMonitorWindow).
+     */
+    const endDate: Date = OneUptimeDate.getCurrentDate();
+    const startDate: Date = OneUptimeDate.addRemoveSeconds(
+      endDate,
+      clampTelemetryMonitorWindowSeconds(
+        monitorStepExceptionMonitor.lastXSecondsOfExceptions,
+      ) * -1,
+    );
+    query.time = new InBetween(startDate, endDate);
 
     return query;
   }
@@ -94,7 +102,8 @@ export class MonitorStepExceptionMonitorUtil {
       includeResolved: Boolean(json["includeResolved"]) || false,
       includeArchived: Boolean(json["includeArchived"]) || false,
       lastXSecondsOfExceptions:
-        (json["lastXSecondsOfExceptions"] as number | undefined) || 60,
+        (json["lastXSecondsOfExceptions"] as number | undefined) ||
+        DEFAULT_TELEMETRY_MONITOR_WINDOW_SECONDS,
     };
   }
 

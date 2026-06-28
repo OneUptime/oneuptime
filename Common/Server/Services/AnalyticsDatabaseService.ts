@@ -98,6 +98,14 @@ export interface ClickhouseExecuteOptions {
   clickhouseSettings?: ClickHouseSettings | undefined;
   queryId?: string | undefined;
   /**
+   * Cancel the in-flight ClickHouse request when this signal aborts. The
+   * @clickhouse/client honors `abort_signal` on query()/exec(), actively
+   * cancelling the HTTP request and releasing its socket back to the pool —
+   * so a disconnected portal request or a cron-side timeout reclaims the
+   * connection instead of letting an orphaned query keep running.
+   */
+  abortSignal?: AbortSignal | undefined;
+  /**
    * Route this statement through the dedicated migration pool
    * (ClickhouseMigrationInstance) instead of the App pool. The migration pool
    * has a much higher `request_timeout` (socket-idle ceiling) so a long DDL /
@@ -374,7 +382,10 @@ export default class AnalyticsDatabaseService<
   }
 
   @CaptureSpan()
-  public async countBy(countBy: CountBy<TBaseModel>): Promise<PositiveNumber> {
+  public async countBy(
+    countBy: CountBy<TBaseModel>,
+    options?: ClickhouseExecuteOptions,
+  ): Promise<PositiveNumber> {
     try {
       const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
@@ -388,8 +399,10 @@ export default class AnalyticsDatabaseService<
 
       const countStatement: Statement = this.toCountStatement(countBy);
 
-      const dbResult: ResultSet<"JSON"> =
-        await this.executeQuery(countStatement);
+      const dbResult: ResultSet<"JSON"> = await this.executeQuery(
+        countStatement,
+        options,
+      );
 
       logger.debug(`${this.model.tableName} Count Statement executed`, {
         tableName: this.model.tableName,
@@ -1105,10 +1118,14 @@ export default class AnalyticsDatabaseService<
      * HTTP client disconnects, wasting ClickHouse resources. With 'break'
      * mode ClickHouse returns a partial (lower-bound) count rather than
      * throwing, which is acceptable for pagination display.
+     *
+     * Background / cron callers may pass a tighter `maxExecutionTimeInSeconds`
+     * (e.g. telemetry-monitor evaluation) so a runaway count self-limits well
+     * before the 45s default and releases its connection back to the pool.
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
+        maxExecutionTimeInSeconds: countBy.maxExecutionTimeInSeconds ?? 45,
         timeoutOverflowMode: "break",
       }),
     );
@@ -1550,6 +1567,7 @@ export default class AnalyticsDatabaseService<
         ? { clickhouse_settings: options.clickhouseSettings }
         : {}),
       ...(options?.queryId ? { query_id: options.queryId } : {}),
+      ...(options?.abortSignal ? { abort_signal: options.abortSignal } : {}),
     })) as ExecResult<Stream>;
   }
 
@@ -1575,6 +1593,7 @@ export default class AnalyticsDatabaseService<
         ? { clickhouse_settings: options.clickhouseSettings }
         : {}),
       ...(options?.queryId ? { query_id: options.queryId } : {}),
+      ...(options?.abortSignal ? { abort_signal: options.abortSignal } : {}),
     });
   }
 

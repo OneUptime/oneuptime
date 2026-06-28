@@ -17,6 +17,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import {
   ClickhouseAppInstance,
   ClickhouseIngestInstance,
+  ClickhouseBackgroundInstance,
   ClickhouseMigrationInstance,
 } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
@@ -111,6 +112,14 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     );
     await ClickhouseIngestInstance.connect(
       ClickhouseIngestInstance.getDatasourceOptions(),
+    );
+    /*
+     * Background / cron read pool (telemetry-monitor evaluation, etc). Isolated
+     * from the App pool so heavy background analytics bursts cannot starve
+     * user-facing dashboard reads of HTTP sockets.
+     */
+    await ClickhouseBackgroundInstance.connect(
+      ClickhouseBackgroundInstance.getDatasourceOptions(),
     );
     /*
      * Migration pool (higher socket-idle timeout) — only connect it where it

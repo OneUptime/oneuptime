@@ -393,6 +393,44 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   }
 
   /**
+   * For a Map filter on the `attributes` column, return the name of its sibling
+   * `attributeKeys` array column when that column carries a bloom-filter skip
+   * index — so a positive-equality predicate can be prefixed with
+   * `has(attributeKeys, key)` and let the bloom index prune whole granules
+   * where the attribute key never appears, before the per-row map subscript
+   * runs. Returns null when the model has no such indexed sibling (Metric,
+   * test models, etc.), in which case no guard is emitted and behavior is
+   * unchanged.
+   *
+   * Only safe for positive equality against a NON-EMPTY value: requiring the
+   * key to be present must not change which rows match. A map subscript on a
+   * missing key reads as '' which never equals a non-empty value, so the guard
+   * is a no-op on matching rows. It must NOT be used for predicates whose
+   * semantics include "key absent" (NotEqual / IsNull / NotContains /
+   * IncludesNone) or empty-value comparisons — those would lose rows.
+   */
+  private getBloomPrunableAttributeKeysColumn(
+    mapColumnKey: string,
+  ): string | null {
+    if (mapColumnKey !== "attributes") {
+      return null;
+    }
+
+    const attributeKeysColumn: AnalyticsTableColumn | null =
+      this.model.getTableColumn("attributeKeys");
+
+    if (
+      attributeKeysColumn &&
+      attributeKeysColumn.type === TableColumnType.ArrayText &&
+      attributeKeysColumn.skipIndex?.type === SkipIndexType.BloomFilter
+    ) {
+      return attributeKeysColumn.key;
+    }
+
+    return null;
+  }
+
+  /**
    * Conditions to append to "WHERE TRUE"
    */
   public toWhereStatement(query: Query<TBaseModel>): Statement {
@@ -789,12 +827,39 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           if (mapEntry instanceof EqualTo) {
+            const equalToValue: string = String(
+              (mapEntry as EqualTo<any>).value ?? "",
+            );
+            /*
+             * Prune granules via the attributeKeys bloom index before the
+             * per-row map subscript. Safe only for a non-empty value (a missing
+             * key reads as '' which never equals it, so requiring the key to be
+             * present does not change which rows match).
+             */
+            const bloomColumn: string | null = equalToValue
+              ? this.getBloomPrunableAttributeKeysColumn(key)
+              : null;
+            if (bloomColumn) {
+              whereStatement.append(
+                SQL`AND has(${bloomColumn}, ${{
+                  value: mapKey,
+                  type: TableColumnType.Text,
+                }}) AND ${key}[${{
+                  value: mapKey,
+                  type: TableColumnType.Text,
+                }}] = ${{
+                  value: equalToValue,
+                  type: TableColumnType.Text,
+                }}`,
+              );
+              continue;
+            }
             whereStatement.append(
               SQL`AND ${key}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
               }}] = ${{
-                value: String((mapEntry as EqualTo<any>).value ?? ""),
+                value: equalToValue,
                 type: TableColumnType.Text,
               }}`,
             );
@@ -919,12 +984,36 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           // Bare string/number/boolean — direct Map subscript.
+          const bareValue: string = String(mapEntry);
+          /*
+           * Prune granules via the attributeKeys bloom index before the per-row
+           * map subscript (see getBloomPrunableAttributeKeysColumn). Safe only
+           * for a non-empty value.
+           */
+          const bareBloomColumn: string | null = bareValue
+            ? this.getBloomPrunableAttributeKeysColumn(key)
+            : null;
+          if (bareBloomColumn) {
+            whereStatement.append(
+              SQL`AND has(${bareBloomColumn}, ${{
+                value: mapKey,
+                type: TableColumnType.Text,
+              }}) AND ${key}[${{
+                value: mapKey,
+                type: TableColumnType.Text,
+              }}] = ${{
+                value: bareValue,
+                type: TableColumnType.Text,
+              }}`,
+            );
+            continue;
+          }
           whereStatement.append(
             SQL`AND ${key}[${{
               value: mapKey,
               type: TableColumnType.Text,
             }}] = ${{
-              value: String(mapEntry),
+              value: bareValue,
               type: TableColumnType.Text,
             }}`,
           );
