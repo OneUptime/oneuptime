@@ -95,6 +95,15 @@ nginx:
   databaseMaxOpenConnections:
   disableTelemetryCollection: false
   disableAutoscaler: false
+  # Per-service autoscaling (HorizontalPodAutoscaler) override. Any key omitted
+  # here inherits the global `autoscaling:` block. Only takes effect when the
+  # HPA is active (enabled here or globally, and disableAutoscaler is false).
+  # autoscaling:
+  #   enabled: true
+  #   minReplicas: 2
+  #   maxReplicas: 10
+  #   targetCPUUtilizationPercentage: 80
+  #   targetMemoryUtilizationPercentage: 80
   listenAddress: ""
   listenOptions: ""
   serverNamesHash:
@@ -706,6 +715,13 @@ redis:
 
 
 
+# Global HorizontalPodAutoscaler defaults applied to every stateless service
+# (app, worker, nginx, home, ai-agent, probes, test-server) that is not managed
+# by KEDA. Each service can override any of these keys via its own
+# `<service>.autoscaling:` block (e.g. `nginx.autoscaling.maxReplicas`); keys not
+# set there inherit the values below. Note: a service that pins `replicaCount`
+# keeps that fixed count and ignores the HPA — set `replicaCount: null` to let
+# autoscaling manage replicas.
 autoscaling:
   enabled: false
   minReplicas: 1
@@ -841,6 +857,15 @@ probes:
     disableTelemetryCollection: false
     enableProfiling: false
     disableAutoscaler: false
+    # Per-service autoscaling (HorizontalPodAutoscaler) override. Any key omitted
+    # here inherits the global `autoscaling:` block. Only takes effect when the
+    # HPA is active (enabled here or globally, and disableAutoscaler is false).
+    # autoscaling:
+    #   enabled: true
+    #   minReplicas: 2
+    #   maxReplicas: 10
+    #   targetCPUUtilizationPercentage: 80
+    #   targetMemoryUtilizationPercentage: 80
     ports:
       http: 3874
     # Proxy configuration for probe connections
@@ -930,6 +955,15 @@ testServer:
   disableTelemetryCollection: false
   enableProfiling: false
   disableAutoscaler: false
+  # Per-service autoscaling (HorizontalPodAutoscaler) override. Any key omitted
+  # here inherits the global `autoscaling:` block. Only takes effect when the
+  # HPA is active (enabled here or globally, and disableAutoscaler is false).
+  # autoscaling:
+  #   enabled: true
+  #   minReplicas: 2
+  #   maxReplicas: 10
+  #   targetCPUUtilizationPercentage: 80
+  #   targetMemoryUtilizationPercentage: 80
   ports:
     http: 3800
   resources: {}
@@ -1102,6 +1136,15 @@ home:
   disableTelemetryCollection: false
   enableProfiling: false
   disableAutoscaler: false
+  # Per-service autoscaling (HorizontalPodAutoscaler) override. Any key omitted
+  # here inherits the global `autoscaling:` block. Only takes effect when the
+  # HPA is active (enabled here or globally, and disableAutoscaler is false).
+  # autoscaling:
+  #   enabled: true
+  #   minReplicas: 2
+  #   maxReplicas: 10
+  #   targetCPUUtilizationPercentage: 80
+  #   targetMemoryUtilizationPercentage: 80
   ports:
     http: 1444
   resources:
@@ -1123,6 +1166,15 @@ app:
   disableTelemetryCollection: false
   enableProfiling: false
   disableAutoscaler: false
+  # Per-service autoscaling (HorizontalPodAutoscaler) override. Any key omitted
+  # here inherits the global `autoscaling:` block. Only takes effect when the
+  # HPA is active (enabled here or globally, and disableAutoscaler is false).
+  # autoscaling:
+  #   enabled: true
+  #   minReplicas: 2
+  #   maxReplicas: 10
+  #   targetCPUUtilizationPercentage: 80
+  #   targetMemoryUtilizationPercentage: 80
   # Per-service Pod Disruption Budget override. Any key omitted here falls back
   # to the global podDisruptionBudget block above. Every stateless service
   # (worker, nginx, home, aiAgent, probes.<key>, pgbouncer) accepts the same
@@ -1192,6 +1244,15 @@ worker:
   disableTelemetryCollection: false
   enableProfiling: false
   disableAutoscaler: false
+  # Per-service autoscaling (HorizontalPodAutoscaler) override. Any key omitted
+  # here inherits the global `autoscaling:` block. Only takes effect when the
+  # HPA is active (enabled here or globally, and disableAutoscaler is false).
+  # autoscaling:
+  #   enabled: true
+  #   minReplicas: 2
+  #   maxReplicas: 10
+  #   targetCPUUtilizationPercentage: 80
+  #   targetMemoryUtilizationPercentage: 80
   ports:
     http: 3002
   resources:
@@ -1233,6 +1294,15 @@ aiAgent:
   disableTelemetryCollection: false
   enableProfiling: false
   disableAutoscaler: false
+  # Per-service autoscaling (HorizontalPodAutoscaler) override. Any key omitted
+  # here inherits the global `autoscaling:` block. Only takes effect when the
+  # HPA is active (enabled here or globally, and disableAutoscaler is false).
+  # autoscaling:
+  #   enabled: true
+  #   minReplicas: 2
+  #   maxReplicas: 10
+  #   targetCPUUtilizationPercentage: 80
+  #   targetMemoryUtilizationPercentage: 80
   # AI Agent ID from OneUptime dashboard (required when enabled)
   id:
   # AI Agent Key from OneUptime dashboard (will be stored in secrets if not provided)

@@ -21,7 +21,7 @@ spec:
   {{- if and (ne $val.replicaCount nil) $val.disableAutoscaler }}
   replicas: {{ $val.replicaCount }}
   {{- else }}
-  {{- if or (not $.Values.autoscaling.enabled) ($val.disableAutoscaler) }}
+  {{- if or (not (eq (include "oneuptime.autoscalingEnabled" (dict "Values" $.Values "Override" $val.autoscaling)) "true")) ($val.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}
@@ -160,7 +160,7 @@ spec:
 
 {{- if and (not $val.disableAutoscaler) (not (and $.Values.keda.enabled (and $val.keda $val.keda.enabled))) }}
 # OneUptime probe autoscaler
-{{- $probeAutoScalerArgs := dict "ServiceName" (printf "probe-%s" $key) "Release" $.Release "Values" $.Values -}}
+{{- $probeAutoScalerArgs := dict "ServiceName" (printf "probe-%s" $key) "Release" $.Release "Values" $.Values "Override" $val.autoscaling -}}
 {{- include "oneuptime.autoscaler" $probeAutoScalerArgs }}
 {{- end }}
 ---

@@ -19,7 +19,7 @@ spec:
   {{- if and (ne $.Values.aiAgent.replicaCount nil) $.Values.aiAgent.disableAutoscaler }}
   replicas: {{ $.Values.aiAgent.replicaCount }}
   {{- else }}
-  {{- if or (not $.Values.autoscaling.enabled) ($.Values.aiAgent.disableAutoscaler) }}
+  {{- if or (not (eq (include "oneuptime.autoscalingEnabled" (dict "Values" $.Values "Override" $.Values.aiAgent.autoscaling)) "true")) ($.Values.aiAgent.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}
@@ -119,7 +119,7 @@ spec:
 
 {{- if and (not $.Values.aiAgent.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.aiAgent.keda.enabled)) }}
 # OneUptime AI Agent autoscaler (only when KEDA is not enabled, as KEDA manages its own HPA)
-{{- $aiAgentAutoScalerArgs := dict "ServiceName" "ai-agent" "Release" $.Release "Values" $.Values -}}
+{{- $aiAgentAutoScalerArgs := dict "ServiceName" "ai-agent" "Release" $.Release "Values" $.Values "Override" $.Values.aiAgent.autoscaling -}}
 {{- include "oneuptime.autoscaler" $aiAgentAutoScalerArgs }}
 {{- end }}
 

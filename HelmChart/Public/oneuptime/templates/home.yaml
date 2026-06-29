@@ -20,7 +20,7 @@ spec:
   {{- if $.Values.home.replicaCount }}
   replicas: {{ $.Values.home.replicaCount }}
   {{- else }}
-  {{- if or (not $.Values.autoscaling.enabled) ($.Values.home.disableAutoscaler) }}
+  {{- if or (not (eq (include "oneuptime.autoscalingEnabled" (dict "Values" $.Values "Override" $.Values.home.autoscaling)) "true")) ($.Values.home.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}
@@ -130,7 +130,7 @@ spec:
 
 # OneUptime home autoscaler
 {{- if not $.Values.home.disableAutoscaler }}
-{{- $homeAutoScalerArgs := dict "ServiceName" "home" "Release" $.Release "Values" $.Values -}}
+{{- $homeAutoScalerArgs := dict "ServiceName" "home" "Release" $.Release "Values" $.Values "Override" $.Values.home.autoscaling -}}
 {{- include "oneuptime.autoscaler" $homeAutoScalerArgs }}
 {{- end }}
 ---

@@ -265,6 +265,27 @@
                 "disableAutoscaler": {
                     "type": "boolean"
                 },
+                "autoscaling": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minReplicas": {
+                            "type": "integer"
+                        },
+                        "maxReplicas": {
+                            "type": "integer"
+                        },
+                        "targetCPUUtilizationPercentage": {
+                            "type": "integer"
+                        },
+                        "targetMemoryUtilizationPercentage": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "listenAddress": {
                     "type": "string"
                 },
@@ -1491,6 +1512,27 @@
                         "disableAutoscaler": {
                             "type": "boolean"
                         },
+                        "autoscaling": {
+                            "type": "object",
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "minReplicas": {
+                                    "type": "integer"
+                                },
+                                "maxReplicas": {
+                                    "type": "integer"
+                                },
+                                "targetCPUUtilizationPercentage": {
+                                    "type": "integer"
+                                },
+                                "targetMemoryUtilizationPercentage": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
                         "ports": {
                             "type": "object",
                             "properties": {
@@ -1604,6 +1646,27 @@
                 },
                 "disableAutoscaler": {
                     "type": "boolean"
+                },
+                "autoscaling": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minReplicas": {
+                            "type": "integer"
+                        },
+                        "maxReplicas": {
+                            "type": "integer"
+                        },
+                        "targetCPUUtilizationPercentage": {
+                            "type": "integer"
+                        },
+                        "targetMemoryUtilizationPercentage": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
                 },
                 "ports": {
                     "type": "object",
@@ -2170,6 +2233,27 @@
                 "disableAutoscaler": {
                     "type": "boolean"
                 },
+                "autoscaling": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minReplicas": {
+                            "type": "integer"
+                        },
+                        "maxReplicas": {
+                            "type": "integer"
+                        },
+                        "targetCPUUtilizationPercentage": {
+                            "type": "integer"
+                        },
+                        "targetMemoryUtilizationPercentage": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "ports": {
                     "type": "object",
                     "properties": {
@@ -2217,6 +2301,27 @@
                 },
                 "disableAutoscaler": {
                     "type": "boolean"
+                },
+                "autoscaling": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minReplicas": {
+                            "type": "integer"
+                        },
+                        "maxReplicas": {
+                            "type": "integer"
+                        },
+                        "targetCPUUtilizationPercentage": {
+                            "type": "integer"
+                        },
+                        "targetMemoryUtilizationPercentage": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
                 },
                 "ports": {
                     "type": "object",
@@ -2287,6 +2392,27 @@
                 },
                 "disableAutoscaler": {
                     "type": "boolean"
+                },
+                "autoscaling": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minReplicas": {
+                            "type": "integer"
+                        },
+                        "maxReplicas": {
+                            "type": "integer"
+                        },
+                        "targetCPUUtilizationPercentage": {
+                            "type": "integer"
+                        },
+                        "targetMemoryUtilizationPercentage": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
                 },
                 "ports": {
                     "type": "object",
@@ -2409,6 +2535,27 @@
                 },
                 "disableAutoscaler": {
                     "type": "boolean"
+                },
+                "autoscaling": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minReplicas": {
+                            "type": "integer"
+                        },
+                        "maxReplicas": {
+                            "type": "integer"
+                        },
+                        "targetCPUUtilizationPercentage": {
+                            "type": "integer"
+                        },
+                        "targetMemoryUtilizationPercentage": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
                 },
                 "ports": {
                     "type": "object",
@@ -2677,6 +2824,27 @@
                 },
                 "disableAutoscaler": {
                     "type": "boolean"
+                },
+                "autoscaling": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minReplicas": {
+                            "type": "integer"
+                        },
+                        "maxReplicas": {
+                            "type": "integer"
+                        },
+                        "targetCPUUtilizationPercentage": {
+                            "type": "integer"
+                        },
+                        "targetMemoryUtilizationPercentage": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
                 },
                 "id": {
                     "type": [
