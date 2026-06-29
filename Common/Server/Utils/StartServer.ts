@@ -42,11 +42,11 @@ import JSONFunctions from "../../Types/JSONFunctions";
 import Port from "../../Types/Port";
 import Typeof from "../../Types/Typeof";
 import CookieParser from "cookie-parser";
+import compression from "compression";
 import cors from "cors";
 import zlib from "zlib";
 import crypto from "crypto";
 import path from "path";
-import "ejs";
 // Make sure we have stack trace for debugging.
 Error.stackTraceLimit = Infinity;
 
@@ -107,7 +107,36 @@ const setDefaultHeaders: RequestHandler = (
   next();
 };
 
+const shouldCompressResponse: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+) => boolean = (req: ExpressRequest, res: ExpressResponse): boolean => {
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    return false;
+  }
+
+  /*
+   * OTLP and other write-heavy endpoints return tiny acknowledgements; keep
+   * compression budget for large HTML / JS / CSS / JSON reads instead.
+   */
+  if (
+    req.path.startsWith("/otlp/") ||
+    req.path.startsWith("/opentelemetry.proto.collector/")
+  ) {
+    return false;
+  }
+
+  return compression.filter(req, res);
+};
+
 app.use(cors());
+app.use(
+  compression({
+    filter: shouldCompressResponse,
+    threshold: 1024,
+    level: 6,
+  }),
+);
 app.use(HttpMetricsMiddleware);
 app.use(setDefaultHeaders);
 
