@@ -909,6 +909,13 @@ the global .Values.autoscaling block, but a per-service Override block (passed a
 .Override, e.g. .Values.nginx.autoscaling) can override any subset of
 enabled / minReplicas / maxReplicas / targetCPUUtilizationPercentage /
 targetMemoryUtilizationPercentage. Keys absent from Override inherit the global.
+
+The block below intentionally preserves the newline immediately before
+"apiVersion" (the last override `{{- end }}` is NOT right-trimmed). Callers place
+a descriptive "# ... autoscaler" comment right before this include; without the
+leading newline Helm's whitespace trimming glues apiVersion onto that comment
+line, silently commenting it out and producing "error validating data: apiVersion
+not set" on upgrade. Mirrors the leading newline that oneuptime.service relies on.
 */}}
 {{- define "oneuptime.autoscaler" }}
 {{- $g := .Values.autoscaling | default dict -}}
@@ -923,7 +930,7 @@ targetMemoryUtilizationPercentage. Keys absent from Override inherit the global.
 {{- $targetCPU := $g.targetCPUUtilizationPercentage -}}
 {{- if hasKey $o "targetCPUUtilizationPercentage" -}}{{- $targetCPU = $o.targetCPUUtilizationPercentage -}}{{- end -}}
 {{- $targetMemory := $g.targetMemoryUtilizationPercentage -}}
-{{- if hasKey $o "targetMemoryUtilizationPercentage" -}}{{- $targetMemory = $o.targetMemoryUtilizationPercentage -}}{{- end -}}
+{{- if hasKey $o "targetMemoryUtilizationPercentage" -}}{{- $targetMemory = $o.targetMemoryUtilizationPercentage -}}{{- end }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
