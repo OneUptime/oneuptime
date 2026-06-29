@@ -260,7 +260,7 @@ function createConfig(options) {
     platform: "browser",
     target: "es2017",
     sourcemap: isDev ? "inline" : false,
-    minify: false,
+    minify: !isDev,
     treeShaking: true,
     splitting: true,
     publicPath,
