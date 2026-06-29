@@ -39,6 +39,19 @@ import {
   parseSyslogMessage,
 } from "../Utils/SyslogParser";
 
+class SyslogStorageFlushError extends Error {
+  public constructor(error: unknown) {
+    const message: string =
+      error instanceof Error ? error.message : String(error);
+    super(`Failed to flush syslog logs to ClickHouse: ${message}`);
+    this.name = "SyslogStorageFlushError";
+
+    if (error instanceof Error && error.stack) {
+      this.stack = `${this.stack}\nCaused by: ${error.stack}`;
+    }
+  }
+}
+
 export default class SyslogIngestService extends OtelIngestBaseService {
   private static readonly SYSLOG_FACILITY_LABELS: Array<string> = [
     "kernel",
@@ -286,6 +299,10 @@ export default class SyslogIngestService extends OtelIngestBaseService {
             await this.flushLogsBuffer(dbLogs);
           }
         } catch (processingError) {
+          if (processingError instanceof SyslogStorageFlushError) {
+            throw processingError;
+          }
+
           logger.error("Syslog ingest: error processing message");
           logger.error(processingError);
           logger.error(`Syslog message: ${rawMessage}`);
@@ -471,13 +488,19 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         TELEMETRY_LOG_FLUSH_BATCH_SIZE,
       );
 
-      const batch: Array<JSONObject> = logs.splice(0, batchSize);
+      const batch: Array<JSONObject> = logs.slice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      await LogService.insertJsonRows(batch);
+      try {
+        await LogService.insertJsonRows(batch);
+      } catch (error) {
+        throw new SyslogStorageFlushError(error);
+      }
+
+      logs.splice(0, batch.length);
     }
   }
 

@@ -91,6 +91,19 @@ const INVENTORIED_TYPE_SET: Set<string> = new Set(
   }),
 );
 
+class LogStorageFlushError extends Error {
+  public constructor(error: unknown) {
+    const message: string =
+      error instanceof Error ? error.message : String(error);
+    super(`Failed to flush logs to ClickHouse: ${message}`);
+    this.name = "LogStorageFlushError";
+
+    if (error instanceof Error && error.stack) {
+      this.stack = `${this.stack}\nCaused by: ${error.stack}`;
+    }
+  }
+}
+
 export default class OtelLogsIngestService extends OtelIngestBaseService {
   private static async flushLogsBuffer(
     logs: Array<JSONObject>,
@@ -104,13 +117,19 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         logs.length,
         TELEMETRY_LOG_FLUSH_BATCH_SIZE,
       );
-      const batch: Array<JSONObject> = logs.splice(0, batchSize);
+      const batch: Array<JSONObject> = logs.slice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      await LogService.insertJsonRows(batch);
+      try {
+        await LogService.insertJsonRows(batch);
+      } catch (error) {
+        throw new LogStorageFlushError(error);
+      }
+
+      logs.splice(0, batch.length);
     }
   }
 
@@ -131,13 +150,19 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         exceptions.length,
         TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
       );
-      const batch: Array<JSONObject> = exceptions.splice(0, batchSize);
+      const batch: Array<JSONObject> = exceptions.slice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      await ExceptionInstanceService.insertJsonRows(batch);
+      try {
+        await ExceptionInstanceService.insertJsonRows(batch);
+      } catch (error) {
+        throw new LogStorageFlushError(error);
+      }
+
+      exceptions.splice(0, batch.length);
     }
   }
 
@@ -973,18 +998,27 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     await this.flushExceptionsBuffer(dbExceptions);
                   }
                 } catch (logError) {
+                  if (logError instanceof LogStorageFlushError) {
+                    throw logError;
+                  }
                   logger.error("Error processing individual log record:");
                   logger.error(logError);
                   logger.error(`Log record data: ${JSON.stringify(log)}`);
                 }
               }
             } catch (scopeError) {
+              if (scopeError instanceof LogStorageFlushError) {
+                throw scopeError;
+              }
               logger.error("Error processing scope log:");
               logger.error(scopeError);
               logger.error(`Scope log data: ${JSON.stringify(scopeLog)}`);
             }
           }
         } catch (resourceError) {
+          if (resourceError instanceof LogStorageFlushError) {
+            throw resourceError;
+          }
           logger.error("Error processing resource log:");
           logger.error(resourceError);
           logger.error(`Resource log data: ${JSON.stringify(resourceLog)}`);

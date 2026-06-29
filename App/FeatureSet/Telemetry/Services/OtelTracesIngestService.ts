@@ -96,6 +96,19 @@ const SPAN_KIND_BY_OTEL_INT: Record<number, SpanKind> = {
   5: SpanKind.Consumer,
 };
 
+class TraceStorageFlushError extends Error {
+  public constructor(error: unknown) {
+    const message: string =
+      error instanceof Error ? error.message : String(error);
+    super(`Failed to flush traces to ClickHouse: ${message}`);
+    this.name = "TraceStorageFlushError";
+
+    if (error instanceof Error && error.stack) {
+      this.stack = `${this.stack}\nCaused by: ${error.stack}`;
+    }
+  }
+}
+
 export default class OtelTracesIngestService extends OtelIngestBaseService {
   /**
    * OTLP wire format encodes span kind as an integer (1=Internal, 2=Server,
@@ -137,13 +150,19 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         spans.length,
         TELEMETRY_TRACE_FLUSH_BATCH_SIZE,
       );
-      const batch: Array<JSONObject> = spans.splice(0, batchSize);
+      const batch: Array<JSONObject> = spans.slice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      await SpanService.insertJsonRows(batch);
+      try {
+        await SpanService.insertJsonRows(batch);
+      } catch (error) {
+        throw new TraceStorageFlushError(error);
+      }
+
+      spans.splice(0, batch.length);
     }
   }
 
@@ -159,13 +178,19 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         exceptions.length,
         TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
       );
-      const batch: Array<JSONObject> = exceptions.splice(0, batchSize);
+      const batch: Array<JSONObject> = exceptions.slice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      await ExceptionInstanceService.insertJsonRows(batch);
+      try {
+        await ExceptionInstanceService.insertJsonRows(batch);
+      } catch (error) {
+        throw new TraceStorageFlushError(error);
+      }
+
+      exceptions.splice(0, batch.length);
     }
   }
 
@@ -646,18 +671,27 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     await this.flushExceptionsBuffer(dbExceptions);
                   }
                 } catch (spanError) {
+                  if (spanError instanceof TraceStorageFlushError) {
+                    throw spanError;
+                  }
                   logger.error("Error processing individual span:");
                   logger.error(spanError);
                   logger.error(`Span data: ${JSON.stringify(span)}`);
                 }
               }
             } catch (scopeError) {
+              if (scopeError instanceof TraceStorageFlushError) {
+                throw scopeError;
+              }
               logger.error("Error processing scope span:");
               logger.error(scopeError);
               logger.error(`Scope span data: ${JSON.stringify(scopeSpan)}`);
             }
           }
         } catch (resourceError) {
+          if (resourceError instanceof TraceStorageFlushError) {
+            throw resourceError;
+          }
           logger.error("Error processing resource span:");
           logger.error(resourceError);
           logger.error(`Resource span data: ${JSON.stringify(resourceSpan)}`);

@@ -34,6 +34,19 @@ import LogDropFilterService, {
 import LogScrubRuleService from "./LogScrubRuleService";
 import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
 
+class FluentLogStorageFlushError extends Error {
+  public constructor(error: unknown) {
+    const message: string =
+      error instanceof Error ? error.message : String(error);
+    super(`Failed to flush fluent logs to ClickHouse: ${message}`);
+    this.name = "FluentLogStorageFlushError";
+
+    if (error instanceof Error && error.stack) {
+      this.stack = `${this.stack}\nCaused by: ${error.stack}`;
+    }
+  }
+}
+
 export default class FluentLogsIngestService extends OtelIngestBaseService {
   private static readonly DEFAULT_SERVICE_NAME: string = "Fluentd";
 
@@ -310,6 +323,10 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
             await this.flushLogsBuffer(dbLogs);
           }
         } catch (processingError) {
+          if (processingError instanceof FluentLogStorageFlushError) {
+            throw processingError;
+          }
+
           logger.error("Fluent logs ingest: error processing entry");
           logger.error(processingError);
         }
@@ -601,13 +618,19 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
         TELEMETRY_LOG_FLUSH_BATCH_SIZE,
       );
 
-      const batch: Array<JSONObject> = logs.splice(0, batchSize);
+      const batch: Array<JSONObject> = logs.slice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      await LogService.insertJsonRows(batch);
+      try {
+        await LogService.insertJsonRows(batch);
+      } catch (error) {
+        throw new FluentLogStorageFlushError(error);
+      }
+
+      logs.splice(0, batch.length);
     }
   }
 }
