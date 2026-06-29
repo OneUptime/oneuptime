@@ -14,6 +14,7 @@ import {
 } from "../ProbeIngest/ProcessProbeIngest";
 import { processServerMonitorFromQueue } from "../ServerMonitorIngest/ProcessServerMonitorIngest";
 import { processIncomingRequestFromQueue } from "../IncomingRequestIngest/ProcessIncomingRequestIngest";
+import { processTelemetryMonitorEvaluationFromQueue } from "../../../Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import logger from "Common/Server/Utils/Logger";
 import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
@@ -240,6 +241,17 @@ if (DisableQueueWorkers) {
               }
               logger.debug(
                 `Successfully processed incoming request ingest job`,
+              );
+              break;
+
+            case TelemetryType.TelemetryMonitorEvaluation:
+              if (jobData.telemetryMonitorEvaluation) {
+                await processTelemetryMonitorEvaluationFromQueue(
+                  jobData.telemetryMonitorEvaluation,
+                );
+              }
+              logger.debug(
+                `Successfully processed telemetry monitor evaluation job`,
               );
               break;
 

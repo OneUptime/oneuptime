@@ -95,6 +95,15 @@ nginx:
   databaseMaxOpenConnections:
   disableTelemetryCollection: false
   disableAutoscaler: false
+  # Per-service autoscaling (HorizontalPodAutoscaler) override. Any key omitted
+  # here inherits the global `autoscaling:` block. Only takes effect when the
+  # HPA is active (enabled here or globally, and disableAutoscaler is false).
+  # autoscaling:
+  #   enabled: true
+  #   minReplicas: 2
+  #   maxReplicas: 10
+  #   targetCPUUtilizationPercentage: 80
+  #   targetMemoryUtilizationPercentage: 80
   listenAddress: ""
   listenOptions: ""
   serverNamesHash:
@@ -681,6 +690,24 @@ redis:
     podSecurityContext: {}
     containerSecurityContext: {}
     resources: {}
+  # Liveness/readiness probes for the Redis container. Both run "redis-cli ping"
+  # inside the pod. Under transient disk fsync or CPU contention (common on
+  # slower disks such as GCP pd-standard) a single PING can take longer than a
+  # second, so the defaults below are deliberately tolerant: a few slow PINGs
+  # must not flap readiness or trigger a liveness kill and restart loop. Raise
+  # the timeouts/thresholds further if you run Redis on constrained nodes.
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    timeoutSeconds: 5
+    periodSeconds: 10
+    failureThreshold: 5
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 5
+    timeoutSeconds: 3
+    periodSeconds: 5
+    failureThreshold: 3
   commonConfiguration: |-
     appendonly no
     save ""
@@ -688,6 +715,13 @@ redis:
 
 
 
+# Global HorizontalPodAutoscaler defaults applied to every stateless service
+# (app, worker, nginx, home, ai-agent, probes, test-server) that is not managed
+# by KEDA. Each service can override any of these keys via its own
+# `<service>.autoscaling:` block (e.g. `nginx.autoscaling.maxReplicas`); keys not
+# set there inherit the values below. Note: a service that pins `replicaCount`
+# keeps that fixed count and ignores the HPA — set `replicaCount: null` to let
+# autoscaling manage replicas.
 autoscaling:
   enabled: false
   minReplicas: 1
@@ -823,6 +857,15 @@ probes:
     disableTelemetryCollection: false
     enableProfiling: false
     disableAutoscaler: false
+    # Per-service autoscaling (HorizontalPodAutoscaler) override. Any key omitted
+    # here inherits the global `autoscaling:` block. Only takes effect when the
+    # HPA is active (enabled here or globally, and disableAutoscaler is false).
+    # autoscaling:
+    #   enabled: true
+    #   minReplicas: 2
+    #   maxReplicas: 10
+    #   targetCPUUtilizationPercentage: 80
+    #   targetMemoryUtilizationPercentage: 80
     ports:
       http: 3874
     # Proxy configuration for probe connections
@@ -912,6 +955,15 @@ testServer:
   disableTelemetryCollection: false
   enableProfiling: false
   disableAutoscaler: false
+  # Per-service autoscaling (HorizontalPodAutoscaler) override. Any key omitted
+  # here inherits the global `autoscaling:` block. Only takes effect when the
+  # HPA is active (enabled here or globally, and disableAutoscaler is false).
+  # autoscaling:
+  #   enabled: true
+  #   minReplicas: 2
+  #   maxReplicas: 10
+  #   targetCPUUtilizationPercentage: 80
+  #   targetMemoryUtilizationPercentage: 80
   ports:
     http: 3800
   resources: {}
@@ -1084,6 +1136,15 @@ home:
   disableTelemetryCollection: false
   enableProfiling: false
   disableAutoscaler: false
+  # Per-service autoscaling (HorizontalPodAutoscaler) override. Any key omitted
+  # here inherits the global `autoscaling:` block. Only takes effect when the
+  # HPA is active (enabled here or globally, and disableAutoscaler is false).
+  # autoscaling:
+  #   enabled: true
+  #   minReplicas: 2
+  #   maxReplicas: 10
+  #   targetCPUUtilizationPercentage: 80
+  #   targetMemoryUtilizationPercentage: 80
   ports:
     http: 1444
   resources:
@@ -1105,6 +1166,15 @@ app:
   disableTelemetryCollection: false
   enableProfiling: false
   disableAutoscaler: false
+  # Per-service autoscaling (HorizontalPodAutoscaler) override. Any key omitted
+  # here inherits the global `autoscaling:` block. Only takes effect when the
+  # HPA is active (enabled here or globally, and disableAutoscaler is false).
+  # autoscaling:
+  #   enabled: true
+  #   minReplicas: 2
+  #   maxReplicas: 10
+  #   targetCPUUtilizationPercentage: 80
+  #   targetMemoryUtilizationPercentage: 80
   # Per-service Pod Disruption Budget override. Any key omitted here falls back
   # to the global podDisruptionBudget block above. Every stateless service
   # (worker, nginx, home, aiAgent, probes.<key>, pgbouncer) accepts the same
@@ -1122,12 +1192,12 @@ app:
   podSecurityContext: {}
   hostAliases: []
   containerSecurityContext: {}
-  # KEDA autoscaling configuration based on combined queue metrics (worker + workflow + telemetry)
+  # KEDA autoscaling configuration based on combined queue metrics (worker + workflow + telemetry + runbook)
   keda:
     enabled: false
     minReplicas: 1
     maxReplicas: 100
-    # Scale up when combined queue size (worker + workflow + telemetry) exceeds this threshold
+    # Scale up when combined queue size (worker + workflow + telemetry + runbook) exceeds this threshold
     queueSizeThreshold: 10
     # Scale up when average CPU utilization exceeds this percentage (0 to disable).
     # If enabled, app.resources.requests.cpu must also be set.
@@ -1153,7 +1223,7 @@ app:
 # deployment drains them instead — so heavy telemetry/background processing
 # never stalls API requests on the shared event loop. It runs the same image
 # as `app` (no external ingress, no gRPC), scaled on combined queue depth
-# (worker + workflow + telemetry) via KEDA.
+# (worker + workflow + telemetry + runbook) via KEDA.
 # NOTE: with the split enabled the worker is REQUIRED for ALL background work
 # (notifications, incident/alert state, telemetry ingestion) — keep
 # keda.minReplicas >= 1. Also set app.keda.targetCPUUtilizationPercentage (and
@@ -1174,6 +1244,15 @@ worker:
   disableTelemetryCollection: false
   enableProfiling: false
   disableAutoscaler: false
+  # Per-service autoscaling (HorizontalPodAutoscaler) override. Any key omitted
+  # here inherits the global `autoscaling:` block. Only takes effect when the
+  # HPA is active (enabled here or globally, and disableAutoscaler is false).
+  # autoscaling:
+  #   enabled: true
+  #   minReplicas: 2
+  #   maxReplicas: 10
+  #   targetCPUUtilizationPercentage: 80
+  #   targetMemoryUtilizationPercentage: 80
   ports:
     http: 3002
   resources:
@@ -1181,12 +1260,12 @@ worker:
   podSecurityContext: {}
   hostAliases: []
   containerSecurityContext: {}
-  # KEDA autoscaling based on combined queue depth (worker + workflow + telemetry)
+  # KEDA autoscaling based on combined queue depth (worker + workflow + telemetry + runbook)
   keda:
     enabled: false
     minReplicas: 1
     maxReplicas: 100
-    # Scale up when combined queue size (worker + workflow + telemetry) exceeds this threshold
+    # Scale up when combined queue size (worker + workflow + telemetry + runbook) exceeds this threshold
     queueSizeThreshold: 10
     # Scale up when average CPU utilization exceeds this percentage (0 to disable).
     # If enabled, worker.resources.requests.cpu must also be set.
@@ -1215,6 +1294,15 @@ aiAgent:
   disableTelemetryCollection: false
   enableProfiling: false
   disableAutoscaler: false
+  # Per-service autoscaling (HorizontalPodAutoscaler) override. Any key omitted
+  # here inherits the global `autoscaling:` block. Only takes effect when the
+  # HPA is active (enabled here or globally, and disableAutoscaler is false).
+  # autoscaling:
+  #   enabled: true
+  #   minReplicas: 2
+  #   maxReplicas: 10
+  #   targetCPUUtilizationPercentage: 80
+  #   targetMemoryUtilizationPercentage: 80
   # AI Agent ID from OneUptime dashboard (required when enabled)
   id:
   # AI Agent Key from OneUptime dashboard (will be stored in secrets if not provided)

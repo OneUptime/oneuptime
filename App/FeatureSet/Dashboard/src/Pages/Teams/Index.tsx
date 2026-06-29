@@ -119,7 +119,8 @@ const Teams: FunctionComponent<PageComponentProps> = (
           },
         ]}
         showRefreshButton={true}
-        searchableFields={["name", "description"]}
+        searchableFields={["name"]}
+        searchPlaceholder="Search teams by name..."
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
         filters={[]}
         columns={[

@@ -256,7 +256,8 @@ describe("ClickHouse cluster-aware schema (always-on)", () => {
       expect(dropColumn).toContain("SpanItemV3Local");
       expect(dropColumn).toContain("ON CLUSTER 'oneuptime'");
 
-      const dropIndex: string = spanGen.toDropSkipIndexStatement("idx_trace_id");
+      const dropIndex: string =
+        spanGen.toDropSkipIndexStatement("idx_trace_id");
       expect(dropIndex).toContain("SpanItemV3Local");
       expect(dropIndex).toContain("ON CLUSTER 'oneuptime'");
     });

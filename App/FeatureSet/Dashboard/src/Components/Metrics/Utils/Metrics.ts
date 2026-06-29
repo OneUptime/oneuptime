@@ -28,6 +28,7 @@ import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator"
 import MetricResultUnitConverter from "Common/Utils/Metrics/MetricResultUnitConverter";
 import Dictionary from "Common/Types/Dictionary";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import {
   DictionaryEntryValue,
   DictionaryFilterOperator,
@@ -201,31 +202,37 @@ type SanitizeAttributeFiltersFunction = (
 ) => Dictionary<DictionaryEntryValue> | undefined;
 
 /*
- * Recognize an Includes wrapper whether it arrived as a hydrated class
- * instance or as the `{_type, value: [...]}` JSON shape (which is what
- * round-tripping through the dashboard view config produces, since the
- * server never rehydrates dashboard JSON into typed instances).
+ * Recognize a multi-value operator (Includes / IncludesNone — "is any of" /
+ * "is none of") whether it arrived as a hydrated class instance or as the
+ * `{_type, value: [...]}` JSON shape (which is what round-tripping through
+ * the dashboard view config produces, since the server never rehydrates
+ * dashboard JSON into typed instances). These carry an array, not a scalar.
  */
-function isIncludesValue(
+function isMultiValueFilter(
   value: unknown,
-): value is Includes | { _type: ObjectType.Includes; value: Array<unknown> } {
-  if (value instanceof Includes) {
+): value is
+  | Includes
+  | IncludesNone
+  | { _type: ObjectType.Includes; value: Array<unknown> }
+  | { _type: ObjectType.IncludesNone; value: Array<unknown> } {
+  if (value instanceof Includes || value instanceof IncludesNone) {
     return true;
   }
-  if (
-    value &&
-    typeof value === "object" &&
-    (value as { _type?: string })._type === ObjectType.Includes
-  ) {
-    return true;
-  }
-  return false;
+  const type: string | undefined =
+    value && typeof value === "object"
+      ? (value as { _type?: string })._type
+      : undefined;
+  return type === ObjectType.Includes || type === ObjectType.IncludesNone;
 }
 
-function getIncludesValues(
-  value: Includes | { _type: ObjectType.Includes; value: Array<unknown> },
+function getMultiValueFilterValues(
+  value:
+    | Includes
+    | IncludesNone
+    | { _type: ObjectType.Includes; value: Array<unknown> }
+    | { _type: ObjectType.IncludesNone; value: Array<unknown> },
 ): Array<unknown> {
-  if (value instanceof Includes) {
+  if (value instanceof Includes || value instanceof IncludesNone) {
     return value.values || [];
   }
   return (value.value as Array<unknown>) || [];
@@ -243,13 +250,14 @@ export const sanitizeAttributeFilters: SanitizeAttributeFiltersFunction = (
       continue;
     }
     /*
-     * Includes (multi-value) carries an array, not a scalar string. The
-     * generic operator detector below can't read it, so handle it here:
-     * drop if no values were picked ("All"), otherwise pass through.
+     * Multi-value operators (Includes / IncludesNone) carry an array, not a
+     * scalar string. The generic operator detector below can't read them, so
+     * handle them here: drop if no values were picked ("All"), otherwise pass
+     * through.
      */
-    if (isIncludesValue(value)) {
-      const includesValues: Array<unknown> = getIncludesValues(value);
-      if (includesValues.length === 0) {
+    if (isMultiValueFilter(value)) {
+      const multiValues: Array<unknown> = getMultiValueFilterValues(value);
+      if (multiValues.length === 0) {
         continue;
       }
       result[key] = value as DictionaryEntryValue;

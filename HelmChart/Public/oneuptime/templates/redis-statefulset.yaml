@@ -86,6 +86,7 @@ spec:
               name: {{ .Release.Name }}-redis
               key: redis-password
               {{- end }}
+        {{- if .Values.redis.livenessProbe.enabled }}
         livenessProbe:
           exec:
             command:
@@ -93,10 +94,12 @@ spec:
             - -a
             - $(REDIS_PASSWORD)
             - ping
-          initialDelaySeconds: 30
-          timeoutSeconds: 5
-          periodSeconds: 10
-          failureThreshold: 5
+          initialDelaySeconds: {{ .Values.redis.livenessProbe.initialDelaySeconds }}
+          timeoutSeconds: {{ .Values.redis.livenessProbe.timeoutSeconds }}
+          periodSeconds: {{ .Values.redis.livenessProbe.periodSeconds }}
+          failureThreshold: {{ .Values.redis.livenessProbe.failureThreshold }}
+        {{- end }}
+        {{- if .Values.redis.readinessProbe.enabled }}
         readinessProbe:
           exec:
             command:
@@ -104,10 +107,11 @@ spec:
             - -a
             - $(REDIS_PASSWORD)
             - ping
-          initialDelaySeconds: 5
-          timeoutSeconds: 1
-          periodSeconds: 5
-          failureThreshold: 5
+          initialDelaySeconds: {{ .Values.redis.readinessProbe.initialDelaySeconds }}
+          timeoutSeconds: {{ .Values.redis.readinessProbe.timeoutSeconds }}
+          periodSeconds: {{ .Values.redis.readinessProbe.periodSeconds }}
+          failureThreshold: {{ .Values.redis.readinessProbe.failureThreshold }}
+        {{- end }}
         {{- with .Values.redis.master.resources }}
         resources:
           {{- toYaml . | nindent 10 }}

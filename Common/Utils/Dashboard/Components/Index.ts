@@ -36,6 +36,7 @@ import DashboardDockerSwarmServiceListComponentUtil from "./DashboardDockerSwarm
 import DashboardTableComponentUtil from "./DashboardTableComponent";
 import DashboardTextComponentUtil from "./DashboardTextComponent";
 import DashboardTraceChartComponentUtil from "./DashboardTraceChartComponent";
+import DashboardTraceTableComponentUtil from "./DashboardTraceTableComponent";
 import DashboardTraceListComponentUtil from "./DashboardTraceListComponent";
 import DashboardValueComponentUtil from "./DashboardValueComponent";
 
@@ -87,6 +88,12 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.TraceChart) {
       return DashboardTraceChartComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.TraceTable) {
+      return DashboardTraceTableComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

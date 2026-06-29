@@ -281,9 +281,10 @@ describe("Input", () => {
   test("displays error icon", () => {
     const error: string = "error";
 
-    render(<Input {...{ error }} />);
+    const { container } = render(<Input {...{ error }} />);
 
-    expect(screen.getByRole("icon", { hidden: true })).toBeInTheDocument();
+    // The error icon renders an inline <svg> (no role="icon"; WCAG 4.1.2).
+    expect(container.querySelector("svg")).not.toBeNull();
   });
 
   test("sets error style if error exists", () => {

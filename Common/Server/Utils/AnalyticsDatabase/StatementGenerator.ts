@@ -29,6 +29,7 @@ import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import ObjectID from "../../../Types/ObjectID";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
@@ -79,6 +80,38 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     this.modelType = data.modelType;
     this.model = new this.modelType();
     this.database = data.database;
+  }
+
+  private appendMapKeyPresenceFilter(input: {
+    whereStatement: Statement;
+    mapColumn: AnalyticsTableColumn;
+    mapKey: string;
+    skip?: boolean;
+  }): void {
+    const mapKeysColumnName: string | undefined = input.mapColumn.mapKeysColumn;
+
+    if (input.skip || !mapKeysColumnName) {
+      return;
+    }
+
+    const mapKeysColumn: AnalyticsTableColumn | null =
+      this.model.getTableColumn(mapKeysColumnName);
+
+    if (!mapKeysColumn || mapKeysColumn.type !== TableColumnType.ArrayText) {
+      return;
+    }
+
+    /*
+     * Keep empty key-array rows eligible so data written before the
+     * denormalized column existed, or by a lagging ingest path, is still
+     * checked by the canonical map['key'] predicate that follows.
+     */
+    input.whereStatement.append(
+      SQL`AND (empty(${mapKeysColumn.key}) OR hasAny(${mapKeysColumn.key}, ${{
+        value: [input.mapKey],
+        type: TableColumnType.ArrayText,
+      }})) `,
+    );
   }
 
   public toUpdateStatement(updateBy: UpdateBy<TBaseModel>): Statement {
@@ -707,6 +740,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           if (mapEntry instanceof NotNull) {
+            this.appendMapKeyPresenceFilter({
+              whereStatement,
+              mapColumn: tableColumn,
+              mapKey,
+            });
             whereStatement.append(
               SQL`AND mapContains(${key}, ${{
                 value: mapKey,
@@ -788,12 +826,21 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           if (mapEntry instanceof EqualTo) {
+            const equalityValue: string = String(
+              (mapEntry as EqualTo<any>).value ?? "",
+            );
+            this.appendMapKeyPresenceFilter({
+              whereStatement,
+              mapColumn: tableColumn,
+              mapKey,
+              skip: equalityValue === "",
+            });
             whereStatement.append(
               SQL`AND ${key}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
               }}] = ${{
-                value: String((mapEntry as EqualTo<any>).value ?? ""),
+                value: equalityValue,
                 type: TableColumnType.Text,
               }}`,
             );
@@ -808,6 +855,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
            * threshold and naturally drops those rows.
            */
           if (mapEntry instanceof GreaterThan) {
+            this.appendMapKeyPresenceFilter({
+              whereStatement,
+              mapColumn: tableColumn,
+              mapKey,
+            });
             whereStatement.append(
               SQL`AND toFloat64OrNull(${key}[${{
                 value: mapKey,
@@ -821,6 +873,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           if (mapEntry instanceof GreaterThanOrEqual) {
+            this.appendMapKeyPresenceFilter({
+              whereStatement,
+              mapColumn: tableColumn,
+              mapKey,
+            });
             whereStatement.append(
               SQL`AND toFloat64OrNull(${key}[${{
                 value: mapKey,
@@ -834,6 +891,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           if (mapEntry instanceof LessThan) {
+            this.appendMapKeyPresenceFilter({
+              whereStatement,
+              mapColumn: tableColumn,
+              mapKey,
+            });
             whereStatement.append(
               SQL`AND toFloat64OrNull(${key}[${{
                 value: mapKey,
@@ -847,6 +909,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           if (mapEntry instanceof LessThanOrEqual) {
+            this.appendMapKeyPresenceFilter({
+              whereStatement,
+              mapColumn: tableColumn,
+              mapKey,
+            });
             whereStatement.append(
               SQL`AND toFloat64OrNull(${key}[${{
                 value: mapKey,
@@ -875,6 +942,12 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             if (includesValues.length === 0) {
               continue;
             }
+            this.appendMapKeyPresenceFilter({
+              whereStatement,
+              mapColumn: tableColumn,
+              mapKey,
+              skip: includesValues.includes(""),
+            });
             whereStatement.append(
               SQL`AND ${key}[${{
                 value: mapKey,
@@ -887,13 +960,50 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             continue;
           }
 
+          /*
+           * Multi-value exclusion (IncludesNone / "is none of"):
+           * `attributes['k'] NOT IN (...)`. Map subscript returns '' for a
+           * missing key, so (like NotEqual above) rows lacking the attribute
+           * pass the NOT IN test, which matches "the value is none of these".
+           * An empty IncludesNone is treated as "All" — skip the predicate
+           * rather than emit `NOT IN ()`. Values bind via a fresh `Includes`
+           * since Statement only types `Includes` as Array(String).
+           */
+          if (mapEntry instanceof IncludesNone) {
+            const excludeValues: Array<string> = (
+              (mapEntry as IncludesNone).values || []
+            ).map((v: string | ObjectID | number) => {
+              return String(v);
+            });
+            if (excludeValues.length === 0) {
+              continue;
+            }
+            whereStatement.append(
+              SQL`AND ${key}[${{
+                value: mapKey,
+                type: TableColumnType.Text,
+              }}] NOT IN ${{
+                value: new Includes(excludeValues),
+                type: TableColumnType.Text,
+              }}`,
+            );
+            continue;
+          }
+
           // Bare string/number/boolean — direct Map subscript.
+          const equalityValue: string = String(mapEntry);
+          this.appendMapKeyPresenceFilter({
+            whereStatement,
+            mapColumn: tableColumn,
+            mapKey,
+            skip: equalityValue === "",
+          });
           whereStatement.append(
             SQL`AND ${key}[${{
               value: mapKey,
               type: TableColumnType.Text,
             }}] = ${{
-              value: String(mapEntry),
+              value: equalityValue,
               type: TableColumnType.Text,
             }}`,
           );

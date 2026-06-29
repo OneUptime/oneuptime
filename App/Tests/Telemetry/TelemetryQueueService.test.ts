@@ -363,3 +363,44 @@ describe("TelemetryQueueService.addIncomingRequestIngestJob", () => {
     expect(secondDedupId).toBe(firstDedupId);
   });
 });
+
+describe("TelemetryQueueService.addTelemetryMonitorEvaluationJob", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("enqueues monitor evaluation jobs with stable per-monitor deduplication", async () => {
+    const monitorId: ObjectID = ObjectID.generate();
+    const projectId: ObjectID = ObjectID.generate();
+
+    await TelemetryQueueService.addTelemetryMonitorEvaluationJob({
+      monitorId,
+      projectId,
+    });
+
+    expect(getAddJobMock()).toHaveBeenCalledTimes(1);
+    expect(getAddJobMock().mock.calls[0]![0]).toBe("Telemetry");
+    expect(getAddJobMock().mock.calls[0]![2]).toBe("ProcessTelemetry");
+
+    const jobData: TelemetryIngestJobData = getEnqueuedJobData();
+    expect(jobData.type).toBe(TelemetryType.TelemetryMonitorEvaluation);
+    expect(jobData.projectId).toBe(projectId.toString());
+    expect(jobData.telemetryMonitorEvaluation?.monitorId).toBe(
+      monitorId.toString(),
+    );
+    expect(jobData.telemetryMonitorEvaluation?.projectId).toBe(
+      projectId.toString(),
+    );
+
+    const options: JSONObject = getEnqueuedJobOptions();
+    expect(options["skipExistenceCheck"]).toBe(true);
+    expect(options["deduplication"]).toEqual({
+      id: `telemetry-monitor-evaluation-${monitorId.toString()}`,
+      keepLastIfActive: true,
+    });
+  });
+});

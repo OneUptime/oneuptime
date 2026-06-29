@@ -184,6 +184,20 @@ export default class AnalyticsTableColumn {
   }
 
   /*
+   * Optional denormalized key-array column for Map columns. Example:
+   * a Map(String, String) column named `attributes` can point at an
+   * Array(String) column named `attributeKeys`, letting query generation add
+   * key-presence predicates without hardcoding telemetry column names.
+   */
+  private _mapKeysColumn: string | undefined;
+  public get mapKeysColumn(): string | undefined {
+    return this._mapKeysColumn;
+  }
+  public set mapKeysColumn(v: string | undefined) {
+    this._mapKeysColumn = v;
+  }
+
+  /*
    * For columns of type `AggregateFunction`, the parameterization that
    * goes inside the parentheses, e.g. "stddevPop, Float64" or
    * "quantile(0.95), Float64". The schema generator emits
@@ -216,6 +230,7 @@ export default class AnalyticsTableColumn {
     skipIndex?: SkipIndex | undefined;
     codec?: ColumnCodecValue | undefined;
     isLowCardinality?: boolean | undefined;
+    mapKeysColumn?: string | undefined;
     aggregateFunctionDefinition?: string | undefined;
   }) {
     this.accessControl = data.accessControl;
@@ -233,6 +248,7 @@ export default class AnalyticsTableColumn {
     this.skipIndex = data.skipIndex;
     this.codec = data.codec;
     this.isLowCardinality = data.isLowCardinality || false;
+    this.mapKeysColumn = data.mapKeysColumn;
     this.aggregateFunctionDefinition = data.aggregateFunctionDefinition;
   }
 }

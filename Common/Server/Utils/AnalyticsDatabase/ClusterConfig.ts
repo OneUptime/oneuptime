@@ -82,6 +82,8 @@ export function getStorageEngine(engine: AnalyticsTableEngine): string {
   switch (engine) {
     case AnalyticsTableEngine.AggregatingMergeTree:
       return "ReplicatedAggregatingMergeTree";
+    case AnalyticsTableEngine.ReplacingMergeTree:
+      return "ReplicatedReplacingMergeTree(version)";
     case AnalyticsTableEngine.MergeTree:
     default:
       return "ReplicatedMergeTree";

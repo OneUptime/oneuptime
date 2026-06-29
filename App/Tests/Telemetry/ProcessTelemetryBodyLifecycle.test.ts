@@ -63,6 +63,39 @@ jest.mock("../../FeatureSet/Telemetry/Utils/OtelPayloadDecoder", () => {
   };
 });
 
+jest.mock(
+  "isolated-vm",
+  () => {
+    const Isolate: jest.Mock = jest.fn();
+    const Reference: jest.Mock = jest.fn();
+    const Callback: jest.Mock = jest.fn();
+    const ExternalCopy: jest.Mock = jest
+      .fn()
+      .mockImplementation((value: unknown) => {
+        return {
+          copyInto: jest.fn(() => {
+            return value;
+          }),
+        };
+      });
+
+    return {
+      __esModule: true,
+      default: {
+        Isolate,
+        Reference,
+        Callback,
+        ExternalCopy,
+      },
+      Isolate,
+      Reference,
+      Callback,
+      ExternalCopy,
+    };
+  },
+  { virtual: true },
+);
+
 // Importing the module registers the worker via the mocked QueueWorker.
 import "../../FeatureSet/Telemetry/Jobs/TelemetryIngest/ProcessTelemetry";
 

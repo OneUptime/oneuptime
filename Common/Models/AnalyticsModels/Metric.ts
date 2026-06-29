@@ -367,6 +367,7 @@ export default class Metric extends AnalyticsBaseModel {
       required: true,
       type: TableColumnType.MapStringString,
       defaultValue: {},
+      mapKeysColumn: "attributeKeys",
       accessControl: {
         read: [
           Permission.ProjectOwner,

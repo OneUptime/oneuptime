@@ -27,12 +27,30 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import SyslogQueueService from "./Queue/SyslogQueueService";
+import LogPipelineService, { LoadedPipeline } from "./LogPipelineService";
+import LogDropFilterService, {
+  LoadedLogDropFilter,
+} from "./LogDropFilterService";
+import LogScrubRuleService from "./LogScrubRuleService";
 import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
 import {
   ParsedSyslogMessage,
   ParsedSyslogStructuredData,
   parseSyslogMessage,
 } from "../Utils/SyslogParser";
+
+class SyslogStorageFlushError extends Error {
+  public constructor(error: unknown) {
+    const message: string =
+      error instanceof Error ? error.message : String(error);
+    super(`Failed to flush syslog logs to ClickHouse: ${message}`);
+    this.name = "SyslogStorageFlushError";
+
+    if (error instanceof Error && error.stack) {
+      this.stack = `${this.stack}\nCaused by: ${error.stack}`;
+    }
+  }
+}
 
 export default class SyslogIngestService extends OtelIngestBaseService {
   private static readonly SYSLOG_FACILITY_LABELS: Array<string> = [
@@ -144,6 +162,32 @@ export default class SyslogIngestService extends OtelIngestBaseService {
       const serviceCache: Dictionary<TelemetryServiceMetadata> = {};
       let processed: number = 0;
 
+      /*
+       * Load pipelines, drop filters, and scrub rules once per batch so
+       * syslog-ingested logs go through the same processing stage as the
+       * OTLP path (OtelLogsIngestService.processLogsAsync). Without this,
+       * configured LogPipelines / drop filters / scrub rules are silently
+       * bypassed for syslog — the most common log source for many
+       * deployments. A load failure is logged and swallowed so a config
+       * lookup error can never fail ingest.
+       */
+      let loadedPipelines: Array<LoadedPipeline> = [];
+      let loadedDropFilters: Array<LoadedLogDropFilter> = [];
+      let loadedScrubRules: Awaited<
+        ReturnType<typeof LogScrubRuleService.loadScrubRules>
+      > = [];
+      try {
+        loadedPipelines = await LogPipelineService.loadPipelines(projectId);
+        loadedDropFilters =
+          await LogDropFilterService.loadDropFilters(projectId);
+        loadedScrubRules = await LogScrubRuleService.loadScrubRules(projectId);
+      } catch (loadError) {
+        logger.error(
+          "Syslog ingest: error loading pipelines/drop filters/scrub rules:",
+        );
+        logger.error(loadError);
+      }
+
       let messageCounter: number = 0;
 
       for (const rawMessage of messages) {
@@ -204,7 +248,7 @@ export default class SyslogIngestService extends OtelIngestBaseService {
             retentionDays,
           );
 
-          const logRow: JSONObject = {
+          let logRow: JSONObject = {
             _id: ObjectID.generateTimeOrdered().toString(),
             createdAt: OneUptimeDate.toClickhouseDateTime(ingestionDate),
             projectId: projectId.toString(),
@@ -227,6 +271,27 @@ export default class SyslogIngestService extends OtelIngestBaseService {
             retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
           } satisfies JSONObject;
 
+          /*
+           * Apply the same log-processing stage as the OTLP path, in the
+           * same order: drop filter (skip the row entirely), then sensitive
+           * data scrubbing, then pipeline processors. Each guarded on a
+           * non-empty rule set so projects with none configured pay no cost.
+           */
+          if (
+            loadedDropFilters.length > 0 &&
+            LogDropFilterService.shouldDropLog(logRow, loadedDropFilters)
+          ) {
+            continue;
+          }
+
+          if (loadedScrubRules.length > 0) {
+            logRow = LogScrubRuleService.scrubLog(logRow, loadedScrubRules);
+          }
+
+          if (loadedPipelines.length > 0) {
+            logRow = LogPipelineService.processLog(logRow, loadedPipelines);
+          }
+
           dbLogs.push(logRow);
           processed++;
 
@@ -234,6 +299,10 @@ export default class SyslogIngestService extends OtelIngestBaseService {
             await this.flushLogsBuffer(dbLogs);
           }
         } catch (processingError) {
+          if (processingError instanceof SyslogStorageFlushError) {
+            throw processingError;
+          }
+
           logger.error("Syslog ingest: error processing message");
           logger.error(processingError);
           logger.error(`Syslog message: ${rawMessage}`);
@@ -419,13 +488,19 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         TELEMETRY_LOG_FLUSH_BATCH_SIZE,
       );
 
-      const batch: Array<JSONObject> = logs.splice(0, batchSize);
+      const batch: Array<JSONObject> = logs.slice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      await LogService.insertJsonRows(batch);
+      try {
+        await LogService.insertJsonRows(batch);
+      } catch (error) {
+        throw new SyslogStorageFlushError(error);
+      }
+
+      logs.splice(0, batch.length);
     }
   }
 

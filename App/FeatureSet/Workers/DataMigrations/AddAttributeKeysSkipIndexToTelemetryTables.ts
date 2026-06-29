@@ -32,8 +32,8 @@ import logger from "Common/Server/Utils/Logger";
  *
  * Scope:
  *   LogItemV2, SpanItemV2, MetricItemV2, ProfileItemV2.
- *   ExceptionItem doesn't carry an `attributeKeys` column today
- *   and is excluded.
+ *   ExceptionItem gained its own `attributeKeys` column and index later in
+ *   AddAttributeKeysToExceptionInstance.
  */
 export default class AddAttributeKeysSkipIndexToTelemetryTables extends DataMigrationBase {
   public constructor() {

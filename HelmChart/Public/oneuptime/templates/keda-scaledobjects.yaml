@@ -18,7 +18,7 @@ KEDA ScaledObjects for various services
 {{- end }}
 
 {{/* App KEDA ScaledObject.
-     Combined (default) mode: scales on combined queue size (worker + workflow + telemetry).
+     Combined (default) mode: scales on combined queue size (worker + workflow + telemetry + runbook).
      Split mode (worker.enabled): the worker deployment drains the queues, so the app must
      NOT scale on queue depth — its queue-size trigger is dropped and it scales on CPU/memory. */}}
 {{- if and .Values.keda.enabled .Values.app.enabled .Values.app.keda.enabled (not .Values.app.disableAutoscaler) (not .Values.deployment.disableDeployments) }}
@@ -43,7 +43,7 @@ KEDA ScaledObjects for various services
 {{- end }}
 
 {{/* Worker KEDA ScaledObject - scales the dedicated worker on combined queue size
-     (worker + workflow + telemetry) plus optional CPU/memory utilization. KEDA scales
+     (worker + workflow + telemetry + runbook) plus optional CPU/memory utilization. KEDA scales
      to the max desired replicas across all triggers. */}}
 {{- if and .Values.keda.enabled .Values.worker.enabled .Values.worker.keda.enabled (not .Values.worker.disableAutoscaler) (not .Values.deployment.disableDeployments) }}
 {{- $workerResources := .Values.worker.resources | default dict }}

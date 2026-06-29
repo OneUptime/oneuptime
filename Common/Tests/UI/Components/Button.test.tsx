@@ -12,7 +12,7 @@ import { describe, expect, jest } from "@jest/globals";
 
 describe("Button", () => {
   test("it should render correctly with title and icon", () => {
-    render(
+    const { container } = render(
       <Button
         dataTestId="test-id"
         title="sample title"
@@ -28,8 +28,8 @@ describe("Button", () => {
     expect(testId).toBeInTheDocument();
     expect(testId).toHaveAttribute("type", "button");
     expect(testId).toHaveAttribute("disabled");
-    const icon: HTMLElement = screen.getByRole("icon");
-    expect(icon).toBeInTheDocument();
+    // The icon renders an inline <svg> (no invalid role="icon"; WCAG 4.1.2).
+    expect(container.querySelector("svg")).not.toBeNull();
   });
 
   test("it should have shortcutKey Setting", () => {

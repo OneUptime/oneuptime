@@ -7,7 +7,7 @@ import { GetReactElementFunction } from "../../../UI/Types/FunctionTypes";
 import Icon from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
 import RangeStartAndEndDateEdit from "./RangeStartAndEndDateEdit";
-import Modal from "../Modal/Modal";
+import Modal, { ModalWidth } from "../Modal/Modal";
 
 export interface ComponentProps {
   dashboardStartAndEndDate: RangeStartAndEndDateTime;
@@ -25,17 +25,65 @@ const DashboardStartAndEndDateView: FunctionComponent<ComponentProps> = (
   const isCustomRange: boolean =
     props.dashboardStartAndEndDate.range === TimeRange.CUSTOM;
 
-  const getContent: GetReactElementFunction = (): ReactElement => {
-    const title: string = isCustomRange
-      ? `${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-          props.dashboardStartAndEndDate.startAndEndDate?.startValue ||
-            OneUptimeDate.getCurrentDate(),
-        )} - ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-          props.dashboardStartAndEndDate.startAndEndDate?.endValue ||
-            OneUptimeDate.getCurrentDate(),
-        )}`
-      : props.dashboardStartAndEndDate.range;
+  /*
+   * The Apply button should only commit a custom range when both ends are set
+   * and the start is strictly before the end.
+   */
+  const isSelectionValid: (
+    selection: RangeStartAndEndDateTime | null,
+  ) => boolean = (selection: RangeStartAndEndDateTime | null): boolean => {
+    if (!selection) {
+      return false;
+    }
 
+    if (selection.range !== TimeRange.CUSTOM) {
+      return true;
+    }
+
+    const startAndEndDate: typeof selection.startAndEndDate =
+      selection.startAndEndDate;
+
+    if (!startAndEndDate) {
+      return false;
+    }
+
+    return OneUptimeDate.isAfter(
+      startAndEndDate.endValue,
+      startAndEndDate.startValue,
+    );
+  };
+
+  const closeModal: () => void = (): void => {
+    setTempStartAndEndDate(null);
+    setShowTimeSelectModal(false);
+  };
+
+  const commitSelection: (selection: RangeStartAndEndDateTime) => void = (
+    selection: RangeStartAndEndDateTime,
+  ): void => {
+    props.onChange(selection);
+    closeModal();
+  };
+
+  const getButtonTitle: () => string = (): string => {
+    if (isCustomRange) {
+      return `${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        props.dashboardStartAndEndDate.startAndEndDate?.startValue ||
+          OneUptimeDate.getCurrentDate(),
+        false,
+        true,
+      )} - ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        props.dashboardStartAndEndDate.startAndEndDate?.endValue ||
+          OneUptimeDate.getCurrentDate(),
+        false,
+        true,
+      )}`;
+    }
+
+    return props.dashboardStartAndEndDate.range;
+  };
+
+  const getContent: GetReactElementFunction = (): ReactElement => {
     return (
       <div>
         <Tooltip text="Click to change the date and time range of data on this dashboard.">
@@ -48,29 +96,33 @@ const DashboardStartAndEndDateView: FunctionComponent<ComponentProps> = (
             }}
           >
             <Icon icon={IconProp.Clock} className="w-3.5 h-3.5 text-gray-500" />
-            <span className="text-xs text-gray-500">{title}</span>
+            <span className="text-xs text-gray-500">{getButtonTitle()}</span>
           </button>
         </Tooltip>
         {showTimeSelectModal && (
           <Modal
-            title="Select Start and End Time"
-            onClose={() => {
-              setTempStartAndEndDate(null);
-              setShowTimeSelectModal(false);
-            }}
+            title="Select Time Range"
+            description="Choose a quick range or set an exact start and end date & time."
+            icon={IconProp.Clock}
+            modalWidth={ModalWidth.Medium}
+            submitButtonText="Apply"
+            disableSubmitButton={!isSelectionValid(tempStartAndEndDate)}
+            onClose={closeModal}
             onSubmit={() => {
               if (tempStartAndEndDate) {
-                props.onChange(tempStartAndEndDate);
+                commitSelection(tempStartAndEndDate);
               }
-              setShowTimeSelectModal(false);
-              setTempStartAndEndDate(null);
             }}
           >
-            <div className="mt-5">
+            <div className="mt-3">
               <RangeStartAndEndDateEdit
                 value={tempStartAndEndDate || undefined}
                 onChange={(startAndEndDate: RangeStartAndEndDateTime) => {
                   setTempStartAndEndDate(startAndEndDate);
+                }}
+                onApply={(startAndEndDate: RangeStartAndEndDateTime) => {
+                  // Quick ranges apply immediately and close the modal.
+                  commitSelection(startAndEndDate);
                 }}
               />
             </div>

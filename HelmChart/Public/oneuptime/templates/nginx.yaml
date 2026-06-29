@@ -21,7 +21,7 @@ spec:
   {{- if $.Values.nginx.replicaCount }}
   replicas: {{ $.Values.nginx.replicaCount }}
   {{- else }}
-  {{- if or (not $.Values.autoscaling.enabled) ($.Values.nginx.disableAutoscaler) }}
+  {{- if or (not (eq (include "oneuptime.autoscalingEnabled" (dict "Values" $.Values "Override" $.Values.nginx.autoscaling)) "true")) ($.Values.nginx.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}
@@ -172,7 +172,7 @@ spec:
 
 # OneUptime nginx autoscaler
 {{- if not $.Values.nginx.disableAutoscaler }}
-{{- $nginxAutoScalerArgs := dict "ServiceName" "nginx" "Release" $.Release "Values" $.Values -}}
+{{- $nginxAutoScalerArgs := dict "ServiceName" "nginx" "Release" $.Release "Values" $.Values "Override" $.Values.nginx.autoscaling -}}
 {{- include "oneuptime.autoscaler" $nginxAutoScalerArgs }}
 {{- end }}
 ---

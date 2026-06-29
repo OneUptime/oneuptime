@@ -1,6 +1,7 @@
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import MetricService from "./MetricService";
+import { MutableMetricService as MutableMetricServiceClass } from "./MutableMetricService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -40,6 +41,8 @@ export interface FacetRequest extends MetricFilters {
 export class MetricAggregationService {
   private static readonly DEFAULT_FACET_LIMIT: number = 500;
   private static readonly TABLE_NAME: string = AnalyticsTableName.Metric;
+  private static readonly MUTABLE_TABLE_NAME: string =
+    AnalyticsTableName.MutableMetric;
   private static readonly TOP_LEVEL_COLUMNS: Set<string> = new Set([
     "primaryEntityId",
     "name",
@@ -102,25 +105,33 @@ export class MetricAggregationService {
     const isTopLevelColumn: boolean =
       isResourceFacet ||
       MetricAggregationService.isTopLevelColumn(request.facetKey);
+    const useMutableMetricTable: boolean =
+      MetricAggregationService.shouldUseMutableMetricTable(request);
 
     const statement: Statement = new Statement();
 
     if (isResourceFacet) {
       statement.append(
-        SQL`SELECT toString(primaryEntityId) AS val, count() AS cnt FROM ${MetricAggregationService.TABLE_NAME}`,
+        SQL`SELECT toString(primaryEntityId) AS val, count() AS cnt`,
       );
     } else if (isTopLevelColumn) {
       statement.append(
-        SQL`SELECT toString(${request.facetKey}) AS val, count() AS cnt FROM ${MetricAggregationService.TABLE_NAME}`,
+        SQL`SELECT toString(${request.facetKey}) AS val, count() AS cnt`,
       );
     } else {
       statement.append(
         SQL`SELECT attributes[${{
           type: TableColumnType.Text,
           value: request.facetKey,
-        }}] AS val, count() AS cnt FROM ${MetricAggregationService.TABLE_NAME}`,
+        }}] AS val, count() AS cnt`,
       );
     }
+
+    MetricAggregationService.appendFacetSourceTable(
+      statement,
+      request,
+      useMutableMetricTable,
+    );
 
     statement.append(
       SQL` WHERE projectId = ${{
@@ -134,6 +145,10 @@ export class MetricAggregationService {
         value: request.endTime,
       }}`,
     );
+
+    if (useMutableMetricTable) {
+      statement.append(SQL` AND isDeleted = false`);
+    }
 
     if (isResourceFacet) {
       statement.append(
@@ -185,6 +200,61 @@ export class MetricAggregationService {
     );
 
     return statement;
+  }
+
+  private static shouldUseMutableMetricTable(request: FacetRequest): boolean {
+    if (!request.metricNames || request.metricNames.length === 0) {
+      return false;
+    }
+
+    return request.metricNames.every((metricName: string): boolean => {
+      return MutableMetricServiceClass.isMutableMetricName(metricName);
+    });
+  }
+
+  private static appendFacetSourceTable(
+    statement: Statement,
+    request: FacetRequest,
+    useMutableMetricTable: boolean,
+  ): void {
+    if (!useMutableMetricTable) {
+      statement.append(SQL` FROM ${MetricAggregationService.TABLE_NAME}`);
+      return;
+    }
+
+    statement.append(
+      SQL` FROM (
+        SELECT
+          projectId,
+          name,
+          primaryEntityId,
+          primaryEntityType,
+          metricPointId,
+          argMax(time, version) AS time,
+          argMax(attributes, version) AS attributes,
+          argMax(retentionDate, version) AS retentionDate,
+          argMax(isDeleted, version) AS isDeleted
+        FROM ${MetricAggregationService.MUTABLE_TABLE_NAME}
+        WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: request.projectId,
+        }}`,
+    );
+
+    if (request.metricNames && request.metricNames.length > 0) {
+      statement.append(
+        SQL` AND name IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.metricNames),
+        }})`,
+      );
+    }
+
+    statement.append(
+      SQL`
+        GROUP BY projectId, name, primaryEntityId, primaryEntityType, metricPointId
+      )`,
+    );
   }
 
   private static appendCommonFilters(

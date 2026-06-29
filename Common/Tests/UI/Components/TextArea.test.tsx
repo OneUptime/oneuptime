@@ -117,13 +117,15 @@ describe("TextArea", () => {
   });
 
   test("displays error icon", () => {
-    const { getByRole } = render(<TextArea error="error" initialValue="" />);
-    expect(getByRole("icon", { hidden: true })).toBeInTheDocument();
+    const { container } = render(<TextArea error="error" initialValue="" />);
+    // The error icon renders an inline <svg> (no role="icon"; WCAG 4.1.2).
+    expect(container.querySelector("svg")).not.toBeNull();
   });
 
   test("does not display error icon without error", () => {
-    const { queryByRole } = render(<TextArea initialValue="" />);
-    expect(queryByRole("icon", { hidden: true })).not.toBeInTheDocument();
+    const { container } = render(<TextArea initialValue="" />);
+    // Without an error there is no icon, so no <svg> is rendered.
+    expect(container.querySelector("svg")).toBeNull();
   });
 
   test("applies error styles", () => {

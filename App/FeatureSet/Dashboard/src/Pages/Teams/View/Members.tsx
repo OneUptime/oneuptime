@@ -128,6 +128,18 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
             field: {
               user: true,
             },
+            title: "User Name",
+            description:
+              "Enter the name of the user you would like to invite. This is optional and is only used if this user does not already have a OneUptime account.",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "John Smith",
+            overrideFieldKey: "name",
+          },
+          {
+            field: {
+              user: true,
+            },
             title: "User Email",
             description:
               "Please enter the email of the user you would like to invite. We will send them an email to let them know they have been invited to this team.",

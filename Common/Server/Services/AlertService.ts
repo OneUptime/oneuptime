@@ -33,12 +33,14 @@ import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import User from "../../Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger, { LogAttributes } from "../Utils/Logger";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
-import MetricService from "./MetricService";
+import MutableMetricService from "./MutableMetricService";
 import GlobalConfigService from "./GlobalConfigService";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import OneUptimeDate from "../../Types/Date";
-import Metric, { MetricPointType } from "../../Models/AnalyticsModels/Metric";
+import MutableMetric from "../../Models/AnalyticsModels/MutableMetric";
+import { MetricPointType } from "../../Models/AnalyticsModels/Metric";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import AlertMetricType from "../../Types/Alerts/AlertMetricType";
 import AlertFeedService from "./AlertFeedService";
@@ -1159,6 +1161,7 @@ ${alertSeverity.name}
       limit: LIMIT_MAX,
       skip: 0,
       select: {
+        _id: true,
         projectId: true,
         monitor: {
           _id: true,
@@ -1175,6 +1178,34 @@ ${alertSeverity.name}
         alerts: alerts,
       },
     };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    _itemIdsBeforeDelete: ObjectID[],
+  ): Promise<OnDelete<Model>> {
+    if (onDelete.carryForward && onDelete.carryForward.alerts) {
+      for (const alert of onDelete.carryForward.alerts) {
+        if (alert.projectId && alert.id) {
+          const metricRetentionDays: number =
+            await this.getMetricRetentionDays();
+
+          await MutableMetricService.tombstoneEntityMetrics({
+            projectId: alert.projectId,
+            primaryEntityId: alert.id,
+            primaryEntityType: ServiceType.Alert,
+            metricNames: Object.values(AlertMetricType),
+            retentionDate: OneUptimeDate.addRemoveDays(
+              OneUptimeDate.getCurrentDate(),
+              metricRetentionDays,
+            ),
+          });
+        }
+      }
+    }
+
+    return onDelete;
   }
 
   @CaptureSpan()
@@ -1335,142 +1366,167 @@ ${alertSeverity.name}
     const firstAlertStateTimeline: AlertStateTimeline | undefined =
       alertStateTimelines[0];
 
-    // delete all the alert metrics with this alert id because it's a refresh
-    await MetricService.deleteBy({
-      query: {
-        primaryEntityId: data.alertId,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const itemsToSave: Array<Metric> = [];
-    const metricTypesMap: Dictionary<MetricType> = {};
-
-    const metricRetentionDays: number = await this.getMetricRetentionDays();
-    const alertMetricRetentionDate: Date = OneUptimeDate.addRemoveDays(
-      OneUptimeDate.getCurrentDate(),
-      metricRetentionDays,
-    );
-
-    // now we need to create new metrics for this alert - TimeToAcknowledge, TimeToResolve, AlertCount, AlertDuration
-    const alertStartsAt: Date =
-      firstAlertStateTimeline?.startsAt ||
-      alert.createdAt ||
-      OneUptimeDate.getCurrentDate();
-
-    const alertCountMetric: Metric = new Metric();
-
-    alertCountMetric.projectId = alert.projectId;
-    alertCountMetric.primaryEntityId = alert.id!;
-    alertCountMetric.primaryEntityType = ServiceType.Alert;
-    alertCountMetric.name = AlertMetricType.AlertCount;
-    alertCountMetric.value = 1;
-    alertCountMetric.attributes = {
-      alertId: data.alertId.toString(),
-      projectId: alert.projectId.toString(),
-      monitorId: alert.monitor?._id?.toString(),
-      monitorName: alert.monitor?.name?.toString(),
-      alertSeverityId: alert.alertSeverity?._id?.toString(),
-      alertSeverityName: alert.alertSeverity?.name?.toString(),
-    };
-    alertCountMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
-      alertCountMetric.attributes,
-    );
-
-    alertCountMetric.time = alertStartsAt;
-    alertCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-      alertCountMetric.time,
-    );
-    alertCountMetric.metricPointType = MetricPointType.Sum;
-    alertCountMetric.retentionDate = alertMetricRetentionDate;
-
-    itemsToSave.push(alertCountMetric);
-
-    const metricType: MetricType = new MetricType();
-    metricType.name = alertCountMetric.name;
-    metricType.description = "Number of alerts created";
-    metricType.unit = "";
-    metricType.services = [];
-    metricTypesMap[alertCountMetric.name] = metricType;
-
-    // is the alert acknowledged?
-    const isAlertAcknowledged: boolean = alertStateTimelines.some(
-      (timeline: AlertStateTimeline) => {
-        return timeline.alertState?.isAcknowledgedState;
-      },
-    );
-
-    if (isAlertAcknowledged) {
-      const ackAlertStateTimeline: AlertStateTimeline | undefined =
-        alertStateTimelines.find((timeline: AlertStateTimeline) => {
-          return timeline.alertState?.isAcknowledgedState;
-        });
-
-      if (ackAlertStateTimeline) {
-        const timeToAcknowledgeMetric: Metric = new Metric();
-
-        timeToAcknowledgeMetric.projectId = alert.projectId;
-        timeToAcknowledgeMetric.primaryEntityId = alert.id!;
-        timeToAcknowledgeMetric.primaryEntityType = ServiceType.Alert;
-        timeToAcknowledgeMetric.name = AlertMetricType.TimeToAcknowledge;
-        timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
-          ackAlertStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
-          alertStartsAt,
-        );
-        timeToAcknowledgeMetric.attributes = {
-          alertId: data.alertId.toString(),
-          projectId: alert.projectId.toString(),
-          monitorId: alert.monitor?._id?.toString(),
-          monitorName: alert.monitor?.name?.toString(),
-          alertSeverityId: alert.alertSeverity?._id?.toString(),
-          alertSeverityName: alert.alertSeverity?.name?.toString(),
-        };
-        timeToAcknowledgeMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
-          timeToAcknowledgeMetric.attributes,
-        );
-
-        timeToAcknowledgeMetric.time =
-          ackAlertStateTimeline?.startsAt ||
-          alert.createdAt ||
-          OneUptimeDate.getCurrentDate();
-        timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-          timeToAcknowledgeMetric.time,
-        );
-        timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
-        timeToAcknowledgeMetric.retentionDate = alertMetricRetentionDate;
-
-        itemsToSave.push(timeToAcknowledgeMetric);
-
-        const metricType: MetricType = new MetricType();
-        metricType.name = timeToAcknowledgeMetric.name;
-        metricType.description = "Time taken to acknowledge the alert";
-        metricType.unit = "seconds";
-        metricTypesMap[timeToAcknowledgeMetric.name] = metricType;
-      }
+    /*
+     * Serialize concurrent refreshes for this alert across pods. Mutable
+     * metrics are versioned inserts, but the replace operation also tombstones
+     * stale metric-point identities. The lock keeps that read+insert cycle
+     * ordered for each alert.
+     */
+    let metricRefreshMutex: SemaphoreMutex | null = null;
+    try {
+      metricRefreshMutex = await Semaphore.lock({
+        key: data.alertId.toString(),
+        namespace: "AlertService.refreshAlertMetrics",
+        lockTimeout: 30000,
+      });
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: alert.projectId?.toString(),
+          alertId: alert.id?.toString(),
+        } as LogAttributes,
+      );
     }
 
-    // time to resolve
-    const isAlertResolved: boolean = alertStateTimelines.some(
-      (timeline: AlertStateTimeline) => {
-        return timeline.alertState?.isResolvedState;
-      },
-    );
+    try {
+      const itemsToSave: Array<MutableMetric> = [];
+      const metricTypesMap: Dictionary<MetricType> = {};
 
-    if (isAlertResolved) {
+      const metricRetentionDays: number = await this.getMetricRetentionDays();
+      const alertMetricRetentionDate: Date = OneUptimeDate.addRemoveDays(
+        OneUptimeDate.getCurrentDate(),
+        metricRetentionDays,
+      );
+
+      // now we need to create new metrics for this alert - TimeToAcknowledge, TimeToResolve, AlertCount, AlertDuration
+      const alertStartsAt: Date =
+        firstAlertStateTimeline?.startsAt ||
+        alert.createdAt ||
+        OneUptimeDate.getCurrentDate();
+
+      // register the metric type so the catalog stays complete across refreshes.
+      const alertCountMetricType: MetricType = new MetricType();
+      alertCountMetricType.name = AlertMetricType.AlertCount;
+      alertCountMetricType.description = "Number of alerts created";
+      alertCountMetricType.unit = "";
+      alertCountMetricType.services = [];
+      metricTypesMap[AlertMetricType.AlertCount] = alertCountMetricType;
+
+      const alertCountMetric: MutableMetric = new MutableMetric();
+
+      alertCountMetric.projectId = alert.projectId;
+      alertCountMetric.primaryEntityId = alert.id!;
+      alertCountMetric.primaryEntityType = ServiceType.Alert;
+      alertCountMetric.name = AlertMetricType.AlertCount;
+      alertCountMetric.metricPointId = AlertMetricType.AlertCount;
+      alertCountMetric.value = 1;
+      alertCountMetric.attributes = {
+        alertId: data.alertId.toString(),
+        projectId: alert.projectId.toString(),
+        monitorId: alert.monitor?._id?.toString(),
+        monitorName: alert.monitor?.name?.toString(),
+        alertSeverityId: alert.alertSeverity?._id?.toString(),
+        alertSeverityName: alert.alertSeverity?.name?.toString(),
+      };
+      alertCountMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+        alertCountMetric.attributes,
+      );
+
+      alertCountMetric.time = alertStartsAt;
+      alertCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+        alertCountMetric.time,
+      );
+      alertCountMetric.metricPointType = MetricPointType.Sum;
+      alertCountMetric.retentionDate = alertMetricRetentionDate;
+
+      itemsToSave.push(alertCountMetric);
+
+      // is the alert acknowledged?
+      const isAlertAcknowledged: boolean = alertStateTimelines.some(
+        (timeline: AlertStateTimeline) => {
+          return timeline.alertState?.isAcknowledgedState;
+        },
+      );
+
+      if (isAlertAcknowledged) {
+        const ackAlertStateTimeline: AlertStateTimeline | undefined =
+          alertStateTimelines.find((timeline: AlertStateTimeline) => {
+            return timeline.alertState?.isAcknowledgedState;
+          });
+
+        if (ackAlertStateTimeline) {
+          // register the metric type so the catalog stays complete across refreshes.
+          const metricType: MetricType = new MetricType();
+          metricType.name = AlertMetricType.TimeToAcknowledge;
+          metricType.description = "Time taken to acknowledge the alert";
+          metricType.unit = "seconds";
+          metricTypesMap[AlertMetricType.TimeToAcknowledge] = metricType;
+
+          const timeToAcknowledgeMetric: MutableMetric = new MutableMetric();
+
+          timeToAcknowledgeMetric.projectId = alert.projectId;
+          timeToAcknowledgeMetric.primaryEntityId = alert.id!;
+          timeToAcknowledgeMetric.primaryEntityType = ServiceType.Alert;
+          timeToAcknowledgeMetric.name = AlertMetricType.TimeToAcknowledge;
+          timeToAcknowledgeMetric.metricPointId =
+            AlertMetricType.TimeToAcknowledge;
+          timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
+            ackAlertStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
+            alertStartsAt,
+          );
+          timeToAcknowledgeMetric.attributes = {
+            alertId: data.alertId.toString(),
+            projectId: alert.projectId.toString(),
+            monitorId: alert.monitor?._id?.toString(),
+            monitorName: alert.monitor?.name?.toString(),
+            alertSeverityId: alert.alertSeverity?._id?.toString(),
+            alertSeverityName: alert.alertSeverity?.name?.toString(),
+          };
+          timeToAcknowledgeMetric.attributeKeys =
+            TelemetryUtil.getAttributeKeys(timeToAcknowledgeMetric.attributes);
+
+          timeToAcknowledgeMetric.time =
+            ackAlertStateTimeline?.startsAt ||
+            alert.createdAt ||
+            OneUptimeDate.getCurrentDate();
+          timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+            timeToAcknowledgeMetric.time,
+          );
+          timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
+          timeToAcknowledgeMetric.retentionDate = alertMetricRetentionDate;
+
+          itemsToSave.push(timeToAcknowledgeMetric);
+        }
+      }
+
+      // time to resolve
+      const isAlertResolved: boolean = alertStateTimelines.some(
+        (timeline: AlertStateTimeline) => {
+          return timeline.alertState?.isResolvedState;
+        },
+      );
+
       const resolvedAlertStateTimeline: AlertStateTimeline | undefined =
         alertStateTimelines.find((timeline: AlertStateTimeline) => {
           return timeline.alertState?.isResolvedState;
         });
 
-      if (resolvedAlertStateTimeline) {
-        const timeToResolveMetric: Metric = new Metric();
+      if (isAlertResolved && resolvedAlertStateTimeline) {
+        // register the metric type so the catalog stays complete across refreshes.
+        const metricType: MetricType = new MetricType();
+        metricType.name = AlertMetricType.TimeToResolve;
+        metricType.description = "Time taken to resolve the alert";
+        metricType.unit = "seconds";
+        metricTypesMap[AlertMetricType.TimeToResolve] = metricType;
+
+        const timeToResolveMetric: MutableMetric = new MutableMetric();
 
         timeToResolveMetric.projectId = alert.projectId;
         timeToResolveMetric.primaryEntityId = alert.id!;
         timeToResolveMetric.primaryEntityType = ServiceType.Alert;
         timeToResolveMetric.name = AlertMetricType.TimeToResolve;
+        timeToResolveMetric.metricPointId = AlertMetricType.TimeToResolve;
         timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
           resolvedAlertStateTimeline?.startsAt ||
             OneUptimeDate.getCurrentDate(),
@@ -1499,80 +1555,85 @@ ${alertSeverity.name}
         timeToResolveMetric.retentionDate = alertMetricRetentionDate;
 
         itemsToSave.push(timeToResolveMetric);
+      }
 
+      if (isAlertResolved && resolvedAlertStateTimeline) {
+        // register the metric type so the catalog stays complete across refreshes.
         const metricType: MetricType = new MetricType();
-        metricType.name = timeToResolveMetric.name;
-        metricType.description = "Time taken to resolve the alert";
+        metricType.name = AlertMetricType.AlertDuration;
+        metricType.description = "Duration of the alert";
         metricType.unit = "seconds";
-        metricTypesMap[timeToResolveMetric.name] = metricType;
+        metricTypesMap[AlertMetricType.AlertDuration] = metricType;
+
+        const alertEndsAt: Date =
+          resolvedAlertStateTimeline.startsAt || OneUptimeDate.getCurrentDate();
+
+        const alertDurationMetric: MutableMetric = new MutableMetric();
+
+        alertDurationMetric.projectId = alert.projectId;
+        alertDurationMetric.primaryEntityId = alert.id!;
+        alertDurationMetric.primaryEntityType = ServiceType.Alert;
+        alertDurationMetric.name = AlertMetricType.AlertDuration;
+        alertDurationMetric.metricPointId = AlertMetricType.AlertDuration;
+        alertDurationMetric.value = OneUptimeDate.getDifferenceInSeconds(
+          alertEndsAt,
+          alertStartsAt,
+        );
+        alertDurationMetric.attributes = {
+          alertId: data.alertId.toString(),
+          projectId: alert.projectId.toString(),
+          monitorId: alert.monitor?._id?.toString(),
+          monitorName: alert.monitor?.name?.toString(),
+          alertSeverityId: alert.alertSeverity?._id?.toString(),
+          alertSeverityName: alert.alertSeverity?.name?.toString(),
+        };
+        alertDurationMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+          alertDurationMetric.attributes,
+        );
+
+        alertDurationMetric.time = alertEndsAt;
+        alertDurationMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+          alertDurationMetric.time,
+        );
+        alertDurationMetric.metricPointType = MetricPointType.Sum;
+        alertDurationMetric.retentionDate = alertMetricRetentionDate;
+
+        itemsToSave.push(alertDurationMetric);
+      }
+
+      await MutableMetricService.replaceEntityMetrics({
+        projectId: alert.projectId,
+        primaryEntityId: alert.id!,
+        primaryEntityType: ServiceType.Alert,
+        metricNames: Object.values(AlertMetricType),
+        metrics: itemsToSave,
+        retentionDate: alertMetricRetentionDate,
+      });
+
+      TelemetryUtil.indexMetricNameServiceNameMap({
+        metricNameServiceNameMap: metricTypesMap,
+        projectId: alert.projectId,
+      }).catch((err: Error) => {
+        logger.error(err, {
+          projectId: alert.projectId?.toString(),
+          alertId: alert.id?.toString(),
+        } as LogAttributes);
+      });
+    } finally {
+      if (metricRefreshMutex) {
+        try {
+          await Semaphore.release(metricRefreshMutex);
+        } catch (err) {
+          logger.error(
+            err as Error,
+            {
+              projectId: alert.projectId?.toString(),
+              alertId: alert.id?.toString(),
+            } as LogAttributes,
+          );
+        }
       }
     }
-
-    // alert duration
-    const alertDurationMetric: Metric = new Metric();
-
-    const lastAlertStateTimeline: AlertStateTimeline | undefined =
-      alertStateTimelines[alertStateTimelines.length - 1];
-
-    if (lastAlertStateTimeline) {
-      const alertEndsAt: Date =
-        lastAlertStateTimeline.startsAt || OneUptimeDate.getCurrentDate();
-
-      alertDurationMetric.projectId = alert.projectId;
-      alertDurationMetric.primaryEntityId = alert.id!;
-      alertDurationMetric.primaryEntityType = ServiceType.Alert;
-      alertDurationMetric.name = AlertMetricType.AlertDuration;
-      alertDurationMetric.value = OneUptimeDate.getDifferenceInSeconds(
-        alertEndsAt,
-        alertStartsAt,
-      );
-      alertDurationMetric.attributes = {
-        alertId: data.alertId.toString(),
-        projectId: alert.projectId.toString(),
-        monitorId: alert.monitor?._id?.toString(),
-        monitorName: alert.monitor?.name?.toString(),
-        alertSeverityId: alert.alertSeverity?._id?.toString(),
-        alertSeverityName: alert.alertSeverity?.name?.toString(),
-      };
-      alertDurationMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
-        alertDurationMetric.attributes,
-      );
-
-      alertDurationMetric.time =
-        lastAlertStateTimeline?.startsAt ||
-        alert.createdAt ||
-        OneUptimeDate.getCurrentDate();
-      alertDurationMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-        alertDurationMetric.time,
-      );
-      alertDurationMetric.metricPointType = MetricPointType.Sum;
-      alertDurationMetric.retentionDate = alertMetricRetentionDate;
-
-      itemsToSave.push(alertDurationMetric);
-
-      const metricType: MetricType = new MetricType();
-      metricType.name = alertDurationMetric.name;
-      metricType.description = "Duration of the alert";
-      metricType.unit = "seconds";
-      metricTypesMap[alertDurationMetric.name] = metricType;
-    }
-
-    await MetricService.createMany({
-      items: itemsToSave,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    TelemetryUtil.indexMetricNameServiceNameMap({
-      metricNameServiceNameMap: metricTypesMap,
-      projectId: alert.projectId,
-    }).catch((err: Error) => {
-      logger.error(err, {
-        projectId: alert.projectId?.toString(),
-        alertId: alert.id?.toString(),
-      } as LogAttributes);
-    });
   }
 
   @CaptureSpan()

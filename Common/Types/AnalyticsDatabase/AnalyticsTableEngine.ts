@@ -1,5 +1,6 @@
 enum AnalyticsTableEngine {
   MergeTree = "MergeTree",
+  ReplacingMergeTree = "ReplacingMergeTree",
   /*
    * Target-table engine for materialized views that store
    * AggregateFunction states. Background merges combine partial state

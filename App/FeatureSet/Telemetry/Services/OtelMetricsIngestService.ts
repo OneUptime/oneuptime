@@ -265,6 +265,19 @@ interface CloudResourceInstanceMetricBufferEntry {
   observedAt: Date;
 }
 
+class MetricStorageFlushError extends Error {
+  public constructor(error: unknown) {
+    const message: string =
+      error instanceof Error ? error.message : String(error);
+    super(`Failed to flush metrics to ClickHouse: ${message}`);
+    this.name = "MetricStorageFlushError";
+
+    if (error instanceof Error && error.stack) {
+      this.stack = `${this.stack}\nCaused by: ${error.stack}`;
+    }
+  }
+}
+
 export default class OtelMetricsIngestService extends OtelIngestBaseService {
   private static async flushMetricsBuffer(
     metrics: Array<JSONObject>,
@@ -278,13 +291,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         metrics.length,
         TELEMETRY_METRIC_FLUSH_BATCH_SIZE,
       );
-      const batch: Array<JSONObject> = metrics.splice(0, batchSize);
+      const batch: Array<JSONObject> = metrics.slice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      await MetricService.insertJsonRows(batch);
+      try {
+        await MetricService.insertJsonRows(batch);
+      } catch (error) {
+        throw new MetricStorageFlushError(error);
+      }
+
+      metrics.splice(0, batch.length);
     }
   }
 
@@ -1350,6 +1369,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           await this.flushMetricsBuffer(dbMetrics);
                         }
                       } catch (datapointError) {
+                        if (datapointError instanceof MetricStorageFlushError) {
+                          throw datapointError;
+                        }
                         logger.warn(
                           `Error processing metric datapoint: ${datapointError instanceof Error ? datapointError.message : String(datapointError)}`,
                         );
@@ -1362,18 +1384,27 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                     logger.warn(`Metric data: ${JSON.stringify(metric)}`);
                   }
                 } catch (metricError) {
+                  if (metricError instanceof MetricStorageFlushError) {
+                    throw metricError;
+                  }
                   logger.error("Error processing individual metric:");
                   logger.error(metricError);
                   logger.error(`Metric data: ${JSON.stringify(metric)}`);
                 }
               }
             } catch (scopeError) {
+              if (scopeError instanceof MetricStorageFlushError) {
+                throw scopeError;
+              }
               logger.error("Error processing scope metric:");
               logger.error(scopeError);
               logger.error(`Scope metric data: ${JSON.stringify(scopeMetric)}`);
             }
           }
         } catch (resourceError) {
+          if (resourceError instanceof MetricStorageFlushError) {
+            throw resourceError;
+          }
           logger.error("Error processing resource metric:");
           logger.error(resourceError);
           logger.error(

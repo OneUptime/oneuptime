@@ -13,6 +13,7 @@ import DashboardGaugeComponentType from "Common/Types/Dashboard/DashboardCompone
 import DashboardLogStreamComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardLogStreamComponent";
 import DashboardTraceListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTraceListComponent";
 import DashboardTraceChartComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTraceChartComponent";
+import DashboardTraceTableComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTraceTableComponent";
 import DashboardIncidentListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardIncidentListComponent";
 import DashboardAlertListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardAlertListComponent";
 import DashboardMonitorListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardMonitorListComponent";
@@ -50,6 +51,7 @@ import DashboardGaugeComponent from "./DashboardGaugeComponent";
 import DashboardLogStreamComponent from "./DashboardLogStreamComponent";
 import DashboardTraceListComponent from "./DashboardTraceListComponent";
 import DashboardTraceChartComponent from "./DashboardTraceChartComponent";
+import DashboardTraceTableComponent from "./DashboardTraceTableComponent";
 import DashboardIncidentListComponent from "./DashboardIncidentListComponent";
 import DashboardAlertListComponent from "./DashboardAlertListComponent";
 import DashboardMonitorListComponent from "./DashboardMonitorListComponent";
@@ -691,6 +693,14 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             isEditMode={props.isEditMode}
             isSelected={props.isSelected}
             component={component as DashboardTraceChartComponentType}
+          />
+        )}
+        {component.componentType === DashboardComponentType.TraceTable && (
+          <DashboardTraceTableComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardTraceTableComponentType}
           />
         )}
         {component.componentType === DashboardComponentType.IncidentList && (

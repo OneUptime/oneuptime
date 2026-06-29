@@ -514,6 +514,7 @@ export default class Profile extends AnalyticsBaseModel {
       required: true,
       defaultValue: {},
       type: TableColumnType.MapStringString,
+      mapKeysColumn: "attributeKeys",
       accessControl: {
         read: [
           Permission.ProjectOwner,

@@ -27,6 +27,12 @@ import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/Dictionary
 export interface ComponentProps {
   component: DashboardBaseComponent;
   onChange: (component: DashboardBaseComponent) => void;
+  /*
+   * "chart" (default) splits spans into series; "table" breaks them into
+   * rows. The query inputs are identical — only the group-by/limit wording
+   * changes — so the trace chart and trace table widgets share this editor.
+   */
+  mode?: "chart" | "table" | undefined;
 }
 
 interface TraceChartArguments {
@@ -130,6 +136,8 @@ const TraceChartQueryEditor: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const args: TraceChartArguments =
     (props.component.arguments as unknown as TraceChartArguments) || {};
+
+  const isTable: boolean = props.mode === "table";
 
   const [attributeKeys, setAttributeKeys] = useState<Array<string>>([]);
   const [attributeKeysLoading, setAttributeKeysLoading] =
@@ -281,7 +289,11 @@ const TraceChartQueryEditor: FunctionComponent<ComponentProps> = (
   return (
     <CollapsibleSection
       title="Query"
-      description="Choose which spans to chart and how to split them into series."
+      description={
+        isTable
+          ? "Choose which spans to tabulate and which dimension to break them into rows by."
+          : "Choose which spans to chart and how to split them into series."
+      }
       variant="bordered"
       defaultCollapsed={false}
     >
@@ -332,8 +344,12 @@ const TraceChartQueryEditor: FunctionComponent<ComponentProps> = (
         </Field>
 
         <Field
-          title="Split into series by"
-          description="Optional. Draw one line or bar per value of this dimension. Leave empty for a single series."
+          title={isTable ? "Group rows by" : "Split into series by"}
+          description={
+            isTable
+              ? "Required. One row per value of this dimension (e.g. span name, status, or an attribute)."
+              : "Optional. Draw one line or bar per value of this dimension. Leave empty for a single series."
+          }
         >
           <Dropdown
             options={splitOptions}
@@ -352,8 +368,12 @@ const TraceChartQueryEditor: FunctionComponent<ComponentProps> = (
 
         {currentGroupBy ? (
           <Field
-            title="Max series"
-            description="Cap on how many series to show when split. Defaults to 10."
+            title={isTable ? "Max rows" : "Max series"}
+            description={
+              isTable
+                ? "Cap on how many rows to show. Defaults to 10."
+                : "Cap on how many series to show when split. Defaults to 10."
+            }
           >
             <Input
               type={InputType.NUMBER}

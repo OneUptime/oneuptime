@@ -61,6 +61,7 @@ import MailService from "./MailService";
 import MetricService from "./MetricService";
 import MetricItemAggMV1mService from "./MetricItemAggMV1mService";
 import MetricItemAggMV1mByHostV2Service from "./MetricItemAggMV1mByHostV2Service";
+import MutableMetricService from "./MutableMetricService";
 import MetricBaselineService from "./MetricBaselineService";
 import MonitorCustomFieldService from "./MonitorCustomFieldService";
 import MonitorGroupOwnerTeamService from "./MonitorGroupOwnerTeamService";
@@ -499,6 +500,7 @@ export const AnalyticsServices: Array<
   LogService,
   SpanService,
   MetricService,
+  MutableMetricService,
   /*
    * Materialized-view target tables. The auto-create flow runs
    * `CREATE TABLE IF NOT EXISTS` for these, idempotent with the legacy

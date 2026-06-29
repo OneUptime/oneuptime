@@ -1,6 +1,13 @@
 import MasterPage from "./Components/MasterPage/MasterPage";
 import Init from "./Pages/Init/Init";
 import Health from "./Pages/Health/Index";
+import HealthPostgres from "./Pages/Health/Postgres";
+import HealthClickhouse from "./Pages/Health/Clickhouse";
+import HealthQueryConsole from "./Pages/Health/QueryConsole";
+import HealthLogs from "./Pages/Health/Logs";
+import HealthProbes from "./Pages/Health/Probes";
+import HealthMigrations from "./Pages/Health/Migrations";
+import HealthSupportBundle from "./Pages/Health/Support";
 import Logout from "./Pages/Logout/Logout";
 import Projects from "./Pages/Projects/Index";
 import SettingsAPIKey from "./Pages/Settings/APIKey/Index";
@@ -75,6 +82,41 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.HEALTH]?.toString() || ""}
           element={<Health />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.HEALTH_POSTGRES]?.toString() || ""}
+          element={<HealthPostgres />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.HEALTH_CLICKHOUSE]?.toString() || ""}
+          element={<HealthClickhouse />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.HEALTH_QUERY]?.toString() || ""}
+          element={<HealthQueryConsole />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.HEALTH_LOGS]?.toString() || ""}
+          element={<HealthLogs />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.HEALTH_PROBES]?.toString() || ""}
+          element={<HealthProbes />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.HEALTH_MIGRATIONS]?.toString() || ""}
+          element={<HealthMigrations />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.HEALTH_SUPPORT_BUNDLE]?.toString() || ""}
+          element={<HealthSupportBundle />}
         />
 
         <PageRoute

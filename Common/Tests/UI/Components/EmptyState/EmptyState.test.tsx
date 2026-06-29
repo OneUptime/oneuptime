@@ -6,7 +6,7 @@ import React from "react";
 
 describe("EmptyState", () => {
   test("renders correctly with all props", () => {
-    render(
+    const { container } = render(
       <EmptyState
         id="empty-state"
         title="Empty State Title"
@@ -18,13 +18,14 @@ describe("EmptyState", () => {
     const titleElement: HTMLElement = screen.getByText("Empty State Title");
     const descriptionElement: HTMLElement =
       screen.getByText("Empty State Title");
-    const iconElement: HTMLElement = screen.getByRole("icon");
+    // The icon renders an inline <svg> (no invalid role="icon"; WCAG 4.1.2).
+    const iconElement: Element | null = container.querySelector("svg");
     const footerElement: HTMLElement = screen.getByText(
       "This is a footer element",
     );
     expect(titleElement).toBeInTheDocument();
     expect(descriptionElement).toBeInTheDocument();
-    expect(iconElement).toBeInTheDocument();
+    expect(iconElement).not.toBeNull();
     expect(footerElement).toBeInTheDocument();
   });
   test("renders without an icon", () => {

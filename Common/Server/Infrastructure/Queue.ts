@@ -88,8 +88,8 @@ export default class Queue {
       // Keep BullMQ data under control to avoid Redis bloat
       defaultJobOptions: {
         // keep only recent completed/failed jobs
-        removeOnComplete: { count: 500 }, // keep last 1000 completed jobs
-        removeOnFail: { count: 100 }, // keep last 500 failed jobs
+        removeOnComplete: { count: 500 }, // keep last 500 completed jobs
+        removeOnFail: { count: 100 }, // keep last 100 failed jobs
       },
       /*
        * Optionally cap the event stream length (supported in BullMQ >= v5)
@@ -112,22 +112,109 @@ export default class Queue {
       logger.error(err);
     });
 
-    // Fire-and-forget initial cleanup for legacy/old data if not done before
-    if (!this.cleanedQueueNames.has(queueName)) {
-      this.cleanedQueueNames.add(queueName);
-      // Clean jobs older than 1 days to reclaim memory from historic runs
-      const oneDaysMs: number = 1 * 24 * 60 * 60 * 1000;
-      void (async () => {
-        try {
-          await queue.clean(oneDaysMs, 1000, "completed");
-          await queue.clean(oneDaysMs, 1000, "failed");
-        } catch {
-          // ignore cleanup errors to not impact normal flow
-        }
-      })();
-    }
+    /*
+     * Lazy fallback for the startup sweep: the first time a queue is created in
+     * this process, kick off its once-per-process terminal-job cleanup. The
+     * eager path (cleanAllQueuesOnStartup, called at service boot) normally
+     * wins; whichever runs first is the only one to sweep, via the gate inside
+     * cleanQueueOnStartup(). Fire and forget so it never blocks enqueue.
+     */
+    void this.cleanQueueOnStartup(queueName);
 
     return queue;
+  }
+
+  /**
+   * Eagerly sweeps every queue's terminal (completed/failed) jobs at process
+   * startup, so the Completed/Failed counts on the admin Health page reset on a
+   * pod (re)start regardless of when — or whether — each queue next produces a
+   * job. Call once during service boot (see App/Index.ts). Each queue is swept
+   * at most once per process via the cleanedQueueNames gate, so this is safe to
+   * call alongside the lazy getQueue() path and from any service role.
+   */
+  @CaptureSpan()
+  public static async cleanAllQueuesOnStartup(): Promise<void> {
+    await Promise.all(
+      Object.values(QueueName).map((queueName: QueueName) => {
+        return this.cleanQueueOnStartup(queueName);
+      }),
+    );
+  }
+
+  /*
+   * How old (in ms) a completed/failed job must be before the startup sweep
+   * removes it. 0 means "remove all terminal jobs on every restart", which
+   * resets the Completed/Failed counts on the admin Health page so operators
+   * stop seeing stale failures after a deploy/restart. Raise this (e.g. to
+   * 24 * 60 * 60 * 1000) if you'd rather keep recent failures around for
+   * crash-loop debugging.
+   */
+  private static readonly STARTUP_CLEANUP_GRACE_MS: number = 0;
+  // Number of jobs removed per clean() call; we loop until the state is drained.
+  private static readonly STARTUP_CLEANUP_BATCH_SIZE: number = 1000;
+  // Safety cap so a pathologically large backlog can't loop forever.
+  private static readonly STARTUP_CLEANUP_MAX_BATCHES: number = 1000;
+
+  /**
+   * Removes terminal (completed/failed) jobs for a single queue, at most once
+   * per process (gated by cleanedQueueNames). Drains in batches because
+   * BullMQ's clean() caps each call at `limit` removals. Leaves live states
+   * (waiting/active/delayed) untouched. Best-effort: any error is logged and
+   * swallowed so a transient Redis hiccup at boot never breaks queue setup.
+   */
+  private static async cleanQueueOnStartup(
+    queueName: QueueName,
+  ): Promise<void> {
+    /*
+     * Gate synchronously, before any await, so the lazy getQueue() trigger and
+     * the eager cleanAllQueuesOnStartup() call can't both sweep the same queue.
+     */
+    if (this.cleanedQueueNames.has(queueName)) {
+      return;
+    }
+    this.cleanedQueueNames.add(queueName);
+
+    const queue: BullQueue = this.getQueue(queueName);
+
+    const terminalStates: Array<"completed" | "failed"> = [
+      "completed",
+      "failed",
+    ];
+
+    for (const state of terminalStates) {
+      try {
+        let removedTotal: number = 0;
+
+        for (
+          let batch: number = 0;
+          batch < this.STARTUP_CLEANUP_MAX_BATCHES;
+          batch++
+        ) {
+          const removed: string[] = await queue.clean(
+            this.STARTUP_CLEANUP_GRACE_MS,
+            this.STARTUP_CLEANUP_BATCH_SIZE,
+            state,
+          );
+
+          removedTotal += removed.length;
+
+          // A short batch means the state is drained; stop looping.
+          if (removed.length < this.STARTUP_CLEANUP_BATCH_SIZE) {
+            break;
+          }
+        }
+
+        if (removedTotal > 0) {
+          logger.debug(
+            `Queue ${queueName}: removed ${removedTotal} ${state} job(s) on startup`,
+          );
+        }
+      } catch (err) {
+        // Ignore cleanup errors to not impact normal flow.
+        logger.debug(`Queue ${queueName}: startup ${state} cleanup failed`);
+        logger.debug(err);
+      }
+    }
   }
 
   @CaptureSpan()
@@ -368,6 +455,23 @@ export default class Queue {
     }
   }
 
+  private static normalizeFailedReason(reason: string | undefined): string {
+    if (typeof reason !== "string") {
+      return "No reason provided";
+    }
+
+    const normalized: string = reason.trim().toLowerCase();
+    if (
+      normalized.length === 0 ||
+      normalized === "null" ||
+      normalized === "undefined"
+    ) {
+      return "No reason provided";
+    }
+
+    return reason;
+  }
+
   @CaptureSpan()
   public static async getQueueSize(queueName: QueueName): Promise<number> {
     const queue: BullQueue = this.getQueue(queueName);
@@ -447,7 +551,7 @@ export default class Queue {
         id: job.id || "unknown",
         name: job.name || "unknown",
         data: job.data as JSONObject,
-        failedReason: job.failedReason || "No reason provided",
+        failedReason: Queue.normalizeFailedReason(job.failedReason),
         processedOn: job.processedOn ? new Date(job.processedOn) : null,
         finishedOn: job.finishedOn ? new Date(job.finishedOn) : null,
         attemptsMade: job.attemptsMade || 0,
@@ -554,7 +658,7 @@ export default class Queue {
         opts: (job.opts as unknown as JSONObject) || {},
         returnValue: job.returnvalue ?? null,
         progress: (job.progress as number | Record<string, unknown>) ?? null,
-        failedReason: job.failedReason || "No reason provided",
+        failedReason: Queue.normalizeFailedReason(job.failedReason),
         stackTrace: job.stacktrace || [],
         logs: logs,
         attemptsMade: job.attemptsMade || 0,

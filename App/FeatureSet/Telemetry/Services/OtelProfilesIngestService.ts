@@ -80,6 +80,19 @@ type NormalizedProfileFrame = {
   };
 };
 
+class ProfileStorageFlushError extends Error {
+  public constructor(error: unknown) {
+    const message: string =
+      error instanceof Error ? error.message : String(error);
+    super(`Failed to flush profiles to ClickHouse: ${message}`);
+    this.name = "ProfileStorageFlushError";
+
+    if (error instanceof Error && error.stack) {
+      this.stack = `${this.stack}\nCaused by: ${error.stack}`;
+    }
+  }
+}
+
 export default class OtelProfilesIngestService extends OtelIngestBaseService {
   private static async flushProfilesBuffer(
     profiles: Array<JSONObject>,
@@ -93,13 +106,19 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
         profiles.length,
         TELEMETRY_PROFILE_FLUSH_BATCH_SIZE,
       );
-      const batch: Array<JSONObject> = profiles.splice(0, batchSize);
+      const batch: Array<JSONObject> = profiles.slice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      await ProfileService.insertJsonRows(batch);
+      try {
+        await ProfileService.insertJsonRows(batch);
+      } catch (error) {
+        throw new ProfileStorageFlushError(error);
+      }
+
+      profiles.splice(0, batch.length);
     }
   }
 
@@ -115,13 +134,19 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
         samples.length,
         TELEMETRY_PROFILE_SAMPLE_FLUSH_BATCH_SIZE,
       );
-      const batch: Array<JSONObject> = samples.splice(0, batchSize);
+      const batch: Array<JSONObject> = samples.slice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      await ProfileSampleService.insertJsonRows(batch);
+      try {
+        await ProfileSampleService.insertJsonRows(batch);
+      } catch (error) {
+        throw new ProfileStorageFlushError(error);
+      }
+
+      samples.splice(0, batch.length);
     }
   }
 
@@ -720,6 +745,9 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                         await this.flushSamplesBuffer(dbSamples);
                       }
                     } catch (sampleError) {
+                      if (sampleError instanceof ProfileStorageFlushError) {
+                        throw sampleError;
+                      }
                       logger.error("Error processing individual sample:");
                       logger.error(sampleError);
                     }
@@ -805,16 +833,25 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                     await this.flushProfilesBuffer(dbProfiles);
                   }
                 } catch (profileError) {
+                  if (profileError instanceof ProfileStorageFlushError) {
+                    throw profileError;
+                  }
                   logger.error("Error processing individual profile:");
                   logger.error(profileError);
                 }
               }
             } catch (scopeError) {
+              if (scopeError instanceof ProfileStorageFlushError) {
+                throw scopeError;
+              }
               logger.error("Error processing scope profile:");
               logger.error(scopeError);
             }
           }
         } catch (resourceError) {
+          if (resourceError instanceof ProfileStorageFlushError) {
+            throw resourceError;
+          }
           logger.error("Error processing resource profile:");
           logger.error(resourceError);
         }

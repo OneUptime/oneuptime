@@ -790,7 +790,7 @@ spec:
   {{- if $.ReplicaCount }}
   replicas: {{ $.ReplicaCount }}
   {{- else }}
-  {{- if or (not $.Values.autoscaling.enabled) ($.DisableAutoscaler) }}
+  {{- if or (not (eq (include "oneuptime.autoscalingEnabled" (dict "Values" $.Values "Override" $.AutoscalingOverride)) "true")) ($.DisableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   strategy: {{- toYaml $.Values.deployment.updateStrategy | nindent 4 }}
@@ -888,8 +888,42 @@ spec:
 
 
 
+{{/*
+oneuptime.autoscalingEnabled returns "true" when autoscaling is effectively
+enabled for a service, otherwise an empty string. Pass the global Values plus an
+optional per-service Override block (e.g. .Values.nginx.autoscaling). A key
+present in Override wins over the global .Values.autoscaling default.
+Usage: {{- if eq (include "oneuptime.autoscalingEnabled" (dict "Values" $.Values "Override" $.Values.nginx.autoscaling)) "true" }}
+*/}}
+{{- define "oneuptime.autoscalingEnabled" -}}
+{{- $g := .Values.autoscaling | default dict -}}
+{{- $o := .Override | default dict -}}
+{{- $enabled := $g.enabled -}}
+{{- if hasKey $o "enabled" -}}{{- $enabled = $o.enabled -}}{{- end -}}
+{{- if $enabled -}}true{{- end -}}
+{{- end -}}
+
+{{/*
+oneuptime.autoscaler renders a HorizontalPodAutoscaler. Each field falls back to
+the global .Values.autoscaling block, but a per-service Override block (passed as
+.Override, e.g. .Values.nginx.autoscaling) can override any subset of
+enabled / minReplicas / maxReplicas / targetCPUUtilizationPercentage /
+targetMemoryUtilizationPercentage. Keys absent from Override inherit the global.
+*/}}
 {{- define "oneuptime.autoscaler" }}
-{{- if and (.Values.autoscaling.enabled) (not .DisableAutoscaler) }}
+{{- $g := .Values.autoscaling | default dict -}}
+{{- $o := .Override | default dict -}}
+{{- $enabled := $g.enabled -}}
+{{- if hasKey $o "enabled" -}}{{- $enabled = $o.enabled -}}{{- end -}}
+{{- if and $enabled (not .DisableAutoscaler) }}
+{{- $minReplicas := $g.minReplicas -}}
+{{- if hasKey $o "minReplicas" -}}{{- $minReplicas = $o.minReplicas -}}{{- end -}}
+{{- $maxReplicas := $g.maxReplicas -}}
+{{- if hasKey $o "maxReplicas" -}}{{- $maxReplicas = $o.maxReplicas -}}{{- end -}}
+{{- $targetCPU := $g.targetCPUUtilizationPercentage -}}
+{{- if hasKey $o "targetCPUUtilizationPercentage" -}}{{- $targetCPU = $o.targetCPUUtilizationPercentage -}}{{- end -}}
+{{- $targetMemory := $g.targetMemoryUtilizationPercentage -}}
+{{- if hasKey $o "targetMemoryUtilizationPercentage" -}}{{- $targetMemory = $o.targetMemoryUtilizationPercentage -}}{{- end -}}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -902,24 +936,24 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ printf "%s-%s" $.Release.Name $.ServiceName }}
-  minReplicas: {{ .Values.autoscaling.minReplicas }}
-  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  minReplicas: {{ $minReplicas }}
+  maxReplicas: {{ $maxReplicas }}
   metrics:
-    {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
+    {{- if $targetCPU }}
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+          averageUtilization: {{ $targetCPU }}
     {{- end }}
-    {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- if $targetMemory }}
     - type: Resource
       resource:
         name: memory
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+          averageUtilization: {{ $targetMemory }}
     {{- end }}
 {{- end }}
 {{- end }}

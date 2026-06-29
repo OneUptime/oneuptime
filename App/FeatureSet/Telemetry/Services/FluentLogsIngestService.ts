@@ -27,7 +27,25 @@ import OTelIngestService, {
 import LogService from "Common/Server/Services/LogService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import FluentLogsQueueService from "./Queue/FluentLogsQueueService";
+import LogPipelineService, { LoadedPipeline } from "./LogPipelineService";
+import LogDropFilterService, {
+  LoadedLogDropFilter,
+} from "./LogDropFilterService";
+import LogScrubRuleService from "./LogScrubRuleService";
 import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
+
+class FluentLogStorageFlushError extends Error {
+  public constructor(error: unknown) {
+    const message: string =
+      error instanceof Error ? error.message : String(error);
+    super(`Failed to flush fluent logs to ClickHouse: ${message}`);
+    this.name = "FluentLogStorageFlushError";
+
+    if (error instanceof Error && error.stack) {
+      this.stack = `${this.stack}\nCaused by: ${error.stack}`;
+    }
+  }
+}
 
 export default class FluentLogsIngestService extends OtelIngestBaseService {
   private static readonly DEFAULT_SERVICE_NAME: string = "Fluentd";
@@ -187,6 +205,33 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
           serviceName,
         });
 
+      /*
+       * Load pipelines, drop filters, and scrub rules once per batch so
+       * Fluentd-ingested logs go through the same processing stage as the
+       * OTLP path (OtelLogsIngestService.processLogsAsync). Without this,
+       * configured LogPipelines / drop filters / scrub rules are silently
+       * bypassed for the dedicated /fluentd/v1/logs endpoint. (Fluent Bit
+       * ships the OpenTelemetry output and lands on the OTLP path, which
+       * already applies these.) A load failure is logged and swallowed so a
+       * config lookup error can never fail ingest.
+       */
+      let loadedPipelines: Array<LoadedPipeline> = [];
+      let loadedDropFilters: Array<LoadedLogDropFilter> = [];
+      let loadedScrubRules: Awaited<
+        ReturnType<typeof LogScrubRuleService.loadScrubRules>
+      > = [];
+      try {
+        loadedPipelines = await LogPipelineService.loadPipelines(projectId);
+        loadedDropFilters =
+          await LogDropFilterService.loadDropFilters(projectId);
+        loadedScrubRules = await LogScrubRuleService.loadScrubRules(projectId);
+      } catch (loadError) {
+        logger.error(
+          "Fluent logs ingest: error loading pipelines/drop filters/scrub rules:",
+        );
+        logger.error(loadError);
+      }
+
       const dbLogs: Array<JSONObject> = [];
       let processed: number = 0;
 
@@ -229,7 +274,7 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
             retentionDays,
           );
 
-          const logRow: JSONObject = {
+          let logRow: JSONObject = {
             _id: ObjectID.generateTimeOrdered().toString(),
             createdAt: ingestionDateTime,
             projectId: projectId.toString(),
@@ -250,6 +295,27 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
             retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
           } satisfies JSONObject;
 
+          /*
+           * Apply the same log-processing stage as the OTLP path, in the
+           * same order: drop filter (skip the row entirely), then sensitive
+           * data scrubbing, then pipeline processors. Each guarded on a
+           * non-empty rule set so projects with none configured pay no cost.
+           */
+          if (
+            loadedDropFilters.length > 0 &&
+            LogDropFilterService.shouldDropLog(logRow, loadedDropFilters)
+          ) {
+            continue;
+          }
+
+          if (loadedScrubRules.length > 0) {
+            logRow = LogScrubRuleService.scrubLog(logRow, loadedScrubRules);
+          }
+
+          if (loadedPipelines.length > 0) {
+            logRow = LogPipelineService.processLog(logRow, loadedPipelines);
+          }
+
           dbLogs.push(logRow);
           processed++;
 
@@ -257,6 +323,10 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
             await this.flushLogsBuffer(dbLogs);
           }
         } catch (processingError) {
+          if (processingError instanceof FluentLogStorageFlushError) {
+            throw processingError;
+          }
+
           logger.error("Fluent logs ingest: error processing entry");
           logger.error(processingError);
         }
@@ -548,13 +618,19 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
         TELEMETRY_LOG_FLUSH_BATCH_SIZE,
       );
 
-      const batch: Array<JSONObject> = logs.splice(0, batchSize);
+      const batch: Array<JSONObject> = logs.slice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      await LogService.insertJsonRows(batch);
+      try {
+        await LogService.insertJsonRows(batch);
+      } catch (error) {
+        throw new FluentLogStorageFlushError(error);
+      }
+
+      logs.splice(0, batch.length);
     }
   }
 }

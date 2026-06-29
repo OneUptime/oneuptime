@@ -60,9 +60,12 @@ describe("Side Menu Item", () => {
   });
 
   it("Should render icon if provided", () => {
-    render(<SideMenuItem {...defaultProps} icon={IconProp.Home} />);
+    const { container } = render(
+      <SideMenuItem {...defaultProps} icon={IconProp.Home} />,
+    );
 
-    expect(screen.getByRole("icon")).toBeInTheDocument();
+    // The icon renders an inline <svg> (no invalid role="icon"; WCAG 4.1.2).
+    expect(container.querySelector("svg")).not.toBeNull();
   });
 
   it("Should render the sub item link with given title and Icon", () => {
@@ -73,7 +76,7 @@ describe("Side Menu Item", () => {
       title: "Sub Page",
       to: new Route("/sub-page"),
     };
-    render(
+    const { container } = render(
       <SideMenuItem
         {...defaultProps}
         subItemLink={subLink}
@@ -87,7 +90,8 @@ describe("Side Menu Item", () => {
       .closest("a");
 
     expect(subLinkElement).toBeInTheDocument();
-    expect(screen.getAllByRole("icon")).toHaveLength(2);
+    // Main and sub-item icons each render an inline <svg> (no role="icon").
+    expect(container.querySelectorAll("svg")).toHaveLength(2);
   });
 
   it("Should render link badge if provided", () => {
@@ -104,15 +108,21 @@ describe("Side Menu Item", () => {
   });
 
   it("Should show alert", () => {
-    render(<SideMenuItem {...defaultProps} showAlert={true} />);
+    const { container } = render(
+      <SideMenuItem {...defaultProps} showAlert={true} />,
+    );
 
-    expect(screen.getByRole("icon")).toBeInTheDocument();
+    // The alert icon renders an inline <svg> (no role="icon"; WCAG 4.1.2).
+    expect(container.querySelector("svg")).not.toBeNull();
   });
 
   it("Should show warning", () => {
-    render(<SideMenuItem {...defaultProps} showWarning={true} />);
+    const { container } = render(
+      <SideMenuItem {...defaultProps} showWarning={true} />,
+    );
 
-    expect(screen.getByRole("icon")).toBeInTheDocument();
+    // The warning icon renders an inline <svg> (no role="icon"; WCAG 4.1.2).
+    expect(container.querySelector("svg")).not.toBeNull();
   });
 
   it("Should highlights the main link when on the same page", () => {

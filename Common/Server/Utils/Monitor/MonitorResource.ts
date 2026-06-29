@@ -35,6 +35,7 @@ import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/Ex
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import MonitorIncident from "./MonitorIncident";
 import MonitorAlert from "./MonitorAlert";
+import IncomingRequestIncidentGrouping from "./IncomingRequestIncidentGrouping";
 import MonitorMaintenanceSuppression from "./MonitorMaintenanceSuppression";
 import MonitorStatusTimelineUtil from "./MonitorStatusTimeline";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -659,6 +660,49 @@ export default class MonitorResourceUtil {
         }
       }
 
+      /*
+       * Incoming Request / webhook grouped resolution (event-driven). A
+       * payload can explicitly mark keys as resolved (e.g. Grafana
+       * status=resolved). Resolve exactly those keys' incidents — never by
+       * absence. Runs regardless of whether a firing criteria matched, so a
+       * pure "resolved" webhook still closes the right incident. No-op
+       * unless a criteria has incidentGrouping configured.
+       */
+      if (
+        monitor.monitorType === MonitorType.IncomingRequest &&
+        criteriaInstances.some((criteriaInstance: MonitorCriteriaInstance) => {
+          return IncomingRequestIncidentGrouping.isGroupingConfigured(
+            criteriaInstance,
+          );
+        })
+      ) {
+        const resolvedFingerprints: Array<string> =
+          IncomingRequestIncidentGrouping.collectResolvedFingerprints({
+            dataToProcess: dataToProcess,
+            criteriaInstances: criteriaInstances,
+          });
+
+        if (resolvedFingerprints.length > 0) {
+          await MonitorIncident.resolveSeriesIncidentsByFingerprint({
+            monitor: monitor,
+            fingerprints: resolvedFingerprints,
+            rootCause: "Incoming request reported this key as resolved.",
+            dataToProcess: dataToProcess,
+            autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+            evaluationSummary: evaluationSummary,
+          });
+
+          await MonitorAlert.resolveSeriesAlertsByFingerprint({
+            monitor: monitor,
+            fingerprints: resolvedFingerprints,
+            rootCause: "Incoming request reported this key as resolved.",
+            dataToProcess: dataToProcess,
+            autoResolveCriteriaInstanceIdAlertIdsDictionary,
+            evaluationSummary: evaluationSummary,
+          });
+        }
+      }
+
       if (response.criteriaMetId && response.rootCause) {
         logger.debug(
           `${dataToProcess.monitorId.toString()} - Criteria met: ${
@@ -796,6 +840,15 @@ export default class MonitorResourceUtil {
           },
           matchesPerSeries: response.perSeriesMatches,
           suppressedSeriesFingerprints,
+          /*
+           * Incoming-request grouping is event-driven: a webhook describes
+           * only the keys in its payload, so absence from this tick is not
+           * recovery. Skip the snapshot absence-resolve pass; grouped
+           * incidents are resolved explicitly via the resolution block
+           * above. Per-key create + dedupe still run from matchesPerSeries.
+           */
+          disableSeriesAbsenceResolution:
+            monitor.monitorType === MonitorType.IncomingRequest,
         });
 
         await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
@@ -810,6 +863,14 @@ export default class MonitorResourceUtil {
           },
           matchesPerSeries: response.perSeriesMatches,
           suppressedSeriesFingerprints,
+          /*
+           * Incoming-request grouping is event-driven (see the incident
+           * create call above): skip the snapshot absence-resolve pass for
+           * webhooks; grouped alerts are resolved explicitly via the
+           * resolution block above. Per-key create + dedupe still run.
+           */
+          disableSeriesAbsenceResolution:
+            monitor.monitorType === MonitorType.IncomingRequest,
         });
       } else if (
         !response.criteriaMetId &&
@@ -828,6 +889,17 @@ export default class MonitorResourceUtil {
           criteriaInstance: null, // no criteria met!
           dataToProcess: dataToProcess,
           evaluationSummary: evaluationSummary,
+          /*
+           * Event-driven grouping: for incoming-request monitors, never
+           * absence-resolve per-key (seriesFingerprint) incidents on the
+           * no-criteria-met path — a heartbeat tick or a rejected webhook
+           * must not bulk-close grouped incidents. They resolve only via
+           * the explicit resolution block above. Non-grouped incoming
+           * incidents have no seriesFingerprint, so they still resolve
+           * normally; non-incoming-request types are unaffected (flag false).
+           */
+          disableSeriesAbsenceResolution:
+            monitor.monitorType === MonitorType.IncomingRequest,
         });
 
         await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
@@ -837,6 +909,8 @@ export default class MonitorResourceUtil {
           criteriaInstance: null, // no criteria met!
           dataToProcess: dataToProcess,
           evaluationSummary: evaluationSummary,
+          disableSeriesAbsenceResolution:
+            monitor.monitorType === MonitorType.IncomingRequest,
         });
 
         // get last monitor status timeline.

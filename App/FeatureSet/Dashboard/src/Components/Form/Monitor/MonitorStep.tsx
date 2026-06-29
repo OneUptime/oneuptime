@@ -1223,7 +1223,6 @@ return {
               monitorStep.data?.metricMonitor ||
               MonitorStepMetricMonitorUtil.getDefault()
             }
-            telemetryEntities={telemetryEntities}
             onChange={(value: MonitorStepMetricMonitor) => {
               monitorStep.setMetricMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));

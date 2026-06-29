@@ -21,9 +21,11 @@ import DashboardTemplateCard from "../../Components/Dashboard/DashboardTemplateC
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import {
-  DashboardTemplates,
   DashboardTemplateType,
   DashboardTemplate,
+  DashboardTemplateCategories,
+  DashboardTemplateCategory,
+  getDashboardTemplatesByCategory,
 } from "Common/Types/Dashboard/DashboardTemplates";
 import { JSONObject } from "Common/Types/JSON";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -78,19 +80,39 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
           }}
           modalWidth={ModalWidth.Large}
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {DashboardTemplates.map(
-              (template: DashboardTemplate): ReactElement => {
+          <div className="space-y-6">
+            {DashboardTemplateCategories.map(
+              (category: DashboardTemplateCategory): ReactElement => {
+                const templates: Array<DashboardTemplate> =
+                  getDashboardTemplatesByCategory(category);
+
+                if (templates.length === 0) {
+                  return <Fragment key={category}></Fragment>;
+                }
+
                 return (
-                  <DashboardTemplateCard
-                    key={template.type}
-                    title={template.name}
-                    description={template.description}
-                    icon={template.icon}
-                    onClick={() => {
-                      handleTemplateClick(template.type);
-                    }}
-                  />
+                  <div key={category}>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                      {category}
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {templates.map(
+                        (template: DashboardTemplate): ReactElement => {
+                          return (
+                            <DashboardTemplateCard
+                              key={template.type}
+                              title={template.name}
+                              description={template.description}
+                              icon={template.icon}
+                              onClick={() => {
+                                handleTemplateClick(template.type);
+                              }}
+                            />
+                          );
+                        },
+                      )}
+                    </div>
+                  </div>
                 );
               },
             )}

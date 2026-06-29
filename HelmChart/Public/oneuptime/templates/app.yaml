@@ -21,7 +21,7 @@ spec:
   {{- if and $.Values.app (hasKey $.Values.app "replicaCount") (ne $.Values.app.replicaCount nil) }}
   replicas: {{ $.Values.app.replicaCount }}
   {{- else }}
-  {{- if or (not $.Values.autoscaling.enabled) ($.Values.app.disableAutoscaler) }}
+  {{- if or (not (eq (include "oneuptime.autoscalingEnabled" (dict "Values" $.Values "Override" $.Values.app.autoscaling)) "true")) ($.Values.app.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}
@@ -153,7 +153,7 @@ spec:
 
 # OneUptime app autoscaler (skip HPA when KEDA is managing scaling)
 {{- if and (not $.Values.app.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.app.keda.enabled)) }}
-{{- $appAutoScalerArgs := dict "ServiceName" "app" "Release" $.Release "Values" $.Values -}}
+{{- $appAutoScalerArgs := dict "ServiceName" "app" "Release" $.Release "Values" $.Values "Override" $.Values.app.autoscaling -}}
 {{- include "oneuptime.autoscaler" $appAutoScalerArgs }}
 {{- end }}
 ---

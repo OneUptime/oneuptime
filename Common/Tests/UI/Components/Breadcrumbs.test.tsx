@@ -63,20 +63,32 @@ describe("Breadcrumbs", () => {
       <Breadcrumbs links={links} />,
     );
     const testInstance: ReactTestInstance = testRenderer.root;
-    // Assert cursor style
+    /*
+     * The current page is not linked: it renders as a non-interactive <span>
+     * (cursor-default), not an <a> (WCAG 4.1.2). Only the other crumbs are
+     * rendered as anchors.
+     */
     const anchors: ReactTestInstance[] = testInstance.findAllByType("a");
+    expect(anchors).toHaveLength(1);
     expect(anchors[0]?.props["className"]).toContain("cursor-pointer");
-    expect(anchors[1]?.props["className"]).toContain("cursor-default");
+    // The current page ("Projects") renders as a cursor-default span.
+    const currentPageSpans: ReactTestInstance[] = testInstance.findAll(
+      (node: ReactTestInstance) => {
+        return (
+          node.type === "span" &&
+          typeof node.props["className"] === "string" &&
+          node.props["className"].includes("cursor-default")
+        );
+      },
+    );
+    expect(currentPageSpans.length).toBeGreaterThan(0);
     // Set up spy on navigation
     jest.spyOn(Navigation, "navigate");
     // Create a mock event with preventDefault
     const mockEvent: { preventDefault: ReturnType<typeof jest.fn> } = {
       preventDefault: jest.fn(),
     };
-    // Assert the second link does not navigate
-    anchors[1]?.props["onClick"](mockEvent);
-    expect(Navigation.navigate).not.toHaveBeenCalled();
-    // Assert the first link navigates
+    // The first (non-current) link navigates when clicked.
     anchors[0]?.props["onClick"](mockEvent);
     expect(Navigation.navigate).toHaveBeenCalledTimes(1);
   });
