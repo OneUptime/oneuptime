@@ -1515,9 +1515,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(findBy.props);
 
-      // Columns we add to the select purely to satisfy the ORDER BY, and which
-      // must be stripped from the returned items so the caller only gets back
-      // what it asked for.
+      /*
+       * Columns we add to the select purely to satisfy the ORDER BY, and which
+       * must be stripped from the returned items so the caller only gets back
+       * what it asked for.
+       */
       const automaticallyAddedSortKeysInSelect: Array<string> = [];
 
       if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
