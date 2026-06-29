@@ -197,6 +197,16 @@ export class LogPipelineService {
           config as unknown as CompiledCategoryConfig,
         );
       default:
+        /*
+         * The processor type is defined in LogPipelineProcessorType (and
+         * creatable via the UI/API) but has no implementation here yet — e.g.
+         * GrokParser. Returning the log unchanged is correct, but doing so
+         * silently leaves operators unable to tell why such a processor never
+         * transforms anything. Surface it instead of dropping it quietly.
+         */
+        logger.warn(
+          `LogPipeline processor "${processor.name}" has unsupported processorType "${processor.processorType}" and was skipped. This processor type is not yet implemented and will not transform logs.`,
+        );
         return logRow;
     }
   }
