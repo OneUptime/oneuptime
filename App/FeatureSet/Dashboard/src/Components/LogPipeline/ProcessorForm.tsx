@@ -23,9 +23,35 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 export interface ComponentProps {
   pipelineId: ObjectID;
-  onProcessorCreated: () => void;
+  // When provided, the form opens in edit mode pre-filled from this processor.
+  initialProcessor?: LogPipelineProcessor | undefined;
+  onProcessorSaved: () => void;
   onCancel: () => void;
 }
+
+/*
+ * Processor configuration is a polymorphic JSONB blob. It is usually handed
+ * back as an object, but some persistence paths store it as a JSON string
+ * literal, so accept either shape when pre-filling the edit form.
+ */
+const parseConfiguration: (raw: JSONValue | undefined) => JSONObject = (
+  raw: JSONValue | undefined,
+): JSONObject => {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    return raw as JSONObject;
+  }
+  if (typeof raw === "string") {
+    try {
+      const parsed: JSONValue = JSON.parse(raw);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed as JSONObject;
+      }
+    } catch {
+      // fall through to empty config
+    }
+  }
+  return {};
+};
 
 type ProcessorType =
   | "SeverityRemapper"
@@ -62,29 +88,70 @@ interface CategoryRule {
 const ProcessorForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const isEditMode: boolean = Boolean(props.initialProcessor?.id);
+  const initialType: ProcessorType =
+    (props.initialProcessor?.processorType as ProcessorType) || "";
+  const initialConfig: JSONObject = parseConfiguration(
+    props.initialProcessor?.configuration as JSONValue | undefined,
+  );
+
   // Common fields
-  const [name, setName] = useState<string>("");
-  const [processorType, setProcessorType] = useState<ProcessorType>("");
-  const [isEnabled, setIsEnabled] = useState<boolean>(true);
+  const [name, setName] = useState<string>(props.initialProcessor?.name || "");
+  const [processorType, setProcessorType] =
+    useState<ProcessorType>(initialType);
+  const [isEnabled, setIsEnabled] = useState<boolean>(
+    props.initialProcessor?.isEnabled ?? true,
+  );
 
   // Severity Remapper fields
-  const [severitySourceKey, setSeveritySourceKey] = useState<string>("level");
+  const [severitySourceKey, setSeveritySourceKey] = useState<string>(
+    initialType === "SeverityRemapper"
+      ? (initialConfig["sourceKey"] as string) || "level"
+      : "level",
+  );
   const [severityMappings, setSeverityMappings] = useState<
     Array<SeverityMapping>
-  >([{ matchValue: "", severityText: "", severityNumber: 0 }]);
+  >(
+    initialType === "SeverityRemapper" &&
+      Array.isArray(initialConfig["mappings"])
+      ? (initialConfig["mappings"] as unknown as Array<SeverityMapping>)
+      : [{ matchValue: "", severityText: "", severityNumber: 0 }],
+  );
 
   // Attribute Remapper fields
-  const [attrSourceKey, setAttrSourceKey] = useState<string>("");
-  const [attrTargetKey, setAttrTargetKey] = useState<string>("");
-  const [preserveSource, setPreserveSource] = useState<boolean>(false);
-  const [overrideOnConflict, setOverrideOnConflict] = useState<boolean>(true);
+  const [attrSourceKey, setAttrSourceKey] = useState<string>(
+    initialType === "AttributeRemapper"
+      ? (initialConfig["sourceKey"] as string) || ""
+      : "",
+  );
+  const [attrTargetKey, setAttrTargetKey] = useState<string>(
+    initialType === "AttributeRemapper"
+      ? (initialConfig["targetKey"] as string) || ""
+      : "",
+  );
+  const [preserveSource, setPreserveSource] = useState<boolean>(
+    initialType === "AttributeRemapper"
+      ? Boolean(initialConfig["preserveSource"])
+      : false,
+  );
+  const [overrideOnConflict, setOverrideOnConflict] = useState<boolean>(
+    initialType === "AttributeRemapper"
+      ? initialConfig["overrideOnConflict"] !== false
+      : true,
+  );
 
   // Category Processor fields
-  const [categoryTargetKey, setCategoryTargetKey] =
-    useState<string>("category");
-  const [categories, setCategories] = useState<Array<CategoryRule>>([
-    { name: "", filterQuery: "" },
-  ]);
+  const [categoryTargetKey, setCategoryTargetKey] = useState<string>(
+    initialType === "CategoryProcessor"
+      ? (initialConfig["targetKey"] as string) || "category"
+      : "category",
+  );
+  const [categories, setCategories] = useState<Array<CategoryRule>>(
+    initialType === "CategoryProcessor" &&
+      Array.isArray(initialConfig["categories"])
+      ? (initialConfig["categories"] as unknown as Array<CategoryRule>)
+      : [{ name: "", filterQuery: "" }],
+  );
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -178,22 +245,40 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
     setError("");
 
     try {
-      const processor: LogPipelineProcessor = new LogPipelineProcessor();
-      processor.name = name;
-      processor.processorType = processorType;
-      processor.configuration = buildConfiguration();
-      processor.isEnabled = isEnabled;
-      processor.logPipelineId = props.pipelineId;
-      processor.sortOrder = 1;
+      if (isEditMode && props.initialProcessor?.id) {
+        // Edit: update the existing processor, preserving its sortOrder.
+        await ModelAPI.updateById({
+          modelType: LogPipelineProcessor,
+          id: props.initialProcessor.id,
+          data: {
+            name,
+            processorType,
+            configuration: buildConfiguration(),
+            isEnabled,
+          },
+        });
+      } else {
+        const processor: LogPipelineProcessor = new LogPipelineProcessor();
+        processor.name = name;
+        processor.processorType = processorType;
+        processor.configuration = buildConfiguration();
+        processor.isEnabled = isEnabled;
+        processor.logPipelineId = props.pipelineId;
+        processor.sortOrder = 1;
 
-      await ModelAPI.create({
-        model: processor,
-        modelType: LogPipelineProcessor,
-      });
+        await ModelAPI.create({
+          model: processor,
+          modelType: LogPipelineProcessor,
+        });
+      }
 
-      props.onProcessorCreated();
+      props.onProcessorSaved();
     } catch {
-      setError("Failed to create processor. Please try again.");
+      setError(
+        isEditMode
+          ? "Failed to update processor. Please try again."
+          : "Failed to create processor. Please try again.",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -201,10 +286,10 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
 
   return (
     <Modal
-      title="Add Processor"
+      title={isEditMode ? "Edit Processor" : "Add Processor"}
       description="Processors transform logs as they flow through the pipeline. They run in order after the filter conditions match. Each processor modifies the log before it is stored."
       modalWidth={ModalWidth.Large}
-      submitButtonText="Create Processor"
+      submitButtonText={isEditMode ? "Save Changes" : "Create Processor"}
       onSubmit={handleSave}
       isLoading={isSaving}
       onClose={props.onCancel}
