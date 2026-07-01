@@ -26,6 +26,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import { getClickhouseClusterName } from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
+import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -1927,6 +1928,115 @@ async function getClickhouseDiagnostics(): Promise<JSONObject> {
 }
 
 /*
+ * The three telemetry signals OneUptime ingests into ClickHouse and the
+ * event-time column each table is partitioned + primary-key ordered on. We count
+ * ingestion on THIS column (never `createdAt`) precisely because it is the
+ * partition key (toYYYYMMDD) and the leading primary-key column: ClickHouse can
+ * prune to the last day's partitions and use the primary index, so the count
+ * stays cheap even on multi-billion-row tables. `createdAt` — the true write
+ * time — is unindexed and unpartitioned here, so filtering on it would force a
+ * full-table scan; for a live pipeline event-time and write-time agree to within
+ * seconds, and the only divergence (historical backfill) is not what a
+ * "current ingestion rate" view is meant to show.
+ */
+const TELEMETRY_INGESTION_TABLES: Array<{
+  telemetryType: string;
+  table: AnalyticsTableName;
+  timeColumn: string;
+}> = [
+  { telemetryType: "Logs", table: AnalyticsTableName.Log, timeColumn: "time" },
+  {
+    telemetryType: "Metrics",
+    table: AnalyticsTableName.Metric,
+    timeColumn: "time",
+  },
+  {
+    telemetryType: "Traces",
+    table: AnalyticsTableName.Span,
+    timeColumn: "startTime",
+  },
+];
+
+/*
+ * Telemetry ingestion rate for the dashboard. For each telemetry table it counts
+ * the rows whose event time falls in the last minute, the last hour and the last
+ * day — so an operator can see how fast telemetry is flowing into ClickHouse and
+ * spot a stall or a flood at a glance. Every window is bounded by the same
+ * `WHERE eventTime >= now() - INTERVAL 1 DAY AND eventTime <= now()` so the scan
+ * only ever touches the last day's partitions; the smaller windows are picked
+ * out with countIf. The upper `<= now()` bound stops a future-dated event from
+ * inflating the counts. Each table is probed independently so a missing table
+ * (e.g. an instance that only ingests logs) degrades gracefully. No row data is
+ * read — only counts. Enterprise Edition + master-admin gated at the route.
+ */
+async function getClickhouseTelemetryIngestion(): Promise<JSONObject> {
+  const result: JSONObject = {
+    connected: false,
+    tables: [],
+  };
+
+  try {
+    const client: ReturnType<typeof ClickhouseAppInstance.getDataSource> =
+      ClickhouseAppInstance.getDataSource();
+
+    if (!client) {
+      return result;
+    }
+
+    result["connected"] = true;
+
+    const tables: JSONArray = [];
+
+    for (const spec of TELEMETRY_INGESTION_TABLES) {
+      const entry: JSONObject = {
+        telemetryType: spec.telemetryType,
+        table: spec.table,
+        lastMinute: null,
+        lastHour: null,
+        lastDay: null,
+        available: false,
+      };
+
+      try {
+        const ingestionResult: ClickhouseJsonResult = (await (
+          await client.query({
+            query:
+              "SELECT " +
+              `countIf(${spec.timeColumn} >= now() - INTERVAL 1 MINUTE) AS last_minute, ` +
+              `countIf(${spec.timeColumn} >= now() - INTERVAL 1 HOUR) AS last_hour, ` +
+              "count() AS last_day " +
+              `FROM \`${ClickhouseDatabaseName}\`.\`${spec.table}\` ` +
+              `WHERE ${spec.timeColumn} >= now() - INTERVAL 1 DAY AND ${spec.timeColumn} <= now()` +
+              CH_DIAG_QUERY_SETTINGS,
+            format: "JSON",
+          })
+        ).json()) as ClickhouseJsonResult;
+
+        const row: JSONObject = ingestionResult.data?.[0] || {};
+        entry["lastMinute"] = toNumberOrNull(row["last_minute"]);
+        entry["lastHour"] = toNumberOrNull(row["last_hour"]);
+        entry["lastDay"] = toNumberOrNull(row["last_day"]);
+        entry["available"] = true;
+      } catch (err) {
+        logger.debug(
+          `AdminHealth: telemetry ingestion query failed for ${spec.table}`,
+        );
+        logger.debug(err);
+      }
+
+      tables.push(entry);
+    }
+
+    result["tables"] = tables;
+  } catch (err) {
+    logger.error("AdminHealth: failed to read ClickHouse telemetry ingestion");
+    logger.error(err);
+  }
+
+  return result;
+}
+
+/*
  * ---------------------------------------------------------------------------
  * Diagnostic logs
  *
@@ -2529,6 +2639,38 @@ router.get(
 );
 
 /*
+ * Telemetry ingestion rate for the dashboard: how many log / metric / trace rows
+ * landed in ClickHouse over the last minute, hour and day, so an operator can
+ * see the live ingestion throughput and spot a stalled or flooding pipeline.
+ * Enterprise Edition + master-admin only, like the ClickHouse cluster endpoint
+ * beside it. Counts only — no telemetry row data leaves the process.
+ */
+router.get(
+  "/clickhouse-telemetry-ingestion",
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!IsEnterpriseEdition) {
+        throw new PaymentRequiredException(
+          "The instance health dashboard is only available on the OneUptime Enterprise Edition. " +
+            "Please switch to the Enterprise Edition build to enable this feature. " +
+            "See https://oneuptime.com/enterprise/overview for details.",
+        );
+      }
+
+      const data: JSONObject = await getClickhouseTelemetryIngestion();
+      return Response.sendJsonObjectResponse(req, res, data);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
  * Postgres cluster health for the dashboard: streaming-replication lag, slot
  * health, connection saturation, lock/blocking pressure, cache-hit ratio and
  * transaction-ID wraparound headroom — the signals behind a failed
@@ -2617,6 +2759,7 @@ router.get(
         postgresDiagnostics,
         postgresClusterHealth,
         clickhouseDiagnostics,
+        clickhouseTelemetryIngestion,
         logs,
       ] = await Promise.all([
         getMigrationStatus(),
@@ -2630,6 +2773,7 @@ router.get(
         getPostgresDiagnostics(),
         getPostgresClusterHealth(),
         getClickhouseDiagnostics(),
+        getClickhouseTelemetryIngestion(),
         getDiagnosticLogs(),
       ]);
 
@@ -2655,6 +2799,7 @@ router.get(
         postgresDiagnostics,
         postgresClusterHealth,
         clickhouseDiagnostics,
+        clickhouseTelemetryIngestion,
         logs,
         postgres: postgresSchema,
         clickhouse: clickhouseSchema,
