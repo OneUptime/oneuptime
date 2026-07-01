@@ -395,6 +395,14 @@ ebpf:
   #     synthetic-monitoring / Playwright probe pods don't bury OBI in
   #     short-lived-process churn — a CPU-peg + container-runtime-stall risk on
   #     any node co-located with probes.
+  #   - ClickHouse (clickhouse): its server binary runs a self-integrity
+  #     checksum at startup and REFUSES to boot the instant OBI attaches a
+  #     uprobe and patches its in-memory text — it aborts with "Calculated
+  #     checksum of the executable does not correspond to the reference
+  #     checksum" (CORRUPTED_DATA / Code 246) and crash-loops. OneUptime's own
+  #     telemetry store IS ClickHouse, so leaving this un-excluded takes down the
+  #     platform's database. DB servers are best observed via native metrics +
+  #     client-side traces, not uprobes, so skip the binary outright.
   #
   # CAUTION when adding your own entries: each pattern is an "if matched,
   # skip" rule, so a broad glob like `*/proxy` will also exclude any of
@@ -403,7 +411,7 @@ ebpf:
   # (Note: `*/node` is intentionally NOT excluded — it would drop traces for
   # every Node.js service, including your own apps; the browser basenames above
   # are what cover Playwright.)
-  excludeExePaths: "*/sh,*/bash,*/dash,*/busybox,*/sleep,*/grep,*/awk,*/sed,*/ps,*/cat,*/find,*/runc,*/containerd*,*/dockerd,*/kubelet,*/kube-proxy,*/coredns,*/etcd,*/otelcol*,*/ebpf-instrument,*/obi,*/linkerd2-proxy,*/envoy,*/istio-pilot-agent,*/pilot-agent,*/cilium-agent,*/cilium-operator,*/cilium-envoy,*/calico-node,*/kube-router,*/firefox,*/firefox-bin,*/headless_shell,*/chrome,*/chromium,*/webkit"
+  excludeExePaths: "*/sh,*/bash,*/dash,*/busybox,*/sleep,*/grep,*/awk,*/sed,*/ps,*/cat,*/find,*/runc,*/containerd*,*/dockerd,*/kubelet,*/kube-proxy,*/coredns,*/etcd,*/otelcol*,*/ebpf-instrument,*/obi,*/linkerd2-proxy,*/envoy,*/istio-pilot-agent,*/pilot-agent,*/cilium-agent,*/cilium-operator,*/cilium-envoy,*/calico-node,*/kube-router,*/firefox,*/firefox-bin,*/headless_shell,*/chrome,*/chromium,*/webkit,*/clickhouse"
   # OBI log level: debug, info, warn, error
   logLevel: "info"
   # Print spans to stdout in addition to OTLP export — useful for confirming
