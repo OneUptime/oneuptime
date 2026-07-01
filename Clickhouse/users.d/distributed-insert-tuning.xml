@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!--
+  Tunes ClickHouse's background Distributed-insert sender — the step that forwards
+  rows from the app-facing Distributed tables (MetricItemV3 / LogItemV3 / SpanItemV3)
+  into the local ReplicatedMergeTree tables. OneUptime's analytics schema is ALWAYS a
+  Distributed table over a local table, even on a single node ("cluster of one"), so
+  every insert flows through this sender. Without batching it ships one spooled file
+  per insert and cannot keep up with high telemetry volume, so files pile into
+  system.distribution_queue (multi-GiB backlogs) and dashboards only see rows hours
+  late once the queue drains.
+
+  This lives in users.d (not config.d) because these are profile-level settings, read
+  from the `default` profile the OneUptime user and the background sender both use.
+  Mirrors the Altinity-operator defaults in HelmChart values.yaml
+  (clickhouseOperator.altinity.profiles) so behaviour matches across deployment modes.
+-->
+<clickhouse>
+    <profiles>
+        <default>
+            <!-- Coalesce many spooled files into one insert into the local table. -->
+            <distributed_background_insert_batch>1</distributed_background_insert_batch>
+            <!-- If a coalesced batch fails, retry its files individually instead of
+                 wedging the whole batch. -->
+            <distributed_background_insert_split_batch_on_failure>1</distributed_background_insert_split_batch_on_failure>
+            <!-- Write to the local replica directly (ClickHouse's own default) rather
+                 than going out over the TCP pool to localhost. -->
+            <prefer_localhost_replica>1</prefer_localhost_replica>
+        </default>
+    </profiles>
+</clickhouse>

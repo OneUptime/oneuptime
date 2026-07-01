@@ -14,4 +14,21 @@ data:
   config.xml: |
     <?xml version="1.0"?>
 {{ .Values.clickhouse.configuration | indent 4 }}
+  # Profile-level drop-in mounted into users.d (see clickhouse-statefulset.yaml). Batches
+  # the background Distributed-insert sender so it keeps up with telemetry volume;
+  # otherwise system.distribution_queue backs up and dashboards lag hours behind. Lives in
+  # users.d (not the config.d/custom.xml overlay above) because these are profile settings,
+  # read from the users config. Mirrors clickhouseOperator.altinity.profiles and the
+  # docker-compose Clickhouse/users.d drop-in. No secrets, so it needs no envsubst.
+  distributed-insert-tuning.xml: |
+    <?xml version="1.0"?>
+    <clickhouse>
+        <profiles>
+            <default>
+                <distributed_background_insert_batch>1</distributed_background_insert_batch>
+                <distributed_background_insert_split_batch_on_failure>1</distributed_background_insert_split_batch_on_failure>
+                <prefer_localhost_replica>1</prefer_localhost_replica>
+            </default>
+        </profiles>
+    </clickhouse>
 {{- end }}

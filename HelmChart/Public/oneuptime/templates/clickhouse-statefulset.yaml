@@ -162,6 +162,13 @@ spec:
         - name: clickhouse-config
           mountPath: /etc/clickhouse-server/config.d/custom.xml
           subPath: config.xml
+        # Profile-level drop-in (no secrets, so mounted straight from the ConfigMap —
+        # no envsubst needed). Batches the background Distributed-insert sender so it
+        # keeps up with telemetry volume; otherwise system.distribution_queue backs up
+        # and dashboards lag. Mounted into users.d, where ClickHouse reads profiles.
+        - name: clickhouse-config-template
+          mountPath: /etc/clickhouse-server/users.d/distributed-insert-tuning.xml
+          subPath: distributed-insert-tuning.xml
         - name: clickhouse-initdb
           mountPath: /docker-entrypoint-initdb.d
       volumes:
