@@ -169,6 +169,11 @@ services:
       # Keeper and a 1-node "oneuptime" cluster (config.d is merged into the
       # server config regardless of the main config.xml).
       - ./Clickhouse/config.d/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml
+      # Profile-level drop-in: batch the background Distributed-insert sender so it
+      # keeps up with telemetry volume (otherwise system.distribution_queue backs up
+      # and dashboards lag). users.d is merged into the users config, where profiles
+      # are read. Mirrors the Altinity operator defaults.
+      - ./Clickhouse/users.d/distributed-insert-tuning.xml:/etc/clickhouse-server/users.d/distributed-insert-tuning.xml
     healthcheck:
       test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1'"]
       interval: 10s

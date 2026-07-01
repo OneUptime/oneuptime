@@ -596,6 +596,7 @@
                         "podSecurityContext": { "type": "object" },
                         "containerSecurityContext": { "type": "object" },
                         "settings": { "type": "object" },
+                        "profiles": { "type": "object" },
                         "files": { "type": "object" },
                         "keeper": {
                             "type": "object",
