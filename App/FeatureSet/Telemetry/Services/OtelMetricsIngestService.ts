@@ -298,7 +298,18 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       }
 
       try {
-        await MetricService.insertJsonRows(batch);
+        /*
+         * Metrics drive near-real-time dashboards. A successful ingest job should
+         * mean ClickHouse has flushed the async insert and the Distributed table
+         * has delivered the block to the shard-local MetricItemV3Local table.
+         */
+        await MetricService.insertJsonRows(batch, {
+          clickhouseSettings: {
+            async_insert: 1,
+            wait_for_async_insert: 1,
+            distributed_foreground_insert: 1,
+          },
+        });
       } catch (error) {
         throw new MetricStorageFlushError(error);
       }

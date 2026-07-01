@@ -43,6 +43,17 @@ spec:
       {{- range $key, $val := $altinity.settings }}
       {{ $key }}: {{ $val | quote }}
       {{- end }}
+    {{- with $altinity.profiles }}
+    # User/profile-level settings (rendered into users.d, under <profiles>). Slash-separated
+    # keys become nested XML, e.g. default/max_threads -> <profiles><default><max_threads>…>.
+    # The OneUptime app user and ClickHouse's background Distributed-insert sender both run
+    # under the `default` profile, so tuning that sender belongs here (not in `settings`,
+    # which is server-level config.d).
+    profiles:
+      {{- range $key, $val := . }}
+      {{ $key }}: {{ $val | quote }}
+      {{- end }}
+    {{- end }}
     {{- with $altinity.files }}
     # Raw config files (advanced). Each entry is dropped into the server config.
     files:

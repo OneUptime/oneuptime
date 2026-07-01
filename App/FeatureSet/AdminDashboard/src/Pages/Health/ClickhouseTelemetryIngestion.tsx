@@ -47,6 +47,30 @@ const formatCount: (value: number | null) => string = (
 };
 
 /*
+ * Format a byte count into a human-readable size (B / KB / MB / GB / TB / PB),
+ * picking whichever unit is relevant. Base-1024, matching the instance-health
+ * overview page. Returns "—" for a missing value.
+ */
+const bytesToReadable: (value: number | null) => string = (
+  value: number | null,
+): string => {
+  if (value === null || isNaN(value)) {
+    return "—";
+  }
+  if (value === 0) {
+    return "0 B";
+  }
+  const units: Array<string> = ["B", "KB", "MB", "GB", "TB", "PB"];
+  const exponent: number = Math.min(
+    Math.floor(Math.log(value) / Math.log(1024)),
+    units.length - 1,
+  );
+  const scaled: number = value / Math.pow(1024, exponent);
+  const decimals: number = scaled >= 10 || exponent === 0 ? 0 : 1;
+  return `${scaled.toFixed(decimals)} ${units[exponent]}`;
+};
+
+/*
  * Sum a list of possibly-null counts, treating null as "unknown" → the total is
  * only meaningful if at least one row reported a value, so null-only sums stay null.
  */
@@ -107,12 +131,14 @@ const ClickhouseTelemetryIngestion: FunctionComponent = (): ReactElement => {
     lastMinute: number | null,
     lastHour: number | null,
     lastDay: number | null,
+    uncompressedBytes: number | null,
     isTotal: boolean,
   ) => ReactElement = (
     label: string,
     lastMinute: number | null,
     lastHour: number | null,
     lastDay: number | null,
+    uncompressedBytes: number | null,
     isTotal: boolean,
   ): ReactElement => {
     // Average rows/hour over the last day — the smoothed hourly ingestion rate.
@@ -126,6 +152,9 @@ const ClickhouseTelemetryIngestion: FunctionComponent = (): ReactElement => {
     return (
       <tr key={label} className={rowClass}>
         <td className="py-2 pr-4 text-sm">{label}</td>
+        <td className="py-2 px-4 text-sm text-right tabular-nums">
+          {bytesToReadable(uncompressedBytes)}
+        </td>
         <td className="py-2 px-4 text-sm text-right tabular-nums">
           {formatCount(lastMinute)}
         </td>
@@ -170,6 +199,7 @@ const ClickhouseTelemetryIngestion: FunctionComponent = (): ReactElement => {
       lastMinute: number | null;
       lastHour: number | null;
       lastDay: number | null;
+      uncompressedBytes: number | null;
     }> = tables.map(
       (
         value: unknown,
@@ -178,6 +208,7 @@ const ClickhouseTelemetryIngestion: FunctionComponent = (): ReactElement => {
         lastMinute: number | null;
         lastHour: number | null;
         lastDay: number | null;
+        uncompressedBytes: number | null;
       } => {
         const row: JSONObject = asObject(value);
         return {
@@ -185,6 +216,7 @@ const ClickhouseTelemetryIngestion: FunctionComponent = (): ReactElement => {
           lastMinute: toNumOrNull(row["lastMinute"]),
           lastHour: toNumOrNull(row["lastHour"]),
           lastDay: toNumOrNull(row["lastDay"]),
+          uncompressedBytes: toNumOrNull(row["uncompressedBytes"]),
         };
       },
     );
@@ -204,6 +236,11 @@ const ClickhouseTelemetryIngestion: FunctionComponent = (): ReactElement => {
         return row.lastDay;
       }),
     );
+    const totalUncompressedBytes: number | null = sumOrNull(
+      rows.map((row: { uncompressedBytes: number | null }): number | null => {
+        return row.uncompressedBytes;
+      }),
+    );
 
     // A pipeline that ingested nothing in the last hour is worth flagging.
     const isIngesting: boolean = (totalLastHour ?? 0) > 0;
@@ -215,6 +252,9 @@ const ClickhouseTelemetryIngestion: FunctionComponent = (): ReactElement => {
           <div className="text-sm text-gray-600">
             {formatCount(totalLastHour)} telemetry rows ingested in the last
             hour
+            {totalUncompressedBytes === null
+              ? ""
+              : ` · ${bytesToReadable(totalUncompressedBytes)} total (actual size)`}
           </div>
           <Statusbubble
             text={isIngesting ? "Ingesting" : "Idle"}
@@ -228,6 +268,9 @@ const ClickhouseTelemetryIngestion: FunctionComponent = (): ReactElement => {
             <thead>
               <tr className="text-xs uppercase tracking-wide text-gray-500">
                 <th className="py-2 pr-4 text-left font-medium">Signal</th>
+                <th className="py-2 px-4 text-right font-medium">
+                  Actual size
+                </th>
                 <th className="py-2 px-4 text-right font-medium">
                   Last minute
                 </th>
@@ -245,12 +288,14 @@ const ClickhouseTelemetryIngestion: FunctionComponent = (): ReactElement => {
                   lastMinute: number | null;
                   lastHour: number | null;
                   lastDay: number | null;
+                  uncompressedBytes: number | null;
                 }): ReactElement => {
                   return renderRow(
                     row.label,
                     row.lastMinute,
                     row.lastHour,
                     row.lastDay,
+                    row.uncompressedBytes,
                     false,
                   );
                 },
@@ -261,6 +306,7 @@ const ClickhouseTelemetryIngestion: FunctionComponent = (): ReactElement => {
                     totalLastMinute,
                     totalLastHour,
                     totalLastDay,
+                    totalUncompressedBytes,
                     true,
                   )
                 : null}
@@ -272,6 +318,8 @@ const ClickhouseTelemetryIngestion: FunctionComponent = (): ReactElement => {
           Counts use each signal&apos;s telemetry timestamp (event time), which
           tracks live ingestion. &quot;Avg / hour&quot; is the last 24 hours
           divided by 24; &quot;Last hour&quot; is the current hourly rate.
+          &quot;Actual size&quot; is the uncompressed data volume, not the
+          compressed on-disk size.
         </div>
       </div>
     );
@@ -280,7 +328,7 @@ const ClickhouseTelemetryIngestion: FunctionComponent = (): ReactElement => {
   return (
     <Card
       title="Telemetry ingestion rate"
-      description="How many log, metric and trace rows landed in ClickHouse over the last minute, hour and day — the live telemetry ingestion throughput."
+      description="How many log, metric and trace rows landed in ClickHouse over the last minute, hour and day — the live telemetry ingestion throughput — plus each signal's actual (uncompressed) data size."
       buttons={[
         {
           title: "Refresh",

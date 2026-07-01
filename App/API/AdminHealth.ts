@@ -1598,6 +1598,7 @@ async function getClickhouseDiagnostics(): Promise<JSONObject> {
       clusterName: null,
       clusters: [],
       distributedDdlQueue: { unfinished: null, byStatus: [], items: [] },
+      distributedInsertQueue: { tables: [], items: [] },
       unhealthyReplicas: [],
       replicationQueue: [],
       keeperConnection: [],
@@ -1745,6 +1746,7 @@ async function getClickhouseDiagnostics(): Promise<JSONObject> {
       clusterName: clusterName,
       clusters: [],
       distributedDdlQueue: { unfinished: null, byStatus: [], items: [] },
+      distributedInsertQueue: { tables: [], items: [] },
       unhealthyReplicas: [],
       replicationQueue: [],
       keeperConnection: [],
@@ -1838,7 +1840,66 @@ async function getClickhouseDiagnostics(): Promise<JSONObject> {
       logger.debug("AdminHealth: system.distributed_ddl_queue unavailable");
     }
 
-    // 3. Replicas that are read-only / session-expired / lagging / missing peers.
+    // 3. Distributed INSERT queue — rows accepted by Distributed tables but not yet delivered to shard-local tables.
+    try {
+      const insertQueueSummaryResult: ClickhouseJsonResult = (await (
+        await client.query({
+          query:
+            "SELECT database, table, count() AS queue_rows, sum(data_files) AS pending_files, sum(data_compressed_bytes) AS pending_bytes, max(error_count) AS max_error_count, toString(max(last_exception_time)) AS last_exception_time FROM system.distribution_queue GROUP BY database, table ORDER BY pending_files DESC, pending_bytes DESC LIMIT 50" +
+            CH_DIAG_QUERY_SETTINGS,
+          format: "JSON",
+        })
+      ).json()) as ClickhouseJsonResult;
+
+      const insertQueueItemsResult: ClickhouseJsonResult = (await (
+        await client.query({
+          query:
+            "SELECT database, table, data_path, is_blocked, error_count, substring(last_exception, 1, 1000) AS last_exception, toString(last_exception_time) AS last_exception_time, data_files, data_compressed_bytes FROM system.distribution_queue ORDER BY data_files DESC, data_compressed_bytes DESC LIMIT 50" +
+            CH_DIAG_QUERY_SETTINGS,
+          format: "JSON",
+        })
+      ).json()) as ClickhouseJsonResult;
+
+      clusterHealth["distributedInsertQueue"] = {
+        tables: (insertQueueSummaryResult.data || []).map(
+          (row: JSONObject): JSONObject => {
+            return {
+              database: String(row["database"]),
+              table: String(row["table"]),
+              queueRows: toNumberOrNull(row["queue_rows"]),
+              pendingFiles: toNumberOrNull(row["pending_files"]),
+              pendingBytes: toNumberOrNull(row["pending_bytes"]),
+              maxErrorCount: toNumberOrNull(row["max_error_count"]),
+              lastExceptionTime: toIsoOrNull(row["last_exception_time"]),
+            };
+          },
+        ),
+        items: (insertQueueItemsResult.data || []).map(
+          (row: JSONObject): JSONObject => {
+            return {
+              database: String(row["database"]),
+              table: String(row["table"]),
+              dataPath: String(row["data_path"]),
+              isBlocked: toNumberOrNull(row["is_blocked"]),
+              errorCount: toNumberOrNull(row["error_count"]),
+              lastException: row["last_exception"]
+                ? scrubSecretsFromText(String(row["last_exception"])).substring(
+                    0,
+                    500,
+                  )
+                : null,
+              lastExceptionTime: toIsoOrNull(row["last_exception_time"]),
+              dataFiles: toNumberOrNull(row["data_files"]),
+              dataCompressedBytes: toNumberOrNull(row["data_compressed_bytes"]),
+            };
+          },
+        ),
+      };
+    } catch {
+      logger.debug("AdminHealth: system.distribution_queue unavailable");
+    }
+
+    // 4. Replicas that are read-only / session-expired / lagging / missing peers.
     try {
       const replicasResult: ClickhouseJsonResult = (await (
         await client.query({
@@ -1866,7 +1927,7 @@ async function getClickhouseDiagnostics(): Promise<JSONObject> {
       logger.debug("AdminHealth: system.replicas unavailable");
     }
 
-    // 4. Replication queue backlog per table (stuck fetches / merges).
+    // 5. Replication queue backlog per table (stuck fetches / merges).
     try {
       const replQueueResult: ClickhouseJsonResult = (await (
         await client.query({
@@ -1891,7 +1952,7 @@ async function getClickhouseDiagnostics(): Promise<JSONObject> {
       logger.debug("AdminHealth: system.replication_queue unavailable");
     }
 
-    // 5. Keeper/ZooKeeper connection state (is this node talking to Keeper?).
+    // 6. Keeper/ZooKeeper connection state (is this node talking to Keeper?).
     try {
       const keeperResult: ClickhouseJsonResult = (await (
         await client.query({
@@ -1966,8 +2027,11 @@ const TELEMETRY_INGESTION_TABLES: Array<{
  * only ever touches the last day's partitions; the smaller windows are picked
  * out with countIf. The upper `<= now()` bound stops a future-dated event from
  * inflating the counts. Each table is probed independently so a missing table
- * (e.g. an instance that only ingests logs) degrades gracefully. No row data is
- * read — only counts. Enterprise Edition + master-admin gated at the route.
+ * (e.g. an instance that only ingests logs) degrades gracefully. Alongside the
+ * counts it reports each table's total ACTUAL (uncompressed) data volume read
+ * from system.parts metadata — the real data size, not the compressed
+ * bytes_on_disk. No row data is read — only counts and size metadata. Enterprise
+ * Edition + master-admin gated at the route.
  */
 async function getClickhouseTelemetryIngestion(): Promise<JSONObject> {
   const result: JSONObject = {
@@ -1985,6 +2049,48 @@ async function getClickhouseTelemetryIngestion(): Promise<JSONObject> {
 
     result["connected"] = true;
 
+    /*
+     * Total ACTUAL (uncompressed) data volume per telemetry table, read from
+     * system.parts metadata — this is the real data size, not the compressed
+     * bytes_on_disk. It is a metadata aggregate (no data scan), so it stays cheap
+     * regardless of table size. Guarded independently so a failure here never
+     * drops the ingestion counts below.
+     */
+    const uncompressedBytesByTable: Map<string, number | null> = new Map();
+    try {
+      const databaseLiteral: string = ClickhouseDatabaseName.replace(
+        /'/g,
+        "''",
+      );
+      const tableListLiteral: string = TELEMETRY_INGESTION_TABLES.map(
+        (spec: { table: AnalyticsTableName }): string => {
+          return `'${String(spec.table).replace(/'/g, "''")}'`;
+        },
+      ).join(", ");
+
+      const sizesResult: ClickhouseJsonResult = (await (
+        await client.query({
+          query:
+            "SELECT table, sum(data_uncompressed_bytes) AS uncompressed_bytes " +
+            "FROM system.parts " +
+            `WHERE active AND database = '${databaseLiteral}' AND table IN (${tableListLiteral}) ` +
+            "GROUP BY table" +
+            CH_DIAG_QUERY_SETTINGS,
+          format: "JSON",
+        })
+      ).json()) as ClickhouseJsonResult;
+
+      for (const row of sizesResult.data || []) {
+        uncompressedBytesByTable.set(
+          String(row["table"]),
+          toNumberOrNull(row["uncompressed_bytes"]),
+        );
+      }
+    } catch (err) {
+      logger.debug("AdminHealth: telemetry uncompressed-size query failed");
+      logger.debug(err);
+    }
+
     const tables: JSONArray = [];
 
     for (const spec of TELEMETRY_INGESTION_TABLES) {
@@ -1994,6 +2100,7 @@ async function getClickhouseTelemetryIngestion(): Promise<JSONObject> {
         lastMinute: null,
         lastHour: null,
         lastDay: null,
+        uncompressedBytes: uncompressedBytesByTable.get(spec.table) ?? null,
         available: false,
       };
 

@@ -486,6 +486,27 @@ clickhouseOperator:
       postgresql_port: "9005"
       logger/level: warning
       merge_tree/max_suspicious_broken_parts: "1000"
+    # User/profile-level settings rendered into users.d (under <profiles>). Slash-separated
+    # keys become nested XML (default/max_threads -> <profiles><default><max_threads>).
+    #
+    # These tune ClickHouse's background Distributed-insert sender — the step that forwards
+    # rows from the app-facing Distributed tables (MetricItemV3 / LogItemV3 / SpanItemV3)
+    # into the local ReplicatedMergeTree tables. They are ON BY DEFAULT because EVERY
+    # OneUptime deployment writes through that sender: the analytics schema is always a
+    # Distributed table over a local table, even on a single-node "cluster of one". Without
+    # batching, the sender ships one spooled file per insert and cannot keep up with high
+    # telemetry volume, so files pile into system.distribution_queue (multi-GiB backlogs)
+    # and dashboards only see rows hours late once the queue drains.
+    #   - distributed_background_insert_batch: coalesce many spooled files into a single
+    #     insert into the local table (far higher throughput; fewer, larger parts).
+    #   - distributed_background_insert_split_batch_on_failure: if a coalesced batch fails,
+    #     retry its files individually instead of wedging the whole batch.
+    #   - prefer_localhost_replica: write to the local replica directly (ClickHouse's own
+    #     default) rather than going out over the TCP pool to localhost.
+    profiles:
+      default/distributed_background_insert_batch: "1"
+      default/distributed_background_insert_split_batch_on_failure: "1"
+      default/prefer_localhost_replica: "1"
     # Advanced: raw config files dropped into the server config (map of filename -> content).
     # By default we disable processors_profile_log entirely: OneUptime does not use it and it
     # ballooned to 500+ GiB on the standalone deployment. This mirrors the built-in
