@@ -1,6 +1,6 @@
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
-import EvaluateOverTime from "./EvaluateOverTime";
+import EvaluateOverTime, { EvaluateOverTimeResult } from "./EvaluateOverTime";
 import OneUptimeDate from "../../../../Types/Date";
 import { BasicDiskMetrics } from "../../../../Types/Infrastructure/BasicMetrics";
 import { JSONObject } from "../../../../Types/JSON";
@@ -20,6 +20,8 @@ export default class ServerMonitorCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;
+    monitoringInterval?: string | undefined;
+    overTimeContext?: { notMetReason?: string } | undefined;
   }): Promise<string | null> {
     // Server Monitoring Checks
 
@@ -32,25 +34,28 @@ export default class ServerMonitorCriteria {
       input.criteriaFilter.evaluateOverTime &&
       input.criteriaFilter.evaluateOverTimeOptions
     ) {
-      try {
-        overTimeValue = await EvaluateOverTime.getValueOverTime({
+      const overTimeDecision: EvaluateOverTimeResult =
+        await EvaluateOverTime.resolveFilterOverTime({
           projectId: (input.dataToProcess as ServerMonitorResponse).projectId,
           monitorId: input.dataToProcess.monitorId!,
           evaluateOverTimeOptions: input.criteriaFilter.evaluateOverTimeOptions,
           metricType: input.criteriaFilter.checkOn,
+          monitoringInterval: input.monitoringInterval,
           miscData: input.criteriaFilter.serverMonitorOptions as JSONObject,
         });
 
-        if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
-          overTimeValue = undefined;
+      if (overTimeDecision.decision === "not-met") {
+        if (input.overTimeContext) {
+          input.overTimeContext.notMetReason = overTimeDecision.reason;
         }
-      } catch (err) {
-        logger.error(
-          `Error in getting over time value for ${input.criteriaFilter.checkOn}`,
-        );
-        logger.error(err);
-        overTimeValue = undefined;
+        return null;
       }
+
+      if (overTimeDecision.decision === "trigger") {
+        return overTimeDecision.reason;
+      }
+
+      overTimeValue = overTimeDecision.value;
     }
 
     const lastCheckTime: Date = (input.dataToProcess as ServerMonitorResponse)

@@ -41,4 +41,20 @@ describe("CronTab", () => {
       CronTab.getNextExecutionTime(crontab);
     }).toThrowError(`Invalid cron expression: ${crontab}`);
   });
+
+  it("should return the interval in minutes for an every-minute cron", () => {
+    expect(CronTab.getIntervalInMinutes("* * * * *")).toBe(1);
+  });
+
+  it("should return the interval in minutes for an every-5-minutes cron", () => {
+    expect(CronTab.getIntervalInMinutes("*/5 * * * *")).toBe(5);
+  });
+
+  it("should return the interval in minutes for an every-15-minutes cron", () => {
+    expect(CronTab.getIntervalInMinutes("*/15 * * * *")).toBe(15);
+  });
+
+  it("should return null for an invalid cron expression interval", () => {
+    expect(CronTab.getIntervalInMinutes("not-a-cron")).toBeNull();
+  });
 });

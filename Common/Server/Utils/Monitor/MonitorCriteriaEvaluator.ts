@@ -434,6 +434,8 @@ ${contextBlock}
     let allFiltersMet: boolean = true;
 
     for (const criteriaFilter of input.criteriaInstance.data?.filters || []) {
+      const overTimeContext: { notMetReason?: string } = {};
+
       const rootCause: string | null =
         await MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
@@ -442,19 +444,28 @@ ${contextBlock}
           probeApiIngestResponse: input.probeApiIngestResponse,
           criteriaInstance: input.criteriaInstance,
           criteriaFilter: criteriaFilter,
+          overTimeContext: overTimeContext,
         });
 
       const didMeetCriteria: boolean = Boolean(rootCause);
 
+      /*
+       * When an evaluate-over-time filter does not fire because its window is
+       * not yet covered (or has no data), surface that reason in the summary
+       * instead of the generic "expected ..." message, so the timeline explains
+       * why nothing happened (#2321).
+       */
       const filterMessage: string =
-        MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage({
-          monitor: input.monitor,
-          criteriaFilter: criteriaFilter,
-          dataToProcess: input.dataToProcess,
-          monitorStep: input.monitorStep,
-          didMeetCriteria: didMeetCriteria,
-          matchMessage: rootCause,
-        });
+        !didMeetCriteria && overTimeContext.notMetReason
+          ? overTimeContext.notMetReason
+          : MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage({
+              monitor: input.monitor,
+              criteriaFilter: criteriaFilter,
+              dataToProcess: input.dataToProcess,
+              monitorStep: input.monitorStep,
+              didMeetCriteria: didMeetCriteria,
+              matchMessage: rootCause,
+            });
 
       const filterSummary: MonitorEvaluationFilterResult = {
         checkOn: criteriaFilter.checkOn,
@@ -528,6 +539,7 @@ ${contextBlock}
     probeApiIngestResponse: ProbeApiIngestResponse;
     criteriaInstance: MonitorCriteriaInstance;
     criteriaFilter: CriteriaFilter;
+    overTimeContext?: { notMetReason?: string } | undefined;
   }): Promise<string | null> {
     if (input.criteriaFilter.checkOn === CheckOn.JavaScriptExpression) {
       let storageMap: JSONObject = {};
@@ -616,6 +628,8 @@ ${contextBlock}
         await APIRequestCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
+          overTimeContext: input.overTimeContext,
         });
 
       if (apiRequestCriteriaResult) {
@@ -661,6 +675,8 @@ ${contextBlock}
         await IncomingRequestCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
+          overTimeContext: input.overTimeContext,
         });
 
       if (incomingRequestResult) {
@@ -685,6 +701,8 @@ ${contextBlock}
         await SSLMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
+          overTimeContext: input.overTimeContext,
         });
 
       if (sslMonitorResult) {
@@ -697,6 +715,8 @@ ${contextBlock}
         await ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
+          overTimeContext: input.overTimeContext,
         });
 
       if (serverMonitorResult) {
@@ -780,6 +800,8 @@ ${contextBlock}
         await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
+          overTimeContext: input.overTimeContext,
         });
 
       if (snmpMonitorResult) {
@@ -792,6 +814,8 @@ ${contextBlock}
         await DnsMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
+          overTimeContext: input.overTimeContext,
         });
 
       if (dnsMonitorResult) {
@@ -829,6 +853,8 @@ ${contextBlock}
           {
             dataToProcess: input.dataToProcess,
             criteriaFilter: input.criteriaFilter,
+            monitoringInterval: input.monitor.monitoringInterval,
+            overTimeContext: input.overTimeContext,
           },
         );
 
