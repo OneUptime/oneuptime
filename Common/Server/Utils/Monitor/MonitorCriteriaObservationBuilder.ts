@@ -29,6 +29,7 @@ import MonitorCriteriaExpectationBuilder from "./MonitorCriteriaExpectationBuild
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
+import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import MetricUnitUtil from "../../../Utils/MetricUnitUtil";
 
 export default class MonitorCriteriaObservationBuilder {
@@ -1208,12 +1209,13 @@ export default class MonitorCriteriaObservationBuilder {
       return input.values;
     }
 
+    const metricViewConfig: MetricsViewConfig | undefined =
+      MonitorStep.getMetricsViewConfig(input.monitorStep);
+
     const queryConfigs: Array<MetricQueryConfigData> =
-      input.monitorStep.data?.metricMonitor?.metricViewConfig?.queryConfigs ||
-      [];
+      metricViewConfig?.queryConfigs || [];
     const formulaConfigs: Array<MetricFormulaConfigData> =
-      input.monitorStep.data?.metricMonitor?.metricViewConfig?.formulaConfigs ||
-      [];
+      metricViewConfig?.formulaConfigs || [];
 
     const alias: string | null = input.alias;
     const matchedQuery: MetricQueryConfigData | undefined = alias

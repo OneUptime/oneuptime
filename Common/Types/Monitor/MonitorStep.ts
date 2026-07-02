@@ -68,6 +68,7 @@ import MonitorStepCephMonitor, {
 import MonitorStepIoTMonitor, {
   MonitorStepIoTMonitorUtil,
 } from "./MonitorStepIoTMonitor";
+import MetricsViewConfig from "../Metrics/MetricsViewConfig";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
 /*
@@ -303,6 +304,37 @@ export default class MonitorStep extends DatabaseProperty {
     };
 
     return monitorStep;
+  }
+
+  /**
+   * Telemetry monitor steps store their metric query configs under their
+   * own step shape (metricMonitor, iotMonitor, kubernetesMonitor, ...),
+   * yet all of them produce a MetricMonitorResponse whose result slots
+   * are ordered by these configs. Criteria evaluation must resolve
+   * metric aliases through whichever shape the step carries — reading
+   * only `metricMonitor` silently falls back to result slot 0 for every
+   * other telemetry monitor type.
+   */
+  public static getMetricsViewConfig(
+    monitorStep: MonitorStep | undefined,
+  ): MetricsViewConfig | undefined {
+    const data: MonitorStepType | undefined = monitorStep?.data;
+
+    if (!data) {
+      return undefined;
+    }
+
+    return (
+      data.metricMonitor?.metricViewConfig ||
+      data.iotMonitor?.metricViewConfig ||
+      data.kubernetesMonitor?.metricViewConfig ||
+      data.dockerMonitor?.metricViewConfig ||
+      data.dockerSwarmMonitor?.metricViewConfig ||
+      data.hostMonitor?.metricViewConfig ||
+      data.podmanMonitor?.metricViewConfig ||
+      data.proxmoxMonitor?.metricViewConfig ||
+      data.cephMonitor?.metricViewConfig
+    );
   }
 
   public get id(): ObjectID {

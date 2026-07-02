@@ -1,3 +1,4 @@
+import ColumnLength from "../../../Types/Database/ColumnLength";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import logger from "../Logger";
@@ -110,6 +111,29 @@ function toNumberOrNull(value: unknown): number | null {
 }
 
 /*
+ * A device with a future-skewed clock must not be allowed to stamp a
+ * future observedAt: it becomes lastSeenAt / metricsUpdatedAt, and the
+ * `>=` dominance guards in IoTDeviceService would then reject every
+ * legitimate (present-time) update until the wall clock catches up to
+ * the skew. Anything more than this far ahead of the ingest clock is
+ * folded back to "now" at ingest time.
+ */
+export const IOT_MAX_FUTURE_CLOCK_SKEW_MINUTES: number = 5;
+
+export function clampIoTTimestamp(date: Date, nowOverride?: Date): Date {
+  const now: Date = nowOverride || OneUptimeDate.getCurrentDate();
+  const maxAllowedMs: number =
+    now.getTime() + IOT_MAX_FUTURE_CLOCK_SKEW_MINUTES * 60 * 1000;
+  if (date.getTime() > maxAllowedMs) {
+    logger.debug(
+      `IoT timestamp ${date.toISOString()} is beyond the ${IOT_MAX_FUTURE_CLOCK_SKEW_MINUTES}m future-skew tolerance; clamping to ingest time.`,
+    );
+    return now;
+  }
+  return date;
+}
+
+/*
  * Same fall-back-to-now parse contract as the ingest service's
  * safeParseUnixNano — only the Date is needed on the snapshot path.
  */
@@ -200,9 +224,11 @@ export function bufferIoTSnapshotMetric(data: {
     return;
   }
 
-  const observedAt: Date = parseUnixNanoToDate(
-    data.datapoint["timeUnixNano"] as string | number | undefined,
-    "iot snapshot timeUnixNano",
+  const observedAt: Date = clampIoTTimestamp(
+    parseUnixNanoToDate(
+      data.datapoint["timeUnixNano"] as string | number | undefined,
+      "iot snapshot timeUnixNano",
+    ),
   );
 
   const dpAttributes: JSONArray =
@@ -214,12 +240,24 @@ export function bufferIoTSnapshotMetric(data: {
   );
 
   // Identity lives in the `device.id` datapoint label.
-  const externalId: string | null = getStringAttribute(
-    dpAttributes,
-    "device.id",
-  );
+  let externalId: string | null = getStringAttribute(dpAttributes, "device.id");
   if (!externalId) {
     return;
+  }
+
+  /*
+   * The inventory identity columns are ShortText (100 chars). Truncate
+   * over-long ids at ingest so the fold key, the inventory upsert and
+   * the latest-metric mirror all agree on the same (truncated)
+   * identity — IoTDeviceService also sanitizes before building its
+   * INSERT chunks, so one malformed device can never fail the chunk
+   * and drop the other rows with it.
+   */
+  if (externalId.length > ColumnLength.ShortText) {
+    logger.warn(
+      `IoT device.id exceeds ${ColumnLength.ShortText} chars; truncating to "${externalId.substring(0, ColumnLength.ShortText)}".`,
+    );
+    externalId = externalId.substring(0, ColumnLength.ShortText);
   }
 
   /*
