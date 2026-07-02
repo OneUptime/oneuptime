@@ -1382,6 +1382,19 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
 
     finalResult.push(aggregatedResults);
 
+    /*
+     * Build the per-resource breakdown from the FIRST query that returns
+     * rows. For multi-query ratio/difference configs the first query is
+     * the numerator/minuend — the diagnostic metric incidents should rank
+     * resources by; later denominator queries (capacity/allocatable) must
+     * not overwrite it, otherwise the root-cause table sorts nodes by
+     * disk size instead of fullness. Skipping also saves a redundant
+     * MetricService.findBy per extra query.
+     */
+    if (kubernetesResourceBreakdown) {
+      continue;
+    }
+
     // Fetch raw metrics to extract per-resource Kubernetes context
     try {
       const rawMetrics: Array<Metric> = await MetricService.findBy({

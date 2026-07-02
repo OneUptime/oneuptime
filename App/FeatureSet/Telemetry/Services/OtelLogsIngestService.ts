@@ -1141,6 +1141,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       /*
        * Flush watch-mode deletions AFTER the upsert flush so a record
        * that was both updated and deleted in this batch ends up gone.
+       * Each tombstone carries the agent-observed delete time, and the
+       * deletes are guarded by lastSeenAt <= occurredAt so a stale
+       * tombstone (ingest batches run on concurrent queue workers)
+       * can't remove a newer live row recreated under the same name.
        * Non-Pod deletions also append a "Deleted" timeline event using
        * the last-known spec returned by the DELETE; Pod deletions do
        * not — pods churn far too much to be worth timeline rows.
@@ -1156,6 +1160,35 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           }
           try {
             const clusterId: ObjectID = new ObjectID(clusterIdStr);
+
+            /*
+             * Delete a tombstoned Pod's container rows BEFORE its
+             * KubernetesResource row so the container flush invariant
+             * above ("a container row's parent Pod row exists") holds
+             * at any moment. Keyed off the tombstones rather than the
+             * RETURNING rows below so a repeated DELETED envelope
+             * still cleans up containers whose parent row is already
+             * gone; the same occurredAt dominance guard keeps a stale
+             * tombstone from wiping a recreated pod's containers.
+             */
+            const podTombstones: Array<K8sPendingDelete> =
+              pendingDeletes.filter((d: K8sPendingDelete) => {
+                return d.kind === "Pod";
+              });
+            if (podTombstones.length > 0) {
+              await KubernetesContainerService.bulkDeleteByPodNaturalKeys({
+                projectId,
+                kubernetesClusterId: clusterId,
+                pods: podTombstones.map((d: K8sPendingDelete) => {
+                  return {
+                    podNamespaceKey: d.namespaceKey,
+                    podName: d.name,
+                    occurredAt: d.occurredAt,
+                  };
+                }),
+              });
+            }
+
             const deletedRows: Array<DeletedKubernetesResourceRow> =
               await KubernetesResourceService.bulkDeleteByNaturalKeys({
                 projectId,
@@ -1165,6 +1198,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     kind: d.kind,
                     namespaceKey: d.namespaceKey,
                     name: d.name,
+                    occurredAt: d.occurredAt,
                   };
                 }),
               });

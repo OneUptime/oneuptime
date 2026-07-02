@@ -128,6 +128,18 @@ const KubernetesClusterPodDetail: FunctionComponent<
       return;
     }
 
+    /*
+     * Wait until the pod object has loaded so the namespace is known —
+     * a namespace-less query can match a same-named pod in another
+     * namespace. If the pod object genuinely failed to load, fall back
+     * to the namespace-less query below.
+     */
+    if (isLoadingObject) {
+      return;
+    }
+
+    let cancelled: boolean = false;
+
     const namespace: string | undefined =
       podObject?.metadata.namespace || undefined;
 
@@ -169,6 +181,10 @@ const KubernetesClusterPodDetail: FunctionComponent<
             }),
           ]);
 
+          if (cancelled) {
+            return;
+          }
+
           const row: KubernetesResourceModel | undefined = rowResult.data[0];
 
           setFailureExplanations(
@@ -198,12 +214,23 @@ const KubernetesClusterPodDetail: FunctionComponent<
           );
         } catch {
           // Explainer banners are supplementary — hide on failure.
-          setFailureExplanations([]);
+          if (!cancelled) {
+            setFailureExplanations([]);
+          }
         }
       };
 
     loadFailureExplanations().catch(() => {});
-  }, [cluster?.clusterIdentifier, podName, podObject?.metadata.namespace]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    cluster?.clusterIdentifier,
+    podName,
+    isLoadingObject,
+    podObject?.metadata.namespace,
+  ]);
 
   // Per-node allocatable CPU — denominator for the true CPU% transform.
   const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(

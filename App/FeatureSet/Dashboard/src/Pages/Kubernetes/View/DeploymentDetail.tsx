@@ -321,6 +321,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
             kind="Deployment"
             name={deploymentName}
             namespace={objectData?.metadata.namespace}
+            isNamespaceLoading={isLoadingObject}
           />
         </Card>
       ),

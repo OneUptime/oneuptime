@@ -300,13 +300,14 @@ export default class KubernetesResourceChangeEvent extends BaseModel {
     read: READ_PERMISSIONS,
     update: [],
   })
+  @Index()
   @TableColumn({
     required: true,
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
     title: "Occurred At",
     description:
-      "When the change was detected by the ingest pipeline. Timeline reads sort by this column.",
+      "When the change was detected by the ingest pipeline. Timeline reads sort by this column. Indexed on its own so the age-based retention delete doesn't scan the table.",
   })
   @Column({
     nullable: false,

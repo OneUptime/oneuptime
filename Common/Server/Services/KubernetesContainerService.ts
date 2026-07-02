@@ -14,7 +14,9 @@ import logger from "../Utils/Logger";
  * top-level metadata.name of their own.
  *
  * Callers:
- *   - OtelLogsIngestService            -> bulkUpsert (snapshot)
+ *   - OtelLogsIngestService            -> bulkUpsert (snapshot),
+ *                                         bulkDeleteByPodNaturalKeys
+ *                                         (watch-mode Pod deletions)
  *   - OtelMetricsIngestService         -> bulkUpdateLatestMetrics
  *   - CleanupStaleResources worker     -> deleteStaleForCluster
  * ------------------------------------------------------------------
@@ -40,6 +42,18 @@ export interface ContainerLatestMetric {
   cpuPercent: number | null;
   memoryBytes: number | null;
   observedAt: Date;
+}
+
+/**
+ * Watch-mode DELETED tombstone for a parent Pod: identifies all of the
+ * pod's container rows plus the agent-observed deletion time, used as
+ * a dominance guard (lastSeenAt <= occurredAt) so a stale tombstone
+ * can't wipe the containers of a pod recreated under the same name.
+ */
+export interface KubernetesContainerPodTombstone {
+  podNamespaceKey: string;
+  podName: string;
+  occurredAt: Date;
 }
 
 const UPSERT_BATCH_SIZE: number = 500;
@@ -163,6 +177,77 @@ export class Service extends DatabaseService<Model> {
       `;
 
       await this.getRepository().manager.query(sql, params);
+    }
+  }
+
+  /**
+   * Hard-delete every container row belonging to a batch of tombstoned
+   * Pods — the watch-mode DELETED ingest path. Containers have no FK
+   * to their Pod row (they're joined by plain podNamespaceKey/podName
+   * columns), so without this the Containers page keeps listing a
+   * deleted pod's containers until the stale-prune cron catches up.
+   * Guarded by lastSeenAt <= occurredAt, mirroring
+   * KubernetesResourceService.bulkDeleteByNaturalKeys.
+   */
+  @CaptureSpan()
+  public async bulkDeleteByPodNaturalKeys(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    pods: Array<KubernetesContainerPodTombstone>;
+  }): Promise<void> {
+    if (data.pods.length === 0) {
+      return;
+    }
+
+    /*
+     * Dedupe: one batch can carry the same DELETED envelope twice.
+     * Keep the newest agent-observed time per pod so the dominance
+     * guard is as permissive as the tombstones allow.
+     */
+    const uniqueByKey: Map<string, KubernetesContainerPodTombstone> = new Map();
+    for (const p of data.pods) {
+      const key: string = `${p.podNamespaceKey} ${p.podName}`;
+      const prev: KubernetesContainerPodTombstone | undefined =
+        uniqueByKey.get(key);
+      if (!prev || p.occurredAt.getTime() > prev.occurredAt.getTime()) {
+        uniqueByKey.set(key, p);
+      }
+    }
+    const pods: Array<KubernetesContainerPodTombstone> = Array.from(
+      uniqueByKey.values(),
+    );
+
+    // Chunk to keep individual statement parameter counts reasonable.
+    for (let i: number = 0; i < pods.length; i += UPSERT_BATCH_SIZE) {
+      const chunk: Array<KubernetesContainerPodTombstone> = pods.slice(
+        i,
+        i + UPSERT_BATCH_SIZE,
+      );
+
+      const params: Array<unknown> = [
+        data.projectId.toString(),
+        data.kubernetesClusterId.toString(),
+      ];
+      let paramIndex: number = 3;
+      const keyFragments: Array<string> = [];
+      for (const p of chunk) {
+        keyFragments.push(
+          `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}::timestamptz)`,
+        );
+        params.push(p.podNamespaceKey, p.podName, p.occurredAt);
+      }
+
+      await this.getRepository().manager.query(
+        `DELETE FROM "KubernetesContainer" AS k
+         USING (VALUES ${keyFragments.join(", ")})
+           AS v("podNamespaceKey", "podName", "occurredAt")
+         WHERE k."projectId" = $1
+           AND k."kubernetesClusterId" = $2
+           AND k."podNamespaceKey" = v."podNamespaceKey"
+           AND k."podName" = v."podName"
+           AND k."lastSeenAt" <= v."occurredAt"`,
+        params,
+      );
     }
   }
 

@@ -32,6 +32,11 @@ import ObjectID from "../../../Types/ObjectID";
  *
  *   3. The criteria reference the FORMULA alias (the computed percentage),
  *      not a raw query alias.
+ *
+ *   4. Every metric/attribute referenced is one the bundled kubernetes-agent
+ *      chart (otel-collector-contrib v0.96.0) actually emits — e.g. node CPU
+ *      is the default-enabled `k8s.node.cpu.utilization` cores gauge, NOT
+ *      the optional (never-enabled) `k8s.node.cpu.usage`.
  */
 
 interface RatioTemplateCase {
@@ -45,6 +50,7 @@ interface RatioTemplateCase {
   groupByKey: string;
   offlineFilterType: FilterType;
   threshold: number;
+  attributes?: Record<string, string>;
 }
 
 const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
@@ -73,10 +79,15 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
     offlineFilterType: FilterType.GreaterThan,
     threshold: 90,
   },
-  // Usage utilization — Avg/Avg (one series per node, cross-receiver).
+  /*
+   * Usage utilization — Avg/Avg (one series per node, cross-receiver).
+   * The numerator is the misnamed CORES gauge `k8s.node.cpu.utilization`:
+   * the only node CPU usage metric kubeletstats v0.96.0 emits by default
+   * (`k8s.node.cpu.usage` is optional and never enabled by the chart).
+   */
   {
     id: "k8s-high-cpu",
-    numerator: "k8s.node.cpu.usage",
+    numerator: "k8s.node.cpu.utilization",
     denominator: "k8s.node.allocatable_cpu",
     numAlias: "used_cpu",
     denAlias: "alloc_cpu",
@@ -116,7 +127,10 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
   },
   /*
    * PVC free space — Avg/Avg, grouped per PVC. The formula yields the
-   * AVAILABLE percentage, so the offline direction is LessThan.
+   * AVAILABLE percentage, so the offline direction is LessThan. Both
+   * queries must filter to PVC-backed volumes: kubeletstats emits
+   * k8s.volume.* for EVERY pod volume (configMap/secret/emptyDir/...),
+   * and only PVC-backed series carry the PVC-name group-by key.
    */
   {
     id: "k8s-pvc-near-full",
@@ -129,6 +143,7 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
     groupByKey: "resource.k8s.persistentvolumeclaim.name",
     offlineFilterType: FilterType.LessThan,
     threshold: 15,
+    attributes: { "resource.k8s.volume.type": "persistentVolumeClaim" },
   },
 ];
 
@@ -235,6 +250,18 @@ describe("KubernetesAlertTemplates - per-group ratio templates", () => {
         tc.groupByKey,
       ]);
 
+      /*
+       * Decision (4): attribute filters (e.g. the PVC template's
+       * volume-type filter) apply to BOTH queries; everything else
+       * filters on nothing beyond the cluster identifier.
+       */
+      expect(numerator.metricQueryData.filterData.attributes).toEqual(
+        tc.attributes || {},
+      );
+      expect(denominator.metricQueryData.filterData.attributes).toEqual(
+        tc.attributes || {},
+      );
+
       // Formula divides numerator by denominator and scales to a percentage.
       expect(formulaConfigs[0].metricFormulaData.metricFormula).toBe(
         `(${tc.numAlias} / ${tc.denAlias}) * 100`,
@@ -254,6 +281,130 @@ describe("KubernetesAlertTemplates - per-group ratio templates", () => {
       expect(offlineFilters[0].value).toBe(tc.threshold);
     },
   );
+});
+
+describe("KubernetesAlertTemplates - pod pending", () => {
+  /*
+   * The k8s_cluster receiver encodes the pod phase in the METRIC VALUE
+   * (1 = Pending, 2 = Running, 3 = Succeeded, 4 = Failed, 5 = Unknown)
+   * and emits NO phase attribute — an attribute filter would match zero
+   * rows and the monitor would never fire. So the template must query
+   * unfiltered and alert on Min == 1.
+   */
+  test("k8s-pod-pending alerts on the value-encoded phase (Min == 1), not a phase attribute", () => {
+    const template: KubernetesAlertTemplate | undefined =
+      getKubernetesAlertTemplateById("k8s-pod-pending");
+    expect(template).toBeDefined();
+
+    const step: MonitorStep = template!.getMonitorStep(buildArgs());
+    const monitor: MonitorStepKubernetesMonitor = getKubernetesMonitor(step);
+
+    const queryConfigs: Array<any> = monitor.metricViewConfig
+      .queryConfigs as Array<any>;
+    expect(queryConfigs).toHaveLength(1);
+    expect(queryConfigs[0].metricQueryData.filterData.metricName).toBe(
+      "k8s.pod.phase",
+    );
+    // No phase attribute exists on ingested rows — must not filter on one.
+    expect(queryConfigs[0].metricQueryData.filterData.attributes).toEqual({});
+    expect(queryConfigs[0].metricQueryData.filterData.aggegationType).toBe(
+      MetricsAggregationType.Min,
+    );
+
+    const criteriaInstances: Array<any> = step.data?.monitorCriteria.data
+      ?.monitorCriteriaInstanceArray as Array<any>;
+    expect(criteriaInstances).toHaveLength(2);
+
+    // Offline: min phase == 1 (Pending is the lowest phase encoding).
+    const offlineFilters: Array<any> = criteriaInstances[0].data
+      ?.filters as Array<any>;
+    expect(offlineFilters[0].metricMonitorOptions.metricAlias).toBe(
+      "min_pod_phase",
+    );
+    expect(offlineFilters[0].filterType).toBe(FilterType.EqualTo);
+    expect(offlineFilters[0].value).toBe(1);
+
+    // Online: min phase > 1 — partitions the phase value space with offline.
+    const onlineFilters: Array<any> = criteriaInstances[1].data
+      ?.filters as Array<any>;
+    expect(onlineFilters[0].filterType).toBe(FilterType.GreaterThan);
+    expect(onlineFilters[0].value).toBe(1);
+  });
+});
+
+describe("KubernetesAlertTemplates - deployment replica mismatch", () => {
+  /*
+   * The k8s_cluster receiver has no `unavailable_replicas` metric (in any
+   * version) — the mismatch must be derived per deployment as
+   * `k8s.deployment.desired - k8s.deployment.available`, the two gauges
+   * the receiver actually emits.
+   */
+  test("k8s-deployment-replica-mismatch derives desired - available per deployment", () => {
+    const template: KubernetesAlertTemplate | undefined =
+      getKubernetesAlertTemplateById("k8s-deployment-replica-mismatch");
+    expect(template).toBeDefined();
+
+    const step: MonitorStep = template!.getMonitorStep(buildArgs());
+    const monitor: MonitorStepKubernetesMonitor = getKubernetesMonitor(step);
+
+    const queryConfigs: Array<any> = monitor.metricViewConfig
+      .queryConfigs as Array<any>;
+    const formulaConfigs: Array<any> = monitor.metricViewConfig
+      .formulaConfigs as Array<any>;
+
+    expect(queryConfigs).toHaveLength(2);
+    expect(formulaConfigs).toHaveLength(1);
+
+    const [minuend, subtrahend] = queryConfigs;
+
+    expect(minuend.metricQueryData.filterData.metricName).toBe(
+      "k8s.deployment.desired",
+    );
+    expect(subtrahend.metricQueryData.filterData.metricName).toBe(
+      "k8s.deployment.available",
+    );
+
+    /*
+     * One series per deployment from the single k8s_cluster receiver —
+     * Avg is scrape-count independent (see the ratio templates' Avg
+     * rationale), grouped on the resource-prefixed deployment name so
+     * one incident fires per deployment.
+     */
+    for (const queryConfig of queryConfigs) {
+      expect(queryConfig.metricQueryData.filterData.aggegationType).toBe(
+        MetricsAggregationType.Avg,
+      );
+      expect(queryConfig.metricQueryData.groupByAttributeKeys).toEqual([
+        "resource.k8s.deployment.name",
+      ]);
+    }
+
+    expect(formulaConfigs[0].metricFormulaData.metricFormula).toBe(
+      "desired_replicas - available_replicas",
+    );
+
+    const criteriaInstances: Array<any> = step.data?.monitorCriteria.data
+      ?.monitorCriteriaInstanceArray as Array<any>;
+    expect(criteriaInstances).toHaveLength(2);
+
+    // Offline: any deployment short of its desired count.
+    const offlineFilters: Array<any> = criteriaInstances[0].data
+      ?.filters as Array<any>;
+    expect(offlineFilters[0].metricMonitorOptions.metricAlias).toBe(
+      "unavailable_replicas",
+    );
+    expect(offlineFilters[0].filterType).toBe(FilterType.GreaterThan);
+    expect(offlineFilters[0].value).toBe(0);
+
+    /*
+     * Online: <= 0 rather than == 0 — the per-minute Avg can be
+     * fractional mid-rollout and negative during a scale-down surge.
+     */
+    const onlineFilters: Array<any> = criteriaInstances[1].data
+      ?.filters as Array<any>;
+    expect(onlineFilters[0].filterType).toBe(FilterType.LessThanOrEqualTo);
+    expect(onlineFilters[0].value).toBe(0);
+  });
 });
 
 describe("KubernetesAlertTemplates - container memory near limit", () => {

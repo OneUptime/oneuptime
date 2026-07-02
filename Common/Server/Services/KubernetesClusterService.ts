@@ -30,6 +30,7 @@ import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
 import AggregationType from "../../Types/BaseDatabase/AggregationType";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import InBetween from "../../Types/BaseDatabase/InBetween";
+import Includes from "../../Types/BaseDatabase/Includes";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -90,8 +91,26 @@ const CONTAINER_MEMORY_METRIC: string = "container.memory.working_set";
 
 const TIMELINE_MAX_ITEMS: number = 300;
 const TIMELINE_MAX_CHANGE_EVENTS: number = 200;
-const TIMELINE_MAX_LOG_EVENTS: number = 500;
+/*
+ * Event-log fetch cap. The ClickHouse query is scoped to one cluster,
+ * but the workload match happens in JS afterwards (regarding
+ * kind/name/namespace live inside the JSON body, not in queryable
+ * attributes) — so the cap is shared by every workload in the cluster
+ * and needs headroom for chatty clusters.
+ */
+const TIMELINE_MAX_LOG_EVENTS: number = 2000;
 const MAX_CHANGED_FIELDS: number = 20;
+
+/*
+ * Controller-generated pod-name suffixes: "<hash>-<rand5>" (Deployment,
+ * via ReplicaSet), "<rand5>" (DaemonSet / ReplicaSet / Job),
+ * "<ordinal>" (StatefulSet) or "<digits>-<rand5>" (CronJob / indexed
+ * Job). Rejects sibling workloads whose names share a prefix — pods of
+ * Deployment "api-worker" ("api-worker-<hash>-<rand5>") must not match
+ * Deployment "api".
+ */
+const GENERATED_POD_NAME_SUFFIX_REGEX: RegExp =
+  /^(\d+|[a-z0-9]{5}|[a-z0-9]{1,10}-[a-z0-9]{5})$/;
 
 export interface ProvisionedRecommendedMonitor {
   templateId: string;
@@ -217,6 +236,7 @@ interface WorkloadAggregate {
   name: string;
   namespace: string;
   podCount: number;
+  podNames: Array<string>;
   cpuRequestCores: number;
   memoryRequestBytes: number;
   containers: Map<string, ContainerRequestAggregate>;
@@ -829,12 +849,20 @@ export class Service extends DatabaseService<Model> {
     const [podRows, vpaRows]: [Array<PodInventoryRow>, Array<VpaInventoryRow>] =
       await Promise.all([
         this.getRepository().manager.query(
+          /*
+           * Succeeded/Failed pods (completed Jobs, evictions) linger in
+           * the inventory but reserve no node resources — exclude them
+           * so they don't inflate cost totals. NULL phase (status not
+           * yet observed) stays included, mirroring the phase-filter
+           * pattern in KubernetesResourceService.getInventorySummary.
+           */
           `SELECT "namespaceKey", "name", "spec", "ownerReferences"
            FROM "KubernetesResource"
            WHERE "projectId" = $1
              AND "kubernetesClusterId" = $2
              AND "kind" = 'Pod'
-             AND "deletedAt" IS NULL`,
+             AND "deletedAt" IS NULL
+             AND ("phase" IS NULL OR "phase" NOT IN ('Succeeded', 'Failed'))`,
           [data.projectId.toString(), data.kubernetesClusterId.toString()],
         ),
         this.getRepository().manager.query(
@@ -923,11 +951,14 @@ export class Service extends DatabaseService<Model> {
         name: owner.name,
         namespace,
         podCount: 0,
+        podNames: [],
         cpuRequestCores: 0,
         memoryRequestBytes: 0,
         containers: new Map(),
       };
       workload.podCount += 1;
+      // Pod names are unique within a namespace — no dedupe needed.
+      workload.podNames.push(row.name);
       workload.cpuRequestCores += podCpuCores;
       workload.memoryRequestBytes += podMemoryBytes;
       for (const podContainer of podContainers) {
@@ -1079,6 +1110,7 @@ export class Service extends DatabaseService<Model> {
                 clusterIdentifier: data.clusterIdentifier,
                 namespace: workload.namespace,
                 containerName,
+                podNames: workload.podNames,
                 metricName: CONTAINER_CPU_METRIC,
                 startDate,
                 endDate,
@@ -1088,6 +1120,7 @@ export class Service extends DatabaseService<Model> {
                 clusterIdentifier: data.clusterIdentifier,
                 namespace: workload.namespace,
                 containerName,
+                podNames: workload.podNames,
                 metricName: CONTAINER_MEMORY_METRIC,
                 startDate,
                 endDate,
@@ -1270,6 +1303,15 @@ export class Service extends DatabaseService<Model> {
       attributes: {
         "event.domain": "k8s",
         "k8s.resource.name": "events",
+        /*
+         * Scope the fetch (and its row cap) to this cluster so a chatty
+         * sibling cluster cannot crowd this cluster's events out of the
+         * TIMELINE_MAX_LOG_EVENTS newest rows. The agent stamps
+         * k8s.cluster.name as a resource attribute on the k8sobjects
+         * logs pipeline, which ingest stores as
+         * "resource.k8s.cluster.name".
+         */
+        "resource.k8s.cluster.name": data.clusterIdentifier,
       } as Dictionary<string>,
     };
 
@@ -1387,10 +1429,15 @@ export class Service extends DatabaseService<Model> {
       }
 
       const attributes: JSONObject = log.attributes || {};
-      const clusterAttribute: JSONValue | undefined =
-        attributes["resource.k8s.cluster.name"] ||
-        attributes["k8s.cluster.name"];
-      if (clusterAttribute !== data.clusterIdentifier) {
+      /*
+       * Defense-in-depth re-check of the pushed-down cluster filter.
+       * Either-key match (not a short-circuiting ||) mirrors the
+       * dashboard's KubernetesObjectFetcher.
+       */
+      if (
+        attributes["resource.k8s.cluster.name"] !== data.clusterIdentifier &&
+        attributes["k8s.cluster.name"] !== data.clusterIdentifier
+      ) {
         continue;
       }
 
@@ -1411,10 +1458,18 @@ export class Service extends DatabaseService<Model> {
           !parsed.regardingNamespace ||
           parsed.regardingNamespace === data.namespace);
 
-      // Controller-owned pods: "<workload-name>-<suffix>" in the same namespace.
+      /*
+       * Controller-owned pods: "<workload-name>-<generated-suffix>" in
+       * the same namespace. The suffix must look controller-generated
+       * (GENERATED_POD_NAME_SUFFIX_REGEX) so pods of a sibling workload
+       * whose name merely shares this workload's prefix don't match.
+       */
       const matchesChildPod: boolean =
         parsed.regardingKind === "Pod" &&
         parsed.regardingName.startsWith(`${data.name}-`) &&
+        GENERATED_POD_NAME_SUFFIX_REGEX.test(
+          parsed.regardingName.slice(data.name.length + 1),
+        ) &&
         (!data.namespace || parsed.regardingNamespace === data.namespace);
 
       if (!matchesWorkloadExactly && !matchesChildPod) {
@@ -1456,9 +1511,10 @@ export class Service extends DatabaseService<Model> {
 
   /**
    * P95 of a container metric over the window, filtered to one
-   * (cluster, namespace, container) series set. ClickHouse aggregateBy
-   * may return one aggregated row per time bucket — take the max so the
-   * suggestion never undercuts the busiest bucket.
+   * (cluster, namespace, container) series set and pinned to the
+   * workload's own pods. ClickHouse aggregateBy may return one
+   * aggregated row per time bucket — take the max so the suggestion
+   * never undercuts the busiest bucket.
    */
   @CaptureSpan()
   private async getP95ContainerMetricValue(data: {
@@ -1466,6 +1522,7 @@ export class Service extends DatabaseService<Model> {
     clusterIdentifier: string;
     namespace: string;
     containerName: string;
+    podNames: Array<string>;
     metricName: string;
     startDate: Date;
     endDate: Date;
@@ -1479,7 +1536,14 @@ export class Service extends DatabaseService<Model> {
       "resource.k8s.cluster.name": data.clusterIdentifier,
       "resource.k8s.namespace.name": data.namespace,
       "resource.k8s.container.name": data.containerName,
-    } as Dictionary<string>;
+      /*
+       * Same-named containers exist across workloads (sidecars, "app")
+       * — pin the quantile to this workload's pods so the P95 never
+       * pools samples from sibling workloads. Callers always pass at
+       * least one pod (workloads are built from pod inventory rows).
+       */
+      "resource.k8s.pod.name": new Includes(data.podNames),
+    } as Dictionary<string | Includes>;
 
     const result: AggregatedResult = await MetricService.aggregateBy({
       query,

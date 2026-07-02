@@ -4,7 +4,10 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
-import { ParsedKubernetesResource } from "../../Types/Kubernetes/KubernetesInventoryExtractor";
+import {
+  ParsedKubernetesResource,
+  SPEC_HASH_VERSION_PREFIX,
+} from "../../Types/Kubernetes/KubernetesInventoryExtractor";
 import KubernetesResourceChangeEventService, {
   ParsedKubernetesResourceChangeEvent,
 } from "./KubernetesResourceChangeEventService";
@@ -34,6 +37,19 @@ export interface KubernetesResourceNaturalKey {
   kind: string;
   namespaceKey: string;
   name: string;
+}
+
+/**
+ * Watch-mode DELETED tombstone: a natural key plus the agent-observed
+ * deletion time. The delete path guards on it (lastSeenAt <=
+ * occurredAt) so a tombstone that commits late — ingest runs on
+ * concurrent queue workers — can never delete a newer live row that
+ * replaced the object (e.g. a StatefulSet pod recreated by a rollout
+ * restart under the same name).
+ */
+export interface KubernetesResourceTombstone
+  extends KubernetesResourceNaturalKey {
+  occurredAt: Date;
 }
 
 /**
@@ -315,6 +331,29 @@ const UPSERT_BATCH_SIZE: number = 500;
 const STALE_DELETE_WARN_THRESHOLD: number = 100;
 
 /*
+ * Raw specs (unlike the parsed projections) can get big — think CRDs
+ * or pod templates stuffed with env vars. Cap what a single change
+ * event may persist: past the cap we store null and keep the hash, so
+ * the timeline still records THAT the spec changed even when the
+ * payload is too large to keep.
+ */
+const SPEC_EVENT_MAX_JSON_LENGTH: number = 200_000;
+
+function capSpecForChangeEvent(spec: JSONObject | null): JSONObject | null {
+  if (!spec) {
+    return null;
+  }
+  try {
+    if (JSON.stringify(spec).length > SPEC_EVENT_MAX_JSON_LENGTH) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+  return spec;
+}
+
+/*
  * Column order used by both bulkUpsert() and its generated parameter tuples.
  * Keep this and the INSERT column list in perfect sync.
  */
@@ -483,6 +522,9 @@ export class Service extends DatabaseService<Model> {
    * hash moved. One extra SELECT round trip per chunk. Rules:
    *   - first-ever sighting (no stored row)     -> no event
    *   - stored specHash NULL (pre-migration row) -> no event on rehash
+   *   - stored specHash without the current version prefix (written
+   *     when the hash covered the parsed projection) -> no event on
+   *     rehash, same rule as NULL
    *   - incoming older than stored (dominance)   -> no event (the
    *     upsert guard rejects that row too)
    *   - Pods                                     -> never (churn)
@@ -521,10 +563,9 @@ export class Service extends DatabaseService<Model> {
       namespaceKey: string;
       name: string;
       specHash: string | null;
-      spec: JSONObject | null;
       lastSeenAt: Date | string;
     }> = await this.getRepository().manager.query(
-      `SELECT "kind", "namespaceKey", "name", "specHash", "spec", "lastSeenAt"
+      `SELECT "kind", "namespaceKey", "name", "specHash", "lastSeenAt"
        FROM "KubernetesResource"
        WHERE "projectId" = $1
          AND "kubernetesClusterId" = $2
@@ -541,11 +582,15 @@ export class Service extends DatabaseService<Model> {
       existingByKey.set(`${row.kind} ${row.namespaceKey} ${row.name}`, row);
     }
 
-    const events: Array<ParsedKubernetesResourceChangeEvent> = [];
+    const changed: Array<ParsedKubernetesResource> = [];
     for (const r of candidates) {
       const existing: (typeof existingRows)[number] | undefined =
         existingByKey.get(`${r.kind} ${r.namespaceKey} ${r.name}`);
       if (!existing || !existing.specHash) {
+        continue;
+      }
+      if (!existing.specHash.startsWith(SPEC_HASH_VERSION_PREFIX)) {
+        // Old hashing schema — rehash silently, exactly like NULL.
         continue;
       }
       if (existing.specHash === r.specHash) {
@@ -558,50 +603,146 @@ export class Service extends DatabaseService<Model> {
       if (r.lastSeenAt.getTime() < existingLastSeenAt.getTime()) {
         continue;
       }
-      events.push({
-        kind: r.kind,
-        namespaceKey: r.namespaceKey,
-        name: r.name,
-        changeType: "SpecChanged",
-        oldSpec: existing.spec,
-        newSpec: r.spec,
-        specHash: r.specHash,
-        occurredAt: r.lastSeenAt,
-      });
+      changed.push(r);
     }
 
-    if (events.length > 0) {
-      await KubernetesResourceChangeEventService.bulkInsert({
+    if (changed.length === 0) {
+      return;
+    }
+
+    /*
+     * oldSpec sourcing: the KubernetesResource row stores only the
+     * parsed spec projection (the dashboard renders it), so the
+     * previous RAW spec lives solely on the resource's most recent
+     * change event (its newSpec). Diffing raw-vs-raw is what lets the
+     * timeline render "template.spec.containers[0].image: a -> b"; a
+     * resource's first change since the raw-hash migration has no
+     * prior event and gets oldSpec null.
+     */
+    const priorRawSpecByKey: Map<string, JSONObject | null> =
+      await this.getLatestChangeEventNewSpecs({
         projectId: data.projectId,
         kubernetesClusterId: data.kubernetesClusterId,
-        events,
+        keys: changed,
       });
-    }
+
+    const events: Array<ParsedKubernetesResourceChangeEvent> = changed.map(
+      (r: ParsedKubernetesResource) => {
+        return {
+          kind: r.kind,
+          namespaceKey: r.namespaceKey,
+          name: r.name,
+          changeType: "SpecChanged",
+          oldSpec:
+            priorRawSpecByKey.get(`${r.kind} ${r.namespaceKey} ${r.name}`) ||
+            null,
+          newSpec: capSpecForChangeEvent(r.rawSpec),
+          specHash: r.specHash,
+          occurredAt: r.lastSeenAt,
+        };
+      },
+    );
+
+    await KubernetesResourceChangeEventService.bulkInsert({
+      projectId: data.projectId,
+      kubernetesClusterId: data.kubernetesClusterId,
+      events,
+    });
   }
 
   /**
-   * Hard-delete a batch of resources by natural key for a single
+   * Latest change event's newSpec per natural key. "SpecChanged"
+   * events carry the raw spec as of that change; "Deleted" events
+   * carry null — which is also the right answer here, because a key
+   * whose latest event is a deletion was recreated since, and the
+   * recreated object's initial raw spec was never captured (first
+   * sightings don't emit events).
+   */
+  private async getLatestChangeEventNewSpecs(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    keys: Array<KubernetesResourceNaturalKey>;
+  }): Promise<Map<string, JSONObject | null>> {
+    const out: Map<string, JSONObject | null> = new Map();
+    if (data.keys.length === 0) {
+      return out;
+    }
+
+    const params: Array<unknown> = [
+      data.projectId.toString(),
+      data.kubernetesClusterId.toString(),
+    ];
+    let paramIndex: number = 3;
+    const keyFragments: Array<string> = [];
+    for (const k of data.keys) {
+      keyFragments.push(
+        `($${paramIndex++}, $${paramIndex++}, $${paramIndex++})`,
+      );
+      params.push(k.kind, k.namespaceKey, k.name);
+    }
+
+    const rows: Array<{
+      kind: string;
+      namespaceKey: string;
+      name: string;
+      newSpec: JSONObject | null;
+    }> = await this.getRepository().manager.query(
+      `SELECT DISTINCT ON ("kind", "namespaceKey", "name")
+         "kind", "namespaceKey", "name", "newSpec"
+       FROM "KubernetesResourceChangeEvent"
+       WHERE "projectId" = $1
+         AND "kubernetesClusterId" = $2
+         AND ("kind", "namespaceKey", "name") IN (${keyFragments.join(", ")})
+       ORDER BY "kind", "namespaceKey", "name", "occurredAt" DESC, "createdAt" DESC`,
+      params,
+    );
+
+    for (const row of rows) {
+      out.set(
+        `${row.kind} ${row.namespaceKey} ${row.name}`,
+        row.newSpec ?? null,
+      );
+    }
+    return out;
+  }
+
+  /**
+   * Hard-delete a batch of resources by tombstone for a single
    * (project, cluster) pair — the watch-mode DELETED ingest path.
-   * Returns each deleted row's identity and last-known spec via
-   * RETURNING so the caller can record "Deleted" change events
-   * without a separate read.
+   * Guarded by lastSeenAt <= occurredAt (same out-of-order-ingest
+   * dominance rule as every other write path here): a stale tombstone
+   * arriving after a newer snapshot leaves the live row alone. The
+   * <= tie-break keeps the intended "updated then deleted in one
+   * batch ends up gone" behavior. Returns each deleted row's identity
+   * and last-known spec via RETURNING so the caller can record
+   * "Deleted" change events without a separate read — skipped
+   * tombstones return no row and thus record no false event.
    */
   @CaptureSpan()
   public async bulkDeleteByNaturalKeys(data: {
     projectId: ObjectID;
     kubernetesClusterId: ObjectID;
-    keys: Array<KubernetesResourceNaturalKey>;
+    keys: Array<KubernetesResourceTombstone>;
   }): Promise<Array<DeletedKubernetesResourceRow>> {
     if (data.keys.length === 0) {
       return [];
     }
 
-    // Dedupe: one batch can carry the same DELETED envelope twice.
-    const uniqueByKey: Map<string, KubernetesResourceNaturalKey> = new Map();
+    /*
+     * Dedupe: one batch can carry the same DELETED envelope twice.
+     * Keep the newest agent-observed time per natural key so the
+     * dominance guard is as permissive as the tombstones allow.
+     */
+    const uniqueByKey: Map<string, KubernetesResourceTombstone> = new Map();
     for (const k of data.keys) {
-      uniqueByKey.set(`${k.kind} ${k.namespaceKey} ${k.name}`, k);
+      const key: string = `${k.kind} ${k.namespaceKey} ${k.name}`;
+      const prev: KubernetesResourceTombstone | undefined =
+        uniqueByKey.get(key);
+      if (!prev || k.occurredAt.getTime() > prev.occurredAt.getTime()) {
+        uniqueByKey.set(key, k);
+      }
     }
-    const keys: Array<KubernetesResourceNaturalKey> = Array.from(
+    const keys: Array<KubernetesResourceTombstone> = Array.from(
       uniqueByKey.values(),
     );
 
@@ -609,7 +750,7 @@ export class Service extends DatabaseService<Model> {
 
     // Chunk to keep individual statement parameter counts reasonable.
     for (let i: number = 0; i < keys.length; i += UPSERT_BATCH_SIZE) {
-      const chunk: Array<KubernetesResourceNaturalKey> = keys.slice(
+      const chunk: Array<KubernetesResourceTombstone> = keys.slice(
         i,
         i + UPSERT_BATCH_SIZE,
       );
@@ -622,17 +763,22 @@ export class Service extends DatabaseService<Model> {
       const keyFragments: Array<string> = [];
       for (const k of chunk) {
         keyFragments.push(
-          `($${paramIndex++}, $${paramIndex++}, $${paramIndex++})`,
+          `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}::timestamptz)`,
         );
-        params.push(k.kind, k.namespaceKey, k.name);
+        params.push(k.kind, k.namespaceKey, k.name, k.occurredAt);
       }
 
       const result: unknown = await this.getRepository().manager.query(
-        `DELETE FROM "KubernetesResource"
-         WHERE "projectId" = $1
-           AND "kubernetesClusterId" = $2
-           AND ("kind", "namespaceKey", "name") IN (${keyFragments.join(", ")})
-         RETURNING "kind", "namespaceKey", "name", "spec"`,
+        `DELETE FROM "KubernetesResource" AS k
+         USING (VALUES ${keyFragments.join(", ")})
+           AS v("kind", "namespaceKey", "name", "occurredAt")
+         WHERE k."projectId" = $1
+           AND k."kubernetesClusterId" = $2
+           AND k."kind" = v."kind"
+           AND k."namespaceKey" = v."namespaceKey"
+           AND k."name" = v."name"
+           AND k."lastSeenAt" <= v."occurredAt"
+         RETURNING k."kind", k."namespaceKey", k."name", k."spec"`,
         params,
       );
 

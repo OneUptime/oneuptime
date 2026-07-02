@@ -31,6 +31,8 @@ import {
   extractObjectAndWatchTypeFromLogBody,
   ExtractedObjectAndWatchType,
   KubernetesWatchEventType,
+  getKvValue,
+  kvListToPlainObject,
 } from "./KubernetesObjectParser";
 
 /*
@@ -101,9 +103,24 @@ export interface ParsedKubernetesResource {
   ownerReferences: JSONObject | null;
   spec: JSONObject | null;
   /*
-   * Stable FNV-1a 64-bit hash (hex) of the canonicalized spec block.
-   * Null when the kind carries no spec. Used by the upsert path to
-   * detect spec changes without diffing JSONB in Postgres.
+   * Full-fidelity plain-JSON copy of the RAW object's spec block as
+   * delivered by the agent (spec.template, containers, env, volumes
+   * and all). Used ONLY to compute specHash and to populate
+   * oldSpec/newSpec on workload timeline change events — it is never
+   * stored on the KubernetesResource row. The `spec` field above
+   * keeps the compact parsed projection that the dashboard pages
+   * render.
+   */
+  rawSpec: JSONObject | null;
+  /*
+   * Stable, version-prefixed FNV-1a 64-bit hash (hex) of the
+   * canonicalized RAW spec block. Null when the object carries no
+   * spec. Used by the upsert path to detect spec changes without
+   * diffing JSONB in Postgres. Hashing the raw spec (not the parsed
+   * projection) is what makes container image / pod template changes
+   * show up on the timeline; raw specs are stable per object — the
+   * managed-field noise lives under metadata, and API-server defaults
+   * don't churn between snapshots.
    */
   specHash: string | null;
   /*
@@ -332,6 +349,16 @@ function fnv1a64Hex(input: string): string {
 }
 
 /**
+ * Version prefix baked into every spec hash. Bump it whenever the
+ * hash INPUT changes shape (v2 = the raw spec block instead of the
+ * lossy parsed projection) so the change-event path can tell "spec
+ * changed" apart from "hashing schema changed" and skip the one-time
+ * spurious SpecChanged event a rehash would otherwise emit for every
+ * pre-existing row.
+ */
+export const SPEC_HASH_VERSION_PREFIX: string = "v2:";
+
+/**
  * Stable hash of a resource spec block. Returns null for a null spec
  * so kinds without a spec never look like they "changed".
  */
@@ -339,7 +366,7 @@ export function computeSpecHash(spec: JSONObject | null): string | null {
   if (!spec) {
     return null;
   }
-  return fnv1a64Hex(canonicalJsonStringify(spec));
+  return SPEC_HASH_VERSION_PREFIX + fnv1a64Hex(canonicalJsonStringify(spec));
 }
 
 function parseCreationTimestamp(value: string | undefined): Date | null {
@@ -540,6 +567,21 @@ export function extractInventoryResource(data: {
   const spec: JSONObject | null =
     (anyParsed.spec as JSONObject | undefined) || null;
 
+  /*
+   * Full-fidelity raw spec, straight off the object kvlist. The typed
+   * parsers above keep only a compact projection (e.g. Deployment ->
+   * {replicas, strategy, selector}), which is fine for the inventory
+   * columns but blind to pod-template changes — hashing the projection
+   * meant `kubectl set image` never produced a timeline event. Hash
+   * (and event) off the raw block instead; the stored spec column
+   * keeps the projection.
+   */
+  const rawSpecKv: string | JSONObject | null = getKvValue(kvList, "spec");
+  const rawSpec: JSONObject | null =
+    rawSpecKv && typeof rawSpecKv !== "string"
+      ? (kvListToPlainObject(rawSpecKv) as JSONObject)
+      : null;
+
   const resource: ParsedKubernetesResource = {
     kind,
     namespaceKey: metadata.namespace || "",
@@ -565,7 +607,8 @@ export function extractInventoryResource(data: {
           } as unknown as JSONObject)
         : null,
     spec,
-    specHash: computeSpecHash(spec),
+    rawSpec,
+    specHash: computeSpecHash(rawSpec),
     containerCount,
     status: (anyParsed.status as JSONObject | undefined) || null,
     lastSeenAt: data.lastSeenAt,

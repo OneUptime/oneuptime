@@ -2274,8 +2274,13 @@ ${contextBlock}
         `Recommended actions: Check container logs with \`kubectl logs ${topResource.podName || "<pod-name>"} -c ${topResource.containerName || "<container>"} --previous\` and inspect events with \`kubectl describe pod ${topResource.podName || "<pod-name>"}\`.`,
       );
     } else if (
-      metricName === "k8s.pod.phase" &&
-      breakdown.attributes["k8s.pod.phase"] === "Pending"
+      /*
+       * The k8s_cluster receiver encodes the phase in the metric VALUE
+       * (1 = Pending) and emits no phase attribute, so the pod-pending
+       * template — the only user of this metric — keys on the metric
+       * name alone.
+       */
+      metricName === "k8s.pod.phase"
     ) {
       lines.push(`Pods are stuck in Pending phase and unable to be scheduled.`);
       lines.push(
@@ -2337,13 +2342,27 @@ ${contextBlock}
         `Recommended actions: Check memory consumers with \`kubectl top pods --all-namespaces --sort-by=memory\` and review pod memory limits. Consider scaling the cluster or adding nodes with more memory.`,
       );
     } else if (
-      metricName === "k8s.deployment.unavailable_replicas" ||
+      /*
+       * The replica-mismatch template queries k8s.deployment.desired /
+       * k8s.deployment.available (the k8s_cluster receiver has no
+       * unavailable_replicas metric) and the breakdown is built from the
+       * first query, so the stored metric name is k8s.deployment.desired.
+       */
+      metricName === "k8s.deployment.desired" ||
       metricName.includes("unavailable")
     ) {
       lines.push(
         `Deployment has unavailable replicas, indicating a mismatch between desired and available replicas.`,
       );
-      if (topResource.workloadName) {
+      /*
+       * For the desired-replicas breakdown, metricValue is the desired
+       * count (deployments are ranked by size, not by mismatch), so a
+       * per-workload unavailable claim would be misleading.
+       */
+      if (
+        topResource.workloadName &&
+        metricName !== "k8s.deployment.desired"
+      ) {
         lines.push(
           `${topResource.workloadType || "Deployment"} \`${topResource.workloadName}\` has **${topResource.metricValue}** unavailable replica(s).`,
         );

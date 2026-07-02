@@ -92,7 +92,10 @@ data:
             interval: {{ .Values.resourceSpecs.interval }}
             group: autoscaling.k8s.io
           {{- end }}
-          {{- if .Values.resourceSpecs.watch.enabled }}
+          {{- /* nil-safe: values reused from chart <= 0.5.2 (helm upgrade
+               --reuse-values) have no resourceSpecs.watch key; an absent key
+               defaults to enabled, matching values.yaml. */}}
+          {{- if dig "watch" "enabled" true .Values.resourceSpecs }}
           # Watch pods and workload controllers for near-real-time status
           # updates between the pulls above. The pull entries must stay: a
           # watch only emits objects that change, and the server prunes

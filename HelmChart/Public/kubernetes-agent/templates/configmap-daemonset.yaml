@@ -28,6 +28,17 @@ data:
           {{- end }}
         extra_metadata_labels:
           - container.id
+          {{- if .Values.kubeletstats.volumeMetrics.enabled }}
+          # Stamps `k8s.volume.type` on every k8s.volume.* series and — for
+          # PVC-backed volumes — `k8s.persistentvolumeclaim.name`, the
+          # per-PVC grouping key of the "PersistentVolumeClaim Near Full"
+          # monitor. Without this label the receiver skips volume-type/PVC
+          # attribution entirely (setExtraResources guard in kubeletstats).
+          # PVC name resolution uses the k8s_api_config below; RBAC for
+          # persistentvolumeclaims/persistentvolumes is already granted in
+          # templates/rbac.yaml.
+          - k8s.volume.type
+          {{- end }}
         k8s_api_config:
           auth_type: serviceAccount
         {{- if .Values.kubeletstats.utilizationMetrics.enabled }}

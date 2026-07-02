@@ -244,19 +244,21 @@ export function buildKubernetesMonitorConfig(args: {
  *     `(Σrequests × scrapes) / (allocatable × scrapes)`.
  *
  *   - `Avg` when the numerator is already ONE series per group (e.g.
- *     `k8s.node.cpu.usage`). Avg yields the representative per-minute value
- *     independent of scrape count, so it stays correct even when numerator
- *     and denominator come from DIFFERENT receivers on independent scrape
- *     cycles (node usage is from the kubeletstats DaemonSet; allocatable is
- *     from the `k8s_cluster` Deployment). `Sum` there would only cancel if
- *     both reported the same row count every minute — fragile across
- *     restarts / missed scrapes / minute-boundary jitter.
+ *     `k8s.node.cpu.utilization`). Avg yields the representative per-minute
+ *     value independent of scrape count, so it stays correct even when
+ *     numerator and denominator come from DIFFERENT receivers on independent
+ *     scrape cycles (node usage is from the kubeletstats DaemonSet;
+ *     allocatable is from the `k8s_cluster` Deployment). `Sum` there would
+ *     only cancel if both reported the same row count every minute — fragile
+ *     across restarts / missed scrapes / minute-boundary jitter.
  *
  * The group-by key is the ClickHouse-stored attribute name, which carries
  * the `resource.` prefix for OTel resource attributes (see
  * OtelMetricsIngestService — resource attributes are stamped with
  * `prefixKeysWithString: "resource"`). So node grouping is
- * `resource.k8s.node.name`, not the bare `k8s.node.name`.
+ * `resource.k8s.node.name`, not the bare `k8s.node.name`. Optional
+ * `attributes` are exact-match filters applied to BOTH queries and use the
+ * same ClickHouse-stored naming.
  */
 export function buildKubernetesRatioMonitorConfig(args: {
   clusterIdentifier: string;
@@ -270,33 +272,10 @@ export function buildKubernetesRatioMonitorConfig(args: {
   resourceScope: KubernetesResourceScope;
   rollingTime: RollingTime;
   aggregationType?: MetricsAggregationType | undefined;
+  attributes?: Record<string, string> | undefined;
 }): MonitorStepKubernetesMonitor {
   const aggregationType: MetricsAggregationType =
     args.aggregationType || MetricsAggregationType.Sum;
-
-  const buildQueryConfig: (alias: string, metricName: string) => any = (
-    alias: string,
-    metricName: string,
-  ): any => {
-    return {
-      metricAliasData: {
-        metricVariable: alias,
-        title: alias,
-        description: alias,
-        legend: alias,
-        legendUnit: undefined,
-      },
-      metricQueryData: {
-        filterData: {
-          metricName: metricName,
-          attributes: {},
-          aggegationType: aggregationType,
-          aggregateBy: {},
-        },
-        groupByAttributeKeys: [args.groupByAttributeKey],
-      },
-    };
-  };
 
   return {
     clusterIdentifier: args.clusterIdentifier,
@@ -304,8 +283,20 @@ export function buildKubernetesRatioMonitorConfig(args: {
     resourceFilters: {},
     metricViewConfig: {
       queryConfigs: [
-        buildQueryConfig(args.numeratorAlias, args.numeratorMetricName),
-        buildQueryConfig(args.denominatorAlias, args.denominatorMetricName),
+        buildGroupedKubernetesQueryConfig({
+          alias: args.numeratorAlias,
+          metricName: args.numeratorMetricName,
+          aggregationType: aggregationType,
+          groupByAttributeKey: args.groupByAttributeKey,
+          attributes: args.attributes,
+        }),
+        buildGroupedKubernetesQueryConfig({
+          alias: args.denominatorAlias,
+          metricName: args.denominatorMetricName,
+          aggregationType: aggregationType,
+          groupByAttributeKey: args.groupByAttributeKey,
+          attributes: args.attributes,
+        }),
       ],
       formulaConfigs: [
         {
@@ -323,6 +314,107 @@ export function buildKubernetesRatioMonitorConfig(args: {
       ],
     },
     rollingTime: args.rollingTime,
+  };
+}
+
+/**
+ * Build a per-series difference monitor: `minuend - subtrahend`, grouped
+ * by a single OpenTelemetry attribute so one incident fires per group
+ * (e.g. per deployment).
+ *
+ * Used when the interesting signal is a gap between two emitted gauges
+ * that no receiver exposes directly — e.g. deployment replica mismatch:
+ * the `k8s_cluster` receiver emits only `k8s.deployment.desired` and
+ * `k8s.deployment.available` (no receiver version has an
+ * `unavailable_replicas` metric), so the mismatch is `desired - available`.
+ *
+ * Both sides use `Avg` per (group, minute): each metric is ONE series per
+ * group from a single receiver, so Avg yields the representative
+ * per-minute value independent of scrape count (see
+ * buildKubernetesRatioMonitorConfig for the full Sum-vs-Avg rationale).
+ * Because Avg across a minute can be fractional while a rollout
+ * progresses, pair the result with GreaterThan 0 / LessThanOrEqualTo 0
+ * criteria rather than exact equality.
+ */
+export function buildKubernetesDifferenceMonitorConfig(args: {
+  clusterIdentifier: string;
+  minuendMetricName: string;
+  subtrahendMetricName: string;
+  groupByAttributeKey: string;
+  minuendAlias: string;
+  subtrahendAlias: string;
+  resultAlias: string;
+  resultLegend: string;
+  resourceScope: KubernetesResourceScope;
+  rollingTime: RollingTime;
+}): MonitorStepKubernetesMonitor {
+  return {
+    clusterIdentifier: args.clusterIdentifier,
+    resourceScope: args.resourceScope,
+    resourceFilters: {},
+    metricViewConfig: {
+      queryConfigs: [
+        buildGroupedKubernetesQueryConfig({
+          alias: args.minuendAlias,
+          metricName: args.minuendMetricName,
+          aggregationType: MetricsAggregationType.Avg,
+          groupByAttributeKey: args.groupByAttributeKey,
+        }),
+        buildGroupedKubernetesQueryConfig({
+          alias: args.subtrahendAlias,
+          metricName: args.subtrahendMetricName,
+          aggregationType: MetricsAggregationType.Avg,
+          groupByAttributeKey: args.groupByAttributeKey,
+        }),
+      ],
+      formulaConfigs: [
+        {
+          metricAliasData: {
+            metricVariable: args.resultAlias,
+            title: args.resultLegend,
+            description: args.resultLegend,
+            legend: args.resultLegend,
+            legendUnit: undefined,
+          },
+          metricFormulaData: {
+            metricFormula: `${args.minuendAlias} - ${args.subtrahendAlias}`,
+          },
+        },
+      ],
+    },
+    rollingTime: args.rollingTime,
+  };
+}
+
+/**
+ * Query-config fragment shared by the per-group ratio and difference
+ * builders: one metric, optional exact-match attribute filters, grouped
+ * per series on a single ClickHouse-stored attribute key.
+ */
+function buildGroupedKubernetesQueryConfig(args: {
+  alias: string;
+  metricName: string;
+  aggregationType: MetricsAggregationType;
+  groupByAttributeKey: string;
+  attributes?: Record<string, string> | undefined;
+}): any {
+  return {
+    metricAliasData: {
+      metricVariable: args.alias,
+      title: args.alias,
+      description: args.alias,
+      legend: args.alias,
+      legendUnit: undefined,
+    },
+    metricQueryData: {
+      filterData: {
+        metricName: args.metricName,
+        attributes: args.attributes || {},
+        aggegationType: args.aggregationType,
+        aggregateBy: {},
+      },
+      groupByAttributeKeys: [args.groupByAttributeKey],
+    },
   };
 }
 
@@ -375,11 +467,11 @@ const podPendingTemplate: KubernetesAlertTemplate = {
   id: "k8s-pod-pending",
   name: "Pod Stuck in Pending",
   description:
-    "Alert when pods remain in Pending phase, indicating scheduling or resource issues.",
+    "Alert when pods remain in Pending phase, indicating scheduling or resource issues. The k8s_cluster receiver encodes the phase in the VALUE of k8s.pod.phase (1 = Pending, 2 = Running, 3 = Succeeded, 4 = Failed, 5 = Unknown) and emits no phase attribute, so the template alerts when the cluster-wide minimum phase equals 1.",
   category: "Scheduling",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
-    const metricAlias: string = "pending_pods";
+    const metricAlias: string = "min_pod_phase";
 
     return buildKubernetesMonitorStep({
       kubernetesMonitor: buildKubernetesMonitorConfig({
@@ -388,8 +480,14 @@ const podPendingTemplate: KubernetesAlertTemplate = {
         metricAlias,
         resourceScope: KubernetesResourceScope.Cluster,
         rollingTime: RollingTime.Past5Minutes,
-        aggregationType: MetricsAggregationType.Sum,
-        attributes: { "resource.k8s.pod.phase": "Pending" },
+        /*
+         * `k8s.pod.phase` is a per-pod gauge whose VALUE encodes the
+         * phase (1 = Pending, 2 = Running, 3 = Succeeded, 4 = Failed,
+         * 5 = Unknown) — there is no phase attribute to filter on.
+         * Pending is the lowest encoding, so the cluster-wide Min
+         * equals 1 exactly when at least one pod is Pending.
+         */
+        aggregationType: MetricsAggregationType.Min,
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -397,19 +495,19 @@ const podPendingTemplate: KubernetesAlertTemplate = {
         alertSeverityId: args.defaultAlertSeverityId,
         monitorName: args.monitorName,
         metricAlias,
-        filterType: FilterType.GreaterThan,
-        value: 0,
+        filterType: FilterType.EqualTo,
+        value: 1,
         incidentTitle: `[K8s] Pods Stuck in Pending - ${args.monitorName}`,
         incidentDescription: `One or more pods in the Kubernetes cluster are stuck in Pending phase and cannot be scheduled. This typically indicates insufficient cluster resources, node affinity constraints, or unbound PersistentVolumeClaims. Check the root cause for specific pod and scheduling details.`,
-        criteriaName: "Pods Pending - Count > 0",
+        criteriaName: "Pods Pending - Min Phase = 1 (Pending)",
         criteriaDescription:
-          "Triggers when any pods are in Pending phase, unable to be scheduled.",
+          "Triggers when any pod reports phase value 1 (Pending) — k8s.pod.phase encodes the phase in the metric value, and Pending is the minimum encoding.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
-        filterType: FilterType.EqualTo,
-        value: 0,
+        filterType: FilterType.GreaterThan,
+        value: 1,
       }),
     });
   },
@@ -462,7 +560,7 @@ const highCpuTemplate: KubernetesAlertTemplate = {
   id: "k8s-high-cpu",
   name: "High Node CPU Utilization",
   description:
-    "Alert when a node's average CPU usage exceeds 90% of its allocatable CPU. Computed per node as k8s.node.cpu.usage ÷ k8s.node.allocatable_cpu × 100 — both are cores, so this is a true percentage (the raw k8s.node.cpu.utilization metric is a misnamed cores gauge, not a percent).",
+    "Alert when a node's average CPU usage exceeds 90% of its allocatable CPU. Computed per node as k8s.node.cpu.utilization ÷ k8s.node.allocatable_cpu × 100 — despite its name, k8s.node.cpu.utilization is a cores gauge in the bundled collector (v0.96.0), so dividing by allocatable cores yields a true percentage. (The properly named k8s.node.cpu.usage replacement is optional/disabled at that collector version, so the bundled agent never emits it.)",
   category: "Node",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
@@ -471,7 +569,14 @@ const highCpuTemplate: KubernetesAlertTemplate = {
     return buildKubernetesMonitorStep({
       kubernetesMonitor: buildKubernetesRatioMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
-        numeratorMetricName: "k8s.node.cpu.usage",
+        /*
+         * The misnamed cores gauge is the only node CPU usage metric the
+         * bundled kubeletstats receiver (v0.96.0) emits by default —
+         * `k8s.node.cpu.usage` is optional/disabled at that version. The
+         * dashboard node views divide the same gauge by allocatable CPU
+         * (see KubernetesCpuUtils).
+         */
+        numeratorMetricName: "k8s.node.cpu.utilization",
         denominatorMetricName: "k8s.node.allocatable_cpu",
         groupByAttributeKey: "resource.k8s.node.name",
         numeratorAlias: "used_cpu",
@@ -570,20 +675,24 @@ const deploymentReplicaMismatchTemplate: KubernetesAlertTemplate = {
   id: "k8s-deployment-replica-mismatch",
   name: "Deployment Replica Mismatch",
   description:
-    "Alert when available replicas are less than desired replicas for a deployment.",
+    "Alert when available replicas are less than desired replicas for a deployment. Computed per deployment as k8s.deployment.desired - k8s.deployment.available — the two gauges the k8s_cluster receiver actually emits (no receiver version has an unavailable_replicas metric).",
   category: "Workload",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "unavailable_replicas";
 
     return buildKubernetesMonitorStep({
-      kubernetesMonitor: buildKubernetesMonitorConfig({
+      kubernetesMonitor: buildKubernetesDifferenceMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
-        metricName: "k8s.deployment.unavailable_replicas",
-        metricAlias,
+        minuendMetricName: "k8s.deployment.desired",
+        subtrahendMetricName: "k8s.deployment.available",
+        groupByAttributeKey: "resource.k8s.deployment.name",
+        minuendAlias: "desired_replicas",
+        subtrahendAlias: "available_replicas",
+        resultAlias: metricAlias,
+        resultLegend: "Unavailable Replicas",
         resourceScope: KubernetesResourceScope.Workload,
         rollingTime: RollingTime.Past5Minutes,
-        aggregationType: MetricsAggregationType.Max,
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -595,14 +704,19 @@ const deploymentReplicaMismatchTemplate: KubernetesAlertTemplate = {
         value: 0,
         incidentTitle: `[K8s] Deployment Replica Mismatch - ${args.monitorName}`,
         incidentDescription: `A Kubernetes deployment has unavailable replicas — the desired replica count does not match the available count. This may indicate a failed rollout, image pull errors, insufficient resources, or pod crash loops. Check the root cause for the specific deployment and replica details.`,
-        criteriaName: "Replica Mismatch - Unavailable > 0",
+        criteriaName: "Replica Mismatch - Desired - Available > 0",
         criteriaDescription:
-          "Triggers when any deployment has unavailable replicas.",
+          "Triggers when any deployment's available replica count is below its desired count.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
-        filterType: FilterType.EqualTo,
+        /*
+         * The per-minute Avg can be fractional mid-rollout and negative
+         * during a scale-down surge (available briefly above desired), so
+         * healthy is <= 0 rather than exactly 0.
+         */
+        filterType: FilterType.LessThanOrEqualTo,
         value: 0,
       }),
     });
@@ -1017,7 +1131,7 @@ const pvcNearFullTemplate: KubernetesAlertTemplate = {
   id: "k8s-pvc-near-full",
   name: "PersistentVolumeClaim Near Full",
   description:
-    "Alert when a PersistentVolumeClaim has less than 15% free space. Computed per PVC as k8s.volume.available ÷ k8s.volume.capacity × 100 — running out of PVC space is otherwise a silent killer for stateful workloads.",
+    "Alert when a PersistentVolumeClaim has less than 15% free space. Computed per PVC as k8s.volume.available ÷ k8s.volume.capacity × 100 over PVC-backed volumes only — running out of PVC space is otherwise a silent killer for stateful workloads. Requires the bundled kubernetes-agent chart, which lists k8s.volume.type in the kubeletstats extra_metadata_labels so volume series carry the PVC name.",
   category: "Storage",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
@@ -1042,6 +1156,18 @@ const pvcNearFullTemplate: KubernetesAlertTemplate = {
          * buildKubernetesRatioMonitorConfig.
          */
         aggregationType: MetricsAggregationType.Avg,
+        /*
+         * kubeletstats emits k8s.volume.* for EVERY volume of every pod
+         * (configMap, secret, emptyDir, projected, PVC, ...). Only
+         * PVC-backed series carry `k8s.persistentvolumeclaim.name` — the
+         * group-by key above — so filter on the volume-type resource
+         * attribute (value: the receiver's labelValuePersistentVolumeClaim)
+         * to keep ephemeral volumes, which would all collapse into one
+         * empty-labeled blended series, out of the ratio entirely.
+         */
+        attributes: {
+          "resource.k8s.volume.type": "persistentVolumeClaim",
+        },
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,

@@ -135,6 +135,12 @@ const KubernetesClusters: FunctionComponent<
    * supplementary: any failure hides the cards and never blocks the table.
    */
   const fetchFleetRollup: PromiseVoidFunction = async (): Promise<void> => {
+    /*
+     * Non-archived cluster ids — the version distribution below is
+     * scoped to these so it matches the fleet stat cards' scope.
+     */
+    const activeClusterIds: Set<string> = new Set<string>();
+
     try {
       const clustersResult: ListResult<KubernetesCluster> =
         await ModelAPI.getList<KubernetesCluster>({
@@ -145,6 +151,7 @@ const KubernetesClusters: FunctionComponent<
           skip: 0,
           limit: LIMIT_PER_PROJECT,
           select: {
+            _id: true,
             name: true,
             otelCollectorStatus: true,
             nodeCount: true,
@@ -160,6 +167,9 @@ const KubernetesClusters: FunctionComponent<
       let totalNodes: number = 0;
       let totalPods: number = 0;
       for (const clusterItem of clusters) {
+        if (clusterItem.id) {
+          activeClusterIds.add(clusterItem.id.toString());
+        }
         if (clusterItem.otelCollectorStatus === "connected") {
           connectedClusters++;
         }
@@ -178,6 +188,11 @@ const KubernetesClusters: FunctionComponent<
       // Rollup is supplementary — hide the cards on failure.
     }
 
+    // Without the cluster list there is nothing to scope the nodes to.
+    if (activeClusterIds.size === 0) {
+      return;
+    }
+
     try {
       const nodesResult: ListResult<KubernetesResourceModel> =
         await ModelAPI.getList<KubernetesResourceModel>({
@@ -186,7 +201,7 @@ const KubernetesClusters: FunctionComponent<
             kind: "Node",
           },
           skip: 0,
-          limit: 200,
+          limit: LIMIT_PER_PROJECT,
           select: {
             status: true,
             kubernetesClusterId: true,
@@ -198,6 +213,12 @@ const KubernetesClusters: FunctionComponent<
 
       const versionCounts: Map<string, number> = new Map<string, number>();
       for (const node of nodesResult.data) {
+        // Skip nodes of archived clusters — the stat cards exclude them.
+        const nodeClusterId: string | undefined =
+          node.kubernetesClusterId?.toString();
+        if (!nodeClusterId || !activeClusterIds.has(nodeClusterId)) {
+          continue;
+        }
         const status: JSONObject | undefined = node.status;
         const nodeInfo: unknown = status ? status["nodeInfo"] : undefined;
         if (

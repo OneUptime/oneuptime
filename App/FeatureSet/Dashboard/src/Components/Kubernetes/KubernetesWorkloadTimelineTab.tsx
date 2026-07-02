@@ -28,6 +28,13 @@ export interface ComponentProps {
   kind: string; // PascalCase singular, e.g. "Deployment"
   name: string;
   namespace?: string | undefined;
+  /*
+   * True while the parent is still resolving the workload's namespace.
+   * The fetch is deferred until this settles — a namespace-less request
+   * matches the cluster-scoped empty namespace key on the server and
+   * hides this workload's spec-change/Deleted events.
+   */
+  isNamespaceLoading?: boolean | undefined;
 }
 
 interface TimelineChangedField {
@@ -133,6 +140,14 @@ const KubernetesWorkloadTimelineTab: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
+    // Wait for the namespace to resolve before fetching.
+    if (props.isNamespaceLoading) {
+      setIsLoading(true);
+      return;
+    }
+
+    let cancelled: boolean = false;
+
     const fetchTimeline: () => Promise<void> = async (): Promise<void> => {
       setIsLoading(true);
       setError("");
@@ -160,6 +175,10 @@ const KubernetesWorkloadTimelineTab: FunctionComponent<ComponentProps> = (
 
         if (timelineResponse instanceof HTTPErrorResponse) {
           throw timelineResponse;
+        }
+
+        if (cancelled) {
+          return;
         }
 
         const itemsRaw: unknown = timelineResponse.data["items"];
@@ -220,15 +239,31 @@ const KubernetesWorkloadTimelineTab: FunctionComponent<ComponentProps> = (
 
         setItems(rows);
       } catch (err) {
-        setError(API.getFriendlyMessage(err));
+        if (!cancelled) {
+          setError(API.getFriendlyMessage(err));
+        }
       }
-      setIsLoading(false);
+      if (!cancelled) {
+        setIsLoading(false);
+      }
     };
 
     fetchTimeline().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
+      if (!cancelled) {
+        setError(API.getFriendlyMessage(err));
+      }
     });
-  }, [props.clusterId.toString(), props.kind, props.name, props.namespace]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    props.clusterId.toString(),
+    props.kind,
+    props.name,
+    props.namespace,
+    props.isNamespaceLoading,
+  ]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;

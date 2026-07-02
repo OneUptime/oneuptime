@@ -109,12 +109,16 @@ export default class KubernetesClusterAPI extends BaseAPI<
       throw new BadDataException("Cluster ID is required");
     }
 
-    let kubernetesClusterId: ObjectID;
-    try {
-      kubernetesClusterId = new ObjectID(clusterIdParam);
-    } catch {
+    /*
+     * ObjectID's constructor never throws — validate the format
+     * explicitly (matches BaseAPI's ObjectID.validateUUID pattern) so a
+     * garbage id returns 400 instead of a Postgres uuid-cast 500.
+     */
+    if (!ObjectID.isValidUUID(clusterIdParam)) {
       throw new BadDataException("Invalid Cluster ID");
     }
+
+    const kubernetesClusterId: ObjectID = new ObjectID(clusterIdParam);
 
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);

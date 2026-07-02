@@ -843,9 +843,8 @@ describe("IotAlertTemplates - blackout contract (no auto-resolve on absent data)
   );
 
   test("iot-device-offline: fires on a down device, then HOLDS (not resolves) when the fleet goes dark", async () => {
-    const template: IoTAlertTemplate | undefined = getIoTAlertTemplateById(
-      "iot-device-offline",
-    );
+    const template: IoTAlertTemplate | undefined =
+      getIoTAlertTemplateById("iot-device-offline");
     expect(template).toBeDefined();
 
     const step: MonitorStep = template!.getMonitorStep(buildArgs());

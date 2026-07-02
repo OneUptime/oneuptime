@@ -46,10 +46,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     id: "pod-phase",
     friendlyName: "Pod Phase",
     description:
-      "Current phase of the pod (Pending, Running, Succeeded, Failed, Unknown)",
+      "Current phase of the pod, encoded in the metric value (1 = Pending, 2 = Running, 3 = Succeeded, 4 = Failed, 5 = Unknown). No phase attribute is emitted — filter/alert on the value. Min detects Pending, since 1 is the lowest encoding.",
     metricName: "k8s.pod.phase",
     category: "Pod",
-    defaultAggregation: MetricsAggregationType.Sum,
+    defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: KubernetesResourceScope.Cluster,
     unit: "count",
   },
@@ -119,13 +119,14 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   // Node Metrics
   {
     id: "node-cpu-utilization",
-    friendlyName: "Node CPU Utilization",
-    description: "CPU usage percentage for nodes",
+    friendlyName: "Node CPU Usage",
+    description:
+      "CPU cores used by nodes. Despite the 'utilization' name, kubeletstats reports this metric in cores, not percent.",
     metricName: "k8s.node.cpu.utilization",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Avg,
     defaultResourceScope: KubernetesResourceScope.Node,
-    unit: "%",
+    unit: "cores",
   },
   {
     id: "node-memory-usage",
@@ -339,11 +340,17 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
 
   // Workload Metrics
+  /*
+   * The k8s_cluster receiver's deployment gauges are named
+   * `k8s.deployment.available` / `k8s.deployment.desired` — there is no
+   * `*_replicas` variant (and no `unavailable` metric in any receiver
+   * version; derive the mismatch as `desired - available`).
+   */
   {
     id: "deployment-available-replicas",
     friendlyName: "Deployment Available Replicas",
     description: "Number of available replicas in a deployment",
-    metricName: "k8s.deployment.available_replicas",
+    metricName: "k8s.deployment.available",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: KubernetesResourceScope.Workload,
@@ -353,17 +360,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     id: "deployment-desired-replicas",
     friendlyName: "Deployment Desired Replicas",
     description: "Number of desired replicas in a deployment",
-    metricName: "k8s.deployment.desired_replicas",
-    category: "Workload",
-    defaultAggregation: MetricsAggregationType.Max,
-    defaultResourceScope: KubernetesResourceScope.Workload,
-    unit: "count",
-  },
-  {
-    id: "deployment-unavailable-replicas",
-    friendlyName: "Deployment Unavailable Replicas",
-    description: "Number of unavailable replicas in a deployment",
-    metricName: "k8s.deployment.unavailable_replicas",
+    metricName: "k8s.deployment.desired",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: KubernetesResourceScope.Workload,
@@ -392,9 +389,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "statefulset-ready-replicas",
-    friendlyName: "StatefulSet Ready Replicas",
-    description: "Number of ready replicas in a StatefulSet",
-    metricName: "k8s.statefulset.ready_replicas",
+    friendlyName: "StatefulSet Ready Pods",
+    description:
+      "Number of ready pods in a StatefulSet (the k8s_cluster receiver names this ready_pods, not ready_replicas)",
+    metricName: "k8s.statefulset.ready_pods",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: KubernetesResourceScope.Workload,
