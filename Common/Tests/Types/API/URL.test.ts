@@ -31,6 +31,18 @@ describe("URL", () => {
     expect(url.protocol).toBe("wss://");
   });
 
+  test("URL.fromString should correctly split hostname and port when a non-default port is present", () => {
+    const url: URL = URL.fromString("https://example.com:9449/some/path");
+    expect(url.hostname.hostname).toBe("example.com");
+    expect(url.hostname.port?.toNumber()).toBe(9449);
+  });
+
+  test("URL.fromString should leave port undefined when no port is present in the URL", () => {
+    const url: URL = URL.fromString("https://example.com/some/path");
+    expect(url.hostname.hostname).toBe("example.com");
+    expect(url.hostname.port).toBeUndefined();
+  });
+
   test("URL.toString should return a valid URL", () => {
     const url: URL = new URL(
       Protocol.HTTPS,

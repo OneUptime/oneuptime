@@ -161,7 +161,8 @@ export default class URL extends DatabaseProperty {
       url = url.replace("mailto:", "");
     }
 
-    const hostname: Hostname = new Hostname(url.split("/")[0] || "");
+//    const hostname: Hostname = new Hostname(url.split("/")[0] || "");
+    const hostname: Hostname = Hostname.fromString(url.split("/")[0] || "");
 
     let route: Route | undefined;
 
