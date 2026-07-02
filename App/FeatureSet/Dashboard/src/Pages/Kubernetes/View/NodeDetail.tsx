@@ -7,12 +7,13 @@ import Card from "Common/UI/Components/Card/Card";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -29,6 +30,13 @@ import {
   KubernetesNodeObject,
 } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
+import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import {
+  explainNodeConditions,
+  KubernetesFailureExplanation,
+} from "Common/Types/Kubernetes/KubernetesFailureExplainer";
+import KubernetesFailureBanner from "../../../Components/Kubernetes/KubernetesFailureBanner";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 import KubernetesCpuUtils from "../Utils/KubernetesCpuUtils";
 import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
@@ -49,6 +57,9 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     null,
   );
   const [isLoadingObject, setIsLoadingObject] = useState<boolean>(true);
+  const [failureExplanations, setFailureExplanations] = useState<
+    Array<KubernetesFailureExplanation>
+  >([]);
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -97,6 +108,54 @@ const KubernetesClusterNodeDetail: FunctionComponent<
 
     fetchNodeObject().catch(() => {});
   }, [cluster?.clusterIdentifier, nodeName]);
+
+  /*
+   * Failure explainer — reads the RAW KubernetesResource inventory row
+   * (status JSONB as stored in Postgres) and turns NotReady / pressure
+   * conditions into human-readable explanations rendered above the tabs.
+   */
+  useEffect(() => {
+    const loadFailureExplanations: () => Promise<void> =
+      async (): Promise<void> => {
+        try {
+          const rowResult: ListResult<KubernetesResourceModel> =
+            await ModelAPI.getList<KubernetesResourceModel>({
+              modelType: KubernetesResourceModel,
+              query: {
+                kubernetesClusterId: modelId,
+                kind: "Node",
+                name: nodeName,
+              },
+              skip: 0,
+              limit: 1,
+              select: {
+                status: true,
+              },
+              sort: {
+                name: SortOrder.Ascending,
+              },
+            });
+
+          const row: KubernetesResourceModel | undefined = rowResult.data[0];
+          if (!row) {
+            setFailureExplanations([]);
+            return;
+          }
+
+          setFailureExplanations(
+            explainNodeConditions({
+              nodeName: nodeName,
+              status: row.status,
+            }),
+          );
+        } catch {
+          // Explainer banners are supplementary — hide on failure.
+          setFailureExplanations([]);
+        }
+      };
+
+    loadFailureExplanations().catch(() => {});
+  }, [nodeName]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -418,7 +477,12 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <Fragment>
+      <KubernetesFailureBanner explanations={failureExplanations} />
+      <Tabs tabs={tabs} onTabChange={() => {}} />
+    </Fragment>
+  );
 };
 
 export default KubernetesClusterNodeDetail;

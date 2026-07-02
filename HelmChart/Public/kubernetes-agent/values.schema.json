@@ -338,6 +338,14 @@
         "vpa": {
           "type": "boolean",
           "description": "Enable VPA collection (requires VPA CRDs installed in the cluster)"
+        },
+        "watch": {
+          "type": "object",
+          "description": "Near-real-time inventory — watch pods, deployments, statefulsets, and daemonsets for instant status updates. Pull stays on as the periodic full-state resync. Can be chatty on very large, high-churn clusters.",
+          "properties": {
+            "enabled": { "type": "boolean" }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

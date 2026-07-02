@@ -8,12 +8,13 @@ import MetricQueryConfigData, {
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -29,7 +30,19 @@ import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetri
 import KubernetesEnvVarsTab from "../../../Components/Kubernetes/KubernetesEnvVarsTab";
 import KubernetesVolumeMountsTab from "../../../Components/Kubernetes/KubernetesVolumeMountsTab";
 import { KubernetesPodObject } from "../Utils/KubernetesObjectParser";
-import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
+import {
+  fetchK8sEventsForResource,
+  fetchLatestK8sObject,
+  KubernetesEvent,
+} from "../Utils/KubernetesObjectFetcher";
+import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
+import Query from "Common/Types/BaseDatabase/Query";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import {
+  explainPodFailures,
+  KubernetesFailureExplanation,
+} from "Common/Types/Kubernetes/KubernetesFailureExplainer";
+import KubernetesFailureBanner from "../../../Components/Kubernetes/KubernetesFailureBanner";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 import KubernetesCpuUtils, {
   NodeAllocatableCpu,
@@ -52,6 +65,9 @@ const KubernetesClusterPodDetail: FunctionComponent<
   const [error, setError] = useState<string>("");
   const [podObject, setPodObject] = useState<KubernetesPodObject | null>(null);
   const [isLoadingObject, setIsLoadingObject] = useState<boolean>(true);
+  const [failureExplanations, setFailureExplanations] = useState<
+    Array<KubernetesFailureExplanation>
+  >([]);
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -100,6 +116,94 @@ const KubernetesClusterPodDetail: FunctionComponent<
 
     fetchPodObject().catch(() => {});
   }, [cluster?.clusterIdentifier, podName]);
+
+  /*
+   * Failure explainer — reads the RAW KubernetesResource inventory row
+   * (spec/status JSONB as stored in Postgres, not the flattened parsed
+   * object above) plus recent Kubernetes events, and turns them into
+   * human-readable failure explanations rendered above the tabs.
+   */
+  useEffect(() => {
+    if (!cluster?.clusterIdentifier) {
+      return;
+    }
+
+    const namespace: string | undefined =
+      podObject?.metadata.namespace || undefined;
+
+    const loadFailureExplanations: () => Promise<void> =
+      async (): Promise<void> => {
+        try {
+          const rowQuery: Query<KubernetesResourceModel> = {
+            kubernetesClusterId: modelId,
+            kind: "Pod",
+            name: podName,
+          };
+          if (namespace) {
+            rowQuery.namespaceKey = namespace;
+          }
+
+          const [rowResult, recentEvents]: [
+            ListResult<KubernetesResourceModel>,
+            Array<KubernetesEvent>,
+          ] = await Promise.all([
+            ModelAPI.getList<KubernetesResourceModel>({
+              modelType: KubernetesResourceModel,
+              query: rowQuery,
+              skip: 0,
+              limit: 1,
+              select: {
+                spec: true,
+                status: true,
+                phase: true,
+              },
+              sort: {
+                name: SortOrder.Ascending,
+              },
+            }),
+            fetchK8sEventsForResource({
+              clusterIdentifier: cluster.clusterIdentifier || "",
+              resourceKind: "Pod",
+              resourceName: podName,
+              namespace: namespace,
+            }),
+          ]);
+
+          const row: KubernetesResourceModel | undefined = rowResult.data[0];
+
+          setFailureExplanations(
+            explainPodFailures({
+              podName: podName,
+              namespace: namespace,
+              phase: row?.phase || undefined,
+              spec: row?.spec,
+              status: row?.status,
+              recentEvents: recentEvents.map(
+                (
+                  event: KubernetesEvent,
+                ): { type: string; reason: string; message: string } => {
+                  /*
+                   * The dashboard's KubernetesEvent.timestamp is a
+                   * formatted string, not a Date — deliberately omitted.
+                   */
+                  return {
+                    type: event.type,
+                    reason: event.reason,
+                    message: event.message,
+                  };
+                },
+              ),
+              now: new Date(),
+            }),
+          );
+        } catch {
+          // Explainer banners are supplementary — hide on failure.
+          setFailureExplanations([]);
+        }
+      };
+
+    loadFailureExplanations().catch(() => {});
+  }, [cluster?.clusterIdentifier, podName, podObject?.metadata.namespace]);
 
   // Per-node allocatable CPU — denominator for the true CPU% transform.
   const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(
@@ -480,7 +584,12 @@ const KubernetesClusterPodDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <Fragment>
+      <KubernetesFailureBanner explanations={failureExplanations} />
+      <Tabs tabs={tabs} onTabChange={() => {}} />
+    </Fragment>
+  );
 };
 
 export default KubernetesClusterPodDetail;

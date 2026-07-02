@@ -100,6 +100,8 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_VPAS]: `${RouteParams.ModelID}/vpas`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL]: `${RouteParams.ModelID}/vpas/${RouteParams.SubModelID}`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS]: `${RouteParams.ModelID}/events`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_TIMELINE]: `${RouteParams.ModelID}/timeline`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_COST]: `${RouteParams.ModelID}/cost`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE]: `${RouteParams.ModelID}/control-plane`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_MESH]: `${RouteParams.ModelID}/service-mesh`,
@@ -2234,6 +2236,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_TIMELINE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_TIMELINE]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_COST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_COST]
     }`,
   ),
 

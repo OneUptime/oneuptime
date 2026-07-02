@@ -86,12 +86,27 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    for (
-      let i: number = 0;
-      i < data.containers.length;
-      i += UPSERT_BATCH_SIZE
-    ) {
-      const chunk: Array<ParsedKubernetesContainer> = data.containers.slice(
+    /*
+     * Dedupe by natural key keeping the newest snapshot. Watch-mode
+     * ingest can carry several envelopes for the same pod in one
+     * batch, and a multi-row INSERT .. ON CONFLICT DO UPDATE errors
+     * when the same conflict row would be affected twice in one
+     * statement ("cannot affect row a second time").
+     */
+    const latestByKey: Map<string, ParsedKubernetesContainer> = new Map();
+    for (const c of data.containers) {
+      const key: string = `${c.podNamespaceKey} ${c.podName} ${c.name}`;
+      const prev: ParsedKubernetesContainer | undefined = latestByKey.get(key);
+      if (!prev || c.lastSeenAt.getTime() >= prev.lastSeenAt.getTime()) {
+        latestByKey.set(key, c);
+      }
+    }
+    const containers: Array<ParsedKubernetesContainer> = Array.from(
+      latestByKey.values(),
+    );
+
+    for (let i: number = 0; i < containers.length; i += UPSERT_BATCH_SIZE) {
+      const chunk: Array<ParsedKubernetesContainer> = containers.slice(
         i,
         i + UPSERT_BATCH_SIZE,
       );

@@ -142,6 +142,16 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Cost",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_COST] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Billing}
+        />
+        <SideMenuItem
+          link={{
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION] as Route,
@@ -357,6 +367,16 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Logs}
+        />
+        <SideMenuItem
+          link={{
+            title: "Timeline",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_TIMELINE] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Activity}
         />
         <SideMenuItem
           link={{

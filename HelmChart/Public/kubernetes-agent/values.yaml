@@ -216,6 +216,25 @@ resourceSpecs:
   enabled: true
   interval: 300s  # How often to pull full resource specs (default: 5 minutes)
   vpa: false  # Enable VPA collection (requires VPA CRDs installed in the cluster)
+  # Near-real-time inventory — WATCH pods, deployments, statefulsets, and
+  # daemonsets in addition to the periodic pull above. Every create/update/
+  # delete streams the full object as it happens, so pod and workload status
+  # in the OneUptime dashboards updates within seconds instead of waiting up
+  # to `interval` (5 minutes by default) for the next pull.
+  #
+  # The pull entries stay on even with watch enabled — they are the periodic
+  # full-state resync. OneUptime prunes objects it hasn't seen for 15
+  # minutes, and a watch only emits objects that *change*, so without the
+  # pull an idle-but-healthy Deployment would eventually be dropped from the
+  # inventory.
+  #
+  # Volume: each watch event ships the whole object (spec + status) as one
+  # log record. Modest on most clusters, but on very large clusters (tens of
+  # thousands of pods churning through rollouts, autoscaling, or CronJobs)
+  # the update stream can be substantial — turn this off there and fall back
+  # to pull-only at `interval`.
+  watch:
+    enabled: true
 
 # Collection intervals
 collectionInterval: 30s

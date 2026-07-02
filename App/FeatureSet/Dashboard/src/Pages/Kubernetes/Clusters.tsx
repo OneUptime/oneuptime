@@ -27,14 +27,32 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import KubernetesDocumentationCard from "../../Components/Kubernetes/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
+import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { JSONObject } from "Common/Types/JSON";
+
+interface FleetStats {
+  totalClusters: number;
+  connectedClusters: number;
+  disconnectedClusters: number;
+  totalNodes: number;
+  totalPods: number;
+}
+
+interface KubeletVersionCount {
+  version: string;
+  count: number;
+}
 
 const KubernetesClusters: FunctionComponent<
   PageComponentProps
@@ -42,6 +60,10 @@ const KubernetesClusters: FunctionComponent<
   const [clusterCount, setClusterCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [fleetStats, setFleetStats] = useState<FleetStats | null>(null);
+  const [kubeletVersions, setKubeletVersions] = useState<
+    Array<KubeletVersionCount>
+  >([]);
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<KubernetesCluster>({ modelType: KubernetesCluster });
@@ -107,9 +129,118 @@ const KubernetesClusters: FunctionComponent<
     setIsLoading(false);
   };
 
+  /*
+   * Fleet rollup — cached per-cluster counts reduced client-side, plus
+   * the kubelet version distribution from Node inventory rows. Entirely
+   * supplementary: any failure hides the cards and never blocks the table.
+   */
+  const fetchFleetRollup: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      const clustersResult: ListResult<KubernetesCluster> =
+        await ModelAPI.getList<KubernetesCluster>({
+          modelType: KubernetesCluster,
+          query: {
+            isArchived: false,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          select: {
+            name: true,
+            otelCollectorStatus: true,
+            nodeCount: true,
+            podCount: true,
+          },
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
+
+      const clusters: Array<KubernetesCluster> = clustersResult.data;
+      let connectedClusters: number = 0;
+      let totalNodes: number = 0;
+      let totalPods: number = 0;
+      for (const clusterItem of clusters) {
+        if (clusterItem.otelCollectorStatus === "connected") {
+          connectedClusters++;
+        }
+        totalNodes += clusterItem.nodeCount ?? 0;
+        totalPods += clusterItem.podCount ?? 0;
+      }
+
+      setFleetStats({
+        totalClusters: clusters.length,
+        connectedClusters: connectedClusters,
+        disconnectedClusters: clusters.length - connectedClusters,
+        totalNodes: totalNodes,
+        totalPods: totalPods,
+      });
+    } catch {
+      // Rollup is supplementary — hide the cards on failure.
+    }
+
+    try {
+      const nodesResult: ListResult<KubernetesResourceModel> =
+        await ModelAPI.getList<KubernetesResourceModel>({
+          modelType: KubernetesResourceModel,
+          query: {
+            kind: "Node",
+          },
+          skip: 0,
+          limit: 200,
+          select: {
+            status: true,
+            kubernetesClusterId: true,
+          },
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
+
+      const versionCounts: Map<string, number> = new Map<string, number>();
+      for (const node of nodesResult.data) {
+        const status: JSONObject | undefined = node.status;
+        const nodeInfo: unknown = status ? status["nodeInfo"] : undefined;
+        if (
+          !nodeInfo ||
+          typeof nodeInfo !== "object" ||
+          Array.isArray(nodeInfo)
+        ) {
+          continue;
+        }
+        const kubeletVersion: unknown = (nodeInfo as JSONObject)[
+          "kubeletVersion"
+        ];
+        if (typeof kubeletVersion !== "string" || !kubeletVersion) {
+          continue;
+        }
+        versionCounts.set(
+          kubeletVersion,
+          (versionCounts.get(kubeletVersion) || 0) + 1,
+        );
+      }
+
+      const topVersions: Array<KubeletVersionCount> = Array.from(
+        versionCounts.entries(),
+      )
+        .map(([version, count]: [string, number]): KubeletVersionCount => {
+          return { version, count };
+        })
+        .sort((a: KubeletVersionCount, b: KubeletVersionCount): number => {
+          return b.count - a.count;
+        })
+        .slice(0, 3);
+      setKubeletVersions(topVersions);
+    } catch {
+      // Version distribution is supplementary — skip the card on failure.
+    }
+  };
+
   useEffect(() => {
     fetchClusterCount().catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
+    });
+    fetchFleetRollup().catch(() => {
+      // Rollup failures are swallowed inside fetchFleetRollup already.
     });
   }, []);
 
@@ -135,6 +266,84 @@ const KubernetesClusters: FunctionComponent<
 
   return (
     <Fragment>
+      {clusterCount !== null && clusterCount > 0 && fleetStats && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
+          <InfoCard
+            title="Total Clusters"
+            value={
+              <span className="text-2xl font-semibold">
+                {fleetStats.totalClusters.toString()}
+              </span>
+            }
+          />
+          <InfoCard
+            title="Connected"
+            value={
+              <span className="text-2xl font-semibold text-emerald-600">
+                {fleetStats.connectedClusters.toString()}
+              </span>
+            }
+          />
+          <InfoCard
+            title="Disconnected"
+            value={
+              <span
+                className={`text-2xl font-semibold ${
+                  fleetStats.disconnectedClusters > 0
+                    ? "text-red-600"
+                    : "text-gray-900"
+                }`}
+              >
+                {fleetStats.disconnectedClusters.toString()}
+              </span>
+            }
+          />
+          <InfoCard
+            title="Total Nodes"
+            value={
+              <span className="text-2xl font-semibold">
+                {fleetStats.totalNodes.toString()}
+              </span>
+            }
+          />
+          <InfoCard
+            title="Total Pods"
+            value={
+              <span className="text-2xl font-semibold">
+                {fleetStats.totalPods.toString()}
+              </span>
+            }
+          />
+        </div>
+      )}
+      {clusterCount !== null &&
+        clusterCount > 0 &&
+        kubeletVersions.length > 0 && (
+          <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-5 mb-5">
+            <div className="text-sm font-medium text-gray-500">
+              Kubernetes Versions
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {kubeletVersions.map(
+                (entry: KubeletVersionCount): ReactElement => {
+                  return (
+                    <span
+                      key={entry.version}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
+                    >
+                      <span className="font-mono font-medium">
+                        {entry.version}
+                      </span>
+                      <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700">
+                        {entry.count} node{entry.count === 1 ? "" : "s"}
+                      </span>
+                    </span>
+                  );
+                },
+              )}
+            </div>
+          </div>
+        )}
       <ModelTable<KubernetesCluster>
         modelType={KubernetesCluster}
         id="kubernetes-clusters-table"

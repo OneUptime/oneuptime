@@ -175,6 +175,18 @@ export function getKubernetesBreadcrumbs(
       "View Cluster",
       "Events",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_TIMELINE, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "Timeline",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_COST, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "Cost",
+    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE,
       ["Project", "Kubernetes", "View Cluster", "Control Plane"],

@@ -28,7 +28,9 @@ import {
   parsePVObject,
   parseHPAObject,
   parseVPAObject,
-  extractObjectFromLogBody,
+  extractObjectAndWatchTypeFromLogBody,
+  ExtractedObjectAndWatchType,
+  KubernetesWatchEventType,
 } from "./KubernetesObjectParser";
 
 /*
@@ -98,6 +100,12 @@ export interface ParsedKubernetesResource {
   annotations: JSONObject | null;
   ownerReferences: JSONObject | null;
   spec: JSONObject | null;
+  /*
+   * Stable FNV-1a 64-bit hash (hex) of the canonicalized spec block.
+   * Null when the kind carries no spec. Used by the upsert path to
+   * detect spec changes without diffing JSONB in Postgres.
+   */
+  specHash: string | null;
   /*
    * For Pod kinds: length of spec.containers at parse time. Lets the
    * overview summary SUM() a plain int column instead of scanning
@@ -275,6 +283,65 @@ export function extractContainersFromPod(data: {
   return rows;
 }
 
+/*
+ * Deterministic JSON serialization: object keys are emitted in sorted
+ * order at every nesting level so two structurally-equal specs always
+ * stringify identically regardless of parse order.
+ */
+function canonicalJsonStringify(value: unknown): string {
+  if (value === null || typeof value !== "object") {
+    // JSON.stringify(undefined) is undefined — normalize to "null".
+    return JSON.stringify(value) ?? "null";
+  }
+  if (Array.isArray(value)) {
+    const items: Array<string> = value.map((item: unknown) => {
+      return canonicalJsonStringify(item);
+    });
+    return `[${items.join(",")}]`;
+  }
+  const record: Record<string, unknown> = value as Record<string, unknown>;
+  const keys: Array<string> = Object.keys(record).sort();
+  const parts: Array<string> = [];
+  for (const key of keys) {
+    if (record[key] === undefined) {
+      continue; // JSON.stringify drops undefined object values too.
+    }
+    parts.push(`${JSON.stringify(key)}:${canonicalJsonStringify(record[key])}`);
+  }
+  return `{${parts.join(",")}}`;
+}
+
+/*
+ * FNV-1a 64-bit over UTF-16 code units, implemented on 32-bit lanes.
+ * Common/Types must stay browser-safe (no node crypto), and the lane
+ * math avoids per-character BigInt allocation on the ingest hot path.
+ * The FNV prime 0x100000001b3 decomposes as 0x100 * 2^32 + 0x1b3, so
+ * (hh:hl) * prime mod 2^64 needs only doubles (< 2^42, exact).
+ */
+function fnv1a64Hex(input: string): string {
+  let hl: number = 0x84222325; // offset basis, low 32 bits
+  let hh: number = 0xcbf29ce4; // offset basis, high 32 bits
+  for (let i: number = 0; i < input.length; i++) {
+    hl = (hl ^ input.charCodeAt(i)) >>> 0;
+    const lo: number = hl * 0x1b3;
+    const hi: number = hh * 0x1b3 + hl * 0x100 + Math.floor(lo / 0x100000000);
+    hl = lo >>> 0;
+    hh = hi >>> 0;
+  }
+  return hh.toString(16).padStart(8, "0") + hl.toString(16).padStart(8, "0");
+}
+
+/**
+ * Stable hash of a resource spec block. Returns null for a null spec
+ * so kinds without a spec never look like they "changed".
+ */
+export function computeSpecHash(spec: JSONObject | null): string | null {
+  if (!spec) {
+    return null;
+  }
+  return fnv1a64Hex(canonicalJsonStringify(spec));
+}
+
 function parseCreationTimestamp(value: string | undefined): Date | null {
   if (!value) {
     return null;
@@ -381,6 +448,12 @@ function parseByResourceType(
 export interface ExtractedInventoryRecord {
   resource: ParsedKubernetesResource;
   containers: Array<ParsedKubernetesContainerRow>;
+  /*
+   * Top-level "type" of a watch-mode k8sobjects envelope. Null for
+   * pull-mode records. DELETED records should be removed from the
+   * inventory instead of upserted.
+   */
+  watchEventType: KubernetesWatchEventType | null;
 }
 
 /**
@@ -399,7 +472,9 @@ export function extractInventoryResource(data: {
     return null;
   }
 
-  const kvList: JSONObject | null = extractObjectFromLogBody(data.logBody);
+  const unwrapped: ExtractedObjectAndWatchType =
+    extractObjectAndWatchTypeFromLogBody(data.logBody);
+  const kvList: JSONObject | null = unwrapped.object;
   if (!kvList) {
     return null;
   }
@@ -462,6 +537,9 @@ export function extractInventoryResource(data: {
     status?: unknown;
   };
 
+  const spec: JSONObject | null =
+    (anyParsed.spec as JSONObject | undefined) || null;
+
   const resource: ParsedKubernetesResource = {
     kind,
     namespaceKey: metadata.namespace || "",
@@ -486,7 +564,8 @@ export function extractInventoryResource(data: {
             items: metadata.ownerReferences,
           } as unknown as JSONObject)
         : null,
-    spec: (anyParsed.spec as JSONObject | undefined) || null,
+    spec,
+    specHash: computeSpecHash(spec),
     containerCount,
     status: (anyParsed.status as JSONObject | undefined) || null,
     lastSeenAt: data.lastSeenAt,
@@ -503,5 +582,5 @@ export function extractInventoryResource(data: {
     });
   }
 
-  return { resource, containers };
+  return { resource, containers, watchEventType: unwrapped.watchEventType };
 }

@@ -976,4 +976,167 @@ export default class KubernetesCluster extends BaseModel {
     nullable: true,
   })
   public telemetryRetentionConfig?: TelemetryRetentionConfig = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateKubernetesCluster,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditKubernetesCluster,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Cost Per CPU Core Hour",
+    description:
+      "Price of one CPU core for one hour, in the cluster's currency. Powers the cost reports for this cluster. Leave unset to use the provider defaults.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Decimal,
+    transformer: {
+      to: (value: number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        return value;
+      },
+      from: (value: string | number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        if (typeof value === "number") {
+          return value;
+        }
+        const parsed: number = parseFloat(value);
+        return isNaN(parsed) ? null : parsed;
+      },
+    },
+  })
+  public costPerCpuCoreHour?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateKubernetesCluster,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditKubernetesCluster,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Cost Per GB Memory Hour",
+    description:
+      "Price of one GB of memory for one hour, in the cluster's currency. Powers the cost reports for this cluster. Leave unset to use the provider defaults.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Decimal,
+    transformer: {
+      to: (value: number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        return value;
+      },
+      from: (value: string | number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        if (typeof value === "number") {
+          return value;
+        }
+        const parsed: number = parseFloat(value);
+        return isNaN(parsed) ? null : parsed;
+      },
+    },
+  })
+  public costPerGbMemoryHour?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateKubernetesCluster,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditKubernetesCluster,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Currency Code",
+    description: "ISO 4217 currency code for cost reporting. Defaults to USD.",
+    example: "USD",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public currencyCode?: string = undefined;
 }

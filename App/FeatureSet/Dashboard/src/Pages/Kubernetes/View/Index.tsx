@@ -46,6 +46,13 @@ import { JSONObject } from "Common/Types/JSON";
 import AlertBanner, {
   AlertBannerType,
 } from "Common/UI/Components/AlertBanner/AlertBanner";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import {
+  getKubernetesAlertTemplateById,
+  KubernetesAlertTemplate,
+  RECOMMENDED_KUBERNETES_ALERT_TEMPLATE_IDS,
+} from "Common/Types/Monitor/KubernetesAlertTemplates";
 import OneUptimeDate from "Common/Types/Date";
 import StackedProgressBar, {
   type StackedProgressBarSegment,
@@ -112,6 +119,12 @@ interface GoldenStats {
   filesystemPercent: number | null;
   networkInBytesPerSec: number | null;
   networkOutBytesPerSec: number | null;
+}
+
+interface ProvisionAlertsResult {
+  createdCount: number;
+  skippedCount: number;
+  failed: Array<{ templateId: string; error: string }>;
 }
 
 const formatPercent: (value: number | null) => string = (
@@ -293,6 +306,72 @@ const KubernetesClusterOverview: FunctionComponent<
       }
       return AutoRefreshInterval.THIRTY_SECONDS;
     });
+
+  // One-click recommended alert monitors.
+  const [showRecommendedAlertsModal, setShowRecommendedAlertsModal] =
+    useState<boolean>(false);
+  const [isProvisioningAlerts, setIsProvisioningAlerts] =
+    useState<boolean>(false);
+  const [provisionAlertsError, setProvisionAlertsError] = useState<string>("");
+  const [provisionAlertsResult, setProvisionAlertsResult] =
+    useState<ProvisionAlertsResult | null>(null);
+
+  const provisionRecommendedAlerts: PromiseVoidFunction =
+    async (): Promise<void> => {
+      setIsProvisioningAlerts(true);
+      setProvisionAlertsError("");
+      try {
+        const provisionUrl: URL = URL.fromString(APP_API_URL.toString())
+          .addRoute("/kubernetes-cluster/provision-recommended-monitors/")
+          .addRoute(modelId.toString());
+
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post({
+            url: provisionUrl,
+            data: {},
+            headers: {
+              ...ModelAPI.getCommonHeaders(),
+            },
+          });
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        const result: JSONObject = response.data;
+        const createdRaw: unknown = result["created"];
+        const skippedRaw: unknown = result["skipped"];
+        const failedRaw: unknown = result["failed"];
+
+        const failed: Array<{ templateId: string; error: string }> = [];
+        if (Array.isArray(failedRaw)) {
+          for (const item of failedRaw) {
+            const entry: Record<string, unknown> =
+              (item as Record<string, unknown>) || {};
+            failed.push({
+              templateId:
+                typeof entry["templateId"] === "string"
+                  ? entry["templateId"]
+                  : "unknown-template",
+              error:
+                typeof entry["error"] === "string"
+                  ? entry["error"]
+                  : "Unknown error",
+            });
+          }
+        }
+
+        setProvisionAlertsResult({
+          createdCount: Array.isArray(createdRaw) ? createdRaw.length : 0,
+          skippedCount: Array.isArray(skippedRaw) ? skippedRaw.length : 0,
+          failed: failed,
+        });
+      } catch (err) {
+        setProvisionAlertsError(API.getFriendlyMessage(err));
+      } finally {
+        setIsProvisioningAlerts(false);
+        setShowRecommendedAlertsModal(false);
+      }
+    };
 
   const loadSummary: (clusterId: ObjectID) => Promise<void> = async (
     clusterId: ObjectID,
@@ -1892,6 +1971,133 @@ const KubernetesClusterOverview: FunctionComponent<
     );
   };
 
+  const renderRecommendedAlertsCard: () => ReactElement = (): ReactElement => {
+    const recommendedTemplateNames: Array<string> =
+      RECOMMENDED_KUBERNETES_ALERT_TEMPLATE_IDS.map(
+        (templateId: string): string => {
+          const template: KubernetesAlertTemplate | undefined =
+            getKubernetesAlertTemplateById(templateId);
+          return template ? template.name : templateId;
+        },
+      );
+
+    /*
+     * Every template was skipped on the last run — the recommended set
+     * already exists, so the action reads as already done.
+     */
+    const allAlreadyEnabled: boolean =
+      provisionAlertsResult !== null &&
+      provisionAlertsResult.createdCount === 0 &&
+      provisionAlertsResult.failed.length === 0 &&
+      provisionAlertsResult.skippedCount > 0;
+
+    return (
+      <Fragment>
+        <Card
+          title="Recommended Alerts"
+          description="One-click alert monitors for the most common Kubernetes failure modes — crash loops, pending pods, nodes not ready, resource saturation, and more."
+          buttons={[
+            {
+              title: allAlreadyEnabled
+                ? "Alerts already enabled"
+                : "Enable Recommended Alerts",
+              buttonStyle: ButtonStyleType.NORMAL,
+              icon: IconProp.Alert,
+              disabled: allAlreadyEnabled || isProvisioningAlerts,
+              isLoading: isProvisioningAlerts,
+              onClick: (): void => {
+                setShowRecommendedAlertsModal(true);
+              },
+            },
+          ]}
+        >
+          <div className="px-1 pb-2">
+            {provisionAlertsError && (
+              <AlertBanner
+                title="Could not enable recommended alerts"
+                type={AlertBannerType.Danger}
+                className="mb-3"
+              >
+                <p className="text-sm text-gray-700">{provisionAlertsError}</p>
+              </AlertBanner>
+            )}
+            {provisionAlertsResult && (
+              <p className="text-sm text-gray-600">
+                {provisionAlertsResult.createdCount} alert monitor
+                {provisionAlertsResult.createdCount === 1 ? "" : "s"} created,{" "}
+                {provisionAlertsResult.skippedCount} already existed.
+              </p>
+            )}
+            {provisionAlertsResult &&
+              provisionAlertsResult.failed.length > 0 && (
+                <AlertBanner
+                  title="Some alert monitors could not be created"
+                  type={AlertBannerType.Warning}
+                  className="mt-3"
+                >
+                  <div className="space-y-1">
+                    {provisionAlertsResult.failed.map(
+                      (failure: {
+                        templateId: string;
+                        error: string;
+                      }): ReactElement => {
+                        return (
+                          <div
+                            key={failure.templateId}
+                            className="text-xs text-gray-700 break-words"
+                          >
+                            <span className="font-medium">
+                              {failure.templateId}:
+                            </span>{" "}
+                            {failure.error}
+                          </div>
+                        );
+                      },
+                    )}
+                  </div>
+                </AlertBanner>
+              )}
+            {!provisionAlertsResult && !provisionAlertsError && (
+              <p className="text-sm text-gray-500">
+                Sets up {RECOMMENDED_KUBERNETES_ALERT_TEMPLATE_IDS.length}{" "}
+                alert monitors scoped to this cluster. Monitors that already
+                exist are skipped, so it is safe to run more than once.
+              </p>
+            )}
+          </div>
+        </Card>
+        {showRecommendedAlertsModal && (
+          <ConfirmModal
+            title="Enable Recommended Alerts"
+            description={
+              <div>
+                <p>
+                  The following alert monitors will be created for this
+                  cluster. Monitors that already exist will be skipped.
+                </p>
+                <ul className="list-disc pl-5 mt-3 space-y-1">
+                  {recommendedTemplateNames.map(
+                    (templateName: string): ReactElement => {
+                      return <li key={templateName}>{templateName}</li>;
+                    },
+                  )}
+                </ul>
+              </div>
+            }
+            submitButtonText="Enable Alerts"
+            isLoading={isProvisioningAlerts}
+            onSubmit={(): void => {
+              void provisionRecommendedAlerts();
+            }}
+            onClose={(): void => {
+              setShowRecommendedAlertsModal(false);
+            }}
+          />
+        )}
+      </Fragment>
+    );
+  };
+
   return (
     <Fragment>
       {renderHero()}
@@ -2234,6 +2440,9 @@ const KubernetesClusterOverview: FunctionComponent<
           { modelId: modelId },
         )}
       />
+
+      {/* Recommended Alerts — one-click alert monitor provisioning */}
+      {renderRecommendedAlertsCard()}
 
       {/* Quick Navigation - Workloads */}
       <Card

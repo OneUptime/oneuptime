@@ -24,6 +24,7 @@ import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
 import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
+import KubernetesWorkloadTimelineTab from "../../../Components/Kubernetes/KubernetesWorkloadTimelineTab";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import { KubernetesDeploymentObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
@@ -303,6 +304,22 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
             clusterIdentifier={clusterIdentifier}
             resourceKind="Deployment"
             resourceName={deploymentName}
+            namespace={objectData?.metadata.namespace}
+          />
+        </Card>
+      ),
+    },
+    {
+      name: "Timeline",
+      children: (
+        <Card
+          title="Deployment Timeline"
+          description="Spec changes, deletions, and Kubernetes events for this deployment and its pods in the last 24 hours."
+        >
+          <KubernetesWorkloadTimelineTab
+            clusterId={modelId}
+            kind="Deployment"
+            name={deploymentName}
             namespace={objectData?.metadata.namespace}
           />
         </Card>

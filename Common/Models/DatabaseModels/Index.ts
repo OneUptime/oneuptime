@@ -5,6 +5,7 @@ import KubernetesClusterOwnerTeam from "./KubernetesClusterOwnerTeam";
 import KubernetesClusterOwnerUser from "./KubernetesClusterOwnerUser";
 import KubernetesResource from "./KubernetesResource";
 import KubernetesContainer from "./KubernetesContainer";
+import KubernetesResourceChangeEvent from "./KubernetesResourceChangeEvent";
 import DockerHost from "./DockerHost";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
@@ -748,6 +749,7 @@ const AllModelTypes: Array<{
   KubernetesClusterOwnerUser,
   KubernetesResource,
   KubernetesContainer,
+  KubernetesResourceChangeEvent,
   DockerHost,
   DockerHostOwnerTeam,
   DockerHostOwnerUser,

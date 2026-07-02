@@ -92,6 +92,23 @@ data:
             interval: {{ .Values.resourceSpecs.interval }}
             group: autoscaling.k8s.io
           {{- end }}
+          {{- if .Values.resourceSpecs.watch.enabled }}
+          # Watch pods and workload controllers for near-real-time status
+          # updates between the pulls above. The pull entries must stay: a
+          # watch only emits objects that change, and the server prunes
+          # objects unseen for 15 minutes — pull is the full-state resync.
+          - name: pods
+            mode: watch
+          - name: deployments
+            mode: watch
+            group: apps
+          - name: statefulsets
+            mode: watch
+            group: apps
+          - name: daemonsets
+            mode: watch
+            group: apps
+          {{- end }}
           {{- end }}
 
       {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled }}

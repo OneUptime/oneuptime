@@ -16,6 +16,9 @@ The agent is now collecting:
 {{- end }}
   - Cluster-level metrics: deployments, replicas, pod phases (k8s_cluster)
   - Kubernetes events (k8sobjects)
+{{- if and .Values.resourceSpecs.enabled .Values.resourceSpecs.watch.enabled }}
+  - Near-real-time pod & workload status via watch (pods, deployments, statefulsets, daemonsets)
+{{- end }}
 {{- if .Values.kubeStateMetrics.enabled }}
 {{- if eq .Values.kubeStateMetrics.mode "bundled" }}
   - Cluster-state metrics from bundled kube-state-metrics: pod phases, container waiting reasons, resource quotas

@@ -338,6 +338,7 @@ After installing or upgrading, run `kubectl top pod -n oneuptime-kubernetes-agen
 | `csi.enabled` | `false` | Scrape Prometheus metrics from CSI (storage) driver pods. |
 | `coreDns.enabled` | `false` | Scrape Prometheus metrics from CoreDNS (`kube-dns` Service by default). |
 | `resourceSpecs.enabled` | `true` | Pull full K8s object specs (labels, env vars, status) for the dashboard. |
+| `resourceSpecs.watch.enabled` | `true` | Watch pods, deployments, statefulsets, and daemonsets so status in the dashboard updates within seconds instead of waiting for the next pull. Pull stays on as the periodic full-state resync. Each change ships the full object — consider turning off on very large, high-churn clusters. |
 | `controlPlane.enabled` | `false` | Scrape etcd / api-server / scheduler / controller-manager. Self-managed clusters only — managed offerings typically don't expose these endpoints. |
 | `kubeletstats.utilizationMetrics.enabled` | `true` | Saturation metrics — container & pod CPU/memory as a percentage of request and limit. No extra scrape; derived from data the kubelet already returns. Always 0 when pods have no request/limit set. |
 | `kubeletstats.volumeMetrics.enabled` | `true` | Per-PVC disk usage (`k8s.volume.available`, `k8s.volume.capacity`). One series per PVC per pod — bounded for most clusters, heavier on stateful workloads with thousands of PVCs. |

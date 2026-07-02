@@ -403,6 +403,7 @@ import { WidenDockerResourceImageColumns1782800000000 } from "./1782800000000-Wi
 import { AddIoTFleetAndDeviceTables1782900000000 } from "./1782900000000-AddIoTFleetAndDeviceTables";
 import { AddIoTFleetActivityJoinTables1783000000000 } from "./1783000000000-AddIoTFleetActivityJoinTables";
 import { MigrationName1783010000000 } from "./1783010000000-MigrationName";
+import { AddKubernetesChangeEventsAndCostConfig1783015423175 } from "./1783015423175-AddKubernetesChangeEventsAndCostConfig";
 
 export default [
   InitialMigration,
@@ -810,4 +811,5 @@ export default [
   AddIoTFleetAndDeviceTables1782900000000,
   AddIoTFleetActivityJoinTables1783000000000,
   MigrationName1783010000000,
+  AddKubernetesChangeEventsAndCostConfig1783015423175,
 ];

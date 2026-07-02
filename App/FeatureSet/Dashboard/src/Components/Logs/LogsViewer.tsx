@@ -302,6 +302,80 @@ function buildBaseQuery(props: ComponentProps): Query<Log> {
   return query;
 }
 
+/*
+ * Fold user-applied facet selections into a list query. Mutates and returns
+ * `query`. Shared between rebuildFilterOptionsFromFacets (facet clicks /
+ * chip removal) and the URL-seeded initial filterOptions so deep links
+ * (?filters=...) scope the logs list exactly like interactive selections.
+ */
+function applyFacetFiltersToQuery(
+  query: Query<Log>,
+  facets: Map<string, Set<string>>,
+): Query<Log> {
+  /*
+   * primaryEntityId, hostId, dockerHostId and kubernetesClusterId facets
+   * all filter the same underlying `primaryEntityId` column — the
+   * discriminator only matters at facet computation time. Coalesce
+   * any selected values across these facets into a single
+   * `primaryEntityId IN (...)` predicate.
+   */
+  const resourceIds: Set<string> = new Set<string>();
+  const resourceFacetKeys: Set<string> = new Set<string>([
+    "primaryEntityId",
+    "hostId",
+    "dockerHostId",
+    "podmanHostId",
+    "kubernetesClusterId",
+  ]);
+
+  for (const [key, values] of facets.entries()) {
+    if (values.size === 0) {
+      continue;
+    }
+
+    if (resourceFacetKeys.has(key)) {
+      for (const value of values) {
+        resourceIds.add(value);
+      }
+      continue;
+    }
+
+    /*
+     * Keys prefixed with `attributes.` are telemetry attribute filters,
+     * which live under `query.attributes[<suffix>]` rather than as
+     * top-level columns.
+     */
+    if (key.startsWith("attributes.")) {
+      const attrKey: string = key.substring("attributes.".length);
+      const existing: Record<string, unknown> =
+        ((query as any).attributes as Record<string, unknown>) || {};
+      existing[attrKey] =
+        values.size === 1
+          ? Array.from(values)[0]!
+          : new Includes(Array.from(values));
+      (query as any).attributes = existing;
+      continue;
+    }
+
+    if (values.size === 1) {
+      // Single value: use direct equality
+      const singleValue: string = Array.from(values)[0]!;
+      (query as any)[key] = singleValue;
+    } else {
+      // Multiple values: use Includes
+      (query as any)[key] = new Includes(Array.from(values));
+    }
+  }
+
+  if (resourceIds.size === 1) {
+    (query as any).primaryEntityId = Array.from(resourceIds)[0]!;
+  } else if (resourceIds.size > 1) {
+    (query as any).primaryEntityId = new Includes(Array.from(resourceIds));
+  }
+
+  return query;
+}
+
 function getApiUrl(path: string): URL {
   return URL.fromString(APP_API_URL.toString()).addRoute(path);
 }
@@ -360,6 +434,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       defaultRange.startValue,
       defaultRange.endValue,
     );
+    /*
+     * URL-seeded facet filters (?filters=...) must scope the initial logs
+     * list query, not just the chips/histogram — apply them through the
+     * same logic facet clicks use.
+     */
+    if (initialUrlState && initialUrlState.facetFilters.size > 0) {
+      applyFacetFiltersToQuery(base, initialUrlState.facetFilters);
+    }
     return base;
   });
   const [page, setPage] = useState<number>(initialUrlState?.page || 1);
@@ -424,7 +506,26 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     initialUrlState?.timeRange || { range: TimeRange.PAST_ONE_HOUR },
   );
 
+  /*
+   * The props-reset effect below also fires on mount, which would clobber
+   * the URL-seeded filterOptions/page (deep links like ?filters=...&page=2).
+   * Skip exactly the first run when the URL actually seeded state; later
+   * prop changes still reset as before. Embedded usages (no syncUrlState)
+   * have initialUrlState === null and are unaffected.
+   */
+  const skipInitialFilterReset: React.MutableRefObject<boolean> =
+    useRef<boolean>(
+      Boolean(
+        initialUrlState &&
+          (initialUrlState.facetFilters.size > 0 || initialUrlState.page > 1),
+      ),
+    );
+
   useEffect(() => {
+    if (skipInitialFilterReset.current) {
+      skipInitialFilterReset.current = false;
+      return;
+    }
     const base: Query<Log> = buildBaseQuery(props);
     const dateRange: InBetween<Date> =
       RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
@@ -1228,71 +1329,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         dateRange.endValue,
       );
 
-      /*
-       * primaryEntityId, hostId, dockerHostId and kubernetesClusterId facets
-       * all filter the same underlying `primaryEntityId` column — the
-       * discriminator only matters at facet computation time. Coalesce
-       * any selected values across these facets into a single
-       * `primaryEntityId IN (...)` predicate.
-       */
-      const resourceIds: Set<string> = new Set<string>();
-      const resourceFacetKeys: Set<string> = new Set<string>([
-        "primaryEntityId",
-        "hostId",
-        "dockerHostId",
-        "podmanHostId",
-        "kubernetesClusterId",
-      ]);
-
-      for (const [key, values] of facets.entries()) {
-        if (values.size === 0) {
-          continue;
-        }
-
-        if (resourceFacetKeys.has(key)) {
-          for (const value of values) {
-            resourceIds.add(value);
-          }
-          continue;
-        }
-
-        /*
-         * Keys prefixed with `attributes.` are telemetry attribute filters,
-         * which live under `query.attributes[<suffix>]` rather than as
-         * top-level columns.
-         */
-        if (key.startsWith("attributes.")) {
-          const attrKey: string = key.substring("attributes.".length);
-          const existing: Record<string, unknown> =
-            ((updatedFilter as any).attributes as Record<string, unknown>) ||
-            {};
-          existing[attrKey] =
-            values.size === 1
-              ? Array.from(values)[0]!
-              : new Includes(Array.from(values));
-          (updatedFilter as any).attributes = existing;
-          continue;
-        }
-
-        if (values.size === 1) {
-          // Single value: use direct equality
-          const singleValue: string = Array.from(values)[0]!;
-          (updatedFilter as any)[key] = singleValue;
-        } else {
-          // Multiple values: use Includes
-          (updatedFilter as any)[key] = new Includes(Array.from(values));
-        }
-      }
-
-      if (resourceIds.size === 1) {
-        (updatedFilter as any).primaryEntityId = Array.from(resourceIds)[0]!;
-      } else if (resourceIds.size > 1) {
-        (updatedFilter as any).primaryEntityId = new Includes(
-          Array.from(resourceIds),
-        );
-      }
-
-      return updatedFilter;
+      return applyFacetFiltersToQuery(updatedFilter, facets);
     },
     [props, timeRange],
   );

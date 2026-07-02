@@ -47,7 +47,12 @@ import LogDropFilterService, {
   LoadedLogDropFilter,
 } from "./LogDropFilterService";
 import LogScrubRuleService from "./LogScrubRuleService";
-import KubernetesResourceService from "Common/Server/Services/KubernetesResourceService";
+import KubernetesResourceService, {
+  DeletedKubernetesResourceRow,
+} from "Common/Server/Services/KubernetesResourceService";
+import KubernetesResourceChangeEventService, {
+  ParsedKubernetesResourceChangeEvent,
+} from "Common/Server/Services/KubernetesResourceChangeEventService";
 import KubernetesContainerService from "Common/Server/Services/KubernetesContainerService";
 import DockerResourceService, {
   ParsedDockerResource,
@@ -90,6 +95,18 @@ const INVENTORIED_TYPE_SET: Set<string> = new Set(
     return t.toLowerCase();
   }),
 );
+
+/**
+ * Buffer entry for a watch-mode DELETED k8sobjects record: the natural
+ * key to hard-delete plus the agent-observed time, used as occurredAt
+ * on the "Deleted" change event for non-Pod kinds.
+ */
+interface K8sPendingDelete {
+  kind: string;
+  namespaceKey: string;
+  name: string;
+  occurredAt: Date;
+}
 
 class LogStorageFlushError extends Error {
   public constructor(error: unknown) {
@@ -260,6 +277,13 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         string,
         Array<ParsedKubernetesContainerRow>
       > = new Map();
+
+      /*
+       * Watch-mode DELETED records, keyed by clusterId. These are
+       * hard-deleted from the inventory after the upsert flush instead
+       * of being upserted as live snapshots.
+       */
+      const k8sDeleteBuffer: Map<string, Array<K8sPendingDelete>> = new Map();
 
       /*
        * Docker inventory buffer keyed by docker host ID. Populated only
@@ -677,25 +701,46 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                           });
                         if (parsed) {
                           const key: string = kubernetesClusterId.toString();
-                          let bucket:
-                            | Array<ParsedKubernetesResource>
-                            | undefined = k8sInventoryBuffer.get(key);
-                          if (!bucket) {
-                            bucket = [];
-                            k8sInventoryBuffer.set(key, bucket);
-                          }
-                          bucket.push(parsed.resource);
-
-                          if (parsed.containers.length > 0) {
-                            let cbucket:
-                              | Array<ParsedKubernetesContainerRow>
-                              | undefined = k8sContainerBuffer.get(key);
-                            if (!cbucket) {
-                              cbucket = [];
-                              k8sContainerBuffer.set(key, cbucket);
+                          if (parsed.watchEventType === "DELETED") {
+                            /*
+                             * A DELETED watch envelope is a tombstone,
+                             * not a live snapshot — upserting it would
+                             * resurrect the row until the stale-prune
+                             * cron. Route it to the delete flush below.
+                             */
+                            let dbucket: Array<K8sPendingDelete> | undefined =
+                              k8sDeleteBuffer.get(key);
+                            if (!dbucket) {
+                              dbucket = [];
+                              k8sDeleteBuffer.set(key, dbucket);
                             }
-                            for (const c of parsed.containers) {
-                              cbucket.push(c);
+                            dbucket.push({
+                              kind: parsed.resource.kind,
+                              namespaceKey: parsed.resource.namespaceKey,
+                              name: parsed.resource.name,
+                              occurredAt: timeDate,
+                            });
+                          } else {
+                            let bucket:
+                              | Array<ParsedKubernetesResource>
+                              | undefined = k8sInventoryBuffer.get(key);
+                            if (!bucket) {
+                              bucket = [];
+                              k8sInventoryBuffer.set(key, bucket);
+                            }
+                            bucket.push(parsed.resource);
+
+                            if (parsed.containers.length > 0) {
+                              let cbucket:
+                                | Array<ParsedKubernetesContainerRow>
+                                | undefined = k8sContainerBuffer.get(key);
+                              if (!cbucket) {
+                                cbucket = [];
+                                k8sContainerBuffer.set(key, cbucket);
+                              }
+                              for (const c of parsed.containers) {
+                                cbucket.push(c);
+                              }
                             }
                           }
                         }
@@ -1088,6 +1133,83 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           } catch (invErr) {
             logger.error(
               `Error upserting KubernetesContainer inventory for cluster ${clusterIdStr}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
+            );
+          }
+        }
+      }
+
+      /*
+       * Flush watch-mode deletions AFTER the upsert flush so a record
+       * that was both updated and deleted in this batch ends up gone.
+       * Non-Pod deletions also append a "Deleted" timeline event using
+       * the last-known spec returned by the DELETE; Pod deletions do
+       * not — pods churn far too much to be worth timeline rows.
+       * Failures must not affect log ingest; logged and swallowed.
+       */
+      if (k8sDeleteBuffer.size > 0) {
+        for (const [clusterIdStr, pendingDeletes] of k8sDeleteBuffer.entries()) {
+          if (pendingDeletes.length === 0) {
+            continue;
+          }
+          try {
+            const clusterId: ObjectID = new ObjectID(clusterIdStr);
+            const deletedRows: Array<DeletedKubernetesResourceRow> =
+              await KubernetesResourceService.bulkDeleteByNaturalKeys({
+                projectId,
+                kubernetesClusterId: clusterId,
+                keys: pendingDeletes.map((d: K8sPendingDelete) => {
+                  return {
+                    kind: d.kind,
+                    namespaceKey: d.namespaceKey,
+                    name: d.name,
+                  };
+                }),
+              });
+
+            if (deletedRows.length === 0) {
+              continue;
+            }
+
+            // Latest agent-observed delete time per natural key.
+            const occurredAtByKey: Map<string, Date> = new Map();
+            for (const d of pendingDeletes) {
+              const key: string = `${d.kind} ${d.namespaceKey} ${d.name}`;
+              const prev: Date | undefined = occurredAtByKey.get(key);
+              if (!prev || d.occurredAt.getTime() > prev.getTime()) {
+                occurredAtByKey.set(key, d.occurredAt);
+              }
+            }
+
+            const events: Array<ParsedKubernetesResourceChangeEvent> = [];
+            for (const row of deletedRows) {
+              if (row.kind === "Pod") {
+                continue;
+              }
+              events.push({
+                kind: row.kind,
+                namespaceKey: row.namespaceKey,
+                name: row.name,
+                changeType: "Deleted",
+                oldSpec: row.spec,
+                newSpec: null,
+                specHash: null,
+                occurredAt:
+                  occurredAtByKey.get(
+                    `${row.kind} ${row.namespaceKey} ${row.name}`,
+                  ) || OneUptimeDate.getCurrentDate(),
+              });
+            }
+
+            if (events.length > 0) {
+              await KubernetesResourceChangeEventService.bulkInsert({
+                projectId,
+                kubernetesClusterId: clusterId,
+                events,
+              });
+            }
+          } catch (invErr) {
+            logger.error(
+              `Error deleting KubernetesResource inventory for cluster ${clusterIdStr}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
             );
           }
         }

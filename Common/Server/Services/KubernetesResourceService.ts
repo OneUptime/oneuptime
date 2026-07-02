@@ -3,7 +3,11 @@ import Model from "../../Models/DatabaseModels/KubernetesResource";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
+import { JSONObject } from "../../Types/JSON";
 import { ParsedKubernetesResource } from "../../Types/Kubernetes/KubernetesInventoryExtractor";
+import KubernetesResourceChangeEventService, {
+  ParsedKubernetesResourceChangeEvent,
+} from "./KubernetesResourceChangeEventService";
 import logger from "../Utils/Logger";
 
 /*
@@ -21,6 +25,26 @@ import logger from "../Utils/Logger";
  */
 
 export type { ParsedKubernetesResource };
+
+/**
+ * Identity of a KubernetesResource row within one (project, cluster)
+ * pair — mirrors the table's UNIQUE conflict target.
+ */
+export interface KubernetesResourceNaturalKey {
+  kind: string;
+  namespaceKey: string;
+  name: string;
+}
+
+/**
+ * Row returned by bulkDeleteByNaturalKeys: the deleted resource's
+ * identity plus its last-known spec, so callers can record "Deleted"
+ * change events without a separate read.
+ */
+export interface DeletedKubernetesResourceRow
+  extends KubernetesResourceNaturalKey {
+  spec: JSONObject | null;
+}
 
 export interface DegradedPod {
   name: string;
@@ -310,6 +334,7 @@ const UPSERT_COLUMNS: Array<keyof ParsedKubernetesResource | string> = [
   "annotations",
   "ownerReferences",
   "spec",
+  "specHash",
   "containerCount",
   "status",
   "lastSeenAt",
@@ -338,12 +363,49 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
+    /*
+     * Dedupe by natural key keeping the newest snapshot. Watch-mode
+     * ingest can carry several envelopes for the same object in one
+     * batch, and a multi-row INSERT .. ON CONFLICT DO UPDATE errors
+     * when the same conflict row would be affected twice in one
+     * statement ("cannot affect row a second time").
+     */
+    const latestByKey: Map<string, ParsedKubernetesResource> = new Map();
+    for (const r of data.resources) {
+      const key: string = `${r.kind} ${r.namespaceKey} ${r.name}`;
+      const prev: ParsedKubernetesResource | undefined = latestByKey.get(key);
+      if (!prev || r.lastSeenAt.getTime() >= prev.lastSeenAt.getTime()) {
+        latestByKey.set(key, r);
+      }
+    }
+    const resources: Array<ParsedKubernetesResource> = Array.from(
+      latestByKey.values(),
+    );
+
     // Chunk to keep individual statement parameter counts reasonable.
-    for (let i: number = 0; i < data.resources.length; i += UPSERT_BATCH_SIZE) {
-      const chunk: Array<ParsedKubernetesResource> = data.resources.slice(
+    for (let i: number = 0; i < resources.length; i += UPSERT_BATCH_SIZE) {
+      const chunk: Array<ParsedKubernetesResource> = resources.slice(
         i,
         i + UPSERT_BATCH_SIZE,
       );
+
+      /*
+       * Best-effort spec-change detection MUST read the pre-upsert
+       * rows, so it runs before the chunk's upsert. A failure here is
+       * logged and swallowed — the timeline losing an event must never
+       * block inventory ingest.
+       */
+      try {
+        await this.recordSpecChangeEvents({
+          projectId: data.projectId,
+          kubernetesClusterId: data.kubernetesClusterId,
+          chunk,
+        });
+      } catch (err) {
+        logger.error(
+          `KubernetesResource spec-change event detection failed for cluster ${data.kubernetesClusterId.toString()}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
 
       const valueFragments: Array<string> = [];
       const params: Array<unknown> = [];
@@ -372,6 +434,7 @@ export class Service extends DatabaseService<Model> {
           r.annotations ? JSON.stringify(r.annotations) : null,
           r.ownerReferences ? JSON.stringify(r.ownerReferences) : null,
           r.spec ? JSON.stringify(r.spec) : null,
+          r.specHash,
           r.containerCount,
           r.status ? JSON.stringify(r.status) : null,
           r.lastSeenAt,
@@ -385,7 +448,7 @@ export class Service extends DatabaseService<Model> {
           "projectId", "kubernetesClusterId", "kind", "namespaceKey", "name",
           "uid", "phase", "isReady",
           "hasMemoryPressure", "hasDiskPressure", "hasPidPressure",
-          "labels", "annotations", "ownerReferences", "spec", "containerCount", "status",
+          "labels", "annotations", "ownerReferences", "spec", "specHash", "containerCount", "status",
           "lastSeenAt", "resourceCreationTimestamp", "version"
         )
         VALUES ${valueFragments.join(", ")}
@@ -401,6 +464,7 @@ export class Service extends DatabaseService<Model> {
           "annotations" = EXCLUDED."annotations",
           "ownerReferences" = EXCLUDED."ownerReferences",
           "spec" = EXCLUDED."spec",
+          "specHash" = EXCLUDED."specHash",
           "containerCount" = EXCLUDED."containerCount",
           "status" = EXCLUDED."status",
           "lastSeenAt" = EXCLUDED."lastSeenAt",
@@ -411,6 +475,184 @@ export class Service extends DatabaseService<Model> {
 
       await this.getRepository().manager.query(sql, params);
     }
+  }
+
+  /**
+   * Compare an upsert chunk against the stored rows and append a
+   * "SpecChanged" timeline event for every non-Pod resource whose spec
+   * hash moved. One extra SELECT round trip per chunk. Rules:
+   *   - first-ever sighting (no stored row)     -> no event
+   *   - stored specHash NULL (pre-migration row) -> no event on rehash
+   *   - incoming older than stored (dominance)   -> no event (the
+   *     upsert guard rejects that row too)
+   *   - Pods                                     -> never (churn)
+   * Concurrent queue workers can rarely double-record an event between
+   * this SELECT and the upsert; accepted, not worth locking.
+   */
+  private async recordSpecChangeEvents(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    chunk: Array<ParsedKubernetesResource>;
+  }): Promise<void> {
+    const candidates: Array<ParsedKubernetesResource> = data.chunk.filter(
+      (r: ParsedKubernetesResource) => {
+        return r.kind !== "Pod" && Boolean(r.specHash);
+      },
+    );
+    if (candidates.length === 0) {
+      return;
+    }
+
+    const params: Array<unknown> = [
+      data.projectId.toString(),
+      data.kubernetesClusterId.toString(),
+    ];
+    let paramIndex: number = 3;
+    const keyFragments: Array<string> = [];
+    for (const r of candidates) {
+      keyFragments.push(
+        `($${paramIndex++}, $${paramIndex++}, $${paramIndex++})`,
+      );
+      params.push(r.kind, r.namespaceKey, r.name);
+    }
+
+    const existingRows: Array<{
+      kind: string;
+      namespaceKey: string;
+      name: string;
+      specHash: string | null;
+      spec: JSONObject | null;
+      lastSeenAt: Date | string;
+    }> = await this.getRepository().manager.query(
+      `SELECT "kind", "namespaceKey", "name", "specHash", "spec", "lastSeenAt"
+       FROM "KubernetesResource"
+       WHERE "projectId" = $1
+         AND "kubernetesClusterId" = $2
+         AND ("kind", "namespaceKey", "name") IN (${keyFragments.join(", ")})`,
+      params,
+    );
+
+    if (existingRows.length === 0) {
+      return;
+    }
+
+    const existingByKey: Map<string, (typeof existingRows)[number]> = new Map();
+    for (const row of existingRows) {
+      existingByKey.set(`${row.kind} ${row.namespaceKey} ${row.name}`, row);
+    }
+
+    const events: Array<ParsedKubernetesResourceChangeEvent> = [];
+    for (const r of candidates) {
+      const existing: (typeof existingRows)[number] | undefined =
+        existingByKey.get(`${r.kind} ${r.namespaceKey} ${r.name}`);
+      if (!existing || !existing.specHash) {
+        continue;
+      }
+      if (existing.specHash === r.specHash) {
+        continue;
+      }
+      const existingLastSeenAt: Date =
+        existing.lastSeenAt instanceof Date
+          ? existing.lastSeenAt
+          : new Date(existing.lastSeenAt);
+      if (r.lastSeenAt.getTime() < existingLastSeenAt.getTime()) {
+        continue;
+      }
+      events.push({
+        kind: r.kind,
+        namespaceKey: r.namespaceKey,
+        name: r.name,
+        changeType: "SpecChanged",
+        oldSpec: existing.spec,
+        newSpec: r.spec,
+        specHash: r.specHash,
+        occurredAt: r.lastSeenAt,
+      });
+    }
+
+    if (events.length > 0) {
+      await KubernetesResourceChangeEventService.bulkInsert({
+        projectId: data.projectId,
+        kubernetesClusterId: data.kubernetesClusterId,
+        events,
+      });
+    }
+  }
+
+  /**
+   * Hard-delete a batch of resources by natural key for a single
+   * (project, cluster) pair — the watch-mode DELETED ingest path.
+   * Returns each deleted row's identity and last-known spec via
+   * RETURNING so the caller can record "Deleted" change events
+   * without a separate read.
+   */
+  @CaptureSpan()
+  public async bulkDeleteByNaturalKeys(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    keys: Array<KubernetesResourceNaturalKey>;
+  }): Promise<Array<DeletedKubernetesResourceRow>> {
+    if (data.keys.length === 0) {
+      return [];
+    }
+
+    // Dedupe: one batch can carry the same DELETED envelope twice.
+    const uniqueByKey: Map<string, KubernetesResourceNaturalKey> = new Map();
+    for (const k of data.keys) {
+      uniqueByKey.set(`${k.kind} ${k.namespaceKey} ${k.name}`, k);
+    }
+    const keys: Array<KubernetesResourceNaturalKey> = Array.from(
+      uniqueByKey.values(),
+    );
+
+    const deletedRows: Array<DeletedKubernetesResourceRow> = [];
+
+    // Chunk to keep individual statement parameter counts reasonable.
+    for (let i: number = 0; i < keys.length; i += UPSERT_BATCH_SIZE) {
+      const chunk: Array<KubernetesResourceNaturalKey> = keys.slice(
+        i,
+        i + UPSERT_BATCH_SIZE,
+      );
+
+      const params: Array<unknown> = [
+        data.projectId.toString(),
+        data.kubernetesClusterId.toString(),
+      ];
+      let paramIndex: number = 3;
+      const keyFragments: Array<string> = [];
+      for (const k of chunk) {
+        keyFragments.push(
+          `($${paramIndex++}, $${paramIndex++}, $${paramIndex++})`,
+        );
+        params.push(k.kind, k.namespaceKey, k.name);
+      }
+
+      const result: unknown = await this.getRepository().manager.query(
+        `DELETE FROM "KubernetesResource"
+         WHERE "projectId" = $1
+           AND "kubernetesClusterId" = $2
+           AND ("kind", "namespaceKey", "name") IN (${keyFragments.join(", ")})
+         RETURNING "kind", "namespaceKey", "name", "spec"`,
+        params,
+      );
+
+      /*
+       * Postgres driver returns [rows, affected] for DELETE; with
+       * RETURNING the first element carries the returned rows.
+       */
+      if (Array.isArray(result) && Array.isArray(result[0])) {
+        for (const row of result[0] as Array<DeletedKubernetesResourceRow>) {
+          deletedRows.push({
+            kind: row.kind,
+            namespaceKey: row.namespaceKey,
+            name: row.name,
+            spec: row.spec ?? null,
+          });
+        }
+      }
+    }
+
+    return deletedRows;
   }
 
   /**

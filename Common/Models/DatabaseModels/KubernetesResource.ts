@@ -413,6 +413,26 @@ export default class KubernetesResource extends BaseModel {
   })
   @TableColumn({
     required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Spec Hash",
+    description:
+      "Stable hash of the resource spec; used to detect spec changes for the workload timeline.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public specHash?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
     title: "Container Count",

@@ -156,9 +156,8 @@ describe("IoT snapshot buffering vs metric pipeline rules", () => {
   });
 
   test("a kept datapoint still reaches the device inventory and fleet counts", async () => {
-    const spies: ReturnType<typeof setupIngestMocks> = setupIngestMocks(
-      noRules(),
-    );
+    const spies: ReturnType<typeof setupIngestMocks> =
+      setupIngestMocks(noRules());
 
     await OtelMetricsIngestService.processMetricsFromQueue(iotMetricsRequest());
 

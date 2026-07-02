@@ -783,19 +783,30 @@ const schedulerBacklogTemplate: KubernetesAlertTemplate = {
 const highDiskUsageTemplate: KubernetesAlertTemplate = {
   id: "k8s-high-disk-usage",
   name: "High Node Disk Usage",
-  description: "Alert when node filesystem usage exceeds 90% capacity.",
+  description:
+    "Alert when a node's filesystem usage exceeds 90% of its capacity. Computed per node as k8s.node.filesystem.usage ÷ k8s.node.filesystem.capacity × 100 — both are bytes, so this is a true percentage (the raw k8s.node.filesystem.usage metric is bytes, not a percent).",
   category: "Storage",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
-    const metricAlias: string = "disk_usage";
+    const metricAlias: string = "node_disk_utilization";
 
     return buildKubernetesMonitorStep({
-      kubernetesMonitor: buildKubernetesMonitorConfig({
+      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
-        metricName: "k8s.node.filesystem.usage",
-        metricAlias,
+        numeratorMetricName: "k8s.node.filesystem.usage",
+        denominatorMetricName: "k8s.node.filesystem.capacity",
+        groupByAttributeKey: "resource.k8s.node.name",
+        numeratorAlias: "fs_used",
+        denominatorAlias: "fs_capacity",
+        resultAlias: metricAlias,
+        resultLegend: "Node Disk Usage (%)",
         resourceScope: KubernetesResourceScope.Node,
         rollingTime: RollingTime.Past5Minutes,
+        /*
+         * Single series per node, both metrics from the same kubeletstats
+         * scrape — Avg yields the representative per-minute ratio
+         * independent of scrape count. See buildKubernetesRatioMonitorConfig.
+         */
         aggregationType: MetricsAggregationType.Avg,
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
@@ -959,6 +970,121 @@ const nodeMemoryRequestUtilizationTemplate: KubernetesAlertTemplate = {
   },
 };
 
+const containerMemoryNearLimitTemplate: KubernetesAlertTemplate = {
+  id: "k8s-container-memory-near-limit",
+  name: "Container Memory Near Limit",
+  description:
+    "Alert when a container's memory usage exceeds 95% of its memory limit — catches containers about to be OOMKilled. Uses k8s.container.memory_limit_utilization, a 0-1 ratio emitted by the kubeletstats receiver.",
+  category: "Workload",
+  severity: "Warning",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "memory_limit_utilization";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        metricName: "k8s.container.memory_limit_utilization",
+        metricAlias,
+        resourceScope: KubernetesResourceScope.Cluster,
+        rollingTime: RollingTime.Past5Minutes,
+        aggregationType: MetricsAggregationType.Max,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0.95,
+        incidentTitle: `[K8s] Container Memory Near Limit (>95%) - ${args.monitorName}`,
+        incidentDescription: `A container's memory usage has exceeded 95% of its memory limit. The container is about to be OOMKilled — the kernel terminates it the moment usage crosses the limit, causing restarts and potential data loss. Check the root cause for the specific pod, container, and node details.`,
+        criteriaName: "Memory Near Limit - Utilization > 0.95",
+        criteriaDescription:
+          "Triggers when any container's memory usage exceeds 95% of its memory limit (utilization ratio > 0.95), indicating an imminent OOMKill.",
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 0.95,
+      }),
+    });
+  },
+};
+
+const pvcNearFullTemplate: KubernetesAlertTemplate = {
+  id: "k8s-pvc-near-full",
+  name: "PersistentVolumeClaim Near Full",
+  description:
+    "Alert when a PersistentVolumeClaim has less than 15% free space. Computed per PVC as k8s.volume.available ÷ k8s.volume.capacity × 100 — running out of PVC space is otherwise a silent killer for stateful workloads.",
+  category: "Storage",
+  severity: "Warning",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "volume_available_percent";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        numeratorMetricName: "k8s.volume.available",
+        denominatorMetricName: "k8s.volume.capacity",
+        groupByAttributeKey: "resource.k8s.persistentvolumeclaim.name",
+        numeratorAlias: "volume_available",
+        denominatorAlias: "volume_capacity",
+        resultAlias: metricAlias,
+        resultLegend: "Volume Available (%)",
+        resourceScope: KubernetesResourceScope.Cluster,
+        rollingTime: RollingTime.Past5Minutes,
+        /*
+         * One series per PVC (per mounting pod, each reporting identical
+         * values for a shared volume) — Avg yields the representative
+         * per-minute ratio independent of scrape and pod count. See
+         * buildKubernetesRatioMonitorConfig.
+         */
+        aggregationType: MetricsAggregationType.Avg,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.LessThan,
+        value: 15,
+        incidentTitle: `[K8s] PersistentVolumeClaim Near Full (<15% free) - ${args.monitorName}`,
+        incidentDescription: `A PersistentVolumeClaim has less than 15% free space remaining. When a PVC fills up, the workloads writing to it (databases, message queues, log stores) start failing writes — often without a crash, making it hard to notice. Check the root cause for the specific PVC, pod, and namespace details.`,
+        criteriaName: "PVC Near Full - Available < 15%",
+        criteriaDescription:
+          "Triggers when any PersistentVolumeClaim's available space drops below 15% of its capacity.",
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 15,
+      }),
+    });
+  },
+};
+
+/**
+ * The canonical one-click provisioning set — the template ids consumed by
+ * the server-side provisioner and the dashboard when creating the
+ * recommended alert monitors for a Kubernetes cluster in one action.
+ */
+export const RECOMMENDED_KUBERNETES_ALERT_TEMPLATE_IDS: Array<string> = [
+  "k8s-crashloopbackoff",
+  "k8s-pod-pending",
+  "k8s-node-not-ready",
+  "k8s-high-cpu",
+  "k8s-high-memory",
+  "k8s-high-disk-usage",
+  "k8s-deployment-replica-mismatch",
+  "k8s-job-failures",
+  "k8s-container-memory-near-limit",
+  "k8s-pvc-near-full",
+];
+
 export function getAllKubernetesAlertTemplates(): Array<KubernetesAlertTemplate> {
   return [
     crashLoopBackOffTemplate,
@@ -975,6 +1101,8 @@ export function getAllKubernetesAlertTemplates(): Array<KubernetesAlertTemplate>
     daemonSetUnavailableTemplate,
     nodeCpuRequestUtilizationTemplate,
     nodeMemoryRequestUtilizationTemplate,
+    containerMemoryNearLimitTemplate,
+    pvcNearFullTemplate,
   ];
 }
 

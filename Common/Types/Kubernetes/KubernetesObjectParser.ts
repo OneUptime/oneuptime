@@ -1898,21 +1898,36 @@ export function parseVPAObject(
 }
 
 /**
- * Extract the K8s object from a raw OTLP log body string.
- * For k8sobjects pull mode, the body is:
- * { kvlistValue: { values: [{ key: "type", value: ... }, { key: "object", value: { kvlistValue: ... } }] } }
- * OR for some modes, the object may be at the top level.
+ * Watch-mode envelope event type from the k8sobjects receiver.
  */
-export function extractObjectFromLogBody(
-  bodyString: string,
-): JSONObject | null {
+export type KubernetesWatchEventType = "ADDED" | "MODIFIED" | "DELETED";
+
+/**
+ * Result of unwrapping an OTLP k8sobjects log body: the K8s object
+ * kvlist plus, for watch-mode envelopes, the top-level "type" key.
+ * watchEventType is null for pull-mode bodies (no envelope).
+ */
+export interface ExtractedObjectAndWatchType {
+  object: JSONObject | null;
+  watchEventType: KubernetesWatchEventType | null;
+}
+
+/**
+ * Extract the K8s object AND the watch event type from a raw OTLP log
+ * body string. Watch-mode bodies are:
+ * { kvlistValue: { values: [{ key: "type", value: "ADDED|MODIFIED|DELETED" }, { key: "object", value: { kvlistValue: ... } }] } }
+ * while pull-mode bodies place the object kvlist at the top level.
+ */
+export function extractObjectAndWatchTypeFromLogBody(
+  logBody: string,
+): ExtractedObjectAndWatchType {
   try {
-    const bodyObj: JSONObject = JSON.parse(bodyString) as JSONObject;
+    const bodyObj: JSONObject = JSON.parse(logBody) as JSONObject;
     // Handle both camelCase (JSON encoding) and snake_case (protobuf via protobufjs)
     const topKvList: JSONObject | undefined = (bodyObj["kvlistValue"] ||
       bodyObj["kvlist_value"]) as JSONObject | undefined;
     if (!topKvList) {
-      return null;
+      return { object: null, watchEventType: null };
     }
 
     // Try to get the "object" key (used in watch mode)
@@ -1921,7 +1936,21 @@ export function extractObjectFromLogBody(
       "object",
     );
     if (objectVal && typeof objectVal !== "string") {
-      return objectVal;
+      /*
+       * Only trust the top-level "type" key when the body is a real
+       * watch envelope (it carried an "object" key) — pull-mode
+       * objects can legitimately have their own "type" field.
+       */
+      const typeVal: string = getKvStringValue(topKvList, "type");
+      let watchEventType: KubernetesWatchEventType | null = null;
+      if (
+        typeVal === "ADDED" ||
+        typeVal === "MODIFIED" ||
+        typeVal === "DELETED"
+      ) {
+        watchEventType = typeVal;
+      }
+      return { object: objectVal, watchEventType };
     }
 
     /*
@@ -1930,7 +1959,7 @@ export function extractObjectFromLogBody(
      */
     const kind: string | JSONObject | null = getKvValue(topKvList, "kind");
     if (kind) {
-      return topKvList;
+      return { object: topKvList, watchEventType: null };
     }
 
     // Also check "metadata" as a fallback for objects without "kind"
@@ -1939,11 +1968,23 @@ export function extractObjectFromLogBody(
       "metadata",
     );
     if (metadata && typeof metadata !== "string") {
-      return topKvList;
+      return { object: topKvList, watchEventType: null };
     }
 
-    return null;
+    return { object: null, watchEventType: null };
   } catch {
-    return null;
+    return { object: null, watchEventType: null };
   }
+}
+
+/**
+ * Extract the K8s object from a raw OTLP log body string.
+ * For k8sobjects pull mode, the body is:
+ * { kvlistValue: { values: [{ key: "type", value: ... }, { key: "object", value: { kvlistValue: ... } }] } }
+ * OR for some modes, the object may be at the top level.
+ */
+export function extractObjectFromLogBody(
+  bodyString: string,
+): JSONObject | null {
+  return extractObjectAndWatchTypeFromLogBody(bodyString).object;
 }

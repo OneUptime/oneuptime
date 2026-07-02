@@ -19,6 +19,9 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { buildTelemetryPivotActionButtons } from "../Utils/TelemetryPivot";
 
 const KubernetesClusterNodes: FunctionComponent<
   PageComponentProps
@@ -26,12 +29,27 @@ const KubernetesClusterNodes: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [resources, setResources] = useState<Array<KubernetesResource>>([]);
+  const [clusterIdentifier, setClusterIdentifier] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
+      /*
+       * The cluster's clusterIdentifier is the value stamped on telemetry
+       * rows as resource.k8s.cluster.name — needed by the Logs/Metrics
+       * explorer pivot links on each row.
+       */
+      const clusterPromise: Promise<KubernetesCluster | null> =
+        ModelAPI.getItem({
+          modelType: KubernetesCluster,
+          id: modelId,
+          select: {
+            clusterIdentifier: true,
+          },
+        });
+
       const nodeList: Array<KubernetesResource> =
         await KubernetesResourceUtils.fetchInventoryResources({
           kubernetesClusterId: modelId,
@@ -65,6 +83,9 @@ const KubernetesClusterNodes: FunctionComponent<
             }
           },
         });
+
+      const cluster: KubernetesCluster | null = await clusterPromise;
+      setClusterIdentifier(cluster?.clusterIdentifier || "");
 
       setResources(nodeList);
     } catch (err) {
@@ -105,6 +126,14 @@ const KubernetesClusterNodes: FunctionComponent<
           },
         );
       }}
+      extraActionButtons={buildTelemetryPivotActionButtons(
+        (resource: KubernetesResource): Record<string, string> => {
+          return {
+            "resource.k8s.cluster.name": clusterIdentifier,
+            "resource.k8s.node.name": resource.name,
+          };
+        },
+      )}
     />
   );
 };

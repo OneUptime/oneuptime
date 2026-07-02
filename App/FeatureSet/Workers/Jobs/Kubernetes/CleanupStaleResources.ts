@@ -3,6 +3,7 @@ import RunCron from "../../Utils/Cron";
 import logger from "Common/Server/Utils/Logger";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
 import KubernetesResourceService from "Common/Server/Services/KubernetesResourceService";
+import KubernetesResourceChangeEventService from "Common/Server/Services/KubernetesResourceChangeEventService";
 import KubernetesContainerService from "Common/Server/Services/KubernetesContainerService";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
@@ -12,11 +13,15 @@ import ObjectID from "Common/Types/ObjectID";
  * ------------------------------------------------------------------
  * Kubernetes:CleanupStaleResources
  *
- * Runs every 5 minutes. Two steps:
+ * Runs every 5 minutes. Three steps:
  *   1. Mark clusters as disconnected if they have not been seen for
  *      15 minutes (existing KubernetesClusterService method; 3x the
  *      ingest maintenance fence TTL so healthy clusters never flap).
- *   2. For each CONNECTED cluster, hard-delete KubernetesResource
+ *   2. Prune KubernetesResourceChangeEvent rows older than the
+ *      retention window (default 30 days, min 1; env
+ *      K8S_CHANGE_EVENT_RETENTION_DAYS). Runs across all clusters,
+ *      connected or not — old timeline rows are dead weight either way.
+ *   3. For each CONNECTED cluster, hard-delete KubernetesResource
  *      rows whose last snapshot is older than the stale threshold
  *      (default 15 minutes = 3x snapshot interval).
  *
@@ -46,7 +51,30 @@ RunCron(
       }
 
       /*
-       * Step 2: prune stale resource rows for clusters that are still
+       * Step 2: prune old workload-timeline change events. Sits before
+       * the connected-cluster early return on purpose — retention must
+       * keep running even when every cluster is disconnected.
+       */
+      try {
+        const retentionCutoff: Date =
+          KubernetesResourceChangeEventService.getRetentionCutoffDate();
+        const deletedEvents: number =
+          await KubernetesResourceChangeEventService.deleteOlderThan({
+            olderThan: retentionCutoff,
+          });
+        if (deletedEvents > 0) {
+          logger.debug(
+            `CleanupStaleResources: pruned ${deletedEvents} KubernetesResourceChangeEvent row(s) older than ${KubernetesResourceChangeEventService.getRetentionDays()} day(s)`,
+          );
+        }
+      } catch (err) {
+        logger.error(
+          `CleanupStaleResources: change-event retention delete failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+
+      /*
+       * Step 3: prune stale resource rows for clusters that are still
        * believed to be connected.
        */
       const connectedClusters: Array<KubernetesCluster> =

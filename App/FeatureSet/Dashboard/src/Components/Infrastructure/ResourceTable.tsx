@@ -74,6 +74,13 @@ export interface ComponentProps {
   showStatus?: boolean | undefined;
   showResourceMetrics?: boolean | undefined;
   getViewRoute?: ((resource: InfrastructureResource) => Route) | undefined;
+  /*
+   * Extra row actions rendered after the built-in View button (e.g. the
+   * Kubernetes "Logs" / "Metrics" explorer pivots).
+   */
+  extraActionButtons?:
+    | Array<ActionButtonSchema<InfrastructureResource>>
+    | undefined;
   emptyMessage?: string | undefined;
   isLoading?: boolean | undefined;
   onRefreshClick?: (() => void) | undefined;
@@ -523,13 +530,6 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
   const actionButtons: Array<ActionButtonSchema<InfrastructureResource>> = [];
 
   if (props.getViewRoute) {
-    tableColumns.push({
-      title: "",
-      type: FieldType.Actions,
-      key: null,
-      disableSort: true,
-    });
-
     actionButtons.push({
       title: "View",
       buttonStyleType: ButtonStyleType.NORMAL,
@@ -545,6 +545,19 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
           onError(err as Error);
         }
       },
+    });
+  }
+
+  if (props.extraActionButtons && props.extraActionButtons.length > 0) {
+    actionButtons.push(...props.extraActionButtons);
+  }
+
+  if (actionButtons.length > 0) {
+    tableColumns.push({
+      title: "",
+      type: FieldType.Actions,
+      key: null,
+      disableSort: true,
     });
   }
 

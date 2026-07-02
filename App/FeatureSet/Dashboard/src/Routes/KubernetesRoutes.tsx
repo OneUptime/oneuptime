@@ -37,6 +37,8 @@ import KubernetesClusterViewHPADetail from "../Pages/Kubernetes/View/HPADetail";
 import KubernetesClusterViewVPAs from "../Pages/Kubernetes/View/VPAs";
 import KubernetesClusterViewVPADetail from "../Pages/Kubernetes/View/VPADetail";
 import KubernetesClusterViewEvents from "../Pages/Kubernetes/View/Events";
+import KubernetesClusterViewTimeline from "../Pages/Kubernetes/View/Timeline";
+import KubernetesClusterViewCost from "../Pages/Kubernetes/View/Cost";
 import KubernetesClusterViewInsights from "../Pages/Kubernetes/View/Insights";
 import KubernetesClusterViewControlPlane from "../Pages/Kubernetes/View/ControlPlane";
 import KubernetesClusterViewServiceMesh from "../Pages/Kubernetes/View/ServiceMesh";
@@ -542,6 +544,36 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS] as Route
+              }
+            />
+          }
+        />
+
+        {/* Timeline */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_TIMELINE,
+          )}
+          element={
+            <KubernetesClusterViewTimeline
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_TIMELINE] as Route
+              }
+            />
+          }
+        />
+
+        {/* Cost */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_COST,
+          )}
+          element={
+            <KubernetesClusterViewCost
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_COST] as Route
               }
             />
           }
