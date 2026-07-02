@@ -141,6 +141,8 @@ export default class MetricMonitorCriteria {
           seriesLabels: {},
           projectId: metricResponse.projectId,
           nativeUnitsByMetricName,
+          isTelemetrySourceReporting:
+            metricResponse.isTelemetrySourceReporting,
         });
       return [result];
     }
@@ -156,6 +158,8 @@ export default class MetricMonitorCriteria {
           seriesLabels: series.labels,
           projectId: metricResponse.projectId,
           nativeUnitsByMetricName,
+          isTelemetrySourceReporting:
+            metricResponse.isTelemetrySourceReporting,
         });
       }),
     );
@@ -177,6 +181,7 @@ export default class MetricMonitorCriteria {
     seriesLabels: JSONObject;
     projectId: { toString(): string } | undefined;
     nativeUnitsByMetricName?: { [key: string]: string } | undefined;
+    isTelemetrySourceReporting?: boolean | undefined;
   }): Promise<MetricSeriesEvaluationResult> {
     const rawThreshold: number | null = CompareCriteria.convertToNumber(
       input.criteriaFilter.value,
@@ -334,6 +339,30 @@ export default class MetricMonitorCriteria {
       const policy: NoDataPolicy =
         input.criteriaFilter.metricMonitorOptions?.onNoDataPolicy ||
         NoDataPolicy.Ignore;
+
+      /*
+       * TreatAsZero reads series absence as "the value is genuinely
+       * zero" — which is only true while the telemetry source is
+       * otherwise reporting (e.g. an inactive ceph_health_detail check
+       * on a live cluster). During a total source blackout (the fetcher
+       * stamped isTelemetrySourceReporting=false) absence carries no
+       * information, so downgrade to Ignore: a "= 0" recover filter
+       * must never flip a monitor Healthy and auto-resolve incidents
+       * just because the agent or mgr stopped sending data. Trigger is
+       * deliberately NOT downgraded — heartbeat-style filters exist
+       * precisely to fire on absence.
+       */
+      if (
+        policy === NoDataPolicy.TreatAsZero &&
+        input.isTelemetrySourceReporting === false
+      ) {
+        return {
+          fingerprint: input.seriesFingerprint,
+          labels: input.seriesLabels,
+          rootCause: null,
+          context: metricContext,
+        };
+      }
 
       if (policy === NoDataPolicy.Ignore) {
         return {

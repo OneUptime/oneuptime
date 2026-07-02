@@ -11,6 +11,8 @@ import OneUptimeDate from "../../Types/Date";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import logger, { LogAttributes } from "../Utils/Logger";
+import DatabaseConfig from "../DatabaseConfig";
+import URL from "../../Types/API/URL";
 import crypto from "crypto";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "ceph-cluster-last-seen";
@@ -400,6 +402,18 @@ export class Service extends DatabaseService<Model> {
         });
       }
     }
+  }
+
+  @CaptureSpan()
+  public async getLinkInDashboard(
+    projectId: ObjectID,
+    cephClusterId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/ceph/${cephClusterId.toString()}`,
+    );
   }
 }
 

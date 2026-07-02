@@ -16,6 +16,15 @@ import {
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import ObjectID from "../../../Types/ObjectID";
+import MonitorCriteriaEvaluator from "../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import MonitorType from "../../../Types/Monitor/MonitorType";
+import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MonitorEvaluationSummary, {
+  MonitorEvaluationCriteriaResult,
+} from "../../../Types/Monitor/MonitorEvaluationSummary";
+import ProbeApiIngestResponse from "../../../Types/Probe/ProbeApiIngestResponse";
+import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 
 /*
  * WI-20: lock in the Ceph alert-template contracts (v2 WI-9 + the v3
@@ -1228,4 +1237,223 @@ describe("CephAlertTemplates - spec table expectations", () => {
       }
     },
   );
+});
+
+/*
+ * Blackout contract: a total telemetry blackout — the CephAgent or the
+ * active mgr died, so the cluster reports NOTHING — must never read as
+ * recovery. The worker's liveness probe stamps
+ * isTelemetrySourceReporting=false on the response in that case;
+ * MetricMonitorCriteria then refuses to TreatAsZero, so no recover
+ * criteria can match, the monitor cannot flip Healthy, and open
+ * incidents are not auto-resolved. (MonitorResource additionally holds
+ * the default-status fallback on the same flag.)
+ *
+ * These tests drive the REAL evaluator (processMonitorStep) with each
+ * template's actual MonitorStep, so the contract covers the template →
+ * evaluator hand-off rather than re-implementing filter semantics.
+ */
+describe("CephAlertTemplates - blackout contract (no auto-resolve on absent data)", () => {
+  async function evaluateSnapshot(input: {
+    step: MonitorStep;
+    metricResult: Array<AggregatedResult>;
+    isTelemetrySourceReporting: boolean | undefined;
+  }): Promise<{
+    criteriaMetId: string | undefined;
+    criteriaResults: Array<MonitorEvaluationCriteriaResult>;
+  }> {
+    const monitor: Monitor = new Monitor();
+    monitor.monitorType = MonitorType.Ceph;
+
+    const monitorId: ObjectID = ObjectID.generate();
+
+    const dataToProcess: MetricMonitorResponse = {
+      projectId: ObjectID.generate(),
+      monitorId: monitorId,
+      metricResult: input.metricResult,
+      metricViewConfig: getCephMonitor(input.step).metricViewConfig,
+      isTelemetrySourceReporting: input.isTelemetrySourceReporting,
+    };
+
+    const evaluationSummary: MonitorEvaluationSummary = {
+      evaluatedAt: new Date(),
+      criteriaResults: [],
+      events: [],
+    };
+
+    const probeApiIngestResponse: ProbeApiIngestResponse = {
+      monitorId: monitorId,
+      rootCause: null,
+    };
+
+    const result: ProbeApiIngestResponse =
+      await MonitorCriteriaEvaluator.processMonitorStep({
+        dataToProcess: dataToProcess,
+        monitorStep: input.step,
+        monitor: monitor,
+        probeApiIngestResponse: probeApiIngestResponse,
+        evaluationSummary: evaluationSummary,
+      });
+
+    return {
+      criteriaMetId: result.criteriaMetId,
+      criteriaResults: evaluationSummary.criteriaResults,
+    };
+  }
+
+  function onlineInstanceOf(step: MonitorStep): MonitorCriteriaInstance {
+    const instances: Array<MonitorCriteriaInstance> =
+      getCriteriaInstances(step);
+    return instances[instances.length - 1]!;
+  }
+
+  function usesTreatAsZeroRecover(instance: MonitorCriteriaInstance): boolean {
+    return ((instance.data?.filters || []) as Array<any>).some((f: any) => {
+      return (
+        f.metricMonitorOptions?.onNoDataPolicy === NoDataPolicy.TreatAsZero
+      );
+    });
+  }
+
+  const TREAT_AS_ZERO_TEMPLATES: Array<CephAlertTemplate> =
+    ALL_TEMPLATES.filter((t: CephAlertTemplate) => {
+      return usesTreatAsZeroRecover(
+        onlineInstanceOf(t.getMonitorStep(buildArgs())),
+      );
+    });
+
+  test("the TreatAsZero cohort is non-empty (guards the guard)", () => {
+    expect(TREAT_AS_ZERO_TEMPLATES.length).toBeGreaterThan(0);
+  });
+
+  test.each(
+    ALL_TEMPLATES.map((t: CephAlertTemplate) => {
+      return [t.id, t];
+    }),
+  )(
+    "%s: total blackout matches NO criteria — no recover, no status flip, no auto-resolve",
+    async (_id: unknown, template: unknown) => {
+      const step: MonitorStep = (template as CephAlertTemplate).getMonitorStep(
+        buildArgs(),
+      );
+
+      const outcome: {
+        criteriaMetId: string | undefined;
+        criteriaResults: Array<MonitorEvaluationCriteriaResult>;
+      } = await evaluateSnapshot({
+        step: step,
+        metricResult: [],
+        isTelemetrySourceReporting: false,
+      });
+
+      expect(outcome.criteriaMetId).toBeUndefined();
+      // Every instance — fire tiers AND recover — must report not-met.
+      expect(outcome.criteriaResults.length).toBeGreaterThan(0);
+      for (const criteriaResult of outcome.criteriaResults) {
+        expect(criteriaResult.met).toBe(false);
+      }
+    },
+  );
+
+  test.each(
+    TREAT_AS_ZERO_TEMPLATES.map((t: CephAlertTemplate) => {
+      return [t.id, t];
+    }),
+  )(
+    "%s: quiet-but-alive cluster (source reporting, health series absent) still recovers",
+    async (_id: unknown, template: unknown) => {
+      const args: CephAlertTemplateArgs = buildArgs();
+      const step: MonitorStep = (template as CephAlertTemplate).getMonitorStep(
+        args,
+      );
+
+      const outcome: {
+        criteriaMetId: string | undefined;
+        criteriaResults: Array<MonitorEvaluationCriteriaResult>;
+      } = await evaluateSnapshot({
+        step: step,
+        metricResult: [],
+        isTelemetrySourceReporting: true,
+      });
+
+      expect(outcome.criteriaMetId).toBe(onlineInstanceOf(step).data?.id);
+    },
+  );
+
+  test.each(
+    TREAT_AS_ZERO_TEMPLATES.map((t: CephAlertTemplate) => {
+      return [t.id, t];
+    }),
+  )(
+    "%s: unknown liveness (legacy fetcher, flag unset) keeps the pre-guard recover behavior",
+    async (_id: unknown, template: unknown) => {
+      const step: MonitorStep = (template as CephAlertTemplate).getMonitorStep(
+        buildArgs(),
+      );
+
+      const outcome: {
+        criteriaMetId: string | undefined;
+        criteriaResults: Array<MonitorEvaluationCriteriaResult>;
+      } = await evaluateSnapshot({
+        step: step,
+        metricResult: [],
+        isTelemetrySourceReporting: undefined,
+      });
+
+      expect(outcome.criteriaMetId).toBe(onlineInstanceOf(step).data?.id);
+    },
+  );
+
+  test("ceph-osd-full: fires on active OSD_FULL data, then HOLDS (not resolves) when the cluster goes dark", async () => {
+    const template: CephAlertTemplate | undefined =
+      getCephAlertTemplateById("ceph-osd-full");
+    expect(template).toBeDefined();
+
+    const step: MonitorStep = template!.getMonitorStep(buildArgs());
+    const instances: Array<MonitorCriteriaInstance> =
+      getCriteriaInstances(step);
+    const fireInstance: MonitorCriteriaInstance = instances[0]!;
+
+    // OSD_FULL health check active: one series row with value 1.
+    const firing: {
+      criteriaMetId: string | undefined;
+      criteriaResults: Array<MonitorEvaluationCriteriaResult>;
+    } = await evaluateSnapshot({
+      step: step,
+      metricResult: [{ data: [{ timestamp: new Date(), value: 1 }] }],
+      isTelemetrySourceReporting: true,
+    });
+    expect(firing.criteriaMetId).toBe(fireInstance.data?.id);
+
+    // mgr/agent dies: series vanish entirely. State must hold.
+    const blackout: {
+      criteriaMetId: string | undefined;
+      criteriaResults: Array<MonitorEvaluationCriteriaResult>;
+    } = await evaluateSnapshot({
+      step: step,
+      metricResult: [],
+      isTelemetrySourceReporting: false,
+    });
+    expect(blackout.criteriaMetId).toBeUndefined();
+  });
+
+  test("ceph-health-error: value-driven recovery is unaffected — recovers on real healthy data", async () => {
+    const template: CephAlertTemplate | undefined =
+      getCephAlertTemplateById("ceph-health-error");
+    expect(template).toBeDefined();
+
+    const step: MonitorStep = template!.getMonitorStep(buildArgs());
+
+    // ceph_health_status = 0 (HEALTH_OK) reported by a live cluster.
+    const outcome: {
+      criteriaMetId: string | undefined;
+      criteriaResults: Array<MonitorEvaluationCriteriaResult>;
+    } = await evaluateSnapshot({
+      step: step,
+      metricResult: [{ data: [{ timestamp: new Date(), value: 0 }] }],
+      isTelemetrySourceReporting: true,
+    });
+
+    expect(outcome.criteriaMetId).toBe(onlineInstanceOf(step).data?.id);
+  });
 });

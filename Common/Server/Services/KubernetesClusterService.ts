@@ -19,6 +19,8 @@ import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import { OnCreate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import DatabaseConfig from "../DatabaseConfig";
+import URL from "../../Types/API/URL";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
@@ -1507,6 +1509,18 @@ export class Service extends DatabaseService<Model> {
     }
 
     return max;
+  }
+
+  @CaptureSpan()
+  public async getLinkInDashboard(
+    projectId: ObjectID,
+    kubernetesClusterId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/kubernetes/${kubernetesClusterId.toString()}`,
+    );
   }
 }
 

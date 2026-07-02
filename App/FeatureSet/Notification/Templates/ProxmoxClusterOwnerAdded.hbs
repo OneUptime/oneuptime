@@ -1,0 +1,26 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Proxmox Cluster: " clusterName) }}
+
+{{> InfoBlock info="You have been added as the owner of this Proxmox cluster."}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Cluster Name:" text=clusterName }}
+{{> DetailBoxField title="Cluster Description: " text=clusterDescription  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this cluster by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=viewClusterLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=viewClusterLink}}
+
+{{> Footer this }}
+
+{{> End this}}

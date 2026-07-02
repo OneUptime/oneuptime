@@ -263,6 +263,21 @@ const EVENT_LIBRARY: Record<
     description: "You are added as an owner of an AI agent.",
   },
 
+  [NotificationSettingEventType.SEND_KUBERNETES_CLUSTER_OWNER_ADDED_NOTIFICATION]:
+    {
+      label: "Added as Kubernetes cluster owner",
+      description: "You are added as an owner of a Kubernetes cluster.",
+    },
+  [NotificationSettingEventType.SEND_PROXMOX_CLUSTER_OWNER_ADDED_NOTIFICATION]:
+    {
+      label: "Added as Proxmox cluster owner",
+      description: "You are added as an owner of a Proxmox cluster.",
+    },
+  [NotificationSettingEventType.SEND_CEPH_CLUSTER_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as Ceph cluster owner",
+    description: "You are added as an owner of a Ceph cluster.",
+  },
+
   [NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER]: {
     label: "You go on-call",
     description: "Your shift on an on-call roster begins.",
@@ -678,6 +693,15 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION,
     ]),
+    buildSection(
+      "Infrastructure Clusters",
+      "Notify me about Kubernetes, Proxmox, and Ceph clusters I own.",
+      [
+        NotificationSettingEventType.SEND_KUBERNETES_CLUSTER_OWNER_ADDED_NOTIFICATION,
+        NotificationSettingEventType.SEND_PROXMOX_CLUSTER_OWNER_ADDED_NOTIFICATION,
+        NotificationSettingEventType.SEND_CEPH_CLUSTER_OWNER_ADDED_NOTIFICATION,
+      ],
+    ),
   ];
 
   const statusPages: Array<SectionDef> = [

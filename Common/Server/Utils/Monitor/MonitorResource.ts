@@ -874,6 +874,33 @@ export default class MonitorResourceUtil {
         });
       } else if (
         !response.criteriaMetId &&
+        (dataToProcess as MetricMonitorResponse).isTelemetrySourceReporting ===
+          false
+      ) {
+        /*
+         * Total telemetry blackout: the fetcher probed the source
+         * (cluster/host/fleet) and found NO metrics at all in the
+         * evaluation window. "No criteria met" is meaningless here —
+         * every filter saw absent data, not healthy data — so hold the
+         * monitor's current status and keep open incidents/alerts open
+         * instead of reverting to the default status (which would
+         * auto-resolve them at exactly the moment the source is most
+         * likely in trouble). Evaluation resumes normally on the first
+         * tick that sees data again.
+         */
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - Telemetry source is not reporting. Holding current monitor state; skipping default-status revert and auto-resolve.`,
+        );
+
+        evaluationSummary.events.push({
+          type: "telemetry-source-not-reporting",
+          title: "Telemetry source not reporting — state held",
+          message:
+            "No telemetry was received from the monitored source in the evaluation window, so the monitor's status and any open incidents/alerts were left unchanged. Absence of all data indicates a collection outage, not recovery.",
+          at: OneUptimeDate.getCurrentDate(),
+        });
+      } else if (
+        !response.criteriaMetId &&
         monitorSteps.data.defaultMonitorStatusId &&
         monitor.currentMonitorStatusId?.toString() !==
           monitorSteps.data.defaultMonitorStatusId.toString()

@@ -11,7 +11,8 @@ export type MonitorEvaluationEventType =
   | "alert-resolved"
   | "alert-skipped"
   | "monitor-status-changed"
-  | "probe-agreement";
+  | "probe-agreement"
+  | "telemetry-source-not-reporting";
 
 export interface MonitorEvaluationFilterResult {
   checkOn: CheckOn;

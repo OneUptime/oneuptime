@@ -383,6 +383,83 @@ const loadNativeUnitsByMetricName: (input: {
 };
 
 /**
+ * Telemetry-source liveness probe for cluster/host-scoped monitors.
+ *
+ * Health-check-style series (e.g. ceph_health_detail) exist only while
+ * a problem is active, so a step whose queries all came back empty is
+ * ambiguous: either the source is healthy-and-quiet, or the agent/mgr
+ * died and NOTHING is being reported. Only in that ambiguous case does
+ * this run one limit-1 lookup for ANY metric carrying the source's
+ * scoping resource attribute inside the same evaluation window:
+ *
+ *   - any step query returned data     → true (no extra query),
+ *   - probe finds any row              → true (quiet but alive),
+ *   - probe finds nothing              → false (total blackout),
+ *   - no scoping attribute to probe by → undefined (unknown; legacy
+ *     behavior downstream).
+ *
+ * `false` makes MetricMonitorCriteria refuse to TreatAsZero and makes
+ * MonitorResource hold status/incidents instead of reverting to the
+ * default status — a dead agent must never auto-resolve incidents.
+ */
+const checkTelemetrySourceReporting: (input: {
+  projectId: ObjectID;
+  startAndEndDate: InBetween<Date>;
+  sourceAttributes: Dictionary<string>;
+  stepResults: Array<AggregatedResult>;
+}) => Promise<boolean | undefined> = async (input: {
+  projectId: ObjectID;
+  startAndEndDate: InBetween<Date>;
+  sourceAttributes: Dictionary<string>;
+  stepResults: Array<AggregatedResult>;
+}): Promise<boolean | undefined> => {
+  const hasAnyData: boolean = input.stepResults.some(
+    (result: AggregatedResult) => {
+      return Boolean(result.data && result.data.length > 0);
+    },
+  );
+
+  if (hasAnyData) {
+    return true;
+  }
+
+  if (Object.keys(input.sourceAttributes).length === 0) {
+    return undefined;
+  }
+
+  try {
+    const anyMetricFromSource: Array<Metric> = await MetricService.findBy({
+      query: {
+        projectId: input.projectId,
+        time: input.startAndEndDate,
+        attributes: input.sourceAttributes,
+      } as Query<Metric>,
+      select: {
+        time: true,
+      },
+      limit: 1,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return anyMetricFromSource.length > 0;
+  } catch (err) {
+    logger.error("Telemetry source liveness probe failed", {
+      service: "workers",
+      projectId: input.projectId.toString(),
+    });
+    logger.error(err, {
+      service: "workers",
+      projectId: input.projectId.toString(),
+    });
+    // Probe failure must not freeze the monitor — fall back to legacy.
+    return undefined;
+  }
+};
+
+/**
  * Collect the union of attribute keys the user asked to group by
  * across every queryConfig on the monitor step. Per-series
  * alerting needs a consistent key set across queries so formula
@@ -1460,6 +1537,24 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
         })
       : undefined;
 
+  /*
+   * All-empty step results are ambiguous (quiet cluster vs dead agent);
+   * probe the cluster's scoping attribute so a collection blackout
+   * holds monitor state instead of auto-resolving via default status.
+   */
+  const isTelemetrySourceReporting: boolean | undefined =
+    await checkTelemetrySourceReporting({
+      projectId: data.projectId,
+      startAndEndDate: startAndEndDate,
+      sourceAttributes: kubernetesMonitorConfig.clusterIdentifier
+        ? {
+            "resource.k8s.cluster.name":
+              kubernetesMonitorConfig.clusterIdentifier,
+          }
+        : {},
+      stepResults: finalResult,
+    });
+
   return {
     projectId: data.projectId,
     metricViewConfig: kubernetesMonitorConfig.metricViewConfig,
@@ -1468,6 +1563,7 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     monitorId: data.monitorId,
     kubernetesResourceBreakdown: kubernetesResourceBreakdown,
     seriesBreakdown: seriesBreakdown,
+    isTelemetrySourceReporting: isTelemetrySourceReporting,
   };
 };
 
@@ -2281,6 +2377,24 @@ const monitorProxmox: MonitorProxmoxFunction = async (data: {
         })
       : undefined;
 
+  /*
+   * All-empty step results are ambiguous (quiet cluster vs dead agent);
+   * probe the cluster's scoping attribute so a collection blackout
+   * holds monitor state instead of auto-resolving via default status.
+   */
+  const isTelemetrySourceReporting: boolean | undefined =
+    await checkTelemetrySourceReporting({
+      projectId: data.projectId,
+      startAndEndDate: startAndEndDate,
+      sourceAttributes: proxmoxMonitorConfig.clusterIdentifier
+        ? {
+            "resource.proxmox.cluster.name":
+              proxmoxMonitorConfig.clusterIdentifier,
+          }
+        : {},
+      stepResults: finalResult,
+    });
+
   return {
     projectId: data.projectId,
     metricViewConfig: proxmoxMonitorConfig.metricViewConfig,
@@ -2289,6 +2403,7 @@ const monitorProxmox: MonitorProxmoxFunction = async (data: {
     proxmoxResourceBreakdown: proxmoxResourceBreakdown,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
+    isTelemetrySourceReporting: isTelemetrySourceReporting,
   };
 };
 
@@ -2765,6 +2880,24 @@ const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
         })
       : undefined;
 
+  /*
+   * All-empty step results are ambiguous (quiet cluster vs dead agent);
+   * probe the cluster's scoping attribute so a collection blackout
+   * holds monitor state instead of auto-resolving via default status.
+   */
+  const isTelemetrySourceReporting: boolean | undefined =
+    await checkTelemetrySourceReporting({
+      projectId: data.projectId,
+      startAndEndDate: startAndEndDate,
+      sourceAttributes: dockerSwarmMonitorConfig.clusterIdentifier
+        ? {
+            "resource.docker.swarm.cluster.name":
+              dockerSwarmMonitorConfig.clusterIdentifier,
+          }
+        : {},
+      stepResults: finalResult,
+    });
+
   return {
     projectId: data.projectId,
     metricViewConfig: dockerSwarmMonitorConfig.metricViewConfig,
@@ -2773,6 +2906,7 @@ const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     dockerSwarmResourceBreakdown: dockerSwarmResourceBreakdown,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
+    isTelemetrySourceReporting: isTelemetrySourceReporting,
   };
 };
 
@@ -3046,6 +3180,25 @@ const monitorCeph: MonitorCephFunction = async (data: {
         })
       : undefined;
 
+  /*
+   * ceph_health_detail series vanish when their check clears, so empty
+   * step results alone cannot distinguish "healthy" from "mgr/agent
+   * dead". Probe the cluster's own scoping attribute; false blocks the
+   * TreatAsZero recover filters and the default-status revert from
+   * auto-resolving incidents during a blackout.
+   */
+  const isTelemetrySourceReporting: boolean | undefined =
+    await checkTelemetrySourceReporting({
+      projectId: data.projectId,
+      startAndEndDate: startAndEndDate,
+      sourceAttributes: cephMonitorConfig.clusterIdentifier
+        ? {
+            "resource.ceph.cluster.name": cephMonitorConfig.clusterIdentifier,
+          }
+        : {},
+      stepResults: finalResult,
+    });
+
   return {
     projectId: data.projectId,
     metricViewConfig: cephMonitorConfig.metricViewConfig,
@@ -3054,6 +3207,7 @@ const monitorCeph: MonitorCephFunction = async (data: {
     cephResourceBreakdown: cephResourceBreakdown,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
+    isTelemetrySourceReporting: isTelemetrySourceReporting,
   };
 };
 

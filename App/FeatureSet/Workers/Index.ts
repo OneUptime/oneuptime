@@ -138,8 +138,9 @@ import "./Jobs/Metrics/ComputeRecordingRules";
 // Derived metrics from spans.
 import "./Jobs/Traces/ComputeTraceRecordingRules";
 
-// Kubernetes inventory cleanup.
+// Kubernetes inventory cleanup + owner-added notifications.
 import "./Jobs/Kubernetes/CleanupStaleResources";
+import "./Jobs/Kubernetes/SendOwnerAddedNotification";
 
 // Docker inventory cleanup + cached count refresh.
 import "./Jobs/Docker/CleanupStaleResources";
@@ -150,11 +151,13 @@ import "./Jobs/Podman/CleanupStaleResources";
 // Host disconnection sweeper.
 import "./Jobs/Host/CleanupStaleHosts";
 
-// Proxmox cluster disconnection sweeper + inventory cleanup.
+// Proxmox cluster disconnection sweeper + inventory cleanup + owner-added notifications.
 import "./Jobs/Proxmox/CleanupStaleResources";
+import "./Jobs/Proxmox/SendOwnerAddedNotification";
 
-// Ceph cluster disconnection sweeper + inventory cleanup.
+// Ceph cluster disconnection sweeper + inventory cleanup + owner-added notifications.
 import "./Jobs/Ceph/CleanupStaleResources";
+import "./Jobs/Ceph/SendOwnerAddedNotification";
 
 // Docker Swarm cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/DockerSwarm/CleanupStaleResources";

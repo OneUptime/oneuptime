@@ -580,6 +580,33 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     await this.addAlertNotificationSettings(userId, projectId);
     await this.addAlertEpisodeNotificationSettings(userId, projectId);
     await this.addIncidentEpisodeNotificationSettings(userId, projectId);
+    await this.addInfrastructureClusterOwnerNotificationSettings(
+      userId,
+      projectId,
+    );
+  }
+
+  public async addInfrastructureClusterOwnerNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_KUBERNETES_CLUSTER_OWNER_ADDED_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_PROXMOX_CLUSTER_OWNER_ADDED_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_CEPH_CLUSTER_OWNER_ADDED_NOTIFICATION,
+    );
   }
 
   private async addProbeOwnerNotificationSettings(

@@ -114,4 +114,19 @@ export default interface MetricMonitorResponse {
    * dimensionless "1" used by ratio metrics) still works.
    */
   nativeUnitsByMetricName?: Dictionary<string> | undefined;
+  /**
+   * Whether the telemetry source (Ceph/Kubernetes/Proxmox/Swarm cluster,
+   * host, fleet) reported ANY metric during the evaluation window.
+   * Stamped by fetchers that can cheaply probe source liveness; the
+   * probe only runs when every step query came back empty (data present
+   * anywhere implies true). `undefined` means "unknown" — legacy
+   * fetchers and monitor types without a deterministic source identity.
+   *
+   * `false` marks a total telemetry blackout. Downstream, absence of a
+   * series then carries no information: NoDataPolicy.TreatAsZero recover
+   * filters must not read it as 0 (MetricMonitorCriteria) and the
+   * no-criteria-met default-status fallback must hold monitor state
+   * instead of reverting and auto-resolving incidents (MonitorResource).
+   */
+  isTelemetrySourceReporting?: boolean | undefined;
 }

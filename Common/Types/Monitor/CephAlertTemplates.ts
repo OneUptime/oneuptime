@@ -56,6 +56,16 @@ export interface CephAlertTemplate {
  * monitor returns to Healthy when the series disappears.
  * `ceph_daemon_health_metrics{type,ceph_daemon}` follows the same pattern
  * per daemon.
+ *
+ * Blackout guard: "absence = healthy" holds ONLY while the cluster is
+ * otherwise reporting. When the agent or the active mgr dies, EVERY
+ * series disappears — the worker's monitorCeph then stamps
+ * `isTelemetrySourceReporting: false` on the response (liveness probe on
+ * `resource.ceph.cluster.name`), MetricMonitorCriteria refuses to apply
+ * TreatAsZero, and MonitorResource holds status/open incidents instead
+ * of reverting to the default status. No template may auto-resolve on a
+ * total telemetry blackout — see the contract test in
+ * Common/Tests/Types/Monitor/CephAlertTemplates.test.ts.
  */
 
 export function buildCephMonitorStep(args: {
@@ -226,7 +236,10 @@ export function buildCephOnlineCriteriaInstance(args: {
    * Health-detail series exist only while the check is active, so the
    * recover comparison (= 0) would otherwise see no data and never match.
    * TreatAsZero makes series absence count as 0 — the spec'd
-   * "Max > 0 fire / = 0 recover" semantics.
+   * "Max > 0 fire / = 0 recover" semantics. The evaluator only honors
+   * this while the cluster is still reporting SOME telemetry
+   * (isTelemetrySourceReporting !== false); a total blackout holds
+   * state instead of recovering.
    */
   treatNoDataAsZero?: boolean | undefined;
 }): MonitorCriteriaInstance {

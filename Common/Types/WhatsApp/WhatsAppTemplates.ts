@@ -45,6 +45,9 @@ type TemplateIdsMap = {
   readonly OnCallUserNoLongerActiveNotification: "oneuptime_oncall_user_no_longer_active_notification";
   readonly AIAgentStatusChangedOwnerNotification: "oneuptime_ai_agent_status_changed_owner_notification";
   readonly AIAgentOwnerAddedNotification: "oneuptime_ai_agent_owner_added_notification";
+  readonly KubernetesClusterOwnerAddedNotification: "oneuptime_kubernetes_cluster_owner_added_notification";
+  readonly ProxmoxClusterOwnerAddedNotification: "oneuptime_proxmox_cluster_owner_added_notification";
+  readonly CephClusterOwnerAddedNotification: "oneuptime_ceph_cluster_owner_added_notification";
 };
 
 const templateIds: TemplateIdsMap = {
@@ -127,6 +130,12 @@ const templateIds: TemplateIdsMap = {
   AIAgentStatusChangedOwnerNotification:
     "oneuptime_ai_agent_status_changed_owner_notification",
   AIAgentOwnerAddedNotification: "oneuptime_ai_agent_owner_added_notification",
+  KubernetesClusterOwnerAddedNotification:
+    "oneuptime_kubernetes_cluster_owner_added_notification",
+  ProxmoxClusterOwnerAddedNotification:
+    "oneuptime_proxmox_cluster_owner_added_notification",
+  CephClusterOwnerAddedNotification:
+    "oneuptime_ceph_cluster_owner_added_notification",
 } as const;
 
 export const WhatsAppTemplateIds: TemplateIdsMap = templateIds;
@@ -189,6 +198,9 @@ export const WhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition = {
   [WhatsAppTemplateIds.OnCallUserNoLongerActiveNotification]: `You are no longer on-call for policy {{on_call_policy_name}} on schedule {{schedule_name}}. Review your schedule using {{schedule_link}} on the OneUptime dashboard to stay informed.`,
   [WhatsAppTemplateIds.AIAgentStatusChangedOwnerNotification]: `AI Agent {{ai_agent_name}} status is {{ai_agent_status}}. Review the AI agent using {{ai_agent_link}} on the OneUptime dashboard for specifics.`,
   [WhatsAppTemplateIds.AIAgentOwnerAddedNotification]: `You have been added as an owner of AI Agent {{ai_agent_name}}. Manage the AI agent using {{ai_agent_link}} on the OneUptime dashboard to take action.`,
+  [WhatsAppTemplateIds.KubernetesClusterOwnerAddedNotification]: `You have been added as an owner of Kubernetes cluster {{cluster_name}}. Manage the cluster using {{cluster_link}} on the OneUptime dashboard to take action.`,
+  [WhatsAppTemplateIds.ProxmoxClusterOwnerAddedNotification]: `You have been added as an owner of Proxmox cluster {{cluster_name}}. Manage the cluster using {{cluster_link}} on the OneUptime dashboard to take action.`,
+  [WhatsAppTemplateIds.CephClusterOwnerAddedNotification]: `You have been added as an owner of Ceph cluster {{cluster_name}}. Manage the cluster using {{cluster_link}} on the OneUptime dashboard to take action.`,
 };
 
 export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
@@ -238,6 +250,9 @@ export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
   [WhatsAppTemplateIds.OnCallUserNoLongerActiveNotification]: "en",
   [WhatsAppTemplateIds.AIAgentStatusChangedOwnerNotification]: "en",
   [WhatsAppTemplateIds.AIAgentOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.KubernetesClusterOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.ProxmoxClusterOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.CephClusterOwnerAddedNotification]: "en",
 };
 
 // Authentication templates that require OTP button components
