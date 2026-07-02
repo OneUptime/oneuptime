@@ -139,7 +139,7 @@ For numeric metrics (CPU, memory, disk, swap, CPU IO wait, load average):
 - **Greater Than or Equal To** — Value is at or above a threshold
 - **Less Than or Equal To** — Value is at or below a threshold
 
-**Evaluate this criteria over a period of time** is a separate checkbox on the criteria form rather than a filter condition. Turn it on to compare an aggregate — chosen under **Evaluate** (Average, Sum, Maximum Value, Minimum Value, All Values, Any Value) over the window set by **For the last (in minutes)** — instead of the value from the latest check.
+**Evaluate this criteria over a period of time** is a separate checkbox on the criteria form rather than a filter condition. Turn it on to compare an aggregate — chosen under **Evaluate** (Average, Sum, Maximum Value, Minimum Value, All Values, Any Value) over the window set by **For the last (in minutes)** — instead of the value from the latest check. **All Values** and the aggregates (**Average/Sum/Maximum/Minimum**) only evaluate once the window is actually covered by data, so the criterion will not fire on a single result (a brand-new or just-restarted monitor waits until it has collected enough of the window). **Any Value** is the exception — a single matching result is enough. When the window has no data the criterion does not fire by default — configurable via `onNoDataPolicy` (Terraform/API).
 
 For process checks:
 

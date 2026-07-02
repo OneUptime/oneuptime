@@ -79,7 +79,7 @@ For **Total Connection Time (DNS + TCP)**, **Port DNS Lookup Time**, and **Port 
 - **Greater Than or Equal To** — Response time is at or above a threshold
 - **Less Than or Equal To** — Response time is at or below a threshold
 
-**Evaluate this criteria over a period of time** is a separate checkbox on the criteria form rather than a filter condition. Turn it on to compare an aggregate — chosen under **Evaluate** (Average, Sum, Maximum Value, Minimum Value, All Values, Any Value) over the window set by **For the last (in minutes)** — instead of the value from the latest check.
+**Evaluate this criteria over a period of time** is a separate checkbox on the criteria form rather than a filter condition. Turn it on to compare an aggregate — chosen under **Evaluate** (Average, Sum, Maximum Value, Minimum Value, All Values, Any Value) over the window set by **For the last (in minutes)** — instead of the value from the latest check. **All Values** and the aggregates (**Average/Sum/Maximum/Minimum**) only evaluate once the window is actually covered by data, so the criterion will not fire on a single result (a brand-new or just-restarted monitor waits until it has collected enough of the window). **Any Value** is the exception — a single matching result is enough. When the window has no data the criterion does not fire by default — configurable via `onNoDataPolicy` (Terraform/API).
 
 DNS lookup criteria have no value to evaluate when the target is already an IP address. Use the total or TCP connection time for criteria that must work with both hostnames and IP addresses.
 

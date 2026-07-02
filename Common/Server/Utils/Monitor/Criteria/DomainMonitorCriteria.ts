@@ -8,14 +8,15 @@ import {
 import DomainMonitorResponse from "../../../../Types/Monitor/DomainMonitor/DomainMonitorResponse";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import EvaluateOverTime from "./EvaluateOverTime";
-import logger from "../../Logger";
+import EvaluateOverTime, { EvaluateOverTimeResult } from "./EvaluateOverTime";
 
 export default class DomainMonitorCriteria {
   @CaptureSpan()
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;
+    monitoringInterval?: string | undefined;
+    overTimeContext?: { notMetReason?: string } | undefined;
   }): Promise<string | null> {
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
@@ -33,24 +34,27 @@ export default class DomainMonitorCriteria {
       input.criteriaFilter.evaluateOverTime &&
       input.criteriaFilter.evaluateOverTimeOptions
     ) {
-      try {
-        overTimeValue = await EvaluateOverTime.getValueOverTime({
+      const overTimeDecision: EvaluateOverTimeResult =
+        await EvaluateOverTime.resolveFilterOverTime({
           projectId: dataToProcess.projectId,
           monitorId: input.dataToProcess.monitorId!,
           evaluateOverTimeOptions: input.criteriaFilter.evaluateOverTimeOptions,
           metricType: input.criteriaFilter.checkOn,
+          monitoringInterval: input.monitoringInterval,
         });
 
-        if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
-          overTimeValue = undefined;
+      if (overTimeDecision.decision === "not-met") {
+        if (input.overTimeContext) {
+          input.overTimeContext.notMetReason = overTimeDecision.reason;
         }
-      } catch (err) {
-        logger.error(
-          `Error in getting over time value for ${input.criteriaFilter.checkOn}`,
-        );
-        logger.error(err);
-        overTimeValue = undefined;
+        return null;
       }
+
+      if (overTimeDecision.decision === "trigger") {
+        return overTimeDecision.reason;
+      }
+
+      overTimeValue = overTimeDecision.value;
     }
 
     /*
