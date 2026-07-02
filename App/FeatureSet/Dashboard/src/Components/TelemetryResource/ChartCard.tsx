@@ -1,6 +1,9 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Route from "Common/Types/API/Route";
+import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import AppLink from "../AppLink/AppLink";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
@@ -50,6 +53,12 @@ export interface ChartCardProps {
   windowStart: Date | null;
   windowEnd: Date | null;
   syncId: string;
+  // Small muted line under the title qualifying what the chart measures.
+  sublabel?: string | undefined;
+  // Longer explanation shown behind an info icon next to the title.
+  tooltip?: string | undefined;
+  // Optional link rendered under the chart, e.g. to a related page.
+  footerLink?: { title: string; to: Route } | undefined;
   yLegend?: string | undefined;
   yMax?: number | "auto" | undefined;
   yFormatter?: ((value: number) => string) | undefined;
@@ -64,17 +73,47 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
     colorClasses[props.iconColor];
 
   const header: ReactElement = (
-    <div className="flex items-center justify-between mb-3">
-      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-        {props.title}
-      </span>
+    <div className="flex items-start justify-between mb-3">
+      <div className="min-w-0">
+        <div className="flex items-center gap-1">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            {props.title}
+          </span>
+          {props.tooltip && (
+            <Tooltip text={props.tooltip}>
+              <span className="flex items-center">
+                <Icon
+                  icon={IconProp.Info}
+                  className="h-3.5 w-3.5 cursor-help text-gray-300 hover:text-gray-400"
+                />
+              </span>
+            </Tooltip>
+          )}
+        </div>
+        {props.sublabel && (
+          <p className="mt-0.5 truncate text-[11px] text-gray-400">
+            {props.sublabel}
+          </p>
+        )}
+      </div>
       <div
-        className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
+        className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
       >
         <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
       </div>
     </div>
   );
+
+  const footerLink: ReactElement | null = props.footerLink ? (
+    <div className="mt-2 text-right">
+      <AppLink
+        to={props.footerLink.to}
+        className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
+      >
+        {`${props.footerLink.title} →`}
+      </AppLink>
+    </div>
+  ) : null;
 
   const hasData: boolean = props.series.some((s: SeriesPoint): boolean => {
     return s.data.length > 0;
@@ -96,6 +135,7 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
         <div className="flex h-44 items-center justify-center rounded-md bg-gray-50 text-sm text-gray-400">
           No data in this time range
         </div>
+        {footerLink}
       </div>
     );
   }
@@ -140,6 +180,7 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
         heightInPx={176}
         showLegend={props.showLegend ?? false}
       />
+      {footerLink}
     </div>
   );
 };

@@ -523,6 +523,7 @@ const DocsNav: NavGroup[] = [
     title: "Telemetry",
     links: [
       { title: "OpenTelemetry", url: "/docs/telemetry/open-telemetry" },
+      { title: "Exceptions", url: "/docs/telemetry/exceptions" },
       {
         title: "AI / LLM Observability",
         url: "/docs/telemetry/ai-llm-observability",

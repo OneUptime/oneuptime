@@ -150,7 +150,8 @@ curl -L -o opentelemetry-javaagent.jar \\
 dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol
 dotnet add package OpenTelemetry.Extensions.Hosting
 dotnet add package OpenTelemetry.Instrumentation.AspNetCore
-dotnet add package OpenTelemetry.Instrumentation.Http`,
+dotnet add package OpenTelemetry.Instrumentation.Http
+dotnet add package OpenTelemetry.Instrumentation.Runtime`,
         language: "bash",
       };
     case "rust":
@@ -412,6 +413,7 @@ builder.Services.AddOpenTelemetry()
     .WithMetrics(metrics => metrics
         .SetResourceBuilder(resourceBuilder)
         .AddAspNetCoreInstrumentation()
+        .AddRuntimeInstrumentation() // CPU, memory, GC, exception counters
         .AddOtlpExporter(options => {
             options.Endpoint = new Uri("<YOUR_ONEUPTIME_URL>");
             options.Headers = "x-oneuptime-token=<YOUR_ONEUPTIME_TOKEN>";
@@ -702,6 +704,141 @@ registerInstrumentations({
 // import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
 // ...`,
         language: "typescript",
+      };
+  }
+}
+
+/*
+ * How to record a caught exception so it shows up on the Exceptions page.
+ * Auto-instrumentations record unhandled exceptions; handled ones must be
+ * recorded explicitly on the active span (or logged with the exception
+ * object). Runtime exception counter metrics never create entries.
+ */
+function getExceptionRecordingSnippet(lang: Language): {
+  code: string;
+  language: string;
+} {
+  switch (lang) {
+    case "dotnet":
+      return {
+        code: `using OpenTelemetry.Trace;
+
+try
+{
+    ProcessOrder();
+}
+catch (Exception ex)
+{
+    // Record on the active span → shows up on the Exceptions page
+    Activity.Current?.RecordException(ex);
+
+    // Or log it — pass the exception object, not just a message,
+    // so the log carries exception.type/message/stacktrace.
+    logger.LogError(ex, "Failed to process order");
+
+    throw;
+}`,
+        language: "csharp",
+      };
+    case "java":
+      return {
+        code: `import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
+
+Span span = Span.current();
+try {
+    processOrder();
+} catch (Exception e) {
+    // Record on the active span → shows up on the Exceptions page
+    span.recordException(e);
+    span.setStatus(StatusCode.ERROR);
+    throw e;
+}`,
+        language: "java",
+      };
+    case "python":
+      return {
+        code: `from opentelemetry import trace
+
+try:
+    process_order()
+except Exception as exc:
+    # Record on the active span → shows up on the Exceptions page
+    trace.get_current_span().record_exception(exc)
+    # Or: logging.exception(...) with the logging instrumentation enabled
+    raise`,
+        language: "python",
+      };
+    case "go":
+      return {
+        code: `import (
+    "go.opentelemetry.io/otel/codes"
+    "go.opentelemetry.io/otel/trace"
+)
+
+span := trace.SpanFromContext(ctx)
+if err := processOrder(ctx); err != nil {
+    // Record on the active span → shows up on the Exceptions page
+    span.RecordError(err)
+    span.SetStatus(codes.Error, err.Error())
+    return err
+}`,
+        language: "go",
+      };
+    case "ruby":
+      return {
+        code: `span = OpenTelemetry::Trace.current_span
+begin
+  process_order
+rescue StandardError => e
+  # Record on the active span → shows up on the Exceptions page
+  span.record_exception(e)
+  span.status = OpenTelemetry::Trace::Status.error(e.message)
+  raise
+end`,
+        language: "ruby",
+      };
+    case "php":
+      return {
+        code: `use OpenTelemetry\\API\\Trace\\Span;
+use OpenTelemetry\\API\\Trace\\StatusCode;
+
+$span = Span::getCurrent();
+try {
+    processOrder();
+} catch (\\Throwable $e) {
+    // Record on the active span → shows up on the Exceptions page
+    $span->recordException($e);
+    $span->setStatus(StatusCode::STATUS_ERROR);
+    throw $e;
+}`,
+        language: "php",
+      };
+    case "react":
+    case "angular":
+    case "node":
+      return {
+        code: `import { trace, SpanStatusCode } from "@opentelemetry/api";
+
+try {
+  await processOrder();
+} catch (err) {
+  // Record on the active span → shows up on the Exceptions page
+  const span = trace.getActiveSpan();
+  span?.recordException(err);
+  span?.setStatus({ code: SpanStatusCode.ERROR });
+  throw err;
+}`,
+        language: "javascript",
+      };
+    default:
+      return {
+        code: `# Record caught exceptions on the active span using your SDK's
+# recordException / record_exception API, or log them with the
+# exception object attached so the log carries the OpenTelemetry
+# exception.type / exception.message / exception.stacktrace
+# attributes. Setting span status to Error alone is not enough.`,
+        language: "bash",
       };
   }
 }
@@ -1123,6 +1260,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
   const showLogCollectors: boolean = telemetryType === "logs";
   const isProfiles: boolean = telemetryType === "profiles";
+  const isExceptions: boolean = telemetryType === "exceptions";
 
   // Compute OTLP URL and host
   const httpProtocol: string =
@@ -1756,9 +1894,22 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
               true,
             )}
 
-          {!isProfiles &&
+          {isExceptions &&
             renderStep(
               4,
+              "Record Exceptions in Your Code",
+              "Exceptions appear on the Exceptions page only when they are recorded as telemetry. Auto-instrumentation records unhandled exceptions; exceptions you catch must be recorded on the active span or logged with the exception object. Runtime exception counter metrics count every thrown exception (including handled ones) but never create entries here.",
+              <CodeBlock
+                code={getExceptionRecordingSnippet(selectedLanguage).code}
+                language={
+                  getExceptionRecordingSnippet(selectedLanguage).language
+                }
+              />,
+            )}
+
+          {!isProfiles &&
+            renderStep(
+              isExceptions ? 5 : 4,
               "Set Environment Variables (Alternative)",
               "You can also configure OpenTelemetry via environment variables instead of code.",
               <CodeBlock
@@ -1775,7 +1926,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
           {!isProfiles &&
             renderStep(
-              5,
+              isExceptions ? 6 : 5,
               "Optional — Auto-tag this service with project labels",
               "Promote any resource attribute prefixed `oneuptime.label.` into a project label and attach it to this service. Use it to tag services with team, environment, region, or any other dimension you organize by.",
               <CodeBlock

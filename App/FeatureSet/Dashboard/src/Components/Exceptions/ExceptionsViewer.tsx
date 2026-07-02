@@ -1259,6 +1259,20 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         void fetchHistogram();
       }}
       emptyMessage="No exceptions found"
+      emptyHint={
+        <span>
+          Exceptions show up here only when your application records them as
+          telemetry — on spans (e.g.{" "}
+          <code className="text-gray-500">Activity.RecordException</code> in
+          .NET) or on error logs that include the exception object. Runtime
+          exception counters (like the “Exceptions thrown” chart on the service
+          overview) count every thrown exception, including handled ones, and do
+          not create entries here. Also note this list shows{" "}
+          {status === "unresolved"
+            ? "unresolved exceptions only — switch the status filter to “All” to include resolved and archived ones."
+            : "exceptions last seen in the selected time range."}
+        </span>
+      }
       itemLabel="exceptions"
       renderRow={(exception: TelemetryException): ReactElement => {
         const service: Service | undefined = exception.primaryEntityId

@@ -353,6 +353,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         title="Requests"
         icon={IconProp.Workflow}
         iconColor="sky"
+        sublabel="spans and errored spans"
         series={
           [
             { seriesName: "Requests", data: m?.countSeries ?? [] },
@@ -369,6 +370,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         title="Latency (p95)"
         icon={IconProp.Clock}
         iconColor="amber"
+        sublabel="span duration"
         series={
           [
             { seriesName: "p95", data: m?.p95Series ?? [] },
@@ -389,6 +391,16 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title={chart.def.title}
             icon={chart.def.icon}
             iconColor={chart.def.iconColor}
+            sublabel={chart.def.sublabel}
+            tooltip={chart.def.tooltip}
+            footerLink={
+              chart.def.relatedLink
+                ? {
+                    title: chart.def.relatedLink.title,
+                    to: populate(chart.def.relatedLink.page),
+                  }
+                : undefined
+            }
             series={
               [
                 { seriesName: chart.def.title, data: chart.series },
@@ -429,7 +441,8 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     },
     {
       title: "Exceptions",
-      description: "Captured exceptions, grouped by fingerprint",
+      description:
+        "Exceptions recorded on spans and logs, grouped by fingerprint",
       to: populate(PageMap.SERVICE_VIEW_EXCEPTIONS),
       icon: IconProp.Alert,
     },

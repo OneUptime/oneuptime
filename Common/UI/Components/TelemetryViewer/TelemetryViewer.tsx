@@ -29,6 +29,12 @@ export interface TelemetryViewerProps<T> {
   error?: string | undefined;
   onRefresh?: (() => void) | undefined;
   emptyMessage?: string | undefined;
+  /*
+   * Optional longer explanation rendered under the empty state, e.g. what
+   * has to happen for items to show up here at all. Falls back to the
+   * generic "adjust filters" hint when omitted.
+   */
+  emptyHint?: ReactNode | undefined;
 
   // -- Layout --
   /** Render one item row in the main list. */
@@ -278,6 +284,11 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
                   <p className="text-xs text-gray-400">
                     Try adjusting filters or time range.
                   </p>
+                  {props.emptyHint && (
+                    <div className="mt-1 max-w-lg text-xs leading-relaxed text-gray-400">
+                      {props.emptyHint}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <ul className="divide-y divide-gray-100">

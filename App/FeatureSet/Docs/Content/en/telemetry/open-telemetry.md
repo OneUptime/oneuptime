@@ -108,3 +108,5 @@ There are two detection paths:
 2. **Stack traces in the log body.** For error/fatal logs without those attributes — for example raw stdout, syslog, or journald — OneUptime scans the body for a stack trace (JavaScript, Python, Java, Go, Ruby, C#/.NET, PHP) and extracts the type, message, and frames. Multi-line traces must arrive as a single log record; if you collect plain-text logs, enable multiline recombination at the collector (see the [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector) guide).
 
 This is on by default. On self-hosted OneUptime you can disable it by setting `TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED=false` on the ingest service.
+
+For recording exceptions on spans, and for why runtime exception counter metrics (like .NET's `dotnet.exceptions`) never create entries on the Exceptions page, see the [Exceptions guide](/docs/telemetry/exceptions).

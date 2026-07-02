@@ -2,6 +2,7 @@ import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import TechStack from "Common/Types/Service/TechStack";
+import PageMap from "../../Utils/PageMap";
 import { ChartCardColor } from "./ChartCard";
 import {
   fetchMetricSeries,
@@ -177,6 +178,18 @@ export interface RuntimeChartDef {
   aggregationType: AggregationType;
   unit: RuntimeMetricUnit;
   sublabel: string;
+  /*
+   * Longer plain-language explanation of what the metric measures and how
+   * it can differ from other views of "the same" number (recorded
+   * exceptions, cloud-provider memory metrics, ...). Rendered behind an
+   * info icon on the chart card.
+   */
+  tooltip?: string | undefined;
+  /*
+   * Related page on this service's view, rendered as a link under the
+   * chart (the route is populated with the service id by the page).
+   */
+  relatedLink?: { title: string; page: PageMap } | undefined;
   candidates: Array<RuntimeMetricCandidate>;
   /*
    * The metric is a cumulative monotonic counter (the SDK default
@@ -254,7 +267,13 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       iconColor: "violet",
       aggregationType: AggregationType.Avg,
       unit: "bytes",
-      sublabel: "process memory",
+      sublabel: "instrumented process memory",
+      tooltip:
+        "Memory working set of the OpenTelemetry-instrumented .NET process, " +
+        "as reported by its own SDK, averaged across reporting instances. " +
+        "Platform metrics like Azure App Service's “Memory working set” " +
+        "cover the whole app sandbox — every process on every instance — so " +
+        "they are usually much larger than this per-process value.",
       candidates: [
         { metricName: "dotnet.process.memory.working_set" },
         { metricName: "process.memory.usage" },
@@ -288,12 +307,23 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
     },
     {
       key: "dotnet-exceptions",
-      title: "Exceptions",
+      title: "Exceptions thrown",
       icon: IconProp.Alert,
       iconColor: "rose",
       aggregationType: AggregationType.Max,
       unit: "count",
-      sublabel: "thrown, selected range",
+      sublabel: "runtime counter, incl. handled",
+      tooltip:
+        "Every exception thrown inside the .NET runtime, including ones " +
+        "caught and handled by your code, libraries, or the framework. " +
+        "Sourced from the runtime's exception counter metric. These are " +
+        "not the same as captured exceptions: the Exceptions page only " +
+        "lists exceptions your app records on spans (RecordException) or " +
+        "on error logs that include the exception object.",
+      relatedLink: {
+        title: "View captured exceptions",
+        page: PageMap.SERVICE_VIEW_EXCEPTIONS,
+      },
       cumulativeCounter: true,
       candidates: [
         { metricName: "dotnet.exceptions" },
@@ -441,7 +471,12 @@ const GENERIC_RUNTIME_CHARTS: Array<RuntimeChartDef> = [
     iconColor: "violet",
     aggregationType: AggregationType.Avg,
     unit: "bytes",
-    sublabel: "resident memory",
+    sublabel: "instrumented process, resident",
+    tooltip:
+      "Resident memory of the OpenTelemetry-instrumented process, as " +
+      "reported by its own SDK, averaged across reporting instances. " +
+      "Cloud-provider memory metrics usually cover the whole host, " +
+      "container, or app sandbox, so they can be much larger.",
     candidates: [
       { metricName: "process.memory.usage" },
       { metricName: "process.runtime.memory.usage" },
