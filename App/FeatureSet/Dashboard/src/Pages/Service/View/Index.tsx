@@ -503,6 +503,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <ResourceActivityCards
           modelId={modelId}
           resourceQueryKey="services"
+          refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
           incidentsRoute={RouteUtil.populateRouteParams(
             RouteMap[PageMap.SERVICE_VIEW_INCIDENTS] as Route,
             { modelId: modelId },

@@ -1471,6 +1471,7 @@ const DockerHostOverview: FunctionComponent<
       <ResourceActivityCards
         modelId={modelId}
         resourceQueryKey="dockerHosts"
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
         incidentsRoute={RouteUtil.populateRouteParams(
           RouteMap[PageMap.DOCKER_HOST_VIEW_INCIDENTS] as Route,
           { modelId: modelId },
