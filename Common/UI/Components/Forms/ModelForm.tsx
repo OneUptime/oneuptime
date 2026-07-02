@@ -249,6 +249,14 @@ const ModelForm: <TBaseModel extends BaseModel>(
       if (keys.length > 0) {
         const key: string = keys[0] as string;
 
+        /*
+         * Two fields may point at the same model column but represent
+         * different form inputs via overrideFieldKey (e.g. the invite form
+         * collects both "name" and "email" against the `user` column), so
+         * dedupe on the effective form key, not the column key alone.
+         */
+        const effectiveFieldKey: string = field.overrideFieldKey || key;
+
         const hasPermission: boolean = hasPermissionOnField(key);
 
         if (
@@ -266,8 +274,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
             }
             // check if field already exists. If it does, don't add it.
             const iKeys: Array<string> = Object.keys(fieldObj);
-            const iFieldKey: string = iKeys[0] as string;
-            return iFieldKey === key;
+            const iFieldKey: string =
+              i.overrideFieldKey || (iKeys[0] as string);
+            return iFieldKey === effectiveFieldKey;
           }).length === 0
         ) {
           // check if has maxLength
