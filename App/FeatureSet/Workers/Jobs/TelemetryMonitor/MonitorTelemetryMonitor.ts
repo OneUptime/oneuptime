@@ -1737,6 +1737,30 @@ const monitorDocker: MonitorDockerFunction = async (data: {
         })
       : undefined;
 
+  /*
+   * All-empty step results are ambiguous (quiet containers vs dead
+   * agent); probe the monitor's own scoping attributes so a collection
+   * blackout holds monitor state instead of auto-resolving via default
+   * status. Runtime is always stamped on Docker batches, so scope by it
+   * plus the host when one is configured.
+   */
+  const dockerSourceAttributes: Dictionary<string> = {
+    "resource.container.runtime": "docker",
+  };
+
+  if (dockerMonitorConfig.hostIdentifier) {
+    dockerSourceAttributes["resource.host.name"] =
+      dockerMonitorConfig.hostIdentifier;
+  }
+
+  const isTelemetrySourceReporting: boolean | undefined =
+    await checkTelemetrySourceReporting({
+      projectId: data.projectId,
+      startAndEndDate: startAndEndDate,
+      sourceAttributes: dockerSourceAttributes,
+      stepResults: finalResult,
+    });
+
   return {
     projectId: data.projectId,
     metricViewConfig: dockerMonitorConfig.metricViewConfig,
@@ -1744,6 +1768,7 @@ const monitorDocker: MonitorDockerFunction = async (data: {
     metricResult: resultsWithFormulas,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
+    isTelemetrySourceReporting: isTelemetrySourceReporting,
   };
 };
 
@@ -1904,6 +1929,23 @@ const monitorHost: MonitorHostFunction = async (data: {
         })
       : undefined;
 
+  /*
+   * All-empty step results are ambiguous (quiet host vs dead agent);
+   * probe the host's scoping attribute so a collection blackout holds
+   * monitor state instead of auto-resolving via default status.
+   */
+  const isTelemetrySourceReporting: boolean | undefined =
+    await checkTelemetrySourceReporting({
+      projectId: data.projectId,
+      startAndEndDate: startAndEndDate,
+      sourceAttributes: hostMonitorConfig.hostIdentifier
+        ? {
+            "resource.host.name": hostMonitorConfig.hostIdentifier,
+          }
+        : {},
+      stepResults: finalResult,
+    });
+
   return {
     projectId: data.projectId,
     metricViewConfig: hostMonitorConfig.metricViewConfig,
@@ -1911,6 +1953,7 @@ const monitorHost: MonitorHostFunction = async (data: {
     metricResult: resultsWithFormulas,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
+    isTelemetrySourceReporting: isTelemetrySourceReporting,
   };
 };
 
@@ -2084,6 +2127,30 @@ const monitorPodman: MonitorPodmanFunction = async (data: {
         })
       : undefined;
 
+  /*
+   * All-empty step results are ambiguous (quiet containers vs dead
+   * agent); probe the monitor's own scoping attributes so a collection
+   * blackout holds monitor state instead of auto-resolving via default
+   * status. Runtime is always stamped on Podman batches, so scope by it
+   * plus the host when one is configured.
+   */
+  const podmanSourceAttributes: Dictionary<string> = {
+    "resource.container.runtime": "podman",
+  };
+
+  if (podmanMonitorConfig.hostIdentifier) {
+    podmanSourceAttributes["resource.host.name"] =
+      podmanMonitorConfig.hostIdentifier;
+  }
+
+  const isTelemetrySourceReporting: boolean | undefined =
+    await checkTelemetrySourceReporting({
+      projectId: data.projectId,
+      startAndEndDate: startAndEndDate,
+      sourceAttributes: podmanSourceAttributes,
+      stepResults: finalResult,
+    });
+
   return {
     projectId: data.projectId,
     metricViewConfig: podmanMonitorConfig.metricViewConfig,
@@ -2091,6 +2158,7 @@ const monitorPodman: MonitorPodmanFunction = async (data: {
     metricResult: resultsWithFormulas,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
+    isTelemetrySourceReporting: isTelemetrySourceReporting,
   };
 };
 
@@ -2587,6 +2655,23 @@ const monitorIoT: MonitorIoTFunction = async (data: {
         })
       : undefined;
 
+  /*
+   * All-empty step results are ambiguous (quiet fleet vs dead gateway);
+   * probe the fleet's scoping attribute so a collection blackout holds
+   * monitor state instead of auto-resolving via default status.
+   */
+  const isTelemetrySourceReporting: boolean | undefined =
+    await checkTelemetrySourceReporting({
+      projectId: data.projectId,
+      startAndEndDate: startAndEndDate,
+      sourceAttributes: iotMonitorConfig.fleetIdentifier
+        ? {
+            "resource.iot.fleet.name": iotMonitorConfig.fleetIdentifier,
+          }
+        : {},
+      stepResults: finalResult,
+    });
+
   return {
     projectId: data.projectId,
     metricViewConfig: iotMonitorConfig.metricViewConfig,
@@ -2594,6 +2679,7 @@ const monitorIoT: MonitorIoTFunction = async (data: {
     metricResult: resultsWithFormulas,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
+    isTelemetrySourceReporting: isTelemetrySourceReporting,
   };
 };
 
