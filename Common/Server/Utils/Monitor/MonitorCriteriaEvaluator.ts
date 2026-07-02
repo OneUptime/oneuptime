@@ -2359,10 +2359,7 @@ ${contextBlock}
        * count (deployments are ranked by size, not by mismatch), so a
        * per-workload unavailable claim would be misleading.
        */
-      if (
-        topResource.workloadName &&
-        metricName !== "k8s.deployment.desired"
-      ) {
+      if (topResource.workloadName && metricName !== "k8s.deployment.desired") {
         lines.push(
           `${topResource.workloadType || "Deployment"} \`${topResource.workloadName}\` has **${topResource.metricValue}** unavailable replica(s).`,
         );

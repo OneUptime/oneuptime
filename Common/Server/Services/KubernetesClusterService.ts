@@ -1324,7 +1324,13 @@ export class Service extends DatabaseService<Model> {
           projectId: data.projectId,
           kubernetesClusterId: data.kubernetesClusterId,
           kind: data.kind,
-          namespaceKey: data.namespace || "",
+          /*
+           * Only pin the namespace when the caller knows it. Callers that
+           * cannot resolve the namespace (e.g. the workload's inventory
+           * row is already deleted) would otherwise filter on "" and
+           * match only cluster-scoped rows, hiding the workload's events.
+           */
+          ...(data.namespace ? { namespaceKey: data.namespace } : {}),
           name: data.name,
           occurredAt: new InBetween<Date>(data.startDate, data.endDate),
         },
