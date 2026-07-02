@@ -141,8 +141,7 @@ export default class MetricMonitorCriteria {
           seriesLabels: {},
           projectId: metricResponse.projectId,
           nativeUnitsByMetricName,
-          isTelemetrySourceReporting:
-            metricResponse.isTelemetrySourceReporting,
+          isTelemetrySourceReporting: metricResponse.isTelemetrySourceReporting,
         });
       return [result];
     }
@@ -158,8 +157,7 @@ export default class MetricMonitorCriteria {
           seriesLabels: series.labels,
           projectId: metricResponse.projectId,
           nativeUnitsByMetricName,
-          isTelemetrySourceReporting:
-            metricResponse.isTelemetrySourceReporting,
+          isTelemetrySourceReporting: metricResponse.isTelemetrySourceReporting,
         });
       }),
     );
