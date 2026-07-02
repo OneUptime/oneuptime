@@ -268,21 +268,16 @@ const KubernetesWorkloadTimelineTab: FunctionComponent<ComponentProps> = (
       key: "source",
       getElement: (item: TimelineItemRow): ReactElement => {
         if (item.source === "SpecChange") {
-          return (
-            <StatusBadge text="Spec change" type={StatusBadgeType.Info} />
-          );
+          return <StatusBadge text="Spec change" type={StatusBadgeType.Info} />;
         }
         if (item.source === "Deleted") {
           return <StatusBadge text="Deleted" type={StatusBadgeType.Danger} />;
         }
-        const isWarning: boolean =
-          item.eventType.toLowerCase() === "warning";
+        const isWarning: boolean = item.eventType.toLowerCase() === "warning";
         return (
           <StatusBadge
             text={isWarning ? "Warning event" : "Event"}
-            type={
-              isWarning ? StatusBadgeType.Warning : StatusBadgeType.Success
-            }
+            type={isWarning ? StatusBadgeType.Warning : StatusBadgeType.Success}
           />
         );
       },

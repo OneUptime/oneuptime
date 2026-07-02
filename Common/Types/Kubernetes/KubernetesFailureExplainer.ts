@@ -149,9 +149,7 @@ function getAllContainerStatuses(
   return entries;
 }
 
-function getAllContainerSpecs(
-  spec: JSONObject | undefined,
-): Array<JSONObject> {
+function getAllContainerSpecs(spec: JSONObject | undefined): Array<JSONObject> {
   if (!spec) {
     return [];
   }
@@ -351,9 +349,7 @@ function explainOOMKilled(
     }
 
     const containerName: string = getContainerName(entry, index);
-    const rawName: string | null = toStringValue(
-      entry.containerStatus["name"],
-    );
+    const rawName: string | null = toStringValue(entry.containerStatus["name"]);
     const containerSpec: JSONObject | null = rawName
       ? getContainerSpecByName(input.spec, rawName)
       : null;
@@ -414,14 +410,16 @@ function explainImagePullFailure(
     const waitingReason: string | null = waiting
       ? toStringValue(waiting["reason"])
       : null;
-    if (!waiting || !waitingReason || !IMAGE_PULL_REASONS.includes(waitingReason)) {
+    if (
+      !waiting ||
+      !waitingReason ||
+      !IMAGE_PULL_REASONS.includes(waitingReason)
+    ) {
       return;
     }
 
     const containerName: string = getContainerName(entry, index);
-    const rawName: string | null = toStringValue(
-      entry.containerStatus["name"],
-    );
+    const rawName: string | null = toStringValue(entry.containerStatus["name"]);
     const containerSpec: JSONObject | null = rawName
       ? getContainerSpecByName(input.spec, rawName)
       : null;

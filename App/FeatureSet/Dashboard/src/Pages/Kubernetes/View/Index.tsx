@@ -2024,8 +2024,10 @@ const KubernetesClusterOverview: FunctionComponent<
             {provisionAlertsResult && (
               <p className="text-sm text-gray-600">
                 {provisionAlertsResult.createdCount} alert monitor
-                {provisionAlertsResult.createdCount === 1 ? "" : "s"} created,{" "}
-                {provisionAlertsResult.skippedCount} already existed.
+                {provisionAlertsResult.createdCount === 1
+                  ? ""
+                  : "s"} created, {provisionAlertsResult.skippedCount} already
+                existed.
               </p>
             )}
             {provisionAlertsResult &&
@@ -2059,9 +2061,9 @@ const KubernetesClusterOverview: FunctionComponent<
               )}
             {!provisionAlertsResult && !provisionAlertsError && (
               <p className="text-sm text-gray-500">
-                Sets up {RECOMMENDED_KUBERNETES_ALERT_TEMPLATE_IDS.length}{" "}
-                alert monitors scoped to this cluster. Monitors that already
-                exist are skipped, so it is safe to run more than once.
+                Sets up {RECOMMENDED_KUBERNETES_ALERT_TEMPLATE_IDS.length} alert
+                monitors scoped to this cluster. Monitors that already exist are
+                skipped, so it is safe to run more than once.
               </p>
             )}
           </div>
@@ -2072,8 +2074,8 @@ const KubernetesClusterOverview: FunctionComponent<
             description={
               <div>
                 <p>
-                  The following alert monitors will be created for this
-                  cluster. Monitors that already exist will be skipped.
+                  The following alert monitors will be created for this cluster.
+                  Monitors that already exist will be skipped.
                 </p>
                 <ul className="list-disc pl-5 mt-3 space-y-1">
                   {recommendedTemplateNames.map(

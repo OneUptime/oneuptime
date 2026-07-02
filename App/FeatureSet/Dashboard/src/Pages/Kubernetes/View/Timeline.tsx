@@ -29,11 +29,7 @@ import {
   fetchClusterWarningEvents,
   KubernetesEvent,
 } from "../Utils/KubernetesObjectFetcher";
-import {
-  diffSpecs,
-  formatDiffEntry,
-  SpecDiffEntry,
-} from "../Utils/SpecDiff";
+import { diffSpecs, formatDiffEntry, SpecDiffEntry } from "../Utils/SpecDiff";
 
 type TimelineRowType = "SpecChanged" | "Deleted" | "Warning";
 
@@ -129,8 +125,10 @@ const KubernetesClusterTimeline: FunctionComponent<
         return;
       }
 
-      // Fetch change events (Postgres) and warning events (ClickHouse)
-      // in parallel — they come from independent stores.
+      /*
+       * Fetch change events (Postgres) and warning events (ClickHouse)
+       * in parallel — they come from independent stores.
+       */
       const [changeEventsResult, warningEvents]: [
         ListResult<KubernetesResourceChangeEvent>,
         Array<KubernetesEvent>,
@@ -312,7 +310,10 @@ const KubernetesClusterTimeline: FunctionComponent<
       getElement: (row: TimelineRow): ReactElement => {
         if (row.rowType === "SpecChanged") {
           return (
-            <SpecChangeSummary summary={row.summary} diffLines={row.diffLines} />
+            <SpecChangeSummary
+              summary={row.summary}
+              diffLines={row.diffLines}
+            />
           );
         }
         return <span className="text-sm text-gray-500">{row.summary}</span>;

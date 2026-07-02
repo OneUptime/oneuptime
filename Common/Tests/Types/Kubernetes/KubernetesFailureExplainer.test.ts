@@ -395,18 +395,19 @@ describe("explainPodFailures", () => {
           type: "Warning",
           reason: "Unhealthy",
           message:
-            "Liveness probe failed: Get \"http://10.0.0.5:8080/healthz\": context deadline exceeded",
+            'Liveness probe failed: Get "http://10.0.0.5:8080/healthz": context deadline exceeded',
         },
         {
           type: "Warning",
           reason: "Unhealthy",
           message:
-            "Liveness probe failed: Get \"http://10.0.0.5:8080/healthz\": context deadline exceeded",
+            'Liveness probe failed: Get "http://10.0.0.5:8080/healthz": context deadline exceeded',
         },
         {
           type: "Warning",
           reason: "Unhealthy",
-          message: "Readiness probe failed: HTTP probe failed with statuscode: 503",
+          message:
+            "Readiness probe failed: HTTP probe failed with statuscode: 503",
         },
         {
           type: "Normal",
@@ -722,8 +723,8 @@ describe("explainNodeConditions", () => {
   ])(
     "%s=True produces a warning with condition message evidence",
     (conditionType: string, expectedId: string, keyword: string) => {
-      const result: Array<KubernetesFailureExplanation> =
-        explainNodeConditions({
+      const result: Array<KubernetesFailureExplanation> = explainNodeConditions(
+        {
           nodeName: "node-c",
           status: {
             conditions: [
@@ -736,7 +737,8 @@ describe("explainNodeConditions", () => {
               },
             ],
           },
-        });
+        },
+      );
 
       const explanation: KubernetesFailureExplanation | undefined = findById(
         result,

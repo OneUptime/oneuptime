@@ -1147,7 +1147,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
        * Failures must not affect log ingest; logged and swallowed.
        */
       if (k8sDeleteBuffer.size > 0) {
-        for (const [clusterIdStr, pendingDeletes] of k8sDeleteBuffer.entries()) {
+        for (const [
+          clusterIdStr,
+          pendingDeletes,
+        ] of k8sDeleteBuffer.entries()) {
           if (pendingDeletes.length === 0) {
             continue;
           }
