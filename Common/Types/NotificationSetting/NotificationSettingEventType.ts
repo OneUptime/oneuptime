@@ -64,6 +64,12 @@ enum NotificationSettingEventType {
   // Ceph Clusters
   SEND_CEPH_CLUSTER_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the Ceph cluster",
 
+  // Docker Swarm Clusters
+  SEND_DOCKER_SWARM_CLUSTER_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the Docker Swarm cluster",
+
+  // IoT Fleets
+  SEND_IOT_FLEET_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the IoT fleet",
+
   // On Call Notifications
   SEND_WHEN_USER_IS_ON_CALL_ROSTER = "When user is on-call roster",
   SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER = "When user is next on-call roster",

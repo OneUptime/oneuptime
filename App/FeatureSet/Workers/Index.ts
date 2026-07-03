@@ -159,11 +159,13 @@ import "./Jobs/Proxmox/SendOwnerAddedNotification";
 import "./Jobs/Ceph/CleanupStaleResources";
 import "./Jobs/Ceph/SendOwnerAddedNotification";
 
-// Docker Swarm cluster disconnection sweeper + inventory cleanup.
+// Docker Swarm cluster disconnection sweeper + inventory cleanup + owner-added notifications.
 import "./Jobs/DockerSwarm/CleanupStaleResources";
+import "./Jobs/DockerSwarm/SendOwnerAddedNotification";
 
-// IoT fleet disconnection sweeper + inventory cleanup.
+// IoT fleet disconnection sweeper + inventory cleanup + owner-added notifications.
 import "./Jobs/IoT/CleanupStaleResources";
+import "./Jobs/IoT/SendOwnerAddedNotification";
 
 // Telemetry entity registry: TTL prune + span-derived service map edges.
 import "./Jobs/TelemetryEntity/PruneStaleEntities";

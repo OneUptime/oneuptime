@@ -1,4 +1,6 @@
 import DatabaseService from "./DatabaseService";
+import DatabaseConfig from "../DatabaseConfig";
+import URL from "../../Types/API/URL";
 import DockerSwarmClusterLabelRuleEngineService from "./DockerSwarmClusterLabelRuleEngineService";
 import DockerSwarmClusterOwnerRuleEngineService from "./DockerSwarmClusterOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/DockerSwarmCluster";
@@ -403,6 +405,18 @@ export class Service extends DatabaseService<Model> {
         });
       }
     }
+  }
+
+  @CaptureSpan()
+  public async getLinkInDashboard(
+    projectId: ObjectID,
+    dockerSwarmClusterId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/docker-swarm/${dockerSwarmClusterId.toString()}`,
+    );
   }
 }
 

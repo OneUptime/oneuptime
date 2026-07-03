@@ -607,6 +607,18 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       projectId,
       NotificationSettingEventType.SEND_CEPH_CLUSTER_OWNER_ADDED_NOTIFICATION,
     );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_DOCKER_SWARM_CLUSTER_OWNER_ADDED_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_IOT_FLEET_OWNER_ADDED_NOTIFICATION,
+    );
   }
 
   private async addProbeOwnerNotificationSettings(

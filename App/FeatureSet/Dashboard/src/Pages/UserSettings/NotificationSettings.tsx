@@ -277,6 +277,15 @@ const EVENT_LIBRARY: Record<
     label: "Added as Ceph cluster owner",
     description: "You are added as an owner of a Ceph cluster.",
   },
+  [NotificationSettingEventType.SEND_DOCKER_SWARM_CLUSTER_OWNER_ADDED_NOTIFICATION]:
+    {
+      label: "Added as Docker Swarm cluster owner",
+      description: "You are added as an owner of a Docker Swarm cluster.",
+    },
+  [NotificationSettingEventType.SEND_IOT_FLEET_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as IoT fleet owner",
+    description: "You are added as an owner of an IoT fleet.",
+  },
 
   [NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER]: {
     label: "You go on-call",
@@ -695,11 +704,13 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     ]),
     buildSection(
       "Infrastructure Clusters",
-      "Notify me about Kubernetes, Proxmox, and Ceph clusters I own.",
+      "Notify me about Kubernetes, Proxmox, Ceph, and Docker Swarm clusters and IoT fleets I own.",
       [
         NotificationSettingEventType.SEND_KUBERNETES_CLUSTER_OWNER_ADDED_NOTIFICATION,
         NotificationSettingEventType.SEND_PROXMOX_CLUSTER_OWNER_ADDED_NOTIFICATION,
         NotificationSettingEventType.SEND_CEPH_CLUSTER_OWNER_ADDED_NOTIFICATION,
+        NotificationSettingEventType.SEND_DOCKER_SWARM_CLUSTER_OWNER_ADDED_NOTIFICATION,
+        NotificationSettingEventType.SEND_IOT_FLEET_OWNER_ADDED_NOTIFICATION,
       ],
     ),
   ];

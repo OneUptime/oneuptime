@@ -48,6 +48,8 @@ type TemplateIdsMap = {
   readonly KubernetesClusterOwnerAddedNotification: "oneuptime_kubernetes_cluster_owner_added_notification";
   readonly ProxmoxClusterOwnerAddedNotification: "oneuptime_proxmox_cluster_owner_added_notification";
   readonly CephClusterOwnerAddedNotification: "oneuptime_ceph_cluster_owner_added_notification";
+  readonly DockerSwarmClusterOwnerAddedNotification: "oneuptime_docker_swarm_cluster_owner_added_notification";
+  readonly IoTFleetOwnerAddedNotification: "oneuptime_iot_fleet_owner_added_notification";
 };
 
 const templateIds: TemplateIdsMap = {
@@ -136,6 +138,10 @@ const templateIds: TemplateIdsMap = {
     "oneuptime_proxmox_cluster_owner_added_notification",
   CephClusterOwnerAddedNotification:
     "oneuptime_ceph_cluster_owner_added_notification",
+  DockerSwarmClusterOwnerAddedNotification:
+    "oneuptime_docker_swarm_cluster_owner_added_notification",
+  IoTFleetOwnerAddedNotification:
+    "oneuptime_iot_fleet_owner_added_notification",
 } as const;
 
 export const WhatsAppTemplateIds: TemplateIdsMap = templateIds;
@@ -201,6 +207,8 @@ export const WhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition = {
   [WhatsAppTemplateIds.KubernetesClusterOwnerAddedNotification]: `You have been added as an owner of Kubernetes cluster {{cluster_name}}. Manage the cluster using {{cluster_link}} on the OneUptime dashboard to take action.`,
   [WhatsAppTemplateIds.ProxmoxClusterOwnerAddedNotification]: `You have been added as an owner of Proxmox cluster {{cluster_name}}. Manage the cluster using {{cluster_link}} on the OneUptime dashboard to take action.`,
   [WhatsAppTemplateIds.CephClusterOwnerAddedNotification]: `You have been added as an owner of Ceph cluster {{cluster_name}}. Manage the cluster using {{cluster_link}} on the OneUptime dashboard to take action.`,
+  [WhatsAppTemplateIds.DockerSwarmClusterOwnerAddedNotification]: `You have been added as an owner of Docker Swarm cluster {{cluster_name}}. Manage the cluster using {{cluster_link}} on the OneUptime dashboard to take action.`,
+  [WhatsAppTemplateIds.IoTFleetOwnerAddedNotification]: `You have been added as an owner of IoT fleet {{fleet_name}}. Manage the fleet using {{fleet_link}} on the OneUptime dashboard to take action.`,
 };
 
 export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
@@ -253,6 +261,8 @@ export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
   [WhatsAppTemplateIds.KubernetesClusterOwnerAddedNotification]: "en",
   [WhatsAppTemplateIds.ProxmoxClusterOwnerAddedNotification]: "en",
   [WhatsAppTemplateIds.CephClusterOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.DockerSwarmClusterOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.IoTFleetOwnerAddedNotification]: "en",
 };
 
 // Authentication templates that require OTP button components

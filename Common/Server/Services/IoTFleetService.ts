@@ -1,4 +1,6 @@
 import DatabaseService from "./DatabaseService";
+import DatabaseConfig from "../DatabaseConfig";
+import URL from "../../Types/API/URL";
 import IoTFleetLabelRuleEngineService from "./IoTFleetLabelRuleEngineService";
 import IoTFleetOwnerRuleEngineService from "./IoTFleetOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/IoTFleet";
@@ -361,6 +363,18 @@ export class Service extends DatabaseService<Model> {
         });
       }
     }
+  }
+
+  @CaptureSpan()
+  public async getLinkInDashboard(
+    projectId: ObjectID,
+    iotFleetId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/iot/${iotFleetId.toString()}`,
+    );
   }
 }
 

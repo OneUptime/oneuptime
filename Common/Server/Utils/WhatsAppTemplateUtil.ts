@@ -59,6 +59,9 @@ const templateDashboardLinkVariableMap: Partial<
   [WhatsAppTemplateIds.KubernetesClusterOwnerAddedNotification]: "cluster_link",
   [WhatsAppTemplateIds.ProxmoxClusterOwnerAddedNotification]: "cluster_link",
   [WhatsAppTemplateIds.CephClusterOwnerAddedNotification]: "cluster_link",
+  [WhatsAppTemplateIds.DockerSwarmClusterOwnerAddedNotification]:
+    "cluster_link",
+  [WhatsAppTemplateIds.IoTFleetOwnerAddedNotification]: "fleet_link",
   [WhatsAppTemplateIds.OnCallUserIsOnRosterNotification]: "schedule_link",
   [WhatsAppTemplateIds.OnCallUserIsNextNotification]: "schedule_link",
   [WhatsAppTemplateIds.OnCallUserNoLongerActiveNotification]: "schedule_link",
@@ -147,6 +150,10 @@ const templateIdByEventType: Record<
     WhatsAppTemplateIds.ProxmoxClusterOwnerAddedNotification,
   [NotificationSettingEventType.SEND_CEPH_CLUSTER_OWNER_ADDED_NOTIFICATION]:
     WhatsAppTemplateIds.CephClusterOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_DOCKER_SWARM_CLUSTER_OWNER_ADDED_NOTIFICATION]:
+    WhatsAppTemplateIds.DockerSwarmClusterOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_IOT_FLEET_OWNER_ADDED_NOTIFICATION]:
+    WhatsAppTemplateIds.IoTFleetOwnerAddedNotification,
   [NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER]:
     WhatsAppTemplateIds.OnCallUserIsOnRosterNotification,
   [NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER]:

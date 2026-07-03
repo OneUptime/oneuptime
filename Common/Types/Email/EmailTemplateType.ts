@@ -9,6 +9,8 @@ enum EmailTemplateType {
   KubernetesClusterOwnerAdded = "KubernetesClusterOwnerAdded.hbs",
   ProxmoxClusterOwnerAdded = "ProxmoxClusterOwnerAdded.hbs",
   CephClusterOwnerAdded = "CephClusterOwnerAdded.hbs",
+  DockerSwarmClusterOwnerAdded = "DockerSwarmClusterOwnerAdded.hbs",
+  IoTFleetOwnerAdded = "IoTFleetOwnerAdded.hbs",
   ConfirmStatusPageSubscription = "ConfirmStatusPageSubscription.hbs",
   EmailVerified = "EmailVerified.hbs",
   PasswordChanged = "PasswordChanged.hbs",
