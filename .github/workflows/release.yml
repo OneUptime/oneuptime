@@ -148,6 +148,9 @@ jobs:
           rm -rf ../../helm-chart/oneuptime
           rm -rf ../../helm-chart/kubernetes-agent
           cp -r ./Public/* ../../helm-chart
+          # The glob above skips dotfiles. .nojekyll must reach the Pages root
+          # or GitHub runs the site through Jekyll, which times out on this repo.
+          cp ./Public/.nojekyll ../../helm-chart/.nojekyll
           echo "Package copied successfully"
           cd .. && cd .. && cd helm-chart
           echo "Updating helm-chart repo"
