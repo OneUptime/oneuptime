@@ -17,6 +17,7 @@ import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -25,8 +26,12 @@ import Route from "Common/Types/API/Route";
 /*
  * Devices in a single fleet. Reads the IoTDevice Postgres inventory
  * table scoped to this fleet (an IoT fleet contains only Devices — no
- * nodes/guests/storage like Proxmox). Read-only: rows are upserted by
- * the OTel ingest path, never created by users.
+ * nodes/guests/storage like Proxmox). Rows are upserted by the OTel
+ * ingest path, never created by users; the only user-editable fields
+ * are the expected check-in interval (silence-based offline
+ * detection) and the archive flag. Archived devices are hidden here;
+ * Retired devices stay visible with a neutral badge so history is
+ * findable.
  *
  * The view route's subModelId is the device `externalId` (the
  * `device.id` datapoint label) percent-encoded as a single path
@@ -80,10 +85,37 @@ const IoTFleetDevices: FunctionComponent<
         userPreferencesKey="iot-devices-table"
         query={{
           iotFleetId: modelId,
+          isArchived: false,
         }}
         isDeleteable={false}
-        isEditable={false}
+        isEditable={true}
         isCreateable={false}
+        formFields={[
+          {
+            field: {
+              expectedCheckinIntervalSeconds: true,
+            },
+            title: "Expected Check-in Interval (Seconds)",
+            description:
+              "How often this device is expected to report. Silence for 3x this interval marks it Offline and raises the fleet's offline alerts. Leave blank to use the fleet default.",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: "Use fleet default",
+            validation: {
+              minValue: 1,
+            },
+          },
+          {
+            field: {
+              isArchived: true,
+            },
+            title: "Archived",
+            description:
+              "Archived devices are hidden from this list, excluded from fleet counts, and skipped by offline detection.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+        ]}
         showRefreshButton={true}
         name="IoT Devices"
         isViewable={true}
@@ -93,6 +125,7 @@ const IoTFleetDevices: FunctionComponent<
         selectMoreFields={{
           externalId: true,
           metricsUpdatedAt: true,
+          state: true,
         }}
         filters={[
           {
@@ -123,10 +156,18 @@ const IoTFleetDevices: FunctionComponent<
           },
           {
             field: {
-              isUp: true,
+              state: true,
             },
-            title: "Online",
-            type: FieldType.Boolean,
+            title: "State",
+            type: FieldType.Dropdown,
+            filterDropdownOptions: [
+              "Online",
+              "Offline",
+              "Stale",
+              "Retired",
+            ].map((state: string): DropdownOption => {
+              return { label: state, value: state };
+            }),
           },
         ]}
         cardProps={{
@@ -205,6 +246,31 @@ const IoTFleetDevices: FunctionComponent<
             title: "Status",
             type: FieldType.Element,
             getElement: (item: IoTDevice): ReactElement => {
+              /*
+               * Lifecycle state wins over the raw isUp flag: a Stale
+               * device's last reported isUp is still true, but
+               * rendering it "Online" is exactly the lie the
+               * lifecycle states exist to fix. Legacy rows (state
+               * null) fall back to isUp.
+               */
+              const state: string | undefined = item.state as
+                | string
+                | undefined;
+              if (state === "Stale" || state === "Retired") {
+                return (
+                  <StatusBadge text={state} type={StatusBadgeType.Neutral} />
+                );
+              }
+              if (state === "Offline") {
+                return (
+                  <StatusBadge text="Offline" type={StatusBadgeType.Danger} />
+                );
+              }
+              if (state === "Online") {
+                return (
+                  <StatusBadge text="Online" type={StatusBadgeType.Success} />
+                );
+              }
               if (item.isUp === undefined || item.isUp === null) {
                 return <span className="text-sm text-gray-400">—</span>;
               }

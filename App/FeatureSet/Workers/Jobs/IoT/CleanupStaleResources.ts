@@ -6,6 +6,7 @@ import IoTDeviceService from "Common/Server/Services/IoTDeviceService";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
+import OneUptimeDate from "Common/Types/Date";
 
 /*
  * ------------------------------------------------------------------
@@ -78,6 +79,7 @@ RunCron(
         select: {
           _id: true,
           lastSeenAt: true,
+          expectedDeviceCheckinIntervalSeconds: true,
         },
         skip: 0,
         limit: LIMIT_MAX,
@@ -90,15 +92,21 @@ RunCron(
           continue;
         }
 
-        // Anchor the cutoff to this fleet's lastSeenAt (see header).
-        const cutoff: Date = IoTDeviceService.getStaleThresholdDate(
-          fleet.lastSeenAt || undefined,
-        );
-
         try {
+          /*
+           * Anchor the cutoff to this fleet's lastSeenAt (see
+           * header). The per-device threshold math lives in
+           * markStaleForFleet: devices with an expected check-in
+           * interval only go Stale after GREATEST(grace x interval,
+           * stale threshold), so slow-but-healthy reporters never
+           * flap and the heartbeat sweep's hooked Offline flip always
+           * wins the race for detection-enabled devices.
+           */
           totalStaled += await IoTDeviceService.markStaleForFleet({
             iotFleetId: new ObjectID(fleet._id.toString()),
-            olderThan: cutoff,
+            anchor: fleet.lastSeenAt || OneUptimeDate.getCurrentDate(),
+            fleetDefaultCheckinIntervalSeconds:
+              fleet.expectedDeviceCheckinIntervalSeconds ?? null,
           });
         } catch (err) {
           logger.error(
@@ -114,41 +122,21 @@ RunCron(
       }
 
       /*
-       * Step 3: retirement pass over every fleet (connected or not —
-       * see header). Wall-clock cutoff.
+       * Step 3: retirement pass — one table-wide statement (the
+       * cutoff is wall-clock and identical for every fleet).
        */
-      const allFleets: Array<IoTFleet> = await IoTFleetService.findBy({
-        query: {},
-        select: {
-          _id: true,
-        },
-        skip: 0,
-        limit: LIMIT_MAX,
-        props: { isRoot: true },
-      });
-
-      const retireCutoff: Date = IoTDeviceService.getRetireThresholdDate();
-      let totalRetired: number = 0;
-      for (const fleet of allFleets) {
-        if (!fleet._id) {
-          continue;
-        }
-
-        try {
-          totalRetired += await IoTDeviceService.retireStaleForFleet({
-            iotFleetId: new ObjectID(fleet._id.toString()),
-            olderThan: retireCutoff,
-          });
-        } catch (err) {
-          logger.error(
-            `IoT:CleanupStaleResources: retirement pass failed for fleet ${fleet._id.toString()}: ${err instanceof Error ? err.message : String(err)}`,
+      try {
+        const totalRetired: number = await IoTDeviceService.retireStaleDevices({
+          olderThan: IoTDeviceService.getRetireThresholdDate(),
+        });
+        if (totalRetired > 0) {
+          logger.debug(
+            `IoT:CleanupStaleResources: retired ${totalRetired} IoTDevice row(s)`,
           );
         }
-      }
-
-      if (totalRetired > 0) {
-        logger.debug(
-          `IoT:CleanupStaleResources: retired ${totalRetired} IoTDevice row(s) across ${allFleets.length} fleet(s)`,
+      } catch (err) {
+        logger.error(
+          `IoT:CleanupStaleResources: retirement pass failed: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     } catch (err) {

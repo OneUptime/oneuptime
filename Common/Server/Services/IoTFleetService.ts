@@ -5,7 +5,9 @@ import IoTFleetLabelRuleEngineService from "./IoTFleetLabelRuleEngineService";
 import IoTFleetOwnerRuleEngineService from "./IoTFleetOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/IoTFleet";
 import Label from "../../Models/DatabaseModels/Label";
-import { OnCreate } from "../Types/Database/Hooks";
+import BadDataException from "../../Types/Exception/BadDataException";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -24,6 +26,48 @@ const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /**
+   * The fleet name IS the join key to everything the fleet owns: it
+   * must match the iot.fleet.name resource attribute devices stamp,
+   * IoT monitors bind to it via the step's fleetIdentifier, and the
+   * Metrics/Logs pages scope by the derived iot/<fleet> service name.
+   * Renaming the row cannot rename what the devices send — ingest
+   * would auto-create a fresh fleet under the old name while the
+   * renamed row (and every monitor bound to it) silently goes dark.
+   * Block renames outright instead of letting that happen.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    const newName: string | undefined = updateBy.data.name as
+      | string
+      | undefined;
+
+    if (newName !== undefined) {
+      const fleetsBeingRenamed: Array<Model> = await this.findBy({
+        query: updateBy.query,
+        select: {
+          _id: true,
+          name: true,
+        },
+        props: { isRoot: true },
+        skip: 0,
+        limit: LIMIT_MAX,
+      });
+
+      for (const fleet of fleetsBeingRenamed) {
+        if (fleet.name && fleet.name !== newName) {
+          throw new BadDataException(
+            `The fleet name cannot be changed: it must match the iot.fleet.name resource attribute your devices send, and existing IoT monitors are bound to it. To move devices to a new fleet name, update the attribute on the devices/gateway — the new fleet is auto-discovered on the next batch — then archive this fleet.`,
+          );
+        }
+      }
+    }
+
+    return { updateBy, carryForward: null };
   }
 
   @CaptureSpan()

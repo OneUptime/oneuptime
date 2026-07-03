@@ -154,14 +154,31 @@ const IoTFleetOverview: FunctionComponent<
       const atRisk: Array<AtRiskDevice> = [];
 
       for (const row of rows) {
+        /*
+         * Archived devices are user-hidden and Retired devices are
+         * history — pinning either as critical "Offline" forever
+         * would poison the at-risk list and drift from the badge
+         * counts (which exclude both).
+         */
+        if (row.isArchived === true || (row.state as string) === "Retired") {
+          continue;
+        }
+
         const name: string = displayNameForDevice(row);
         const externalId: string = row.externalId || "";
         const reasons: Array<string> = [];
         let isCritical: boolean = false;
 
-        if (row.isUp === false) {
+        const state: string | undefined = row.state as string | undefined;
+        if (
+          state === "Offline" ||
+          (state === undefined && row.isUp === false) ||
+          (state === null && row.isUp === false)
+        ) {
           reasons.push("Offline");
           isCritical = true;
+        } else if (state === "Stale") {
+          reasons.push("Stale — no data past threshold");
         }
 
         const metricsFresh: boolean = row.metricsUpdatedAt

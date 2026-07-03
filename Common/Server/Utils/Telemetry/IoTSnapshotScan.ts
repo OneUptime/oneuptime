@@ -451,17 +451,28 @@ export function buildSyntheticDeviceDownMetricRow(data: {
   kind: string;
   externalId: string;
   deviceType: string | null;
+  firmwareVersion: string | null;
   at: Date;
   retentionDays: number;
 }): JSONObject {
+  /*
+   * Mirror every datapoint attribute real device-scoped series carry
+   * (iot.scope = "device" included — monitors filtered by scope or
+   * type must match synthetic rows too, or silence detection is
+   * invisible to exactly those monitors).
+   */
   const attributes: Record<string, string> = {
     "resource.iot.fleet.name": data.fleetName,
     "device.id": data.externalId,
     "iot.device.kind": data.kind,
+    "iot.scope": "device",
     [IOT_SYNTHETIC_ATTRIBUTE_KEY]: IOT_SYNTHETIC_OFFLINE_DETECTION,
   };
   if (data.deviceType) {
     attributes["iot.device.type"] = data.deviceType;
+  }
+  if (data.firmwareVersion) {
+    attributes["iot.device.firmware"] = data.firmwareVersion;
   }
 
   const retentionDate: Date = OneUptimeDate.addRemoveDays(

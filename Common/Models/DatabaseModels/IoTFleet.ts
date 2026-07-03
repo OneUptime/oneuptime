@@ -1,4 +1,5 @@
 import Label from "./Label";
+import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -399,6 +400,99 @@ export default class IoTFleet extends BaseModel {
     type: ColumnType.Number,
   })
   public expectedDeviceCheckinIntervalSeconds?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateIoTFleet,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadIoTFleet,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditIoTFleet,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "defaultOnCallDutyPolicyId",
+    type: TableColumnType.Entity,
+    modelType: OnCallDutyPolicy,
+    title: "Default On-Call Policy",
+    description:
+      "On-call policy attached by default to alert templates created for this fleet, so out-of-the-box IoT alerts page someone.",
+  })
+  @ManyToOne(
+    () => {
+      return OnCallDutyPolicy;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "defaultOnCallDutyPolicyId" })
+  public defaultOnCallDutyPolicy?: OnCallDutyPolicy = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateIoTFleet,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadIoTFleet,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditIoTFleet,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Default On-Call Policy ID",
+    description:
+      "ID of the on-call policy attached by default to alert templates created for this fleet.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public defaultOnCallDutyPolicyId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

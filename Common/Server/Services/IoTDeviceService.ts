@@ -79,6 +79,7 @@ export interface SilentIoTDevice {
   kind: string;
   externalId: string;
   deviceType: string | null;
+  firmwareVersion: string | null;
   state: string;
 }
 
@@ -412,11 +413,22 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
-   * Walk all Online/Offline devices in a fleet whose last scrape is
-   * older than olderThan to Stale. Returns the number of transitioned
-   * rows. Only called by the cleanup worker for fleets that are still
-   * connected — a disconnected fleet keeps its last-known inventory
-   * states (the fleet-level Disconnected status covers the blackout).
+   * Walk devices in a fleet that have been silent past their
+   * EFFECTIVE stale cutoff to Stale. Returns the number of
+   * transitioned rows. Only called by the cleanup worker for fleets
+   * that are still connected — a disconnected fleet keeps its
+   * last-known inventory states (the fleet-level Disconnected status
+   * covers the blackout).
+   *
+   * The cutoff is per-device, not fleet-wide: a device with an
+   * expected check-in interval only goes Stale after
+   * GREATEST(grace x interval, stale threshold) of silence, so a
+   * healthy hourly reporter is never walked to Stale mid-gap (it
+   * would otherwise flap Online -> Stale -> Online every reporting
+   * cycle and drop out of the online counts). Because the Stale
+   * cutoff is always >= the silence cutoff, the heartbeat sweep's
+   * hooked Online -> Offline flip fires before this walk can touch a
+   * detection-enabled device.
    *
    * Raw SQL (unhooked) is deliberate: Stale is a bookkeeping state,
    * not an alerting event — the alerting transition is Online ->
@@ -426,20 +438,28 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async markStaleForFleet(data: {
     iotFleetId: ObjectID;
-    olderThan: Date;
+    anchor: Date;
+    fleetDefaultCheckinIntervalSeconds: number | null;
   }): Promise<number> {
+    const staleSeconds: number = this.getStaleThresholdMinutes() * 60;
+
     const affected: number = await this.runStateTransition({
       sql: `UPDATE "IoTDevice"
             SET "state" = $3, "stateChangedAt" = now(), "updatedAt" = now()
             WHERE "iotFleetId" = $1
-              AND "lastSeenAt" < $2
+              AND "lastSeenAt" < ($2::timestamptz - make_interval(secs =>
+                    GREATEST(
+                      ${IOT_SILENCE_GRACE_FACTOR} * COALESCE("expectedCheckinIntervalSeconds", $6, 0),
+                      ${staleSeconds}
+                    )))
               AND "state" IN ($4, $5)`,
       params: [
         data.iotFleetId.toString(),
-        data.olderThan,
+        data.anchor,
         IoTDeviceState.Stale,
         IoTDeviceState.Online,
         IoTDeviceState.Offline,
+        data.fleetDefaultCheckinIntervalSeconds,
       ],
     });
 
@@ -453,27 +473,21 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
-   * Walk devices silent past the retirement threshold to Retired.
+   * Walk devices silent past the retirement threshold to Retired —
+   * across ALL fleets in one statement (the cutoff is wall-clock and
+   * identical everywhere, so there is no reason to loop fleets).
    * Retired rows are kept for history but drop out of fleet counts
-   * and default lists. Runs for every fleet (connected or not): 30
-   * days of silence is a decommissioned device either way.
+   * and default lists. Includes disconnected fleets: 30 days of
+   * silence is a decommissioned device either way.
    */
   @CaptureSpan()
-  public async retireStaleForFleet(data: {
-    iotFleetId: ObjectID;
-    olderThan: Date;
-  }): Promise<number> {
+  public async retireStaleDevices(data: { olderThan: Date }): Promise<number> {
     return this.runStateTransition({
       sql: `UPDATE "IoTDevice"
-            SET "state" = $3, "stateChangedAt" = now(), "updatedAt" = now()
-            WHERE "iotFleetId" = $1
-              AND "lastSeenAt" < $2
-              AND ("state" IS NULL OR "state" != $3)`,
-      params: [
-        data.iotFleetId.toString(),
-        data.olderThan,
-        IoTDeviceState.Retired,
-      ],
+            SET "state" = $2, "stateChangedAt" = now(), "updatedAt" = now()
+            WHERE "lastSeenAt" < $1
+              AND ("state" IS NULL OR "state" != $2)`,
+      params: [data.olderThan, IoTDeviceState.Retired],
     });
   }
 
@@ -554,9 +568,10 @@ export class Service extends DatabaseService<Model> {
       kind: string;
       externalId: string;
       deviceType: string | null;
+      firmwareVersion: string | null;
       state: string;
     }> = await this.getRepository().manager.query(
-      `SELECT "_id", "kind", "externalId", "deviceType", "state"
+      `SELECT "_id", "kind", "externalId", "deviceType", "firmwareVersion", "state"
        FROM "IoTDevice"
        WHERE "iotFleetId" = $1
          AND "isArchived" IS NOT TRUE
@@ -584,6 +599,7 @@ export class Service extends DatabaseService<Model> {
         kind: string;
         externalId: string;
         deviceType: string | null;
+        firmwareVersion: string | null;
         state: string;
       }): SilentIoTDevice => {
         return {
@@ -591,6 +607,7 @@ export class Service extends DatabaseService<Model> {
           kind: row.kind,
           externalId: row.externalId,
           deviceType: row.deviceType,
+          firmwareVersion: row.firmwareVersion,
           state: row.state,
         };
       },

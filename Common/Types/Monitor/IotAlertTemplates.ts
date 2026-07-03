@@ -24,6 +24,13 @@ export interface IoTAlertTemplateArgs {
   defaultIncidentSeverityId: ObjectID;
   defaultAlertSeverityId: ObjectID;
   monitorName: string;
+  /*
+   * On-call policies to attach to the template's incident/alert
+   * criteria. Sourced from the fleet's default on-call policy so
+   * template-created monitors page someone out of the box instead of
+   * silently defaulting to nobody.
+   */
+  onCallPolicyIds?: Array<ObjectID> | undefined;
 }
 
 export interface IoTAlertTemplate {
@@ -109,6 +116,7 @@ export function buildIoTOfflineCriteriaInstance(args: {
   incidentDescription?: string;
   criteriaName?: string;
   criteriaDescription?: string;
+  onCallPolicyIds?: Array<ObjectID> | undefined;
 }): MonitorCriteriaInstance {
   const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
 
@@ -140,7 +148,7 @@ export function buildIoTOfflineCriteriaInstance(args: {
         incidentSeverityId: args.incidentSeverityId,
         autoResolveIncident: true,
         id: ObjectID.generate().toString(),
-        onCallPolicyIds: [],
+        onCallPolicyIds: args.onCallPolicyIds || [],
       },
     ],
     alerts: [
@@ -150,7 +158,7 @@ export function buildIoTOfflineCriteriaInstance(args: {
         alertSeverityId: args.alertSeverityId,
         autoResolveAlert: true,
         id: ObjectID.generate().toString(),
-        onCallPolicyIds: [],
+        onCallPolicyIds: args.onCallPolicyIds || [],
       },
     ],
     changeMonitorStatus: true,
@@ -355,6 +363,7 @@ const deviceOfflineTemplate: IoTAlertTemplate = {
         groupByAttributeKey: "device.id",
       }),
       offlineCriteriaInstance: buildIoTOfflineCriteriaInstance({
+        onCallPolicyIds: args.onCallPolicyIds,
         offlineMonitorStatusId: args.offlineMonitorStatusId,
         incidentSeverityId: args.defaultIncidentSeverityId,
         alertSeverityId: args.defaultAlertSeverityId,
@@ -404,6 +413,7 @@ const lowBatteryTemplate: IoTAlertTemplate = {
         groupByAttributeKey: "device.id",
       }),
       offlineCriteriaInstance: buildIoTOfflineCriteriaInstance({
+        onCallPolicyIds: args.onCallPolicyIds,
         offlineMonitorStatusId: args.offlineMonitorStatusId,
         incidentSeverityId: args.defaultIncidentSeverityId,
         alertSeverityId: args.defaultAlertSeverityId,
@@ -453,6 +463,7 @@ const weakSignalTemplate: IoTAlertTemplate = {
         groupByAttributeKey: "device.id",
       }),
       offlineCriteriaInstance: buildIoTOfflineCriteriaInstance({
+        onCallPolicyIds: args.onCallPolicyIds,
         offlineMonitorStatusId: args.offlineMonitorStatusId,
         incidentSeverityId: args.defaultIncidentSeverityId,
         alertSeverityId: args.defaultAlertSeverityId,
@@ -501,6 +512,7 @@ const highTemperatureTemplate: IoTAlertTemplate = {
         groupByAttributeKey: "device.id",
       }),
       offlineCriteriaInstance: buildIoTOfflineCriteriaInstance({
+        onCallPolicyIds: args.onCallPolicyIds,
         offlineMonitorStatusId: args.offlineMonitorStatusId,
         incidentSeverityId: args.defaultIncidentSeverityId,
         alertSeverityId: args.defaultAlertSeverityId,
@@ -550,6 +562,7 @@ const highCpuTemplate: IoTAlertTemplate = {
         groupByAttributeKey: "device.id",
       }),
       offlineCriteriaInstance: buildIoTOfflineCriteriaInstance({
+        onCallPolicyIds: args.onCallPolicyIds,
         offlineMonitorStatusId: args.offlineMonitorStatusId,
         incidentSeverityId: args.defaultIncidentSeverityId,
         alertSeverityId: args.defaultAlertSeverityId,

@@ -93,6 +93,8 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [customAggregation, setCustomAggregation] =
     React.useState<MetricsAggregationType>(MetricsAggregationType.Avg);
 
+  const [fleets, setFleets] = React.useState<Array<IoTFleet>>([]);
+
   useEffect(() => {
     setIsLoadingFleets(true);
     ModelAPI.getList<IoTFleet>({
@@ -101,6 +103,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
       select: {
         _id: true,
         name: true,
+        defaultOnCallDutyPolicyId: true,
       },
       sort: {
         name: SortOrder.Ascending,
@@ -109,6 +112,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
       skip: 0,
     })
       .then((result: ListResult<IoTFleet>) => {
+        setFleets(result.data);
         const options: Array<DropdownOption> = result.data.map(
           (fleet: IoTFleet) => {
             return {
@@ -120,6 +124,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
         setFleetOptions(options);
       })
       .catch(() => {
+        setFleets([]);
         setFleetOptions([]);
       })
       .finally(() => {
@@ -166,6 +171,20 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
       props.defaultAlertSeverityId || ObjectID.generate();
     const monitorName: string = props.monitorName || template.name;
 
+    /*
+     * Attach the fleet's default on-call policy (if configured) so
+     * template-created alerts page someone out of the box.
+     */
+    const selectedFleet: IoTFleet | undefined = fleets.find(
+      (fleet: IoTFleet) => {
+        return fleet.name === fleetIdentifier;
+      },
+    );
+    const onCallPolicyIds: Array<ObjectID> | undefined =
+      selectedFleet?.defaultOnCallDutyPolicyId
+        ? [new ObjectID(selectedFleet.defaultOnCallDutyPolicyId.toString())]
+        : undefined;
+
     const templateStep: MonitorStep = template.getMonitorStep({
       fleetIdentifier: fleetIdentifier || "",
       onlineMonitorStatusId,
@@ -173,6 +192,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
       defaultIncidentSeverityId,
       defaultAlertSeverityId,
       monitorName,
+      onCallPolicyIds,
     });
 
     if (templateStep.data?.iotMonitor) {

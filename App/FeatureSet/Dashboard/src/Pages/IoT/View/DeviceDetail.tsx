@@ -214,14 +214,16 @@ const IoTFleetDeviceDetail: FunctionComponent<
   if (row) {
     const status: string = displayStatusForDevice(row);
     if (status) {
+      // Lifecycle-aware badge color: Stale/Retired are neutral, not green.
+      let badgeType: StatusBadgeType = StatusBadgeType.Neutral;
+      if (status === "Online") {
+        badgeType = StatusBadgeType.Success;
+      } else if (status === "Offline") {
+        badgeType = StatusBadgeType.Danger;
+      }
       summaryFields.push({
         title: "Status",
-        value: (
-          <StatusBadge
-            text={status}
-            type={row.isUp ? StatusBadgeType.Success : StatusBadgeType.Danger}
-          />
-        ),
+        value: <StatusBadge text={status} type={badgeType} />,
       });
     }
 

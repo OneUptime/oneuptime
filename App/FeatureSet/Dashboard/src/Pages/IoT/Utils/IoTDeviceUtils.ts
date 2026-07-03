@@ -142,10 +142,21 @@ export function displayNameForDevice(row: IoTDeviceModel): string {
 }
 
 /*
- * Display status for a device: Online/Offline. Empty until the first
- * iot_device_up datapoint lands.
+ * Display status for a device. Lifecycle state wins over the raw isUp
+ * flag: isUp is the last device-REPORTED up/down, state is the
+ * lifecycle truth (a silent device is Offline/Stale even though its
+ * last report said up). Legacy rows (state null) fall back to isUp.
  */
 export function displayStatusForDevice(row: IoTDeviceModel): string {
+  const state: string | undefined = row.state as string | undefined;
+  if (
+    state === "Online" ||
+    state === "Offline" ||
+    state === "Stale" ||
+    state === "Retired"
+  ) {
+    return state;
+  }
   if (row.isUp === undefined || row.isUp === null) {
     return "";
   }
@@ -169,6 +180,9 @@ const INVENTORY_SELECT: Record<string, boolean> = {
   latestTemperatureCelsius: true,
   metricsUpdatedAt: true,
   lastSeenAt: true,
+  state: true,
+  stateChangedAt: true,
+  isArchived: true,
 };
 
 /**
