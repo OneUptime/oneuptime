@@ -26,7 +26,13 @@ import ObjectID from "../../../Types/ObjectID";
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const FLEET_ID: ObjectID = ObjectID.generate();
 const SHORT_TEXT_LIMIT: number = 100;
-const UPSERT_PARAMS_PER_ROW: number = 11;
+/*
+ * One param per UPSERT_COLUMNS entry: projectId, iotFleetId, kind,
+ * externalId, name, deviceType, firmwareVersion, isUp, uptimeSeconds,
+ * lastSeenAt, state, stateChangedAt, version. (Was 11 before the
+ * lifecycle columns state/stateChangedAt joined the tuple.)
+ */
+const UPSERT_PARAMS_PER_ROW: number = 13;
 
 type QueryCall = [string, Array<unknown>];
 

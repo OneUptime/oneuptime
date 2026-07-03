@@ -73,16 +73,20 @@ export default class TelemetryIngest {
         );
 
       if (!projectId) {
+        /*
+         * Never log the token value — ingestion keys are credentials,
+         * and a "wrong environment" mistake would otherwise land a
+         * VALID production key verbatim in this log line.
+         */
         logger.error(
-          "Invalid service token: " + oneuptimeToken,
+          "Invalid service token (value redacted).",
           getLogAttributesFromRequest(req as any),
         );
 
         /*
          * 401 is deliberate (see the missing-token branch above): a
          * silent 200 drops the payload while the client believes the
-         * export succeeded. The token value is logged server-side but
-         * intentionally not echoed back in the response body.
+         * export succeeded. The token value is never logged or echoed.
          */
         return Response.sendErrorResponse(
           req,

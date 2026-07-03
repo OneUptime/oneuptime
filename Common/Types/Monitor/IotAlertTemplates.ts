@@ -13,7 +13,8 @@ export type IoTAlertTemplateCategory =
   | "Power"
   | "Connectivity"
   | "Environment"
-  | "System";
+  | "System"
+  | "Fleet Health";
 
 export type IoTAlertTemplateSeverity = "Critical" | "Warning";
 
@@ -56,6 +57,25 @@ export interface IoTAlertTemplate {
  * MonitorTemplateUtil.buildTemplateStorageMap). Titles and descriptions
  * embed `{{device.id}}` so ten breaching devices produce ten
  * device-identified incidents instead of ten identical static titles.
+ *
+ * Fleet rollup contract: a per-minute worker emits fleet-level rollup
+ * series to ClickHouse — one datapoint per fleet per minute — carrying
+ * the attributes `resource.iot.fleet.name` (fleet name), `iot.scope` =
+ * "fleet" and `oneuptime.synthetic` = "fleet-rollup". The series are
+ * iot_fleet_device_count, iot_fleet_online_count, iot_fleet_offline_count,
+ * iot_fleet_stale_count, iot_fleet_online_ratio (0..1; emitted only when
+ * device_count > 0), iot_fleet_battery_percent_p50 /
+ * iot_fleet_battery_percent_p10 (only when fresh battery readings exist)
+ * and iot_fleet_weak_signal_count (fresh readings < -100 dBm). "Fleet
+ * Health" templates evaluate these series: they must NOT group by
+ * `device.id` (the rollups carry no per-device identity — a group-by
+ * would just fingerprint every datapoint into one anonymous bucket) so
+ * the worker's collectGroupByAttributeKeys returns [] and the monitor
+ * evaluates ONE series per fleet. Titles reference the monitor/fleet
+ * name, never `{{device.id}}`. Emission gaps (empty fleet, no fresh
+ * battery readings) are covered by the default Ignore no-data policy:
+ * absent rollup datapoints match no criteria, so the monitor holds state
+ * instead of flapping.
  */
 
 export function buildIoTMonitorStep(args: {
@@ -586,6 +606,171 @@ const highCpuTemplate: IoTAlertTemplate = {
   },
 };
 
+const highMemoryPressureTemplate: IoTAlertTemplate = {
+  id: "iot-high-memory",
+  name: "High Memory Pressure",
+  description:
+    "Alert when any IoT device's memory usage exceeds 90% of its total memory ((iot_memory_usage_bytes / iot_memory_size_bytes) * 100 > 90). One incident per device, grouped by device.id.",
+  category: "System",
+  severity: "Warning",
+  getMonitorStep: (args: IoTAlertTemplateArgs): MonitorStep => {
+    const resultAlias: string = "memory_usage_percent";
+
+    return buildIoTMonitorStep({
+      iotMonitor: buildIoTRatioMonitorConfig({
+        fleetIdentifier: args.fleetIdentifier,
+        numeratorMetricName: "iot_memory_usage_bytes",
+        denominatorMetricName: "iot_memory_size_bytes",
+        numeratorAlias: "memory_usage_bytes",
+        denominatorAlias: "memory_size_bytes",
+        resultAlias,
+        resultLegend: "Memory Usage %",
+        rollingTime: RollingTime.Past5Minutes,
+        attributes: {},
+        groupByAttributeKey: "device.id",
+        /*
+         * Avg per device — usage and size ride the SAME push from the
+         * device, so Avg/Avg and the builder's default Sum/Sum yield the
+         * identical ratio (the push-count multiple cancels either way).
+         * Avg is chosen so each intermediate series stays a meaningful
+         * per-minute level reading, matching the other level templates.
+         */
+        aggregationType: MetricsAggregationType.Avg,
+      }),
+      offlineCriteriaInstance: buildIoTOfflineCriteriaInstance({
+        onCallPolicyIds: args.onCallPolicyIds,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias: resultAlias,
+        filterType: FilterType.GreaterThan,
+        value: 90,
+        incidentTitle: `[IoT] High Memory Pressure (>90%) - {{device.id}} - ${args.monitorName}`,
+        incidentDescription: `IoT device {{device.id}} is using more than 90% of its total memory ((iot_memory_usage_bytes / iot_memory_size_bytes) * 100 > 90). Sustained memory pressure leads to allocation failures, watchdog resets, and dropped telemetry. Investigate the workload on the device or consider hardware with more memory. See the root cause for fleet and device details.`,
+        criteriaName:
+          "High Memory Pressure - (iot_memory_usage_bytes / iot_memory_size_bytes) * 100 > 90",
+        criteriaDescription:
+          "Triggers when any device's memory usage exceeds 90% of its total memory over the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildIoTOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias: resultAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 90,
+      }),
+    });
+  },
+};
+
+/*
+ * Fleet Health templates evaluate the server-computed per-minute rollup
+ * series (see the fleet rollup contract above). Single series per fleet:
+ * NO device.id group-by, and titles reference the monitor/fleet name
+ * instead of {{device.id}}.
+ */
+
+const fleetOfflineRatioTemplate: IoTAlertTemplate = {
+  id: "iot-fleet-offline-ratio",
+  name: "Fleet Offline Ratio High",
+  description:
+    "Alert when more than 10% of the fleet is offline (iot_fleet_online_ratio < 0.9). Evaluates the server-computed per-minute fleet rollup — one incident per fleet, not per device.",
+  category: "Fleet Health",
+  severity: "Critical",
+  getMonitorStep: (args: IoTAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "fleet_online_ratio";
+
+    return buildIoTMonitorStep({
+      iotMonitor: buildIoTMonitorConfig({
+        fleetIdentifier: args.fleetIdentifier,
+        metricName: "iot_fleet_online_ratio",
+        metricAlias,
+        rollingTime: RollingTime.Past5Minutes,
+        /*
+         * Avg over the window — the rollup worker emits ONE datapoint per
+         * fleet per minute, so the average over Past5Minutes is the
+         * sustained online ratio; a single noisy minute won't flap the
+         * monitor. No group-by: the rollup carries no per-device identity.
+         */
+        aggregationType: MetricsAggregationType.Avg,
+        attributes: {},
+      }),
+      offlineCriteriaInstance: buildIoTOfflineCriteriaInstance({
+        onCallPolicyIds: args.onCallPolicyIds,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.LessThan,
+        value: 0.9,
+        incidentTitle: `[IoT] Fleet Offline Ratio High (>10% offline) - ${args.monitorName}`,
+        incidentDescription: `More than 10% of the IoT fleet monitored by ${args.monitorName} is offline (iot_fleet_online_ratio < 0.9). A fleet-wide availability drop usually points at shared infrastructure — a gateway, network segment, or power domain — rather than individual devices. Check the fleet's gateway and connectivity first. See the root cause for fleet details.`,
+        criteriaName: "Fleet Offline Ratio High - iot_fleet_online_ratio < 0.9",
+        criteriaDescription:
+          "Triggers when the fleet's online ratio drops below 0.9 (more than 10% of active devices offline) over the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildIoTOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 0.9,
+      }),
+    });
+  },
+};
+
+const fleetBatteryLowTemplate: IoTAlertTemplate = {
+  id: "iot-fleet-battery-low",
+  name: "Fleet Battery Low",
+  description:
+    "Alert when the fleet's bottom-decile battery level drops below 20% (iot_fleet_battery_percent_p10 < 20). Evaluates the server-computed per-minute fleet rollup — one incident per fleet, not per device.",
+  category: "Fleet Health",
+  severity: "Warning",
+  getMonitorStep: (args: IoTAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "fleet_battery_p10";
+
+    return buildIoTMonitorStep({
+      iotMonitor: buildIoTMonitorConfig({
+        fleetIdentifier: args.fleetIdentifier,
+        metricName: "iot_fleet_battery_percent_p10",
+        metricAlias,
+        rollingTime: RollingTime.Past15Minutes,
+        /*
+         * Avg over a longer Past15Minutes window — battery percentiles
+         * move slowly, and the p10 series is only emitted while fresh
+         * battery readings exist, so a wider window rides out emission
+         * gaps. No group-by: the rollup carries no per-device identity.
+         */
+        aggregationType: MetricsAggregationType.Avg,
+        attributes: {},
+      }),
+      offlineCriteriaInstance: buildIoTOfflineCriteriaInstance({
+        onCallPolicyIds: args.onCallPolicyIds,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.LessThan,
+        value: 20,
+        incidentTitle: `[IoT] Fleet Battery Low (p10 <20%) - ${args.monitorName}`,
+        incidentDescription: `The bottom 10% of devices in the IoT fleet monitored by ${args.monitorName} report battery below 20% (iot_fleet_battery_percent_p10 < 20). A sinking bottom decile means a batch of devices will start dying soon — plan a battery replacement or recharge round before they drop offline. See the root cause for fleet details.`,
+        criteriaName:
+          "Fleet Battery Low - iot_fleet_battery_percent_p10 < 20",
+        criteriaDescription:
+          "Triggers when the fleet's 10th-percentile battery level drops below 20% over the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildIoTOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 20,
+      }),
+    });
+  },
+};
+
 export function getAllIoTAlertTemplates(): Array<IoTAlertTemplate> {
   return [
     deviceOfflineTemplate,
@@ -593,6 +778,9 @@ export function getAllIoTAlertTemplates(): Array<IoTAlertTemplate> {
     weakSignalTemplate,
     highTemperatureTemplate,
     highCpuTemplate,
+    highMemoryPressureTemplate,
+    fleetOfflineRatioTemplate,
+    fleetBatteryLowTemplate,
   ];
 }
 

@@ -150,6 +150,20 @@ export default class SyslogIngestService extends OtelIngestBaseService {
   @CaptureSpan()
   private static async processSyslogAsync(req: ExpressRequest): Promise<void> {
     try {
+      /*
+       * IoT-fleet-scope re-check (defense in depth): syslog cannot be
+       * fleet-attributed, so scoped keys are rejected at the entry
+       * point — drop anything that still reaches the worker.
+       */
+      if (
+        this.shouldDropNonOtlpBatchForIotFleetScope({
+          req,
+          signalName: "syslog",
+        })
+      ) {
+        return;
+      }
+
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
       const messages: Array<string> = this.extractMessagesFromRequest(req.body);
 

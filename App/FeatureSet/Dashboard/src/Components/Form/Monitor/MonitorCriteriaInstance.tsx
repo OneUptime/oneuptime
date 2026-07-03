@@ -586,6 +586,58 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
             }}
           />
 
+          <div className="mt-6 border-t border-gray-100 pt-4">
+            <FieldLabelElement
+              title="Consecutive breaches before alerting"
+              description="The criteria must match on this many evaluations in a row before incidents or alerts are created (monitor status still changes immediately). Leave blank or 1 to alert on the first breach. Counted per device/series for grouped monitors."
+            />
+            <Input
+              type={InputType.NUMBER}
+              value={
+                monitorCriteriaInstance?.data?.minimumBreachedEvaluations?.toString() ||
+                ""
+              }
+              placeholder="1"
+              onChange={(value: string) => {
+                const parsed: number = parseInt(value, 10);
+                monitorCriteriaInstance.setMinimumBreachedEvaluations(
+                  !isNaN(parsed) && parsed > 1 ? parsed : undefined,
+                );
+                if (props.onChange) {
+                  props.onChange(
+                    MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+                  );
+                }
+              }}
+            />
+
+            <div className="mt-4">
+              <FieldLabelElement
+                title="Re-open cooldown (seconds)"
+                description="After an incident or alert auto-resolves, suppress re-creating it for this window — protects against flapping. Leave blank to re-alert immediately."
+              />
+              <Input
+                type={InputType.NUMBER}
+                value={
+                  monitorCriteriaInstance?.data?.reopenCooldownSeconds?.toString() ||
+                  ""
+                }
+                placeholder="0"
+                onChange={(value: string) => {
+                  const parsed: number = parseInt(value, 10);
+                  monitorCriteriaInstance.setReopenCooldownSeconds(
+                    !isNaN(parsed) && parsed > 0 ? parsed : undefined,
+                  );
+                  if (props.onChange) {
+                    props.onChange(
+                      MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+                    );
+                  }
+                }}
+              />
+            </div>
+          </div>
+
           {props.monitorType === MonitorType.IncomingRequest && (
             <div className="mt-6 border-t border-gray-100 pt-4">
               <Toggle

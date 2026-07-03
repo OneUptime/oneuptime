@@ -12,6 +12,15 @@ import TracesQueueService from "./Services/Queue/TracesQueueService";
 import LogsQueueService from "./Services/Queue/LogsQueueService";
 import MetricsQueueService from "./Services/Queue/MetricsQueueService";
 import ProfilesQueueService from "./Services/Queue/ProfilesQueueService";
+import { JSONObject } from "Common/Types/JSON";
+import {
+  IotFleetScopeCarrier,
+  IotFleetScopeViolation,
+  findIotFleetScopeViolation,
+  getResourceEnvelopesFromOtelBody,
+  isFleetScoped,
+  normalizeIotFleetNames,
+} from "./Utils/IotFleetScope";
 
 const GRPC_PORT: number = 4317;
 
@@ -27,9 +36,18 @@ interface GrpcCall {
   metadata: grpc.Metadata;
 }
 
+interface AuthenticatedIngestionKey {
+  projectId: ObjectID;
+  /*
+   * Normalized IoT fleet scope of the key. Empty = unscoped
+   * (project-wide, today's behavior).
+   */
+  allowedIotFleetNames: Array<string>;
+}
+
 async function authenticateRequest(
   metadata: grpc.Metadata,
-): Promise<ObjectID | null> {
+): Promise<AuthenticatedIngestionKey | null> {
   const tokenValues: grpc.MetadataValue[] = metadata.get("x-oneuptime-token");
 
   let oneuptimeToken: string | undefined = tokenValues[0]?.toString();
@@ -62,6 +80,7 @@ async function authenticateRequest(
       },
       select: {
         projectId: true,
+        iotFleetNames: true,
       },
       props: {
         isRoot: true,
@@ -69,13 +88,17 @@ async function authenticateRequest(
     });
 
   if (!token || !token.projectId) {
-    logger.error("gRPC: Invalid service token: " + oneuptimeToken, {
+    // Deliberately do not echo the token value into logs.
+    logger.error("gRPC: Invalid service token.", {
       service: "telemetry",
     });
     return null;
   }
 
-  return token.projectId as ObjectID;
+  return {
+    projectId: token.projectId as ObjectID,
+    allowedIotFleetNames: normalizeIotFleetNames(token.iotFleetNames),
+  };
 }
 
 function buildTelemetryRequest(
@@ -119,9 +142,10 @@ async function handleExport(
       return;
     }
 
-    const projectId: ObjectID | null = await authenticateRequest(call.metadata);
+    const authenticatedKey: AuthenticatedIngestionKey | null =
+      await authenticateRequest(call.metadata);
 
-    if (!projectId) {
+    if (!authenticatedKey) {
       // Return success to avoid OTel SDK retries
       callback(null, {});
       return;
@@ -129,12 +153,58 @@ async function handleExport(
 
     const body: Record<string, unknown> = call.request;
 
+    /*
+     * IoT-fleet-scoped keys: every OTLP resource in the (already
+     * gRPC-decoded) payload must carry an in-scope iot.fleet.name
+     * resource attribute. Enforced BEFORE anything is enqueued or
+     * buffered. PERMISSION_DENIED is non-retryable per the OTLP
+     * spec, so compliant SDKs surface the message instead of
+     * retry-storming. The message never contains the key value.
+     */
+    if (isFleetScoped(authenticatedKey.allowedIotFleetNames)) {
+      const violation: IotFleetScopeViolation | null =
+        findIotFleetScopeViolation({
+          allowedIotFleetNames: authenticatedKey.allowedIotFleetNames,
+          resourceEnvelopes: getResourceEnvelopesFromOtelBody(
+            body as JSONObject,
+            productType,
+          ),
+        });
+
+      if (violation) {
+        logger.warn(
+          `gRPC ${productType}: rejected fleet-scoped telemetry ingest: ` +
+            violation.message,
+          { service: "telemetry" },
+        );
+        const permissionDenied: grpc.ServiceError = Object.assign(
+          new Error(violation.message),
+          {
+            code: grpc.status.PERMISSION_DENIED,
+            details: violation.message,
+            metadata: new grpc.Metadata(),
+          },
+        );
+        callback(permissionDenied);
+        return;
+      }
+    }
+
     const req: TelemetryRequest = buildTelemetryRequest(
       body,
       call.metadata,
-      projectId,
+      authenticatedKey.projectId,
       productType,
     );
+
+    /*
+     * Forward the fleet scope through the queue job so the worker-side
+     * resource loop can re-check (defense in depth).
+     */
+    if (isFleetScoped(authenticatedKey.allowedIotFleetNames)) {
+      (req as TelemetryRequest & IotFleetScopeCarrier).allowedIotFleetNames =
+        authenticatedKey.allowedIotFleetNames;
+    }
 
     await queueFn(req);
 

@@ -20,7 +20,9 @@ import MonitorType, {
 } from "../../../Types/Monitor/MonitorType";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "../../../Types/ObjectID";
-import ProbeApiIngestResponse from "../../../Types/Probe/ProbeApiIngestResponse";
+import ProbeApiIngestResponse, {
+  PerSeriesCriteriaMatch,
+} from "../../../Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorProbe from "../../../Models/DatabaseModels/MonitorProbe";
@@ -35,6 +37,7 @@ import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/Ex
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import MonitorIncident from "./MonitorIncident";
 import MonitorAlert from "./MonitorAlert";
+import MonitorHysteresis, { HysteresisCreationGate } from "./MonitorHysteresis";
 import IncomingRequestIncidentGrouping from "./IncomingRequestIncidentGrouping";
 import MonitorMaintenanceSuppression from "./MonitorMaintenanceSuppression";
 import MonitorStatusTimelineUtil from "./MonitorStatusTimeline";
@@ -129,6 +132,7 @@ export default class MonitorResourceUtil {
         _id: true,
         name: true,
         minimumProbeAgreement: true,
+        monitoringInterval: true,
       },
       props: {
         isRoot: true,
@@ -535,6 +539,31 @@ export default class MonitorResourceUtil {
         }
       }
 
+      /*
+       * Alert hysteresis (default off): collect reopenCooldownSeconds per
+       * criteria once, so the auto-resolve paths — which only know the
+       * resolved incident's/alert's createdCriteriaId — can arm the
+       * reopen-cooldown key without re-scanning monitor steps. Empty for
+       * monitors that never opted in, making every downstream check a
+       * no-op.
+       */
+      const reopenCooldownSecondsByCriteriaId: Dictionary<number> = {};
+
+      for (const criteriaInstance of criteriaInstances) {
+        const criteriaId: string | undefined =
+          criteriaInstance.data?.id?.toString();
+        const reopenCooldownSeconds: number | undefined =
+          criteriaInstance.data?.reopenCooldownSeconds;
+
+        if (
+          criteriaId &&
+          typeof reopenCooldownSeconds === "number" &&
+          reopenCooldownSeconds > 0
+        ) {
+          reopenCooldownSecondsByCriteriaId[criteriaId] = reopenCooldownSeconds;
+        }
+      }
+
       const monitorStep: MonitorStep | undefined =
         monitorSteps.data.monitorStepsInstanceArray[0];
 
@@ -690,6 +719,7 @@ export default class MonitorResourceUtil {
             dataToProcess: dataToProcess,
             autoResolveCriteriaInstanceIdIncidentIdsDictionary,
             evaluationSummary: evaluationSummary,
+            reopenCooldownSecondsByCriteriaId,
           });
 
           await MonitorAlert.resolveSeriesAlertsByFingerprint({
@@ -699,8 +729,64 @@ export default class MonitorResourceUtil {
             dataToProcess: dataToProcess,
             autoResolveCriteriaInstanceIdAlertIdsDictionary,
             evaluationSummary: evaluationSummary,
+            reopenCooldownSecondsByCriteriaId,
           });
         }
+      }
+
+      /*
+       * Alert hysteresis: reset the consecutive-breach counters of every
+       * criteria (in the evaluated step) that did NOT match on this tick
+       * — a non-matching evaluation restarts the "consecutive" count.
+       * Runs on every tick regardless of whether a status change happens
+       * below (the status branches are conditional; counter consistency
+       * must not be). No-op (zero cache calls) for criteria without
+       * minimumBreachedEvaluations. Three tick classes are exempt
+       * because for them "did not match" carries no recovery evidence:
+       *
+       * - Telemetry blackout: absence of ALL data is a collection
+       *   outage, not a healthy evaluation; the blackout branch below
+       *   deliberately holds all state.
+       * - Event-driven monitors (incoming-request / webhook): a
+       *   heartbeat-cron tick or a resolved-only / other-key webhook
+       *   says nothing about the firing keys — resetting here would
+       *   wipe per-key counters between webhooks and let
+       *   minimumBreachedEvaluations suppress alerting indefinitely.
+       *   Counter cleanup falls to the TTL; explicit resolved webhooks
+       *   already resolve incidents.
+       * - ServerMonitor CheckOnlineStatus cron re-evaluations
+       *   (onlyCheckRequestReceivedAt=true): CPU/memory/disk/process
+       *   filters are skipped on those ticks, so resource criteria
+       *   structurally cannot match — restrict the reset to criteria
+       *   that were actually evaluable (those with an IsOnline filter).
+       */
+      const isTelemetryBlackout: boolean =
+        !response.criteriaMetId &&
+        (dataToProcess as MetricMonitorResponse).isTelemetrySourceReporting ===
+          false;
+
+      const isEventDrivenMonitor: boolean =
+        monitor.monitorType === MonitorType.IncomingRequest;
+
+      const isServerHeartbeatOnlyTick: boolean =
+        monitor.monitorType === MonitorType.Server &&
+        (dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt ===
+          true;
+
+      if (!isTelemetryBlackout && !isEventDrivenMonitor) {
+        const stepCriteriaInstances: Array<MonitorCriteriaInstance> =
+          monitorStep.data?.monitorCriteria?.data
+            ?.monitorCriteriaInstanceArray || [];
+
+        await MonitorHysteresis.resetBreachCountersForUnmatchedCriteria({
+          monitorId: monitor.id!,
+          criteriaInstances: isServerHeartbeatOnlyTick
+            ? MonitorHysteresis.filterCriteriaResettableOnServerHeartbeatOnlyTick(
+                stepCriteriaInstances,
+              )
+            : stepCriteriaInstances,
+          matchedCriteriaId: response.criteriaMetId,
+        });
       }
 
       if (response.criteriaMetId && response.rootCause) {
@@ -828,6 +914,41 @@ export default class MonitorResourceUtil {
             matchesPerSeries: response.perSeriesMatches,
           });
 
+        /*
+         * Alert hysteresis (default off): computed ONCE per evaluation
+         * tick and shared by the incident and alert paths below so the
+         * consecutive-breach counter increments exactly once per tick.
+         * The gate only suppresses incident/alert CREATION — the status
+         * change above already happened and the auto-resolve passes
+         * inside the create calls run unchanged. Empty gate (and zero
+         * cache traffic) when the matched criteria has neither
+         * minimumBreachedEvaluations nor reopenCooldownSeconds set.
+         * Fails open on cache errors.
+         */
+        const hysteresisCreationGate: HysteresisCreationGate =
+          await MonitorHysteresis.evaluateCreationGateForMatchedCriteria({
+            monitorId: monitor.id!,
+            criteriaInstance: matchedCriteriaInstance,
+            matchedFingerprints: response.perSeriesMatches?.map(
+              (seriesMatch: PerSeriesCriteriaMatch) => {
+                return seriesMatch.fingerprint;
+              },
+            ),
+            /*
+             * Event-driven webhooks only describe their own payload's
+             * keys — other keys' counters must survive this tick.
+             */
+            isEventDriven: isEventDrivenMonitor,
+            /*
+             * Scale the counter TTL to the probe cadence so 30m/hourly/
+             * daily/weekly monitors don't lose state between ticks.
+             */
+            evaluationCadenceSeconds:
+              MonitorHysteresis.getEvaluationCadenceSecondsFromMonitoringInterval(
+                monitor.monitoringInterval,
+              ),
+          });
+
         await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
           monitor: monitor,
           rootCause: response.rootCause,
@@ -840,6 +961,8 @@ export default class MonitorResourceUtil {
           },
           matchesPerSeries: response.perSeriesMatches,
           suppressedSeriesFingerprints,
+          hysteresisCreationGate,
+          reopenCooldownSecondsByCriteriaId,
           /*
            * Incoming-request grouping is event-driven: a webhook describes
            * only the keys in its payload, so absence from this tick is not
@@ -863,6 +986,8 @@ export default class MonitorResourceUtil {
           },
           matchesPerSeries: response.perSeriesMatches,
           suppressedSeriesFingerprints,
+          hysteresisCreationGate,
+          reopenCooldownSecondsByCriteriaId,
           /*
            * Incoming-request grouping is event-driven (see the incident
            * create call above): skip the snapshot absence-resolve pass for
@@ -927,6 +1052,7 @@ export default class MonitorResourceUtil {
            */
           disableSeriesAbsenceResolution:
             monitor.monitorType === MonitorType.IncomingRequest,
+          reopenCooldownSecondsByCriteriaId,
         });
 
         await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
@@ -938,6 +1064,7 @@ export default class MonitorResourceUtil {
           evaluationSummary: evaluationSummary,
           disableSeriesAbsenceResolution:
             monitor.monitorType === MonitorType.IncomingRequest,
+          reopenCooldownSecondsByCriteriaId,
         });
 
         // get last monitor status timeline.

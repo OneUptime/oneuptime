@@ -12,6 +12,7 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import PyroscopeIngestService from "../Services/PyroscopeIngestService";
 import MultipartFormDataMiddleware from "Common/Server/Middleware/MultipartFormData";
+import IotFleetScopeEnforcement from "../Middleware/IotFleetScopeEnforcement";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -52,6 +53,12 @@ router.post(
   mapBearerTokenMiddleware,
   setProfilesProductType,
   TelemetryIngest.isAuthorizedServiceMiddleware,
+  /*
+   * Pyroscope pprof payloads carry no OTLP resource attributes, so
+   * fleet-scoped ingestion keys cannot be attributed to a fleet —
+   * reject them (fail closed). Unscoped keys are unaffected.
+   */
+  IotFleetScopeEnforcement.rejectFleetScopedKeys("pyroscope"),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -71,6 +78,8 @@ router.post(
   mapBearerTokenMiddleware,
   setProfilesProductType,
   TelemetryIngest.isAuthorizedServiceMiddleware,
+  // Same fail-closed rule as /pyroscope/ingest above.
+  IotFleetScopeEnforcement.rejectFleetScopedKeys("pyroscope"),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

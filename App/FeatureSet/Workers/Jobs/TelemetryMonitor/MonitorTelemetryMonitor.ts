@@ -1,5 +1,7 @@
 import OneUptimeDate from "Common/Types/Date";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import { IOT_FLEET_ROLLUP_METRIC_NAME_LIST } from "Common/Server/Utils/Telemetry/IoTSnapshotScan";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorService from "Common/Server/Services/MonitorService";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
@@ -39,10 +41,14 @@ import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
-import MetricService from "Common/Server/Services/MetricService";
+import MetricService, {
+  MetricPerSeriesAggregationResult,
+  PER_SERIES_AGGREGATION_MAX_ROWS,
+} from "Common/Server/Services/MetricService";
 import MetricTypeService from "Common/Server/Services/MetricTypeService";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
+import { getPercentileLevel } from "Common/Types/BaseDatabase/AggregationType";
 import Dictionary from "Common/Types/Dictionary";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
@@ -407,11 +413,13 @@ const checkTelemetrySourceReporting: (input: {
   startAndEndDate: InBetween<Date>;
   sourceAttributes: Dictionary<string>;
   stepResults: Array<AggregatedResult>;
+  excludeMetricNames?: ReadonlyArray<string> | undefined;
 }) => Promise<boolean | undefined> = async (input: {
   projectId: ObjectID;
   startAndEndDate: InBetween<Date>;
   sourceAttributes: Dictionary<string>;
   stepResults: Array<AggregatedResult>;
+  excludeMetricNames?: ReadonlyArray<string> | undefined;
 }): Promise<boolean | undefined> => {
   const hasAnyData: boolean = input.stepResults.some(
     (result: AggregatedResult) => {
@@ -428,11 +436,22 @@ const checkTelemetrySourceReporting: (input: {
   }
 
   try {
+    /*
+     * excludeMetricNames makes the probe blind to server-synthesized
+     * series that keep flowing while the source itself is dark — the
+     * IoT fleet rollups carry the fleet's scoping attribute every
+     * minute regardless of collector health, and counting them as
+     * "reporting" would defeat the blackout hold this probe exists
+     * to provide.
+     */
     const anyMetricFromSource: Array<Metric> = await MetricService.findBy({
       query: {
         projectId: input.projectId,
         time: input.startAndEndDate,
         attributes: input.sourceAttributes,
+        ...(input.excludeMetricNames && input.excludeMetricNames.length > 0
+          ? { name: new IncludesNone([...input.excludeMetricNames]) }
+          : {}),
       } as Query<Metric>,
       select: {
         time: true,
@@ -535,22 +554,24 @@ const bucketAggregatedResultBySeries: (input: {
 };
 
 /**
- * Per-series aggregation path: fetch raw metric rows and bucket them
- * by (series fingerprint, minute bucket) in code. Returns an
+ * LEGACY FALLBACK — per-series aggregation in code: bucket raw metric
+ * rows by (series fingerprint, minute bucket) in JS. Returns an
  * AggregatedResult shaped identically to what `MetricService.aggregateBy`
  * would have produced with `GROUP BY time, attributes`.
  *
- * Why in-code instead of SQL GROUP BY: ClickHouse's parameterized
- * query returns 0 rows when the GROUP BY clause includes the nested
- * `attributes` Map column, even though running the exact same SQL
- * directly returns rows. This is a quirk of the @clickhouse/client
- * parameter binding for Map columns. Rather than work around the
- * library bug we fetch raw rows (just like the Kubernetes monitor
- * already does for its per-resource breakdown) and aggregate in JS.
- * For the realistic monitor shape — hundreds of hosts × ~60 samples
- * per minute — the extra work is negligible compared to a cron tick.
+ * The primary path is now `MetricService.aggregateByAttributeSeries`,
+ * which pushes the GROUP BY into ClickHouse by extracting each group-by
+ * attribute key as a scalar column (sidestepping the @clickhouse/client
+ * quirk where a parameterized GROUP BY over the nested `attributes` Map
+ * column returns 0 rows — the original reason this JS path existed).
+ * This function only runs when the server-side path fails, via
+ * `fetchPerSeriesAggregatedResult`, which caps the raw fetch at
+ * LIMIT_PER_PROJECT rows and loudly reports any truncation. Do not call
+ * this with an uncapped row set.
+ *
+ * Exported for tests only (PerSeriesAggregationFallback.test.ts).
  */
-const aggregatePerSeriesFromRawMetrics: (input: {
+export const aggregatePerSeriesFromRawMetrics: (input: {
   rawMetrics: Array<Metric>;
   attributeKeys: Array<string>;
   aggregationType: MetricsAggregationType;
@@ -648,12 +669,44 @@ const aggregatePerSeriesFromRawMetrics: (input: {
         aggregated = Math.min(...vs);
         break;
       case MetricsAggregationType.Avg:
-      default:
         aggregated =
           vs.reduce((a: number, b: number) => {
             return a + b;
           }, 0) / vs.length;
         break;
+      default: {
+        /*
+         * Percentiles (P50–P99) via nearest-rank — an acceptable
+         * in-process approximation of ClickHouse's quantile(), so a
+         * fallback evaluation keeps percentile semantics instead of
+         * silently degrading to Avg (which sits far below P95/P99 on
+         * latency-shaped distributions and would mask breaches exactly
+         * when ClickHouse is degraded).
+         */
+        const percentileLevel: number | null = getPercentileLevel(
+          input.aggregationType,
+        );
+        if (percentileLevel !== null) {
+          const sorted: Array<number> = [...vs].sort(
+            (a: number, b: number) => {
+              return a - b;
+            },
+          );
+          const rankIndex: number = Math.min(
+            sorted.length - 1,
+            Math.max(0, Math.ceil(percentileLevel * sorted.length) - 1),
+          );
+          aggregated = sorted[rankIndex]!;
+          break;
+        }
+
+        // Unknown aggregation types fall back to Avg (legacy behavior).
+        aggregated =
+          vs.reduce((a: number, b: number) => {
+            return a + b;
+          }, 0) / vs.length;
+        break;
+      }
     }
 
     rows.push({
@@ -664,6 +717,125 @@ const aggregatePerSeriesFromRawMetrics: (input: {
   }
 
   return { data: rows };
+};
+
+/**
+ * Per-series aggregation for a group-by telemetry monitor query.
+ *
+ * Primary path: `MetricService.aggregateByAttributeSeries` — ClickHouse
+ * GROUP BYs minute buckets × the requested attribute keys server-side,
+ * so the row volume scales with `series × minutes` instead of
+ * `series × raw samples`. This removes the old LIMIT_PER_PROJECT raw-row
+ * cap that silently dropped later-sorted series (i.e. whole devices /
+ * pods / OSDs) from evaluation at fleet scale.
+ *
+ * Fallback path: if the server-side aggregation fails for any reason,
+ * fall back to the legacy capped raw fetch + in-process aggregation so
+ * the monitor still evaluates. Every truncation on either path emits a
+ * logger.warn carrying the monitorId and the dropped row count —
+ * truncation is never silent.
+ */
+const fetchPerSeriesAggregatedResult: (input: {
+  query: Query<Metric>;
+  attributeKeys: Array<string>;
+  aggregationType: MetricsAggregationType;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<AggregatedResult> = async (input: {
+  query: Query<Metric>;
+  attributeKeys: Array<string>;
+  aggregationType: MetricsAggregationType;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<AggregatedResult> => {
+  const logAttributes: LogAttributes = {
+    service: "workers",
+    monitorId: input.monitorId.toString(),
+    projectId: input.projectId.toString(),
+  };
+
+  try {
+    const serverSide: MetricPerSeriesAggregationResult =
+      await MetricService.aggregateByAttributeSeries({
+        query: input.query,
+        aggregationType: input.aggregationType,
+        groupByAttributeKeys: input.attributeKeys,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (serverSide.truncated) {
+      logger.warn(
+        `Per-series metric aggregation truncated for monitor ${input.monitorId.toString()}: ${serverSide.droppedRowCount} aggregated series-time rows beyond the ${PER_SERIES_AGGREGATION_MAX_ROWS}-row cap were dropped. Some series (devices/pods/hosts) are missing from this evaluation — shorten the rolling window or narrow the monitor's filters.`,
+        logAttributes,
+      );
+    }
+
+    return serverSide.result;
+  } catch (err) {
+    logger.error(
+      `Server-side per-series aggregation failed for monitor ${input.monitorId.toString()} (aggregation: ${input.aggregationType}); falling back to capped raw-row aggregation with in-process ${input.aggregationType}.`,
+      logAttributes,
+    );
+    logger.error(err, logAttributes);
+  }
+
+  /*
+   * Legacy fallback: capped raw fetch + in-process aggregation. The cap
+   * means series can be dropped at fleet scale, so when it is hit we
+   * quantify the loss (count query, only paid on the truncated path)
+   * and warn loudly.
+   */
+  const rawMetrics: Array<Metric> = await MetricService.findBy({
+    query: input.query,
+    select: {
+      attributes: true,
+      value: true,
+      time: true,
+    },
+    sort: {
+      time: SortOrder.Descending,
+    },
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+    props: {
+      isRoot: true,
+    },
+  });
+
+  if (rawMetrics.length >= LIMIT_PER_PROJECT) {
+    let droppedRowCount: number | undefined = undefined;
+
+    try {
+      const totalRows: PositiveNumber = await MetricService.countBy({
+        query: input.query,
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+      droppedRowCount = Math.max(0, totalRows.toNumber() - rawMetrics.length);
+    } catch (countErr) {
+      logger.error(countErr, logAttributes);
+    }
+
+    logger.warn(
+      `Per-series raw metric fetch hit the ${LIMIT_PER_PROJECT}-row cap for monitor ${input.monitorId.toString()}: ${
+        droppedRowCount !== undefined
+          ? `${droppedRowCount} raw rows`
+          : "an unknown number of raw rows"
+      } in the evaluation window were dropped. Later-sorted series (devices/pods/hosts) are missing from this evaluation.`,
+      logAttributes,
+    );
+  }
+
+  return aggregatePerSeriesFromRawMetrics({
+    rawMetrics,
+    attributeKeys: input.attributeKeys,
+    aggregationType: input.aggregationType,
+  });
 };
 
 /**
@@ -1022,33 +1194,18 @@ const monitorMetric: MonitorMetricFunction = async (data: {
 
     if (groupByAttributeKeys.length > 0) {
       /*
-       * Per-series path: fetch raw rows including the full
-       * attributes map, then bucket + aggregate in code. We can't
-       * push this through aggregateBy+SQL because the @clickhouse/client
-       * parameterized query returns 0 rows when GROUP BY includes the
-       * Map column. See aggregatePerSeriesFromRawMetrics for details.
+       * Per-series path: aggregate server-side in ClickHouse (GROUP BY
+       * minute bucket × scalar-extracted attribute keys) so evaluation
+       * sees every series regardless of fleet size. See
+       * fetchPerSeriesAggregatedResult for the fallback + truncation
+       * telemetry.
        */
-      const rawMetrics: Array<Metric> = await MetricService.findBy({
+      aggregatedResults = await fetchPerSeriesAggregatedResult({
         query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics,
         attributeKeys: groupByAttributeKeys,
         aggregationType,
+        monitorId: data.monitorId,
+        projectId: data.projectId,
       });
     } else {
       aggregatedResults = await MetricService.aggregateBy({
@@ -1329,27 +1486,12 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     let aggregatedResults: AggregatedResult;
 
     if (groupByAttributeKeys.length > 0) {
-      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+      aggregatedResults = await fetchPerSeriesAggregatedResult({
         query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
         attributeKeys: groupByAttributeKeys,
         aggregationType,
+        monitorId: data.monitorId,
+        projectId: data.projectId,
       });
     } else {
       aggregatedResults = await MetricService.aggregateBy({
@@ -1668,27 +1810,12 @@ const monitorDocker: MonitorDockerFunction = async (data: {
     let aggregatedResults: AggregatedResult;
 
     if (groupByAttributeKeys.length > 0) {
-      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+      aggregatedResults = await fetchPerSeriesAggregatedResult({
         query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
         attributeKeys: groupByAttributeKeys,
         aggregationType,
+        monitorId: data.monitorId,
+        projectId: data.projectId,
       });
     } else {
       aggregatedResults = await MetricService.aggregateBy({
@@ -1860,27 +1987,12 @@ const monitorHost: MonitorHostFunction = async (data: {
     let aggregatedResults: AggregatedResult;
 
     if (groupByAttributeKeys.length > 0) {
-      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+      aggregatedResults = await fetchPerSeriesAggregatedResult({
         query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
         attributeKeys: groupByAttributeKeys,
         aggregationType,
+        monitorId: data.monitorId,
+        projectId: data.projectId,
       });
     } else {
       aggregatedResults = await MetricService.aggregateBy({
@@ -2058,27 +2170,12 @@ const monitorPodman: MonitorPodmanFunction = async (data: {
     let aggregatedResults: AggregatedResult;
 
     if (groupByAttributeKeys.length > 0) {
-      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+      aggregatedResults = await fetchPerSeriesAggregatedResult({
         query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
         attributeKeys: groupByAttributeKeys,
         aggregationType,
+        monitorId: data.monitorId,
+        projectId: data.projectId,
       });
     } else {
       aggregatedResults = await MetricService.aggregateBy({
@@ -2285,27 +2382,12 @@ const monitorProxmox: MonitorProxmoxFunction = async (data: {
     let aggregatedResults: AggregatedResult;
 
     if (groupByAttributeKeys.length > 0) {
-      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+      aggregatedResults = await fetchPerSeriesAggregatedResult({
         query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
         attributeKeys: groupByAttributeKeys,
         aggregationType,
+        monitorId: data.monitorId,
+        projectId: data.projectId,
       });
     } else {
       aggregatedResults = await MetricService.aggregateBy({
@@ -2586,27 +2668,12 @@ const monitorIoT: MonitorIoTFunction = async (data: {
     let aggregatedResults: AggregatedResult;
 
     if (groupByAttributeKeys.length > 0) {
-      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+      aggregatedResults = await fetchPerSeriesAggregatedResult({
         query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
         attributeKeys: groupByAttributeKeys,
         aggregationType,
+        monitorId: data.monitorId,
+        projectId: data.projectId,
       });
     } else {
       aggregatedResults = await MetricService.aggregateBy({
@@ -2671,7 +2738,12 @@ const monitorIoT: MonitorIoTFunction = async (data: {
   /*
    * All-empty step results are ambiguous (quiet fleet vs dead gateway);
    * probe the fleet's scoping attribute so a collection blackout holds
-   * monitor state instead of auto-resolving via default status.
+   * monitor state instead of auto-resolving via default status. The
+   * probe excludes the server-computed iot_fleet_* rollup series: the
+   * ComputeFleetRollups worker keeps emitting those every minute even
+   * while the fleet's collector is dark (that is how the fleet-level
+   * blackout alert fires), so counting them as "reporting" would
+   * auto-resolve per-device incidents mid-blackout.
    */
   const isTelemetrySourceReporting: boolean | undefined =
     await checkTelemetrySourceReporting({
@@ -2683,6 +2755,7 @@ const monitorIoT: MonitorIoTFunction = async (data: {
           }
         : {},
       stepResults: finalResult,
+      excludeMetricNames: IOT_FLEET_ROLLUP_METRIC_NAME_LIST,
     });
 
   return {
@@ -2808,27 +2881,12 @@ const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     let aggregatedResults: AggregatedResult;
 
     if (groupByAttributeKeys.length > 0) {
-      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+      aggregatedResults = await fetchPerSeriesAggregatedResult({
         query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
         attributeKeys: groupByAttributeKeys,
         aggregationType,
+        monitorId: data.monitorId,
+        projectId: data.projectId,
       });
     } else {
       aggregatedResults = await MetricService.aggregateBy({
@@ -3107,27 +3165,12 @@ const monitorCeph: MonitorCephFunction = async (data: {
     let aggregatedResults: AggregatedResult;
 
     if (groupByAttributeKeys.length > 0) {
-      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+      aggregatedResults = await fetchPerSeriesAggregatedResult({
         query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
         attributeKeys: groupByAttributeKeys,
         aggregationType,
+        monitorId: data.monitorId,
+        projectId: data.projectId,
       });
     } else {
       aggregatedResults = await MetricService.aggregateBy({

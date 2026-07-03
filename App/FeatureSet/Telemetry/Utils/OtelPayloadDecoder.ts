@@ -96,11 +96,34 @@ export default class OtelPayloadDecoder {
       throw new Error("OtelPayloadDecoder: bodyKey is required");
     }
 
-    let raw: Buffer | null = await TelemetryBodyStore.readBody(input.bodyKey);
+    const raw: Buffer | null = await TelemetryBodyStore.readBody(input.bodyKey);
     if (!raw) {
       // Body expired (TTL) before the worker got to it — nothing to decode.
       return {} as JSONObject;
     }
+
+    return this.decodeRawBody({
+      productType: input.productType,
+      format: input.format,
+      encoding: input.encoding,
+      raw,
+    });
+  }
+
+  /*
+   * Decode a raw OTel payload buffer (gunzip + protobuf decode or JSON
+   * parse) into the plain-object OTel data model. Shared by the queue
+   * worker (via decodeFromQueue) and the fleet-scope enforcement
+   * middleware, which must inspect resource attributes at request time
+   * for fleet-scoped ingestion keys — before anything is buffered.
+   */
+  public static async decodeRawBody(input: {
+    productType: ProductType;
+    format: OtelPayloadFormat;
+    encoding: OtelPayloadEncoding;
+    raw: Buffer;
+  }): Promise<JSONObject> {
+    let raw: Buffer = input.raw;
 
     if (input.encoding === "gzip") {
       raw = await gunzipAsync(new Uint8Array(raw));

@@ -178,6 +178,20 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
     req: ExpressRequest,
   ): Promise<void> {
     try {
+      /*
+       * IoT-fleet-scope re-check (defense in depth): fluentd entries
+       * cannot be fleet-attributed, so scoped keys are rejected at the
+       * entry point — drop anything that still reaches the worker.
+       */
+      if (
+        this.shouldDropNonOtlpBatchForIotFleetScope({
+          req,
+          signalName: "fluentd",
+        })
+      ) {
+        return;
+      }
+
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
       const entries: Array<JSONObject> = this.extractEntriesFromRequest(
         req.body,

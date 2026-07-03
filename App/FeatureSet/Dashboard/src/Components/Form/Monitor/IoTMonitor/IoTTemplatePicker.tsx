@@ -50,7 +50,14 @@ const categories: Array<{
     category: "System",
     label: "System",
     icon: IconProp.CPUChip,
-    description: "Monitor device CPU and resource usage.",
+    description: "Monitor device CPU, memory, and resource usage.",
+  },
+  {
+    category: "Fleet Health",
+    label: "Fleet Health",
+    icon: IconProp.SquareStack,
+    description:
+      "Monitor fleet-wide rollups computed by OneUptime every minute — alert when too much of the fleet is offline or the fleet's weakest batteries run low. One incident per fleet, not per device.",
   },
 ];
 

@@ -11,6 +11,7 @@ import Express, {
   RequestHandler,
 } from "Common/Server/Utils/Express";
 import FluentLogsIngestService from "../Services/FluentLogsIngestService";
+import IotFleetScopeEnforcement from "../Middleware/IotFleetScopeEnforcement";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -28,6 +29,12 @@ router.post(
   TelemetryIngestionDisabled.middleware,
   setFluentProductType,
   TelemetryIngest.isAuthorizedServiceMiddleware,
+  /*
+   * Fluentd entries carry no OTLP resource attributes, so fleet-scoped
+   * ingestion keys cannot be attributed to a fleet — reject them (fail
+   * closed). Unscoped keys are unaffected.
+   */
+  IotFleetScopeEnforcement.rejectFleetScopedKeys("fluentd"),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

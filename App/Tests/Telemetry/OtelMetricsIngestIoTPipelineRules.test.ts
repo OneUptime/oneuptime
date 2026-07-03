@@ -174,11 +174,16 @@ describe("IoT snapshot buffering vs metric pipeline rules", () => {
     expect(upsertArgs.devices[0]!.externalId).toBe("sensor-1");
     expect(upsertArgs.devices[0]!.isUp).toBe(true);
 
-    // iot_device_up carries identity → the fleet count columns write too.
-    expect(spies.updateLastSeen).toHaveBeenCalledTimes(1);
-    expect(spies.updateLastSeen.mock.calls[0]![1]).toEqual({
-      deviceCount: 1,
-      onlineDeviceCount: 1,
-    });
+    /*
+     * Batch-derived counts are gone: the ComputeFleetRollups worker
+     * owns deviceCount / onlineDeviceCount now (one OTLP batch is a
+     * single gateway's slice of the fleet, so per-batch counts were
+     * wrong for multi-gateway fleets). With no counts and no
+     * agentVersion in this payload the extras are empty, so the
+     * flush-site updateLastSeen call is skipped entirely — the fleet
+     * heartbeat itself rides the autoDiscoverIoTFleet maintenance
+     * fence in OtelIngestBaseService, not this call.
+     */
+    expect(spies.updateLastSeen).not.toHaveBeenCalled();
   });
 });

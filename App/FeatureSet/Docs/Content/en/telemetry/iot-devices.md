@@ -110,6 +110,23 @@ OneUptime recognizes the following `iot_*` metric names. Each datapoint should c
 | `iot_memory_size_bytes`     | Total memory available on the device, in bytes                                 |
 | `iot_uptime_seconds`        | Seconds since the device last booted                                           |
 
+### Fleet Rollup Metrics (server-computed — do not send these)
+
+In addition to the device-pushed metrics above, OneUptime **computes** the following fleet-level rollup series itself, once per minute per fleet, and writes them to the same metric store. Your devices and gateways must **not** send them — they are reserved, and the server-side values would collide with anything you push. Each series has one datapoint per fleet per minute and is stamped with `resource.iot.fleet.name` (the fleet name), `iot.scope = fleet`, and `oneuptime.synthetic = fleet-rollup`; they carry no `device.id` label.
+
+| Metric Name                       | Meaning                                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `iot_fleet_device_count`          | Active devices in the fleet (non-Retired, non-archived)                                          |
+| `iot_fleet_online_count`          | Active devices currently online                                                                   |
+| `iot_fleet_offline_count`         | Active devices currently offline                                                                  |
+| `iot_fleet_stale_count`           | Active devices whose readings have gone stale                                                     |
+| `iot_fleet_online_ratio`          | Online share of active devices, `0`–`1`. Only emitted while the fleet has active devices          |
+| `iot_fleet_battery_percent_p50`   | Median battery (%) across devices with fresh battery readings. Only emitted while such readings exist |
+| `iot_fleet_battery_percent_p10`   | 10th-percentile battery (%). Only emitted while fresh battery readings exist                      |
+| `iot_fleet_weak_signal_count`     | Devices whose fresh signal readings are below -100 dBm                                            |
+
+Chart them from the fleet's **Metrics** view like any other series, or alert on them with the Fleet Health monitor templates — see [IoT Device Monitor](/docs/monitor/iot-device-monitor#fleet-health-rollup-metrics).
+
 ## Device-side Recipes
 
 There is no official OpenTelemetry SDK for constrained embedded targets, and you do not need one: OTLP/HTTP with JSON encoding is just an HTTP `POST` of a JSON document. Any device that can make an HTTPS request can push metrics directly to `POST /otlp/v1/metrics` with two headers — `Content-Type: application/json` and `x-oneuptime-token`.
@@ -277,6 +294,24 @@ int push_battery(int sock, double percent, uint64_t now_ns) {
 
 For self-hosted OneUptime, replace the host with your instance (the path stays `/otlp/v1/metrics`). If a device cannot do TLS at all, push over plain HTTP to a local OpenTelemetry Collector on your gateway and let the collector forward to OneUptime over HTTPS, as shown in [Sending Metrics via an OpenTelemetry Collector](#sending-metrics-via-an-opentelemetry-collector).
 
+## Scoping Ingestion Keys to Fleets
+
+Telemetry ingestion keys are project-wide by default: any device holding a key can push data as **any** fleet (or any other telemetry service) in the project. That is a poor fit for device keys — a key flashed onto a sensor in the field is easy to extract, and an extracted project-wide key lets an attacker impersonate your whole fleet inventory.
+
+To limit the blast radius, scope each device key to the fleet(s) it belongs to. In _Project Settings → Telemetry Ingestion Keys_, create (or edit) a key and set **Restrict to IoT Fleets** to the fleet name(s) the key may report for.
+
+When a key is fleet-scoped:
+
+- Every OTLP resource pushed with the key **must** carry an `iot.fleet.name` resource attribute whose value is in the key's allowed list. Requests containing a resource with a missing or out-of-scope `iot.fleet.name` are rejected with HTTP `403` (or gRPC `PERMISSION_DENIED`) before anything is stored — the error message names the offending fleet and the key's allowed scope.
+- The syslog, fluentd, and profiling (Pyroscope) ingest paths carry no resource attributes and therefore reject fleet-scoped keys outright. Use an unscoped key for those.
+- Keys with no fleet restriction behave exactly as before (project-wide).
+
+Key hygiene tips:
+
+- Use **one key per fleet** (or per deployment batch) so a leaked key can be revoked without re-flashing unrelated fleets.
+- Never reuse a device key for backend services — create separate, unscoped keys for servers and collectors you control.
+- Rotate a fleet's key from _Project Settings → Telemetry Ingestion Keys → Reset Secret Key_ if you suspect a device has been tampered with. Scope changes and revocations take effect within about a minute.
+
 ## Verify the Installation
 
 1. Confirm your device or gateway is exporting without errors (check the SDK/collector logs for export failures and HTTP `401`/`403` responses).
@@ -300,7 +335,8 @@ For self-hosted OneUptime, replace the host with your instance (the path stays `
 
 ### HTTP 401 / 403 from the Exporter
 
-The ingestion token is invalid, revoked, or missing. Generate a new one from _Project Settings → Telemetry Ingestion Keys_ and update the `x-oneuptime-token` header.
+- `401` — the ingestion token is invalid, revoked, or missing. Generate a new one from _Project Settings → Telemetry Ingestion Keys_ and update the `x-oneuptime-token` header.
+- `403` — the token is valid but fleet-scoped, and the payload contained a resource whose `iot.fleet.name` is missing or outside the key's allowed fleets (the response body names the offending fleet and the allowed scope). Fix the device's `iot.fleet.name` resource attribute, or widen the key's scope in _Project Settings → Telemetry Ingestion Keys_. See [Scoping Ingestion Keys to Fleets](#scoping-ingestion-keys-to-fleets).
 
 ### Metrics Not Charting
 
@@ -332,6 +368,6 @@ If your instance is HTTP-only, change the scheme to `http://` and use the approp
 
 ## Next steps
 
-- Configure an **IoT Device Monitor** to alert on device offline, low battery, weak signal, high temperature, and high CPU conditions — see [IoT Device Monitor](/docs/monitor/iot-device-monitor).
+- Configure an **IoT Device Monitor** to alert on device offline, low battery, weak signal, high temperature, high CPU, and high memory pressure conditions per device — or on fleet-wide offline ratio and battery health via the Fleet Health templates — see [IoT Device Monitor](/docs/monitor/iot-device-monitor).
 - For non-containerized hosts (Linux / macOS / Windows VMs and bare metal), use the [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector).
 - To learn the underlying OTLP integration in depth, see [Integrate OpenTelemetry with OneUptime](/docs/telemetry/open-telemetry).

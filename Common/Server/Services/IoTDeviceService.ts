@@ -68,6 +68,32 @@ export interface IoTInventorySummary {
 }
 
 /*
+ * Fleet-level rollup facts computed from the full inventory in one
+ * round-trip — the source for IoTFleet.deviceCount/onlineDeviceCount
+ * and the iot_fleet_* rollup metric series. Percentiles/weak-signal
+ * only consider FRESH readings (metricsUpdatedAt within the stale
+ * threshold) so a dead device's last battery value doesn't haunt the
+ * fleet stats; they are null when no fresh readings exist.
+ */
+export interface IoTFleetRollupStats {
+  deviceCount: number;
+  onlineCount: number;
+  offlineCount: number;
+  staleCount: number;
+  batteryPercentP50: number | null;
+  batteryPercentP10: number | null;
+  /*
+   * Null (not 0) when NO device has a fresh signal reading — a
+   * fabricated zero would auto-resolve weak-signal monitors between
+   * slow check-ins.
+   */
+  weakSignalCount: number | null;
+}
+
+// Matches the shipped Weak Signal template threshold.
+export const IOT_WEAK_SIGNAL_DBM: number = -100;
+
+/*
  * A device the heartbeat sweep considers silent: no data for 3x its
  * effective check-in interval. Carries enough identity to flip state
  * through the hooked update path and to synthesize an
@@ -355,8 +381,18 @@ export class Service extends DatabaseService<Model> {
       let paramIndex: number = 3;
 
       for (const m of chunk) {
+        /*
+         * 10 slots per row — one for every column in the VALUES alias
+         * below (kind, externalId, cpu, mem, maxMem, memPct, battery,
+         * signal, temp, observedAt). A missing slot here doesn't fail
+         * loudly in unit tests (they assert params, not the fragment):
+         * it fails EVERY live UPDATE with a bind-count mismatch and
+         * the mirror silently never updates — exactly the bug this
+         * comment is guarding against (temp's ::numeric slot was once
+         * dropped when battery/signal/temp replaced disk columns).
+         */
         valueFragments.push(
-          `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}::numeric, $${paramIndex++}::bigint, $${paramIndex++}::bigint, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::timestamptz)`,
+          `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}::numeric, $${paramIndex++}::bigint, $${paramIndex++}::bigint, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::timestamptz)`,
         );
         params.push(
           m.kind,
@@ -693,6 +729,121 @@ export class Service extends DatabaseService<Model> {
       }
     }
     return 15;
+  }
+
+  /**
+   * One-round-trip rollup over a fleet's ACTIVE inventory (non-
+   * Retired, non-archived): lifecycle counts, fresh battery
+   * percentiles and fresh weak-signal count. Legacy NULL-state rows
+   * fall back to isUp for the online/offline split.
+   *
+   * "Fresh" is per-device, mirroring the lifecycle SQL: a reading is
+   * fresh within GREATEST(grace x COALESCE(device interval, fleet
+   * default, 0), stale threshold) of now — an hourly reporter's
+   * battery reading stays fresh for its whole reporting gap instead
+   * of dropping out of the percentiles for 45 of every 60 minutes
+   * (which would flap the Fleet Battery Low template between
+   * check-ins).
+   */
+  @CaptureSpan()
+  public async getFleetRollupStats(data: {
+    projectId: ObjectID;
+    iotFleetId: ObjectID;
+    fleetDefaultCheckinIntervalSeconds: number | null;
+    now: Date;
+  }): Promise<IoTFleetRollupStats> {
+    const staleSeconds: number = this.getStaleThresholdMinutes() * 60;
+    const freshPredicate: string = `"metricsUpdatedAt" > ($6::timestamptz - make_interval(secs =>
+             GREATEST(
+               ${IOT_SILENCE_GRACE_FACTOR} * COALESCE("expectedCheckinIntervalSeconds", $8, 0),
+               ${staleSeconds}
+             )))`;
+
+    const rows: Array<{
+      deviceCount: string;
+      onlineCount: string;
+      offlineCount: string;
+      staleCount: string;
+      batteryP50: number | string | null;
+      batteryP10: number | string | null;
+      weakSignalCount: string;
+      freshSignalReadings: string;
+    }> = await this.getRepository().manager.query(
+      `SELECT
+         COUNT(*)::text AS "deviceCount",
+         COUNT(*) FILTER (
+           WHERE "state" = $3 OR ("state" IS NULL AND "isUp" IS TRUE)
+         )::text AS "onlineCount",
+         COUNT(*) FILTER (
+           WHERE "state" = $4 OR ("state" IS NULL AND "isUp" IS FALSE)
+         )::text AS "offlineCount",
+         COUNT(*) FILTER (WHERE "state" = $5)::text AS "staleCount",
+         percentile_cont(0.5) WITHIN GROUP (ORDER BY "latestBatteryPercent")
+           FILTER (WHERE "latestBatteryPercent" IS NOT NULL AND ${freshPredicate}) AS "batteryP50",
+         percentile_cont(0.1) WITHIN GROUP (ORDER BY "latestBatteryPercent")
+           FILTER (WHERE "latestBatteryPercent" IS NOT NULL AND ${freshPredicate}) AS "batteryP10",
+         COUNT(*) FILTER (
+           WHERE "latestSignalStrengthDbm" IS NOT NULL
+             AND "latestSignalStrengthDbm" < ${IOT_WEAK_SIGNAL_DBM}
+             AND ${freshPredicate}
+         )::text AS "weakSignalCount",
+         COUNT(*) FILTER (
+           WHERE "latestSignalStrengthDbm" IS NOT NULL AND ${freshPredicate}
+         )::text AS "freshSignalReadings"
+       FROM "IoTDevice"
+       WHERE "projectId" = $1 AND "iotFleetId" = $2 AND "deletedAt" IS NULL
+         AND ("state" IS NULL OR "state" != $7)
+         AND "isArchived" IS NOT TRUE`,
+      [
+        data.projectId.toString(),
+        data.iotFleetId.toString(),
+        IoTDeviceState.Online,
+        IoTDeviceState.Offline,
+        IoTDeviceState.Stale,
+        data.now,
+        IoTDeviceState.Retired,
+        data.fleetDefaultCheckinIntervalSeconds,
+      ],
+    );
+
+    const row: (typeof rows)[0] | undefined = rows[0];
+
+    const toIntOrZero: (value: string | undefined) => number = (
+      value: string | undefined,
+    ): number => {
+      const parsed: number = parseInt(value || "0", 10);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+    const toFloatOrNull: (
+      value: number | string | null | undefined,
+    ) => number | null = (
+      value: number | string | null | undefined,
+    ): number | null => {
+      if (value === null || value === undefined) {
+        return null;
+      }
+      const parsed: number =
+        typeof value === "number" ? value : parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const freshSignalReadings: number = toIntOrZero(row?.freshSignalReadings);
+
+    return {
+      deviceCount: toIntOrZero(row?.deviceCount),
+      onlineCount: toIntOrZero(row?.onlineCount),
+      offlineCount: toIntOrZero(row?.offlineCount),
+      staleCount: toIntOrZero(row?.staleCount),
+      batteryPercentP50: toFloatOrNull(row?.batteryP50),
+      batteryPercentP10: toFloatOrNull(row?.batteryP10),
+      /*
+       * No fresh signal readings at all means "no data", not "no weak
+       * devices" — null suppresses the datapoint instead of emitting
+       * a fabricated healthy zero.
+       */
+      weakSignalCount:
+        freshSignalReadings > 0 ? toIntOrZero(row?.weakSignalCount) : null,
+    };
   }
 
   /**

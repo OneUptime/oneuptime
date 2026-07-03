@@ -166,6 +166,7 @@ import "./Jobs/DockerSwarm/SendOwnerAddedNotification";
 // IoT fleet disconnection sweeper + inventory cleanup + owner-added notifications.
 import "./Jobs/IoT/CleanupStaleResources";
 import "./Jobs/IoT/CheckDeviceHeartbeats";
+import "./Jobs/IoT/ComputeFleetRollups";
 import "./Jobs/IoT/SendOwnerAddedNotification";
 
 // Owner-added notifications for the remaining ownable resources.

@@ -238,6 +238,20 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       }
 
       /*
+       * IoT-fleet-scope re-check (defense in depth) — must run before
+       * anything is buffered or written for this batch.
+       */
+      if (
+        this.shouldDropBatchForIotFleetScope({
+          req,
+          resourceEnvelopes: resourceLogs,
+          signalName: "logs",
+        })
+      ) {
+        return;
+      }
+
+      /*
        * Canonicalize host.name casing so the resolved hostIdentifier and
        * the stored resource.host.name attribute share one casing and the
        * host-detail Logs tab keeps matching via the fast query path.

@@ -12,6 +12,7 @@ import {
 } from "../../Utils/OtelPayloadDecoder";
 import { headerValueToString } from "Common/Server/Utils/Express";
 import TelemetryBodyStore from "../../Utils/TelemetryBodyStore";
+import { IotFleetScopeCarrier } from "../../Utils/IotFleetScope";
 import { INCOMING_REQUEST_INGEST_COALESCE_ENABLED } from "../../Config";
 
 export enum TelemetryType {
@@ -109,6 +110,14 @@ export interface TelemetryIngestJobData {
   bodyEncoding?: OtelPayloadEncoding;
   productType?: ProductType;
   requestHeaders?: Record<string, string>;
+  /*
+   * IoT fleet scope of the ingestion key that authenticated this
+   * payload (see Utils/IotFleetScope.ts). Absent / empty = unscoped
+   * key. Carried so the worker-side resource loops can re-check the
+   * scope (defense in depth) — the HTTP / gRPC entry points already
+   * rejected violating payloads before enqueueing.
+   */
+  allowedIotFleetNames?: Array<string>;
   ingestionTimestamp: Date;
   // ProbeIngest-specific
   probeIngest?: ProbeIngestJobData;
@@ -217,6 +226,18 @@ export default class TelemetryQueueService {
         requestHeaders: req.headers as Record<string, string>,
         ingestionTimestamp: OneUptimeDate.getCurrentDate(),
       };
+
+      /*
+       * Forward the ingestion key's IoT fleet scope (stamped on the
+       * request by the HTTP middleware / gRPC entry point) so the
+       * worker can re-check it at the resource loop.
+       */
+      const allowedIotFleetNames: Array<string> | undefined = (
+        req as TelemetryRequest & IotFleetScopeCarrier
+      ).allowedIotFleetNames;
+      if (allowedIotFleetNames && allowedIotFleetNames.length > 0) {
+        jobData.allowedIotFleetNames = allowedIotFleetNames;
+      }
 
       const isRawBuffer: boolean =
         Buffer.isBuffer(req.body) || req.body instanceof Uint8Array;

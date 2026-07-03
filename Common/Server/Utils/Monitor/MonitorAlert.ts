@@ -28,6 +28,7 @@ import ServiceService from "../../Services/ServiceService";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
+import MonitorHysteresis, { HysteresisCreationGate } from "./MonitorHysteresis";
 import MonitorClusterContextUtil, {
   MonitorClusterContext,
 } from "./MonitorClusterContext";
@@ -55,6 +56,14 @@ export default class MonitorAlert {
      * code paths for grouped incoming-request monitors.
      */
     disableSeriesAbsenceResolution?: boolean | undefined;
+    /**
+     * Alert hysteresis: reopenCooldownSeconds per criteria id. When an
+     * alert auto-resolves here and its creating criteria opted into a
+     * reopen cooldown, a cooldown key is written so the creation gate
+     * suppresses re-creation inside the window. Resolution itself is
+     * never delayed by this.
+     */
+    reopenCooldownSecondsByCriteriaId?: Dictionary<number> | undefined;
   }): Promise<Array<Alert>> {
     // check active alerts and if there are open alerts, do not create another alert.
     const openAlerts: Array<Alert> = await AlertService.findBy({
@@ -102,6 +111,18 @@ export default class MonitorAlert {
           dataToProcess: input.dataToProcess,
         });
 
+        /*
+         * Alert hysteresis reopen cooldown: no-op unless the creating
+         * criteria opted in via reopenCooldownSeconds. Never throws.
+         */
+        await MonitorHysteresis.registerAutoResolveCooldown({
+          monitorId: input.monitorId,
+          criteriaId: openAlert.createdCriteriaId?.toString(),
+          fingerprint: openAlert.seriesFingerprint || undefined,
+          reopenCooldownSecondsByCriteriaId:
+            input.reopenCooldownSecondsByCriteriaId,
+        });
+
         input.evaluationSummary?.events.push({
           type: "alert-resolved",
           title: `Alert resolved: ${openAlert.id?.toString()}`,
@@ -134,6 +155,11 @@ export default class MonitorAlert {
     dataToProcess: DataToProcess;
     autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
+    /**
+     * Alert hysteresis: reopenCooldownSeconds per criteria id, so the
+     * explicit per-key webhook resolution also arms the reopen cooldown.
+     */
+    reopenCooldownSecondsByCriteriaId?: Dictionary<number> | undefined;
   }): Promise<void> {
     if (!input.fingerprints || input.fingerprints.length === 0) {
       return;
@@ -195,6 +221,18 @@ export default class MonitorAlert {
         dataToProcess: input.dataToProcess,
       });
 
+      /*
+       * Alert hysteresis reopen cooldown: no-op unless the creating
+       * criteria opted in via reopenCooldownSeconds. Never throws.
+       */
+      await MonitorHysteresis.registerAutoResolveCooldown({
+        monitorId: input.monitor.id!,
+        criteriaId: createdCriteriaId,
+        fingerprint: fingerprint,
+        reopenCooldownSecondsByCriteriaId:
+          input.reopenCooldownSecondsByCriteriaId,
+      });
+
       input.evaluationSummary?.events.push({
         type: "alert-resolved",
         title: `Alert resolved: ${openAlert.id?.toString()}`,
@@ -237,6 +275,20 @@ export default class MonitorAlert {
      * resolveSeriesAlertsByFingerprint). Per-key create + dedupe still run.
      */
     disableSeriesAbsenceResolution?: boolean | undefined;
+    /**
+     * Alert hysteresis creation gate, computed once per evaluation tick
+     * by MonitorResource (shared with the incident path so the
+     * consecutive-breach counter increments exactly once per tick).
+     * Fingerprints in the gate's suppressed set skip alert CREATION on
+     * this tick — dedupe and auto-resolution are unaffected. Undefined =
+     * no gating (today's behavior).
+     */
+    hysteresisCreationGate?: HysteresisCreationGate | undefined;
+    /**
+     * Alert hysteresis: reopenCooldownSeconds per criteria id, forwarded
+     * to the auto-resolve pass so resolves arm the reopen cooldown.
+     */
+    reopenCooldownSecondsByCriteriaId?: Dictionary<number> | undefined;
   }): Promise<void> {
     const alertLogAttributes: LogAttributes = {
       projectId: input.monitor.projectId?.toString(),
@@ -285,6 +337,8 @@ export default class MonitorAlert {
         evaluationSummary: input.evaluationSummary,
         breachingSeriesFingerprints,
         disableSeriesAbsenceResolution: input.disableSeriesAbsenceResolution,
+        reopenCooldownSecondsByCriteriaId:
+          input.reopenCooldownSecondsByCriteriaId,
       });
 
     if (!input.criteriaInstance.data?.createAlerts) {
@@ -344,6 +398,41 @@ export default class MonitorAlert {
             title: "Alert suppressed by scheduled maintenance",
             message:
               "Skipped creating an alert because the resource for this series is under an active scheduled maintenance window.",
+            relatedCriteriaId: input.criteriaInstance.data?.id,
+            at: OneUptimeDate.getCurrentDate(),
+          });
+          continue;
+        }
+
+        /*
+         * Alert hysteresis: skip CREATION while this criteria has not
+         * matched enough consecutive evaluations yet, or while a reopen
+         * cooldown from a recent auto-resolve is active. Only creation
+         * is gated — monitor status changes and the resolve pass above
+         * already ran exactly as before. Default off; the gate is empty
+         * unless the criteria opted in. Mirrors MonitorIncident.
+         */
+        if (
+          MonitorHysteresis.isCreationSuppressed(
+            input.hysteresisCreationGate,
+            seriesFingerprint,
+          )
+        ) {
+          const suppressionReason: string =
+            MonitorHysteresis.getSuppressionReason(
+              input.hysteresisCreationGate,
+              seriesFingerprint,
+            ) || "Alert creation suppressed by alert hysteresis.";
+
+          logger.debug(
+            `${input.monitor.id?.toString()} - Skipping alert creation for criteria ${input.criteriaInstance.data?.id} (fingerprint: ${seriesFingerprint || "none"}): ${suppressionReason}`,
+            alertLogAttributes,
+          );
+
+          input.evaluationSummary?.events.push({
+            type: "alert-skipped",
+            title: "Alert suppressed by alert hysteresis",
+            message: suppressionReason,
             relatedCriteriaId: input.criteriaInstance.data?.id,
             at: OneUptimeDate.getCurrentDate(),
           });

@@ -202,6 +202,25 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
   },
 ];
 
+/*
+ * Templates added after the original five. Their full shape contracts —
+ * the memory-pressure ratio (two queries + formula) and the fleet-scope
+ * rollup templates (no device.id group-by, fleet-named titles,
+ * onCallPolicyIds threading) — are pinned in IotTemplateExtensions.test.ts.
+ * This file keeps the registry checks exhaustive and applies every
+ * shape-agnostic invariant (valid step, catalog metrics, disjoint
+ * thresholds, Ignore no-data policy, blackout contract) to them too.
+ */
+const RATIO_TEMPLATE_IDS: Array<string> = ["iot-high-memory"];
+const FLEET_SCOPE_TEMPLATE_IDS: Array<string> = [
+  "iot-fleet-offline-ratio",
+  "iot-fleet-battery-low",
+];
+const EXTENDED_TEMPLATE_IDS: Array<string> = [
+  ...RATIO_TEMPLATE_IDS,
+  ...FLEET_SCOPE_TEMPLATE_IDS,
+];
+
 function buildArgs(): IoTAlertTemplateArgs {
   return {
     fleetIdentifier: "iot-fleet-prod",
@@ -284,17 +303,26 @@ describe("IotAlertTemplates - registry", () => {
       return t.id;
     });
     expect(new Set(ids).size).toBe(ids.length);
-    // Exhaustive both ways: a new template must get an expectation row.
+    /*
+     * Exhaustive both ways: a new template must get an expectation row
+     * here or a shape contract in IotTemplateExtensions.test.ts.
+     */
     expect([...ids].sort()).toEqual(
-      EXPECTED_TEMPLATES.map((t: TemplateExpectation) => {
-        return t.id;
-      }).sort(),
+      [
+        ...EXPECTED_TEMPLATES.map((t: TemplateExpectation) => {
+          return t.id;
+        }),
+        ...EXTENDED_TEMPLATE_IDS,
+      ].sort(),
     );
   });
 
   test("getIoTAlertTemplateById resolves every id (and misses cleanly)", () => {
     for (const expected of EXPECTED_TEMPLATES) {
       expect(getIoTAlertTemplateById(expected.id)).toBeDefined();
+    }
+    for (const extendedId of EXTENDED_TEMPLATE_IDS) {
+      expect(getIoTAlertTemplateById(extendedId)).toBeDefined();
     }
     expect(getIoTAlertTemplateById("does-not-exist")).toBeUndefined();
   });
@@ -310,6 +338,8 @@ describe("IotAlertTemplates - registry", () => {
       getIoTAlertTemplatesByCategory("Environment");
     const system: Array<IoTAlertTemplate> =
       getIoTAlertTemplatesByCategory("System");
+    const fleetHealth: Array<IoTAlertTemplate> =
+      getIoTAlertTemplatesByCategory("Fleet Health");
 
     expect(
       availability.map((t: IoTAlertTemplate) => {
@@ -335,15 +365,21 @@ describe("IotAlertTemplates - registry", () => {
       system.map((t: IoTAlertTemplate) => {
         return t.id;
       }),
-    ).toEqual(["iot-high-cpu"]);
+    ).toEqual(["iot-high-cpu", "iot-high-memory"]);
+    expect(
+      fleetHealth.map((t: IoTAlertTemplate) => {
+        return t.id;
+      }),
+    ).toEqual(["iot-fleet-offline-ratio", "iot-fleet-battery-low"]);
 
-    // Every template lands in exactly one of the five categories.
+    // Every template lands in exactly one of the six categories.
     expect(
       availability.length +
         power.length +
         connectivity.length +
         environment.length +
-        system.length,
+        system.length +
+        fleetHealth.length,
     ).toBe(ALL_TEMPLATES.length);
   });
 });
@@ -431,7 +467,15 @@ describe("IotAlertTemplates - enumerated invariants (every template)", () => {
   );
 
   test.each(
-    ALL_TEMPLATES.map((t: IoTAlertTemplate) => {
+    /*
+     * Fleet Health templates evaluate the server-computed `iot_fleet_*`
+     * rollups, which carry NO device.id label — they must not group by
+     * device (pinned in IotTemplateExtensions.test.ts). Every per-device
+     * template must group by device.id.
+     */
+    ALL_TEMPLATES.filter((t: IoTAlertTemplate) => {
+      return !FLEET_SCOPE_TEMPLATE_IDS.includes(t.id);
+    }).map((t: IoTAlertTemplate) => {
       return [t.id, t];
     }),
   )(
@@ -459,11 +503,18 @@ describe("IotAlertTemplates - enumerated invariants (every template)", () => {
   );
 
   test.each(
-    ALL_TEMPLATES.map((t: IoTAlertTemplate) => {
+    /*
+     * Ratio templates intentionally carry two queries + a formula; their
+     * exact shape is pinned in IotTemplateExtensions.test.ts. Everything
+     * else is a single level reading with no formulas.
+     */
+    ALL_TEMPLATES.filter((t: IoTAlertTemplate) => {
+      return !RATIO_TEMPLATE_IDS.includes(t.id);
+    }).map((t: IoTAlertTemplate) => {
       return [t.id, t];
     }),
   )(
-    "%s is single-query with no formulas (per-device level reading)",
+    "%s is single-query with no formulas (single level reading)",
     (_id: unknown, template: unknown) => {
       const step: MonitorStep = (template as IoTAlertTemplate).getMonitorStep(
         buildArgs(),
@@ -697,6 +748,31 @@ describe("IotAlertTemplates - blackout contract (no auto-resolve on absent data)
     }
   }
 
+  /*
+   * Build a metricResult shaped like the worker's response: one
+   * AggregatedResult per queryConfig, then one per formulaConfig.
+   * Criteria aliases resolve POSITIONALLY (formula aliases map to index
+   * queryConfigs.length + formulaIndex), so ratio templates need every
+   * slot present — a single-entry result would leave the formula alias
+   * unresolved. Every slot carries the same value; a criteria filter
+   * only reads the slot its alias points at.
+   */
+  function shapedResult(
+    step: MonitorStep,
+    value: number,
+  ): Array<AggregatedResult> {
+    const monitor: MonitorStepIoTMonitor = getIoTMonitor(step);
+    const slots: number =
+      monitor.metricViewConfig.queryConfigs.length +
+      (monitor.metricViewConfig.formulaConfigs || []).length;
+
+    const results: Array<AggregatedResult> = [];
+    for (let i: number = 0; i < slots; i++) {
+      results.push({ data: [{ timestamp: new Date(), value: value }] });
+    }
+    return results;
+  }
+
   test.each(
     ALL_TEMPLATES.map((t: IoTAlertTemplate) => {
       return [t.id, t];
@@ -791,16 +867,10 @@ describe("IotAlertTemplates - blackout contract (no auto-resolve on absent data)
         criteriaResults: Array<MonitorEvaluationCriteriaResult>;
       } = await evaluateSnapshot({
         step: step,
-        metricResult: [
-          {
-            data: [
-              {
-                timestamp: new Date(),
-                value: valueSatisfying(firstFilterOf(fireInstance)),
-              },
-            ],
-          },
-        ],
+        metricResult: shapedResult(
+          step,
+          valueSatisfying(firstFilterOf(fireInstance)),
+        ),
         isTelemetrySourceReporting: true,
       });
 
@@ -825,16 +895,10 @@ describe("IotAlertTemplates - blackout contract (no auto-resolve on absent data)
         criteriaResults: Array<MonitorEvaluationCriteriaResult>;
       } = await evaluateSnapshot({
         step: step,
-        metricResult: [
-          {
-            data: [
-              {
-                timestamp: new Date(),
-                value: valueSatisfying(firstFilterOf(onlineInstance)),
-              },
-            ],
-          },
-        ],
+        metricResult: shapedResult(
+          step,
+          valueSatisfying(firstFilterOf(onlineInstance)),
+        ),
         isTelemetrySourceReporting: true,
       });
 

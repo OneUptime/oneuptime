@@ -8,6 +8,7 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import OpenTelemetryRequestMiddleware from "../Middleware/OtelRequestMiddleware";
+import IotFleetScopeEnforcement from "../Middleware/IotFleetScopeEnforcement";
 import OtelTracesIngestService from "../Services/OtelTracesIngestService";
 import OtelMetricsIngestService from "../Services/OtelMetricsIngestService";
 import OtelLogsIngestService from "../Services/OtelLogsIngestService";
@@ -103,6 +104,7 @@ router.post(
   ingestMetricsMiddleware("traces"),
   OpenTelemetryRequestMiddleware.getProductType,
   TelemetryIngest.isAuthorizedServiceMiddleware,
+  IotFleetScopeEnforcement.enforceOtlpFleetScope,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -119,6 +121,7 @@ router.post(
   ingestMetricsMiddleware("metrics"),
   OpenTelemetryRequestMiddleware.getProductType,
   TelemetryIngest.isAuthorizedServiceMiddleware,
+  IotFleetScopeEnforcement.enforceOtlpFleetScope,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -135,6 +138,7 @@ router.post(
   ingestMetricsMiddleware("logs"),
   OpenTelemetryRequestMiddleware.getProductType,
   TelemetryIngest.isAuthorizedServiceMiddleware,
+  IotFleetScopeEnforcement.enforceOtlpFleetScope,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -151,6 +155,7 @@ router.post(
   ingestMetricsMiddleware("profiles"),
   OpenTelemetryRequestMiddleware.getProductType,
   TelemetryIngest.isAuthorizedServiceMiddleware,
+  IotFleetScopeEnforcement.enforceOtlpFleetScope,
   async (
     req: ExpressRequest,
     res: ExpressResponse,

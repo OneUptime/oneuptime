@@ -136,6 +136,44 @@ export default abstract class GlobalCache {
     return value;
   }
 
+  /**
+   * Bulk string read — ONE Redis round trip (MGET) for the whole batch.
+   * Returns one entry per key, in key order, null for misses.
+   *
+   * Unlike getString this does NOT throw when the cache is unavailable:
+   * bulk reads are used for advisory lookups (e.g. the alert-hysteresis
+   * reopen-cooldown gate, which can probe thousands of per-series keys
+   * per evaluation tick) that must fail open — an unavailable client
+   * degrades to "no values" instead of failing the caller's batch.
+   */
+  @CaptureSpan()
+  public static async getStrings(
+    namespace: string,
+    keys: Array<string>,
+  ): Promise<Array<string | null>> {
+    if (keys.length === 0) {
+      return [];
+    }
+
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      return keys.map(() => {
+        return null;
+      });
+    }
+
+    const values: Array<string | null> = await client.mget(
+      ...keys.map((key: string) => {
+        return `${namespace}-${key}`;
+      }),
+    );
+
+    return values.map((value: string | null) => {
+      return value ?? null;
+    });
+  }
+
   @CaptureSpan()
   public static async setJSON(
     namespace: string,

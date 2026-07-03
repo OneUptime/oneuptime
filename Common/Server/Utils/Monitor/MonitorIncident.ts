@@ -39,6 +39,7 @@ import IncidentMemberService from "../../Services/IncidentMemberService";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
+import MonitorHysteresis, { HysteresisCreationGate } from "./MonitorHysteresis";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
@@ -80,6 +81,14 @@ export default class MonitorIncident {
      * no-criteria-met code paths for grouped incoming-request monitors.
      */
     disableSeriesAbsenceResolution?: boolean | undefined;
+    /**
+     * Alert hysteresis: reopenCooldownSeconds per criteria id. When an
+     * incident auto-resolves here and its creating criteria opted into a
+     * reopen cooldown, a cooldown key is written so the creation gate
+     * suppresses re-creation inside the window. Resolution itself is
+     * never delayed by this.
+     */
+    reopenCooldownSecondsByCriteriaId?: Dictionary<number> | undefined;
   }): Promise<Array<Incident>> {
     // check active incidents and if there are open incidents, do not create another incident.
     const openIncidents: Array<Incident> = await IncidentService.findBy({
@@ -128,6 +137,18 @@ export default class MonitorIncident {
           dataToProcess: input.dataToProcess,
         });
 
+        /*
+         * Alert hysteresis reopen cooldown: no-op unless the creating
+         * criteria opted in via reopenCooldownSeconds. Never throws.
+         */
+        await MonitorHysteresis.registerAutoResolveCooldown({
+          monitorId: input.monitorId,
+          criteriaId: openIncident.createdCriteriaId?.toString(),
+          fingerprint: openIncident.seriesFingerprint || undefined,
+          reopenCooldownSecondsByCriteriaId:
+            input.reopenCooldownSecondsByCriteriaId,
+        });
+
         input.evaluationSummary?.events.push({
           type: "incident-resolved",
           title: `Incident resolved: ${openIncident.id?.toString()}`,
@@ -167,6 +188,11 @@ export default class MonitorIncident {
       Array<string>
     >;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
+    /**
+     * Alert hysteresis: reopenCooldownSeconds per criteria id, so the
+     * explicit per-key webhook resolution also arms the reopen cooldown.
+     */
+    reopenCooldownSecondsByCriteriaId?: Dictionary<number> | undefined;
   }): Promise<void> {
     if (!input.fingerprints || input.fingerprints.length === 0) {
       return;
@@ -234,6 +260,18 @@ export default class MonitorIncident {
         dataToProcess: input.dataToProcess,
       });
 
+      /*
+       * Alert hysteresis reopen cooldown: no-op unless the creating
+       * criteria opted in via reopenCooldownSeconds. Never throws.
+       */
+      await MonitorHysteresis.registerAutoResolveCooldown({
+        monitorId: input.monitor.id!,
+        criteriaId: createdCriteriaId,
+        fingerprint: fingerprint,
+        reopenCooldownSecondsByCriteriaId:
+          input.reopenCooldownSecondsByCriteriaId,
+      });
+
       input.evaluationSummary?.events.push({
         type: "incident-resolved",
         title: `Incident resolved: ${openIncident.id?.toString()}`,
@@ -286,6 +324,20 @@ export default class MonitorIncident {
      * Per-key create + dedupe still happen via matchesPerSeries.
      */
     disableSeriesAbsenceResolution?: boolean | undefined;
+    /**
+     * Alert hysteresis creation gate, computed once per evaluation tick
+     * by MonitorResource (shared with the alert path so the consecutive-
+     * breach counter increments exactly once per tick). Fingerprints in
+     * the gate's suppressed set skip incident CREATION on this tick —
+     * dedupe and auto-resolution are unaffected. Undefined = no gating
+     * (today's behavior).
+     */
+    hysteresisCreationGate?: HysteresisCreationGate | undefined;
+    /**
+     * Alert hysteresis: reopenCooldownSeconds per criteria id, forwarded
+     * to the auto-resolve pass so resolves arm the reopen cooldown.
+     */
+    reopenCooldownSecondsByCriteriaId?: Dictionary<number> | undefined;
   }): Promise<void> {
     const incidentLogAttributes: LogAttributes = {
       projectId: input.monitor.projectId?.toString(),
@@ -339,6 +391,8 @@ export default class MonitorIncident {
         evaluationSummary: input.evaluationSummary,
         breachingSeriesFingerprints,
         disableSeriesAbsenceResolution: input.disableSeriesAbsenceResolution,
+        reopenCooldownSecondsByCriteriaId:
+          input.reopenCooldownSecondsByCriteriaId,
       });
 
     if (!input.criteriaInstance.data?.createIncidents) {
@@ -407,6 +461,41 @@ export default class MonitorIncident {
             title: "Incident suppressed by scheduled maintenance",
             message:
               "Skipped creating an incident because the resource for this series is under an active scheduled maintenance window.",
+            relatedCriteriaId: input.criteriaInstance.data?.id,
+            at: OneUptimeDate.getCurrentDate(),
+          });
+          continue;
+        }
+
+        /*
+         * Alert hysteresis: skip CREATION while this criteria has not
+         * matched enough consecutive evaluations yet, or while a reopen
+         * cooldown from a recent auto-resolve is active. Only creation
+         * is gated — monitor status changes and the resolve pass above
+         * already ran exactly as before. Default off; the gate is empty
+         * unless the criteria opted in.
+         */
+        if (
+          MonitorHysteresis.isCreationSuppressed(
+            input.hysteresisCreationGate,
+            seriesFingerprint,
+          )
+        ) {
+          const suppressionReason: string =
+            MonitorHysteresis.getSuppressionReason(
+              input.hysteresisCreationGate,
+              seriesFingerprint,
+            ) || "Incident creation suppressed by alert hysteresis.";
+
+          logger.debug(
+            `${input.monitor.id?.toString()} - Skipping incident creation for criteria ${input.criteriaInstance.data?.id} (fingerprint: ${seriesFingerprint || "none"}): ${suppressionReason}`,
+            incidentLogAttributes,
+          );
+
+          input.evaluationSummary?.events.push({
+            type: "incident-skipped",
+            title: "Incident suppressed by alert hysteresis",
+            message: suppressionReason,
             relatedCriteriaId: input.criteriaInstance.data?.id,
             at: OneUptimeDate.getCurrentDate(),
           });

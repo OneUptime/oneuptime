@@ -224,6 +224,20 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
       }
 
       /*
+       * IoT-fleet-scope re-check (defense in depth) — must run before
+       * anything is buffered or written for this batch.
+       */
+      if (
+        this.shouldDropBatchForIotFleetScope({
+          req,
+          resourceEnvelopes: resourceProfiles,
+          signalName: "profiles",
+        })
+      ) {
+        return;
+      }
+
+      /*
        * v1development OTLP profiles carry one shared `ProfilesDictionary`
        * at the request root. When absent we are talking to an older
        * collector that still emits per-profile tables inside a

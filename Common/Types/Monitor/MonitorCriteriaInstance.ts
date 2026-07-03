@@ -40,6 +40,22 @@ export interface MonitorCriteriaInstanceType {
    * Grafana alert name) instead of a single active incident per criteria.
    */
   incidentGrouping?: IncidentGroupingConfig | undefined;
+  /**
+   * Alert hysteresis (default off): number of CONSECUTIVE evaluation
+   * ticks this criteria must match before incidents/alerts are created.
+   * null/undefined/1 keeps today's behavior (create on first match).
+   * Applies to incident/alert CREATION only — monitor status changes and
+   * auto-resolution are never delayed. For per-series (fingerprint-
+   * grouped) monitors the consecutive counter is tracked per fingerprint.
+   */
+  minimumBreachedEvaluations?: number | undefined;
+  /**
+   * Alert hysteresis (default off): after an incident/alert created by
+   * this criteria auto-resolves, suppress re-creation for this many
+   * seconds (per fingerprint for per-series monitors). null/undefined/0
+   * disables the cooldown. Resolution itself is never delayed.
+   */
+  reopenCooldownSeconds?: number | undefined;
   id: string;
 }
 
@@ -1501,6 +1517,26 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     return this;
   }
 
+  public setMinimumBreachedEvaluations(
+    minimumBreachedEvaluations: number | undefined,
+  ): MonitorCriteriaInstance {
+    if (this.data) {
+      this.data.minimumBreachedEvaluations = minimumBreachedEvaluations;
+    }
+
+    return this;
+  }
+
+  public setReopenCooldownSeconds(
+    reopenCooldownSeconds: number | undefined,
+  ): MonitorCriteriaInstance {
+    if (this.data) {
+      this.data.reopenCooldownSeconds = reopenCooldownSeconds;
+    }
+
+    return this;
+  }
+
   public override toJSON(): JSONObject {
     if (!this.data) {
       return MonitorCriteriaInstance.getNewMonitorCriteriaInstanceAsJSON();
@@ -1520,6 +1556,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createIncidents: this.data.createIncidents,
         isEnabled: this.data.isEnabled,
         incidentGrouping: this.data.incidentGrouping,
+        minimumBreachedEvaluations: this.data.minimumBreachedEvaluations,
+        reopenCooldownSeconds: this.data.reopenCooldownSeconds,
         name: this.data.name,
         description: this.data.description,
       } as any,
@@ -1630,6 +1668,16 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       isEnabled:
         json["isEnabled"] === undefined ? true : (json["isEnabled"] as boolean),
       incidentGrouping: (json["incidentGrouping"] as any) || undefined,
+      minimumBreachedEvaluations:
+        json["minimumBreachedEvaluations"] !== undefined &&
+        json["minimumBreachedEvaluations"] !== null
+          ? Number(json["minimumBreachedEvaluations"])
+          : undefined,
+      reopenCooldownSeconds:
+        json["reopenCooldownSeconds"] !== undefined &&
+        json["reopenCooldownSeconds"] !== null
+          ? Number(json["reopenCooldownSeconds"])
+          : undefined,
       filters: filters as any,
       incidents: incidents as any,
       alerts: alerts as any,
@@ -1657,6 +1705,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: Zod.boolean().optional(),
         isEnabled: Zod.boolean().optional(),
         incidentGrouping: IncidentGroupingConfigSchema.optional(),
+        minimumBreachedEvaluations: Zod.number().optional(),
+        reopenCooldownSeconds: Zod.number().optional(),
       }).openapi({
         type: "object",
         example: {

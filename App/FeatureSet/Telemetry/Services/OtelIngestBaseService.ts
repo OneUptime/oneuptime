@@ -49,6 +49,12 @@ import TelemetryEntity, {
 import { reconcileEntityRegistryThrottled } from "Common/Server/Utils/Telemetry/EntityRegistry";
 import { canonicalizeEntityValue } from "Common/Utils/Telemetry/EntityKey";
 import Dictionary from "Common/Types/Dictionary";
+import {
+  IotFleetScopeCarrier,
+  IotFleetScopeViolation,
+  findIotFleetScopeViolation,
+  normalizeIotFleetNames,
+} from "../Utils/IotFleetScope";
 
 export default abstract class OtelIngestBaseService {
   private static readonly DOCKER_CONTAINER_NAME_CACHE_NAMESPACE: string =
@@ -80,6 +86,72 @@ export default abstract class OtelIngestBaseService {
   private static readonly MAINTENANCE_FENCE_NAMESPACE: string =
     "otel-maintenance-fence";
   private static readonly MAINTENANCE_FENCE_TTL_SECONDS: number = 5 * 60; // 5 minutes
+
+  /*
+   * Worker-side defense-in-depth for IoT-fleet-scoped ingestion keys.
+   * The HTTP / gRPC entry points already reject violating payloads with
+   * 403 / PERMISSION_DENIED before enqueueing, so a violation here means
+   * a producer skipped entry-point enforcement. Runs BEFORE any row is
+   * buffered or written. Returns true when the whole batch must be
+   * dropped. The log line never contains the ingestion key value.
+   */
+  protected static shouldDropBatchForIotFleetScope(data: {
+    req: ExpressRequest;
+    resourceEnvelopes: JSONArray;
+    signalName: string;
+  }): boolean {
+    const allowedIotFleetNames: Array<string> = normalizeIotFleetNames(
+      (data.req as ExpressRequest & IotFleetScopeCarrier).allowedIotFleetNames,
+    );
+
+    if (allowedIotFleetNames.length === 0) {
+      // Unscoped key — nothing to enforce.
+      return false;
+    }
+
+    const violation: IotFleetScopeViolation | null = findIotFleetScopeViolation(
+      {
+        allowedIotFleetNames,
+        resourceEnvelopes: data.resourceEnvelopes,
+      },
+    );
+
+    if (!violation) {
+      return false;
+    }
+
+    logger.error(
+      `Fleet-scoped ingestion key: dropping ${data.signalName} batch before any write ` +
+        `(should have been rejected at the entry point): ${violation.message}`,
+    );
+    return true;
+  }
+
+  /*
+   * Same defense-in-depth for ingest paths without OTLP resource
+   * attributes (syslog / fluentd). Fleet-scoped keys cannot attribute
+   * this data to a fleet, so any batch that reaches the worker with a
+   * scope attached is dropped (fail closed). Entry points already
+   * reject these with 403.
+   */
+  protected static shouldDropNonOtlpBatchForIotFleetScope(data: {
+    req: ExpressRequest;
+    signalName: string;
+  }): boolean {
+    const allowedIotFleetNames: Array<string> = normalizeIotFleetNames(
+      (data.req as ExpressRequest & IotFleetScopeCarrier).allowedIotFleetNames,
+    );
+
+    if (allowedIotFleetNames.length === 0) {
+      return false;
+    }
+
+    logger.error(
+      `Fleet-scoped ingestion key: dropping ${data.signalName} batch — this path cannot ` +
+        `be fleet-attributed (should have been rejected at the entry point).`,
+    );
+    return true;
+  }
 
   protected static async shouldRunMaintenance(
     scope: string,

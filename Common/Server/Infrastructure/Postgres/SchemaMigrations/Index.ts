@@ -407,6 +407,7 @@ import { AddKubernetesChangeEventsAndCostConfig1783015423175 } from "./178301542
 import { AddKubernetesChangeEventOccurredAtIndex1783015423176 } from "./1783015423176-AddKubernetesChangeEventOccurredAtIndex";
 import { AddIoTDeviceLifecycleColumns1783087273439 } from "./1783087273439-AddIoTDeviceLifecycleColumns";
 import { AddIoTFleetDefaultOnCallPolicy1783087742536 } from "./1783087742536-AddIoTFleetDefaultOnCallPolicy";
+import { AddIngestionKeyIoTFleetScope1783105434505 } from "./1783105434505-AddIngestionKeyIoTFleetScope";
 
 export default [
   InitialMigration,
@@ -818,4 +819,5 @@ export default [
   AddKubernetesChangeEventOccurredAtIndex1783015423176,
   AddIoTDeviceLifecycleColumns1783087273439,
   AddIoTFleetDefaultOnCallPolicy1783087742536,
+  AddIngestionKeyIoTFleetScope1783105434505,
 ];

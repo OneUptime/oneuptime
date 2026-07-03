@@ -19,7 +19,7 @@ import ObjectID from "Common/Types/ObjectID";
 import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
-import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import logger, {
   getLogAttributesFromRequest,
   type RequestLike,
@@ -90,7 +90,9 @@ import {
   deriveCephClusterSnapshotExtras,
 } from "Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan";
 import {
+  IOT_FLEET_ROLLUP_METRIC_PREFIX,
   IOT_SNAPSHOT_METRIC_NAMES,
+  IOT_SYNTHETIC_ATTRIBUTE_KEY,
   IoTDeviceBufferEntry,
   IoTFleetSnapshotBufferEntry,
   IoTFleetSnapshotExtras,
@@ -590,6 +592,20 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           "No resourceMetrics to ingest (empty or lost body); skipping batch.",
         );
         logger.warn(getLogAttributesFromRequest(req as RequestLike));
+        return;
+      }
+
+      /*
+       * IoT-fleet-scope re-check (defense in depth) — must run before
+       * anything is buffered or written for this batch.
+       */
+      if (
+        this.shouldDropBatchForIotFleetScope({
+          req,
+          resourceEnvelopes: resourceMetrics,
+          signalName: "metrics",
+        })
+      ) {
         return;
       }
 
@@ -1231,6 +1247,44 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
                     for (const datapoint of dataPoints) {
                       try {
+                        /*
+                         * Reserved rollup namespace: iot_fleet_* series
+                         * and anything stamped oneuptime.synthetic are
+                         * server-computed by the IoT workers. Pushed
+                         * datapoints wearing those markers are dropped so
+                         * a device — even one holding a fleet-scoped
+                         * ingestion key — cannot forge or mask the
+                         * fleet-health series its alerts ride on. Name
+                         * check first (cheap); the attribute scan only
+                         * runs for resource-level or datapoint-level
+                         * synthetic markers.
+                         */
+                        if (
+                          metricName.startsWith(
+                            IOT_FLEET_ROLLUP_METRIC_PREFIX,
+                          ) ||
+                          metricAttributes[IOT_SYNTHETIC_ATTRIBUTE_KEY] !==
+                            undefined ||
+                          metricAttributes[
+                            `resource.${IOT_SYNTHETIC_ATTRIBUTE_KEY}`
+                          ] !== undefined ||
+                          (
+                            ((datapoint as JSONObject)[
+                              "attributes"
+                            ] as JSONArray) || []
+                          ).some((attribute: JSONValue) => {
+                            return (
+                              (attribute as JSONObject)?.["key"] ===
+                              IOT_SYNTHETIC_ATTRIBUTE_KEY
+                            );
+                          })
+                        ) {
+                          logger.debug(
+                            `Dropping pushed datapoint "${metricName}" — the iot_fleet_*/oneuptime.synthetic namespace is reserved for server-computed rollups (project ${projectId.toString()}).`,
+                          );
+                          continue;
+                        }
+
                         /*
                          * Mirror the latest CPU / memory point of a small
                          * allow-list of metrics into the Postgres snapshot

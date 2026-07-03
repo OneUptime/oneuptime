@@ -193,6 +193,37 @@ export default class TelemetryIngestionKey extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ReadTelemetryIngestionKey,
     ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryIngestionKey,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "IoT Fleet Scope",
+    description:
+      "Optional list of IoT fleet names (iot.fleet.name resource attribute values) this key is allowed to ingest telemetry for. Null or empty means the key is unscoped and can ingest data for any fleet or service in the project.",
+    example: '["building-a-sensors", "field-gateways"]',
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public iotFleetNames?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTelemetryIngestionKey,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadTelemetryIngestionKey,
+    ],
     update: [],
   })
   @TableColumn({

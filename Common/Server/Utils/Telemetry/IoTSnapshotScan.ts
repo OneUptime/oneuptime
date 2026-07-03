@@ -40,6 +40,12 @@ import logger from "../Logger";
  *
  * iot_cpu_usage_ratio is already a true 0..1 ratio — no allocatable-
  * denominator cache is needed, unlike K8s cpuCoresToPercent.
+ *
+ * Fleet COUNT columns are no longer derived from batches — the
+ * ComputeFleetRollups worker owns them (inventory-derived, once a
+ * minute), so multi-gateway fleets stopped showing whichever partial
+ * batch flushed last. A brand-new fleet therefore shows counts of
+ * zero for up to ~60s until the first rollup tick — accepted.
  */
 export const IOT_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   // Identity / status (fleet counts derive from these)
@@ -78,9 +84,10 @@ export interface IoTDeviceBufferEntry {
 }
 
 /*
- * Per-fleet IoT snapshot state. The saw* flags implement the
- * never-zero-a-count-on-a-partial-batch contract: a count column is
- * only written when the batch carried the matching identity series.
+ * Per-fleet IoT snapshot state. The saw* flags record which identity
+ * series the batch carried (kept for observability/debugging even
+ * though counts are no longer derived per batch — see
+ * deriveIoTFleetSnapshotExtras).
  */
 export interface IoTFleetSnapshotBufferEntry {
   sawDeviceIdentity: boolean; // iot_device_info, or iot_device_up
@@ -88,11 +95,12 @@ export interface IoTFleetSnapshotBufferEntry {
   agentVersion?: string | undefined;
 }
 
-// The IoTFleet snapshot columns derived from one folded batch.
+/*
+ * The IoTFleet columns derived from one folded batch. Counts moved to
+ * the ComputeFleetRollups worker (inventory-derived, once a minute).
+ */
 export interface IoTFleetSnapshotExtras {
   agentVersion?: string | undefined;
-  deviceCount?: number | undefined;
-  onlineDeviceCount?: number | undefined;
 }
 
 /*
@@ -475,6 +483,29 @@ export function buildSyntheticDeviceDownMetricRow(data: {
     attributes["iot.device.firmware"] = data.firmwareVersion;
   }
 
+  return buildLeanGaugeMetricRow({
+    projectId: data.projectId,
+    name: "iot_device_up",
+    value: 0,
+    attributes: attributes,
+    at: data.at,
+    retentionDays: data.retentionDays,
+  });
+}
+
+/*
+ * Minimal Gauge row accepted by MetricService.insertJsonRows — the
+ * same lean column set the recording-rules cron writes (no
+ * primaryEntityId: monitor queries and charts filter on attributes).
+ */
+function buildLeanGaugeMetricRow(data: {
+  projectId: ObjectID;
+  name: string;
+  value: number;
+  attributes: Record<string, string>;
+  at: Date;
+  retentionDays: number;
+}): JSONObject {
   const retentionDate: Date = OneUptimeDate.addRemoveDays(
     data.at,
     data.retentionDays,
@@ -487,35 +518,163 @@ export function buildSyntheticDeviceDownMetricRow(data: {
     time: OneUptimeDate.toClickhouseDateTime(data.at),
     timeUnixNano: (data.at.getTime() * 1_000_000).toString(),
     primaryEntityType: ServiceType.OpenTelemetry,
-    name: "iot_device_up",
+    name: data.name,
     metricPointType: MetricPointType.Gauge,
-    value: 0,
-    attributes: attributes,
-    attributeKeys: Object.keys(attributes).sort(),
+    value: data.value,
+    attributes: data.attributes,
+    attributeKeys: Object.keys(data.attributes).sort(),
     retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
   };
 }
 
+export const IOT_SYNTHETIC_FLEET_ROLLUP: string = "fleet-rollup";
+
 /*
- * Derive the IoTFleet snapshot columns from one folded batch. Counts
- * are only set when the batch carried the matching identity series —
- * never zero a count on a partial batch. Returns an object whose keys
- * are exactly the columns to write (empty object = nothing to write).
+ * The rollup namespace is RESERVED: the metrics ingest drops pushed
+ * datapoints whose name starts with this prefix (or that carry the
+ * oneuptime.synthetic attribute), so a device — even one holding a
+ * fleet-scoped ingestion key — cannot forge or mask the
+ * server-computed fleet-health series its alerts ride on.
+ */
+export const IOT_FLEET_ROLLUP_METRIC_PREFIX: string = "iot_fleet_";
+
+/*
+ * The complete rollup series set — the single source for the builder
+ * below AND for the monitor worker's telemetry-source liveness probe,
+ * which must be BLIND to these rows: they are emitted every minute
+ * even during a collector blackout (that is how the fleet-level
+ * outage alert fires), so counting them as "the source is reporting"
+ * would defeat the blackout hold that keeps per-device incidents open
+ * while the fleet is dark.
+ */
+export const IOT_FLEET_ROLLUP_METRIC_NAMES: {
+  deviceCount: string;
+  onlineCount: string;
+  offlineCount: string;
+  staleCount: string;
+  onlineRatio: string;
+  batteryPercentP50: string;
+  batteryPercentP10: string;
+  weakSignalCount: string;
+} = {
+  deviceCount: "iot_fleet_device_count",
+  onlineCount: "iot_fleet_online_count",
+  offlineCount: "iot_fleet_offline_count",
+  staleCount: "iot_fleet_stale_count",
+  onlineRatio: "iot_fleet_online_ratio",
+  batteryPercentP50: "iot_fleet_battery_percent_p50",
+  batteryPercentP10: "iot_fleet_battery_percent_p10",
+  weakSignalCount: "iot_fleet_weak_signal_count",
+};
+
+export const IOT_FLEET_ROLLUP_METRIC_NAME_LIST: ReadonlyArray<string> =
+  Object.values(IOT_FLEET_ROLLUP_METRIC_NAMES);
+
+/*
+ * Build the per-fleet rollup series for one tick. One datapoint per
+ * series per fleet per minute, attributed to the fleet (iot.scope =
+ * "fleet"), so they are chartable on the fleet Metrics page and
+ * alertable via fleet-scope monitors ("more than 10% of the fleet is
+ * offline") without any device-level group-by. Ratio is emitted only
+ * for non-empty fleets; battery percentiles only when fresh readings
+ * exist — an absent datapoint is more honest than a fabricated zero.
+ */
+export function buildFleetRollupMetricRows(data: {
+  projectId: ObjectID;
+  fleetName: string;
+  stats: {
+    deviceCount: number;
+    onlineCount: number;
+    offlineCount: number;
+    staleCount: number;
+    batteryPercentP50: number | null;
+    batteryPercentP10: number | null;
+    weakSignalCount: number | null;
+  };
+  at: Date;
+  retentionDays: number;
+}): Array<JSONObject> {
+  const attributes: Record<string, string> = {
+    "resource.iot.fleet.name": data.fleetName,
+    "iot.scope": "fleet",
+    [IOT_SYNTHETIC_ATTRIBUTE_KEY]: IOT_SYNTHETIC_FLEET_ROLLUP,
+  };
+
+  const series: Array<{ name: string; value: number | null }> = [
+    {
+      name: IOT_FLEET_ROLLUP_METRIC_NAMES.deviceCount,
+      value: data.stats.deviceCount,
+    },
+    {
+      name: IOT_FLEET_ROLLUP_METRIC_NAMES.onlineCount,
+      value: data.stats.onlineCount,
+    },
+    {
+      name: IOT_FLEET_ROLLUP_METRIC_NAMES.offlineCount,
+      value: data.stats.offlineCount,
+    },
+    {
+      name: IOT_FLEET_ROLLUP_METRIC_NAMES.staleCount,
+      value: data.stats.staleCount,
+    },
+    {
+      name: IOT_FLEET_ROLLUP_METRIC_NAMES.onlineRatio,
+      value:
+        data.stats.deviceCount > 0
+          ? data.stats.onlineCount / data.stats.deviceCount
+          : null,
+    },
+    {
+      name: IOT_FLEET_ROLLUP_METRIC_NAMES.batteryPercentP50,
+      value: data.stats.batteryPercentP50,
+    },
+    {
+      name: IOT_FLEET_ROLLUP_METRIC_NAMES.batteryPercentP10,
+      value: data.stats.batteryPercentP10,
+    },
+    {
+      name: IOT_FLEET_ROLLUP_METRIC_NAMES.weakSignalCount,
+      value: data.stats.weakSignalCount,
+    },
+  ];
+
+  const rows: Array<JSONObject> = [];
+  for (const s of series) {
+    if (s.value === null) {
+      continue;
+    }
+    rows.push(
+      buildLeanGaugeMetricRow({
+        projectId: data.projectId,
+        name: s.name,
+        value: s.value,
+        attributes: attributes,
+        at: data.at,
+        retentionDays: data.retentionDays,
+      }),
+    );
+  }
+  return rows;
+}
+
+/*
+ * Derive the IoTFleet snapshot columns from one folded batch.
+ *
+ * Counts are deliberately NOT derived here anymore: one OTLP batch is
+ * whatever slice of the fleet a single gateway shipped, so
+ * batch-derived deviceCount/onlineDeviceCount were wrong for any
+ * multi-gateway fleet (whichever partial batch flushed last won). The
+ * ComputeFleetRollups worker now owns both count columns and the
+ * iot_fleet_* rollup series, computed from the full Postgres
+ * inventory once a minute. Only batch-scoped facts (agentVersion)
+ * ride the ingest path.
  */
 export function deriveIoTFleetSnapshotExtras(
-  entries: Array<IoTDeviceBufferEntry>,
+  _entries: Array<IoTDeviceBufferEntry>,
   snap: IoTFleetSnapshotBufferEntry | undefined,
 ): IoTFleetSnapshotExtras {
   const extras: IoTFleetSnapshotExtras = {};
 
-  if (snap?.sawDeviceIdentity) {
-    extras.deviceCount = entries.length;
-  }
-  if (snap?.sawDeviceUp) {
-    extras.onlineDeviceCount = entries.filter((e: IoTDeviceBufferEntry) => {
-      return e.isUp === true;
-    }).length;
-  }
   if (snap?.agentVersion) {
     extras.agentVersion = snap.agentVersion;
   }
