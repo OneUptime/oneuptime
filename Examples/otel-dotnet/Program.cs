@@ -38,7 +38,12 @@ builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource
         .AddService(serviceName: builder.Environment.ApplicationName))
     .WithTracing(tracing => tracing
-        .AddAspNetCoreInstrumentation()
+        // RecordException captures unhandled request exceptions as span
+        // events ("exception") so they appear on OneUptime's Exceptions page.
+        .AddAspNetCoreInstrumentation(options =>
+        {
+            options.RecordException = true;
+        })
         .AddConsoleExporter()
          .AddOtlpExporter(opt =>
                 {

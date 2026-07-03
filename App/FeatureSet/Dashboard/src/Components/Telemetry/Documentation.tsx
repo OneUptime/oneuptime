@@ -402,7 +402,11 @@ var resourceBuilder = ResourceBuilder.CreateDefault()
 builder.Services.AddOpenTelemetry()
     .WithTracing(tracing => tracing
         .SetResourceBuilder(resourceBuilder)
-        .AddAspNetCoreInstrumentation()
+        // RecordException captures unhandled request exceptions as span
+        // events so they appear on the Exceptions page.
+        .AddAspNetCoreInstrumentation(options => {
+            options.RecordException = true;
+        })
         .AddHttpClientInstrumentation()
         .AddOtlpExporter(options => {
             options.Endpoint = new Uri("<YOUR_ONEUPTIME_URL>");
@@ -737,7 +741,11 @@ catch (Exception ex)
     logger.LogError(ex, "Failed to process order");
 
     throw;
-}`,
+}
+
+// Unhandled request exceptions are NOT recorded by default in ASP.NET
+// Core — opt in when configuring tracing:
+//   .AddAspNetCoreInstrumentation(o => { o.RecordException = true; })`,
         language: "csharp",
       };
     case "java":

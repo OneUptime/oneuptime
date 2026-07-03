@@ -63,7 +63,20 @@ except Exception as exc:
     raise
 ```
 
-Note that setting a span's status to `Error` on its own does **not** create an exception record — OneUptime marks the span as failed, but without a recorded exception event there is no type, message, or stack trace to group into an issue. Most auto-instrumentations record unhandled exceptions for you; exceptions your code catches must be recorded explicitly as shown above.
+Note that setting a span's status to `Error` on its own does **not** create an exception record — OneUptime marks the span as failed, but without a recorded exception event there is no type, message, or stack trace to group into an issue. Exceptions your code catches must always be recorded explicitly as shown above.
+
+Whether *unhandled* exceptions are recorded automatically depends on the instrumentation. The Java agent and most Node.js/Python instrumentations record them by default, but the ASP.NET Core instrumentation does **not** — you must opt in:
+
+```csharp
+.WithTracing(tracing => tracing
+    .AddAspNetCoreInstrumentation(options =>
+    {
+        // Record unhandled request exceptions as span exception events.
+        options.RecordException = true;
+    })
+    // ...
+)
+```
 
 ### 2. Exceptions in logs
 
