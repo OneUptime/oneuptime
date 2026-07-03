@@ -1,4 +1,6 @@
 import DatabaseService from "./DatabaseService";
+import URL from "../../Types/API/URL";
+import DatabaseConfig from "../DatabaseConfig";
 import HostLabelRuleEngineService from "./HostLabelRuleEngineService";
 import HostOwnerRuleEngineService from "./HostOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/Host";
@@ -496,6 +498,18 @@ export class Service extends DatabaseService<Model> {
         });
       }
     }
+  }
+
+  @CaptureSpan()
+  public async getLinkInDashboard(
+    projectId: ObjectID,
+    hostId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/host/${hostId.toString()}`,
+    );
   }
 }
 

@@ -110,6 +110,173 @@ OneUptime recognizes the following `iot_*` metric names. Each datapoint should c
 | `iot_memory_size_bytes`     | Total memory available on the device, in bytes                                 |
 | `iot_uptime_seconds`        | Seconds since the device last booted                                           |
 
+## Device-side Recipes
+
+There is no official OpenTelemetry SDK for constrained embedded targets, and you do not need one: OTLP/HTTP with JSON encoding is just an HTTP `POST` of a JSON document. Any device that can make an HTTPS request can push metrics directly to `POST /otlp/v1/metrics` with two headers — `Content-Type: application/json` and `x-oneuptime-token`.
+
+The minimal payload for one gauge datapoint, with the required resource attributes and the `device.id` datapoint label, looks like this (portable to any RTOS or bare-metal HTTP stack):
+
+```json
+{
+  "resourceMetrics": [{
+    "resource": {
+      "attributes": [
+        { "key": "iot.fleet.name", "value": { "stringValue": "building-a-sensors" } },
+        { "key": "device.id", "value": { "stringValue": "sensor-001" } },
+        { "key": "service.name", "value": { "stringValue": "iot/building-a-sensors" } }
+      ]
+    },
+    "scopeMetrics": [{
+      "metrics": [{
+        "name": "iot_temperature_celsius",
+        "unit": "Cel",
+        "gauge": {
+          "dataPoints": [{
+            "asDouble": 23.4,
+            "timeUnixNano": "1751500000000000000",
+            "attributes": [
+              { "key": "device.id", "value": { "stringValue": "sensor-001" } }
+            ]
+          }]
+        }
+      }]
+    }]
+  }]
+}
+```
+
+Two practical notes before the recipes:
+
+- **Timestamps** — `timeUnixNano` is Unix time in nanoseconds (sent as a string). The device needs a synced clock, so run SNTP/NTP before pushing.
+- **Batching** — each push opens a connection; on battery-powered devices, put all of a device's metrics in one `scopeMetrics[].metrics[]` array per push rather than posting them one at a time.
+
+### ESP32 (ESP-IDF, C)
+
+Uses `esp_http_client` and the ESP-IDF certificate bundle for TLS. Enable SNTP (`esp_netif_sntp`) first so `gettimeofday()` returns real time.
+
+```c
+#include <stdio.h>
+#include <string.h>
+#include <sys/time.h>
+#include "esp_http_client.h"
+#include "esp_crt_bundle.h"
+
+#define ONEUPTIME_URL   "https://oneuptime.com/otlp/v1/metrics"
+#define ONEUPTIME_TOKEN "YOUR_TELEMETRY_INGESTION_TOKEN"
+#define FLEET_NAME      "building-a-sensors"
+#define DEVICE_ID       "sensor-001"
+
+/* OTLP/HTTP JSON: one gauge datapoint with the required IoT attributes. */
+static const char *OTLP_BODY_FMT =
+  "{\"resourceMetrics\":[{"
+    "\"resource\":{\"attributes\":["
+      "{\"key\":\"iot.fleet.name\",\"value\":{\"stringValue\":\"" FLEET_NAME "\"}},"
+      "{\"key\":\"device.id\",\"value\":{\"stringValue\":\"" DEVICE_ID "\"}},"
+      "{\"key\":\"service.name\",\"value\":{\"stringValue\":\"iot/" FLEET_NAME "\"}}"
+    "]},"
+    "\"scopeMetrics\":[{\"metrics\":[{"
+      "\"name\":\"iot_temperature_celsius\",\"unit\":\"Cel\","
+      "\"gauge\":{\"dataPoints\":[{"
+        "\"asDouble\":%.2f,"
+        "\"timeUnixNano\":\"%llu\","
+        "\"attributes\":[{\"key\":\"device.id\","
+          "\"value\":{\"stringValue\":\"" DEVICE_ID "\"}}]"
+      "}]}"
+    "}]}]"
+  "}]}";
+
+void push_temperature(float celsius) {
+  struct timeval tv;
+  gettimeofday(&tv, NULL); /* requires SNTP-synced clock */
+  unsigned long long now_ns =
+      (unsigned long long)tv.tv_sec * 1000000000ULL +
+      (unsigned long long)tv.tv_usec * 1000ULL;
+
+  char body[1024];
+  snprintf(body, sizeof(body), OTLP_BODY_FMT, celsius, now_ns);
+
+  esp_http_client_config_t config = {
+      .url = ONEUPTIME_URL,
+      .method = HTTP_METHOD_POST,
+      .crt_bundle_attach = esp_crt_bundle_attach, /* TLS root certs */
+  };
+  esp_http_client_handle_t client = esp_http_client_init(&config);
+  esp_http_client_set_header(client, "Content-Type", "application/json");
+  esp_http_client_set_header(client, "x-oneuptime-token", ONEUPTIME_TOKEN);
+  esp_http_client_set_post_field(client, body, strlen(body));
+  esp_http_client_perform(client); /* expect HTTP 200 */
+  esp_http_client_cleanup(client);
+}
+```
+
+### Zephyr RTOS (C)
+
+Uses Zephyr's `http_client`. The socket setup (DNS resolve, `connect()`, TLS via `CONFIG_NET_SOCKETS_SOCKOPT_TLS` with a provisioned CA certificate) is elided — Zephyr's `samples/net/sockets/http_get` sample shows it end to end. Pass in a socket already connected to your OneUptime host on port 443.
+
+```c
+#include <stdio.h>
+#include <string.h>
+#include <zephyr/net/http/client.h>
+#include <zephyr/net/socket.h>
+
+#define ONEUPTIME_HOST "oneuptime.com"
+#define ONEUPTIME_PATH "/otlp/v1/metrics"
+#define FLEET_NAME     "field-gateways"
+#define DEVICE_ID      "sensor-002"
+
+static const char *headers[] = {
+  "Content-Type: application/json\r\n",
+  "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN\r\n",
+  NULL,
+};
+
+static char body[1024];
+static uint8_t recv_buf[512];
+
+static void response_cb(struct http_response *rsp,
+                        enum http_final_call final_data, void *user_data) {
+  /* expect "200 OK" in rsp->http_status */
+  printf("OTLP push status: %s\n", rsp->http_status);
+}
+
+/* sock: already connected (and TLS-wrapped) to ONEUPTIME_HOST:443 */
+int push_battery(int sock, double percent, uint64_t now_ns) {
+  snprintf(body, sizeof(body),
+    "{\"resourceMetrics\":[{"
+      "\"resource\":{\"attributes\":["
+        "{\"key\":\"iot.fleet.name\",\"value\":{\"stringValue\":\"" FLEET_NAME "\"}},"
+        "{\"key\":\"device.id\",\"value\":{\"stringValue\":\"" DEVICE_ID "\"}},"
+        "{\"key\":\"service.name\",\"value\":{\"stringValue\":\"iot/" FLEET_NAME "\"}}"
+      "]},"
+      "\"scopeMetrics\":[{\"metrics\":[{"
+        "\"name\":\"iot_battery_percent\",\"unit\":\"%%\","
+        "\"gauge\":{\"dataPoints\":[{"
+          "\"asDouble\":%.1f,\"timeUnixNano\":\"%llu\","
+          "\"attributes\":[{\"key\":\"device.id\","
+            "\"value\":{\"stringValue\":\"" DEVICE_ID "\"}}]"
+        "}]}"
+      "}]}]"
+    "}]}",
+    percent, (unsigned long long)now_ns);
+
+  struct http_request req = { 0 };
+  req.method = HTTP_POST;
+  req.url = ONEUPTIME_PATH;
+  req.host = ONEUPTIME_HOST;
+  req.protocol = "HTTP/1.1";
+  req.header_fields = headers;
+  req.payload = body;
+  req.payload_len = strlen(body);
+  req.response = response_cb;
+  req.recv_buf = recv_buf;
+  req.recv_buf_len = sizeof(recv_buf);
+
+  return http_client_req(sock, &req, 5000 /* ms */, NULL);
+}
+```
+
+For self-hosted OneUptime, replace the host with your instance (the path stays `/otlp/v1/metrics`). If a device cannot do TLS at all, push over plain HTTP to a local OpenTelemetry Collector on your gateway and let the collector forward to OneUptime over HTTPS, as shown in [Sending Metrics via an OpenTelemetry Collector](#sending-metrics-via-an-opentelemetry-collector).
+
 ## Verify the Installation
 
 1. Confirm your device or gateway is exporting without errors (check the SDK/collector logs for export failures and HTTP `401`/`403` responses).

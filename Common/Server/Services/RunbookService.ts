@@ -1,4 +1,7 @@
 import DatabaseService from "./DatabaseService";
+import URL from "../../Types/API/URL";
+import DatabaseConfig from "../DatabaseConfig";
+import ObjectID from "../../Types/ObjectID";
 import RunbookLabelRuleEngineService from "./RunbookLabelRuleEngineService";
 import RunbookOwnerRuleEngineService from "./RunbookOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/Runbook";
@@ -40,6 +43,18 @@ export class Service extends DatabaseService<Model> {
         });
     }
     return createdItem;
+  }
+
+  @CaptureSpan()
+  public async getLinkInDashboard(
+    projectId: ObjectID,
+    runbookId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/runbooks/${runbookId.toString()}`,
+    );
   }
 }
 

@@ -301,13 +301,29 @@ export default class MonitorIncident {
      * Per-series mode: close any open incident for a series that's no
      * longer breaching *before* we look at the remaining open set, so
      * dedupe decisions below match the post-resolve state.
+     *
+     * Only a criteria that actually creates incidents contributes
+     * breaching fingerprints. When the matched criteria does NOT create
+     * incidents — e.g. the "Healthy" criteria of the per-series infra
+     * monitors (IoT/Kubernetes/Docker/Host/Proxmox/Ceph), which uses
+     * MetricValue filters and therefore matches every RECOVERED series —
+     * its matches describe healthy series, not breaching ones. Treating
+     * them as breaching kept every open per-series incident from ever
+     * auto-resolving on full recovery (the resolve path saw its own
+     * fingerprint in the "still breaching" set). Use an EMPTY set, not
+     * undefined, so per-series resolve semantics still apply: every open
+     * series incident whose creating criteria opted into auto-resolve is
+     * closed, mirroring what the legacy cross-criteria path does for
+     * non-series incidents.
      */
     const breachingSeriesFingerprints: Set<string> | undefined =
       input.matchesPerSeries && !input.disableSeriesAbsenceResolution
         ? new Set<string>(
-            input.matchesPerSeries.map((m: PerSeriesCriteriaMatch) => {
-              return m.fingerprint;
-            }),
+            input.criteriaInstance.data?.createIncidents
+              ? input.matchesPerSeries.map((m: PerSeriesCriteriaMatch) => {
+                  return m.fingerprint;
+                })
+              : [],
           )
         : undefined;
 

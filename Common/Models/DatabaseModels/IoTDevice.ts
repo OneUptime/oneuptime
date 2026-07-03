@@ -8,11 +8,13 @@ import TableAccessControl from "../../Types/Database/AccessControl/TableAccessCo
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
+import IoTDeviceState from "../../Types/IoT/IoTDeviceState";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -36,12 +38,14 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * allocatable-denominator cache is needed.
  *
  * The list/detail pages read this table instead of groupBy-ing over
- * 24h of ClickHouse metric data. Rows are upserted per scrape and
- * hard-deleted once lastSeenAt falls behind "now - 15min" for fleets
- * that remain connected.
+ * 24h of ClickHouse metric data. Rows are upserted per scrape and walk
+ * the IoTDeviceState lifecycle (Online -> Offline -> Stale -> Retired)
+ * on silence instead of being hard-deleted, so a dead device stays
+ * visible and alertable instead of vanishing from the fleet.
  *
- * Writes go through IoTDeviceService under isRoot; users never
- * create/update/delete rows directly.
+ * Writes go through IoTDeviceService under isRoot; the only
+ * user-editable columns are isArchived and
+ * expectedCheckinIntervalSeconds (fleet-edit permissions).
  *
  * ------------------------------------------------------------------
  */
@@ -57,11 +61,27 @@ const READ_PERMISSIONS: Array<Permission> = [
   Permission.ReadIoTFleet,
 ];
 
+/*
+ * Devices are ingest-owned, so almost every column is read-only for
+ * users. The exceptions (isArchived, expectedCheckinIntervalSeconds)
+ * ride the fleet-edit permission — whoever can edit the fleet can
+ * curate its device inventory.
+ */
+const UPDATE_PERMISSIONS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.ProjectMember,
+  Permission.SettingsAdmin,
+  Permission.SettingsMember,
+  Permission.EditIoTFleet,
+];
+
+@EnableDocumentation()
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [],
   read: READ_PERMISSIONS,
-  update: [],
+  update: UPDATE_PERMISSIONS,
   delete: [],
 })
 @CrudApiEndpoint(new Route("/iot-device"))
@@ -600,6 +620,85 @@ export default class IoTDevice extends BaseModel {
     type: ColumnType.Date,
   })
   public lastSeenAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "State",
+    description:
+      "Lifecycle state of this device: Online, Offline, Stale or Retired. Managed by the ingest pipeline and the IoT workers; any fresh datapoint moves the device back to Online/Offline.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    default: IoTDeviceState.Online,
+  })
+  public state?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "State Changed At",
+    description:
+      "When the device last transitioned lifecycle state (e.g. went Offline or came back Online). Drives 'offline since' rendering.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public stateChangedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: UPDATE_PERMISSIONS,
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Expected Check-in Interval (Seconds)",
+    description:
+      "How often this device is expected to report. When set (or when the fleet sets a default), silence for 3x this interval marks the device Offline and raises the fleet's offline alerts. Null falls back to the fleet default; if both are null, silence-based offline detection is off for this device.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public expectedCheckinIntervalSeconds?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: UPDATE_PERMISSIONS,
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "Is Archived",
+    description:
+      "Archived devices are hidden from default lists, excluded from fleet counts, and skipped by offline detection. Data for an archived device is still accepted if it reports again.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public isArchived?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [],

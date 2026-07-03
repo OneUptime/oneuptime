@@ -358,6 +358,49 @@ export default class IoTFleet extends BaseModel {
   public agentVersion?: string = undefined;
 
   @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateIoTFleet,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadIoTFleet,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditIoTFleet,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Expected Device Check-in Interval (Seconds)",
+    description:
+      "Fleet-wide default for how often devices are expected to report. When set, a device silent for 3x this interval is marked Offline and the fleet's offline alerts fire even though the device sent nothing. Devices can override per-device; null disables silence-based offline detection for devices without their own interval.",
+    example: "300",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public expectedDeviceCheckinIntervalSeconds?: number = undefined;
+
+  @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,

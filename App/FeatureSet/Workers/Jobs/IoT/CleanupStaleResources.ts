@@ -11,7 +11,7 @@ import ObjectID from "Common/Types/ObjectID";
  * ------------------------------------------------------------------
  * IoT:CleanupStaleResources
  *
- * Runs every 5 minutes. Two steps:
+ * Runs every 5 minutes. Three steps:
  *   1. Mark fleets as disconnected if they have not been seen for
  *      15 minutes (IoTFleetService.markDisconnectedFleets — this cron
  *      is its only scheduled caller). The threshold is 3x the ingest
@@ -20,22 +20,33 @@ import ObjectID from "Common/Types/ObjectID";
  *      threshold equal to the fence flaps healthy fleets between
  *      connected and disconnected. Net SLA: the list-page status pill
  *      flips to Disconnected ≤ ~20 minutes after the agent dies.
- *   2. For each CONNECTED fleet, hard-delete IoTDevice inventory rows
- *      whose last snapshot is older than the stale threshold. Threshold
- *      and delete both live in IoTDeviceService (getStaleThresholdDate /
- *      deleteStaleForFleet — default 15 minutes = 3x the snapshot
+ *   2. For each CONNECTED fleet, walk IoTDevice inventory rows whose
+ *      last snapshot is older than the stale threshold to the Stale
+ *      lifecycle state (rows are never hard-deleted — a silent device
+ *      stays visible instead of vanishing). Threshold and transition
+ *      both live in IoTDeviceService (getStaleThresholdDate /
+ *      markStaleForFleet — default 15 minutes = 3x the snapshot
  *      interval; override with IOT_INVENTORY_STALE_MINUTES, minimum 5)
  *      so this cron carries no duplicate policy. The cutoff is anchored
  *      to each fleet's own lastSeenAt rather than wall-clock now:
  *      inventory rows ride the slower snapshot clock, so with the
- *      disconnect and prune thresholds both at 15 minutes a wall-clock
- *      cutoff could wipe the last-known inventory of a still-connected
- *      fleet late in an outage. Anchoring freezes the prune clock.
+ *      disconnect and stale thresholds both at 15 minutes a wall-clock
+ *      cutoff could mass-stale the last-known inventory of a
+ *      still-connected fleet late in an outage. Anchoring freezes the
+ *      staleness clock.
+ *   3. For EVERY fleet, walk devices silent past the retirement
+ *      threshold (IOT_INVENTORY_RETIRE_DAYS, default 30) to Retired.
+ *      Retired rows are kept for history but drop out of counts and
+ *      default lists. This pass runs for disconnected fleets too — a
+ *      month of silence is a decommissioned device either way, and
+ *      the cutoff is wall-clock because at that scale snapshot-clock
+ *      lag is noise.
  *
- * Skipping disconnected fleets is deliberate: during a transient agent
- * outage we want to preserve the last-known inventory rather than wipe
- * the overview page. When the agent reconnects, the next snapshot
- * refreshes lastSeenAt and the rows become live again.
+ * Skipping disconnected fleets in step 2 is deliberate: during a
+ * transient agent outage we want to preserve the last-known inventory
+ * rather than mass-stale the overview page. When the agent reconnects,
+ * the next snapshot refreshes lastSeenAt and the upsert walks the rows
+ * straight back to Online/Offline.
  * ------------------------------------------------------------------
  */
 
@@ -57,8 +68,8 @@ RunCron(
       }
 
       /*
-       * Step 2: prune stale inventory rows for fleets that are still
-       * believed to be connected.
+       * Step 2: walk stale inventory rows to Stale for fleets that
+       * are still believed to be connected.
        */
       const connectedFleets: Array<IoTFleet> = await IoTFleetService.findBy({
         query: {
@@ -73,11 +84,7 @@ RunCron(
         props: { isRoot: true },
       });
 
-      if (connectedFleets.length === 0) {
-        return;
-      }
-
-      let totalDeleted: number = 0;
+      let totalStaled: number = 0;
       for (const fleet of connectedFleets) {
         if (!fleet._id) {
           continue;
@@ -89,20 +96,59 @@ RunCron(
         );
 
         try {
-          totalDeleted += await IoTDeviceService.deleteStaleForFleet({
+          totalStaled += await IoTDeviceService.markStaleForFleet({
             iotFleetId: new ObjectID(fleet._id.toString()),
             olderThan: cutoff,
           });
         } catch (err) {
           logger.error(
-            `IoT:CleanupStaleResources: stale inventory delete failed for fleet ${fleet._id.toString()}: ${err instanceof Error ? err.message : String(err)}`,
+            `IoT:CleanupStaleResources: stale transition failed for fleet ${fleet._id.toString()}: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
       }
 
-      if (totalDeleted > 0) {
+      if (totalStaled > 0) {
         logger.debug(
-          `IoT:CleanupStaleResources: pruned ${totalDeleted} stale IoTDevice row(s) across ${connectedFleets.length} fleet(s)`,
+          `IoT:CleanupStaleResources: marked ${totalStaled} IoTDevice row(s) Stale across ${connectedFleets.length} connected fleet(s)`,
+        );
+      }
+
+      /*
+       * Step 3: retirement pass over every fleet (connected or not —
+       * see header). Wall-clock cutoff.
+       */
+      const allFleets: Array<IoTFleet> = await IoTFleetService.findBy({
+        query: {},
+        select: {
+          _id: true,
+        },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: { isRoot: true },
+      });
+
+      const retireCutoff: Date = IoTDeviceService.getRetireThresholdDate();
+      let totalRetired: number = 0;
+      for (const fleet of allFleets) {
+        if (!fleet._id) {
+          continue;
+        }
+
+        try {
+          totalRetired += await IoTDeviceService.retireStaleForFleet({
+            iotFleetId: new ObjectID(fleet._id.toString()),
+            olderThan: retireCutoff,
+          });
+        } catch (err) {
+          logger.error(
+            `IoT:CleanupStaleResources: retirement pass failed for fleet ${fleet._id.toString()}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      if (totalRetired > 0) {
+        logger.debug(
+          `IoT:CleanupStaleResources: retired ${totalRetired} IoTDevice row(s) across ${allFleets.length} fleet(s)`,
         );
       }
     } catch (err) {

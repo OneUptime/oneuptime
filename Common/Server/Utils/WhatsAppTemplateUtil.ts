@@ -62,6 +62,22 @@ const templateDashboardLinkVariableMap: Partial<
   [WhatsAppTemplateIds.DockerSwarmClusterOwnerAddedNotification]:
     "cluster_link",
   [WhatsAppTemplateIds.IoTFleetOwnerAddedNotification]: "fleet_link",
+  [WhatsAppTemplateIds.CloudResourceOwnerAddedNotification]: "resource_link",
+  [WhatsAppTemplateIds.DashboardOwnerAddedNotification]: "dashboard_link",
+  [WhatsAppTemplateIds.DockerHostOwnerAddedNotification]: "host_link",
+  [WhatsAppTemplateIds.HostOwnerAddedNotification]: "host_link",
+  [WhatsAppTemplateIds.IncomingCallPolicyOwnerAddedNotification]: "policy_link",
+  [WhatsAppTemplateIds.OnCallDutyPolicyOwnerAddedNotification]: "policy_link",
+  [WhatsAppTemplateIds.OnCallDutyPolicyScheduleOwnerAddedNotification]:
+    "schedule_link",
+  [WhatsAppTemplateIds.PodmanHostOwnerAddedNotification]: "host_link",
+  [WhatsAppTemplateIds.RumApplicationOwnerAddedNotification]:
+    "application_link",
+  [WhatsAppTemplateIds.RunbookOwnerAddedNotification]: "runbook_link",
+  [WhatsAppTemplateIds.ServerlessFunctionOwnerAddedNotification]:
+    "function_link",
+  [WhatsAppTemplateIds.WorkflowOwnerAddedNotification]: "workflow_link",
+  [WhatsAppTemplateIds.MonitorGroupOwnerAddedNotification]: "group_link",
   [WhatsAppTemplateIds.OnCallUserIsOnRosterNotification]: "schedule_link",
   [WhatsAppTemplateIds.OnCallUserIsNextNotification]: "schedule_link",
   [WhatsAppTemplateIds.OnCallUserNoLongerActiveNotification]: "schedule_link",
@@ -154,6 +170,32 @@ const templateIdByEventType: Record<
     WhatsAppTemplateIds.DockerSwarmClusterOwnerAddedNotification,
   [NotificationSettingEventType.SEND_IOT_FLEET_OWNER_ADDED_NOTIFICATION]:
     WhatsAppTemplateIds.IoTFleetOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_CLOUD_RESOURCE_OWNER_ADDED_NOTIFICATION]:
+    WhatsAppTemplateIds.CloudResourceOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION]:
+    WhatsAppTemplateIds.DashboardOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_DOCKER_HOST_OWNER_ADDED_NOTIFICATION]:
+    WhatsAppTemplateIds.DockerHostOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_HOST_OWNER_ADDED_NOTIFICATION]:
+    WhatsAppTemplateIds.HostOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION]:
+    WhatsAppTemplateIds.IncomingCallPolicyOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_ON_CALL_DUTY_POLICY_OWNER_ADDED_NOTIFICATION]:
+    WhatsAppTemplateIds.OnCallDutyPolicyOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_ON_CALL_DUTY_POLICY_SCHEDULE_OWNER_ADDED_NOTIFICATION]:
+    WhatsAppTemplateIds.OnCallDutyPolicyScheduleOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_PODMAN_HOST_OWNER_ADDED_NOTIFICATION]:
+    WhatsAppTemplateIds.PodmanHostOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_RUM_APPLICATION_OWNER_ADDED_NOTIFICATION]:
+    WhatsAppTemplateIds.RumApplicationOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION]:
+    WhatsAppTemplateIds.RunbookOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_SERVERLESS_FUNCTION_OWNER_ADDED_NOTIFICATION]:
+    WhatsAppTemplateIds.ServerlessFunctionOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION]:
+    WhatsAppTemplateIds.WorkflowOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION]:
+    WhatsAppTemplateIds.MonitorGroupOwnerAddedNotification,
   [NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER]:
     WhatsAppTemplateIds.OnCallUserIsOnRosterNotification,
   [NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER]:

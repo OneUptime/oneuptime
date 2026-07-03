@@ -248,12 +248,28 @@ export default class MonitorAlert {
       alertLogAttributes,
     );
 
+    /*
+     * Only a criteria that actually creates alerts contributes breaching
+     * fingerprints. When the matched criteria does NOT create alerts —
+     * e.g. the "Healthy" criteria of the per-series infra monitors
+     * (IoT/Kubernetes/Docker/Host/Proxmox/Ceph), which uses MetricValue
+     * filters and therefore matches every RECOVERED series — its matches
+     * describe healthy series, not breaching ones. Treating them as
+     * breaching kept every open per-series alert from ever auto-resolving
+     * on full recovery. Use an EMPTY set, not undefined, so per-series
+     * resolve semantics still apply: every open series alert whose
+     * creating criteria opted into auto-resolve is closed, mirroring the
+     * legacy cross-criteria path for non-series alerts. Mirrors
+     * MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus.
+     */
     const breachingSeriesFingerprints: Set<string> | undefined =
       input.matchesPerSeries && !input.disableSeriesAbsenceResolution
         ? new Set<string>(
-            input.matchesPerSeries.map((m: PerSeriesCriteriaMatch) => {
-              return m.fingerprint;
-            }),
+            input.criteriaInstance.data?.createAlerts
+              ? input.matchesPerSeries.map((m: PerSeriesCriteriaMatch) => {
+                  return m.fingerprint;
+                })
+              : [],
           )
         : undefined;
 

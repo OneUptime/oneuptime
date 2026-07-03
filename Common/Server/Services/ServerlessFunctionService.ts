@@ -1,4 +1,6 @@
 import DatabaseService from "./DatabaseService";
+import URL from "../../Types/API/URL";
+import DatabaseConfig from "../DatabaseConfig";
 import Model from "../../Models/DatabaseModels/ServerlessFunction";
 import Label from "../../Models/DatabaseModels/Label";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -358,6 +360,18 @@ export class Service extends DatabaseService<Model> {
         });
       }
     }
+  }
+
+  @CaptureSpan()
+  public async getLinkInDashboard(
+    projectId: ObjectID,
+    serverlessFunctionId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/serverless/${serverlessFunctionId.toString()}`,
+    );
   }
 }
 

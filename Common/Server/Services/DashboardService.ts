@@ -1,4 +1,6 @@
 import CreateBy from "../Types/Database/CreateBy";
+import URL from "../../Types/API/URL";
+import DatabaseConfig from "../DatabaseConfig";
 import { OnCreate } from "../Types/Database/Hooks";
 import CookieUtil from "../Utils/Cookie";
 import { ExpressRequest } from "../Utils/Express";
@@ -286,6 +288,18 @@ export class Service extends DatabaseService<Model> {
     }
 
     return false;
+  }
+
+  @CaptureSpan()
+  public async getLinkInDashboard(
+    projectId: ObjectID,
+    dashboardId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/dashboards/${dashboardId.toString()}`,
+    );
   }
 }
 

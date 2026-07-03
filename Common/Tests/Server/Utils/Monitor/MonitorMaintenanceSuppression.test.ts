@@ -1,3 +1,4 @@
+import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
 import MonitorMaintenanceSuppression, {
   MaintainedResourceKeys,
 } from "../../../../Server/Utils/Monitor/MonitorMaintenanceSuppression";
@@ -5,6 +6,13 @@ import SeriesResourceLabels, {
   SeriesResourceRefs,
 } from "../../../../Server/Utils/Monitor/SeriesResourceLabels";
 import { JSONObject } from "../../../../Types/JSON";
+import {
+  getIoTAlertTemplateById,
+  IoTAlertTemplate,
+} from "../../../../Types/Monitor/IotAlertTemplates";
+import MonitorStep from "../../../../Types/Monitor/MonitorStep";
+import MonitorType from "../../../../Types/Monitor/MonitorType";
+import ObjectID from "../../../../Types/ObjectID";
 import { PerSeriesCriteriaMatch } from "../../../../Types/Probe/ProbeApiIngestResponse";
 
 function emptyMaintained(): MaintainedResourceKeys {
@@ -205,6 +213,120 @@ describe("MonitorMaintenanceSuppression.getSuppressedFingerprintsForMaintainedRe
       );
 
     expect(Array.from(result)).toEqual(["fpFleet"]);
+  });
+
+  /*
+   * Shipped IoT templates group by the `device.id` datapoint label, so
+   * the raw series labels carry NO fleet identity. The evaluator stamps
+   * `iot.fleet.name` from the step's fleetIdentifier onto every IoT
+   * per-series match (stampIoTFleetLabelOnSeriesLabels) — this locks in
+   * that the stamped labels make a fleet maintenance window actually
+   * suppress the fleet's device series, end to end through the same
+   * pure matching step production uses.
+   */
+  describe("IoT fleet maintenance windows (shipped-template series)", () => {
+    function shippedIoTStep(fleetIdentifier: string): MonitorStep {
+      const template: IoTAlertTemplate | undefined =
+        getIoTAlertTemplateById("iot-device-offline");
+      if (!template) {
+        throw new Error("iot-device-offline template missing");
+      }
+      return template.getMonitorStep({
+        fleetIdentifier,
+        onlineMonitorStatusId: ObjectID.generate(),
+        offlineMonitorStatusId: ObjectID.generate(),
+        defaultIncidentSeverityId: ObjectID.generate(),
+        defaultAlertSeverityId: ObjectID.generate(),
+        monitorName: "Warehouse Sensors",
+      });
+    }
+
+    it("stamps iot.fleet.name from the step's fleetIdentifier so a fleet window suppresses device series", () => {
+      const monitorStep: MonitorStep = shippedIoTStep("warehouse-sensors");
+
+      // Shipped-template series: only the device.id group-by label.
+      const stampedLabels: JSONObject =
+        MonitorCriteriaEvaluator.stampIoTFleetLabelOnSeriesLabels({
+          monitorType: MonitorType.IoTDevice,
+          monitorStep,
+          labels: { "device.id": "sensor-42" },
+        });
+
+      expect(stampedLabels["iot.fleet.name"]).toBe("warehouse-sensors");
+      expect(stampedLabels["device.id"]).toBe("sensor-42");
+
+      const maintained: MaintainedResourceKeys = emptyMaintained();
+      maintained.iotFleets.names.add("warehouse-sensors");
+
+      const result: Set<string> =
+        MonitorMaintenanceSuppression.getSuppressedFingerprintsForMaintainedResources(
+          {
+            matchesPerSeries: [series("fpDevice", stampedLabels)],
+            maintained,
+          },
+        );
+
+      expect(Array.from(result)).toEqual(["fpDevice"]);
+    });
+
+    it("does not suppress device series of a fleet outside the maintenance window", () => {
+      const monitorStep: MonitorStep = shippedIoTStep("office-sensors");
+
+      const stampedLabels: JSONObject =
+        MonitorCriteriaEvaluator.stampIoTFleetLabelOnSeriesLabels({
+          monitorType: MonitorType.IoTDevice,
+          monitorStep,
+          labels: { "device.id": "sensor-42" },
+        });
+
+      const maintained: MaintainedResourceKeys = emptyMaintained();
+      maintained.iotFleets.names.add("warehouse-sensors");
+
+      const result: Set<string> =
+        MonitorMaintenanceSuppression.getSuppressedFingerprintsForMaintainedResources(
+          {
+            matchesPerSeries: [series("fpDevice", stampedLabels)],
+            maintained,
+          },
+        );
+
+      expect(result.size).toBe(0);
+    });
+
+    it("preserves an existing fleet label instead of overwriting it with the step identifier", () => {
+      const monitorStep: MonitorStep = shippedIoTStep("step-fleet");
+
+      const labels: JSONObject = {
+        "device.id": "sensor-42",
+        "resource.iot.fleet.name": "agent-stamped-fleet",
+      };
+
+      const stampedLabels: JSONObject =
+        MonitorCriteriaEvaluator.stampIoTFleetLabelOnSeriesLabels({
+          monitorType: MonitorType.IoTDevice,
+          monitorStep,
+          labels,
+        });
+
+      // Unchanged (same object) — the agent-stamped fleet wins.
+      expect(stampedLabels).toBe(labels);
+      expect(stampedLabels["iot.fleet.name"]).toBeUndefined();
+    });
+
+    it("does not stamp fleet labels onto non-IoT monitor series", () => {
+      const monitorStep: MonitorStep = shippedIoTStep("warehouse-sensors");
+
+      const labels: JSONObject = { "host.name": "h1" };
+
+      const stampedLabels: JSONObject =
+        MonitorCriteriaEvaluator.stampIoTFleetLabelOnSeriesLabels({
+          monitorType: MonitorType.Host,
+          monitorStep,
+          labels,
+        });
+
+      expect(stampedLabels).toBe(labels);
+    });
   });
 
   it("does not cross-match resource types that happen to share a name", () => {

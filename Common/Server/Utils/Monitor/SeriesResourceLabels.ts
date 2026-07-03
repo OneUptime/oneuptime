@@ -104,12 +104,14 @@ export const CephClusterNameLabelKeys: ReadonlyArray<string> = [
  * (`iot.fleet.name`) and its ClickHouse `resource.`-prefixed twin.
  * Ingest keys fleet rows by name only — there is no `oneuptime.*.id`
  * stamp for fleets — so only name keys exist. The name maps to the
- * IoTFleet model's `name` column. Like Proxmox/Ceph, the shipped IoT
- * alert templates group by the datapoint label `device.id`, so their
- * series labels do NOT carry these keys; the deterministic fleet link
- * for those monitors comes from the monitor step config instead (see
- * MonitorClusterContext). These keys cover user-built monitors that
- * group by the fleet attribute.
+ * IoTFleet model's `name` column. The shipped IoT alert templates group
+ * by the datapoint label `device.id`, so the raw series labels do NOT
+ * carry these keys — MonitorCriteriaEvaluator stamps `iot.fleet.name`
+ * from the monitor step's `fleetIdentifier` onto every IoT per-series
+ * match so fleet maintenance windows suppress those series. The
+ * deterministic fleet *link* for incidents/alerts still comes from the
+ * step config (see MonitorClusterContext); these keys also cover
+ * user-built monitors that group by the fleet attribute directly.
  */
 export const IoTFleetNameLabelKeys: ReadonlyArray<string> = [
   "resource.iot.fleet.name",

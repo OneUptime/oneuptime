@@ -1,0 +1,26 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "On-Call Schedule: " scheduleName) }}
+
+{{> InfoBlock info="You have been added as the owner of this on-call schedule."}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Schedule Name:" text=scheduleName }}
+{{> DetailBoxField title="Schedule Description: " text=scheduleDescription  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this schedule by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=viewScheduleLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=viewScheduleLink}}
+
+{{> Footer this }}
+
+{{> End this}}

@@ -1,4 +1,6 @@
 import QueryHelper from "../Types/Database/QueryHelper";
+import URL from "../../Types/API/URL";
+import DatabaseConfig from "../DatabaseConfig";
 import DatabaseService from "./DatabaseService";
 import MonitorGroupResourceService from "./MonitorGroupResourceService";
 import MonitorStatusService from "./MonitorStatusService";
@@ -207,6 +209,18 @@ export class Service extends DatabaseService<MonitorGroup> {
     }
 
     return currentStatus;
+  }
+
+  @CaptureSpan()
+  public async getLinkInDashboard(
+    projectId: ObjectID,
+    monitorGroupId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/monitor-groups/${monitorGroupId.toString()}`,
+    );
   }
 }
 export default new Service();

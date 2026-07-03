@@ -74,6 +74,8 @@ import MonitorStepPodmanMonitor from "../../../Types/Monitor/MonitorStepPodmanMo
 import MonitorStepProxmoxMonitor from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
 import MonitorStepCephMonitor from "../../../Types/Monitor/MonitorStepCephMonitor";
 import MonitorStepDockerSwarmMonitor from "../../../Types/Monitor/MonitorStepDockerSwarmMonitor";
+import MonitorStepIoTMonitor from "../../../Types/Monitor/MonitorStepIoTMonitor";
+import { IoTFleetNameLabelKeys } from "./SeriesResourceLabels";
 
 export default class MonitorCriteriaEvaluator {
   public static async processMonitorStep(input: {
@@ -391,13 +393,59 @@ ${contextBlock}
       matches.push({
         criteriaMetId: criteriaId,
         fingerprint,
-        labels: entry.labels,
+        labels: MonitorCriteriaEvaluator.stampIoTFleetLabelOnSeriesLabels({
+          monitorType: input.monitor.monitorType,
+          monitorStep: input.monitorStep,
+          labels: entry.labels,
+        }),
         rootCause: rootCauseLines.join("\n"),
         metricContext: matched[0]?.context,
       });
     }
 
     return matches;
+  }
+
+  /**
+   * Shipped IoT alert templates group by the `device.id` datapoint
+   * label, so their series labels do NOT carry the `iot.fleet.name`
+   * resource attribute. Fleet-scoped scheduled-maintenance suppression
+   * matches series by that label (see SeriesResourceLabels /
+   * MonitorMaintenanceSuppression), so without it a fleet maintenance
+   * window would never suppress the fleet's device series. The monitor
+   * step's `fleetIdentifier` is the deterministic source of the fleet
+   * every series of an IoT monitor belongs to (same reasoning as
+   * MonitorClusterContext), so stamp it onto the series labels when the
+   * series doesn't already carry a fleet label. Returns a new object
+   * when stamping — the input labels are shared with the series
+   * breakdown on the response and must not be mutated.
+   */
+  public static stampIoTFleetLabelOnSeriesLabels(input: {
+    monitorType: MonitorType | undefined;
+    monitorStep: MonitorStep;
+    labels: JSONObject;
+  }): JSONObject {
+    if (input.monitorType !== MonitorType.IoTDevice) {
+      return input.labels;
+    }
+
+    const fleetIdentifier: string | undefined =
+      input.monitorStep.data?.iotMonitor?.fleetIdentifier?.trim();
+
+    if (!fleetIdentifier) {
+      return input.labels;
+    }
+
+    const hasFleetLabel: boolean = IoTFleetNameLabelKeys.some((key: string) => {
+      const value: unknown = input.labels[key];
+      return typeof value === "string" && value.length > 0;
+    });
+
+    if (hasFleetLabel) {
+      return input.labels;
+    }
+
+    return { ...input.labels, "iot.fleet.name": fleetIdentifier };
   }
 
   private static async processMonitorCriteriaInstance(input: {
@@ -881,6 +929,11 @@ ${contextBlock}
     // Handle Ceph monitors with resource context
     if (input.monitor.monitorType === MonitorType.Ceph) {
       return MonitorCriteriaEvaluator.buildCephRootCauseContext(input);
+    }
+
+    // Handle IoT Device monitors with device/fleet context
+    if (input.monitor.monitorType === MonitorType.IoTDevice) {
+      return MonitorCriteriaEvaluator.buildIoTRootCauseContext(input);
     }
 
     // Handle generic Metric monitors with metric identity + breaching series
@@ -2229,6 +2282,140 @@ ${contextBlock}
       metricResponse.metricResult &&
       metricResponse.metricResult.length > 0
     ) {
+      const resultDetails: Array<string> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            `- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      }
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  /**
+   * Device-aware root cause context for IoT Device monitors. Derives
+   * identity strictly from data already in scope — the fired filter's
+   * series labels / breaching-sample attributes (stamped by the IoT
+   * agent on every datapoint) and the monitor step config — never from
+   * a database lookup, since this runs inside the probe/telemetry
+   * ingest hot path.
+   */
+  private static buildIoTRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const sections: Array<string> = [];
+
+    const iotMonitor: MonitorStepIoTMonitor | undefined =
+      input.monitorStep.data?.iotMonitor;
+
+    /*
+     * Series identity for the filter that fired. Only metric-value
+     * filters populate metricCriteriaContext at evaluation time, so
+     * the first populated context belongs to the filter that ran
+     * (same extraction as buildMetricRootCauseContext).
+     */
+    const ctx: MetricCriteriaContext | undefined = (
+      input.criteriaInstance?.data?.filters || []
+    )
+      .map((f: CriteriaFilter) => {
+        return f.metricCriteriaContext;
+      })
+      .find(
+        (c: MetricCriteriaContext | undefined): c is MetricCriteriaContext => {
+          return Boolean(c);
+        },
+      );
+
+    const seriesLabels: JSONObject = ctx?.seriesLabels || {};
+    const sampleAttributes: JSONObject = ctx?.breachingSample?.attributes || {};
+
+    /*
+     * The group-by identity rides the series labels; the agent-stamped
+     * iot.device.* attributes ride every datapoint, so fall back to the
+     * breaching sample's attributes for keys the monitor didn't group by.
+     */
+    const labelValue: (key: string) => string | null = (
+      key: string,
+    ): string | null => {
+      const fromLabels: unknown = seriesLabels[key];
+      if (typeof fromLabels === "string" && fromLabels.length > 0) {
+        return fromLabels;
+      }
+      const fromSample: unknown = sampleAttributes[key];
+      if (typeof fromSample === "string" && fromSample.length > 0) {
+        return fromSample;
+      }
+      return null;
+    };
+
+    const deviceId: string | null =
+      labelValue("device.id") || iotMonitor?.resourceFilters?.deviceId || null;
+    const fleetName: string | null =
+      labelValue("iot.fleet.name") ||
+      labelValue("resource.iot.fleet.name") ||
+      iotMonitor?.fleetIdentifier ||
+      null;
+    const deviceType: string | null =
+      labelValue("iot.device.type") ||
+      iotMonitor?.resourceFilters?.deviceType ||
+      null;
+    const firmware: string | null = labelValue("iot.device.firmware");
+
+    if (iotMonitor || deviceId || fleetName) {
+      const deviceDetails: Array<string> = [];
+
+      deviceDetails.push(`- Fleet: ${fleetName || "Unknown"}`);
+
+      if (deviceId) {
+        deviceDetails.push(`- Device ID: \`${deviceId}\``);
+      }
+
+      if (deviceType) {
+        deviceDetails.push(`- Device Type: ${deviceType}`);
+      }
+
+      if (firmware) {
+        deviceDetails.push(`- Firmware: ${firmware}`);
+      }
+
+      // Add metric name from the query config
+      if (
+        iotMonitor &&
+        iotMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
+        iotMonitor.metricViewConfig.queryConfigs[0]
+      ) {
+        const metricName: string = iotMonitor.metricViewConfig.queryConfigs[0]
+          .metricQueryData?.filterData?.metricName as string;
+        if (metricName) {
+          deviceDetails.push(`- Metric: \`${metricName}\``);
+        }
+      }
+
+      if (iotMonitor?.resourceFilters?.scope) {
+        deviceDetails.push(
+          `- Scope Filter: ${iotMonitor.resourceFilters.scope}`,
+        );
+      }
+
+      sections.push(`**IoT Device Details**\n${deviceDetails.join("\n")}`);
+    }
+
+    // Metric results summary
+    if (metricResponse.metricResult && metricResponse.metricResult.length > 0) {
       const resultDetails: Array<string> = [];
 
       for (const result of metricResponse.metricResult) {

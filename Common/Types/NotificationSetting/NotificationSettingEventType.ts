@@ -70,6 +70,41 @@ enum NotificationSettingEventType {
   // IoT Fleets
   SEND_IOT_FLEET_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the IoT fleet",
 
+  // Monitor Groups
+  SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the monitor group",
+
+  // Hosts
+  SEND_HOST_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the host",
+
+  // Docker Hosts
+  SEND_DOCKER_HOST_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the Docker host",
+
+  // Podman Hosts
+  SEND_PODMAN_HOST_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the Podman host",
+
+  // Cloud Resources
+  SEND_CLOUD_RESOURCE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the cloud resource",
+
+  // Serverless Functions
+  SEND_SERVERLESS_FUNCTION_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the serverless function",
+
+  // RUM Applications
+  SEND_RUM_APPLICATION_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the RUM application",
+
+  // Dashboards
+  SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the dashboard",
+
+  // Workflows
+  SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the workflow",
+
+  // Runbooks
+  SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the runbook",
+
+  // On-Call Resource Ownership
+  SEND_ON_CALL_DUTY_POLICY_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the on-call policy",
+  SEND_ON_CALL_DUTY_POLICY_SCHEDULE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the on-call schedule",
+  SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the incoming call policy",
+
   // On Call Notifications
   SEND_WHEN_USER_IS_ON_CALL_ROSTER = "When user is on-call roster",
   SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER = "When user is next on-call roster",

@@ -3,8 +3,12 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import IoTDevice from "Common/Models/DatabaseModels/IoTDevice";
 import {
+  IOT_DEVICE_KINDS,
+  IoTDeviceKind,
+  areLatestMetricsFresh,
   formatPercent,
   routeParamFromExternalId,
+  staleMetricsTitle,
 } from "../Utils/IoTDeviceUtils";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -12,6 +16,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -27,6 +33,39 @@ import Route from "Common/Types/API/Route";
  * segment — same identity scheme as the Proxmox guest/node detail
  * routes — not the DB `_id`.
  */
+
+type RenderLatestMetricCellFunction = (
+  item: IoTDevice,
+  hasValue: boolean,
+  renderValue: () => ReactElement,
+) => ReactElement;
+
+/*
+ * Latest-metric mirror cells (battery/signal/temperature) share one
+ * staleness contract: no value renders a muted em-dash; a value whose
+ * metricsUpdatedAt is older than METRIC_STALE_MS renders as a muted
+ * em-dash with a "stale" tooltip instead of a live-looking number —
+ * same "cells don't lie" rule as the Proxmox/Docker Swarm tables.
+ */
+const renderLatestMetricCell: RenderLatestMetricCellFunction = (
+  item: IoTDevice,
+  hasValue: boolean,
+  renderValue: () => ReactElement,
+): ReactElement => {
+  if (!hasValue) {
+    return <span className="text-sm text-gray-400">—</span>;
+  }
+
+  if (!areLatestMetricsFresh(item)) {
+    return (
+      <span className="text-sm text-gray-400" title={staleMetricsTitle(item)}>
+        —
+      </span>
+    );
+  }
+
+  return renderValue();
+};
 
 const IoTFleetDevices: FunctionComponent<
   PageComponentProps
@@ -49,7 +88,47 @@ const IoTFleetDevices: FunctionComponent<
         name="IoT Devices"
         isViewable={true}
         searchableFields={["name", "externalId"]}
-        filters={[]}
+        sortBy="name"
+        sortOrder={SortOrder.Ascending}
+        selectMoreFields={{
+          externalId: true,
+          metricsUpdatedAt: true,
+        }}
+        filters={[
+          {
+            field: {
+              kind: true,
+            },
+            title: "Kind",
+            type: FieldType.Dropdown,
+            filterDropdownOptions: IOT_DEVICE_KINDS.map(
+              (kind: IoTDeviceKind): DropdownOption => {
+                return { label: kind, value: kind };
+              },
+            ),
+          },
+          {
+            field: {
+              deviceType: true,
+            },
+            title: "Device Type",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              firmwareVersion: true,
+            },
+            title: "Firmware Version",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              isUp: true,
+            },
+            title: "Online",
+            type: FieldType.Boolean,
+          },
+        ]}
         cardProps={{
           title: "Devices",
           description:
@@ -106,6 +185,21 @@ const IoTFleetDevices: FunctionComponent<
           },
           {
             field: {
+              firmwareVersion: true,
+            },
+            title: "Firmware",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: IoTDevice): ReactElement => {
+              return (
+                <span className="text-sm text-gray-700">
+                  {(item.firmwareVersion as string) || "—"}
+                </span>
+              );
+            },
+          },
+          {
+            field: {
               isUp: true,
             },
             title: "Status",
@@ -132,22 +226,23 @@ const IoTFleetDevices: FunctionComponent<
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: IoTDevice): ReactElement => {
-              if (
-                item.latestBatteryPercent === undefined ||
-                item.latestBatteryPercent === null
-              ) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              const battery: number = Number(item.latestBatteryPercent);
-              const isLow: boolean = battery <= 20;
-              return (
-                <span
-                  className={`text-sm font-medium ${
-                    isLow ? "text-red-700" : "text-gray-700"
-                  }`}
-                >
-                  {formatPercent(battery)}
-                </span>
+              return renderLatestMetricCell(
+                item,
+                item.latestBatteryPercent !== undefined &&
+                  item.latestBatteryPercent !== null,
+                (): ReactElement => {
+                  const battery: number = Number(item.latestBatteryPercent);
+                  const isLow: boolean = battery <= 20;
+                  return (
+                    <span
+                      className={`text-sm font-medium ${
+                        isLow ? "text-red-700" : "text-gray-700"
+                      }`}
+                    >
+                      {formatPercent(battery)}
+                    </span>
+                  );
+                },
               );
             },
           },
@@ -159,16 +254,17 @@ const IoTFleetDevices: FunctionComponent<
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: IoTDevice): ReactElement => {
-              if (
-                item.latestSignalStrengthDbm === undefined ||
-                item.latestSignalStrengthDbm === null
-              ) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              return (
-                <span className="text-sm text-gray-700">
-                  {Number(item.latestSignalStrengthDbm).toFixed(0)} dBm
-                </span>
+              return renderLatestMetricCell(
+                item,
+                item.latestSignalStrengthDbm !== undefined &&
+                  item.latestSignalStrengthDbm !== null,
+                (): ReactElement => {
+                  return (
+                    <span className="text-sm text-gray-700">
+                      {Number(item.latestSignalStrengthDbm).toFixed(0)} dBm
+                    </span>
+                  );
+                },
               );
             },
           },
@@ -180,16 +276,17 @@ const IoTFleetDevices: FunctionComponent<
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: IoTDevice): ReactElement => {
-              if (
-                item.latestTemperatureCelsius === undefined ||
-                item.latestTemperatureCelsius === null
-              ) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              return (
-                <span className="text-sm text-gray-700">
-                  {Number(item.latestTemperatureCelsius).toFixed(1)} °C
-                </span>
+              return renderLatestMetricCell(
+                item,
+                item.latestTemperatureCelsius !== undefined &&
+                  item.latestTemperatureCelsius !== null,
+                (): ReactElement => {
+                  return (
+                    <span className="text-sm text-gray-700">
+                      {Number(item.latestTemperatureCelsius).toFixed(1)} °C
+                    </span>
+                  );
+                },
               );
             },
           },

@@ -96,6 +96,7 @@ import {
   IoTFleetSnapshotExtras,
   bufferIoTSnapshotMetric,
   deriveIoTFleetSnapshotExtras,
+  getOrCreateIoTFleetSnapshot,
 } from "Common/Server/Utils/Telemetry/IoTSnapshotScan";
 
 type MetricTimestamp = {
@@ -833,6 +834,27 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             }),
           ]);
+
+          /*
+           * IoT agent version rides the RESOURCE attributes
+           * (oneuptime.agent.version), not the datapoint labels the
+           * per-metric snapshot fold reads — stamp it on the fleet
+           * snapshot here so the flush can write IoTFleet.agentVersion
+           * (which otherwise renders as an empty spec chip on the
+           * fleet overview).
+           */
+          if (iotFleetId) {
+            const iotAgentVersion: string | null = this.getStringAttribute(
+              resourceAttributes_raw,
+              "oneuptime.agent.version",
+            );
+            if (iotAgentVersion) {
+              getOrCreateIoTFleetSnapshot(
+                iotFleetSnapshotBuffer,
+                iotFleetId.toString(),
+              ).agentVersion = iotAgentVersion;
+            }
+          }
 
           /*
            * Generic Host auto-discovery. Pre-scan the resource's

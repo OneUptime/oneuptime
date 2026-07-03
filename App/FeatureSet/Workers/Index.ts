@@ -165,7 +165,23 @@ import "./Jobs/DockerSwarm/SendOwnerAddedNotification";
 
 // IoT fleet disconnection sweeper + inventory cleanup + owner-added notifications.
 import "./Jobs/IoT/CleanupStaleResources";
+import "./Jobs/IoT/CheckDeviceHeartbeats";
 import "./Jobs/IoT/SendOwnerAddedNotification";
+
+// Owner-added notifications for the remaining ownable resources.
+import "./Jobs/CloudResource/SendOwnerAddedNotification";
+import "./Jobs/Dashboard/SendOwnerAddedNotification";
+import "./Jobs/Docker/SendOwnerAddedNotification";
+import "./Jobs/Host/SendOwnerAddedNotification";
+import "./Jobs/IncomingCallPolicy/SendOwnerAddedNotification";
+import "./Jobs/MonitorGroup/SendOwnerAddedNotification";
+import "./Jobs/OnCallPolicy/SendOwnerAddedNotification";
+import "./Jobs/OnCallDutySchedule/SendOwnerAddedNotification";
+import "./Jobs/Podman/SendOwnerAddedNotification";
+import "./Jobs/Rum/SendOwnerAddedNotification";
+import "./Jobs/Runbook/SendOwnerAddedNotification";
+import "./Jobs/ServerlessFunction/SendOwnerAddedNotification";
+import "./Jobs/Workflow/SendOwnerAddedNotification";
 
 // Telemetry entity registry: TTL prune + span-derived service map edges.
 import "./Jobs/TelemetryEntity/PruneStaleEntities";

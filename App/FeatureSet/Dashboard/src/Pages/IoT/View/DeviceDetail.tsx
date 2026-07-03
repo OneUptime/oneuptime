@@ -27,6 +27,7 @@ import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import {
+  areLatestMetricsFresh,
   externalIdFromRouteParam,
   fetchIoTInventoryRow,
   formatBytes,
@@ -34,6 +35,7 @@ import {
   formatUptime,
   displayNameForDevice,
   displayStatusForDevice,
+  staleMetricsTitle,
 } from "../Utils/IoTDeviceUtils";
 import OneUptimeDate from "Common/Types/Date";
 
@@ -241,13 +243,28 @@ const IoTFleetDeviceDetail: FunctionComponent<
       summaryFields.push({ title: "Uptime", value: uptime });
     }
 
+    /*
+     * Latest-metric mirror tiles (battery/signal/temperature/cpu/
+     * memory) older than METRIC_STALE_MS render as a muted stale
+     * marker — never as live numbers (same "cells don't lie" contract
+     * as the fleet Devices table).
+     */
+    const metricsFresh: boolean = areLatestMetricsFresh(row);
+    const staleValue: ReactElement = (
+      <span className="text-gray-400" title={staleMetricsTitle(row)}>
+        — (stale)
+      </span>
+    );
+
     if (
       row.latestBatteryPercent !== null &&
       row.latestBatteryPercent !== undefined
     ) {
       summaryFields.push({
         title: "Battery",
-        value: formatPercent(Number(row.latestBatteryPercent)),
+        value: metricsFresh
+          ? formatPercent(Number(row.latestBatteryPercent))
+          : staleValue,
       });
     }
 
@@ -257,7 +274,9 @@ const IoTFleetDeviceDetail: FunctionComponent<
     ) {
       summaryFields.push({
         title: "Signal Strength",
-        value: `${Number(row.latestSignalStrengthDbm).toFixed(0)} dBm`,
+        value: metricsFresh
+          ? `${Number(row.latestSignalStrengthDbm).toFixed(0)} dBm`
+          : staleValue,
       });
     }
 
@@ -267,25 +286,31 @@ const IoTFleetDeviceDetail: FunctionComponent<
     ) {
       summaryFields.push({
         title: "Temperature",
-        value: `${Number(row.latestTemperatureCelsius).toFixed(1)} °C`,
+        value: metricsFresh
+          ? `${Number(row.latestTemperatureCelsius).toFixed(1)} °C`
+          : staleValue,
       });
     }
 
     if (row.latestCpuPercent !== null && row.latestCpuPercent !== undefined) {
       summaryFields.push({
         title: "CPU",
-        value: formatPercent(Number(row.latestCpuPercent)),
+        value: metricsFresh
+          ? formatPercent(Number(row.latestCpuPercent))
+          : staleValue,
       });
     }
 
     if (row.latestMemoryBytes !== null && row.latestMemoryBytes !== undefined) {
       summaryFields.push({
         title: "Memory (Used / Max)",
-        value: `${formatBytes(Number(row.latestMemoryBytes))} / ${formatBytes(
-          row.maxMemoryBytes !== null && row.maxMemoryBytes !== undefined
-            ? Number(row.maxMemoryBytes)
-            : null,
-        )}`,
+        value: metricsFresh
+          ? `${formatBytes(Number(row.latestMemoryBytes))} / ${formatBytes(
+              row.maxMemoryBytes !== null && row.maxMemoryBytes !== undefined
+                ? Number(row.maxMemoryBytes)
+                : null,
+            )}`
+          : staleValue,
       });
     }
 

@@ -2278,8 +2278,6 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new IoTDeviceAPI().getRouter());
 
-    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new IoTDeviceAPI().getRouter());
-
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new DockerSwarmResourceAPI().getRouter(),

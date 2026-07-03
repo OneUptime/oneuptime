@@ -1,0 +1,26 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Cloud Resource: " resourceName) }}
+
+{{> InfoBlock info="You have been added as the owner of this cloud resource."}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Resource Name:" text=resourceName }}
+{{> DetailBoxField title="Resource Description: " text=resourceDescription  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this resource by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=viewResourceLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=viewResourceLink}}
+
+{{> Footer this }}
+
+{{> End this}}

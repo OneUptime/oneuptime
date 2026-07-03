@@ -1,0 +1,26 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Serverless Function: " functionName) }}
+
+{{> InfoBlock info="You have been added as the owner of this serverless function."}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Function Name:" text=functionName }}
+{{> DetailBoxField title="Function Description: " text=functionDescription  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this function by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=viewFunctionLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=viewFunctionLink}}
+
+{{> Footer this }}
+
+{{> End this}}

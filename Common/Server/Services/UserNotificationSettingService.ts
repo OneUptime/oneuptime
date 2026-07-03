@@ -584,6 +584,36 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       userId,
       projectId,
     );
+    await this.addResourceOwnerAddedNotificationSettings(userId, projectId);
+  }
+
+  public async addResourceOwnerAddedNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    const eventTypes: Array<NotificationSettingEventType> = [
+      NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_HOST_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_DOCKER_HOST_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_PODMAN_HOST_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_CLOUD_RESOURCE_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_SERVERLESS_FUNCTION_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_RUM_APPLICATION_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_ON_CALL_DUTY_POLICY_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_ON_CALL_DUTY_POLICY_SCHEDULE_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+    ];
+
+    for (const eventType of eventTypes) {
+      await this.addNotificationSettingIfNotExists(
+        userId,
+        projectId,
+        eventType,
+      );
+    }
   }
 
   public async addInfrastructureClusterOwnerNotificationSettings(

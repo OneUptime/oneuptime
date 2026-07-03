@@ -50,6 +50,19 @@ type TemplateIdsMap = {
   readonly CephClusterOwnerAddedNotification: "oneuptime_ceph_cluster_owner_added_notification";
   readonly DockerSwarmClusterOwnerAddedNotification: "oneuptime_docker_swarm_cluster_owner_added_notification";
   readonly IoTFleetOwnerAddedNotification: "oneuptime_iot_fleet_owner_added_notification";
+  readonly CloudResourceOwnerAddedNotification: "oneuptime_cloud_resource_owner_added_notification";
+  readonly DashboardOwnerAddedNotification: "oneuptime_dashboard_owner_added_notification";
+  readonly DockerHostOwnerAddedNotification: "oneuptime_docker_host_owner_added_notification";
+  readonly HostOwnerAddedNotification: "oneuptime_host_owner_added_notification";
+  readonly IncomingCallPolicyOwnerAddedNotification: "oneuptime_incoming_call_policy_owner_added_notification";
+  readonly OnCallDutyPolicyOwnerAddedNotification: "oneuptime_on_call_duty_policy_owner_added_notification";
+  readonly OnCallDutyPolicyScheduleOwnerAddedNotification: "oneuptime_on_call_duty_policy_schedule_owner_added_notification";
+  readonly PodmanHostOwnerAddedNotification: "oneuptime_podman_host_owner_added_notification";
+  readonly RumApplicationOwnerAddedNotification: "oneuptime_rum_application_owner_added_notification";
+  readonly RunbookOwnerAddedNotification: "oneuptime_runbook_owner_added_notification";
+  readonly ServerlessFunctionOwnerAddedNotification: "oneuptime_serverless_function_owner_added_notification";
+  readonly WorkflowOwnerAddedNotification: "oneuptime_workflow_owner_added_notification";
+  readonly MonitorGroupOwnerAddedNotification: "oneuptime_monitor_group_owner_added_notification";
 };
 
 const templateIds: TemplateIdsMap = {
@@ -142,6 +155,29 @@ const templateIds: TemplateIdsMap = {
     "oneuptime_docker_swarm_cluster_owner_added_notification",
   IoTFleetOwnerAddedNotification:
     "oneuptime_iot_fleet_owner_added_notification",
+  CloudResourceOwnerAddedNotification:
+    "oneuptime_cloud_resource_owner_added_notification",
+  DashboardOwnerAddedNotification:
+    "oneuptime_dashboard_owner_added_notification",
+  DockerHostOwnerAddedNotification:
+    "oneuptime_docker_host_owner_added_notification",
+  HostOwnerAddedNotification: "oneuptime_host_owner_added_notification",
+  IncomingCallPolicyOwnerAddedNotification:
+    "oneuptime_incoming_call_policy_owner_added_notification",
+  OnCallDutyPolicyOwnerAddedNotification:
+    "oneuptime_on_call_duty_policy_owner_added_notification",
+  OnCallDutyPolicyScheduleOwnerAddedNotification:
+    "oneuptime_on_call_duty_policy_schedule_owner_added_notification",
+  PodmanHostOwnerAddedNotification:
+    "oneuptime_podman_host_owner_added_notification",
+  RumApplicationOwnerAddedNotification:
+    "oneuptime_rum_application_owner_added_notification",
+  RunbookOwnerAddedNotification: "oneuptime_runbook_owner_added_notification",
+  ServerlessFunctionOwnerAddedNotification:
+    "oneuptime_serverless_function_owner_added_notification",
+  WorkflowOwnerAddedNotification: "oneuptime_workflow_owner_added_notification",
+  MonitorGroupOwnerAddedNotification:
+    "oneuptime_monitor_group_owner_added_notification",
 } as const;
 
 export const WhatsAppTemplateIds: TemplateIdsMap = templateIds;
@@ -209,6 +245,19 @@ export const WhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition = {
   [WhatsAppTemplateIds.CephClusterOwnerAddedNotification]: `You have been added as an owner of Ceph cluster {{cluster_name}}. Manage the cluster using {{cluster_link}} on the OneUptime dashboard to take action.`,
   [WhatsAppTemplateIds.DockerSwarmClusterOwnerAddedNotification]: `You have been added as an owner of Docker Swarm cluster {{cluster_name}}. Manage the cluster using {{cluster_link}} on the OneUptime dashboard to take action.`,
   [WhatsAppTemplateIds.IoTFleetOwnerAddedNotification]: `You have been added as an owner of IoT fleet {{fleet_name}}. Manage the fleet using {{fleet_link}} on the OneUptime dashboard to take action.`,
+  [WhatsAppTemplateIds.CloudResourceOwnerAddedNotification]: `You have been added as an owner of cloud resource {{resource_name}}. Manage the resource using {{resource_link}} on the OneUptime dashboard to take action.`,
+  [WhatsAppTemplateIds.DashboardOwnerAddedNotification]: `You have been added as an owner of dashboard {{dashboard_name}}. Manage the dashboard using {{dashboard_link}} on the OneUptime dashboard to take action.`,
+  [WhatsAppTemplateIds.DockerHostOwnerAddedNotification]: `You have been added as an owner of Docker host {{host_name}}. Manage the host using {{host_link}} on the OneUptime dashboard to take action.`,
+  [WhatsAppTemplateIds.HostOwnerAddedNotification]: `You have been added as an owner of host {{host_name}}. Manage the host using {{host_link}} on the OneUptime dashboard to take action.`,
+  [WhatsAppTemplateIds.IncomingCallPolicyOwnerAddedNotification]: `You have been added as an owner of incoming call policy {{policy_name}}. Manage the policy using {{policy_link}} on the OneUptime dashboard to take action.`,
+  [WhatsAppTemplateIds.OnCallDutyPolicyOwnerAddedNotification]: `You have been added as an owner of on-call policy {{policy_name}}. Manage the policy using {{policy_link}} on the OneUptime dashboard to take action.`,
+  [WhatsAppTemplateIds.OnCallDutyPolicyScheduleOwnerAddedNotification]: `You have been added as an owner of on-call schedule {{schedule_name}}. Manage the schedule using {{schedule_link}} on the OneUptime dashboard to take action.`,
+  [WhatsAppTemplateIds.PodmanHostOwnerAddedNotification]: `You have been added as an owner of Podman host {{host_name}}. Manage the host using {{host_link}} on the OneUptime dashboard to take action.`,
+  [WhatsAppTemplateIds.RumApplicationOwnerAddedNotification]: `You have been added as an owner of RUM application {{application_name}}. Manage the application using {{application_link}} on the OneUptime dashboard to take action.`,
+  [WhatsAppTemplateIds.RunbookOwnerAddedNotification]: `You have been added as an owner of runbook {{runbook_name}}. Manage the runbook using {{runbook_link}} on the OneUptime dashboard to take action.`,
+  [WhatsAppTemplateIds.ServerlessFunctionOwnerAddedNotification]: `You have been added as an owner of serverless function {{function_name}}. Manage the function using {{function_link}} on the OneUptime dashboard to take action.`,
+  [WhatsAppTemplateIds.WorkflowOwnerAddedNotification]: `You have been added as an owner of workflow {{workflow_name}}. Manage the workflow using {{workflow_link}} on the OneUptime dashboard to take action.`,
+  [WhatsAppTemplateIds.MonitorGroupOwnerAddedNotification]: `You have been added as an owner of monitor group {{group_name}}. Manage the group using {{group_link}} on the OneUptime dashboard to take action.`,
 };
 
 export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
@@ -263,6 +312,19 @@ export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
   [WhatsAppTemplateIds.CephClusterOwnerAddedNotification]: "en",
   [WhatsAppTemplateIds.DockerSwarmClusterOwnerAddedNotification]: "en",
   [WhatsAppTemplateIds.IoTFleetOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.CloudResourceOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.DashboardOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.DockerHostOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.HostOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.IncomingCallPolicyOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.OnCallDutyPolicyOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.OnCallDutyPolicyScheduleOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.PodmanHostOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.RumApplicationOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.RunbookOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.ServerlessFunctionOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.WorkflowOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.MonitorGroupOwnerAddedNotification]: "en",
 };
 
 // Authentication templates that require OTP button components

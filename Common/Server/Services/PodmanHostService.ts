@@ -1,4 +1,6 @@
 import DatabaseService from "./DatabaseService";
+import URL from "../../Types/API/URL";
+import DatabaseConfig from "../DatabaseConfig";
 import PodmanHostLabelRuleEngineService from "./PodmanHostLabelRuleEngineService";
 import PodmanHostOwnerRuleEngineService from "./PodmanHostOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/PodmanHost";
@@ -367,6 +369,18 @@ export class Service extends DatabaseService<Model> {
         });
       }
     }
+  }
+
+  @CaptureSpan()
+  public async getLinkInDashboard(
+    projectId: ObjectID,
+    podmanHostId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/podman/${podmanHostId.toString()}`,
+    );
   }
 }
 

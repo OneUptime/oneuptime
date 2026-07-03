@@ -1,6 +1,9 @@
+import { MetricPointType } from "../../../Models/AnalyticsModels/Metric";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import ServiceType from "../../../Types/Telemetry/ServiceType";
 import logger from "../Logger";
 
 /*
@@ -416,6 +419,70 @@ export function foldIoTDeviceSnapshot(data: {
   if (patch.observedAt > existing.observedAt) {
     existing.observedAt = patch.observedAt;
   }
+}
+
+/*
+ * The attribute stamped on synthetic datapoints so users (and future
+ * queries) can tell server-synthesized rows from device-reported ones.
+ */
+export const IOT_SYNTHETIC_ATTRIBUTE_KEY: string = "oneuptime.synthetic";
+export const IOT_SYNTHETIC_OFFLINE_DETECTION: string = "offline-detection";
+
+/*
+ * Build one synthetic iot_device_up = 0 metric row for a device that
+ * silence-based offline detection considers down. The row carries the
+ * same fleet/device attributes as real datapoints
+ * (resource.iot.fleet.name + device.id + iot.device.* — see
+ * monitorIoT's query scoping), so it lands in the same monitor series
+ * as the device's real iot_device_up: the Device Offline template
+ * fires while the device is dark and auto-resolves on the next real
+ * up = 1 datapoint. Emitted once per sweep tick per silent device —
+ * without a steady 0-signal, the monitor's rolling window would empty
+ * out and auto-resolve mid-outage.
+ *
+ * Shape mirrors the recording-rules cron's derived rows: the lean
+ * column set MetricService.insertJsonRows accepts, no
+ * primaryEntityId (monitor queries filter on attributes, not
+ * service).
+ */
+export function buildSyntheticDeviceDownMetricRow(data: {
+  projectId: ObjectID;
+  fleetName: string;
+  kind: string;
+  externalId: string;
+  deviceType: string | null;
+  at: Date;
+  retentionDays: number;
+}): JSONObject {
+  const attributes: Record<string, string> = {
+    "resource.iot.fleet.name": data.fleetName,
+    "device.id": data.externalId,
+    "iot.device.kind": data.kind,
+    [IOT_SYNTHETIC_ATTRIBUTE_KEY]: IOT_SYNTHETIC_OFFLINE_DETECTION,
+  };
+  if (data.deviceType) {
+    attributes["iot.device.type"] = data.deviceType;
+  }
+
+  const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    data.at,
+    data.retentionDays,
+  );
+
+  return {
+    _id: ObjectID.generateTimeOrdered().toString(),
+    projectId: data.projectId.toString(),
+    createdAt: OneUptimeDate.toClickhouseDateTime(data.at),
+    time: OneUptimeDate.toClickhouseDateTime(data.at),
+    timeUnixNano: (data.at.getTime() * 1_000_000).toString(),
+    primaryEntityType: ServiceType.OpenTelemetry,
+    name: "iot_device_up",
+    metricPointType: MetricPointType.Gauge,
+    value: 0,
+    attributes: attributes,
+    attributeKeys: Object.keys(attributes).sort(),
+    retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
+  };
 }
 
 /*

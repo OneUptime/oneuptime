@@ -13,6 +13,12 @@ import {
   getCephAlertTemplateById,
   CephAlertTemplate,
 } from "../../../../Types/Monitor/CephAlertTemplates";
+import {
+  getIoTAlertTemplateById,
+  IoTAlertTemplate,
+} from "../../../../Types/Monitor/IotAlertTemplates";
+import MetricCriteriaContext from "../../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
+import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import ObjectID from "../../../../Types/ObjectID";
 
 /*
@@ -48,6 +54,12 @@ type EvaluatorPrivate = {
     dataToProcess: unknown;
     monitorStep: MonitorStep;
     monitor: Monitor;
+  }) => string | null;
+  buildIoTRootCauseContext: (input: {
+    dataToProcess: unknown;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
   }) => string | null;
 };
 
@@ -318,5 +330,132 @@ describe("MonitorCriteriaEvaluator - Ceph root cause breakdown", () => {
     expect(context).toContain("- OSD Filter: osd.3");
     expect(context).toContain("- Pool ID Filter: 2");
     expect(context).toContain("- Metric: `ceph_osd_up`");
+  });
+});
+
+describe("MonitorCriteriaEvaluator - IoT root cause context", () => {
+  function iotStep(): MonitorStep {
+    const template: IoTAlertTemplate | undefined =
+      getIoTAlertTemplateById("iot-device-offline");
+    if (!template) {
+      throw new Error("iot-device-offline template missing");
+    }
+    return template.getMonitorStep({
+      fleetIdentifier: "warehouse-sensors",
+      onlineMonitorStatusId: ObjectID.generate(),
+      offlineMonitorStatusId: ObjectID.generate(),
+      defaultIncidentSeverityId: ObjectID.generate(),
+      defaultAlertSeverityId: ObjectID.generate(),
+      monitorName: "Warehouse Sensors",
+    });
+  }
+
+  /*
+   * Attach the fired filter's metric context to the step's offline
+   * criteria instance, the same way MetricMonitorCriteria populates it
+   * during evaluation.
+   */
+  function criteriaInstanceWithContext(
+    step: MonitorStep,
+    ctx: MetricCriteriaContext,
+  ): MonitorCriteriaInstance {
+    const instance: MonitorCriteriaInstance | undefined =
+      step.data?.monitorCriteria?.data?.monitorCriteriaInstanceArray[0];
+    if (!instance?.data?.filters[0]) {
+      throw new Error("template offline criteria instance missing");
+    }
+    instance.data.filters[0].metricCriteriaContext = ctx;
+    return instance;
+  }
+
+  test("renders device id, fleet, device type, and firmware from series data", () => {
+    const step: MonitorStep = iotStep();
+
+    const ctx: MetricCriteriaContext = {
+      metricName: "iot_device_up",
+      alias: "device_up",
+      unit: null,
+      aggregationType: null,
+      isFormula: false,
+      filterAttributes: {},
+      groupBy: ["device.id"],
+      seriesFingerprint: "fp-sensor-42",
+      // Shipped templates group by device.id only.
+      seriesLabels: { "device.id": "sensor-42" },
+      breachingSample: {
+        value: 0,
+        timestamp: new Date(),
+        // The agent stamps iot.device.* on every datapoint.
+        attributes: {
+          "iot.device.type": "temperature-sensor",
+          "iot.device.firmware": "2.4.1",
+        },
+      },
+    };
+
+    const context: string | null = Evaluator.buildIoTRootCauseContext({
+      dataToProcess: metricResponse(),
+      monitorStep: step,
+      monitor: new Monitor(),
+      criteriaInstance: criteriaInstanceWithContext(step, ctx),
+    });
+
+    expect(context).not.toBeNull();
+    expect(context).toContain("**IoT Device Details**");
+    expect(context).toContain("- Fleet: warehouse-sensors");
+    expect(context).toContain("- Device ID: `sensor-42`");
+    expect(context).toContain("- Device Type: temperature-sensor");
+    expect(context).toContain("- Firmware: 2.4.1");
+    expect(context).toContain("- Metric: `iot_device_up`");
+  });
+
+  test("falls back to the step config when no series context is available", () => {
+    const step: MonitorStep = iotStep();
+    step.data!.iotMonitor!.resourceFilters = {
+      deviceId: "sensor-7",
+      deviceType: "gps-tracker",
+    };
+
+    const context: string | null = Evaluator.buildIoTRootCauseContext({
+      dataToProcess: metricResponse({
+        metricResult: [{ data: [{}, {}] } as any],
+      }),
+      monitorStep: step,
+      monitor: new Monitor(),
+    });
+
+    expect(context).not.toBeNull();
+    expect(context).toContain("- Fleet: warehouse-sensors");
+    expect(context).toContain("- Device ID: `sensor-7`");
+    expect(context).toContain("- Device Type: gps-tracker");
+    expect(context).not.toContain("- Firmware:");
+    expect(context).toContain("**Metric Summary**");
+    expect(context).toContain("- 2 metric data point(s) returned");
+  });
+
+  test("series labels win over the step's resource filters", () => {
+    const step: MonitorStep = iotStep();
+    step.data!.iotMonitor!.resourceFilters = { deviceId: "step-filter-id" };
+
+    const ctx: MetricCriteriaContext = {
+      metricName: "iot_device_up",
+      alias: "device_up",
+      unit: null,
+      aggregationType: null,
+      isFormula: false,
+      filterAttributes: {},
+      groupBy: ["device.id"],
+      seriesLabels: { "device.id": "sensor-42" },
+    };
+
+    const context: string | null = Evaluator.buildIoTRootCauseContext({
+      dataToProcess: metricResponse(),
+      monitorStep: step,
+      monitor: new Monitor(),
+      criteriaInstance: criteriaInstanceWithContext(step, ctx),
+    });
+
+    expect(context).toContain("- Device ID: `sensor-42`");
+    expect(context).not.toContain("step-filter-id");
   });
 });

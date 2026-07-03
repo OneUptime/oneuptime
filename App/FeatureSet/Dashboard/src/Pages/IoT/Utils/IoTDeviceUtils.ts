@@ -3,6 +3,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import OneUptimeDate from "Common/Types/Date";
 
 /*
  * Shared helpers for the IoT fleet list/detail pages. The pages read the
@@ -20,6 +21,47 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 export const METRIC_STALE_MS: number = 15 * 60 * 1000;
 
 export type IoTDeviceKind = "Device" | "Sensor" | "Gateway";
+
+/*
+ * Every kind the ingest path writes (IoTDeviceService's Device |
+ * Sensor | Gateway contract) — drives the kind filter dropdown on the
+ * fleet Devices table.
+ */
+export const IOT_DEVICE_KINDS: Array<IoTDeviceKind> = [
+  "Device",
+  "Sensor",
+  "Gateway",
+];
+
+/*
+ * True when the latest-metric mirror columns (battery / signal /
+ * temperature / cpu / memory) are fresh enough to display as live
+ * numbers. Rows whose metricsUpdatedAt is older than METRIC_STALE_MS
+ * (or missing entirely) must render the mirrors as stale — same
+ * contract as the at-risk list on the fleet overview.
+ */
+export function areLatestMetricsFresh(row: IoTDeviceModel): boolean {
+  if (!row.metricsUpdatedAt) {
+    return false;
+  }
+  return (
+    Date.now() - new Date(row.metricsUpdatedAt as Date).getTime() <=
+    METRIC_STALE_MS
+  );
+}
+
+/*
+ * Tooltip text for stale metric cells — says when the mirrors were
+ * last updated so the muted em-dash doesn't read as "never reported".
+ */
+export function staleMetricsTitle(row: IoTDeviceModel): string {
+  if (!row.metricsUpdatedAt) {
+    return "Stale — metrics have not been reported recently.";
+  }
+  return `Stale — metrics last updated ${OneUptimeDate.fromNow(
+    new Date(row.metricsUpdatedAt as Date),
+  )}.`;
+}
 
 export function formatBytes(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
@@ -190,6 +232,9 @@ export async function fetchIoTInventoryRow(options: {
 
 export default {
   METRIC_STALE_MS,
+  IOT_DEVICE_KINDS,
+  areLatestMetricsFresh,
+  staleMetricsTitle,
   formatBytes,
   formatPercent,
   formatUptime,

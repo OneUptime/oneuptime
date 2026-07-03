@@ -1,4 +1,6 @@
 import DatabaseService from "./DatabaseService";
+import URL from "../../Types/API/URL";
+import DatabaseConfig from "../DatabaseConfig";
 import DockerHostLabelRuleEngineService from "./DockerHostLabelRuleEngineService";
 import DockerHostOwnerRuleEngineService from "./DockerHostOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/DockerHost";
@@ -367,6 +369,18 @@ export class Service extends DatabaseService<Model> {
         });
       }
     }
+  }
+
+  @CaptureSpan()
+  public async getLinkInDashboard(
+    projectId: ObjectID,
+    dockerHostId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/docker/${dockerHostId.toString()}`,
+    );
   }
 }
 

@@ -42,6 +42,13 @@ export interface IoTAlertTemplate {
  * on those attributes and group by the untouched `device.id` label so one
  * incident fires per device. All of these are datapoint attributes, so they
  * are NOT `resource.`-prefixed in ClickHouse.
+ *
+ * Title/description contract: because these templates group by `device.id`,
+ * every incident/alert is rendered per breaching series and the series'
+ * labels are exposed to the template engine (see
+ * MonitorTemplateUtil.buildTemplateStorageMap). Titles and descriptions
+ * embed `{{device.id}}` so ten breaching devices produce ten
+ * device-identified incidents instead of ten identical static titles.
  */
 
 export function buildIoTMonitorStep(args: {
@@ -355,8 +362,8 @@ const deviceOfflineTemplate: IoTAlertTemplate = {
         metricAlias,
         filterType: FilterType.LessThan,
         value: 1,
-        incidentTitle: `[IoT] Device Offline - ${args.monitorName}`,
-        incidentDescription: `An IoT device is reporting as down (iot_device_up = 0). The device is unreachable, powered off, or has lost connectivity to its gateway. Check the root cause for the affected device id, verify the device's power and network state, and confirm its gateway is forwarding telemetry.`,
+        incidentTitle: `[IoT] Device Offline - {{device.id}} - ${args.monitorName}`,
+        incidentDescription: `IoT device {{device.id}} is reporting as down (iot_device_up = 0). The device is unreachable, powered off, or has lost connectivity to its gateway. Verify the device's power and network state, and confirm its gateway is forwarding telemetry. See the root cause for fleet and device details.`,
         criteriaName: "Device Offline - iot_device_up < 1",
         criteriaDescription:
           "Triggers when any device reports iot_device_up below 1 over the monitoring window.",
@@ -404,8 +411,8 @@ const lowBatteryTemplate: IoTAlertTemplate = {
         metricAlias,
         filterType: FilterType.LessThan,
         value: 20,
-        incidentTitle: `[IoT] Low Battery (<20%) - ${args.monitorName}`,
-        incidentDescription: `An IoT device's battery has dropped below 20%. The device will stop reporting once its battery is exhausted. Check the root cause for the affected device id, then replace or recharge its battery before it dies.`,
+        incidentTitle: `[IoT] Low Battery (<20%) - {{device.id}} - ${args.monitorName}`,
+        incidentDescription: `IoT device {{device.id}}'s battery has dropped below 20%. The device will stop reporting once its battery is exhausted. Replace or recharge its battery before it dies. See the root cause for fleet and device details.`,
         criteriaName: "Low Battery - iot_battery_percent < 20",
         criteriaDescription:
           "Triggers when any device's battery level drops below 20% over the monitoring window.",
@@ -453,8 +460,8 @@ const weakSignalTemplate: IoTAlertTemplate = {
         metricAlias,
         filterType: FilterType.LessThan,
         value: -100,
-        incidentTitle: `[IoT] Weak Signal (<-100 dBm) - ${args.monitorName}`,
-        incidentDescription: `An IoT device's radio signal strength has dropped below -100 dBm. A weak signal causes dropped telemetry and intermittent connectivity. Check the root cause for the affected device id, then verify its proximity to the gateway, check for interference, or reposition the device or gateway.`,
+        incidentTitle: `[IoT] Weak Signal (<-100 dBm) - {{device.id}} - ${args.monitorName}`,
+        incidentDescription: `IoT device {{device.id}}'s radio signal strength has dropped below -100 dBm. A weak signal causes dropped telemetry and intermittent connectivity. Verify the device's proximity to the gateway, check for interference, or reposition the device or gateway. See the root cause for fleet and device details.`,
         criteriaName: "Weak Signal - iot_signal_strength_dbm < -100",
         criteriaDescription:
           "Triggers when any device's signal strength drops below -100 dBm over the monitoring window.",
@@ -501,8 +508,8 @@ const highTemperatureTemplate: IoTAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThan,
         value: 70,
-        incidentTitle: `[IoT] High Temperature (>70°C) - ${args.monitorName}`,
-        incidentDescription: `An IoT device is reporting a temperature above 70°C. Overheating can damage the device, shorten battery life, and corrupt readings. Check the root cause for the affected device id, then verify ventilation, ambient conditions, and the device's workload.`,
+        incidentTitle: `[IoT] High Temperature (>70°C) - {{device.id}} - ${args.monitorName}`,
+        incidentDescription: `IoT device {{device.id}} is reporting a temperature above 70°C. Overheating can damage the device, shorten battery life, and corrupt readings. Verify ventilation, ambient conditions, and the device's workload. See the root cause for fleet and device details.`,
         criteriaName: "High Temperature - iot_temperature_celsius > 70",
         criteriaDescription:
           "Triggers when any device's temperature exceeds 70°C over the monitoring window.",
@@ -550,8 +557,8 @@ const highCpuTemplate: IoTAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThan,
         value: 0.9,
-        incidentTitle: `[IoT] High CPU Usage (>90%) - ${args.monitorName}`,
-        incidentDescription: `An IoT device's CPU usage has exceeded 90% of its capacity. Sustained high CPU can delay telemetry, drain the battery faster, and cause the device to become unresponsive. Check the root cause for the affected device id, then investigate the workload running on the device.`,
+        incidentTitle: `[IoT] High CPU Usage (>90%) - {{device.id}} - ${args.monitorName}`,
+        incidentDescription: `IoT device {{device.id}}'s CPU usage has exceeded 90% of its capacity. Sustained high CPU can delay telemetry, drain the battery faster, and cause the device to become unresponsive. Investigate the workload running on the device. See the root cause for fleet and device details.`,
         criteriaName: "High CPU - iot_cpu_usage_ratio > 0.9",
         criteriaDescription:
           "Triggers when any device's average CPU usage ratio exceeds 0.9 over the monitoring window.",

@@ -1,0 +1,26 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Dashboard: " dashboardName) }}
+
+{{> InfoBlock info="You have been added as the owner of this dashboard."}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Dashboard Name:" text=dashboardName }}
+{{> DetailBoxField title="Dashboard Description: " text=dashboardDescription  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this dashboard by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=viewDashboardLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=viewDashboardLink}}
+
+{{> Footer this }}
+
+{{> End this}}

@@ -1,4 +1,5 @@
 import { WorkflowHostname } from "../EnvironmentConfig";
+import DatabaseConfig from "../DatabaseConfig";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
@@ -144,6 +145,18 @@ export class Service extends DatabaseService<Model> {
     } as LogAttributes);
 
     return onUpdate;
+  }
+
+  @CaptureSpan()
+  public async getLinkInDashboard(
+    projectId: ObjectID,
+    workflowId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/workflows/${workflowId.toString()}`,
+    );
   }
 }
 export default new Service();
