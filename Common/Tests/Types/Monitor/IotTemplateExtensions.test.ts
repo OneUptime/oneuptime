@@ -11,9 +11,10 @@ import {
   getAllIoTMetrics,
   getIoTMetricByMetricName,
 } from "../../../Types/Monitor/IotMetricCatalog";
-import { IoTResourceScope } from "../../../Types/Monitor/MonitorStepIoTMonitor";
+import MonitorStepIoTMonitor, {
+  IoTResourceScope,
+} from "../../../Types/Monitor/MonitorStepIoTMonitor";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
-import MonitorStepIoTMonitor from "../../../Types/Monitor/MonitorStepIoTMonitor";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import { FilterType } from "../../../Types/Monitor/CriteriaFilter";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
@@ -619,9 +620,8 @@ describe("IotTemplateExtensions - evaluator hand-off", () => {
   });
 
   test("iot-high-memory: fires when the formula result exceeds 90, recovers below", async () => {
-    const step: MonitorStep = mustGetTemplate("iot-high-memory").getMonitorStep(
-      buildArgs(),
-    );
+    const step: MonitorStep =
+      mustGetTemplate("iot-high-memory").getMonitorStep(buildArgs());
 
     /*
      * metricResult is positional: queryConfigs first (usage, size), then

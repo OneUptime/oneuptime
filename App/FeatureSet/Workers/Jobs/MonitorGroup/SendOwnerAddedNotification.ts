@@ -55,7 +55,9 @@ RunCron(
       }
 
       for (const user of users) {
-        (monitorGroupOwnersMap[monitorGroupId.toString()] as Array<User>).push(user);
+        (monitorGroupOwnersMap[monitorGroupId.toString()] as Array<User>).push(
+          user,
+        );
       }
 
       // mark this as notified.
@@ -97,7 +99,9 @@ RunCron(
         monitorGroupOwnersMap[monitorGroupId.toString()] = [];
       }
 
-      (monitorGroupOwnersMap[monitorGroupId.toString()] as Array<User>).push(user);
+      (monitorGroupOwnersMap[monitorGroupId.toString()] as Array<User>).push(
+        user,
+      );
 
       // mark this as notified.
       await MonitorGroupOwnerUserService.updateOneById({
@@ -122,31 +126,37 @@ RunCron(
         continue;
       }
 
-      const users: Array<User> = monitorGroupOwnersMap[monitorGroupId] as Array<User>;
+      const users: Array<User> = monitorGroupOwnersMap[
+        monitorGroupId
+      ] as Array<User>;
 
-      const monitorGroup: MonitorGroup | null = await MonitorGroupService.findOneById({
-        id: new ObjectID(monitorGroupId),
-        props: {
-          isRoot: true,
-        },
-
-        select: {
-          _id: true,
-          name: true,
-          description: true,
-          projectId: true,
-          project: {
-            name: true,
+      const monitorGroup: MonitorGroup | null =
+        await MonitorGroupService.findOneById({
+          id: new ObjectID(monitorGroupId),
+          props: {
+            isRoot: true,
           },
-        },
-      });
+
+          select: {
+            _id: true,
+            name: true,
+            description: true,
+            projectId: true,
+            project: {
+              name: true,
+            },
+          },
+        });
 
       if (!monitorGroup) {
         continue;
       }
 
       const viewGroupLink: string = (
-        await MonitorGroupService.getLinkInDashboard(monitorGroup.projectId!, monitorGroup.id!)
+        await MonitorGroupService.getLinkInDashboard(
+          monitorGroup.projectId!,
+          monitorGroup.id!,
+        )
       ).toString();
 
       const vars: Dictionary<string> = {

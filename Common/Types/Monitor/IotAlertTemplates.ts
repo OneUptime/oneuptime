@@ -756,8 +756,7 @@ const fleetBatteryLowTemplate: IoTAlertTemplate = {
         value: 20,
         incidentTitle: `[IoT] Fleet Battery Low (p10 <20%) - ${args.monitorName}`,
         incidentDescription: `The bottom 10% of devices in the IoT fleet monitored by ${args.monitorName} report battery below 20% (iot_fleet_battery_percent_p10 < 20). A sinking bottom decile means a batch of devices will start dying soon — plan a battery replacement or recharge round before they drop offline. See the root cause for fleet details.`,
-        criteriaName:
-          "Fleet Battery Low - iot_fleet_battery_percent_p10 < 20",
+        criteriaName: "Fleet Battery Low - iot_fleet_battery_percent_p10 < 20",
         criteriaDescription:
           "Triggers when the fleet's 10th-percentile battery level drops below 20% over the monitoring window.",
       }),

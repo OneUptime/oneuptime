@@ -43,19 +43,27 @@ RunCron(
     const incomingCallPolicyOwnersMap: Dictionary<Array<User>> = {};
 
     for (const incomingCallPolicyOwnerTeam of incomingCallPolicyOwnerTeams) {
-      const incomingCallPolicyId: ObjectID = incomingCallPolicyOwnerTeam.incomingCallPolicyId!;
+      const incomingCallPolicyId: ObjectID =
+        incomingCallPolicyOwnerTeam.incomingCallPolicyId!;
       const teamId: ObjectID = incomingCallPolicyOwnerTeam.teamId!;
 
       const users: Array<User> = await TeamMemberService.getUsersInTeams([
         teamId,
       ]);
 
-      if (incomingCallPolicyOwnersMap[incomingCallPolicyId.toString()] === undefined) {
+      if (
+        incomingCallPolicyOwnersMap[incomingCallPolicyId.toString()] ===
+        undefined
+      ) {
         incomingCallPolicyOwnersMap[incomingCallPolicyId.toString()] = [];
       }
 
       for (const user of users) {
-        (incomingCallPolicyOwnersMap[incomingCallPolicyId.toString()] as Array<User>).push(user);
+        (
+          incomingCallPolicyOwnersMap[
+            incomingCallPolicyId.toString()
+          ] as Array<User>
+        ).push(user);
       }
 
       // mark this as notified.
@@ -90,14 +98,22 @@ RunCron(
       });
 
     for (const incomingCallPolicyOwnerUser of incomingCallPolicyOwnerUsers) {
-      const incomingCallPolicyId: ObjectID = incomingCallPolicyOwnerUser.incomingCallPolicyId!;
+      const incomingCallPolicyId: ObjectID =
+        incomingCallPolicyOwnerUser.incomingCallPolicyId!;
       const user: User = incomingCallPolicyOwnerUser.user!;
 
-      if (incomingCallPolicyOwnersMap[incomingCallPolicyId.toString()] === undefined) {
+      if (
+        incomingCallPolicyOwnersMap[incomingCallPolicyId.toString()] ===
+        undefined
+      ) {
         incomingCallPolicyOwnersMap[incomingCallPolicyId.toString()] = [];
       }
 
-      (incomingCallPolicyOwnersMap[incomingCallPolicyId.toString()] as Array<User>).push(user);
+      (
+        incomingCallPolicyOwnersMap[
+          incomingCallPolicyId.toString()
+        ] as Array<User>
+      ).push(user);
 
       // mark this as notified.
       await IncomingCallPolicyOwnerUserService.updateOneById({
@@ -118,40 +134,50 @@ RunCron(
         continue;
       }
 
-      if ((incomingCallPolicyOwnersMap[incomingCallPolicyId] as Array<User>).length === 0) {
+      if (
+        (incomingCallPolicyOwnersMap[incomingCallPolicyId] as Array<User>)
+          .length === 0
+      ) {
         continue;
       }
 
-      const users: Array<User> = incomingCallPolicyOwnersMap[incomingCallPolicyId] as Array<User>;
+      const users: Array<User> = incomingCallPolicyOwnersMap[
+        incomingCallPolicyId
+      ] as Array<User>;
 
-      const incomingCallPolicy: IncomingCallPolicy | null = await IncomingCallPolicyService.findOneById({
-        id: new ObjectID(incomingCallPolicyId),
-        props: {
-          isRoot: true,
-        },
-
-        select: {
-          _id: true,
-          name: true,
-          description: true,
-          projectId: true,
-          project: {
-            name: true,
+      const incomingCallPolicy: IncomingCallPolicy | null =
+        await IncomingCallPolicyService.findOneById({
+          id: new ObjectID(incomingCallPolicyId),
+          props: {
+            isRoot: true,
           },
-        },
-      });
+
+          select: {
+            _id: true,
+            name: true,
+            description: true,
+            projectId: true,
+            project: {
+              name: true,
+            },
+          },
+        });
 
       if (!incomingCallPolicy) {
         continue;
       }
 
       const viewPolicyLink: string = (
-        await IncomingCallPolicyService.getLinkInDashboard(incomingCallPolicy.projectId!, incomingCallPolicy.id!)
+        await IncomingCallPolicyService.getLinkInDashboard(
+          incomingCallPolicy.projectId!,
+          incomingCallPolicy.id!,
+        )
       ).toString();
 
       const vars: Dictionary<string> = {
         policyName: incomingCallPolicy.name!,
-        policyDescription: incomingCallPolicy.description || "No description provided",
+        policyDescription:
+          incomingCallPolicy.description || "No description provided",
         projectName: incomingCallPolicy.project!.name!,
         viewPolicyLink: viewPolicyLink,
       };

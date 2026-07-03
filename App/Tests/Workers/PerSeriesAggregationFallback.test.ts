@@ -33,8 +33,10 @@ type RawMetricShape = {
 const makeRawMetrics: (values: Array<number>) => Array<Metric> = (
   values: Array<number>,
 ): Array<Metric> => {
-  // All samples in the same minute bucket and the same series so the
-  // aggregation runs over exactly one bucket.
+  /*
+   * All samples in the same minute bucket and the same series so the
+   * aggregation runs over exactly one bucket.
+   */
   return values.map((value: number, index: number): Metric => {
     const raw: RawMetricShape = {
       attributes: { "device.id": "device-a" },

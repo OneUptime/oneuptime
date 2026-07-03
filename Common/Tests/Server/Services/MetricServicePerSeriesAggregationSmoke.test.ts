@@ -66,9 +66,9 @@ const unwrapTimerId: (handle: unknown) => unknown = (
 (globalThis as unknown as Record<string, unknown>)["clearTimeout"] = (
   handle: unknown,
 ): void => {
-  realClearTimeout(unwrapTimerId(handle) as Parameters<
-    typeof globalThis.clearTimeout
-  >[0]);
+  realClearTimeout(
+    unwrapTimerId(handle) as Parameters<typeof globalThis.clearTimeout>[0],
+  );
 };
 (globalThis as unknown as Record<string, unknown>)["setInterval"] = (
   ...args: Parameters<typeof globalThis.setInterval>
@@ -78,9 +78,9 @@ const unwrapTimerId: (handle: unknown) => unknown = (
 (globalThis as unknown as Record<string, unknown>)["clearInterval"] = (
   handle: unknown,
 ): void => {
-  realClearInterval(unwrapTimerId(handle) as Parameters<
-    typeof globalThis.clearInterval
-  >[0]);
+  realClearInterval(
+    unwrapTimerId(handle) as Parameters<typeof globalThis.clearInterval>[0],
+  );
 };
 import { JSONObject } from "../../../Types/JSON";
 import { describe, expect, test, beforeAll, afterAll } from "@jest/globals";
@@ -210,26 +210,24 @@ describe("MetricService per-series aggregation (ClickHouse smoke)", () => {
     }
   }, 60000);
 
-  test(
-    "GROUP BY over scalar-extracted Map keys with bound parameters returns every series and reports rows_before_limit_at_least",
-    async () => {
-      if (!client) {
-        // ClickHouse unreachable — smoke test intentionally skipped.
-        return;
-      }
+  test("GROUP BY over scalar-extracted Map keys with bound parameters returns every series and reports rows_before_limit_at_least", async () => {
+    if (!client) {
+      // ClickHouse unreachable — smoke test intentionally skipped.
+      return;
+    }
 
-      /*
-       * Mirrors the statement MetricService.toPerSeriesAggregateStatement
-       * generates: scalar per-key extraction with a bound String param,
-       * GROUP BY on the aliases, ORDER BY seriesBucketTime DESC,
-       * parameterized LIMIT. The bucket alias is deliberately NOT `time`
-       * — ClickHouse substitutes SELECT aliases into WHERE, and `AS
-       * time` would rewrite the window predicate to compare bucket
-       * starts (see the alias-shadowing test below).
-       */
-      const resultSet: Awaited<ReturnType<ClickHouseClient["query"]>> =
-        await client.query({
-          query: `
+    /*
+     * Mirrors the statement MetricService.toPerSeriesAggregateStatement
+     * generates: scalar per-key extraction with a bound String param,
+     * GROUP BY on the aliases, ORDER BY seriesBucketTime DESC,
+     * parameterized LIMIT. The bucket alias is deliberately NOT `time`
+     * — ClickHouse substitutes SELECT aliases into WHERE, and `AS
+     * time` would rewrite the window predicate to compare bucket
+     * starts (see the alias-shadowing test below).
+     */
+    const resultSet: Awaited<ReturnType<ClickHouseClient["query"]>> =
+      await client.query({
+        query: `
             SELECT avg(value) AS value,
                    toStartOfMinute(time) AS seriesBucketTime,
                    attributes[{k0:String}] AS seriesAttribute0
@@ -241,76 +239,71 @@ describe("MetricService per-series aggregation (ClickHouse smoke)", () => {
             ORDER BY seriesBucketTime DESC
             LIMIT {rowCap:Int32}
           `,
-          query_params: {
-            k0: "device.id",
-            windowStart: "2026-07-03 10:00:00.000000000",
-            windowEnd: "2026-07-03 10:05:00.000000000",
-            rowCap: 100000,
-          },
-          format: "JSON",
-        });
+        query_params: {
+          k0: "device.id",
+          windowStart: "2026-07-03 10:00:00.000000000",
+          windowEnd: "2026-07-03 10:05:00.000000000",
+          rowCap: 100000,
+        },
+        format: "JSON",
+      });
 
-      const response: ResponseJSON<JSONObject> =
-        (await resultSet.json<JSONObject>()) as ResponseJSON<JSONObject>;
-      const rows: Array<JSONObject> = response.data || [];
+    const response: ResponseJSON<JSONObject> =
+      (await resultSet.json<JSONObject>()) as ResponseJSON<JSONObject>;
+    const rows: Array<JSONObject> = response.data || [];
 
-      /*
-       * Three (series × minute) buckets inside the window. If the driver
-       * mishandled the grouped Map access this would be 0 rows — the
-       * exact historical failure mode.
-       */
-      expect(rows).toHaveLength(3);
+    /*
+     * Three (series × minute) buckets inside the window. If the driver
+     * mishandled the grouped Map access this would be 0 rows — the
+     * exact historical failure mode.
+     */
+    expect(rows).toHaveLength(3);
 
-      const seriesValues: Map<string, number> = new Map<string, number>();
-      for (const row of rows) {
-        seriesValues.set(
-          String(row["seriesAttribute0"]),
-          Number(row["value"]),
-        );
-      }
+    const seriesValues: Map<string, number> = new Map<string, number>();
+    for (const row of rows) {
+      seriesValues.set(String(row["seriesAttribute0"]), Number(row["value"]));
+    }
 
-      expect(seriesValues.get("device-a")).toBe(10);
-      expect(seriesValues.get("device-b")).toBe(20);
-      expect(seriesValues.get("device-c")).toBe(30);
-      expect(seriesValues.has("device-z")).toBe(false);
+    expect(seriesValues.get("device-a")).toBe(10);
+    expect(seriesValues.get("device-b")).toBe(20);
+    expect(seriesValues.get("device-c")).toBe(30);
+    expect(seriesValues.has("device-z")).toBe(false);
 
-      // Truncation telemetry depends on this being reported (and exact
-      // for GROUP BY queries).
-      expect(response.rows_before_limit_at_least).toBe(3);
-    },
-    60000,
-  );
+    /*
+     * Truncation telemetry depends on this being reported (and exact
+     * for GROUP BY queries).
+     */
+    expect(response.rows_before_limit_at_least).toBe(3);
+  }, 60000);
 
-  test(
-    "non-minute-aligned window start: rows in the first partial minute are included (bucket alias must not shadow the time column)",
-    async () => {
-      if (!client) {
-        // ClickHouse unreachable — smoke test intentionally skipped.
-        return;
-      }
+  test("non-minute-aligned window start: rows in the first partial minute are included (bucket alias must not shadow the time column)", async () => {
+    if (!client) {
+      // ClickHouse unreachable — smoke test intentionally skipped.
+      return;
+    }
 
-      /*
-       * Regression for the alias-shadowing defect: with the bucket
-       * aliased `AS time`, ClickHouse (prefer_column_name_to_alias = 0)
-       * substitutes the alias into WHERE, turning the window predicate
-       * into `toStartOfMinute(time) >= windowStart`. With windowStart =
-       * 10:00:30, the whole 10:00 bucket (start 10:00:00 < 10:00:30)
-       * would vanish — including device-a's 10:00:35 sample that is
-       * INSIDE the window. Monitor windows are relative to "now" and
-       * essentially never minute-aligned, so this shaved the first
-       * partial minute off every evaluation.
-       *
-       * With the non-colliding `seriesBucketTime` alias the raw-time
-       * predicate is preserved:
-       *   - device-a@10:00:35 (v=15) -> bucket 10:00, avg 15
-       *     (its 10:00:05/v=5 sample is BEFORE the window start and must
-       *     be excluded from the average)
-       *   - device-b@10:00:10 -> before the window, excluded entirely
-       *   - device-c@10:01:59 (v=30) -> bucket 10:01, avg 30
-       */
-      const resultSet: Awaited<ReturnType<ClickHouseClient["query"]>> =
-        await client.query({
-          query: `
+    /*
+     * Regression for the alias-shadowing defect: with the bucket
+     * aliased `AS time`, ClickHouse (prefer_column_name_to_alias = 0)
+     * substitutes the alias into WHERE, turning the window predicate
+     * into `toStartOfMinute(time) >= windowStart`. With windowStart =
+     * 10:00:30, the whole 10:00 bucket (start 10:00:00 < 10:00:30)
+     * would vanish — including device-a's 10:00:35 sample that is
+     * INSIDE the window. Monitor windows are relative to "now" and
+     * essentially never minute-aligned, so this shaved the first
+     * partial minute off every evaluation.
+     *
+     * With the non-colliding `seriesBucketTime` alias the raw-time
+     * predicate is preserved:
+     *   - device-a@10:00:35 (v=15) -> bucket 10:00, avg 15
+     *     (its 10:00:05/v=5 sample is BEFORE the window start and must
+     *     be excluded from the average)
+     *   - device-b@10:00:10 -> before the window, excluded entirely
+     *   - device-c@10:01:59 (v=30) -> bucket 10:01, avg 30
+     */
+    const resultSet: Awaited<ReturnType<ClickHouseClient["query"]>> =
+      await client.query({
+        query: `
             SELECT avg(value) AS value,
                    toStartOfMinute(time) AS seriesBucketTime,
                    attributes[{k0:String}] AS seriesAttribute0
@@ -322,39 +315,34 @@ describe("MetricService per-series aggregation (ClickHouse smoke)", () => {
             ORDER BY seriesBucketTime DESC
             LIMIT {rowCap:Int32}
           `,
-          query_params: {
-            k0: "device.id",
-            windowStart: "2026-07-03 10:00:30.000000000",
-            windowEnd: "2026-07-03 10:05:00.000000000",
-            rowCap: 100000,
-          },
-          format: "JSON",
-        });
+        query_params: {
+          k0: "device.id",
+          windowStart: "2026-07-03 10:00:30.000000000",
+          windowEnd: "2026-07-03 10:05:00.000000000",
+          rowCap: 100000,
+        },
+        format: "JSON",
+      });
 
-      const response: ResponseJSON<JSONObject> =
-        (await resultSet.json<JSONObject>()) as ResponseJSON<JSONObject>;
-      const rows: Array<JSONObject> = response.data || [];
+    const response: ResponseJSON<JSONObject> =
+      (await resultSet.json<JSONObject>()) as ResponseJSON<JSONObject>;
+    const rows: Array<JSONObject> = response.data || [];
 
-      const seriesValues: Map<string, number> = new Map<string, number>();
-      for (const row of rows) {
-        seriesValues.set(
-          String(row["seriesAttribute0"]),
-          Number(row["value"]),
-        );
-      }
+    const seriesValues: Map<string, number> = new Map<string, number>();
+    for (const row of rows) {
+      seriesValues.set(String(row["seriesAttribute0"]), Number(row["value"]));
+    }
 
-      /*
-       * device-a's first-partial-minute bucket MUST be present. Under
-       * the shadowed-alias bug this row disappears (only device-c
-       * survives), so this assertion is the empirical guard against
-       * reintroducing `AS time`.
-       */
-      expect(rows).toHaveLength(2);
-      expect(seriesValues.get("device-a")).toBe(15);
-      expect(seriesValues.get("device-c")).toBe(30);
-      // Entirely-before-window series stays excluded by the raw predicate.
-      expect(seriesValues.has("device-b")).toBe(false);
-    },
-    60000,
-  );
+    /*
+     * device-a's first-partial-minute bucket MUST be present. Under
+     * the shadowed-alias bug this row disappears (only device-c
+     * survives), so this assertion is the empirical guard against
+     * reintroducing `AS time`.
+     */
+    expect(rows).toHaveLength(2);
+    expect(seriesValues.get("device-a")).toBe(15);
+    expect(seriesValues.get("device-c")).toBe(30);
+    // Entirely-before-window series stays excluded by the raw predicate.
+    expect(seriesValues.has("device-b")).toBe(false);
+  }, 60000);
 });

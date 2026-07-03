@@ -91,10 +91,7 @@ describe("MetricService per-series aggregation", () => {
        * @clickhouse/client Map-column GROUP BY quirk returns 0 rows).
        * Every occurrence of the column must be a subscript access.
        */
-      const withoutSubscriptAccess: string = query.replace(
-        /attributes\[/g,
-        "",
-      );
+      const withoutSubscriptAccess: string = query.replace(/attributes\[/g, "");
       expect(withoutSubscriptAccess).not.toContain("attributes");
 
       // Both group-by keys are bound as parameters, not inlined.
@@ -237,31 +234,30 @@ describe("MetricService per-series aggregation", () => {
 
   describe("toPerSeriesAggregatedResult", () => {
     test("adapts ClickHouse rows into the AggregatedResult shape the legacy JS path produced", () => {
-      const result: AggregatedResult = MetricService.toPerSeriesAggregatedResult({
-        items: [
-          {
-            [PER_SERIES_BUCKET_TIME_ALIAS]: "2026-07-03 10:04:00",
-            value: 91.5,
-            [`${PER_SERIES_ATTRIBUTE_ALIAS_PREFIX}0`]: "device-a",
-          },
-          {
-            [PER_SERIES_BUCKET_TIME_ALIAS]: "2026-07-03 10:04:00",
-            // UInt64 aggregates (count) serialize as strings in JSON output.
-            value: "17",
-            [`${PER_SERIES_ATTRIBUTE_ALIAS_PREFIX}0`]: "device-b",
-          },
-        ],
-        groupByAttributeKeys: ["device.id"],
-      });
+      const result: AggregatedResult =
+        MetricService.toPerSeriesAggregatedResult({
+          items: [
+            {
+              [PER_SERIES_BUCKET_TIME_ALIAS]: "2026-07-03 10:04:00",
+              value: 91.5,
+              [`${PER_SERIES_ATTRIBUTE_ALIAS_PREFIX}0`]: "device-a",
+            },
+            {
+              [PER_SERIES_BUCKET_TIME_ALIAS]: "2026-07-03 10:04:00",
+              // UInt64 aggregates (count) serialize as strings in JSON output.
+              value: "17",
+              [`${PER_SERIES_ATTRIBUTE_ALIAS_PREFIX}0`]: "device-b",
+            },
+          ],
+          groupByAttributeKeys: ["device.id"],
+        });
 
       expect(result.data).toHaveLength(2);
 
       const first: AggregatedModel = result.data[0]!;
       expect(first.timestamp).toBeInstanceOf(Date);
       expect(first.value).toBe(91.5);
-      expect((first["attributes"] as JSONObject)["device.id"]).toBe(
-        "device-a",
-      );
+      expect((first["attributes"] as JSONObject)["device.id"]).toBe("device-a");
 
       const second: AggregatedModel = result.data[1]!;
       expect(second.value).toBe(17);
@@ -271,15 +267,16 @@ describe("MetricService per-series aggregation", () => {
     });
 
     test("canonicalizes missing attribute columns to empty string so series fingerprints stay stable", () => {
-      const result: AggregatedResult = MetricService.toPerSeriesAggregatedResult({
-        items: [
-          {
-            [PER_SERIES_BUCKET_TIME_ALIAS]: "2026-07-03 10:04:00",
-            value: 3,
-          },
-        ],
-        groupByAttributeKeys: ["device.id", "site"],
-      });
+      const result: AggregatedResult =
+        MetricService.toPerSeriesAggregatedResult({
+          items: [
+            {
+              [PER_SERIES_BUCKET_TIME_ALIAS]: "2026-07-03 10:04:00",
+              value: 3,
+            },
+          ],
+          groupByAttributeKeys: ["device.id", "site"],
+        });
 
       expect(result.data).toHaveLength(1);
       const attributes: JSONObject = result.data[0]![
@@ -307,53 +304,55 @@ describe("MetricService per-series aggregation", () => {
     });
 
     test("skips rows without a usable time or finite numeric value", () => {
-      const result: AggregatedResult = MetricService.toPerSeriesAggregatedResult({
-        items: [
-          {
-            // no time bucket
-            value: 5,
-            [`${PER_SERIES_ATTRIBUTE_ALIAS_PREFIX}0`]: "device-a",
-          },
-          {
-            [PER_SERIES_BUCKET_TIME_ALIAS]: "2026-07-03 10:00:00",
-            // all-NULL bucket (e.g. histogram-only rows)
-            value: null,
-            [`${PER_SERIES_ATTRIBUTE_ALIAS_PREFIX}0`]: "device-a",
-          },
-          {
-            [PER_SERIES_BUCKET_TIME_ALIAS]: "2026-07-03 10:00:00",
-            value: "not-a-number",
-            [`${PER_SERIES_ATTRIBUTE_ALIAS_PREFIX}0`]: "device-a",
-          },
-          {
-            [PER_SERIES_BUCKET_TIME_ALIAS]: "2026-07-03 10:00:00",
-            value: 2,
-            [`${PER_SERIES_ATTRIBUTE_ALIAS_PREFIX}0`]: "device-a",
-          },
-        ],
-        groupByAttributeKeys: ["device.id"],
-      });
+      const result: AggregatedResult =
+        MetricService.toPerSeriesAggregatedResult({
+          items: [
+            {
+              // no time bucket
+              value: 5,
+              [`${PER_SERIES_ATTRIBUTE_ALIAS_PREFIX}0`]: "device-a",
+            },
+            {
+              [PER_SERIES_BUCKET_TIME_ALIAS]: "2026-07-03 10:00:00",
+              // all-NULL bucket (e.g. histogram-only rows)
+              value: null,
+              [`${PER_SERIES_ATTRIBUTE_ALIAS_PREFIX}0`]: "device-a",
+            },
+            {
+              [PER_SERIES_BUCKET_TIME_ALIAS]: "2026-07-03 10:00:00",
+              value: "not-a-number",
+              [`${PER_SERIES_ATTRIBUTE_ALIAS_PREFIX}0`]: "device-a",
+            },
+            {
+              [PER_SERIES_BUCKET_TIME_ALIAS]: "2026-07-03 10:00:00",
+              value: 2,
+              [`${PER_SERIES_ATTRIBUTE_ALIAS_PREFIX}0`]: "device-a",
+            },
+          ],
+          groupByAttributeKeys: ["device.id"],
+        });
 
       expect(result.data).toHaveLength(1);
       expect(result.data[0]!.value).toBe(2);
     });
 
     test("distinct attribute values fingerprint into distinct series (one incident per device, not per monitor)", () => {
-      const result: AggregatedResult = MetricService.toPerSeriesAggregatedResult({
-        items: [
-          {
-            [PER_SERIES_BUCKET_TIME_ALIAS]: "2026-07-03 10:04:00",
-            value: 1,
-            [`${PER_SERIES_ATTRIBUTE_ALIAS_PREFIX}0`]: "device-a",
-          },
-          {
-            [PER_SERIES_BUCKET_TIME_ALIAS]: "2026-07-03 10:04:00",
-            value: 2,
-            [`${PER_SERIES_ATTRIBUTE_ALIAS_PREFIX}0`]: "device-b",
-          },
-        ],
-        groupByAttributeKeys: ["device.id"],
-      });
+      const result: AggregatedResult =
+        MetricService.toPerSeriesAggregatedResult({
+          items: [
+            {
+              [PER_SERIES_BUCKET_TIME_ALIAS]: "2026-07-03 10:04:00",
+              value: 1,
+              [`${PER_SERIES_ATTRIBUTE_ALIAS_PREFIX}0`]: "device-a",
+            },
+            {
+              [PER_SERIES_BUCKET_TIME_ALIAS]: "2026-07-03 10:04:00",
+              value: 2,
+              [`${PER_SERIES_ATTRIBUTE_ALIAS_PREFIX}0`]: "device-b",
+            },
+          ],
+          groupByAttributeKeys: ["device.id"],
+        });
 
       const fingerprints: Array<string> = result.data.map(
         (row: AggregatedModel) => {

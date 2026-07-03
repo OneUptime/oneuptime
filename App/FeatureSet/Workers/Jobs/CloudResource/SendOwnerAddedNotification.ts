@@ -55,7 +55,9 @@ RunCron(
       }
 
       for (const user of users) {
-        (cloudResourceOwnersMap[cloudResourceId.toString()] as Array<User>).push(user);
+        (
+          cloudResourceOwnersMap[cloudResourceId.toString()] as Array<User>
+        ).push(user);
       }
 
       // mark this as notified.
@@ -97,7 +99,9 @@ RunCron(
         cloudResourceOwnersMap[cloudResourceId.toString()] = [];
       }
 
-      (cloudResourceOwnersMap[cloudResourceId.toString()] as Array<User>).push(user);
+      (cloudResourceOwnersMap[cloudResourceId.toString()] as Array<User>).push(
+        user,
+      );
 
       // mark this as notified.
       await CloudResourceOwnerUserService.updateOneById({
@@ -118,40 +122,49 @@ RunCron(
         continue;
       }
 
-      if ((cloudResourceOwnersMap[cloudResourceId] as Array<User>).length === 0) {
+      if (
+        (cloudResourceOwnersMap[cloudResourceId] as Array<User>).length === 0
+      ) {
         continue;
       }
 
-      const users: Array<User> = cloudResourceOwnersMap[cloudResourceId] as Array<User>;
+      const users: Array<User> = cloudResourceOwnersMap[
+        cloudResourceId
+      ] as Array<User>;
 
-      const cloudResource: CloudResource | null = await CloudResourceService.findOneById({
-        id: new ObjectID(cloudResourceId),
-        props: {
-          isRoot: true,
-        },
-
-        select: {
-          _id: true,
-          name: true,
-          description: true,
-          projectId: true,
-          project: {
-            name: true,
+      const cloudResource: CloudResource | null =
+        await CloudResourceService.findOneById({
+          id: new ObjectID(cloudResourceId),
+          props: {
+            isRoot: true,
           },
-        },
-      });
+
+          select: {
+            _id: true,
+            name: true,
+            description: true,
+            projectId: true,
+            project: {
+              name: true,
+            },
+          },
+        });
 
       if (!cloudResource) {
         continue;
       }
 
       const viewResourceLink: string = (
-        await CloudResourceService.getLinkInDashboard(cloudResource.projectId!, cloudResource.id!)
+        await CloudResourceService.getLinkInDashboard(
+          cloudResource.projectId!,
+          cloudResource.id!,
+        )
       ).toString();
 
       const vars: Dictionary<string> = {
         resourceName: cloudResource.name!,
-        resourceDescription: cloudResource.description || "No description provided",
+        resourceDescription:
+          cloudResource.description || "No description provided",
         projectName: cloudResource.project!.name!,
         viewResourceLink: viewResourceLink,
       };

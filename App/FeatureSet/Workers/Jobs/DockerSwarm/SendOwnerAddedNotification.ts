@@ -186,8 +186,7 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.DockerSwarmClusterOwnerAdded,
           vars: vars,
-          subject:
-            "[Docker Swarm Cluster] Owner of " + dockerSwarmCluster.name,
+          subject: "[Docker Swarm Cluster] Owner of " + dockerSwarmCluster.name,
         };
 
         const sms: SMSMessage = {

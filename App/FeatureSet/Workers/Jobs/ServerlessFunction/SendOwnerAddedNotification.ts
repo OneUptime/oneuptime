@@ -43,19 +43,27 @@ RunCron(
     const serverlessFunctionOwnersMap: Dictionary<Array<User>> = {};
 
     for (const serverlessFunctionOwnerTeam of serverlessFunctionOwnerTeams) {
-      const serverlessFunctionId: ObjectID = serverlessFunctionOwnerTeam.serverlessFunctionId!;
+      const serverlessFunctionId: ObjectID =
+        serverlessFunctionOwnerTeam.serverlessFunctionId!;
       const teamId: ObjectID = serverlessFunctionOwnerTeam.teamId!;
 
       const users: Array<User> = await TeamMemberService.getUsersInTeams([
         teamId,
       ]);
 
-      if (serverlessFunctionOwnersMap[serverlessFunctionId.toString()] === undefined) {
+      if (
+        serverlessFunctionOwnersMap[serverlessFunctionId.toString()] ===
+        undefined
+      ) {
         serverlessFunctionOwnersMap[serverlessFunctionId.toString()] = [];
       }
 
       for (const user of users) {
-        (serverlessFunctionOwnersMap[serverlessFunctionId.toString()] as Array<User>).push(user);
+        (
+          serverlessFunctionOwnersMap[
+            serverlessFunctionId.toString()
+          ] as Array<User>
+        ).push(user);
       }
 
       // mark this as notified.
@@ -90,14 +98,22 @@ RunCron(
       });
 
     for (const serverlessFunctionOwnerUser of serverlessFunctionOwnerUsers) {
-      const serverlessFunctionId: ObjectID = serverlessFunctionOwnerUser.serverlessFunctionId!;
+      const serverlessFunctionId: ObjectID =
+        serverlessFunctionOwnerUser.serverlessFunctionId!;
       const user: User = serverlessFunctionOwnerUser.user!;
 
-      if (serverlessFunctionOwnersMap[serverlessFunctionId.toString()] === undefined) {
+      if (
+        serverlessFunctionOwnersMap[serverlessFunctionId.toString()] ===
+        undefined
+      ) {
         serverlessFunctionOwnersMap[serverlessFunctionId.toString()] = [];
       }
 
-      (serverlessFunctionOwnersMap[serverlessFunctionId.toString()] as Array<User>).push(user);
+      (
+        serverlessFunctionOwnersMap[
+          serverlessFunctionId.toString()
+        ] as Array<User>
+      ).push(user);
 
       // mark this as notified.
       await ServerlessFunctionOwnerUserService.updateOneById({
@@ -118,40 +134,50 @@ RunCron(
         continue;
       }
 
-      if ((serverlessFunctionOwnersMap[serverlessFunctionId] as Array<User>).length === 0) {
+      if (
+        (serverlessFunctionOwnersMap[serverlessFunctionId] as Array<User>)
+          .length === 0
+      ) {
         continue;
       }
 
-      const users: Array<User> = serverlessFunctionOwnersMap[serverlessFunctionId] as Array<User>;
+      const users: Array<User> = serverlessFunctionOwnersMap[
+        serverlessFunctionId
+      ] as Array<User>;
 
-      const serverlessFunction: ServerlessFunction | null = await ServerlessFunctionService.findOneById({
-        id: new ObjectID(serverlessFunctionId),
-        props: {
-          isRoot: true,
-        },
-
-        select: {
-          _id: true,
-          name: true,
-          description: true,
-          projectId: true,
-          project: {
-            name: true,
+      const serverlessFunction: ServerlessFunction | null =
+        await ServerlessFunctionService.findOneById({
+          id: new ObjectID(serverlessFunctionId),
+          props: {
+            isRoot: true,
           },
-        },
-      });
+
+          select: {
+            _id: true,
+            name: true,
+            description: true,
+            projectId: true,
+            project: {
+              name: true,
+            },
+          },
+        });
 
       if (!serverlessFunction) {
         continue;
       }
 
       const viewFunctionLink: string = (
-        await ServerlessFunctionService.getLinkInDashboard(serverlessFunction.projectId!, serverlessFunction.id!)
+        await ServerlessFunctionService.getLinkInDashboard(
+          serverlessFunction.projectId!,
+          serverlessFunction.id!,
+        )
       ).toString();
 
       const vars: Dictionary<string> = {
         functionName: serverlessFunction.name!,
-        functionDescription: serverlessFunction.description || "No description provided",
+        functionDescription:
+          serverlessFunction.description || "No description provided",
         projectName: serverlessFunction.project!.name!,
         viewFunctionLink: viewFunctionLink,
       };

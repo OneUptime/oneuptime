@@ -146,12 +146,16 @@ RunCron(
       }
 
       const viewDashboardLink: string = (
-        await DashboardService.getLinkInDashboard(dashboard.projectId!, dashboard.id!)
+        await DashboardService.getLinkInDashboard(
+          dashboard.projectId!,
+          dashboard.id!,
+        )
       ).toString();
 
       const vars: Dictionary<string> = {
         dashboardName: dashboard.name!,
-        dashboardDescription: dashboard.description || "No description provided",
+        dashboardDescription:
+          dashboard.description || "No description provided",
         projectName: dashboard.project!.name!,
         viewDashboardLink: viewDashboardLink,
       };

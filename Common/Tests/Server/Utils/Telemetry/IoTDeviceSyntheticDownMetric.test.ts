@@ -34,7 +34,11 @@ import ServiceType from "../../../../Types/Telemetry/ServiceType";
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const AT: Date = new Date("2026-06-13T12:00:00.000Z");
 
-function buildRow(overrides: Partial<Parameters<typeof buildSyntheticDeviceDownMetricRow>[0]> = {}): JSONObject {
+function buildRow(
+  overrides: Partial<
+    Parameters<typeof buildSyntheticDeviceDownMetricRow>[0]
+  > = {},
+): JSONObject {
   return buildSyntheticDeviceDownMetricRow({
     projectId: PROJECT_ID,
     fleetName: "field-sensors-us-east",
@@ -65,9 +69,10 @@ describe("buildSyntheticDeviceDownMetricRow — attributes", () => {
 
   test("synthetic marker constants match the attribute stamped on the row", () => {
     const row: JSONObject = buildRow();
-    const attributes: Record<string, string> = row[
-      "attributes"
-    ] as Record<string, string>;
+    const attributes: Record<string, string> = row["attributes"] as Record<
+      string,
+      string
+    >;
 
     expect(IOT_SYNTHETIC_ATTRIBUTE_KEY).toBe("oneuptime.synthetic");
     expect(IOT_SYNTHETIC_OFFLINE_DETECTION).toBe("offline-detection");
@@ -100,9 +105,10 @@ describe("buildSyntheticDeviceDownMetricRow — attributes", () => {
 
   test("attributeKeys lists every attribute key, sorted", () => {
     const row: JSONObject = buildRow();
-    const attributes: Record<string, string> = row[
-      "attributes"
-    ] as Record<string, string>;
+    const attributes: Record<string, string> = row["attributes"] as Record<
+      string,
+      string
+    >;
     const keys: Array<string> = row["attributeKeys"] as Array<string>;
 
     expect(keys).toEqual([...Object.keys(attributes)].sort());

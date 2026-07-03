@@ -43,7 +43,8 @@ RunCron(
     const rumApplicationOwnersMap: Dictionary<Array<User>> = {};
 
     for (const rumApplicationOwnerTeam of rumApplicationOwnerTeams) {
-      const rumApplicationId: ObjectID = rumApplicationOwnerTeam.rumApplicationId!;
+      const rumApplicationId: ObjectID =
+        rumApplicationOwnerTeam.rumApplicationId!;
       const teamId: ObjectID = rumApplicationOwnerTeam.teamId!;
 
       const users: Array<User> = await TeamMemberService.getUsersInTeams([
@@ -55,7 +56,9 @@ RunCron(
       }
 
       for (const user of users) {
-        (rumApplicationOwnersMap[rumApplicationId.toString()] as Array<User>).push(user);
+        (
+          rumApplicationOwnersMap[rumApplicationId.toString()] as Array<User>
+        ).push(user);
       }
 
       // mark this as notified.
@@ -90,14 +93,17 @@ RunCron(
       });
 
     for (const rumApplicationOwnerUser of rumApplicationOwnerUsers) {
-      const rumApplicationId: ObjectID = rumApplicationOwnerUser.rumApplicationId!;
+      const rumApplicationId: ObjectID =
+        rumApplicationOwnerUser.rumApplicationId!;
       const user: User = rumApplicationOwnerUser.user!;
 
       if (rumApplicationOwnersMap[rumApplicationId.toString()] === undefined) {
         rumApplicationOwnersMap[rumApplicationId.toString()] = [];
       }
 
-      (rumApplicationOwnersMap[rumApplicationId.toString()] as Array<User>).push(user);
+      (
+        rumApplicationOwnersMap[rumApplicationId.toString()] as Array<User>
+      ).push(user);
 
       // mark this as notified.
       await RumApplicationOwnerUserService.updateOneById({
@@ -118,40 +124,49 @@ RunCron(
         continue;
       }
 
-      if ((rumApplicationOwnersMap[rumApplicationId] as Array<User>).length === 0) {
+      if (
+        (rumApplicationOwnersMap[rumApplicationId] as Array<User>).length === 0
+      ) {
         continue;
       }
 
-      const users: Array<User> = rumApplicationOwnersMap[rumApplicationId] as Array<User>;
+      const users: Array<User> = rumApplicationOwnersMap[
+        rumApplicationId
+      ] as Array<User>;
 
-      const rumApplication: RumApplication | null = await RumApplicationService.findOneById({
-        id: new ObjectID(rumApplicationId),
-        props: {
-          isRoot: true,
-        },
-
-        select: {
-          _id: true,
-          name: true,
-          description: true,
-          projectId: true,
-          project: {
-            name: true,
+      const rumApplication: RumApplication | null =
+        await RumApplicationService.findOneById({
+          id: new ObjectID(rumApplicationId),
+          props: {
+            isRoot: true,
           },
-        },
-      });
+
+          select: {
+            _id: true,
+            name: true,
+            description: true,
+            projectId: true,
+            project: {
+              name: true,
+            },
+          },
+        });
 
       if (!rumApplication) {
         continue;
       }
 
       const viewApplicationLink: string = (
-        await RumApplicationService.getLinkInDashboard(rumApplication.projectId!, rumApplication.id!)
+        await RumApplicationService.getLinkInDashboard(
+          rumApplication.projectId!,
+          rumApplication.id!,
+        )
       ).toString();
 
       const vars: Dictionary<string> = {
         applicationName: rumApplication.name!,
-        applicationDescription: rumApplication.description || "No description provided",
+        applicationDescription:
+          rumApplication.description || "No description provided",
         projectName: rumApplication.project!.name!,
         viewApplicationLink: viewApplicationLink,
       };

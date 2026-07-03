@@ -1306,8 +1306,10 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
         rawValue = Number.parseFloat(rawValue);
       }
       if (typeof rawValue !== "number" || !Number.isFinite(rawValue)) {
-        // No usable numeric value for this bucket — same as the JS path
-        // which skipped buckets with no finite samples.
+        /*
+         * No usable numeric value for this bucket — same as the JS path
+         * which skipped buckets with no finite samples.
+         */
         continue;
       }
 
@@ -1391,16 +1393,12 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     const dbResult: ResultSet<"JSON"> = await this.executeQuery(statement);
     const responseJSON: ResponseJSON<JSONObject> =
       await dbResult.json<JSONObject>();
-    const items: Array<JSONObject> = responseJSON.data
-      ? responseJSON.data
-      : [];
+    const items: Array<JSONObject> = responseJSON.data ? responseJSON.data : [];
 
-    const result: AggregatedResult = MetricService.toPerSeriesAggregatedResult(
-      {
-        items: items,
-        groupByAttributeKeys: groupByAttributeKeys,
-      },
-    );
+    const result: AggregatedResult = MetricService.toPerSeriesAggregatedResult({
+      items: items,
+      groupByAttributeKeys: groupByAttributeKeys,
+    });
 
     /*
      * ClickHouse reports rows_before_limit_at_least whenever the query

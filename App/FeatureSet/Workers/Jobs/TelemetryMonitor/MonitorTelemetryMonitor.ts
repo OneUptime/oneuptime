@@ -687,11 +687,9 @@ export const aggregatePerSeriesFromRawMetrics: (input: {
           input.aggregationType,
         );
         if (percentileLevel !== null) {
-          const sorted: Array<number> = [...vs].sort(
-            (a: number, b: number) => {
-              return a - b;
-            },
-          );
+          const sorted: Array<number> = [...vs].sort((a: number, b: number) => {
+            return a - b;
+          });
           const rankIndex: number = Math.min(
             sorted.length - 1,
             Math.max(0, Math.ceil(percentileLevel * sorted.length) - 1),
