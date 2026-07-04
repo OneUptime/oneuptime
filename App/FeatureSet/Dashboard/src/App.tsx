@@ -52,18 +52,18 @@ import ActiveIncidentEpisodes from "./Pages/Global/ActiveIncidentEpisodes";
 import MyOnCallPolicies from "./Pages/Global/MyOnCallPolicies";
 import PageNotFound from "./Pages/PageNotFound/PageNotFound";
 
-type LazyRouteComponent = React.LazyExoticComponent<
-  React.ComponentType<RoutesProps>
->;
+type LazyRouteComponent<
+  TProps extends PageComponentProps = PageComponentProps,
+> = React.LazyExoticComponent<React.ComponentType<TProps>>;
 
 // Lazy-loaded route bundles
-function lazyRoute<T extends React.ComponentType<RoutesProps>>(
-  loader: () => Promise<{ default: T }>,
-): React.LazyExoticComponent<T> {
+function lazyRoute<TProps extends PageComponentProps>(
+  loader: () => Promise<{ default: React.ComponentType<TProps> }>,
+): LazyRouteComponent<TProps> {
   return lazy(loader);
 }
 
-const InitRoutes: LazyRouteComponent = lazyRoute(() => {
+const InitRoutes: LazyRouteComponent<RoutesProps> = lazyRoute(() => {
   return import("./Routes/InitRoutes");
 });
 

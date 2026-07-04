@@ -37,7 +37,7 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
 
   const [hoveredSpanId, setHoveredSpanId] = React.useState<string | null>(null);
   const [focusedSpanId, setFocusedSpanId] = React.useState<string | null>(null);
-  const containerRef: React.RefObject<HTMLDivElement | null> =
+  const containerRef: React.RefObject<HTMLDivElement> =
     React.useRef<HTMLDivElement>(null);
 
   // Build span data for critical path utility

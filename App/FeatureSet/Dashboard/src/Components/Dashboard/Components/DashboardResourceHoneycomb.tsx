@@ -84,8 +84,7 @@ interface HexProps {
 
 const Hex: FunctionComponent<HexProps> = (props: HexProps): ReactElement => {
   const { tile, width, height, onHoverStart, onHoverEnd } = props;
-  const ref: React.RefObject<HTMLDivElement | null> =
-    useRef<HTMLDivElement | null>(null);
+  const ref: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
 
   const textColor: string =
     tile.textColor || getReadableTextColor(tile.color || "#9ca3af");
@@ -175,8 +174,7 @@ const HoneycombTooltip: FunctionComponent<{ state: TooltipState }> = ({
     top: number;
     placement: "above" | "below";
   }>({ left: 0, top: 0, placement: "above" });
-  const ref: React.RefObject<HTMLDivElement | null> =
-    useRef<HTMLDivElement | null>(null);
+  const ref: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     const tooltipHeight: number = ref.current?.offsetHeight || 100;
@@ -256,8 +254,8 @@ const HoneycombTooltip: FunctionComponent<{ state: TooltipState }> = ({
 const DashboardResourceHoneycomb: FunctionComponent<
   DashboardResourceHoneycombProps
 > = (props: DashboardResourceHoneycombProps): ReactElement => {
-  const containerRef: React.RefObject<HTMLDivElement | null> =
-    useRef<HTMLDivElement | null>(null);
+  const containerRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [tooltipState, setTooltipState] = useState<TooltipState | null>(null);
 
