@@ -48,6 +48,26 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    type: TableColumnType.ObjectID,
+    computed: true,
+    title: "Instance ID",
+    description:
+      "Unique identifier for this OneUptime instance. Auto-generated when the instance is installed.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    unique: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public instanceId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
     type: TableColumnType.Boolean,
     title: "Disable Signup",
     description: "Should we disable new user sign up to this server?",
