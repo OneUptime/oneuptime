@@ -15,16 +15,42 @@ import {
   McpToolInfo,
   OneUptimeToolCallArgs,
   JSONSchema,
+  ToolAnnotations,
 } from "../Types/McpTypes";
 import OneUptimeOperation from "../Types/OneUptimeOperation";
-import OneUptimeApiService from "../Services/OneUptimeApiService";
-import { LIST_PREVIEW_LIMIT } from "../Config/ServerConfig";
+import OneUptimeApiService, {
+  OneUptimeApiError,
+} from "../Services/OneUptimeApiService";
+import { LIST_DEFAULT_LIMIT } from "../Config/ServerConfig";
 import { isHelperTool, handleHelperTool } from "../Tools/HelperTools";
 import {
   isPublicStatusPageTool,
   handlePublicStatusPageTool,
 } from "../Tools/PublicStatusPageTools";
+import { isWorkflowTool, handleWorkflowTool } from "../Tools/WorkflowTools";
+import { sanitizeToolName } from "../Tools/SchemaConverter";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
+
+/*
+ * Result shape for MCP tools/call responses. The index signature keeps the
+ * type assignable to the SDK's ServerResult union.
+ */
+export interface ToolCallResult {
+  [key: string]: unknown;
+  content: Array<{ type: string; text: string }>;
+  structuredContent?: JSONObject;
+  isError?: boolean;
+}
+
+// Tool shape for MCP tools/list responses
+interface ListedTool {
+  name: string;
+  description: string;
+  inputSchema: JSONSchema;
+  title?: string;
+  annotations?: ToolAnnotations;
+}
 
 /**
  * Register tool handlers on the MCP server.
@@ -52,29 +78,121 @@ export function registerToolHandlers(
     },
   );
 
-  logger.info(`Registered handlers for ${tools.length} tools`);
+  logger.debug(`Registered handlers for ${tools.length} tools`);
 }
 
 /**
  * Handle list tools request
  */
 function handleListTools(tools: McpToolInfo[]): {
-  tools: Array<{ name: string; description: string; inputSchema: JSONSchema }>;
+  tools: ListedTool[];
 } {
-  const mcpTools: Array<{
-    name: string;
-    description: string;
-    inputSchema: JSONSchema;
-  }> = tools.map((tool: McpToolInfo) => {
+  const mcpTools: ListedTool[] = tools.map((tool: McpToolInfo): ListedTool => {
     return {
       name: tool.name,
       description: tool.description,
       inputSchema: tool.inputSchema,
+      ...(tool.title ? { title: tool.title } : {}),
+      ...(tool.annotations ? { annotations: tool.annotations } : {}),
     };
   });
 
-  logger.info(`Listing ${mcpTools.length} available tools`);
+  logger.debug(`Listing ${mcpTools.length} available tools`);
   return { tools: mcpTools };
+}
+
+/**
+ * Wrap a response envelope as an MCP tool result: compact JSON text for
+ * every client plus structuredContent for clients that consume it.
+ */
+function toToolResult(envelope: JSONObject): ToolCallResult {
+  return {
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify(envelope),
+      },
+    ],
+    structuredContent: envelope,
+  };
+}
+
+/**
+ * Wrap raw JSON text (from helper/public tools) as an MCP tool result.
+ */
+function textToToolResult(responseText: string): ToolCallResult {
+  let structured: JSONObject | undefined = undefined;
+  try {
+    const parsed: unknown = JSON.parse(responseText);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      structured = parsed as JSONObject;
+    }
+  } catch {
+    // Not JSON — return text only
+  }
+
+  return {
+    content: [
+      {
+        type: "text",
+        text: responseText,
+      },
+    ],
+    ...(structured ? { structuredContent: structured } : {}),
+  };
+}
+
+/**
+ * Build an isError tool result so the calling agent sees the failure text
+ * and can self-correct (per MCP spec, execution errors should be in-band
+ * results, not JSON-RPC protocol errors).
+ */
+function buildErrorResult(toolName: string, error: unknown): ToolCallResult {
+  const payload: JSONObject = {
+    success: false,
+    tool: toolName,
+    error: error instanceof Error ? error.message : String(error),
+  };
+
+  if (error instanceof OneUptimeApiError) {
+    payload["statusCode"] = error.statusCode;
+    if (error.details !== undefined && error.details !== null) {
+      payload["details"] = error.details as JSONValue;
+    }
+    payload["suggestion"] = getSuggestionForStatusCode(error.statusCode);
+  } else {
+    payload["suggestion"] =
+      "Check the tool's input schema for required parameters. Use 'oneuptime_help' for guidance.";
+  }
+
+  const result: ToolCallResult = {
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify(payload),
+      },
+    ],
+    structuredContent: payload,
+    isError: true,
+  };
+  return result;
+}
+
+function getSuggestionForStatusCode(statusCode: number): string {
+  switch (statusCode) {
+    case 400:
+      return "The request was invalid. Check required parameters and value formats against the tool's input schema; the details field usually names the offending field.";
+    case 401:
+      return "The API key was rejected. Verify the key is correct and not expired (sent via the x-api-key header).";
+    case 403:
+      return "The API key lacks permission for this operation. Ask a project admin to grant the relevant permission to the key.";
+    case 404:
+      return "The resource was not found. Use the corresponding list tool to find valid IDs.";
+    case 429:
+      return "Rate limited. Wait a moment and retry.";
+    default:
+      return "Use 'oneuptime_help' for guidance on available tools and workflows.";
+  }
 }
 
 /**
@@ -84,45 +202,50 @@ async function handleCallTool(
   request: CallToolRequest,
   tools: McpToolInfo[],
   apiKey: string,
-): Promise<{ content: Array<{ type: string; text: string }> }> {
-  const { name, arguments: args } = request.params;
+): Promise<ToolCallResult> {
+  const { name } = request.params;
+  // `arguments` is optional in the MCP CallToolRequest — normalize once here.
+  const args: Record<string, unknown> = (request.params.arguments ||
+    {}) as Record<string, unknown>;
 
   try {
     // Check if this is a helper tool (doesn't require API key)
     if (isHelperTool(name)) {
-      logger.info(`Executing helper tool: ${name}`);
+      logger.debug(`Executing helper tool: ${name}`);
       const responseText: string = handleHelperTool(
         name,
-        (args || {}) as Record<string, unknown>,
+        args,
         tools.filter((t: McpToolInfo) => {
-          return !isHelperTool(t.name) && !isPublicStatusPageTool(t.name);
+          return (
+            !isHelperTool(t.name) &&
+            !isPublicStatusPageTool(t.name) &&
+            !isWorkflowTool(t.name)
+          );
         }),
       );
-      return {
-        content: [
-          {
-            type: "text",
-            text: responseText,
-          },
-        ],
-      };
+      return textToToolResult(responseText);
     }
 
     // Check if this is a public status page tool (doesn't require API key)
     if (isPublicStatusPageTool(name)) {
-      logger.info(`Executing public status page tool: ${name}`);
-      const responseText: string = await handlePublicStatusPageTool(
-        name,
-        (args || {}) as Record<string, unknown>,
-      );
-      return {
-        content: [
-          {
-            type: "text",
-            text: responseText,
-          },
-        ],
-      };
+      logger.debug(`Executing public status page tool: ${name}`);
+      const responseText: string = await handlePublicStatusPageTool(name, args);
+      return textToToolResult(responseText);
+    }
+
+    // Workflow tools (acknowledge/resolve/notes/whoami) require an API key
+    if (isWorkflowTool(name)) {
+      logger.debug(`Executing workflow tool: ${name}`);
+      if (!apiKey) {
+        return buildErrorResult(
+          name,
+          new Error(
+            "API key is required. Please provide the x-api-key header in your MCP server configuration.",
+          ),
+        );
+      }
+      const envelope: JSONObject = await handleWorkflowTool(name, args, apiKey);
+      return toToolResult(envelope);
     }
 
     // Find the tool by name
@@ -137,13 +260,15 @@ async function handleCallTool(
       );
     }
 
-    logger.info(`Executing tool: ${name} for model: ${tool.modelName}`);
+    logger.debug(`Executing tool: ${name} for model: ${tool.modelName}`);
 
-    // Validate API key is available for this session
+    // Validate API key is available for this request
     if (!apiKey) {
-      throw new McpError(
-        ErrorCode.InvalidRequest,
-        "API key is required. Please provide x-api-key header in your request. Use 'oneuptime_help' to learn more.",
+      return buildErrorResult(
+        name,
+        new Error(
+          "API key is required. Please provide the x-api-key header in your MCP server configuration. Use 'oneuptime_help' to learn more.",
+        ),
       );
     }
 
@@ -158,31 +283,23 @@ async function handleCallTool(
     );
 
     // Format the response
-    const responseText: string = formatToolResponse(
+    const envelope: JSONObject = formatToolResponse(
       tool,
       result,
       args as OneUptimeToolCallArgs,
     );
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: responseText,
-        },
-      ],
-    };
+    return toToolResult(envelope);
   } catch (error) {
     logger.error(`Error executing tool ${name}: ${error}`);
 
+    // Protocol errors (unknown tool) stay protocol errors
     if (error instanceof McpError) {
       throw error;
     }
 
-    throw new McpError(
-      ErrorCode.InternalError,
-      `Failed to execute ${name}: ${error}. Use 'oneuptime_help' for guidance.`,
-    );
+    // Execution errors are returned in-band so the agent can self-correct
+    return buildErrorResult(name, error);
   }
 }
 
@@ -193,7 +310,7 @@ export function formatToolResponse(
   tool: McpToolInfo,
   result: unknown,
   args: OneUptimeToolCallArgs,
-): string {
+): JSONObject {
   const operation: OneUptimeOperation = tool.operation;
   const modelName: string = tool.singularName;
   const pluralName: string = tool.pluralName;
@@ -203,13 +320,13 @@ export function formatToolResponse(
       return formatCreateResponse(modelName, result);
 
     case OneUptimeOperation.Read:
-      return formatReadResponse(modelName, result, args.id);
+      return formatReadResponse(tool, result, args.id);
 
     case OneUptimeOperation.List:
-      return formatListResponse(modelName, pluralName, result);
+      return formatListResponse(modelName, pluralName, result, args);
 
     case OneUptimeOperation.Update:
-      return formatUpdateResponse(modelName, result, args.id);
+      return formatUpdateResponse(tool, args.id);
 
     case OneUptimeOperation.Delete:
       return formatDeleteResponse(modelName, args.id);
@@ -218,109 +335,138 @@ export function formatToolResponse(
       return formatCountResponse(pluralName, result);
 
     default:
-      return `Operation ${operation} completed successfully: ${JSON.stringify(result, null, 2)}`;
+      return {
+        success: true,
+        operation: operation,
+        data: result as JSONValue,
+      } as JSONObject;
   }
 }
 
-function formatCreateResponse(modelName: string, result: unknown): string {
-  const response: Record<string, unknown> = {
+function formatCreateResponse(modelName: string, result: unknown): JSONObject {
+  return {
     success: true,
     operation: "create",
     resourceType: modelName,
     message: `Successfully created ${modelName}`,
-    data: result,
-  };
-  return JSON.stringify(response, null, 2);
+    data: result as JSONValue,
+  } as JSONObject;
 }
 
 function formatReadResponse(
-  modelName: string,
+  tool: McpToolInfo,
   result: unknown,
   id: string | undefined,
-): string {
+): JSONObject {
+  const modelName: string = tool.singularName;
+
   if (result) {
-    const response: Record<string, unknown> = {
+    return {
       success: true,
       operation: "read",
       resourceType: modelName,
-      resourceId: id,
-      data: result,
-    };
-    return JSON.stringify(response, null, 2);
+      resourceId: id ?? null,
+      data: result as JSONValue,
+    } as JSONObject;
   }
-  const response: Record<string, unknown> = {
+
+  return {
     success: false,
     operation: "read",
     resourceType: modelName,
-    resourceId: id,
+    resourceId: id ?? null,
     error: `${modelName} not found with ID: ${id}`,
-    suggestion: `Use list_${modelName.toLowerCase().replace(/\s+/g, "_")}s to find valid IDs`,
-  };
-  return JSON.stringify(response, null, 2);
+    suggestion: `Use list_${sanitizeToolName(tool.pluralName)} to find valid IDs`,
+  } as JSONObject;
 }
 
 function formatListResponse(
   modelName: string,
   pluralName: string,
   result: unknown,
-): string {
+  args: OneUptimeToolCallArgs,
+): JSONObject {
+  /*
+   * BaseAPI get-list returns { data: [...], count: <total matching rows>,
+   * skip, limit } — but the echoed skip/limit reflect the query string only,
+   * so pagination math must use our own request args plus the total count.
+   */
+  const resultObject: { data?: Array<unknown>; count?: number } | null =
+    result && typeof result === "object"
+      ? (result as { data?: Array<unknown>; count?: number })
+      : null;
+
   const items: Array<unknown> = Array.isArray(result)
     ? result
-    : (result as { data?: Array<unknown> })?.data || [];
-  const count: number = items.length;
+    : resultObject?.data || [];
 
-  const response: Record<string, unknown> = {
+  const skipUsed: number = typeof args.skip === "number" ? args.skip : 0;
+  const limitUsed: number =
+    typeof args.limit === "number" ? args.limit : LIST_DEFAULT_LIMIT;
+
+  const totalCount: number | undefined =
+    typeof resultObject?.count === "number" ? resultObject.count : undefined;
+
+  const hasMore: boolean =
+    totalCount !== undefined
+      ? skipUsed + items.length < totalCount
+      : items.length >= limitUsed;
+
+  const response: JSONObject = {
     success: true,
     operation: "list",
     resourceType: pluralName,
-    totalReturned: count,
-    hasMore: count >= LIST_PREVIEW_LIMIT,
+    returnedCount: items.length,
+    totalCount: totalCount ?? null,
+    skip: skipUsed,
+    limit: limitUsed,
+    hasMore,
     message:
-      count === 0
+      items.length === 0
         ? `No ${pluralName} found matching the criteria`
-        : `Found ${count} ${count === 1 ? modelName : pluralName}`,
-    data: items.slice(0, LIST_PREVIEW_LIMIT),
-  };
+        : `Returning ${items.length} of ${totalCount ?? "unknown"} matching ${
+            items.length === 1 ? modelName : pluralName
+          }`,
+    data: items as JSONValue,
+  } as JSONObject;
 
-  if (count > LIST_PREVIEW_LIMIT) {
+  if (hasMore) {
     response["note"] =
-      `Showing first ${LIST_PREVIEW_LIMIT} results. Use 'skip' parameter to paginate.`;
+      `More results available. Repeat the call with skip=${skipUsed + items.length} to get the next page.`;
   }
 
-  return JSON.stringify(response, null, 2);
+  return response;
 }
 
 function formatUpdateResponse(
-  modelName: string,
-  result: unknown,
+  tool: McpToolInfo,
   id: string | undefined,
-): string {
-  const response: Record<string, unknown> = {
+): JSONObject {
+  // The OneUptime API returns an empty body on update — don't fabricate data.
+  return {
     success: true,
     operation: "update",
-    resourceType: modelName,
-    resourceId: id,
-    message: `Successfully updated ${modelName}`,
-    data: result,
-  };
-  return JSON.stringify(response, null, 2);
+    resourceType: tool.singularName,
+    resourceId: id ?? null,
+    message: `Successfully updated ${tool.singularName} (ID: ${id}).`,
+    note: `Use get_${sanitizeToolName(tool.singularName)} with this id to see the updated record.`,
+  } as JSONObject;
 }
 
 function formatDeleteResponse(
   modelName: string,
   id: string | undefined,
-): string {
-  const response: Record<string, unknown> = {
+): JSONObject {
+  return {
     success: true,
     operation: "delete",
     resourceType: modelName,
-    resourceId: id,
+    resourceId: id ?? null,
     message: `Successfully deleted ${modelName} (ID: ${id})`,
-  };
-  return JSON.stringify(response, null, 2);
+  } as JSONObject;
 }
 
-function formatCountResponse(pluralName: string, result: unknown): string {
+function formatCountResponse(pluralName: string, result: unknown): JSONObject {
   let totalCount: number = 0;
 
   if (result !== null && result !== undefined) {
@@ -370,12 +516,11 @@ function formatCountResponse(pluralName: string, result: unknown): string {
     }
   }
 
-  const response: Record<string, unknown> = {
+  return {
     success: true,
     operation: "count",
     resourceType: pluralName,
     count: totalCount,
     message: `Total count of ${pluralName}: ${totalCount}`,
-  };
-  return JSON.stringify(response, null, 2);
+  } as JSONObject;
 }

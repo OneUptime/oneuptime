@@ -19,7 +19,7 @@ fi
 # You need to configure Trusted Publishers for each npm package:
 
 # Go to npmjs.com and log into your account
-# For each package (@oneuptime/common, @oneuptime/mcp-server, etc.):
+# For each package (@oneuptime/common, @oneuptime/cli, etc.):
 # Navigate to the package settings
 # Find the "Trusted Publisher" section
 # Click "GitHub Actions"

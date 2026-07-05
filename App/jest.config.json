@@ -18,5 +18,9 @@
   },
   "testEnvironment": "node",
   "collectCoverage": false,
-  "testRegex": "./Tests/(.*)\\.test\\.(ts|tsx)$"
+  "testTimeout": 30000,
+  "testRegex": [
+    "./Tests/(.*)\\.test\\.(ts|tsx)$",
+    "./FeatureSet/MCP/Tests/(.*)\\.test\\.(ts|tsx)$"
+  ]
 }

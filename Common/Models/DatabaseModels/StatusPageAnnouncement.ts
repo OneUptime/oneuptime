@@ -14,6 +14,7 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
+import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
@@ -35,6 +36,7 @@ import {
 } from "typeorm";
 
 @EnableDocumentation()
+@EnableMCP()
 @TenantColumn("projectId")
 @CanAccessIfCanReadOn("statusPages")
 @TableBillingAccessControl({

@@ -183,6 +183,7 @@ export default class MonitorLog extends AnalyticsBaseModel {
       },
       pluralName: "Monitor Logs",
       crudApiPath: new Route("/monitor-log"),
+      enableMCP: true,
       tableColumns: [
         projectIdColumn,
         monitorIdColumn,

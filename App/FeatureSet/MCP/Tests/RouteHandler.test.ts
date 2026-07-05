@@ -298,7 +298,7 @@ describe("MCP RouteHandler (stateless mode)", () => {
   });
 
   describe("tool execution uses the per-request API key", () => {
-    it("tools/call without an API key returns an API-key error", async () => {
+    it("tools/call without an API key returns an in-band isError tool result", async () => {
       const res: McpResult = await postMcp(portA, {
         jsonrpc: "2.0",
         id: 4,
@@ -307,7 +307,18 @@ describe("MCP RouteHandler (stateless mode)", () => {
       });
 
       expect(res.status).toBe(200);
-      expect(res.json?.error?.message).toMatch(/API key is required/i);
+      /*
+       * Per the MCP spec, execution failures (like a missing API key) are
+       * reported inside the CallToolResult with isError: true — not as
+       * JSON-RPC protocol errors — so the calling agent sees the message
+       * and can self-correct.
+       */
+      const result: {
+        isError?: boolean;
+        content?: Array<{ type: string; text: string }>;
+      } = (res.json as { result?: never })?.["result"] || {};
+      expect(result.isError).toBe(true);
+      expect(result.content?.[0]?.text).toMatch(/API key is required/i);
       expect(
         OneUptimeApiService.executeOperation as jest.Mock,
       ).not.toHaveBeenCalled();

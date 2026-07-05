@@ -784,6 +784,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
         ],
       },
       crudApiPath: new Route("/exceptions"),
+      enableMCP: true,
       enableDocumentation: true,
       tableDescription:
         "Individual exception occurrences captured from your telemetry. Query application errors and their attributes over time.",

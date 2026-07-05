@@ -1132,6 +1132,7 @@ export default class Metric extends AnalyticsBaseModel {
       singularName: "Metric",
       pluralName: "Metrics",
       crudApiPath: new Route("/metrics"),
+      enableMCP: true,
       enableDocumentation: true,
       tableDescription:
         "OpenTelemetry metric data points. Query and aggregate time-series telemetry for dashboards, alerts, and analysis.",
