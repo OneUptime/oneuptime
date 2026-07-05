@@ -7,6 +7,7 @@ import {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
+import EventLoop from "Common/Server/Utils/EventLoop";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -193,7 +194,7 @@ export default class SyslogIngestService extends OtelIngestBaseService {
       for (const rawMessage of messages) {
         try {
           if (messageCounter % 500 === 0) {
-            await Promise.resolve();
+            await EventLoop.yieldToEventLoop();
           }
 
           messageCounter++;

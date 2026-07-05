@@ -5,6 +5,7 @@ import {
   getScalarEntityKeyColumns,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
+import EventLoop from "Common/Server/Utils/EventLoop";
 import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import {
@@ -640,7 +641,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
          * the whole batch instead of the one bad resource.
          */
         if (heartbeatScanCounter % 25 === 0) {
-          await Promise.resolve();
+          await EventLoop.yieldToEventLoop();
         }
         heartbeatScanCounter++;
         const resourceForScan: JSONObject | undefined = (
@@ -657,7 +658,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         }
         const scopeMetricsForMax: unknown = (rm as JSONObject)["scopeMetrics"];
         const resourceMax: number | null = Array.isArray(scopeMetricsForMax)
-          ? this.getMaxDatapointTimeUnixNano(scopeMetricsForMax as JSONArray)
+          ? await this.getMaxDatapointTimeUnixNano(
+              scopeMetricsForMax as JSONArray,
+            )
           : null;
         if (
           resourceMax !== null &&
@@ -765,7 +768,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       for (const resourceMetric of resourceMetrics) {
         try {
           if (resourceMetricCounter % 25 === 0) {
-            await Promise.resolve();
+            await EventLoop.yieldToEventLoop();
           }
           resourceMetricCounter++;
           const resourceAttributes_raw: JSONArray =
@@ -1077,7 +1080,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           for (const scopeMetric of scopeMetrics) {
             try {
               if (scopeMetricCounter % 50 === 0) {
-                await Promise.resolve();
+                await EventLoop.yieldToEventLoop();
               }
               scopeMetricCounter++;
               const metrics: JSONArray = scopeMetric["metrics"] as JSONArray;
@@ -1091,7 +1094,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               for (const metric of metrics) {
                 try {
                   if (metricCounter % 100 === 0) {
-                    await Promise.resolve();
+                    await EventLoop.yieldToEventLoop();
                   }
                   metricCounter++;
                   const metricName: string = (metric["name"] || "")
@@ -1207,8 +1210,24 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                             ? MetricPointType.ExponentialHistogram
                             : MetricPointType.Summary;
 
+                    let datapointCounter: number = 0;
                     for (const datapoint of dataPoints) {
                       try {
+                        /*
+                         * A single metric can carry tens of thousands of
+                         * datapoints; yield to the event loop periodically so
+                         * this transform doesn't starve the health probes. The
+                         * `> 0` guard keeps the common many-small-metrics case
+                         * (few datapoints each) from paying a yield per metric —
+                         * the enclosing metric/scope loops already pace those.
+                         */
+                        if (
+                          datapointCounter > 0 &&
+                          datapointCounter % 200 === 0
+                        ) {
+                          await EventLoop.yieldToEventLoop();
+                        }
+                        datapointCounter++;
                         /*
                          * Mirror the latest CPU / memory point of a small
                          * allow-list of metrics into the Postgres snapshot
@@ -3238,13 +3257,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
    * extra pass is cheap relative to the full ingest transform. Returns
    * null when the batch carries no parseable datapoint timestamps.
    */
-  private static getMaxDatapointTimeUnixNano(
+  private static async getMaxDatapointTimeUnixNano(
     scopeMetrics: JSONArray,
-  ): number | null {
+  ): Promise<number | null> {
     if (!Array.isArray(scopeMetrics)) {
       return null;
     }
     let max: number | null = null;
+    let datapointScanCounter: number = 0;
     for (const scopeMetric of scopeMetrics) {
       const metrics: JSONArray | undefined = (scopeMetric as JSONObject)?.[
         "metrics"
@@ -3270,6 +3290,18 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           continue;
         }
         for (const datapoint of dataPoints) {
+          /*
+           * Per-item work here is tiny (one field read), but a single
+           * batch can carry millions of datapoints across all resources.
+           * Yield periodically so this pre-pass — which runs before the
+           * main ingest loop — doesn't starve the health probes. The
+           * `> 0` guard skips the yield when a resource has only a few
+           * datapoints; the caller's per-resource loop already paces those.
+           */
+          if (datapointScanCounter > 0 && datapointScanCounter % 5000 === 0) {
+            await EventLoop.yieldToEventLoop();
+          }
+          datapointScanCounter++;
           const raw: string | number | undefined = (datapoint as JSONObject)?.[
             "timeUnixNano"
           ] as string | number | undefined;

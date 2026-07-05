@@ -4,6 +4,7 @@ import {
   getScalarEntityKeyColumns,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
+import EventLoop from "Common/Server/Utils/EventLoop";
 import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
 import OneUptimeDate from "Common/Types/Date";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
@@ -312,7 +313,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       for (const resourceLog of resourceLogs) {
         try {
           if (resourceLogCounter % 50 === 0) {
-            await Promise.resolve();
+            await EventLoop.yieldToEventLoop();
           }
           resourceLogCounter++;
           const resourceAttributes_raw: JSONArray =
@@ -519,7 +520,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           for (const scopeLog of scopeLogs) {
             try {
               if (scopeLogCounter % 100 === 0) {
-                await Promise.resolve();
+                await EventLoop.yieldToEventLoop();
               }
               scopeLogCounter++;
               const logRecords: JSONArray = scopeLog["logRecords"] as JSONArray;
@@ -533,7 +534,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               for (const log of logRecords) {
                 try {
                   if (logRecordCounter % 500 === 0) {
-                    await Promise.resolve();
+                    await EventLoop.yieldToEventLoop();
                   }
                   logRecordCounter++;
 
