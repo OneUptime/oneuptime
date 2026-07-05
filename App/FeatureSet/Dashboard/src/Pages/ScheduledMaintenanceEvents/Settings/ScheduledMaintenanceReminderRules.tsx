@@ -11,6 +11,7 @@ import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ScheduledMaintenanceReminderStopState from "Common/Types/Reminder/ScheduledMaintenanceReminderStopState";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 
 const documentationMarkdown: string = `
 ### How Scheduled Maintenance Reminder Rules Work
@@ -172,12 +173,33 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
           },
         ]}
         viewPageRoute={Navigation.getCurrentRoute()}
+        formSteps={
+          [
+            {
+              id: "rule-info",
+              title: "Rule Info",
+            },
+            {
+              id: "match-criteria",
+              title: "Match Criteria",
+            },
+            {
+              id: "reminder-settings",
+              title: "Reminder Settings",
+            },
+            {
+              id: "status",
+              title: "Status",
+            },
+          ] as Array<FormStep<ScheduledMaintenanceReminderRule>>
+        }
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "rule-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Maintenance Event Reminders",
@@ -190,6 +212,7 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "rule-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder:
@@ -200,6 +223,7 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
               labels: true,
             },
             title: "Labels",
+            stepId: "match-criteria",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
               type: Label,
@@ -216,6 +240,7 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
               reminderIntervalInMinutes: true,
             },
             title: "Reminder Interval (minutes)",
+            stepId: "reminder-settings",
             fieldType: FormFieldSchemaType.Number,
             required: true,
             placeholder: "30",
@@ -227,6 +252,7 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
               stopRemindersOnState: true,
             },
             title: "Stop Reminders When",
+            stepId: "reminder-settings",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: [
               {
@@ -248,6 +274,7 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
               remindWhileScheduled: true,
             },
             title: "Remind While Event is Scheduled",
+            stepId: "reminder-settings",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
@@ -258,6 +285,7 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
               isEnabled: true,
             },
             title: "Enabled",
+            stepId: "status",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description: "Enable or disable this reminder rule.",

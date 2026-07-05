@@ -408,6 +408,7 @@ import { AddEnterpriseLicenseInstance1783226868418 } from "./1783226868418-AddEn
 import { AddIncidentAlertReminderRules1783234451106 } from "./1783234451106-AddIncidentAlertReminderRules";
 import { AddScheduledMaintenanceReminderRules1783320000000 } from "./1783320000000-AddScheduledMaintenanceReminderRules";
 import { AddRemindWhileScheduledToScheduledMaintenanceReminderRule1783330000000 } from "./1783330000000-AddRemindWhileScheduledToScheduledMaintenanceReminderRule";
+import { AddLabelsToIncidentAndAlertReminderRules1783340000000 } from "./1783340000000-AddLabelsToIncidentAndAlertReminderRules";
 
 export default [
   InitialMigration,
@@ -820,4 +821,5 @@ export default [
   AddIncidentAlertReminderRules1783234451106,
   AddScheduledMaintenanceReminderRules1783320000000,
   AddRemindWhileScheduledToScheduledMaintenanceReminderRule1783330000000,
+  AddLabelsToIncidentAndAlertReminderRules1783340000000,
 ];

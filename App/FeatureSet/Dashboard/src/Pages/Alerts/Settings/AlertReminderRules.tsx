@@ -10,7 +10,10 @@ import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import Label from "Common/Models/DatabaseModels/Label";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import ReminderStopState from "Common/Types/Reminder/ReminderStopState";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 
 const documentationMarkdown: string = `
 ### How Alert Reminder Rules Work
@@ -81,6 +84,10 @@ const AlertReminderRulesPage: FunctionComponent<
         selectMoreFields={{
           order: true,
           isEnabled: true,
+          labels: {
+            name: true,
+            color: true,
+          },
         }}
         filters={[
           {
@@ -129,6 +136,19 @@ const AlertReminderRulesPage: FunctionComponent<
           },
           {
             field: {
+              labels: {
+                name: true,
+                color: true,
+              },
+            },
+            title: "Labels",
+            type: FieldType.Element,
+            getElement: (item: AlertReminderRule): ReactElement => {
+              return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
               isEnabled: true,
             },
             title: "Status",
@@ -142,12 +162,33 @@ const AlertReminderRulesPage: FunctionComponent<
           },
         ]}
         viewPageRoute={Navigation.getCurrentRoute()}
+        formSteps={
+          [
+            {
+              id: "rule-info",
+              title: "Rule Info",
+            },
+            {
+              id: "match-criteria",
+              title: "Match Criteria",
+            },
+            {
+              id: "reminder-settings",
+              title: "Reminder Settings",
+            },
+            {
+              id: "status",
+              title: "Status",
+            },
+          ] as Array<FormStep<AlertReminderRule>>
+        }
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "rule-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Critical Alert Reminders",
@@ -160,6 +201,7 @@ const AlertReminderRulesPage: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "rule-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder:
@@ -170,6 +212,7 @@ const AlertReminderRulesPage: FunctionComponent<
               alertSeverities: true,
             },
             title: "Alert Severities",
+            stepId: "match-criteria",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
               type: AlertSeverity,
@@ -183,9 +226,27 @@ const AlertReminderRulesPage: FunctionComponent<
           },
           {
             field: {
+              labels: true,
+            },
+            title: "Labels",
+            stepId: "match-criteria",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Label,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Select Labels (optional)",
+            description:
+              "Only apply this rule to alerts with these labels. Leave empty to match alerts with any labels.",
+          },
+          {
+            field: {
               reminderIntervalInMinutes: true,
             },
             title: "Reminder Interval (minutes)",
+            stepId: "reminder-settings",
             fieldType: FormFieldSchemaType.Number,
             required: true,
             placeholder: "30",
@@ -197,6 +258,7 @@ const AlertReminderRulesPage: FunctionComponent<
               stopRemindersOnState: true,
             },
             title: "Stop Reminders When",
+            stepId: "reminder-settings",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions:
               DropdownUtil.getDropdownOptionsFromEnum(ReminderStopState),
@@ -210,6 +272,7 @@ const AlertReminderRulesPage: FunctionComponent<
               isEnabled: true,
             },
             title: "Enabled",
+            stepId: "status",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description: "Enable or disable this reminder rule.",

@@ -33,37 +33,44 @@ export interface ComponentProps {
 
 interface MatchableRule {
   reminderIntervalInMinutes: number | undefined;
-  matchIds: Array<string>;
+  severityIds: Array<string>;
+  labelIds: Array<string>;
+}
+
+interface MatchCandidate {
+  severityIds: Array<string>;
+  labelIds: Array<string>;
 }
 
 /*
  * Mirrors the server-side matching in the reminder rule services' findMatchingRule:
- * first enabled rule (by order) whose match list is empty or intersects the candidate
- * ids (severity for incidents/alerts, labels for scheduled maintenance events).
+ * first enabled rule (by order) that matches the candidate. A rule matches when BOTH
+ * the severity dimension AND the label dimension match, where each dimension matches
+ * if the rule's list is empty or intersects the candidate's list.
  */
 const getMatchingIntervalInMinutes: (
   rules: Array<MatchableRule>,
-  candidateIds: Array<string>,
+  candidate: MatchCandidate,
 ) => number | null = (
   rules: Array<MatchableRule>,
-  candidateIds: Array<string>,
+  candidate: MatchCandidate,
 ): number | null => {
   for (const rule of rules) {
-    if (rule.matchIds.length > 0) {
-      if (candidateIds.length === 0) {
-        continue;
-      }
-
-      const hasMatch: boolean = candidateIds.some((candidateId: string) => {
-        return rule.matchIds.includes(candidateId);
+    const severityMatches: boolean =
+      rule.severityIds.length === 0 ||
+      candidate.severityIds.some((id: string) => {
+        return rule.severityIds.includes(id);
       });
 
-      if (!hasMatch) {
-        continue;
-      }
-    }
+    const labelMatches: boolean =
+      rule.labelIds.length === 0 ||
+      candidate.labelIds.some((id: string) => {
+        return rule.labelIds.includes(id);
+      });
 
-    return rule.reminderIntervalInMinutes || null;
+    if (severityMatches && labelMatches) {
+      return rule.reminderIntervalInMinutes || null;
+    }
   }
 
   return null;
@@ -143,6 +150,9 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
                 incidentSeverities: {
                   _id: true,
                 },
+                labels: {
+                  _id: true,
+                },
               },
               sort: {
                 order: SortOrder.Ascending,
@@ -153,11 +163,14 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
             (rule: IncidentReminderRule): MatchableRule => {
               return {
                 reminderIntervalInMinutes: rule.reminderIntervalInMinutes,
-                matchIds: (rule.incidentSeverities || []).map(
+                severityIds: (rule.incidentSeverities || []).map(
                   (severity: IncidentSeverity): string => {
                     return severity.id?.toString() || "";
                   },
                 ),
+                labelIds: (rule.labels || []).map((label: Label): string => {
+                  return label.id?.toString() || "";
+                }),
               };
             },
           );
@@ -176,6 +189,9 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
                 alertSeverities: {
                   _id: true,
                 },
+                labels: {
+                  _id: true,
+                },
               },
               sort: {
                 order: SortOrder.Ascending,
@@ -186,11 +202,14 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
             (rule: AlertReminderRule): MatchableRule => {
               return {
                 reminderIntervalInMinutes: rule.reminderIntervalInMinutes,
-                matchIds: (rule.alertSeverities || []).map(
+                severityIds: (rule.alertSeverities || []).map(
                   (severity: AlertSeverity): string => {
                     return severity.id?.toString() || "";
                   },
                 ),
+                labelIds: (rule.labels || []).map((label: Label): string => {
+                  return label.id?.toString() || "";
+                }),
               };
             },
           );
@@ -219,7 +238,8 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
             (rule: ScheduledMaintenanceReminderRule): MatchableRule => {
               return {
                 reminderIntervalInMinutes: rule.reminderIntervalInMinutes,
-                matchIds: (rule.labels || []).map((label: Label): string => {
+                severityIds: [],
+                labelIds: (rule.labels || []).map((label: Label): string => {
                   return label.id?.toString() || "";
                 }),
               };
@@ -227,18 +247,16 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
           );
         }
 
-        const candidateIds: Array<string> =
-          props.scope === ReminderRuleScope.ScheduledMaintenance
-            ? (props.labelIds || []).map((labelId: ObjectID): string => {
-                return labelId.toString();
-              })
-            : props.severityId
-              ? [props.severityId.toString()]
-              : [];
+        const candidate: MatchCandidate = {
+          severityIds: props.severityId ? [props.severityId.toString()] : [],
+          labelIds: (props.labelIds || []).map((labelId: ObjectID): string => {
+            return labelId.toString();
+          }),
+        };
 
         if (isMounted) {
           setIntervalInMinutes(
-            getMatchingIntervalInMinutes(matchableRules, candidateIds),
+            getMatchingIntervalInMinutes(matchableRules, candidate),
           );
         }
       };

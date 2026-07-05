@@ -242,6 +242,9 @@ export class Service extends DatabaseService<Model> {
       select: {
         enableReminders: true,
         incidentSeverityId: true,
+        labels: {
+          _id: true,
+        },
       },
       props: {
         isRoot: true,
@@ -259,6 +262,9 @@ export class Service extends DatabaseService<Model> {
         await IncidentReminderRuleService.findMatchingRule({
           projectId: data.projectId,
           incidentSeverityId: incident.incidentSeverityId,
+          labelIds: incident.labels?.map((label: Label) => {
+            return label.id!;
+          }),
         });
 
       if (
@@ -2070,6 +2076,28 @@ ${labels
 `;
 
             shouldAddIncidentFeed = true;
+          }
+        }
+
+        // Re-match reminder rule on any labels change (including clearing all
+        // labels), since labels can change which reminder rule matches.
+        if (
+          updatedIncidentData.labels &&
+          Array.isArray(updatedIncidentData.labels)
+        ) {
+          try {
+            await this.refreshReminderSchedule({
+              incidentId: incidentId,
+              projectId: projectId,
+            });
+          } catch (reminderError) {
+            logger.error(
+              `Reminder rescheduling failed in IncidentService.onUpdateSuccess: ${reminderError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
           }
         }
 

@@ -5,6 +5,7 @@ import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/IncidentReminderRule";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
+import Label from "../../Models/DatabaseModels/Label";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentService from "./IncidentService";
 import IncidentStateService from "./IncidentStateService";
@@ -168,6 +169,7 @@ export class Service extends DatabaseService<Model> {
   public async findMatchingRule(data: {
     projectId: ObjectID;
     incidentSeverityId?: ObjectID | undefined;
+    labelIds?: Array<ObjectID> | undefined;
   }): Promise<Model | null> {
     // Get all enabled rules sorted by order. First matching rule wins.
     const rules: Array<Model> = await this.findBy({
@@ -185,6 +187,9 @@ export class Service extends DatabaseService<Model> {
         reminderIntervalInMinutes: true,
         stopRemindersOnState: true,
         incidentSeverities: {
+          _id: true,
+        },
+        labels: {
           _id: true,
         },
       },
@@ -212,7 +217,30 @@ export class Service extends DatabaseService<Model> {
         }
       }
 
-      // Rule with no severities matches all incidents.
+      if (rule.labels && rule.labels.length > 0) {
+        if (!data.labelIds || data.labelIds.length === 0) {
+          continue;
+        }
+
+        const ruleLabelIds: Array<string> = rule.labels.map((label: Label) => {
+          return label.id?.toString() || "";
+        });
+
+        const hasMatchingLabel: boolean = data.labelIds.some(
+          (labelId: ObjectID) => {
+            return ruleLabelIds.includes(labelId.toString());
+          },
+        );
+
+        if (!hasMatchingLabel) {
+          continue;
+        }
+      }
+
+      /*
+       * Rule matched: (no severities OR severity matches) AND
+       * (no labels OR labels intersect). A rule with neither matches all.
+       */
       logger.debug(
         `Incident reminder rule ${rule.name || rule.id} matched for project ${data.projectId}`,
         { projectId: data.projectId?.toString() } as LogAttributes,

@@ -19,6 +19,7 @@ import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
+import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
@@ -59,6 +60,9 @@ RunCron(
         incidentSeverity: {
           name: true,
         },
+        labels: {
+          _id: true,
+        },
         currentIncidentState: {
           name: true,
         },
@@ -98,12 +102,15 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
 
   /*
    * Re-match the reminder rule on every send so rule edits
-   * (interval, severities, enabled) apply to open incidents immediately.
+   * (interval, severities, labels, enabled) apply to open incidents immediately.
    */
   const rule: IncidentReminderRule | null =
     await IncidentReminderRuleService.findMatchingRule({
       projectId: projectId,
       incidentSeverityId: incident.incidentSeverityId,
+      labelIds: incident.labels?.map((label: Label) => {
+        return label.id!;
+      }),
     });
 
   const stopReminders: () => Promise<void> = async (): Promise<void> => {

@@ -133,6 +133,9 @@ export class Service extends DatabaseService<Model> {
       select: {
         enableReminders: true,
         alertSeverityId: true,
+        labels: {
+          _id: true,
+        },
       },
       props: {
         isRoot: true,
@@ -150,6 +153,9 @@ export class Service extends DatabaseService<Model> {
         await AlertReminderRuleService.findMatchingRule({
           projectId: data.projectId,
           alertSeverityId: alert.alertSeverityId,
+          labelIds: alert.labels?.map((label: Label) => {
+            return label.id!;
+          }),
         });
 
       if (
@@ -1166,10 +1172,12 @@ ${alertSeverity.name}
           }
         }
 
-        // Re-evaluate reminder schedule when severity changes or reminders are toggled
+        // Re-evaluate reminder schedule when severity or labels change or reminders are toggled
         if (
           (onUpdate.updateBy.data.alertSeverity &&
             (onUpdate.updateBy.data.alertSeverity as any)._id) ||
+          (onUpdate.updateBy.data.labels &&
+            Array.isArray(onUpdate.updateBy.data.labels)) ||
           Object.prototype.hasOwnProperty.call(
             onUpdate.updateBy.data,
             "enableReminders",

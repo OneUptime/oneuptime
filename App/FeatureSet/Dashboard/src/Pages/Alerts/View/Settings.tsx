@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import Label from "Common/Models/DatabaseModels/Label";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -99,6 +100,9 @@ const AlertSettings: FunctionComponent<
                   <NextReminderCountdown
                     nextReminderAt={item.nextReminderNotificationAt}
                     severityId={item.alertSeverityId}
+                    labelIds={(item.labels || []).map((label: Label) => {
+                      return label.id!;
+                    })}
                     scope={ReminderRuleScope.Alert}
                     remindersEnabled={item.enableReminders !== false}
                   />
@@ -115,6 +119,9 @@ const AlertSettings: FunctionComponent<
           ],
           selectMoreFields: {
             alertSeverityId: true,
+            labels: {
+              _id: true,
+            },
           },
           modelId: modelId,
         }}

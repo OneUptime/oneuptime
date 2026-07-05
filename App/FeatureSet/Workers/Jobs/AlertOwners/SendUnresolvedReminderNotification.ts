@@ -19,6 +19,7 @@ import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
+import Label from "Common/Models/DatabaseModels/Label";
 import User from "Common/Models/DatabaseModels/User";
 import AlertFeedService from "Common/Server/Services/AlertFeedService";
 import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
@@ -56,6 +57,9 @@ RunCron(
         alertSeverityId: true,
         alertSeverity: {
           name: true,
+        },
+        labels: {
+          _id: true,
         },
         currentAlertState: {
           name: true,
@@ -99,6 +103,9 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
     await AlertReminderRuleService.findMatchingRule({
       projectId: projectId,
       alertSeverityId: alert.alertSeverityId,
+      labelIds: alert.labels?.map((label: Label) => {
+        return label.id!;
+      }),
     });
 
   const stopReminders: () => Promise<void> = async (): Promise<void> => {
