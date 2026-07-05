@@ -28,7 +28,15 @@ import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+
+/*
+ * Preview-only cap on the fingerprints fetched per status and embedded in
+ * the preview query (the list rides in the analytics list request body on
+ * every refetch). The worker applies the full exclusion at evaluation time;
+ * beyond this cap the preview may show some resolved/archived occurrences
+ * that the monitor itself will not count.
+ */
+const PREVIEW_EXCLUDED_FINGERPRINT_LIMIT: number = 1000;
 
 export interface ComponentProps {
   monitorStepExceptionMonitor: MonitorStepExceptionMonitor;
@@ -176,46 +184,93 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
     });
   };
 
+  /*
+   * The preview (fingerprint lookup + instance table) is driven by a
+   * debounced copy of the form values so keystrokes in the message /
+   * exception-type fields don't fire a table refetch per character —
+   * each recompute stamps a fresh time window into the query, which
+   * defeats the table's own change detection.
+   */
+  const [debouncedFormValues, setDebouncedFormValues] =
+    useState<ExceptionMonitorFormValues>(formValues);
+
+  useEffect(() => {
+    const timer: ReturnType<typeof setTimeout> = setTimeout((): void => {
+      setDebouncedFormValues(formValues);
+    }, 500);
+
+    return (): void => {
+      clearTimeout(timer);
+    };
+  }, [formValues]);
+
   const [excludedFingerprints, setExcludedFingerprints] = useState<
     Array<string>
   >([]);
+
+  /*
+   * Bail out when the fetched fingerprints match current state — a new
+   * array reference would recompute previewQuery (fresh time window) and
+   * force a redundant preview-table refetch.
+   */
+  const applyExcludedFingerprints: (next: Array<string>) => void = (
+    next: Array<string>,
+  ): void => {
+    setExcludedFingerprints((current: Array<string>): Array<string> => {
+      const sortedNext: Array<string> = [...next].sort();
+      const sortedCurrent: Array<string> = [...current].sort();
+
+      if (
+        sortedCurrent.length === sortedNext.length &&
+        sortedCurrent.every((fingerprint: string, i: number): boolean => {
+          return fingerprint === sortedNext[i];
+        })
+      ) {
+        return current;
+      }
+
+      return next;
+    });
+  };
 
   /*
    * Mirror the worker's evaluation: unless the monitor opts in, occurrences
    * of resolved/archived exception groups don't count, so the preview must
    * exclude them too. Group state lives on TelemetryException (Postgres);
    * the fingerprint is the join key to the ExceptionInstance rows shown in
-   * the preview table. Fail-soft: if this lookup fails the preview simply
-   * shows unfiltered instances.
+   * the preview table. Fail-soft and best-effort: if this lookup fails the
+   * preview simply shows unfiltered instances, and the list is capped at
+   * PREVIEW_EXCLUDED_FINGERPRINT_LIMIT per status — the worker applies the
+   * full exclusion at evaluation time regardless.
    */
   const telemetryServiceIdsKey: string =
-    formValues.telemetryServiceIds.join(",");
+    debouncedFormValues.telemetryServiceIds.join(",");
 
   useEffect(() => {
     let isCancelled: boolean = false;
 
     const fetchExcludedFingerprints: () => Promise<void> =
       async (): Promise<void> => {
-        const excludeResolved: boolean = !formValues.includeResolved;
-        const excludeArchived: boolean = !formValues.includeArchived;
+        const excludeResolved: boolean = !debouncedFormValues.includeResolved;
+        const excludeArchived: boolean = !debouncedFormValues.includeArchived;
 
         if (!excludeResolved && !excludeArchived) {
           if (!isCancelled) {
-            setExcludedFingerprints([]);
+            applyExcludedFingerprints([]);
           }
           return;
         }
 
         try {
           /*
-           * Same bound the worker uses: only groups seen near the monitor
-           * window can have occurrences inside it (ingestion advances
-           * lastSeenAt with every occurrence). The extra hour absorbs
-           * client/server clock skew.
+           * Fixed lookback of the largest selectable window plus slack —
+           * independent of the selected duration so changing the dropdown
+           * doesn't refetch. Over-fetching is harmless: excluding a
+           * fingerprint with no occurrences in the window is a no-op.
            */
           const lastSeenAfter: Date = OneUptimeDate.addRemoveSeconds(
             OneUptimeDate.getCurrentDate(),
-            ((formValues.lastXSecondsOfExceptions || 60) + 3600) * -1,
+            (86400 + 3600) * -1,
           );
 
           const statusFilters: Array<Query<TelemetryException>> = [];
@@ -228,13 +283,14 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             statusFilters.push({ isArchived: true });
           }
 
-          const serviceIds: Array<ObjectID> = formValues.telemetryServiceIds
-            .filter((id: string): boolean => {
-              return Boolean(id);
-            })
-            .map((id: string): ObjectID => {
-              return new ObjectID(id);
-            });
+          const serviceIds: Array<ObjectID> =
+            debouncedFormValues.telemetryServiceIds
+              .filter((id: string): boolean => {
+                return Boolean(id);
+              })
+              .map((id: string): ObjectID => {
+                return new ObjectID(id);
+              });
 
           const results: Array<ListResult<TelemetryException>> =
             await Promise.all(
@@ -255,7 +311,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
                   return ModelAPI.getList<TelemetryException>({
                     modelType: TelemetryException,
                     query: query,
-                    limit: LIMIT_PER_PROJECT,
+                    limit: PREVIEW_EXCLUDED_FINGERPRINT_LIMIT,
                     skip: 0,
                     select: {
                       fingerprint: true,
@@ -279,11 +335,11 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
           }
 
           if (!isCancelled) {
-            setExcludedFingerprints(Array.from(fingerprints));
+            applyExcludedFingerprints(Array.from(fingerprints));
           }
         } catch {
           if (!isCancelled) {
-            setExcludedFingerprints([]);
+            applyExcludedFingerprints([]);
           }
         }
       };
@@ -296,15 +352,14 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
       isCancelled = true;
     };
   }, [
-    formValues.includeResolved,
-    formValues.includeArchived,
-    formValues.lastXSecondsOfExceptions,
+    debouncedFormValues.includeResolved,
+    debouncedFormValues.includeArchived,
     telemetryServiceIdsKey,
   ]);
 
   const previewQuery: Query<ExceptionInstance> = useMemo(() => {
     const monitorConfig: MonitorStepExceptionMonitor =
-      toMonitorConfig(formValues);
+      toMonitorConfig(debouncedFormValues);
 
     const query: Query<ExceptionInstance> =
       MonitorStepExceptionMonitorUtil.toAnalyticsQuery(monitorConfig);
@@ -316,7 +371,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
     return JSONFunctions.anyObjectToJSONObject(
       query,
     ) as Query<ExceptionInstance>;
-  }, [formValues, excludedFingerprints]);
+  }, [debouncedFormValues, excludedFingerprints]);
 
   return (
     <div>

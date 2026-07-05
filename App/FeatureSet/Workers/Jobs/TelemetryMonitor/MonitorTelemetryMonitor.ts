@@ -1101,7 +1101,10 @@ const monitorException: MonitorExceptionFunction = async (data: {
    * (TelemetryException); occurrences live in ClickHouse — fingerprints
    * are the join key, so the count query excludes the resolved/archived
    * ones. Ingestion un-resolves a group on any new occurrence, so a
-   * recurring exception is counted again automatically.
+   * recurring exception is counted again automatically. (If that
+   * best-effort ingest upsert fails, a recurring-but-still-flagged group
+   * stays excluded until the next successful occurrence upsert — accepted:
+   * ingest failures are logged loudly and the next occurrence heals it.)
    */
   const countQuery: Query<ExceptionInstance> = { ...analyticsQuery };
 
@@ -1109,24 +1112,12 @@ const monitorException: MonitorExceptionFunction = async (data: {
   const excludeArchived: boolean = !exceptionMonitorConfig.includeArchived;
 
   if (excludeResolved || excludeArchived) {
-    /*
-     * Only groups seen near the monitor window can have occurrences in
-     * it (lastSeenAt advances with every occurrence). The extra hour
-     * absorbs clock skew between client-reported occurrence time and
-     * the server-side lastSeenAt.
-     */
-    const lastSeenAfter: Date = OneUptimeDate.addRemoveSeconds(
-      OneUptimeDate.getCurrentDate(),
-      ((exceptionMonitorConfig.lastXSecondsOfExceptions || 60) + 3600) * -1,
-    );
-
     const excludedFingerprints: Array<string> =
       await TelemetryExceptionService.getResolvedOrArchivedFingerprints({
         projectId: data.projectId,
         telemetryServiceIds: exceptionMonitorConfig.telemetryServiceIds,
         resolved: excludeResolved,
         archived: excludeArchived,
-        lastSeenAfter: lastSeenAfter,
       });
 
     if (excludedFingerprints.length > 0) {

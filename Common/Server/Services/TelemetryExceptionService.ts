@@ -17,8 +17,15 @@ import ModelPermission from "../Types/Database/Permissions/Index";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Query from "../Types/Database/Query";
 import Includes from "../../Types/BaseDatabase/Includes";
-import GreaterThanOrEqual from "../../Types/BaseDatabase/GreaterThanOrEqual";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import logger from "../Utils/Logger";
+
+/*
+ * Hard cap on the fingerprint NOT IN list handed to the ClickHouse count
+ * query. ClickHouse receives query params via the request URI (default
+ * http_max_uri_size 1 MiB ≈ 14k sha256 fingerprints); 5k keeps a wide
+ * safety margin while covering all realistic projects.
+ */
+export const EXCLUDED_FINGERPRINT_LIMIT: number = 5000;
 
 export interface CreateAIAgentTaskForExceptionParams {
   telemetryExceptionId: ObjectID;
@@ -269,22 +276,27 @@ export class Service extends DatabaseService<Model> {
 
   /**
    * Fingerprints of exception groups marked resolved and/or archived —
-   * used by the exception monitor (and its dashboard preview) to exclude
-   * occurrences of those groups from the exception count. Resolution
-   * state lives on this Postgres model per (projectId, primaryEntityId,
-   * fingerprint) group, while occurrences live in ClickHouse; fingerprints
-   * are the join key. Fingerprints hash projectId + primaryEntityId into
-   * the digest, so a fingerprint never collides across services and
-   * excluding by fingerprint alone is exact.
+   * used by the exception monitor to exclude occurrences of those groups
+   * from the exception count. Resolution state lives on this Postgres
+   * model per (projectId, primaryEntityId, fingerprint) group, while
+   * occurrences live in ClickHouse; fingerprints are the join key.
+   * Fingerprints hash projectId + primaryEntityId into the digest, so a
+   * fingerprint never collides across services and excluding by
+   * fingerprint alone is exact.
    *
-   * `lastSeenAfter` bounds the scan to groups seen since that time.
-   * Ingestion advances lastSeenAt with every new occurrence (and clears
-   * isResolved), so groups whose lastSeenAt predates the monitor window
-   * cannot have occurrences inside it — skipping them keeps the exclusion
-   * list proportional to recently-active groups. If more than
-   * LIMIT_PER_PROJECT groups match, the most recently seen ones win and
-   * the overflow stays counted (fail-open: better a stale incident than
-   * a silently swallowed one).
+   * The result is capped at EXCLUDED_FINGERPRINT_LIMIT, keeping the most
+   * recently seen groups: the ClickHouse client ships query params in the
+   * request URI, so an unbounded NOT IN list would blow past ClickHouse's
+   * http_max_uri_size (~1 MiB, roughly 14k fingerprints) and hard-fail the
+   * monitor's count query. Overflow groups simply stay counted (fail-open:
+   * better a stale incident than a silently swallowed one), and the
+   * lastSeenAt-descending order means what gets dropped is the groups
+   * least likely to have occurrences in the monitor window.
+   *
+   * Deliberately NO lastSeenAt lower bound: ExceptionInstance.time is the
+   * client-reported occurrence timestamp while lastSeenAt is server-side
+   * ingest time, so any window-derived cutoff breaks under client clock
+   * skew (and under monitor configs with no time window at all).
    */
   @CaptureSpan()
   public async getResolvedOrArchivedFingerprints(data: {
@@ -292,7 +304,6 @@ export class Service extends DatabaseService<Model> {
     telemetryServiceIds?: Array<ObjectID> | undefined;
     resolved: boolean;
     archived: boolean;
-    lastSeenAfter?: Date | undefined;
   }): Promise<Array<string>> {
     const statusFilters: Array<Query<Model>> = [];
 
@@ -308,46 +319,69 @@ export class Service extends DatabaseService<Model> {
       return [];
     }
 
-    const fingerprints: Set<string> = new Set<string>();
-
     // resolved-OR-archived needs two indexed lookups — findBy has no OR.
-    await Promise.all(
-      statusFilters.map(async (statusFilter: Query<Model>): Promise<void> => {
-        const query: Query<Model> = {
-          projectId: data.projectId,
-          ...statusFilter,
-        };
+    const resultsPerStatus: Array<Array<Model>> = await Promise.all(
+      statusFilters.map(
+        async (statusFilter: Query<Model>): Promise<Array<Model>> => {
+          const query: Query<Model> = {
+            projectId: data.projectId,
+            ...statusFilter,
+          };
 
-        if (data.telemetryServiceIds && data.telemetryServiceIds.length > 0) {
-          query.primaryEntityId = new Includes(data.telemetryServiceIds);
-        }
-
-        if (data.lastSeenAfter) {
-          query.lastSeenAt = new GreaterThanOrEqual<Date>(data.lastSeenAfter);
-        }
-
-        const exceptions: Array<Model> = await this.findBy({
-          query: query,
-          select: {
-            fingerprint: true,
-          },
-          sort: {
-            lastSeenAt: SortOrder.Descending,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
-
-        for (const exception of exceptions) {
-          if (exception.fingerprint) {
-            fingerprints.add(exception.fingerprint);
+          if (data.telemetryServiceIds && data.telemetryServiceIds.length > 0) {
+            query.primaryEntityId = new Includes(data.telemetryServiceIds);
           }
-        }
-      }),
+
+          /*
+           * Per-status limit equals the final cap: the merged most-recent
+           * EXCLUDED_FINGERPRINT_LIMIT groups are necessarily within the
+           * top EXCLUDED_FINGERPRINT_LIMIT of their own status query.
+           */
+          return this.findBy({
+            query: query,
+            select: {
+              fingerprint: true,
+              lastSeenAt: true,
+            },
+            sort: {
+              lastSeenAt: SortOrder.Descending,
+            },
+            limit: EXCLUDED_FINGERPRINT_LIMIT,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+        },
+      ),
     );
+
+    // Merge the status lists most-recently-seen first, dedupe, then cap.
+    const merged: Array<Model> = resultsPerStatus
+      .flat()
+      .sort((a: Model, b: Model): number => {
+        return (b.lastSeenAt?.getTime() || 0) - (a.lastSeenAt?.getTime() || 0);
+      });
+
+    const fingerprints: Set<string> = new Set<string>();
+    let truncated: boolean = false;
+
+    for (const exception of merged) {
+      if (!exception.fingerprint) {
+        continue;
+      }
+      if (fingerprints.size >= EXCLUDED_FINGERPRINT_LIMIT) {
+        truncated = true;
+        break;
+      }
+      fingerprints.add(exception.fingerprint);
+    }
+
+    if (truncated) {
+      logger.warn(
+        `TelemetryException fingerprint exclusion list for project ${data.projectId.toString()} exceeds ${EXCLUDED_FINGERPRINT_LIMIT}; least recently seen resolved/archived exception groups will still be counted by exception monitors.`,
+      );
+    }
 
     return Array.from(fingerprints);
   }
