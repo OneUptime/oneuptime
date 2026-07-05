@@ -7,6 +7,7 @@ import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/Ente
 import EnterpriseLicenseUsageUtil from "../../Utils/EnterpriseLicense/EnterpriseLicenseUsage";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import EnterpriseLicenseService, {
   Service as EnterpriseLicenseServiceType,
@@ -33,6 +34,13 @@ export interface LicenseInstanceUpsert {
   userEmailHashes?: Array<string> | undefined;
   lastReportedAt?: Date | undefined;
 }
+
+/*
+ * Bounds how many instance rows one license key can register. Real customers
+ * run a handful of instances; this stops a leaked key from being used to
+ * fill the table with junk rows.
+ */
+const MAX_INSTANCES_PER_LICENSE: number = 100;
 
 export default class EnterpriseLicenseAPI extends BaseAPI<
   EnterpriseLicense,
@@ -325,53 +333,26 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
   private async upsertLicenseInstance(
     data: LicenseInstanceUpsert,
   ): Promise<void> {
-    const existingInstance: EnterpriseLicenseInstance | null =
-      await EnterpriseLicenseInstanceService.findOneBy({
+    const updated: boolean = await this.updateLicenseInstanceIfExists(data);
+
+    if (updated) {
+      return;
+    }
+
+    const instanceCount: PositiveNumber =
+      await EnterpriseLicenseInstanceService.countBy({
         query: {
           enterpriseLicenseId: data.licenseId,
-          instanceId: data.instanceId,
-        },
-        select: {
-          _id: true,
         },
         props: {
           isRoot: true,
         },
       });
 
-    if (existingInstance) {
-      const updateData: PartialEntity<EnterpriseLicenseInstance> = {};
-
-      if (data.host !== undefined) {
-        updateData.host = data.host;
-      }
-
-      if (data.userCount !== undefined) {
-        updateData.userCount = data.userCount;
-      }
-
-      if (data.userEmailHashes !== undefined) {
-        updateData.userEmailHashes = data.userEmailHashes;
-      }
-
-      if (data.lastReportedAt !== undefined) {
-        updateData.lastReportedAt = data.lastReportedAt;
-      }
-
-      if (Object.keys(updateData).length === 0) {
-        return;
-      }
-
-      await EnterpriseLicenseInstanceService.updateOneById({
-        id: existingInstance.id!,
-        data: updateData,
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
-
-      return;
+    if (instanceCount.toNumber() >= MAX_INSTANCES_PER_LICENSE) {
+      throw new BadDataException(
+        "Too many instances are registered for this license. Please contact support@oneuptime.com.",
+      );
     }
 
     const newInstance: EnterpriseLicenseInstance =
@@ -395,11 +376,77 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
       newInstance.lastReportedAt = data.lastReportedAt;
     }
 
-    await EnterpriseLicenseInstanceService.create({
-      data: newInstance,
-      props: {
-        isRoot: true,
-      },
-    });
+    try {
+      await EnterpriseLicenseInstanceService.create({
+        data: newInstance,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (err) {
+      /*
+       * A concurrent request created the row between our check and this
+       * insert — the unique index on (enterpriseLicenseId, instanceId)
+       * rejected the duplicate. Apply the report as an update instead.
+       */
+      const retried: boolean = await this.updateLicenseInstanceIfExists(data);
+
+      if (!retried) {
+        throw err;
+      }
+    }
+  }
+
+  private async updateLicenseInstanceIfExists(
+    data: LicenseInstanceUpsert,
+  ): Promise<boolean> {
+    const existingInstance: EnterpriseLicenseInstance | null =
+      await EnterpriseLicenseInstanceService.findOneBy({
+        query: {
+          enterpriseLicenseId: data.licenseId,
+          instanceId: data.instanceId,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!existingInstance) {
+      return false;
+    }
+
+    const updateData: PartialEntity<EnterpriseLicenseInstance> = {};
+
+    if (data.host !== undefined) {
+      updateData.host = data.host;
+    }
+
+    if (data.userCount !== undefined) {
+      updateData.userCount = data.userCount;
+    }
+
+    if (data.userEmailHashes !== undefined) {
+      updateData.userEmailHashes = data.userEmailHashes;
+    }
+
+    if (data.lastReportedAt !== undefined) {
+      updateData.lastReportedAt = data.lastReportedAt;
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await EnterpriseLicenseInstanceService.updateOneById({
+        id: existingInstance.id!,
+        data: updateData,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    }
+
+    return true;
   }
 }

@@ -114,6 +114,14 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     Array<EnterpriseLicenseInstanceSummary>
   >([]);
   const [thisInstanceId, setThisInstanceId] = useState<string>("");
+  /*
+   * Validity as computed by the server. The server redacts the license
+   * token for signed-out visitors (e.g. on the login page), so the client
+   * cannot always derive validity from the token itself.
+   */
+  const [serverLicenseValid, setServerLicenseValid] = useState<boolean | null>(
+    null,
+  );
   const licenseInputEditedRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
@@ -191,6 +199,11 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
             ? payload["instanceId"]
             : "",
         );
+        setServerLicenseValid(
+          typeof payload["licenseValid"] === "boolean"
+            ? payload["licenseValid"]
+            : null,
+        );
 
         if (!licenseInputEditedRef.current) {
           setLicenseKeyInput(configModel.enterpriseLicenseKey || "");
@@ -198,6 +211,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       } catch (err) {
         setGlobalConfig(null);
         setLicenseInstances([]);
+        setServerLicenseValid(null);
         setConfigError(API.getFriendlyMessage(err));
       } finally {
         setIsConfigLoading(false);
@@ -211,6 +225,11 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const licenseValid: boolean = useMemo(() => {
     if (!IS_ENTERPRISE_EDITION) {
       return false;
+    }
+
+    // Prefer the server's verdict (works even when the token is redacted).
+    if (serverLicenseValid !== null) {
+      return serverLicenseValid;
     }
 
     if (
@@ -228,6 +247,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   }, [
     globalConfig?.enterpriseLicenseExpiresAt,
     globalConfig?.enterpriseLicenseToken,
+    serverLicenseValid,
   ]);
 
   const licenseExpiresAtText: string | null = useMemo(() => {

@@ -90,6 +90,58 @@ app.get(
   },
 );
 
+/*
+ * Raw markdown version of a post for LLMs / AI agents (linked from llms.txt
+ * and the post page). Registered before the static file route below so
+ * "markdown" is not treated as an asset file name.
+ */
+app.get(
+  "/blog/post/:file/markdown",
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    try {
+      const fileName: string = req.params["file"] as string;
+
+      const blogPost: BlogPost | null =
+        await BlogPostUtil.getBlogPost(fileName);
+
+      if (!blogPost) {
+        res.status(404);
+        res.setHeader("Content-Type", "text/plain; charset=utf-8");
+        return res.send("Blog post not found.");
+      }
+
+      const lines: Array<string> = [
+        `# ${blogPost.title}`,
+        "",
+        blogPost.description.trim(),
+        "",
+        `- Published: ${blogPost.postDate}`,
+      ];
+
+      if (blogPost.author) {
+        lines.push(
+          `- Author: [${blogPost.author.name}](${blogPost.author.githubUrl})`,
+        );
+      }
+
+      if (blogPost.tags.length > 0) {
+        lines.push(`- Tags: ${blogPost.tags.join(", ")}`);
+      }
+
+      lines.push(`- Canonical: ${blogPost.blogUrl}`, "", "---", "");
+      lines.push(blogPost.markdownBody);
+
+      res.setHeader("Content-Type", "text/markdown; charset=utf-8");
+      res.setHeader("Cache-Control", "public, max-age=600");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      return res.send(lines.join("\n"));
+    } catch (e) {
+      logger.error(e);
+      return next(e);
+    }
+  },
+);
+
 app.get(
   "/blog/post/:postName/:fileName",
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {

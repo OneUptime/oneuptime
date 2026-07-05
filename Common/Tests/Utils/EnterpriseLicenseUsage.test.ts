@@ -83,7 +83,7 @@ describe("EnterpriseLicenseUsageUtil.getUniqueUserCount", () => {
     const count: number = EnterpriseLicenseUsageUtil.getUniqueUserCount(
       [
         {
-          userCount: 5,
+          userCount: 2,
           userEmailHashes: [fakeHash("a"), fakeHash("b")],
           lastReportedAt: fresh,
         },
@@ -98,6 +98,25 @@ describe("EnterpriseLicenseUsageUtil.getUniqueUserCount", () => {
     );
 
     expect(count).toBe(9);
+  });
+
+  it("counts overflow users when the hash list was capped", () => {
+    /*
+     * An instance with more users than the hash cap: userCount is larger
+     * than the number of hashes stored. The overflow must still count.
+     */
+    const count: number = EnterpriseLicenseUsageUtil.getUniqueUserCount(
+      [
+        {
+          userCount: 250_000,
+          userEmailHashes: [fakeHash("a"), fakeHash("b")], // capped list
+          lastReportedAt: fresh,
+        },
+      ],
+      now,
+    );
+
+    expect(count).toBe(250_000);
   });
 
   it("ignores instances that stopped reporting", () => {

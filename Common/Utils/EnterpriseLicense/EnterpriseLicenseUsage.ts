@@ -97,6 +97,21 @@ export default class EnterpriseLicenseUsageUtil {
         for (const hash of instance.userEmailHashes) {
           uniqueHashes.add(hash);
         }
+
+        /*
+         * Hash lists are capped (maxEmailHashesPerInstance). If the
+         * instance reported more users than hashes, the overflow cannot be
+         * deduplicated — count it as-is so huge instances are not
+         * undercounted.
+         */
+        if (
+          typeof instance.userCount === "number" &&
+          instance.userCount > instance.userEmailHashes.length
+        ) {
+          usersWithoutHashes +=
+            instance.userCount - instance.userEmailHashes.length;
+        }
+
         continue;
       }
 

@@ -16,6 +16,9 @@ export class AddEnterpriseLicenseInstance1783226868418
       `CREATE INDEX "IDX_25feed2a867b2a3d81d0633878" ON "EnterpriseLicenseInstance" ("instanceId") `,
     );
     await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_4e293ff0c754f702657b1d3abf" ON "EnterpriseLicenseInstance" ("enterpriseLicenseId", "instanceId") `,
+    );
+    await queryRunner.query(
       `ALTER TABLE "GlobalConfig" ADD "enterpriseLicenseInstances" jsonb`,
     );
     await queryRunner.query(
@@ -29,6 +32,9 @@ export class AddEnterpriseLicenseInstance1783226868418
     );
     await queryRunner.query(
       `ALTER TABLE "GlobalConfig" DROP COLUMN "enterpriseLicenseInstances"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_4e293ff0c754f702657b1d3abf"`,
     );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_25feed2a867b2a3d81d0633878"`,

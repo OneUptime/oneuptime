@@ -31,6 +31,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "EnterpriseLicenseInstance",
 })
+// One row per instance per license — upserts rely on this being unique.
+@Index(["enterpriseLicenseId", "instanceId"], { unique: true })
 export default class EnterpriseLicenseInstance extends BaseModel {
   @ColumnAccessControl({
     create: [],

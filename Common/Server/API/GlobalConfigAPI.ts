@@ -5,6 +5,7 @@ import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
+  OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
@@ -55,6 +56,7 @@ export default class GlobalConfigAPI extends BaseAPI<
 
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/license`,
+      UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const config: GlobalConfig | null =
@@ -76,13 +78,34 @@ export default class GlobalConfigAPI extends BaseAPI<
               },
             });
 
+          /*
+           * This route also serves the login page (before sign-in), so it
+           * cannot require authentication outright. Anonymous callers only
+           * get enough to render the edition pill — the license key, token
+           * and instance topology require a signed-in user.
+           */
+          const isAuthenticatedUser: boolean = Boolean(
+            (req as OneUptimeRequest).userAuthorization?.userId,
+          );
+
+          const licenseValid: boolean = Boolean(
+            config?.enterpriseLicenseToken &&
+              config?.enterpriseLicenseExpiresAt &&
+              config.enterpriseLicenseExpiresAt.getTime() > Date.now(),
+          );
+
           const responseBody: JSONObject = {
             companyName: config?.enterpriseCompanyName || null,
             expiresAt: config?.enterpriseLicenseExpiresAt
               ? config.enterpriseLicenseExpiresAt.toISOString()
               : null,
-            licenseKey: config?.enterpriseLicenseKey || null,
-            token: config?.enterpriseLicenseToken || null,
+            licenseKey: isAuthenticatedUser
+              ? config?.enterpriseLicenseKey || null
+              : null,
+            token: isAuthenticatedUser
+              ? config?.enterpriseLicenseToken || null
+              : null,
+            licenseValid: licenseValid,
             userLimit:
               typeof config?.enterpriseLicenseUserLimit === "number"
                 ? config.enterpriseLicenseUserLimit
@@ -94,12 +117,15 @@ export default class GlobalConfigAPI extends BaseAPI<
             userCountUpdatedAt: config?.enterpriseLicenseUserCountUpdatedAt
               ? config.enterpriseLicenseUserCountUpdatedAt.toISOString()
               : null,
-            instances: Array.isArray(config?.enterpriseLicenseInstances)
-              ? config.enterpriseLicenseInstances
-              : [],
-            instanceId: config?.instanceId
-              ? config.instanceId.toString()
-              : null,
+            instances:
+              isAuthenticatedUser &&
+              Array.isArray(config?.enterpriseLicenseInstances)
+                ? config.enterpriseLicenseInstances
+                : [],
+            instanceId:
+              isAuthenticatedUser && config?.instanceId
+                ? config.instanceId.toString()
+                : null,
           };
 
           return Response.sendJsonObjectResponse(req, res, responseBody);

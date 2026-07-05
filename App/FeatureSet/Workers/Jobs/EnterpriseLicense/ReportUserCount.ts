@@ -164,14 +164,23 @@ RunCron(
     /*
      * The license server responds with the user count deduplicated across
      * all instances that share this license, plus the instance list — store
-     * both so the license modal can show them.
+     * both so the license modal can show them. If the response has no valid
+     * count, keep whatever we had rather than storing a local-only count as
+     * if it were the cross-instance aggregate.
      */
     const aggregatedUserCountRaw: unknown = payload["currentUserCount"];
-    const aggregatedUserCount: number =
-      typeof aggregatedUserCountRaw === "number" &&
-      Number.isFinite(aggregatedUserCountRaw)
-        ? aggregatedUserCountRaw
-        : userEmailHashes.length;
+
+    if (
+      typeof aggregatedUserCountRaw !== "number" ||
+      !Number.isFinite(aggregatedUserCountRaw)
+    ) {
+      logger.error(
+        "EnterpriseLicense:ReportUserCount: License server did not return a valid currentUserCount. Keeping previously stored usage.",
+      );
+      return;
+    }
+
+    const aggregatedUserCount: number = aggregatedUserCountRaw;
 
     const updateData: PartialEntity<GlobalConfig> = {
       enterpriseLicenseCurrentUserCount: aggregatedUserCount,

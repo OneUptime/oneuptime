@@ -13,7 +13,7 @@ import {
   getTagsSitemapPageCount,
 } from "./Utils/Sitemap";
 import { generateBlogRssFeed, generateTagRssFeed } from "./Utils/RssFeed";
-import { getPageSEO, PageSEOData } from "./Utils/PageSEO";
+import PageSEOConfig, { getPageSEO, PageSEOData } from "./Utils/PageSEO";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -31,7 +31,20 @@ import Express, {
 import "ejs";
 // xmlbuilder imports removed (handled inside Sitemap util)
 import OSSFriends, { OSSFriend, OSSCategory } from "./Utils/OSSFriends";
-import Reviews from "./Utils/Reviews";
+import Reviews, { AllReviews, Review } from "./Utils/Reviews";
+import Pricing, { PricingCategory, PricingPlans } from "./Utils/Pricing";
+import {
+  generateLlmsTxt,
+  generateLlmsFullTxt,
+  generateMcpManifest,
+  generatePageMarkdown,
+  generatePricingMarkdown,
+  generateCompareMarkdown,
+  generateProductsJson,
+  generateCompareIndexJson,
+  RecentBlogPostLink,
+} from "./Utils/AIDiscovery";
+import BlogPostUtil, { BlogPostHeader } from "./Utils/BlogPost";
 
 // import jobs.
 import "./Jobs/UpdateBlog";
@@ -189,759 +202,7 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get("/pricing", (_req: ExpressRequest, res: ExpressResponse) => {
-      const pricing: Array<JSONObject> = [
-        {
-          name: "Status Page",
-          data: [
-            {
-              name: "Public Status Page",
-              plans: {
-                free: "1",
-                growth: "Unlimited",
-                scale: "Unlimited",
-                enterprise: "Unlimited",
-              },
-            },
-            {
-              name: "Subscribers",
-              plans: {
-                free: "100",
-                growth: "Unlimited",
-                scale: "Unlimited",
-                enterprise: "Unlimited",
-              },
-            },
-            {
-              name: "Custom Branding",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "SSL Certificate",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Custom Domain",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Private Status Page",
-              plans: {
-                free: false,
-                growth: "Unlimited",
-                scale: "Unlimited",
-                enterprise: "Unlimited",
-              },
-            },
-            {
-              name: "Private Status Page Users",
-              plans: {
-                free: false,
-                growth: "Unlimited",
-                scale: "Unlimited",
-                enterprise: "Unlimited",
-              },
-            },
-          ],
-        },
-        {
-          name: "Incident Management",
-          data: [
-            {
-              name: "Basic Incident Management",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Public Postmortem Notes",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Private Postmortem Notes",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Incident Workflows",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Custom Incident State",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Custom Incident Severity",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-          ],
-        },
-        {
-          name: "Monitoring",
-          data: [
-            {
-              name: "Static / Manual Monitors",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Website Monitoring",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "API Monitoring",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Synthetic Monitoring (with Playwright)",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-
-            {
-              name: "IPv4 Monitoring",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-
-            {
-              name: "IPv6 Monitoring",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Inbound Webhook / Heartbeat Monitoring",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "VM or Server Monitoring",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Network Monitoring",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Container Monitoring",
-              plans: {
-                free: "Coming Soon",
-                growth: "Coming Soon",
-                scale: "Coming Soon",
-                enterprise: "Coming Soon",
-              },
-            },
-            {
-              name: "Kubernetes Cluster Monitoring",
-              plans: {
-                free: "Coming Soon",
-                growth: "Coming Soon",
-                scale: "Coming Soon",
-                enterprise: "Coming Soon",
-              },
-            },
-          ],
-        },
-        {
-          name: "On-Call and Alerts",
-          data: [
-            {
-              name: "SMS Alerts",
-              plans: {
-                free: "$0.10/SMS",
-                growth: "$0.10/SMS",
-                scale: "$0.10/SMS",
-                enterprise: "$0.10/SMS",
-              },
-            },
-            {
-              name: "Phone Call Alerts",
-              plans: {
-                free: "$0.10/min",
-                growth: "$0.10/min",
-                scale: "$0.10/min",
-                enterprise: "$0.10/min",
-              },
-            },
-            {
-              name: "Bring Your Own Twilio",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Email Alerts",
-              plans: {
-                free: "Free",
-                growth: "Free",
-                scale: "Free",
-                enterprise: "Free",
-              },
-            },
-            {
-              name: "On-Call Escalation",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "On-Call Rotation",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Advanced Workflows",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Logs and Events",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Webhook Alerts",
-              plans: {
-                free: "Coming Soon",
-                growth: "Coming Soon",
-                scale: "Coming Soon",
-                enterprise: "Coming Soon",
-              },
-            },
-            {
-              name: "Vacation and OOO Policy",
-              plans: {
-                free: "Coming Soon",
-                growth: "Coming Soon",
-                scale: "Coming Soon",
-                enterprise: "Coming Soon",
-              },
-            },
-            {
-              name: "On-Call Pay",
-              plans: {
-                free: "Coming Soon",
-                growth: "Coming Soon",
-                scale: "Coming Soon",
-                enterprise: "Coming Soon",
-              },
-            },
-            {
-              name: "Reports",
-              plans: {
-                free: "Coming Soon",
-                growth: "Coming Soon",
-                scale: "Coming Soon",
-                enterprise: "Coming Soon",
-              },
-            },
-          ],
-        },
-        {
-          name: "Logs Management",
-          data: [
-            {
-              name: "Ingest with OpenTelemetry",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Ingest with Fluentd",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Ingest +1000 Sources",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Application Logs",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Container Logs",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Data Rentention",
-              plans: {
-                free: "15 days",
-                growth: "Custom",
-                scale: "Custom",
-                enterprise: "Custom",
-              },
-            },
-            {
-              name: "Workflows",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Advanced Team Permissions",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-          ],
-        },
-        {
-          name: "Telemetry / APM",
-          data: [
-            {
-              name: "Metrics",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Traces",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Error Tracking",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Ingest Pricing",
-              plans: {
-                free: "$0.10/GB",
-                growth: "$0.10/GB",
-                scale: "$0.10/GB",
-                enterprise: "$0.10/GB",
-              },
-            },
-            {
-              name: "Data Rentention",
-              plans: {
-                free: "15 days",
-                growth: "Custom",
-                scale: "Custom",
-                enterprise: "Custom",
-              },
-            },
-            {
-              name: "Workflows",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Advanced Team Permissions",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-          ],
-        },
-        {
-          name: "Error Tracking",
-          data: [
-            {
-              name: "Track Errors and Exceptions",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Cross Microservice Issues",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Distributed Tracing",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Stack Traces",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Version Management",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Data Rentention",
-              plans: {
-                free: "15 days",
-                growth: "Custom",
-                scale: "Custom",
-                enterprise: "Custom",
-              },
-            },
-            {
-              name: "Workflows",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Advanced Team Permissions",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-          ],
-        },
-        {
-          name: "AI Agent",
-          data: [
-            {
-              name: "LLM Token Pricing",
-              plans: {
-                free: "$0.02/1K tokens",
-                growth: "$0.02/1K tokens",
-                scale: "$0.02/1K tokens",
-                enterprise: "$0.02/1K tokens",
-              },
-            },
-            {
-              name: "Bring Your Own LLM",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Incident Analysis & Insights",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Root Cause Suggestions",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Automated Runbook Generation",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Log Analysis & Anomaly Detection",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Fix Errors Automatically",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Integrate with GitHub, GitLab",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Integrate with Slack / Teams",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-          ],
-        },
-        {
-          name: "Support and More",
-          data: [
-            {
-              name: "Support",
-              plans: {
-                free: "Email Support",
-                growth: "Email Support",
-                scale: "Email and Chat Support",
-                enterprise: "Email, Chat, Phone Support",
-              },
-            },
-            {
-              name: "Support SLA",
-              plans: {
-                free: "5 business day",
-                growth: "1 business day",
-                scale: "6 hours",
-                enterprise: "1 hour priority",
-              },
-            },
-            {
-              name: "Service SLA",
-              plans: {
-                free: "99.00%",
-                growth: "99.90%",
-                scale: "99.95%",
-                enterprise: "99.99%",
-              },
-            },
-          ],
-        },
-        {
-          name: "Advanced Features",
-          data: [
-            {
-              name: "API Access",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Advanced Workflows",
-              plans: {
-                free: false,
-                growth: "500 Runs / month",
-                scale: "2000 Runs  /month",
-                enterprise: "Unlimited Runs",
-              },
-            },
-            {
-              name: "5000+ Integrations",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-          ],
-        },
-        {
-          name: "Billing",
-          data: [
-            {
-              name: "Billing Period",
-              plans: {
-                free: "Free",
-                growth: "Monthly or Yearly",
-                scale: "Monthly or Yearly",
-                enterprise: "Custom",
-              },
-            },
-            {
-              name: "Payment Method",
-              plans: {
-                free: false,
-                growth: "Visa / Mastercard / Amex / Bitcoin",
-                scale: "Visa / Mastercard / Amex / Bitcoin",
-                enterprise:
-                  "Visa / Mastercard / Amex / ACH / Invoices / Bitcoin",
-              },
-            },
-            {
-              name: "Cancel Anytime",
-              plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-          ],
-        },
-      ];
+      const pricing: Array<PricingCategory> = Pricing;
 
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
         "/pricing",
@@ -2334,8 +1595,28 @@ const HomeFeatureSet: FeatureSet = {
           res.locals["homeUrl"] || "https://oneuptime.com"
         ).replace(/\/$/, "");
         body = [
+          `# LLM-friendly content index: ${homeUrl}/llms.txt`,
+          "",
+          "# AI / LLM crawlers are welcome.",
+          "User-agent: GPTBot",
+          "User-agent: ChatGPT-User",
+          "User-agent: OAI-SearchBot",
+          "User-agent: ClaudeBot",
+          "User-agent: Claude-Web",
+          "User-agent: anthropic-ai",
+          "User-agent: PerplexityBot",
+          "User-agent: Google-Extended",
+          "User-agent: cohere-ai",
+          "User-agent: meta-externalagent",
+          "Allow: /",
+          "Allow: /api/openapi",
+          "Disallow: /api/",
+          "",
           "User-agent: *",
           "Allow: /",
+          "Allow: /api/openapi",
+          "Disallow: /api/",
+          "",
           `Sitemap: ${homeUrl}/sitemap.xml`,
         ].join("\n");
       }
@@ -2344,6 +1625,181 @@ const HomeFeatureSet: FeatureSet = {
       // Encourage caches to revalidate often in case environment changes.
       res.setHeader("Cache-Control", "public, max-age=300"); // 5 minutes
       return res.status(200).send(body + "\n");
+    });
+
+    /*
+     * AI / LLM discovery endpoints. Everything below is generated from the
+     * same data that drives the HTML pages (see Utils/AIDiscovery.ts).
+     */
+
+    type GetRecentBlogPostLinksFunction = () => Promise<
+      Array<RecentBlogPostLink>
+    >;
+    const getRecentBlogPostLinks: GetRecentBlogPostLinksFunction =
+      async (): Promise<Array<RecentBlogPostLink>> => {
+        try {
+          const posts: Array<BlogPostHeader> =
+            await BlogPostUtil.getBlogPostList();
+          return posts.slice(0, 15).map((post: BlogPostHeader) => {
+            return {
+              title: post.title,
+              description: post.description,
+              fileName: post.fileName,
+            };
+          });
+        } catch {
+          // Blog content may be unavailable (e.g. local dev without the blog repo).
+          return [];
+        }
+      };
+
+    type SendAITextResponseFunction = (
+      res: ExpressResponse,
+      body: string,
+      contentType: string,
+    ) => void;
+    const sendAITextResponse: SendAITextResponseFunction = (
+      res: ExpressResponse,
+      body: string,
+      contentType: string,
+    ): void => {
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.send(body);
+    };
+
+    app.get("/llms.txt", async (_req: ExpressRequest, res: ExpressResponse) => {
+      try {
+        const txt: string = generateLlmsTxt(
+          res.locals["homeUrl"] as string,
+          await getRecentBlogPostLinks(),
+        );
+        sendAITextResponse(res, txt, "text/plain; charset=utf-8");
+      } catch {
+        res.status(500).send("Error generating llms.txt");
+      }
+    });
+
+    app.get(
+      "/llms-full.txt",
+      async (_req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const txt: string = generateLlmsFullTxt(
+            res.locals["homeUrl"] as string,
+            await getRecentBlogPostLinks(),
+          );
+          sendAITextResponse(res, txt, "text/plain; charset=utf-8");
+        } catch {
+          res.status(500).send("Error generating llms-full.txt");
+        }
+      },
+    );
+
+    // MCP client discovery manifest.
+    app.get(
+      "/.well-known/mcp.json",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader("Cache-Control", "public, max-age=600");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.json(generateMcpManifest(res.locals["homeUrl"] as string));
+      },
+    );
+
+    // Machine-readable marketing data.
+    app.get(
+      "/data/pricing.json",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader("Cache-Control", "public, max-age=600");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.json({
+          plans: PricingPlans,
+          telemetryIngestPricePerGB: "$0.10",
+          featureMatrix: Pricing,
+        });
+      },
+    );
+
+    app.get(
+      "/data/products.json",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader("Cache-Control", "public, max-age=600");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.json(generateProductsJson(res.locals["homeUrl"] as string));
+      },
+    );
+
+    app.get(
+      "/data/reviews.json",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader("Cache-Control", "public, max-age=600");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.json({
+          reviews: AllReviews.map((review: Review) => {
+            return { ...review };
+          }),
+        });
+      },
+    );
+
+    app.get(
+      "/data/compare.json",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader("Cache-Control", "public, max-age=600");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.json(generateCompareIndexJson(res.locals["homeUrl"] as string));
+      },
+    );
+
+    app.get(
+      "/data/compare/:product",
+      (req: ExpressRequest, res: ExpressResponse) => {
+        const product: Product | undefined = ProductCompare(
+          req.params["product"] as string,
+        );
+        if (!product) {
+          res.status(404);
+          res.setHeader("Access-Control-Allow-Origin", "*");
+          return res.json({ error: "Comparison not found" });
+        }
+        res.setHeader("Cache-Control", "public, max-age=600");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        return res.json(product as unknown as JSONObject);
+      },
+    );
+
+    /*
+     * Markdown variants of marketing pages: append `.md` to a page path
+     * (e.g. /pricing.md, /product/monitoring.md, /compare/pagerduty.md).
+     * Generated from the same structured data as the HTML pages.
+     */
+    app.get(/^\/.+\.md$/, (req: ExpressRequest, res: ExpressResponse) => {
+      const homeUrl: string = res.locals["homeUrl"] as string;
+      const pagePath: string = req.path.replace(/\.md$/, "");
+
+      let markdown: string | null = null;
+
+      if (pagePath === "/pricing") {
+        markdown = generatePricingMarkdown(homeUrl);
+      } else if (pagePath.startsWith("/compare/")) {
+        markdown = generateCompareMarkdown(
+          pagePath.replace("/compare/", ""),
+          homeUrl,
+        );
+      } else if (PageSEOConfig[pagePath]) {
+        markdown = generatePageMarkdown(PageSEOConfig[pagePath]!, homeUrl);
+      }
+
+      if (!markdown) {
+        res.status(404);
+        return res
+          .type("text/plain; charset=utf-8")
+          .send(
+            "No markdown variant for this page. See /llms.txt for available content.",
+          );
+      }
+
+      return sendAITextResponse(res, markdown, "text/markdown; charset=utf-8");
     });
 
     /*

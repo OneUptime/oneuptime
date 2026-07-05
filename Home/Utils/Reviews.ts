@@ -234,4 +234,7 @@ for (let i: number = 0; i < reviews.length; i++) {
   }
 }
 
+// Full list for machine-readable consumers (/data/reviews.json).
+export const AllReviews: Array<Review> = reviews;
+
 export default { reviewsList1, reviewsList2, reviewsList3 };

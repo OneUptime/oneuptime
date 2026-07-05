@@ -1,0 +1,14 @@
+{
+  "preset": "ts-jest",
+  "testPathIgnorePatterns": ["node_modules", "build"],
+  "verbose": true,
+  "globals": {
+    "ts-jest": {
+      "tsconfig": "tsconfig.json",
+      "babelConfig": false
+    }
+  },
+  "moduleNameMapper": {
+    "^Common/(.*)$": "<rootDir>/../Common/$1"
+  }
+}
