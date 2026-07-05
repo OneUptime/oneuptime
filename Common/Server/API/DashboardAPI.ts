@@ -375,6 +375,58 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   },
 };
 
+type ResolveDashboardIdOrThrowFunction = (
+  dashboardIdOrDomain: string,
+) => Promise<ObjectID>;
+
+/*
+ * Resolve the :dashboardIdOrDomain route param to a dashboard ID. Accepts
+ * either a dashboard ID (UUID) or a verified custom dashboard domain —
+ * same contract as the status page overview endpoint.
+ */
+const resolveDashboardIdOrThrow: ResolveDashboardIdOrThrowFunction = async (
+  dashboardIdOrDomain: string,
+): Promise<ObjectID> => {
+  if (!dashboardIdOrDomain) {
+    throw new NotFoundException("Dashboard not found");
+  }
+
+  if (dashboardIdOrDomain.includes(".")) {
+    const dashboardDomain: DashboardDomain | null =
+      await DashboardDomainService.findOneBy({
+        query: {
+          fullDomain: dashboardIdOrDomain,
+          domain: {
+            isVerified: true,
+          } as any,
+        },
+        select: {
+          dashboardId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!dashboardDomain || !dashboardDomain.dashboardId) {
+      throw new NotFoundException("Dashboard not found");
+    }
+
+    return dashboardDomain.dashboardId;
+  }
+
+  try {
+    ObjectID.validateUUID(dashboardIdOrDomain);
+    return new ObjectID(dashboardIdOrDomain);
+  } catch (err) {
+    logger.error(
+      `Error converting dashboardIdOrDomain to ObjectID: ${dashboardIdOrDomain}`,
+    );
+    logger.error(err);
+    throw new NotFoundException("Dashboard not found");
+  }
+};
+
 export default class DashboardAPI extends BaseAPI<
   Dashboard,
   DashboardServiceType
@@ -474,6 +526,111 @@ export default class DashboardAPI extends BaseAPI<
           next(err);
         }
       },
+    );
+
+    /*
+     * Shared handler for the public overview endpoint. Registered for both
+     * POST and GET (machine-readable access for crawlers / AI agents that
+     * only issue plain GET requests — discovered via llms.txt on public
+     * dashboard URLs) so the authentication and authorization path can
+     * never drift between the two methods. It does not read req.body.
+     */
+    const overviewHandler: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void> = async (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): Promise<void> => {
+      try {
+        const dashboardId: ObjectID = await resolveDashboardIdOrThrow(
+          req.params["dashboardIdOrDomain"] as string,
+        );
+
+        // Check read access (handles public check, IP whitelist, master password)
+        const accessResult: {
+          hasReadAccess: boolean;
+          error?: NotAuthenticatedException | ForbiddenException;
+        } = await DashboardService.hasReadAccess({
+          dashboardId,
+          req,
+        });
+
+        if (!accessResult.hasReadAccess) {
+          throw (
+            accessResult.error ||
+            new BadDataException("Access denied to this dashboard.")
+          );
+        }
+
+        const dashboard: Dashboard | null = await DashboardService.findOneById({
+          id: dashboardId,
+          select: {
+            _id: true,
+            name: true,
+            description: true,
+            pageTitle: true,
+            pageDescription: true,
+            dashboardViewConfig: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (!dashboard) {
+          throw new NotFoundException("Dashboard not found");
+        }
+
+        /*
+         * Everything below is derived from columns the public /metadata and
+         * /view-config endpoints already serve to anonymous viewers — the
+         * overview only reshapes them into a single GET-able document.
+         */
+        return Response.sendJsonObjectResponse(req, res, {
+          _id: dashboard._id?.toString() || "",
+          name: dashboard.name || "Dashboard",
+          description: dashboard.description || "",
+          pageTitle: dashboard.pageTitle || "",
+          pageDescription: dashboard.pageDescription || "",
+          components: DashboardAPI.buildPublicComponentSummaries(
+            dashboard.dashboardViewConfig,
+          ),
+          metricsUsed: Array.from(
+            DashboardAPI.collectDashboardMetricNames(
+              dashboard.dashboardViewConfig,
+            ),
+          ).sort(),
+          dashboardViewConfig: dashboard.dashboardViewConfig
+            ? JSONFunctions.serialize(dashboard.dashboardViewConfig as any)
+            : null,
+        });
+      } catch (err) {
+        next(err);
+      }
+    };
+
+    const overviewApiPath: string = `${new this.entityType()
+      .getCrudApiPath()
+      ?.toString()}/overview/:dashboardIdOrDomain`;
+
+    this.router.post(
+      overviewApiPath,
+      UserMiddleware.getUserMiddleware,
+      overviewHandler,
+    );
+
+    /*
+     * GET variant of the overview endpoint. Same middleware and same handler
+     * as the POST route above — non-public dashboards are rejected for
+     * unauthenticated callers exactly as they are on POST.
+     */
+    this.router.get(
+      overviewApiPath,
+      UserMiddleware.getUserMiddleware,
+      overviewHandler,
     );
 
     // Domain resolution endpoint
@@ -1077,6 +1234,70 @@ export default class DashboardAPI extends BaseAPI<
         }
       },
     );
+  }
+
+  /*
+   * Build a compact machine-readable summary of the widgets on a dashboard
+   * for the public overview endpoint. Derived entirely from the stored
+   * dashboardViewConfig (already served to public viewers by /view-config) —
+   * this only lifts out the human-meaningful fields (widget type, title,
+   * text, metric names). The config comes straight from a JSON column, so
+   * every field is read defensively.
+   */
+  private static buildPublicComponentSummaries(
+    dashboardViewConfig: unknown,
+  ): Array<JSONObject> {
+    const summaries: Array<JSONObject> = [];
+
+    const components: unknown =
+      dashboardViewConfig && typeof dashboardViewConfig === "object"
+        ? (dashboardViewConfig as Record<string, unknown>)["components"]
+        : undefined;
+
+    if (!Array.isArray(components)) {
+      return summaries;
+    }
+
+    for (const component of components) {
+      if (!component || typeof component !== "object") {
+        continue;
+      }
+
+      const componentObject: Record<string, unknown> = component as Record<
+        string,
+        unknown
+      >;
+
+      const argumentsObject: Record<string, unknown> =
+        componentObject["arguments"] &&
+        typeof componentObject["arguments"] === "object"
+          ? (componentObject["arguments"] as Record<string, unknown>)
+          : {};
+
+      const getStringArgument: (key: string) => string | null = (
+        key: string,
+      ): string | null => {
+        const value: unknown = argumentsObject[key];
+        return typeof value === "string" && value.trim().length > 0
+          ? value
+          : null;
+      };
+
+      summaries.push({
+        componentType:
+          typeof componentObject["componentType"] === "string"
+            ? componentObject["componentType"]
+            : "",
+        title: getStringArgument("chartTitle") || getStringArgument("title"),
+        description: getStringArgument("chartDescription"),
+        text: getStringArgument("text"),
+        metricNames: Array.from(
+          DashboardAPI.collectDashboardMetricNames(component),
+        ).sort(),
+      });
+    }
+
+    return summaries;
   }
 
   /*

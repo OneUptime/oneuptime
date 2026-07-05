@@ -25,6 +25,7 @@ import {
   StatusPageData,
   getStatusPageData,
 } from "./Utils/StatusPage";
+import { handlePublicDashboardLlmsTxt } from "./Utils/PublicDashboard";
 import DashboardDomainService from "Common/Server/Services/DashboardDomainService";
 import DashboardDomain from "Common/Models/DatabaseModels/DashboardDomain";
 
@@ -544,9 +545,33 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   app.get("/rss", handleRSS);
   app.get("/status-page/:statusPageId/rss", handleRSS);
 
-  // llms.txt route (machine-readable entry point for AI agents)
-  app.get("/llms.txt", handleLlmsTxt);
+  /*
+   * llms.txt routes (machine-readable entry point for AI agents). The root
+   * route serves custom domains, which may belong to either a status page
+   * or a public dashboard — dispatch on the domain type, same as the
+   * custom-domain SPA fallback below.
+   */
+  app.get(
+    "/llms.txt",
+    async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+      const requestHostname: string = getRequestHostname(req);
+
+      if (
+        requestHostname &&
+        !isPrimaryHostRequest(req) &&
+        (await isDashboardDomain(requestHostname))
+      ) {
+        return handlePublicDashboardLlmsTxt(req, res);
+      }
+
+      return handleLlmsTxt(req, res);
+    },
+  );
   app.get("/status-page/:statusPageId/llms.txt", handleLlmsTxt);
+  app.get(
+    "/public-dashboard/:dashboardId/llms.txt",
+    handlePublicDashboardLlmsTxt,
+  );
 
   registerFrontendApp({
     routePrefix: "/accounts",
