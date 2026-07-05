@@ -160,6 +160,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
+            title: "Reminder Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_REMINDER_RULES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Bell,
+        },
+        {
+          link: {
             title: "More Settings",
             to: RouteUtil.populateRouteParams(
               RouteMap[

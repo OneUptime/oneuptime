@@ -228,6 +228,7 @@ import IncidentSlaRuleService from "./IncidentSlaRuleService";
 import IncidentSlaService from "./IncidentSlaService";
 import IncidentReminderRuleService from "./IncidentReminderRuleService";
 import AlertReminderRuleService from "./AlertReminderRuleService";
+import ScheduledMaintenanceReminderRuleService from "./ScheduledMaintenanceReminderRuleService";
 
 import TableViewService from "./TableViewService";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
@@ -485,6 +486,7 @@ const services: Array<BaseService> = [
   IncidentSlaService,
   IncidentReminderRuleService,
   AlertReminderRuleService,
+  ScheduledMaintenanceReminderRuleService,
 
   TableViewService,
   MonitorTestService,

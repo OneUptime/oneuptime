@@ -93,6 +93,7 @@ import "./Jobs/ScheduledMaintenanceOwners/SendCreatedResourceNotification";
 import "./Jobs/ScheduledMaintenanceOwners/SendNotePostedNotification";
 import "./Jobs/ScheduledMaintenanceOwners/SendOwnerAddedNotification";
 import "./Jobs/ScheduledMaintenanceOwners/SendStateChangeNotification";
+import "./Jobs/ScheduledMaintenanceOwners/SendUnresolvedReminderNotification";
 
 // Scheduled Event Notes
 import "./Jobs/ScheduledMaintenancePublicNote/SendNotificationToSubscribers";

@@ -421,6 +421,12 @@ enum Permission {
   EditScheduledMaintenanceLabelRule = "EditScheduledMaintenanceLabelRule",
   ReadScheduledMaintenanceLabelRule = "ReadScheduledMaintenanceLabelRule",
 
+  // Scheduled Maintenance Reminder Rule Permissions
+  CreateScheduledMaintenanceReminderRule = "CreateScheduledMaintenanceReminderRule",
+  DeleteScheduledMaintenanceReminderRule = "DeleteScheduledMaintenanceReminderRule",
+  EditScheduledMaintenanceReminderRule = "EditScheduledMaintenanceReminderRule",
+  ReadScheduledMaintenanceReminderRule = "ReadScheduledMaintenanceReminderRule",
+
   CreateStatusPageOwnerTeam = "CreateStatusPageOwnerTeam",
   DeleteStatusPageOwnerTeam = "DeleteStatusPageOwnerTeam",
   EditStatusPageOwnerTeam = "EditStatusPageOwnerTeam",
@@ -12002,6 +12008,48 @@ export class PermissionHelper {
         title: "Read Scheduled Maintenance Label Rule",
         description:
           "This permission can read Scheduled Maintenance Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ScheduledMaintenance,
+      },
+
+      // Scheduled Maintenance Reminder Rule Permissions
+      {
+        permission: Permission.CreateScheduledMaintenanceReminderRule,
+        title: "Create Scheduled Maintenance Reminder Rule",
+        description:
+          "This permission can create Scheduled Maintenance Reminder Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ScheduledMaintenance,
+      },
+      {
+        permission: Permission.DeleteScheduledMaintenanceReminderRule,
+        title: "Delete Scheduled Maintenance Reminder Rule",
+        description:
+          "This permission can delete Scheduled Maintenance Reminder Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ScheduledMaintenance,
+      },
+      {
+        permission: Permission.EditScheduledMaintenanceReminderRule,
+        title: "Edit Scheduled Maintenance Reminder Rule",
+        description:
+          "This permission can edit Scheduled Maintenance Reminder Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ScheduledMaintenance,
+      },
+      {
+        permission: Permission.ReadScheduledMaintenanceReminderRule,
+        title: "Read Scheduled Maintenance Reminder Rule",
+        description:
+          "This permission can read Scheduled Maintenance Reminder Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

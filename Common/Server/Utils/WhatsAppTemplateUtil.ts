@@ -50,6 +50,8 @@ const templateDashboardLinkVariableMap: Partial<
     "maintenance_link",
   [WhatsAppTemplateIds.ScheduledMaintenanceStateChangedOwnerNotification]:
     "maintenance_link",
+  [WhatsAppTemplateIds.ScheduledMaintenanceReminderOwnerNotification]:
+    "event_link",
   [WhatsAppTemplateIds.StatusPageAnnouncementCreatedOwnerNotification]:
     "status_page_link",
   [WhatsAppTemplateIds.StatusPageCreatedOwnerNotification]: "status_page_link",
@@ -130,6 +132,8 @@ const templateIdByEventType: Record<
     WhatsAppTemplateIds.ScheduledMaintenanceOwnerAddedNotification,
   [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION]:
     WhatsAppTemplateIds.ScheduledMaintenanceStateChangedOwnerNotification,
+  [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_REMINDER_OWNER_NOTIFICATION]:
+    WhatsAppTemplateIds.ScheduledMaintenanceReminderOwnerNotification,
   [NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION]:
     WhatsAppTemplateIds.StatusPageAnnouncementCreatedOwnerNotification,
   [NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION]:

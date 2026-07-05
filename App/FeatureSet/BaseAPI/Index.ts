@@ -386,6 +386,10 @@ import AlertReminderRuleService, {
   Service as AlertReminderRuleServiceType,
 } from "Common/Server/Services/AlertReminderRuleService";
 
+import ScheduledMaintenanceReminderRuleService, {
+  Service as ScheduledMaintenanceReminderRuleServiceType,
+} from "Common/Server/Services/ScheduledMaintenanceReminderRuleService";
+
 import IncidentCustomFieldService, {
   Service as IncidentCustomFieldServiceType,
 } from "Common/Server/Services/IncidentCustomFieldService";
@@ -982,6 +986,7 @@ import IncidentSla from "Common/Models/DatabaseModels/IncidentSla";
 import IncidentSlaRule from "Common/Models/DatabaseModels/IncidentSlaRule";
 import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
 import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
+import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/ScheduledMaintenanceReminderRule";
 
 // IncidentEpisode Models
 import IncidentEpisodeFeed from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
@@ -2277,6 +2282,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AlertReminderRule, AlertReminderRuleServiceType>(
         AlertReminderRule,
         AlertReminderRuleService,
+      ).getRouter(),
+    );
+
+    // ScheduledMaintenanceReminderRule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ScheduledMaintenanceReminderRule,
+        ScheduledMaintenanceReminderRuleServiceType
+      >(
+        ScheduledMaintenanceReminderRule,
+        ScheduledMaintenanceReminderRuleService,
       ).getRouter(),
     );
 

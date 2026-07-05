@@ -35,6 +35,7 @@ type TemplateIdsMap = {
   readonly ScheduledMaintenanceNotePostedOwnerNotification: "oneuptime_scheduled_maintenance_note_posted_owner_notification";
   readonly ScheduledMaintenanceOwnerAddedNotification: "oneuptime_scheduled_maintenance_owner_added_notification";
   readonly ScheduledMaintenanceStateChangedOwnerNotification: "oneuptime_scheduled_maintenance_state_changed_owner_notification";
+  readonly ScheduledMaintenanceReminderOwnerNotification: "oneuptime_scheduled_maintenance_reminder_owner_notification";
   readonly StatusPageAnnouncementCreatedOwnerNotification: "oneuptime_status_page_announcement_created_owner_notification";
   readonly StatusPageCreatedOwnerNotification: "oneuptime_status_page_created_owner_notification";
   readonly StatusPageOwnerAddedNotification: "oneuptime_status_page_owner_added_notification";
@@ -111,6 +112,8 @@ const templateIds: TemplateIdsMap = {
     "oneuptime_scheduled_maintenance_owner_added_notification",
   ScheduledMaintenanceStateChangedOwnerNotification:
     "oneuptime_scheduled_maintenance_state_changed_owner_notification",
+  ScheduledMaintenanceReminderOwnerNotification:
+    "oneuptime_scheduled_maintenance_reminder_owner_notification",
   StatusPageAnnouncementCreatedOwnerNotification:
     "oneuptime_status_page_announcement_created_owner_notification",
   StatusPageCreatedOwnerNotification:
@@ -184,6 +187,7 @@ export const WhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition = {
   [WhatsAppTemplateIds.ScheduledMaintenanceNotePostedOwnerNotification]: `A new note was posted on scheduled maintenance #{{event_number}} ({{event_title}}). Review the event using {{maintenance_link}} on the OneUptime dashboard for the latest updates.`,
   [WhatsAppTemplateIds.ScheduledMaintenanceOwnerAddedNotification]: `You have been added as an owner of scheduled maintenance #{{event_number}} ({{event_title}}). Please check the event using {{maintenance_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.ScheduledMaintenanceStateChangedOwnerNotification]: `Scheduled maintenance #{{event_number}} ({{event_title}}) state changed to {{event_state}}. Track event status using {{maintenance_link}} on the OneUptime dashboard to stay aligned.`,
+  [WhatsAppTemplateIds.ScheduledMaintenanceReminderOwnerNotification]: `Reminder: Scheduled maintenance #{{event_number}} ({{event_title}}) is still {{event_state}} and has been open for {{elapsed_time}}. Review the event using {{event_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.StatusPageAnnouncementCreatedOwnerNotification]: `Announcement {{announcement_title}} was published on status page {{status_page_name}}. View the announcement using {{status_page_link}} on the OneUptime dashboard `,
   [WhatsAppTemplateIds.StatusPageCreatedOwnerNotification]: `Status page {{status_page_name}} has been created. View status page details using {{status_page_link}} on the OneUptime dashboard for full context.`,
   [WhatsAppTemplateIds.StatusPageOwnerAddedNotification]: `You have been added as an owner of status page {{status_page_name}}. Manage the status page using {{status_page_link}} on the OneUptime dashboard to stay engaged.`,
@@ -235,6 +239,7 @@ export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
   [WhatsAppTemplateIds.ScheduledMaintenanceNotePostedOwnerNotification]: "en",
   [WhatsAppTemplateIds.ScheduledMaintenanceOwnerAddedNotification]: "en",
   [WhatsAppTemplateIds.ScheduledMaintenanceStateChangedOwnerNotification]: "en",
+  [WhatsAppTemplateIds.ScheduledMaintenanceReminderOwnerNotification]: "en",
   [WhatsAppTemplateIds.StatusPageAnnouncementCreatedOwnerNotification]: "en",
   [WhatsAppTemplateIds.StatusPageCreatedOwnerNotification]: "en",
   [WhatsAppTemplateIds.StatusPageOwnerAddedNotification]: "en",

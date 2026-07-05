@@ -252,6 +252,12 @@ const EVENT_LIBRARY: Record<
       description:
         "The state of a scheduled maintenance event you own changes.",
     },
+  [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_REMINDER_OWNER_NOTIFICATION]:
+    {
+      label: "Maintenance reminder",
+      description:
+        "Periodic reminder that a scheduled maintenance event you own has not yet finished, based on the project's reminder rules.",
+    },
   [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_NOTE_POSTED_OWNER_NOTIFICATION]:
     {
       label: "Maintenance note posted",
@@ -707,6 +713,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       [
         NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION,
         NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION,
+        NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_REMINDER_OWNER_NOTIFICATION,
         NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_NOTE_POSTED_OWNER_NOTIFICATION,
         NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION,
       ],

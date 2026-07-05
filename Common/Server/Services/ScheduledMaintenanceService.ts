@@ -8,6 +8,8 @@ import ScheduledMaintenanceOwnerTeamService from "./ScheduledMaintenanceOwnerTea
 import ScheduledMaintenanceOwnerUserService from "./ScheduledMaintenanceOwnerUserService";
 import ScheduledMaintenanceStateService from "./ScheduledMaintenanceStateService";
 import ScheduledMaintenanceStateTimelineService from "./ScheduledMaintenanceStateTimelineService";
+import ScheduledMaintenanceReminderRuleService from "./ScheduledMaintenanceReminderRuleService";
+import ScheduledMaintenanceReminderRule from "../../Models/DatabaseModels/ScheduledMaintenanceReminderRule";
 import TeamMemberService from "./TeamMemberService";
 import URL from "../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -810,6 +812,80 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
   }
 
   @CaptureSpan()
+  public async refreshReminderSchedule(data: {
+    scheduledMaintenanceId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const scheduledMaintenance: Model | null = await this.findOneById({
+      id: data.scheduledMaintenanceId,
+      select: {
+        enableReminders: true,
+        startsAt: true,
+        labels: {
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!scheduledMaintenance) {
+      return;
+    }
+
+    let nextReminderNotificationAt: Date | null = null;
+
+    if (scheduledMaintenance.enableReminders !== false) {
+      const matchingRule: ScheduledMaintenanceReminderRule | null =
+        await ScheduledMaintenanceReminderRuleService.findMatchingRule({
+          projectId: data.projectId,
+          labelIds: scheduledMaintenance.labels?.map((label: Label) => {
+            return label.id!;
+          }),
+        });
+
+      if (
+        matchingRule &&
+        matchingRule.reminderIntervalInMinutes &&
+        !(await this.isScheduledMaintenanceCompleted({
+          scheduledMaintenanceId: data.scheduledMaintenanceId,
+        }))
+      ) {
+        /*
+         * When the rule does not remind while the event is still scheduled,
+         * defer the first reminder until after the event has started so that
+         * owners are not notified about an event that has not begun yet.
+         */
+        let referenceDate: Date = OneUptimeDate.getCurrentDate();
+
+        if (
+          !matchingRule.remindWhileScheduled &&
+          scheduledMaintenance.startsAt &&
+          OneUptimeDate.isInTheFuture(scheduledMaintenance.startsAt)
+        ) {
+          referenceDate = scheduledMaintenance.startsAt;
+        }
+
+        nextReminderNotificationAt = OneUptimeDate.addRemoveMinutes(
+          referenceDate,
+          matchingRule.reminderIntervalInMinutes,
+        );
+      }
+    }
+
+    await this.updateOneById({
+      id: data.scheduledMaintenanceId,
+      data: {
+        nextReminderNotificationAt: nextReminderNotificationAt,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
     createdItem: Model,
@@ -981,6 +1057,26 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
             {
               projectId: createdItem.projectId?.toString(),
               scheduledMaintenanceId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        // Schedule reminder notifications for scheduled maintenance if a matching reminder rule exists
+        try {
+          if (createdItem.projectId && createdItem.id) {
+            await this.refreshReminderSchedule({
+              scheduledMaintenanceId: createdItem.id,
+              projectId: createdItem.projectId,
+            });
+          }
+        } catch (error) {
+          logger.error(
+            `Reminder scheduling failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              scheduledMaintenanceId: createdItem.id?.toString(),
+              userId: createdItem.createdByUserId?.toString(),
             } as LogAttributes,
           );
         }
@@ -1576,6 +1672,37 @@ ${labels
               userId: createdByUserId || undefined,
             },
           );
+        }
+
+        /*
+         * Re-evaluate reminder schedule when reminders are enabled or disabled,
+         * or when labels change (which may change the matching reminder rule).
+         */
+        if (
+          onUpdate.updateBy.props.tenantId &&
+          (Object.prototype.hasOwnProperty.call(
+            onUpdate.updateBy.data,
+            "enableReminders",
+          ) ||
+            Object.prototype.hasOwnProperty.call(
+              onUpdate.updateBy.data,
+              "labels",
+            ))
+        ) {
+          try {
+            await this.refreshReminderSchedule({
+              scheduledMaintenanceId: scheduledMaintenanceId,
+              projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+            });
+          } catch (reminderError) {
+            logger.error(
+              `Reminder rescheduling failed in ScheduledMaintenanceService.onUpdateSuccess: ${reminderError}`,
+              {
+                projectId: onUpdate.updateBy.props.tenantId?.toString(),
+                scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+              } as LogAttributes,
+            );
+          }
         }
       }
     }

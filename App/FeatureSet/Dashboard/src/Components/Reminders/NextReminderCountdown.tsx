@@ -10,46 +10,55 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
 import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
+import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/ScheduledMaintenanceReminderRule";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import Label from "Common/Models/DatabaseModels/Label";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 
 export enum ReminderRuleScope {
   Incident = "Incident",
   Alert = "Alert",
+  ScheduledMaintenance = "ScheduledMaintenance",
 }
 
 export interface ComponentProps {
   nextReminderAt?: Date | string | undefined | null;
   severityId?: ObjectID | undefined;
+  labelIds?: Array<ObjectID> | undefined;
   scope: ReminderRuleScope;
   remindersEnabled?: boolean | undefined;
 }
 
 interface MatchableRule {
   reminderIntervalInMinutes: number | undefined;
-  severityIds: Array<string>;
+  matchIds: Array<string>;
 }
 
 /*
- * Mirrors the server-side matching in IncidentReminderRuleService.findMatchingRule:
- * first enabled rule (by order) whose severity list is empty or contains this severity.
+ * Mirrors the server-side matching in the reminder rule services' findMatchingRule:
+ * first enabled rule (by order) whose match list is empty or intersects the candidate
+ * ids (severity for incidents/alerts, labels for scheduled maintenance events).
  */
 const getMatchingIntervalInMinutes: (
   rules: Array<MatchableRule>,
-  severityId: ObjectID | undefined,
+  candidateIds: Array<string>,
 ) => number | null = (
   rules: Array<MatchableRule>,
-  severityId: ObjectID | undefined,
+  candidateIds: Array<string>,
 ): number | null => {
   for (const rule of rules) {
-    if (rule.severityIds.length > 0) {
-      if (!severityId) {
+    if (rule.matchIds.length > 0) {
+      if (candidateIds.length === 0) {
         continue;
       }
 
-      if (!rule.severityIds.includes(severityId.toString())) {
+      const hasMatch: boolean = candidateIds.some((candidateId: string) => {
+        return rule.matchIds.includes(candidateId);
+      });
+
+      if (!hasMatch) {
         continue;
       }
     }
@@ -144,7 +153,7 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
             (rule: IncidentReminderRule): MatchableRule => {
               return {
                 reminderIntervalInMinutes: rule.reminderIntervalInMinutes,
-                severityIds: (rule.incidentSeverities || []).map(
+                matchIds: (rule.incidentSeverities || []).map(
                   (severity: IncidentSeverity): string => {
                     return severity.id?.toString() || "";
                   },
@@ -152,7 +161,7 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
               };
             },
           );
-        } else {
+        } else if (props.scope === ReminderRuleScope.Alert) {
           const rules: ListResult<AlertReminderRule> =
             await ModelAPI.getList<AlertReminderRule>({
               modelType: AlertReminderRule,
@@ -177,7 +186,7 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
             (rule: AlertReminderRule): MatchableRule => {
               return {
                 reminderIntervalInMinutes: rule.reminderIntervalInMinutes,
-                severityIds: (rule.alertSeverities || []).map(
+                matchIds: (rule.alertSeverities || []).map(
                   (severity: AlertSeverity): string => {
                     return severity.id?.toString() || "";
                   },
@@ -185,11 +194,51 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
               };
             },
           );
+        } else {
+          const rules: ListResult<ScheduledMaintenanceReminderRule> =
+            await ModelAPI.getList<ScheduledMaintenanceReminderRule>({
+              modelType: ScheduledMaintenanceReminderRule,
+              query: {
+                projectId: projectId,
+                isEnabled: true,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              select: {
+                reminderIntervalInMinutes: true,
+                labels: {
+                  _id: true,
+                },
+              },
+              sort: {
+                order: SortOrder.Ascending,
+              },
+            });
+
+          matchableRules = rules.data.map(
+            (rule: ScheduledMaintenanceReminderRule): MatchableRule => {
+              return {
+                reminderIntervalInMinutes: rule.reminderIntervalInMinutes,
+                matchIds: (rule.labels || []).map((label: Label): string => {
+                  return label.id?.toString() || "";
+                }),
+              };
+            },
+          );
         }
+
+        const candidateIds: Array<string> =
+          props.scope === ReminderRuleScope.ScheduledMaintenance
+            ? (props.labelIds || []).map((labelId: ObjectID): string => {
+                return labelId.toString();
+              })
+            : props.severityId
+              ? [props.severityId.toString()]
+              : [];
 
         if (isMounted) {
           setIntervalInMinutes(
-            getMatchingIntervalInMinutes(matchableRules, props.severityId),
+            getMatchingIntervalInMinutes(matchableRules, candidateIds),
           );
         }
       };
@@ -201,7 +250,15 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
     return () => {
       isMounted = false;
     };
-  }, [props.scope, props.severityId?.toString()]);
+  }, [
+    props.scope,
+    props.severityId?.toString(),
+    (props.labelIds || [])
+      .map((labelId: ObjectID) => {
+        return labelId.toString();
+      })
+      .join(","),
+  ]);
 
   if (!props.nextReminderAt) {
     return (

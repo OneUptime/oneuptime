@@ -65,6 +65,7 @@ enum EmailTemplateType {
   ScheduledMaintenanceOwnerAdded = "ScheduledMaintenanceOwnerAdded.hbs",
   ScheduledMaintenanceOwnerStateChanged = "ScheduledMaintenanceOwnerStateChanged.hbs",
   ScheduledMaintenanceOwnerResourceCreated = "ScheduledMaintenanceOwnerResourceCreated.hbs",
+  ScheduledMaintenanceOwnerUnresolvedReminder = "ScheduledMaintenanceOwnerUnresolvedReminder.hbs",
   StatusPageOwnerResourceCreated = "StatusPageOwnerResourceCreated.hbs",
   StatusPageOwnerAdded = "StatusPageOwnerAdded.hbs",
   StatusPageOwnerAnnouncementPosted = "StatusPageOwnerAnnouncementPosted.hbs",
