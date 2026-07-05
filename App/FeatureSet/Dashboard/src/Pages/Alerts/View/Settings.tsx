@@ -6,6 +6,9 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import NextReminderCountdown, {
+  ReminderRuleScope,
+} from "../../../Components/Reminders/NextReminderCountdown";
 
 const AlertSettings: FunctionComponent<
   PageComponentProps
@@ -89,8 +92,18 @@ const AlertSettings: FunctionComponent<
               field: {
                 nextReminderNotificationAt: true,
               },
-              title: "Next Reminder At",
-              fieldType: FieldType.DateTime,
+              title: "Next Reminder In",
+              fieldType: FieldType.Element,
+              getElement: (item: Alert): ReactElement => {
+                return (
+                  <NextReminderCountdown
+                    nextReminderAt={item.nextReminderNotificationAt}
+                    severityId={item.alertSeverityId}
+                    scope={ReminderRuleScope.Alert}
+                    remindersEnabled={item.enableReminders !== false}
+                  />
+                );
+              },
             },
             {
               field: {
@@ -100,6 +113,9 @@ const AlertSettings: FunctionComponent<
               fieldType: FieldType.Number,
             },
           ],
+          selectMoreFields: {
+            alertSeverityId: true,
+          },
           modelId: modelId,
         }}
       />
