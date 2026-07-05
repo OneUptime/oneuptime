@@ -33,7 +33,7 @@ OneUptime understøtter i øjeblikket følgende LLM-udbydere:
 ### Trin 1: Naviger til LLM-udbyderindstillinger
 
 1. Log ind på dit OneUptime-dashboard
-2. Gå til **Projektindstillinger** > **AI** > **LLM-udbydere**
+2. Gå til **AI Agenter** > **LLM-udbydere**
 3. Klik på **Opret LLM-udbyder** for at tilføje en ny udbyder
 
 ### Trin 2: Konfigurer din udbyder
