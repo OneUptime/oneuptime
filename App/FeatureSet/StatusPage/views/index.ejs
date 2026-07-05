@@ -12,6 +12,7 @@
     <meta name="description" content="<%= typeof description !== 'undefined' ? description : 'Status Page shows real-time status of all of our services.' %>">
     <script src="/status-page/env.js"></script>
     <link rel="icon" type="image/png" href="<%= typeof faviconUrl !== 'undefined' ? faviconUrl : '/status-page/assets/images/favicon.png' %>">
+    <link rel="alternate" type="application/rss+xml" title="Status Page RSS" href="<%= typeof rssFeedPath !== 'undefined' && rssFeedPath ? rssFeedPath : '/rss' %>">
     <link rel="preload" href="/status-page/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
     <style>
       @font-face {

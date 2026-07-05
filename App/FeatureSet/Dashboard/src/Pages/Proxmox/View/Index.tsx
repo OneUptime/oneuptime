@@ -2585,6 +2585,7 @@ const ProxmoxClusterOverview: FunctionComponent<
       <ResourceActivityCards
         modelId={modelId}
         resourceQueryKey="proxmoxClusters"
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
         incidentsRoute={RouteUtil.populateRouteParams(
           RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_INCIDENTS] as Route,
           { modelId: modelId },

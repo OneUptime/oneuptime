@@ -5,6 +5,7 @@ enum NotificationSettingEventType {
   SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION = "Send incident state changed notification when I am the owner of the incident",
   SEND_INCIDENT_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the incident",
   SEND_INCIDENT_MEMBER_ADDED_NOTIFICATION = "Send notification when I am assigned to an incident as a member",
+  SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION = "Send reminder notification when an incident I own is still open",
 
   // Alerts
 
@@ -12,6 +13,7 @@ enum NotificationSettingEventType {
   SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION = "Send alert note posted notification when I am the owner of the alert",
   SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION = "Send alert state changed notification when I am the owner of the alert",
   SEND_ALERT_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the alert",
+  SEND_ALERT_REMINDER_OWNER_NOTIFICATION = "Send reminder notification when an alert I own is still open",
 
   // Alert Episodes
 
@@ -41,6 +43,7 @@ enum NotificationSettingEventType {
   SEND_SCHEDULED_MAINTENANCE_NOTE_POSTED_OWNER_NOTIFICATION = "Send event note posted notification when I am the owner of the event",
   SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the event",
   SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION = "Send event state changed notification when I am the owner of the event",
+  SEND_SCHEDULED_MAINTENANCE_REMINDER_OWNER_NOTIFICATION = "Send reminder notification when a scheduled maintenance event I own is still not complete",
 
   // Status Page
   SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION = "Send status page announcement created notification when I am the owner of the status page",

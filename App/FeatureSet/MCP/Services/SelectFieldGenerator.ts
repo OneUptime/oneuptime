@@ -9,11 +9,27 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import { ModelSchema } from "Common/Utils/Schema/ModelSchema";
 import { AnalyticsModelSchema } from "Common/Utils/Schema/AnalyticsModelSchema";
-import { getTableColumns } from "Common/Types/Database/TableColumn";
+import {
+  getTableColumns,
+  TableColumnMetadata,
+} from "Common/Types/Database/TableColumn";
+import TableColumnType from "Common/Types/Database/TableColumnType";
 import Permission from "Common/Types/Permission";
 import ModelType from "../Types/ModelType";
 import MCPLogger from "../Utils/MCPLogger";
 import { JSONObject } from "Common/Types/JSON";
+
+/*
+ * Column types that tend to hold multi-KB payloads (monitor step definitions,
+ * raw JSON blobs, rendered HTML). Excluded from the default select so list
+ * and read responses stay token-efficient for AI agents; callers can still
+ * request them explicitly via the tool's `select` parameter.
+ */
+const HEAVY_COLUMN_TYPES: TableColumnType[] = [
+  TableColumnType.JSON,
+  TableColumnType.VeryLongText,
+  TableColumnType.HTML,
+];
 
 // Type for model constructor
 type ModelConstructor<T> = new () => T;
@@ -34,9 +50,6 @@ interface ColumnAccessControl {
   update?: Permission[];
 }
 
-// Type for table columns
-type TableColumns = Record<string, unknown>;
-
 // Type for Zod schema shape
 interface ZodSchemaWithShape {
   _def?: {
@@ -45,13 +58,14 @@ interface ZodSchemaWithShape {
 }
 
 /**
- * Generate a select object that includes all fields from the select schema
+ * Generate a select object with all readable fields, excluding heavy
+ * (multi-KB) column types by default for token efficiency.
  */
 export function generateAllFieldsSelect(
   tableName: string,
   modelType: ModelType,
 ): JSONObject {
-  MCPLogger.info(
+  MCPLogger.debug(
     `Generating select for tableName: ${tableName}, modelType: ${modelType}`,
   );
 
@@ -67,10 +81,6 @@ export function generateAllFieldsSelect(
       );
       return {};
     }
-
-    MCPLogger.info(
-      `Found ModelClass: ${(ModelClass as { name: string }).name} for tableName: ${tableName}`,
-    );
 
     // Try to get raw table columns first (most reliable approach)
     const selectFromColumns: JSONObject | null = generateSelectFromTableColumns(
@@ -90,6 +100,49 @@ export function generateAllFieldsSelect(
   }
 }
 
+export interface SelectableFieldsInfo {
+  // All field names an agent may request via the `select` parameter
+  allFields: string[];
+  // Fields excluded from the default select because they are heavy
+  heavyFields: string[];
+}
+
+/**
+ * Describe which fields a database model exposes for selection. Used by the
+ * tool generator to document the `select` parameter.
+ */
+export function getSelectableFieldsForModel(
+  model: BaseModel,
+): SelectableFieldsInfo {
+  const allFields: string[] = [];
+  const heavyFields: string[] = [];
+
+  try {
+    const tableColumns: Record<string, TableColumnMetadata> =
+      getTableColumns(model);
+    const accessControl: Record<string, ColumnAccessControl> = (
+      model as unknown as ModelWithTableName
+    ).getColumnAccessControlForAllColumns
+      ? (model as unknown as ModelWithTableName)
+          .getColumnAccessControlForAllColumns!()
+      : {};
+
+    for (const [columnName, metadata] of Object.entries(tableColumns)) {
+      if (!shouldIncludeField(columnName, accessControl)) {
+        continue;
+      }
+      allFields.push(columnName);
+      if (metadata?.type && HEAVY_COLUMN_TYPES.includes(metadata.type)) {
+        heavyFields.push(columnName);
+      }
+    }
+  } catch (error) {
+    MCPLogger.warn(`Failed to list selectable fields: ${error}`);
+  }
+
+  return { allFields, heavyFields };
+}
+
 /**
  * Find the model class by table name
  */
@@ -98,17 +151,12 @@ function findModelClass(
   modelType: ModelType,
 ): ModelConstructor<BaseModel> | ModelConstructor<AnalyticsBaseModel> | null {
   if (modelType === ModelType.Database) {
-    MCPLogger.info(`Searching DatabaseModels for tableName: ${tableName}`);
     return (
       (DatabaseModels.find((Model: ModelConstructor<BaseModel>): boolean => {
         try {
           const instance: ModelWithTableName =
             new Model() as unknown as ModelWithTableName;
-          const instanceTableName: string = instance.tableName;
-          MCPLogger.info(
-            `Checking model ${Model.name} with tableName: ${instanceTableName}`,
-          );
-          return instanceTableName === tableName;
+          return instance.tableName === tableName;
         } catch (error) {
           MCPLogger.warn(`Error instantiating model ${Model.name}: ${error}`);
           return false;
@@ -118,7 +166,6 @@ function findModelClass(
   }
 
   if (modelType === ModelType.Analytics) {
-    MCPLogger.info(`Searching AnalyticsModels for tableName: ${tableName}`);
     return (
       (AnalyticsModels.find(
         (Model: ModelConstructor<AnalyticsBaseModel>): boolean => {
@@ -150,14 +197,10 @@ function generateSelectFromTableColumns(
   try {
     const modelInstance: ModelWithTableName =
       new ModelClass() as unknown as ModelWithTableName;
-    const tableColumns: TableColumns = getTableColumns(
+    const tableColumns: Record<string, TableColumnMetadata> = getTableColumns(
       modelInstance as BaseModel,
     );
     const columnNames: string[] = Object.keys(tableColumns);
-
-    MCPLogger.info(
-      `Raw table columns (${columnNames.length}): ${columnNames.slice(0, 10).join(", ")}`,
-    );
 
     if (columnNames.length === 0) {
       return null;
@@ -173,16 +216,26 @@ function generateSelectFromTableColumns(
     let filteredCount: number = 0;
 
     for (const columnName of columnNames) {
+      const columnType: TableColumnType | undefined =
+        tableColumns[columnName]?.type;
+      const isHeavyColumn: boolean = Boolean(
+        columnType && HEAVY_COLUMN_TYPES.includes(columnType),
+      );
+
       if (shouldIncludeField(columnName, accessControlForColumns)) {
+        if (isHeavyColumn) {
+          // Excluded by default; agents can request via the select parameter
+          filteredCount++;
+          continue;
+        }
         selectObject[columnName] = true;
       } else {
         filteredCount++;
-        MCPLogger.info(`Filtered out restricted field: ${columnName}`);
       }
     }
 
-    MCPLogger.info(
-      `Generated select from table columns for ${tableName} with ${Object.keys(selectObject).length} fields (filtered out ${filteredCount} restricted fields)`,
+    MCPLogger.debug(
+      `Generated select from table columns for ${tableName} with ${Object.keys(selectObject).length} fields (excluded ${filteredCount} restricted/heavy fields)`,
     );
 
     // Ensure we have at least some basic fields
@@ -240,14 +293,14 @@ function generateSelectFromSchema(
   let selectSchema: ZodSchemaWithShape;
 
   if (modelType === ModelType.Database) {
-    MCPLogger.info(
+    MCPLogger.debug(
       `Generating select schema for database model: ${(ModelClass as { name: string }).name}`,
     );
     selectSchema = ModelSchema.getSelectModelSchema({
       modelType: ModelClass as ModelConstructor<BaseModel>,
     }) as ZodSchemaWithShape;
   } else {
-    MCPLogger.info(
+    MCPLogger.debug(
       `Generating schema for analytics model: ${(ModelClass as { name: string }).name}`,
     );
     selectSchema = AnalyticsModelSchema.getModelSchema({
@@ -266,11 +319,13 @@ function generateSelectFromSchema(
   const shape: Record<string, unknown> | undefined =
     typeof rawShape === "function" ? rawShape() : rawShape;
 
-  MCPLogger.info(`Schema shape keys: ${shape ? Object.keys(shape).length : 0}`);
+  MCPLogger.debug(
+    `Schema shape keys: ${shape ? Object.keys(shape).length : 0}`,
+  );
 
   if (shape) {
     const fieldNames: string[] = Object.keys(shape);
-    MCPLogger.info(
+    MCPLogger.debug(
       `Available fields: ${fieldNames.slice(0, 10).join(", ")}${fieldNames.length > 10 ? "..." : ""}`,
     );
 
@@ -279,7 +334,7 @@ function generateSelectFromSchema(
     }
   }
 
-  MCPLogger.info(
+  MCPLogger.debug(
     `Generated select for ${tableName} with ${Object.keys(selectObject).length} fields`,
   );
 

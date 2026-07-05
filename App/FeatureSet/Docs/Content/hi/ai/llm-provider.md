@@ -33,7 +33,7 @@ OneUptime वर्तमान में निम्नलिखित LLM pro
 ### चरण 1: LLM Providers Settings पर जाएं
 
 1. अपने OneUptime dashboard में लॉग इन करें
-2. **Project Settings** > **AI** > **LLM Providers** पर जाएं
+2. **AI Agents** > **LLM Providers** पर जाएं
 3. नया provider जोड़ने के लिए **Create LLM Provider** पर क्लिक करें
 
 ### चरण 2: अपना Provider Configure करें

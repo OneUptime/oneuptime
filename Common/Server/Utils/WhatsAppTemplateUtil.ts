@@ -35,6 +35,8 @@ const templateDashboardLinkVariableMap: Partial<
   [WhatsAppTemplateIds.IncidentStateChangedOwnerNotification]: "incident_link",
   [WhatsAppTemplateIds.IncidentOwnerAddedNotification]: "incident_link",
   [WhatsAppTemplateIds.IncidentMemberAddedNotification]: "incident_link",
+  [WhatsAppTemplateIds.IncidentReminderOwnerNotification]: "incident_link",
+  [WhatsAppTemplateIds.AlertReminderOwnerNotification]: "alert_link",
   [WhatsAppTemplateIds.MonitorOwnerAddedNotification]: "monitor_link",
   [WhatsAppTemplateIds.MonitorCreatedOwnerNotification]: "monitor_link",
   [WhatsAppTemplateIds.MonitorStatusChangedOwnerNotification]: "monitor_link",
@@ -48,6 +50,8 @@ const templateDashboardLinkVariableMap: Partial<
     "maintenance_link",
   [WhatsAppTemplateIds.ScheduledMaintenanceStateChangedOwnerNotification]:
     "maintenance_link",
+  [WhatsAppTemplateIds.ScheduledMaintenanceReminderOwnerNotification]:
+    "event_link",
   [WhatsAppTemplateIds.StatusPageAnnouncementCreatedOwnerNotification]:
     "status_page_link",
   [WhatsAppTemplateIds.StatusPageCreatedOwnerNotification]: "status_page_link",
@@ -78,6 +82,10 @@ const templateIdByEventType: Record<
     WhatsAppTemplateIds.IncidentOwnerAddedNotification,
   [NotificationSettingEventType.SEND_INCIDENT_MEMBER_ADDED_NOTIFICATION]:
     WhatsAppTemplateIds.IncidentMemberAddedNotification,
+  [NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION]:
+    WhatsAppTemplateIds.IncidentReminderOwnerNotification,
+  [NotificationSettingEventType.SEND_ALERT_REMINDER_OWNER_NOTIFICATION]:
+    WhatsAppTemplateIds.AlertReminderOwnerNotification,
   [NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION]:
     WhatsAppTemplateIds.AlertCreatedOwnerNotification,
   [NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION]:
@@ -124,6 +132,8 @@ const templateIdByEventType: Record<
     WhatsAppTemplateIds.ScheduledMaintenanceOwnerAddedNotification,
   [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION]:
     WhatsAppTemplateIds.ScheduledMaintenanceStateChangedOwnerNotification,
+  [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_REMINDER_OWNER_NOTIFICATION]:
+    WhatsAppTemplateIds.ScheduledMaintenanceReminderOwnerNotification,
   [NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION]:
     WhatsAppTemplateIds.StatusPageAnnouncementCreatedOwnerNotification,
   [NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION]:

@@ -1471,6 +1471,7 @@ const PodmanHostOverview: FunctionComponent<
       <ResourceActivityCards
         modelId={modelId}
         resourceQueryKey="podmanHosts"
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
         incidentsRoute={RouteUtil.populateRouteParams(
           RouteMap[PageMap.PODMAN_HOST_VIEW_INCIDENTS] as Route,
           { modelId: modelId },

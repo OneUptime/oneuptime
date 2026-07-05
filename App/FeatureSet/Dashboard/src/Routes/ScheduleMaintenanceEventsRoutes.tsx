@@ -59,6 +59,8 @@ import ScheduledMaintenanceSettingsRunbookRules from "../Pages/ScheduledMaintena
 
 import ScheduledMaintenanceSettingsLabelRules from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceLabelRules";
 
+import ScheduledMaintenanceSettingsReminderRules from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceReminderRules";
+
 import ScheduledMaintenanceSettingsMore from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceMoreSettings";
 
 const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
@@ -322,6 +324,24 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULES
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_REMINDER_RULES
+            ] || ""
+          }
+          element={
+            <ScheduledMaintenanceSettingsReminderRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_REMINDER_RULES
                 ] as Route
               }
             />

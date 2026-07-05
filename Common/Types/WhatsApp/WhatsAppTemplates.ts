@@ -10,6 +10,8 @@ type TemplateIdsMap = {
   readonly IncidentStateChangedOwnerNotification: "oneuptime_incident_state_change_owner_notification";
   readonly IncidentOwnerAddedNotification: "oneuptime_incident_owner_added_notification";
   readonly IncidentMemberAddedNotification: "oneuptime_incident_member_added_notification";
+  readonly IncidentReminderOwnerNotification: "oneuptime_incident_reminder_owner_notification";
+  readonly AlertReminderOwnerNotification: "oneuptime_alert_reminder_owner_notification";
   readonly AlertCreatedOwnerNotification: "oneuptime_alert_created_owner_notification";
   readonly AlertNotePostedOwnerNotification: "oneuptime_alert_note_posted_owner_notification";
   readonly AlertStateChangedOwnerNotification: "oneuptime_alert_state_changed_owner_notification";
@@ -33,6 +35,7 @@ type TemplateIdsMap = {
   readonly ScheduledMaintenanceNotePostedOwnerNotification: "oneuptime_scheduled_maintenance_note_posted_owner_notification";
   readonly ScheduledMaintenanceOwnerAddedNotification: "oneuptime_scheduled_maintenance_owner_added_notification";
   readonly ScheduledMaintenanceStateChangedOwnerNotification: "oneuptime_scheduled_maintenance_state_changed_owner_notification";
+  readonly ScheduledMaintenanceReminderOwnerNotification: "oneuptime_scheduled_maintenance_reminder_owner_notification";
   readonly StatusPageAnnouncementCreatedOwnerNotification: "oneuptime_status_page_announcement_created_owner_notification";
   readonly StatusPageCreatedOwnerNotification: "oneuptime_status_page_created_owner_notification";
   readonly StatusPageOwnerAddedNotification: "oneuptime_status_page_owner_added_notification";
@@ -63,6 +66,9 @@ const templateIds: TemplateIdsMap = {
   IncidentOwnerAddedNotification: "oneuptime_incident_owner_added_notification",
   IncidentMemberAddedNotification:
     "oneuptime_incident_member_added_notification",
+  IncidentReminderOwnerNotification:
+    "oneuptime_incident_reminder_owner_notification",
+  AlertReminderOwnerNotification: "oneuptime_alert_reminder_owner_notification",
   AlertCreatedOwnerNotification: "oneuptime_alert_created_owner_notification",
   AlertNotePostedOwnerNotification:
     "oneuptime_alert_note_posted_owner_notification",
@@ -106,6 +112,8 @@ const templateIds: TemplateIdsMap = {
     "oneuptime_scheduled_maintenance_owner_added_notification",
   ScheduledMaintenanceStateChangedOwnerNotification:
     "oneuptime_scheduled_maintenance_state_changed_owner_notification",
+  ScheduledMaintenanceReminderOwnerNotification:
+    "oneuptime_scheduled_maintenance_reminder_owner_notification",
   StatusPageAnnouncementCreatedOwnerNotification:
     "oneuptime_status_page_announcement_created_owner_notification",
   StatusPageCreatedOwnerNotification:
@@ -154,6 +162,8 @@ export const WhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition = {
   [WhatsAppTemplateIds.IncidentStateChangedOwnerNotification]: `Incident #{{incident_number}} ({{incident_title}}) state changed to {{incident_state}}. Track the incident status using {{incident_link}} on the OneUptime dashboard for more context.`,
   [WhatsAppTemplateIds.IncidentOwnerAddedNotification]: `You have been added as an owner of incident #{{incident_number}} ({{incident_title}}). Manage the incident using {{incident_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.IncidentMemberAddedNotification]: `You have been assigned as {{incident_role}} to incident #{{incident_number}} ({{incident_title}}). Manage the incident using {{incident_link}} on the OneUptime dashboard.`,
+  [WhatsAppTemplateIds.IncidentReminderOwnerNotification]: `Reminder: Incident #{{incident_number}} ({{incident_title}}) is still {{incident_state}} and has been open for {{elapsed_time}}. Review the incident using {{incident_link}} on the OneUptime dashboard.`,
+  [WhatsAppTemplateIds.AlertReminderOwnerNotification]: `Reminder: Alert #{{alert_number}} ({{alert_title}}) is still {{alert_state}} and has been open for {{elapsed_time}}. Review the alert using {{alert_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.AlertCreatedOwnerNotification]: `Alert #{{alert_number}} ({{alert_title}}) has been created for project {{project_name}}. View alert details using {{alert_link}} on the OneUptime dashboard `,
   [WhatsAppTemplateIds.AlertNotePostedOwnerNotification]: `A new note was posted on alert #{{alert_number}} ({{alert_title}}). Review the alert using {{alert_link}} on the OneUptime dashboard for updates.`,
   [WhatsAppTemplateIds.AlertStateChangedOwnerNotification]: `Alert #{{alert_number}} ({{alert_title}}) state changed to {{alert_state}}. Track the alert status using {{alert_link}} on the OneUptime dashboard to stay informed.`,
@@ -177,6 +187,7 @@ export const WhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition = {
   [WhatsAppTemplateIds.ScheduledMaintenanceNotePostedOwnerNotification]: `A new note was posted on scheduled maintenance #{{event_number}} ({{event_title}}). Review the event using {{maintenance_link}} on the OneUptime dashboard for the latest updates.`,
   [WhatsAppTemplateIds.ScheduledMaintenanceOwnerAddedNotification]: `You have been added as an owner of scheduled maintenance #{{event_number}} ({{event_title}}). Please check the event using {{maintenance_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.ScheduledMaintenanceStateChangedOwnerNotification]: `Scheduled maintenance #{{event_number}} ({{event_title}}) state changed to {{event_state}}. Track event status using {{maintenance_link}} on the OneUptime dashboard to stay aligned.`,
+  [WhatsAppTemplateIds.ScheduledMaintenanceReminderOwnerNotification]: `Reminder: Scheduled maintenance #{{event_number}} ({{event_title}}) is still {{event_state}} and has been open for {{elapsed_time}}. Review the event using {{event_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.StatusPageAnnouncementCreatedOwnerNotification]: `Announcement {{announcement_title}} was published on status page {{status_page_name}}. View the announcement using {{status_page_link}} on the OneUptime dashboard `,
   [WhatsAppTemplateIds.StatusPageCreatedOwnerNotification]: `Status page {{status_page_name}} has been created. View status page details using {{status_page_link}} on the OneUptime dashboard for full context.`,
   [WhatsAppTemplateIds.StatusPageOwnerAddedNotification]: `You have been added as an owner of status page {{status_page_name}}. Manage the status page using {{status_page_link}} on the OneUptime dashboard to stay engaged.`,
@@ -203,6 +214,8 @@ export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
   [WhatsAppTemplateIds.IncidentStateChangedOwnerNotification]: "en",
   [WhatsAppTemplateIds.IncidentOwnerAddedNotification]: "en",
   [WhatsAppTemplateIds.IncidentMemberAddedNotification]: "en",
+  [WhatsAppTemplateIds.IncidentReminderOwnerNotification]: "en",
+  [WhatsAppTemplateIds.AlertReminderOwnerNotification]: "en",
   [WhatsAppTemplateIds.AlertCreatedOwnerNotification]: "en",
   [WhatsAppTemplateIds.AlertNotePostedOwnerNotification]: "en",
   [WhatsAppTemplateIds.AlertStateChangedOwnerNotification]: "en",
@@ -226,6 +239,7 @@ export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
   [WhatsAppTemplateIds.ScheduledMaintenanceNotePostedOwnerNotification]: "en",
   [WhatsAppTemplateIds.ScheduledMaintenanceOwnerAddedNotification]: "en",
   [WhatsAppTemplateIds.ScheduledMaintenanceStateChangedOwnerNotification]: "en",
+  [WhatsAppTemplateIds.ScheduledMaintenanceReminderOwnerNotification]: "en",
   [WhatsAppTemplateIds.StatusPageAnnouncementCreatedOwnerNotification]: "en",
   [WhatsAppTemplateIds.StatusPageCreatedOwnerNotification]: "en",
   [WhatsAppTemplateIds.StatusPageOwnerAddedNotification]: "en",

@@ -7,6 +7,7 @@ import Express, {
 import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
 import "ejs";
+import { handleLlmsTxt } from "./src/Server/API/LlmsTxt";
 import {
   getPublicDashboardData,
   PublicDashboardData,
@@ -15,6 +16,10 @@ import {
 export const APP_NAME: string = "public-dashboard";
 
 const app: ExpressApplication = Express.getExpressApp();
+
+// add llms.txt route (machine-readable entry point for AI agents)
+app.get("/llms.txt", handleLlmsTxt);
+app.get("/public-dashboard/:dashboardId/llms.txt", handleLlmsTxt);
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {

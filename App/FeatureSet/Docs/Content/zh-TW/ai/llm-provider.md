@@ -33,7 +33,7 @@ OneUptime 目前支援以下 LLM 供應商：
 ### 步驟 1：前往 LLM Providers 設定
 
 1. 登入您的 OneUptime 儀表板
-2. 前往 **Project Settings** > **AI** > **LLM Providers**
+2. 前往 **AI Agents** > **LLM Providers**
 3. 點選 **Create LLM Provider** 以新增供應商
 
 ### 步驟 2：設定您的供應商

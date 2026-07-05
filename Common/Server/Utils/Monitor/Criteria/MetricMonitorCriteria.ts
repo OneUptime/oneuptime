@@ -3,6 +3,7 @@ import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
 import MetricFormulaConfigData from "../../../../Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
+import MetricsViewConfig from "../../../../Types/Metrics/MetricsViewConfig";
 import MetricMonitorResponse from "../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MetricCriteriaContext, {
   MetricAnomalyBaseline,
@@ -114,12 +115,13 @@ export default class MetricMonitorCriteria {
     const seriesBreakdown: Array<MetricSeriesResult> | undefined =
       metricResponse.seriesBreakdown;
 
+    const metricViewConfig: MetricsViewConfig | undefined =
+      MonitorStep.getMetricsViewConfig(input.monitorStep);
+
     const queryConfigs: Array<MetricQueryConfigData> =
-      input.monitorStep.data?.metricMonitor?.metricViewConfig?.queryConfigs ||
-      [];
+      metricViewConfig?.queryConfigs || [];
     const formulaConfigs: Array<MetricFormulaConfigData> =
-      input.monitorStep.data?.metricMonitor?.metricViewConfig?.formulaConfigs ||
-      [];
+      metricViewConfig?.formulaConfigs || [];
 
     const nativeUnitsByMetricName: { [key: string]: string } | undefined =
       metricResponse.nativeUnitsByMetricName;

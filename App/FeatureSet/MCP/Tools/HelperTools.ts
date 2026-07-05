@@ -6,6 +6,7 @@
 import { McpToolInfo } from "../Types/McpTypes";
 import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
+import { sanitizeToolName } from "./SchemaConverter";
 
 export interface ResourceInfo {
   name: string;
@@ -53,19 +54,43 @@ function getResourceDescription(singularName: string): string {
       "Defines what to monitor (websites, APIs, servers) and how to check their health and availability.",
     Alert:
       "Notifications triggered when monitors detect issues. Configures who gets notified and how.",
-    Project:
-      "Top-level container for all your monitoring resources. Organizes monitors, incidents, and team members.",
     "Status Page":
       "Public-facing page showing the status of your services to your customers.",
     "Scheduled Maintenance":
       "Planned downtime events that inform users about expected service interruptions.",
     Team: "Groups of users with shared access to project resources.",
-    "On-Call Duty Policy":
+    "On-Call Policy":
       "Defines escalation rules and schedules for incident response.",
     "Incident State":
       "Represents the lifecycle states of incidents (e.g., Created, Acknowledged, Resolved).",
     "Monitor Status":
       "Represents the health states of monitors (e.g., Operational, Degraded, Offline).",
+    "Incident Severity":
+      "Severity levels for incidents (e.g., Critical, Major, Minor). List these to find the incidentSeverityId required by create_incident.",
+    "Alert State":
+      "Lifecycle states of alerts (e.g., Created, Acknowledged, Resolved).",
+    "Alert Severity":
+      "Severity levels for alerts. List these to find the alertSeverityId required by create_alert.",
+    "Incident State Timeline":
+      "History of state changes for incidents. Creating an entry changes the incident's state (this is how acknowledge/resolve work).",
+    "Alert State Timeline":
+      "History of state changes for alerts. Creating an entry changes the alert's state.",
+    "Incident Public Note":
+      "Status-page-visible notes on incidents, seen by customers and subscribers.",
+    "Incident Internal Note": "Internal team-only notes on incidents.",
+    "Alert Internal Note": "Internal team-only notes on alerts.",
+    "Status Page Announcement": "Announcements posted to your status pages.",
+    "Scheduled Maintenance State":
+      "Lifecycle states for maintenance events (e.g., Scheduled, Ongoing, Completed).",
+    Label: "Labels for organizing and filtering project resources.",
+    "Monitor Status Event":
+      "History of monitor status changes — useful for investigating when a monitor went down or recovered.",
+    Log: "OpenTelemetry log records from your services. Filter by time range and service.",
+    Metric: "OpenTelemetry metrics from your services.",
+    Span: "OpenTelemetry trace spans from your services.",
+    "Exception Instance": "Application exceptions captured via telemetry.",
+    "Monitor Log":
+      "Raw probe results for monitors — explains why a monitor check passed or failed.",
   };
 
   return (
@@ -89,10 +114,11 @@ AVAILABLE RESOURCES:
 ${resourceSummary}
 
 COMMON WORKFLOWS:
-1. List incidents: Use list_incidents to see current incidents
-2. Create incident: Use create_incident with title and severity
-3. Check monitor status: Use list_monitors to see all monitors and their status
-4. Count resources: Use count_* tools to get totals without fetching all data`,
+1. Orient yourself: Use oneuptime_whoami to see your project
+2. List incidents: Use list_incidents to see current incidents
+3. Respond: Use acknowledge_incident / resolve_incident / add_incident_note
+4. Investigate: Use list_logs, list_metrics, list_spans, list_monitor_logs (always with a time-range filter)
+5. Create incident: Use list_incident_severities to get a severity ID, then create_incident`,
     inputSchema: {
       type: "object",
       properties: {
@@ -112,6 +138,8 @@ COMMON WORKFLOWS:
       },
       additionalProperties: false,
     },
+    title: "OneUptime Help",
+    annotations: { readOnlyHint: true },
     modelName: "Help",
     operation: OneUptimeOperation.Read,
     modelType: ModelType.Database,
@@ -132,6 +160,8 @@ function createResourceInfoTool(_resources: ResourceInfo[]): McpToolInfo {
       properties: {},
       additionalProperties: false,
     },
+    title: "List OneUptime Resources",
+    annotations: { readOnlyHint: true },
     modelName: "ResourceInfo",
     operation: OneUptimeOperation.List,
     modelType: ModelType.Database,
@@ -219,11 +249,17 @@ function handleHelpTool(
         },
         {
           tool: "create_incident",
-          description: "Create a new incident when an issue is detected",
+          description:
+            "Create a new incident. Requires incidentSeverityId — get one from list_incident_severities first. projectId is inferred from your API key.",
         },
         {
-          tool: "update_incident",
-          description: "Update incident state, severity, or add notes",
+          tool: "acknowledge_incident / resolve_incident",
+          description: "Move an incident through its lifecycle in one call",
+        },
+        {
+          tool: "add_incident_note",
+          description:
+            "Add an internal (team-only) or public (status page) note to an incident",
         },
         {
           tool: "count_incidents",
@@ -234,7 +270,7 @@ function handleHelpTool(
         createIncident: {
           title: "Database connection failure",
           description: "Production database is not responding to queries",
-          incidentSeverityId: "<severity-uuid>",
+          incidentSeverityId: "<uuid from list_incident_severities>",
         },
       };
       break;
@@ -282,11 +318,20 @@ function handleHelpTool(
           ],
         },
         {
+          name: "Respond to an incident",
+          steps: [
+            "1. Use acknowledge_incident to signal you are on it",
+            "2. Investigate: list_monitor_logs for the failing monitor, list_logs / list_exceptions for the affected service (always filter by time range)",
+            "3. Use add_incident_note (visibility: public) to post a status update",
+            "4. Use resolve_incident once fixed",
+          ],
+        },
+        {
           name: "Create and manage incident",
           steps: [
-            "1. Use list_incident_states to get available states",
-            "2. Use create_incident with title, description, and severity",
-            "3. Use update_incident to change state as incident progresses",
+            "1. Use list_incident_severities to get a severity ID",
+            "2. Use create_incident with title, description, and incidentSeverityId (projectId is inferred from your API key)",
+            "3. Use acknowledge_incident / resolve_incident as the incident progresses",
           ],
         },
         {
@@ -304,7 +349,18 @@ function handleHelpTool(
       (response["data"] as Record<string, unknown>)["examples"] = {
         listRecentIncidents: {
           tool: "list_incidents",
-          args: { limit: 10, sort: { createdAt: -1 } },
+          args: { limit: 10, sort: { createdAt: "DESC" } },
+        },
+        recentErrorLogs: {
+          tool: "list_logs",
+          args: {
+            query: {
+              time: { _type: "GreaterThan", value: "<ISO-8601 timestamp>" },
+              severityText: "Error",
+            },
+            limit: 20,
+            sort: { time: "DESC" },
+          },
         },
         countActiveIncidents: {
           tool: "count_incidents",
@@ -317,6 +373,18 @@ function handleHelpTool(
         updateIncidentTitle: {
           tool: "update_incident",
           args: { id: "<incident-uuid>", title: "Updated title" },
+        },
+        acknowledgeIncident: {
+          tool: "acknowledge_incident",
+          args: { incidentId: "<incident-uuid>" },
+        },
+        postPublicUpdate: {
+          tool: "add_incident_note",
+          args: {
+            incidentId: "<incident-uuid>",
+            note: "We have identified the issue and are working on a fix.",
+            visibility: "public",
+          },
         },
       };
       break;
@@ -335,10 +403,11 @@ function handleHelpTool(
         "examples",
       ];
       (response["data"] as Record<string, unknown>)["quickStart"] = [
-        "1. Use 'oneuptime_list_resources' to see all available resources",
-        "2. Use 'list_*' tools to browse existing data",
-        "3. Use 'count_*' tools to get quick summaries",
-        "4. Use 'create_*' tools to add new items",
+        "1. Use 'oneuptime_whoami' to see which project your API key belongs to",
+        "2. Use 'oneuptime_list_resources' to see all available resources",
+        "3. Use 'list_*' tools to browse existing data",
+        "4. Use 'acknowledge_incident', 'resolve_incident', 'add_incident_note' for incident response",
+        "5. Use 'list_logs', 'list_metrics', 'list_spans' to investigate telemetry (always filter by time range)",
       ];
       (response["data"] as Record<string, unknown>)["resourceCount"] =
         resourceList.length;
@@ -353,20 +422,38 @@ function handleListResourcesTool(resources: ResourceInfo[]): string {
     success: true,
     totalResources: resources.length,
     resources: resources.map((r: ResourceInfo) => {
+      // Tool names must match ToolGenerator exactly — always sanitize
+      const singular: string = sanitizeToolName(r.singularName);
+      const plural: string = sanitizeToolName(r.pluralName);
+      const operations: string[] = r.operations;
+
+      const tools: Record<string, string> = {};
+      if (operations.includes(OneUptimeOperation.Create)) {
+        tools["create"] = `create_${singular}`;
+      }
+      if (operations.includes(OneUptimeOperation.Read)) {
+        tools["get"] = `get_${singular}`;
+      }
+      if (operations.includes(OneUptimeOperation.List)) {
+        tools["list"] = `list_${plural}`;
+      }
+      if (operations.includes(OneUptimeOperation.Update)) {
+        tools["update"] = `update_${singular}`;
+      }
+      if (operations.includes(OneUptimeOperation.Delete)) {
+        tools["delete"] = `delete_${singular}`;
+      }
+      if (operations.includes(OneUptimeOperation.Count)) {
+        tools["count"] = `count_${plural}`;
+      }
+
       return {
         name: r.name,
         singularName: r.singularName,
         pluralName: r.pluralName,
         description: r.description,
-        operations: r.operations,
-        tools: {
-          create: `create_${r.singularName.toLowerCase().replace(/\s+/g, "_")}`,
-          get: `get_${r.singularName.toLowerCase().replace(/\s+/g, "_")}`,
-          list: `list_${r.pluralName.toLowerCase().replace(/\s+/g, "_")}`,
-          update: `update_${r.singularName.toLowerCase().replace(/\s+/g, "_")}`,
-          delete: `delete_${r.singularName.toLowerCase().replace(/\s+/g, "_")}`,
-          count: `count_${r.pluralName.toLowerCase().replace(/\s+/g, "_")}`,
-        },
+        operations,
+        tools,
       };
     }),
   };

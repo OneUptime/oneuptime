@@ -15,25 +15,25 @@ Il server MCP è ospitato insieme alla tua istanza OneUptime ed è accessibile t
 
 ## Funzionalità Principali
 
-- **Copertura API Completa**: Accesso a 711 endpoint API di OneUptime
-- **126 Tipi di Risorse**: Gestione di tutte le risorse OneUptime inclusi monitor, incidenti, team, probe e altro
+- **~155 Strumenti**: Strumenti CRUD completi per 22 tipi di risorse (incidenti, avvisi, monitor, pagine di stato, reperibilità e altro), strumenti di telemetria in sola lettura, oltre a strumenti di workflow e di supporto
 - **Operazioni in Tempo Reale**: Creazione, lettura, aggiornamento ed eliminazione di risorse in tempo reale
 - **Interfaccia Type-safe**: Completamente tipizzata con validazione completa degli input
-- **Autenticazione Sicura**: Autenticazione basata su chiave API con gestione appropriata degli errori
+- **Autenticazione Sicura**: Autenticazione con chiave API per singola richiesta con gestione appropriata degli errori
+- **Annotazioni di Sicurezza**: Gli strumenti in sola lettura riportano `readOnlyHint` e gli strumenti di eliminazione riportano `destructiveHint`, così i client MCP possono approvare automaticamente le chiamate sicure e chiedere conferma prima di quelle distruttive
 - **Integrazione Semplice**: Funziona con Claude Desktop e altri client compatibili con MCP
-- **Gestione delle Sessioni**: Gestione integrata delle sessioni con supporto alla riconnessione automatica
+- **Stateless per Progettazione**: Nessun ID di sessione — ogni richiesta è autosufficiente, quindi il server funziona dietro load balancer e deployment multi-replica
 
 ## Cosa Puoi Fare
 
 Con il Server MCP di OneUptime, gli assistenti AI possono aiutarti a:
 
-- **Gestione dei Monitor**: Creare e configurare monitor, controllarne lo stato e gestire gruppi di monitor
-- **Risposta agli Incidenti**: Creare incidenti, aggiungere note, assegnare membri del team e tracciare la risoluzione
-- **Operazioni di Team**: Gestire team, autorizzazioni e turni di reperibilità
-- **Pagine di Stato**: Aggiornare le pagine di stato, creare annunci e gestire i subscriber
-- **Alerting**: Configurare regole di avviso, gestire policy di escalation e controllare i log di notifica
-- **Probe**: Distribuire e gestire probe di monitoraggio in diverse posizioni
-- **Report e Analisi**: Generare report e analizzare i dati di monitoraggio
+- **Gestione dei Monitor**: Creare e configurare monitor, controllarne lo stato e rivedere la cronologia degli stati
+- **Risposta agli Incidenti**: Creare, prendere in carico e risolvere incidenti, aggiungere note interne o pubbliche e tracciare la risoluzione
+- **Operazioni di Team**: Gestire team e policy di reperibilità
+- **Pagine di Stato**: Gestire le pagine di stato e creare annunci
+- **Alerting**: Prendere in carico e risolvere avvisi, aggiungere note agli avvisi e gestire stati e severità degli avvisi
+- **Manutenzione Programmata**: Creare e gestire eventi di manutenzione programmata
+- **Telemetria**: Interrogare log, metriche, trace, eccezioni e log dei monitor (in sola lettura)
 
 ## Requisiti
 
@@ -49,6 +49,10 @@ Con il Server MCP di OneUptime, gli assistenti AI possono aiutarti a:
 4. Fornisci un nome (es. "Server MCP")
 5. Seleziona le autorizzazioni appropriate per il tuo caso d'uso
 6. Copia la chiave API generata
+
+Le chiavi API hanno ambito di progetto: il server MCP deduce il tuo progetto dalla chiave, quindi gli strumenti di creazione non richiedono mai un argomento `projectId`.
+
+> **Attenzione — non fornire mai una chiave master a un agente AI.** Anche una chiave API *master* di OneUptime viene accettata su questo header e concede accesso amministrativo all'intera istanza. Usa sempre una chiave API di progetto con il privilegio minimo necessario all'agente (una chiave in sola lettura è sufficiente per tutti gli strumenti `get_`/`list_`/`count_`).
 
 ## Configurazione
 
@@ -202,13 +206,13 @@ La configurazione sopra utilizza variabili di input con `"password": true` per r
 
 ## Endpoint Disponibili
 
-| Endpoint      | Metodo | Descrizione                                                           |
-| ------------- | ------ | --------------------------------------------------------------------- |
-| `/mcp`        | GET    | Stream di eventi inviati dal server per le notifiche server-to-client |
-| `/mcp`        | POST   | Richieste JSON-RPC per chiamate agli strumenti e altre operazioni     |
-| `/mcp`        | DELETE | Pulizia e terminazione della sessione                                 |
-| `/mcp/health` | GET    | Endpoint di controllo dello stato di salute                           |
-| `/mcp/tools`  | GET    | API REST per elencare gli strumenti disponibili                       |
+| Endpoint      | Metodo | Descrizione                                                                                                                    |
+| ------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `/mcp`        | POST   | Richieste JSON-RPC per chiamate agli strumenti e altre operazioni                                                                            |
+| `/mcp`        | GET    | Senza un header `Accept` SSE: payload JSON di discovery. Con tale header: `405` — il server stateless non offre uno stream SSE autonomo (i client conformi procedono senza) |
+| `/mcp`        | DELETE | Nessuna operazione (il server è stateless, quindi non c'è alcuna sessione da terminare)                                                             |
+| `/mcp/health` | GET    | Endpoint di controllo dello stato di salute                                                                                                            |
+| `/mcp/tools`  | GET    | API REST per elencare gli strumenti disponibili                                                                                                 |
 
 ## Autenticazione
 
@@ -234,25 +238,77 @@ Per tutte le altre operazioni (gestione di monitor, incidenti, team, ecc.), è r
 - `x-api-key`: La tua chiave API OneUptime
 - `Authorization`: Bearer token con la tua chiave API (es. `Bearer your-api-key-here`)
 
+Lo schema `Bearer` non fa distinzione tra maiuscole e minuscole. Gli errori degli strumenti vengono restituiti come risultati in-band dello strumento (`isError: true`) con `statusCode`, dettagli e un suggerimento — non come errori del protocollo MCP — così gli agenti possono leggere il fallimento e autocorreggersi.
+
+## Strumenti di Workflow
+
+Oltre agli strumenti CRUD per risorsa, il server include strumenti di workflow appositamente progettati per la risposta a incidenti e avvisi:
+
+- **`acknowledge_incident`** / **`resolve_incident`**: Portano un incidente allo stato Acknowledged o Resolved del progetto — equivalente a premere il pulsante nella dashboard
+- **`acknowledge_alert`** / **`resolve_alert`**: Lo stesso per gli avvisi
+- **`add_incident_note`**: Aggiunge una nota a un incidente con `visibility: "internal"` (solo per il team, impostazione predefinita) o `visibility: "public"` (pubblicata sulla pagina di stato). Il Markdown è supportato
+- **`add_alert_note`**: Aggiunge una nota interna a un avviso
+
+Un ciclo tipico: `list_incidents` → `acknowledge_incident` → indagine con `list_logs` → `add_incident_note` (pubblica) → `resolve_incident`.
+
+## Who Am I
+
+Lo strumento **`oneuptime_whoami`** restituisce il progetto a cui appartiene la tua chiave API (ID e nome). È un'utile prima chiamata con cui un agente può orientarsi — e poiché gli strumenti di creazione deducono `projectId` dalla chiave API, l'agente non deve mai passare un ID di progetto.
+
+## Interrogare la Telemetria
+
+Log, metriche, trace (span), eccezioni e log dei monitor sono esposti come strumenti `list_` e `count_` in sola lettura (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` e i corrispondenti `count_`). La telemetria viene ingerita tramite OpenTelemetry, quindi non esistono strumenti di creazione.
+
+Interroga sempre la telemetria con un filtro sull'intervallo temporale. I campi di query accettano un valore diretto oppure un oggetto operatore:
+
+```json
+{
+  "query": {
+    "time": { "_type": "GreaterThan", "value": "2026-07-04T00:00:00.000Z" }
+  },
+  "sort": { "time": "DESC" },
+  "limit": 50
+}
+```
+
+Operatori supportati: `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search`, `Includes`. I valori di ordinamento sono `"ASC"` o `"DESC"`.
+
+## Selezione dei Campi e Paginazione
+
+Gli strumenti `get_` e `list_` accettano un array `select` opzionale di nomi di campi. Per impostazione predefinita vengono restituiti tutti i campi leggibili tranne quelli pesanti (colonne JSON, testo molto lungo e HTML), che devono essere richiesti esplicitamente in `select`.
+
+Gli strumenti di elenco paginano con `limit` (predefinito 10, massimo 100) e `skip`, e ogni risposta di elenco riporta esattamente ciò che ha restituito:
+
+```json
+{
+  "returnedCount": 10,
+  "totalCount": 42,
+  "skip": 0,
+  "limit": 10,
+  "hasMore": true,
+  "data": ["..."]
+}
+```
+
 ## Verifica
 
 Verifica che il server MCP sia in esecuzione:
 
 ```bash
-# Per OneUptime Cloud
+# For OneUptime Cloud
 curl https://oneuptime.com/mcp/health
 
-# Per Self-Hosted
+# For Self-Hosted
 curl https://your-oneuptime-domain.com/mcp/health
 ```
 
 Elenca gli strumenti disponibili:
 
 ```bash
-# Per OneUptime Cloud
+# For OneUptime Cloud
 curl https://oneuptime.com/mcp/tools
 
-# Per Self-Hosted
+# For Self-Hosted
 curl https://your-oneuptime-domain.com/mcp/tools
 ```
 
@@ -286,9 +342,8 @@ curl https://your-oneuptime-domain.com/mcp/tools
 ### Team e Reperibilità
 
 ```
-"Who are the members of the infrastructure team?"
-"Who's currently on call for the infrastructure team?"
-"Show me the on-call schedule for this week"
+"List the teams in this project"
+"Show me our on-call policies"
 ```
 
 ### Gestione delle Pagine di Stato
@@ -360,21 +415,21 @@ Assicurati che la tua chiave API abbia le autorizzazioni necessarie:
 
 Se ricevi errori relativi alla sessione:
 
-- Il server MCP utilizza l'header `mcp-session-id` per tracciare le sessioni
-- Assicurati che il tuo client gestisca correttamente l'ID di sessione restituito dal server
-- Le sessioni vengono automaticamente pulite quando le connessioni si chiudono
+- Il server MCP è stateless — non emette né traccia ID di sessione, quindi ogni richiesta funziona con qualsiasi replica del server
+- I client che inviano un header `mcp-session-id` proveniente da una versione precedente del server possono semplicemente ometterlo; viene ignorato
+- Aggiorna le configurazioni dei client MCP più vecchi che si aspettano che il server restituisca un ID di sessione
 
 ## Risorse Disponibili
 
-Il server MCP fornisce accesso a 126 tipi di risorse tra cui:
+Il server MCP fornisce strumenti per le seguenti risorse:
 
-**Monitoraggio**: Monitor, MonitorStatus, MonitorGroup, Probe
-**Incidenti**: Incident, IncidentState, IncidentNote, IncidentTemplate
-**Avvisi**: Alert, AlertState, AlertSeverity
-**Pagine di Stato**: StatusPage, StatusPageAnnouncement, StatusPageSubscriber
-**Reperibilità**: On-CallPolicy, EscalationRule, On-CallSchedule
-**Team**: Team, TeamMember, TeamPermission
-**Telemetria**: TelemetryService, Log, Span, Metric
-**Workflow**: Workflow, WorkflowVariable, WorkflowLog
+**Monitoraggio**: Monitor, Monitor Status, Monitor Status Event
+**Incidenti**: Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note
+**Avvisi**: Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note
+**Pagine di Stato**: Status Page, Status Page Announcement
+**Manutenzione Programmata**: Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline
+**Team e Reperibilità**: Team, On-Call Policy
+**Etichette**: Label
+**Telemetria (sola lettura)**: Log, Metric, Span, Exception Instance, Monitor Log
 
-Ogni risorsa supporta le operazioni standard: List, Count, Get, Create, Update e Delete.
+Ogni risorsa di database supporta Create, Get, List, Update, Delete e Count tramite strumenti in snake_case — ad esempio `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident`, `count_incidents`. Le risorse di telemetria espongono solo strumenti `list_` e `count_` (ad esempio `list_logs`, `count_spans`).

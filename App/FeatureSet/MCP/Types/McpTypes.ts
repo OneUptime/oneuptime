@@ -27,6 +27,19 @@ export interface JSONSchema {
   description?: string;
 }
 
+/**
+ * MCP tool annotations (hints for clients). Mirrors the SDK's
+ * ToolAnnotationsSchema: clients use readOnlyHint to auto-approve safe calls
+ * and destructiveHint to require confirmation before dangerous ones.
+ */
+export interface ToolAnnotations {
+  title?: string;
+  readOnlyHint?: boolean;
+  destructiveHint?: boolean;
+  idempotentHint?: boolean;
+  openWorldHint?: boolean;
+}
+
 export interface McpToolInfo {
   name: string;
   description: string;
@@ -38,6 +51,8 @@ export interface McpToolInfo {
   pluralName: string;
   tableName: string;
   apiPath?: string;
+  title?: string;
+  annotations?: ToolAnnotations;
 }
 
 export interface ModelToolsResult {
@@ -61,7 +76,11 @@ export interface OneUptimeToolCallArgs {
   id?: string;
   data?: JSONObject;
   query?: JSONObject;
-  select?: JSONObject;
+  /**
+   * Fields to return. Tools expose this as an array of field names for
+   * compactness; a select object ({ field: true }) is also accepted.
+   */
+  select?: JSONObject | string[];
   skip?: number;
   limit?: number;
   sort?: SortObject;

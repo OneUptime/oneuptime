@@ -21,16 +21,6 @@ import SettingsTelemetrySettings from "../Pages/Settings/TelemetrySettings";
 
 import SettingLabels from "../Pages/Settings/Labels";
 
-import SettingAIAgents from "../Pages/Settings/AIAgents";
-
-import SettingsAIAgentView from "../Pages/Settings/AIAgentView";
-
-import SettingLlmProviders from "../Pages/Settings/LlmProviders";
-
-import SettingsLlmProviderView from "../Pages/Settings/LlmProviderView";
-
-import SettingsAIBilling from "../Pages/Settings/AIBillingSettings";
-
 import SettingFeatureFlags from "../Pages/Settings/FeatureFlags";
 
 import SettingsDomains from "../Pages/Settings/Domains";
@@ -42,7 +32,6 @@ import SettingsOIDC from "../Pages/Settings/OIDC";
 import SettingsSCIM from "../Pages/Settings/SCIM";
 
 import SettingsNotificationLogs from "../Pages/Settings/NotificationLogs";
-import SettingsAILogs from "../Pages/Settings/AILogs";
 import SettingsNotifications from "../Pages/Settings/NotificationSettings";
 import SettingsInvoices from "../Pages/Settings/Invoices";
 
@@ -113,15 +102,6 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsMobileApps
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_MOBILE_APPS] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_LOGS)}
-          element={
-            <SettingsAILogs
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_AI_LOGS] as Route}
             />
           }
         />
@@ -311,59 +291,6 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingLabels
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_LABELS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_AGENTS)}
-          element={
-            <SettingAIAgents
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_AGENT_VIEW, 2)}
-          element={
-            <SettingsAIAgentView
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_AI_AGENT_VIEW] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LLM_PROVIDERS)}
-          element={
-            <SettingLlmProviders
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.SETTINGS_LLM_PROVIDER_VIEW,
-            2,
-          )}
-          element={
-            <SettingsLlmProviderView
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_LLM_PROVIDER_VIEW] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_BILLING)}
-          element={
-            <SettingsAIBilling
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_AI_BILLING] as Route}
             />
           }
         />

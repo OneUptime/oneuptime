@@ -11,6 +11,7 @@ import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
+import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -24,6 +25,7 @@ import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/Statu
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
+@EnableMCP()
 @CanAccessIfCanReadOn("incident")
 @TenantColumn("projectId")
 @Index(["incidentId", "startsAt"]) // Composite index for efficient incident timeline queries

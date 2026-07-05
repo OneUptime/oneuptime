@@ -15,25 +15,25 @@ O servidor MCP é hospedado junto com sua instância do OneUptime e acessível v
 
 ## Principais Recursos
 
-- **Cobertura Completa de API**: Acesso a 711 endpoints de API do OneUptime
-- **126 Tipos de Recursos**: Gerencie todos os recursos do OneUptime incluindo monitores, incidentes, equipes, probes e mais
+- **~155 Ferramentas**: Ferramentas CRUD completas para 22 tipos de recursos (incidentes, alertas, monitores, páginas de status, plantão e mais), ferramentas de telemetria somente leitura, além de ferramentas de fluxo de trabalho e auxiliares
 - **Operações em Tempo Real**: Criar, ler, atualizar e excluir recursos em tempo real
 - **Interface Tipada**: Totalmente tipado com validação de entrada abrangente
-- **Autenticação Segura**: Autenticação baseada em chave de API com tratamento adequado de erros
+- **Autenticação Segura**: Autenticação por chave de API a cada requisição com tratamento adequado de erros
+- **Anotações de Segurança**: Ferramentas somente leitura carregam `readOnlyHint` e ferramentas de exclusão carregam `destructiveHint`, para que clientes MCP possam aprovar automaticamente chamadas seguras e perguntar antes das destrutivas
 - **Integração Fácil**: Funciona com Claude Desktop e outros clientes compatíveis com MCP
-- **Gerenciamento de Sessão**: Gerenciamento de sessão integrado com suporte a reconexão automática
+- **Sem Estado por Design**: Sem IDs de sessão — cada requisição é autocontida, então o servidor funciona atrás de balanceadores de carga e implantações com múltiplas réplicas
 
 ## O que Você Pode Fazer
 
 Com o Servidor MCP do OneUptime, os assistentes de IA podem ajudá-lo a:
 
-- **Gerenciamento de Monitores**: Criar e configurar monitores, verificar seu status e gerenciar grupos de monitores
-- **Resposta a Incidentes**: Criar incidentes, adicionar notas, atribuir membros de equipe e rastrear resolução
-- **Operações de Equipe**: Gerenciar equipes, permissões e escalas de plantão
-- **Páginas de Status**: Atualizar páginas de status, criar anúncios e gerenciar assinantes
-- **Alertas**: Configurar regras de alerta, gerenciar políticas de escalonamento e verificar logs de notificação
-- **Probes**: Implantar e gerenciar probes de monitoramento em diferentes localizações
-- **Relatórios e Análises**: Gerar relatórios e analisar dados de monitoramento
+- **Gerenciamento de Monitores**: Criar e configurar monitores, verificar seu status e revisar o histórico de status
+- **Resposta a Incidentes**: Criar, reconhecer e resolver incidentes, adicionar notas internas ou públicas e rastrear a resolução
+- **Operações de Equipe**: Gerenciar equipes e políticas de plantão
+- **Páginas de Status**: Gerenciar páginas de status e criar anúncios
+- **Alertas**: Reconhecer e resolver alertas, adicionar notas de alerta e gerenciar estados e severidades de alertas
+- **Manutenção Programada**: Criar e gerenciar eventos de manutenção programada
+- **Telemetria**: Consultar logs, métricas, traces, exceções e logs de monitores (somente leitura)
 
 ## Requisitos
 
@@ -49,6 +49,10 @@ Com o Servidor MCP do OneUptime, os assistentes de IA podem ajudá-lo a:
 4. Forneça um nome (ex.: "Servidor MCP")
 5. Selecione as permissões apropriadas para o seu caso de uso
 6. Copie a chave de API gerada
+
+As chaves de API têm escopo de projeto: o servidor MCP infere seu projeto a partir da chave, então as ferramentas de criação nunca precisam de um argumento `projectId`.
+
+> **Aviso — nunca dê uma chave mestra a um agente de IA.** Uma chave de API *mestra* do OneUptime também é aceita neste cabeçalho e concede acesso de administrador a toda a instância. Sempre use uma chave de API de projeto com o menor privilégio de que o agente precisa (uma chave somente leitura é suficiente para todas as ferramentas `get_`/`list_`/`count_`).
 
 ## Configuração
 
@@ -71,7 +75,7 @@ Adicione a seguinte configuração:
       "transport": "streamable-http",
       "url": "https://oneuptime.com/mcp",
       "headers": {
-        "x-api-key": "sua-chave-de-api-aqui"
+        "x-api-key": "your-api-key-here"
       }
     }
   }
@@ -87,9 +91,9 @@ Substitua `oneuptime.com` pelo seu domínio do OneUptime:
   "mcpServers": {
     "oneuptime": {
       "transport": "streamable-http",
-      "url": "https://seu-dominio-oneuptime.com/mcp",
+      "url": "https://your-oneuptime-domain.com/mcp",
       "headers": {
-        "x-api-key": "sua-chave-de-api-aqui"
+        "x-api-key": "your-api-key-here"
       }
     }
   }
@@ -162,7 +166,7 @@ Como alternativa, crie `.vscode/mcp.json` no seu espaço de trabalho para config
   "servers": {
     "oneuptime": {
       "type": "http",
-      "url": "https://seu-dominio-oneuptime.com/mcp",
+      "url": "https://your-oneuptime-domain.com/mcp",
       "headers": {
         "x-api-key": "${input:oneuptime-api-key}"
       }
@@ -191,9 +195,9 @@ Como alternativa, crie `.vscode/mcp.json` no seu espaço de trabalho para config
 Abra o GitHub Copilot Chat e use o modo Agente (`@workspace` ou pergunte diretamente):
 
 ```
-"Quais monitores eu tenho no OneUptime?"
-"Mostre-me incidentes recentes"
-"Crie um novo monitor para https://example.com"
+"What monitors do I have in OneUptime?"
+"Show me recent incidents"
+"Create a new monitor for https://example.com"
 ```
 
 #### Nota de Segurança
@@ -202,13 +206,13 @@ A configuração acima usa variáveis de entrada com `"password": true` para sol
 
 ## Endpoints Disponíveis
 
-| Endpoint      | Método | Descrição                                                                             |
-| ------------- | ------ | ------------------------------------------------------------------------------------- |
-| `/mcp`        | GET    | Stream de eventos enviados pelo servidor para notificações do servidor para o cliente |
-| `/mcp`        | POST   | Requisições JSON-RPC para chamadas de ferramentas e outras operações                  |
-| `/mcp`        | DELETE | Limpeza e encerramento de sessão                                                      |
-| `/mcp/health` | GET    | Endpoint de verificação de saúde                                                      |
-| `/mcp/tools`  | GET    | API REST para listar ferramentas disponíveis                                          |
+| Endpoint      | Método | Descrição                                                                                                                    |
+| ------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `/mcp`        | POST   | Requisições JSON-RPC para chamadas de ferramentas e outras operações                                                                            |
+| `/mcp`        | GET    | Sem um cabeçalho `Accept` de SSE: payload JSON amigável de descoberta. Com um: `405` — o servidor sem estado não oferece stream SSE autônomo (clientes em conformidade prosseguem sem ele) |
+| `/mcp`        | DELETE | Sem efeito (o servidor é sem estado, então não há sessão para encerrar)                                                             |
+| `/mcp/health` | GET    | Endpoint de verificação de saúde                                                                                                            |
+| `/mcp/tools`  | GET    | API REST para listar ferramentas disponíveis                                                                                                 |
 
 ## Autenticação
 
@@ -232,28 +236,80 @@ As ferramentas de página de status pública aceitam um ID de página de status 
 Para todas as outras operações (gerenciar monitores, incidentes, equipes, etc.), a autenticação é necessária via um dos seguintes cabeçalhos:
 
 - `x-api-key`: Sua chave de API do OneUptime
-- `Authorization`: Token Bearer com sua chave de API (ex.: `Bearer sua-chave-de-api-aqui`)
+- `Authorization`: Token Bearer com sua chave de API (ex.: `Bearer your-api-key-here`)
+
+O esquema `Bearer` não diferencia maiúsculas de minúsculas. Erros de ferramenta são retornados como resultados de ferramenta dentro da resposta (`isError: true`) com um `statusCode`, detalhes e uma sugestão — não como erros do protocolo MCP — para que os agentes possam ler a falha e se autocorrigir.
+
+## Ferramentas de Fluxo de Trabalho
+
+Além das ferramentas CRUD por recurso, o servidor inclui ferramentas de fluxo de trabalho criadas especificamente para resposta a incidentes e alertas:
+
+- **`acknowledge_incident`** / **`resolve_incident`**: Mover um incidente para o estado Reconhecido ou Resolvido do projeto — equivalente a pressionar o botão no painel
+- **`acknowledge_alert`** / **`resolve_alert`**: O mesmo para alertas
+- **`add_incident_note`**: Adicionar uma nota a um incidente com `visibility: "internal"` (apenas para a equipe, o padrão) ou `visibility: "public"` (publicada na página de status). Markdown é suportado
+- **`add_alert_note`**: Adicionar uma nota interna a um alerta
+
+Um ciclo típico: `list_incidents` → `acknowledge_incident` → investigar com `list_logs` → `add_incident_note` (pública) → `resolve_incident`.
+
+## Quem Sou Eu
+
+A ferramenta **`oneuptime_whoami`** retorna o projeto ao qual sua chave de API pertence (ID e nome). É uma primeira chamada útil para um agente se orientar — e como as ferramentas de criação inferem o `projectId` a partir da chave de API, o agente nunca precisa passar um ID de projeto.
+
+## Consultando Telemetria
+
+Logs, métricas, traces (spans), exceções e logs de monitores são expostos como ferramentas `list_` e `count_` somente leitura (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` e suas contrapartes `count_`). A telemetria é ingerida via OpenTelemetry, portanto não há ferramentas de criação.
+
+Sempre consulte telemetria com um filtro de intervalo de tempo. Os campos de consulta aceitam um valor direto ou um objeto de operador:
+
+```json
+{
+  "query": {
+    "time": { "_type": "GreaterThan", "value": "2026-07-04T00:00:00.000Z" }
+  },
+  "sort": { "time": "DESC" },
+  "limit": 50
+}
+```
+
+Operadores suportados: `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search`, `Includes`. Os valores de ordenação são `"ASC"` ou `"DESC"`.
+
+## Seleção de Campos e Paginação
+
+As ferramentas `get_` e `list_` aceitam um array opcional `select` de nomes de campos. Por padrão, todos os campos legíveis são retornados, exceto os pesados (colunas JSON, de texto muito longo e HTML), que devem ser solicitados explicitamente em `select`.
+
+As ferramentas de listagem paginam com `limit` (padrão 10, máximo 100) e `skip`, e cada resposta de listagem informa exatamente o que retornou:
+
+```json
+{
+  "returnedCount": 10,
+  "totalCount": 42,
+  "skip": 0,
+  "limit": 10,
+  "hasMore": true,
+  "data": ["..."]
+}
+```
 
 ## Verificação
 
 Verifique se o servidor MCP está em execução:
 
 ```bash
-# Para OneUptime na Nuvem
+# For OneUptime Cloud
 curl https://oneuptime.com/mcp/health
 
-# Para Auto-Hospedado
-curl https://seu-dominio-oneuptime.com/mcp/health
+# For Self-Hosted
+curl https://your-oneuptime-domain.com/mcp/health
 ```
 
 Liste as ferramentas disponíveis:
 
 ```bash
-# Para OneUptime na Nuvem
+# For OneUptime Cloud
 curl https://oneuptime.com/mcp/tools
 
-# Para Auto-Hospedado
-curl https://seu-dominio-oneuptime.com/mcp/tools
+# For Self-Hosted
+curl https://your-oneuptime-domain.com/mcp/tools
 ```
 
 ## Exemplos de Uso
@@ -261,41 +317,40 @@ curl https://seu-dominio-oneuptime.com/mcp/tools
 ### Consultas Básicas de Informação
 
 ```
-"Qual é o status atual de todos os meus monitores?"
-"Mostre-me incidentes das últimas 24 horas"
+"What's the current status of all my monitors?"
+"Show me incidents from the last 24 hours"
 ```
 
 ### Gerenciamento de Monitores
 
 ```
-"Crie um novo monitor de site para https://example.com que verifica a cada 5 minutos"
-"Configure um monitor de API para https://api.example.com/health com um timeout de 30 segundos"
-"Altere o intervalo de monitoramento do meu monitor de site para a cada 2 minutos"
-"Desative o monitor para staging.example.com enquanto estamos fazendo manutenção"
+"Create a new website monitor for https://example.com that checks every 5 minutes"
+"Set up an API monitor for https://api.example.com/health with a 30-second timeout"
+"Change the monitoring interval for my website monitor to every 2 minutes"
+"Disable the monitor for staging.example.com while we're doing maintenance"
 ```
 
 ### Gerenciamento de Incidentes
 
 ```
-"Crie um incidente de alta prioridade para a interrupção do banco de dados afetando a autenticação de usuários"
-"Adicione uma nota ao incidente #123 dizendo 'Conexão com banco de dados restaurada, monitorando a estabilidade'"
-"Marque o incidente #456 como resolvido"
-"Atribua o incidente atual do gateway de pagamento à equipe de infraestrutura"
+"Create a high-priority incident for the database outage affecting user authentication"
+"Add a note to incident #123 saying 'Database connection restored, monitoring for stability'"
+"Mark incident #456 as resolved"
+"Assign the current payment gateway incident to the infrastructure team"
 ```
 
 ### Equipe e Plantão
 
 ```
-"Quem são os membros da equipe de infraestrutura?"
-"Quem está de plantão atualmente para a equipe de infraestrutura?"
-"Mostre-me a escala de plantão desta semana"
+"List the teams in this project"
+"Show me our on-call policies"
 ```
 
 ### Gerenciamento de Página de Status
 
 ```
-"Atualize nossa página de status para mostrar 'Investigando Problemas de Pagamento' para o serviço de pagamento"
-"Crie um anúncio na página de status sobre manutenção programada neste fim de semana"
+"Update our status page to show 'Investigating Payment Issues' for the payment service"
+"Create a status page announcement about scheduled maintenance this weekend"
 ```
 
 ### Consultas de Página de Status Pública (Sem Chave de API Necessária)
@@ -303,17 +358,17 @@ curl https://seu-dominio-oneuptime.com/mcp/tools
 Estas consultas funcionam sem autenticação, usando apenas as ferramentas públicas de página de status:
 
 ```
-"Qual é o status atual de status.example.com?"
-"Mostre-me incidentes recentes da página de status do OneUptime"
-"Há algum evento de manutenção programada em status.acme.com?"
-"Obtenha os últimos anúncios da minha página de status pública com ID abc123-..."
+"What's the current status of status.example.com?"
+"Show me recent incidents from the OneUptime status page"
+"Are there any scheduled maintenance events on status.acme.com?"
+"Get the latest announcements from my public status page with ID abc123-..."
 ```
 
 ### Operações Avançadas
 
 ```
-"Crie uma janela de manutenção programada para sábado das 2h às 4h, desative todos os monitores para api.example.com durante esse período e atualize a página de status"
-"Mostre-me todos os monitores que estiveram fora na última hora, crie incidentes para aqueles que ainda não têm um"
+"Create a scheduled maintenance window for Saturday 2-4 AM, disable all monitors for api.example.com during that time, and update the status page"
+"Show me all monitors that have been down in the last hour, create incidents for any that don't already have one"
 ```
 
 ## Permissões de Chave de API
@@ -360,21 +415,21 @@ Certifique-se de que sua chave de API tem as permissões necessárias:
 
 Se você receber erros relacionados a sessões:
 
-- O servidor MCP usa o cabeçalho `mcp-session-id` para rastrear sessões
-- Certifique-se de que seu cliente lida adequadamente com o ID de sessão retornado pelo servidor
-- As sessões são limpas automaticamente quando as conexões fecham
+- O servidor MCP é sem estado — ele não emite nem rastreia IDs de sessão, então cada requisição funciona contra qualquer réplica do servidor
+- Clientes que enviam um cabeçalho `mcp-session-id` de uma versão anterior do servidor podem simplesmente omiti-lo; ele é ignorado
+- Atualize configurações de clientes MCP mais antigas que esperam que um ID de sessão seja retornado pelo servidor
 
 ## Recursos Disponíveis
 
-O servidor MCP fornece acesso a 126 tipos de recursos incluindo:
+O servidor MCP fornece ferramentas para os seguintes recursos:
 
-**Monitoramento**: Monitor, MonitorStatus, MonitorGroup, Probe
-**Incidentes**: Incident, IncidentState, IncidentNote, IncidentTemplate
-**Alertas**: Alert, AlertState, AlertSeverity
-**Páginas de Status**: StatusPage, StatusPageAnnouncement, StatusPageSubscriber
-**Plantão**: On-CallPolicy, EscalationRule, On-CallSchedule
-**Equipes**: Team, TeamMember, TeamPermission
-**Telemetria**: TelemetryService, Log, Span, Metric
-**Fluxos de Trabalho**: Workflow, WorkflowVariable, WorkflowLog
+**Monitoramento**: Monitor, Status de Monitor, Evento de Status de Monitor
+**Incidentes**: Incidente, Estado de Incidente, Severidade de Incidente, Linha do Tempo de Estado de Incidente, Nota Pública de Incidente, Nota Interna de Incidente
+**Alertas**: Alerta, Estado de Alerta, Severidade de Alerta, Linha do Tempo de Estado de Alerta, Nota Interna de Alerta
+**Páginas de Status**: Página de Status, Anúncio de Página de Status
+**Manutenção Programada**: Evento de Manutenção Programada, Estado de Manutenção Programada, Linha do Tempo de Estado de Manutenção Programada
+**Equipes e Plantão**: Equipe, Política de Plantão
+**Rótulos**: Rótulo
+**Telemetria (somente leitura)**: Log, Métrica, Span, Instância de Exceção, Log de Monitor
 
-Cada recurso suporta operações padrão: Listar, Contar, Obter, Criar, Atualizar e Excluir.
+Cada recurso de banco de dados suporta Criar, Obter, Listar, Atualizar, Excluir e Contar via ferramentas em snake_case — por exemplo, `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident`, `count_incidents`. Recursos de telemetria expõem apenas ferramentas `list_` e `count_` (por exemplo, `list_logs`, `count_spans`).

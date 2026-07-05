@@ -588,6 +588,18 @@ const CephClusterOverview: FunctionComponent<
     showLoader: boolean,
   ): Promise<void> => {
     setIsRefreshing(true);
+    /*
+     * Slide the relative chart window forward on every refresh so the
+     * Golden Signals charts advance; a custom absolute range is returned
+     * unchanged by getStartAndEndDate, so it stays pinned. Skipped on the
+     * initial load (showLoader) — the state initializer just computed the
+     * window and re-setting it would double-fetch every chart at mount.
+     */
+    if (!showLoader) {
+      setChartDateRange(
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(chartTimeRange),
+      );
+    }
     if (showLoader) {
       setPageError("");
     }

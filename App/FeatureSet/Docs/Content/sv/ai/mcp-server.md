@@ -15,25 +15,25 @@ MCP-servern körs tillsammans med din OneUptime-instans och är åtkomlig via St
 
 ## Nyckelfunktioner
 
-- **Fullständig API-täckning**: Åtkomst till 711 OneUptime API-slutpunkter
-- **126 resurstyper**: Hantera alla OneUptime-resurser inklusive monitorer, incidenter, team, sonder och mer
+- **Cirka 155 verktyg**: Fullständiga CRUD-verktyg för 22 resurstyper (incidenter, varningar, monitorer, statussidor, jour med mera), skrivskyddade telemetriverktyg samt arbetsflödes- och hjälpverktyg
 - **Realtidsoperationer**: Skapa, läs, uppdatera och ta bort resurser i realtid
 - **Typsäkert gränssnitt**: Fullständigt typsatt med omfattande indatavalidering
-- **Säker autentisering**: API-nyckelbaserad autentisering med korrekt felhantering
+- **Säker autentisering**: API-nyckelautentisering per förfrågan med korrekt felhantering
+- **Säkerhetsannoteringar**: Skrivskyddade verktyg bär `readOnlyHint` och borttagningsverktyg bär `destructiveHint`, så att MCP-klienter kan godkänna säkra anrop automatiskt och fråga före destruktiva
 - **Enkel integration**: Fungerar med Claude Desktop och andra MCP-kompatibla klienter
-- **Sessionshantering**: Inbyggd sessionshantering med automatisk återanslutningsstöd
+- **Tillståndslös som design**: Inga sessions-ID:n — varje förfrågan är självständig, så servern fungerar bakom lastbalanserare och driftsättningar med flera repliker
 
 ## Vad du kan göra
 
 Med OneUptime MCP-servern kan AI-assistenter hjälpa dig att:
 
-- **Monitorhantering**: Skapa och konfigurera monitorer, kontrollera deras status och hantera monitorgrupper
-- **Incidentsvar**: Skapa incidenter, lägg till anteckningar, tilldela teammedlemmar och spåra lösning
-- **Teamoperationer**: Hantera team, behörigheter och jour-scheman
-- **Statussidor**: Uppdatera statussidor, skapa meddelanden och hantera prenumeranter
-- **Varning**: Konfigurera varningsregler, hantera eskaleringspolicyer och kontrollera aviseringsloggar
-- **Sonder**: Distribuera och hantera övervakningssonder på olika platser
-- **Rapporter och analys**: Generera rapporter och analysera övervakningsdata
+- **Monitorhantering**: Skapa och konfigurera monitorer, kontrollera deras status och granska statushistorik
+- **Incidentsvar**: Skapa, kvittera och lösa incidenter, lägga till interna eller offentliga anteckningar och spåra lösning
+- **Teamoperationer**: Hantera team och jourpolicyer
+- **Statussidor**: Hantera statussidor och skapa meddelanden
+- **Varningar**: Kvittera och lösa varningar, lägga till varningsanteckningar och hantera varningstillstånd och allvarlighetsgrader
+- **Schemalagt underhåll**: Skapa och hantera schemalagda underhållshändelser
+- **Telemetri**: Fråga efter loggar, mätvärden, spårningar, undantag och monitorloggar (skrivskyddat)
 
 ## Krav
 
@@ -49,6 +49,10 @@ Med OneUptime MCP-servern kan AI-assistenter hjälpa dig att:
 4. Ange ett namn (t.ex. "MCP-server")
 5. Välj lämpliga behörigheter för ditt användningsfall
 6. Kopiera den genererade API-nyckeln
+
+API-nycklar är projektbundna: MCP-servern härleder ditt projekt från nyckeln, så skapa-verktyg behöver aldrig ett `projectId`-argument.
+
+> **Varning — ge aldrig en AI-agent en huvudnyckel.** En OneUptime-*huvudnyckel* (master-API-nyckel) accepteras också i detta huvud och ger administratörsåtkomst till hela instansen. Använd alltid en projekt-API-nyckel med de minsta behörigheter agenten behöver (en skrivskyddad nyckel räcker för alla `get_`-/`list_`-/`count_`-verktyg).
 
 ## Konfiguration
 
@@ -202,13 +206,13 @@ Konfigurationen ovan använder indatavariabler med `"password": true` för att p
 
 ## Tillgängliga slutpunkter
 
-| Slutpunkt     | Metod  | Beskrivning                                                     |
-| ------------- | ------ | --------------------------------------------------------------- |
-| `/mcp`        | GET    | Server-sent events-ström för server-till-klient-aviseringar     |
-| `/mcp`        | POST   | JSON-RPC-förfrågningar för verktygsan rop och andra operationer |
-| `/mcp`        | DELETE | Sessionsrensning och avslutning                                 |
-| `/mcp/health` | GET    | Hälsokontrollslutpunkt                                          |
-| `/mcp/tools`  | GET    | REST API för att lista tillgängliga verktyg                     |
+| Slutpunkt     | Metod  | Beskrivning                                                                                                                    |
+| ------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `/mcp`        | POST   | JSON-RPC-förfrågningar för verktygsanrop och andra operationer                                                                   |
+| `/mcp`        | GET    | Utan ett SSE-`Accept`-huvud: vänlig JSON-svarslast för upptäckt. Med ett: `405` — den tillståndslösa servern erbjuder ingen fristående SSE-ström (kompatibla klienter fortsätter utan den) |
+| `/mcp`        | DELETE | Ingen åtgärd (servern är tillståndslös, så det finns ingen session att avsluta)                                                  |
+| `/mcp/health` | GET    | Hälsokontrollslutpunkt                                                                                                           |
+| `/mcp/tools`  | GET    | REST API för att lista tillgängliga verktyg                                                                                      |
 
 ## Autentisering
 
@@ -225,7 +229,7 @@ Du kan ansluta till MCP-servern utan en API-nyckel för att komma åt offentliga
 - **`get_public_status_page_scheduled_maintenance`**: Hämta schemalagda underhållshändelser
 - **`get_public_status_page_announcements`**: Hämta meddelanden från en offentlig statussida
 
-Verktyg för offentliga statussidor accepterar antingen ett statussid-ID (UUID) eller statussidens domännamn.
+Verktyg för offentliga statussidor accepterar antingen ett statussid-ID (UUID) eller statussidans domännamn.
 
 ### Autentiserade verktyg (API-nyckel krävs)
 
@@ -234,25 +238,77 @@ För alla andra operationer (hantering av monitorer, incidenter, team etc.) krä
 - `x-api-key`: Din OneUptime API-nyckel
 - `Authorization`: Bearer-token med din API-nyckel (t.ex. `Bearer your-api-key-here`)
 
+`Bearer`-schemat är skiftlägesokänsligt. Verktygsfel returneras som verktygsresultat i själva svaret (`isError: true`) med en `statusCode`, detaljer och ett förslag — inte som MCP-protokollfel — så att agenter kan läsa felet och korrigera sig själva.
+
+## Arbetsflödesverktyg
+
+Utöver CRUD-verktygen per resurs levereras servern med särskilt byggda arbetsflödesverktyg för incident- och varningshantering:
+
+- **`acknowledge_incident`** / **`resolve_incident`**: Flytta en incident till projektets tillstånd Kvitterad eller Löst — motsvarar att trycka på knappen i instrumentpanelen
+- **`acknowledge_alert`** / **`resolve_alert`**: Samma sak för varningar
+- **`add_incident_note`**: Lägg till en anteckning på en incident med `visibility: "internal"` (endast teamet, standardvärdet) eller `visibility: "public"` (publiceras på statussidan). Markdown stöds
+- **`add_alert_note`**: Lägg till en intern anteckning på en varning
+
+En typisk loop: `list_incidents` → `acknowledge_incident` → undersök med `list_logs` → `add_incident_note` (offentlig) → `resolve_incident`.
+
+## Vem är jag
+
+Verktyget **`oneuptime_whoami`** returnerar det projekt som din API-nyckel tillhör (ID och namn). Det är ett användbart första anrop för att en agent ska orientera sig — och eftersom skapa-verktyg härleder `projectId` från API-nyckeln behöver agenten aldrig skicka ett projekt-ID.
+
+## Fråga efter telemetri
+
+Loggar, mätvärden, spårningar (spans), undantag och monitorloggar exponeras som skrivskyddade `list_`- och `count_`-verktyg (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` och deras `count_`-motsvarigheter). Telemetri tas in via OpenTelemetry, så det finns inga skapa-verktyg.
+
+Fråga alltid efter telemetri med ett tidsintervallfilter. Frågefält accepterar antingen ett direkt värde eller ett operatorobjekt:
+
+```json
+{
+  "query": {
+    "time": { "_type": "GreaterThan", "value": "2026-07-04T00:00:00.000Z" }
+  },
+  "sort": { "time": "DESC" },
+  "limit": 50
+}
+```
+
+Operatorer som stöds: `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search`, `Includes`. Sorteringsvärden är `"ASC"` eller `"DESC"`.
+
+## Fältval och paginering
+
+`get_`- och `list_`-verktyg accepterar en valfri `select`-array med fältnamn. Som standard returneras alla läsbara fält utom tunga fält (JSON-, mycket-lång-text- och HTML-kolumner), som måste begäras uttryckligen i `select`.
+
+Listverktyg paginerar med `limit` (standard 10, max 100) och `skip`, och varje listsvar rapporterar exakt vad det returnerade:
+
+```json
+{
+  "returnedCount": 10,
+  "totalCount": 42,
+  "skip": 0,
+  "limit": 10,
+  "hasMore": true,
+  "data": ["..."]
+}
+```
+
 ## Verifiering
 
 Verifiera att MCP-servern körs:
 
 ```bash
-# För OneUptime Cloud
+# For OneUptime Cloud
 curl https://oneuptime.com/mcp/health
 
-# För egeninstallerad
+# For Self-Hosted
 curl https://your-oneuptime-domain.com/mcp/health
 ```
 
 Lista tillgängliga verktyg:
 
 ```bash
-# För OneUptime Cloud
+# For OneUptime Cloud
 curl https://oneuptime.com/mcp/tools
 
-# För egeninstallerad
+# For Self-Hosted
 curl https://your-oneuptime-domain.com/mcp/tools
 ```
 
@@ -286,9 +342,8 @@ curl https://your-oneuptime-domain.com/mcp/tools
 ### Team och jour
 
 ```
-"Who are the members of the infrastructure team?"
-"Who's currently on call for the infrastructure team?"
-"Show me the on-call schedule for this week"
+"List the teams in this project"
+"Show me our on-call policies"
 ```
 
 ### Hantering av statussidor
@@ -360,21 +415,21 @@ Se till att din API-nyckel har de nödvändiga behörigheterna:
 
 Om du får sessionsrelaterade fel:
 
-- MCP-servern använder `mcp-session-id`-huvudet för att spåra sessioner
-- Se till att din klient hanterar sessions-ID:t som returneras av servern korrekt
-- Sessioner rensas automatiskt när anslutningar stängs
+- MCP-servern är tillståndslös — den utfärdar eller spårar inga sessions-ID:n, så varje förfrågan fungerar mot vilken serverreplik som helst
+- Klienter som skickar ett `mcp-session-id`-huvud från en tidigare serverversion kan helt enkelt utelämna det; det ignoreras
+- Uppdatera äldre MCP-klientkonfigurationer som förväntar sig att ett sessions-ID returneras av servern
 
 ## Tillgängliga resurser
 
-MCP-servern ger åtkomst till 126 resurstyper inklusive:
+MCP-servern tillhandahåller verktyg för följande resurser:
 
-**Övervakning**: Monitor, MonitorStatus, MonitorGroup, Probe
-**Incidenter**: Incident, IncidentState, IncidentNote, IncidentTemplate
-**Varningar**: Alert, AlertState, AlertSeverity
-**Statussidor**: StatusPage, StatusPageAnnouncement, StatusPageSubscriber
-**Jour**: On-CallPolicy, EscalationRule, On-CallSchedule
-**Team**: Team, TeamMember, TeamPermission
-**Telemetri**: TelemetryService, Log, Span, Metric
-**Arbetsflöden**: Workflow, WorkflowVariable, WorkflowLog
+**Övervakning**: Monitor, Monitorstatus, Monitorstatushändelse
+**Incidenter**: Incident, Incidenttillstånd, Incidentallvarlighetsgrad, Tidslinje för incidenttillstånd, Offentlig incidentanteckning, Intern incidentanteckning
+**Varningar**: Varning, Varningstillstånd, Varningsallvarlighetsgrad, Tidslinje för varningstillstånd, Intern varningsanteckning
+**Statussidor**: Statussida, Statussidemeddelande
+**Schemalagt underhåll**: Schemalagd underhållshändelse, Tillstånd för schemalagt underhåll, Tidslinje för schemalagt underhållstillstånd
+**Team och jour**: Team, Jourpolicy
+**Etiketter**: Etikett
+**Telemetri (skrivskyddat)**: Logg, Mätvärde, Span, Undantagsinstans, Monitorlogg
 
-Varje resurs stöder standardoperationer: List, Count, Get, Create, Update och Delete.
+Varje databasresurs stöder Create, Get, List, Update, Delete och Count via verktyg i snake_case — till exempel `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident`, `count_incidents`. Telemetriresurser exponerar endast `list_`- och `count_`-verktyg (till exempel `list_logs`, `count_spans`).

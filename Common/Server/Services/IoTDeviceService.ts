@@ -1,8 +1,10 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/IoTDevice";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
+import { clampIoTTimestamp } from "../Utils/Telemetry/IoTSnapshotScan";
 import logger from "../Utils/Logger";
 
 /*
@@ -58,6 +60,23 @@ const UPSERT_BATCH_SIZE: number = 500;
 const STALE_DELETE_WARN_THRESHOLD: number = 100;
 
 /*
+ * The identity/text columns are ShortText (100 chars). A single value
+ * over the column limit fails the whole multi-row INSERT chunk it rides
+ * in — truncate per value instead so one malformed device can never
+ * drop the other rows of its chunk.
+ */
+function truncateShortText(value: string): string;
+function truncateShortText(value: string | null): string | null;
+function truncateShortText(value: string | null): string | null {
+  if (value === null) {
+    return value;
+  }
+  return value.length > ColumnLength.ShortText
+    ? value.substring(0, ColumnLength.ShortText)
+    : value;
+}
+
+/*
  * Column order used by bulkUpsert() and its generated parameter tuples.
  * Keep this and the INSERT column list in perfect sync.
  */
@@ -103,9 +122,52 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
+    /*
+     * Sanitize before building chunks: ShortText columns truncate to
+     * the column limit (one over-long device.id must not fail the
+     * whole 500-row chunk), lastSeenAt clamps so a future-skewed
+     * device clock can't wedge the `>=` dominance guard, and rows that
+     * collide on the conflict target after truncation dedupe to the
+     * newest observation (two VALUES rows hitting the same conflict
+     * target would abort the statement).
+     */
+    const dedupedByIdentity: Map<string, ParsedIoTDevice> = new Map();
+    for (const r of data.devices) {
+      const externalId: string = truncateShortText(r.externalId);
+      if (!externalId) {
+        continue;
+      }
+      if (externalId !== r.externalId) {
+        logger.warn(
+          `IoTDevice externalId exceeds ${ColumnLength.ShortText} chars; truncated to "${externalId}" (fleet ${data.iotFleetId.toString()}).`,
+        );
+      }
+      const device: ParsedIoTDevice = {
+        ...r,
+        kind: truncateShortText(r.kind),
+        externalId,
+        name: truncateShortText(r.name),
+        deviceType: truncateShortText(r.deviceType),
+        firmwareVersion: truncateShortText(r.firmwareVersion),
+        lastSeenAt: clampIoTTimestamp(r.lastSeenAt),
+      };
+      const key: string = `${device.kind}|${device.externalId}`;
+      const existing: ParsedIoTDevice | undefined = dedupedByIdentity.get(key);
+      if (!existing || device.lastSeenAt >= existing.lastSeenAt) {
+        dedupedByIdentity.set(key, device);
+      }
+    }
+
+    const devices: Array<ParsedIoTDevice> = Array.from(
+      dedupedByIdentity.values(),
+    );
+    if (devices.length === 0) {
+      return;
+    }
+
     // Chunk to keep individual statement parameter counts reasonable.
-    for (let i: number = 0; i < data.devices.length; i += UPSERT_BATCH_SIZE) {
-      const chunk: Array<ParsedIoTDevice> = data.devices.slice(
+    for (let i: number = 0; i < devices.length; i += UPSERT_BATCH_SIZE) {
+      const chunk: Array<ParsedIoTDevice> = devices.slice(
         i,
         i + UPSERT_BATCH_SIZE,
       );
@@ -181,8 +243,41 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    for (let i: number = 0; i < data.metrics.length; i += UPSERT_BATCH_SIZE) {
-      const chunk: Array<IoTDeviceLatestMetric> = data.metrics.slice(
+    /*
+     * Same sanitation as bulkUpsert — and the identity truncation MUST
+     * match it, or the mirror UPDATE would silently miss the row the
+     * upsert just wrote under the truncated id. Dedupe keeps the UPDATE
+     * deterministic when two rows collapse onto one identity.
+     */
+    const dedupedByIdentity: Map<string, IoTDeviceLatestMetric> = new Map();
+    for (const m of data.metrics) {
+      const externalId: string = truncateShortText(m.externalId);
+      if (!externalId) {
+        continue;
+      }
+      const metric: IoTDeviceLatestMetric = {
+        ...m,
+        kind: truncateShortText(m.kind),
+        externalId,
+        observedAt: clampIoTTimestamp(m.observedAt),
+      };
+      const key: string = `${metric.kind}|${metric.externalId}`;
+      const existing: IoTDeviceLatestMetric | undefined =
+        dedupedByIdentity.get(key);
+      if (!existing || metric.observedAt >= existing.observedAt) {
+        dedupedByIdentity.set(key, metric);
+      }
+    }
+
+    const metrics: Array<IoTDeviceLatestMetric> = Array.from(
+      dedupedByIdentity.values(),
+    );
+    if (metrics.length === 0) {
+      return;
+    }
+
+    for (let i: number = 0; i < metrics.length; i += UPSERT_BATCH_SIZE) {
+      const chunk: Array<IoTDeviceLatestMetric> = metrics.slice(
         i,
         i + UPSERT_BATCH_SIZE,
       );

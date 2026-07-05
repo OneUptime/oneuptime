@@ -45,6 +45,16 @@ x-common-runtime-variables: &common-runtime-variables
   <<: *common-variables
   ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
 
+  # Seed a Global LLM Provider from env at startup (e.g. a local Ollama or
+  # vLLM server). Set GLOBAL_LLM_PROVIDER_TYPE to enable; unset it to remove
+  # the seeded provider on the next restart.
+  GLOBAL_LLM_PROVIDER_NAME: ${GLOBAL_LLM_PROVIDER_NAME}
+  GLOBAL_LLM_PROVIDER_DESCRIPTION: ${GLOBAL_LLM_PROVIDER_DESCRIPTION}
+  GLOBAL_LLM_PROVIDER_TYPE: ${GLOBAL_LLM_PROVIDER_TYPE}
+  GLOBAL_LLM_PROVIDER_BASE_URL: ${GLOBAL_LLM_PROVIDER_BASE_URL}
+  GLOBAL_LLM_PROVIDER_MODEL_NAME: ${GLOBAL_LLM_PROVIDER_MODEL_NAME}
+  GLOBAL_LLM_PROVIDER_API_KEY: ${GLOBAL_LLM_PROVIDER_API_KEY}
+
   VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
 
   EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN}
@@ -202,22 +212,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1000m"
-
-  llm:
-    networks:
-      - oneuptime
-    restart: always
-    environment:
-      <<: *common-runtime-variables
-      PORT: 8547
-      HF_TOKEN: ${LLM_SERVER_HUGGINGFACE_TOKEN}
-      HF_MODEL_NAME: ${LLM_SERVER_HUGGINGFACE_MODEL_NAME}
-    volumes:
-      - ./LLM/Models:/app/Models
     logging:
       driver: "json-file"
       options:

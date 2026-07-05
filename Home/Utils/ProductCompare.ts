@@ -3970,6 +3970,10 @@ export const getProductCompareSlugs: () => Array<string> =
 const ProductCompare: (product: string) => Product = (
   product: string,
 ): Product => {
+  // Own-property check so keys like "constructor" don't resolve via the prototype.
+  if (!Object.prototype.hasOwnProperty.call(products, product)) {
+    return undefined as unknown as Product;
+  }
   return products[product] as Product;
 };
 

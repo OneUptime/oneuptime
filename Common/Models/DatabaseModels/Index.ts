@@ -182,6 +182,7 @@ import GlobalSSOProject from "./GlobalSsoProject";
 import GlobalOIDCProject from "./GlobalOidcProject";
 import PromoCode from "./PromoCode";
 import EnterpriseLicense from "./EnterpriseLicense";
+import EnterpriseLicenseInstance from "./EnterpriseLicenseInstance";
 import OpenSourceDeployment from "./OpenSourceDeployment";
 import Reseller from "./Reseller";
 import ResellerPlan from "./ResellerPlan";
@@ -336,6 +337,9 @@ import IncidentEpisodePrivacyRule from "./IncidentEpisodePrivacyRule";
 import IncidentEpisodeLabelRule from "./IncidentEpisodeLabelRule";
 import IncidentSlaRule from "./IncidentSlaRule";
 import IncidentSla from "./IncidentSla";
+import IncidentReminderRule from "./IncidentReminderRule";
+import AlertReminderRule from "./AlertReminderRule";
+import ScheduledMaintenanceReminderRule from "./ScheduledMaintenanceReminderRule";
 import MonitorOwnerRule from "./MonitorOwnerRule";
 import MonitorLabelRule from "./MonitorLabelRule";
 import StatusPageOwnerRule from "./StatusPageOwnerRule";
@@ -511,6 +515,9 @@ const AllModelTypes: Array<{
   IncidentEpisodeLabelRule,
   IncidentSlaRule,
   IncidentSla,
+  IncidentReminderRule,
+  AlertReminderRule,
+  ScheduledMaintenanceReminderRule,
 
   MonitorOwnerRule,
   MonitorLabelRule,
@@ -651,6 +658,7 @@ const AllModelTypes: Array<{
 
   PromoCode,
   EnterpriseLicense,
+  EnterpriseLicenseInstance,
   OpenSourceDeployment,
 
   GlobalConfig,

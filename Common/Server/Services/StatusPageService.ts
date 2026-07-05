@@ -37,6 +37,7 @@ import User from "../../Models/DatabaseModels/User";
 import {
   AllowedStatusPageCountInFreePlan,
   IsBillingEnabled,
+  LetsEncryptAccountKey,
 } from "../EnvironmentConfig";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import Recurring from "../../Types/Events/Recurring";
@@ -96,9 +97,9 @@ export class Service extends DatabaseService<StatusPage> {
    * Caches the resolved status page URL per statusPageId. `getStatusPageURL`
    * is called inside per-subscriber notification loops (see
    * `StatusPageSubscriberService`), where a single batch can fire N×
-   * Postgres lookups against `StatusPageDomain`. SSL-provisioned custom
-   * domains change rarely (provisioning takes minutes), so a 60s staleness
-   * window is acceptable. Callers that need stronger consistency can call
+   * Postgres lookups against `StatusPageDomain`. Usable custom domains
+   * change rarely (provisioning/verification takes minutes), so a 60s
+   * staleness window is acceptable. Callers that need stronger consistency can call
    * `clearStatusPageUrlCache` after writes to the underlying domain.
    */
   private statusPageUrlCache: InMemoryTTLCache<string> = new InMemoryTTLCache(
@@ -679,6 +680,90 @@ export class Service extends DatabaseService<StatusPage> {
     return monitorStatusTimelines;
   }
 
+  /*
+   * Picks the custom domain to use when linking to this status page from
+   * subscriber notifications (email/SMS/Slack/Teams/webhooks) and SSO
+   * redirects. A domain is usable when any of these holds, in order of
+   * preference:
+   * 1. `isSslProvisioned` — OneUptime ordered the certificate and confirmed
+   *    the domain serves HTTPS.
+   * 2. `isCustomCertificate` + `isCnameVerified` — the user uploaded their
+   *    own certificate (the SSL provisioning jobs skip these domains, so
+   *    `isSslProvisioned` never becomes true for them) and the CNAME check
+   *    confirmed the domain actually routes to this instance. CNAME alone
+   *    guards against certs uploaded before DNS is pointed.
+   * 3. `isCnameVerified`, but only when this instance has no Let's Encrypt
+   *    account key — self-hosted installs that terminate TLS at their own
+   *    proxy can never provision SSL, so CNAME verification is the
+   *    strongest available signal that the domain routes to this instance.
+   *    (With Let's Encrypt configured, a verified-but-unprovisioned domain
+   *    is just mid-provisioning and will be picked up by rule 1 shortly.)
+   * Without rules 2 and 3, such status pages fall back to the installation
+   * URL in every subscriber notification
+   * (https://github.com/OneUptime/oneuptime/issues/1951).
+   */
+  @CaptureSpan()
+  public async getUsableCustomDomain(
+    statusPageId: ObjectID,
+  ): Promise<StatusPageDomain | null> {
+    const domains: Array<StatusPageDomain> =
+      await StatusPageDomainService.findBy({
+        query: {
+          statusPageId: statusPageId,
+        },
+        select: {
+          fullDomain: true,
+          isSslProvisioned: true,
+          isCustomCertificate: true,
+          isCnameVerified: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+
+    const domainsWithFullDomain: Array<StatusPageDomain> = domains.filter(
+      (domain: StatusPageDomain) => {
+        return Boolean(domain.fullDomain);
+      },
+    );
+
+    return (
+      domainsWithFullDomain.find((domain: StatusPageDomain) => {
+        return domain.isSslProvisioned;
+      }) ||
+      domainsWithFullDomain.find((domain: StatusPageDomain) => {
+        return domain.isCustomCertificate && domain.isCnameVerified;
+      }) ||
+      (!LetsEncryptAccountKey
+        ? domainsWithFullDomain.find((domain: StatusPageDomain) => {
+            return domain.isCnameVerified;
+          })
+        : undefined) ||
+      null
+    );
+  }
+
+  /*
+   * SSL-provisioned and custom-certificate domains are known to serve
+   * HTTPS. A CNAME-verified-only domain (self-hosted instance behind the
+   * user's own proxy) follows the instance protocol instead — CNAME
+   * verification can succeed over plain HTTP, so an HTTP-only install
+   * gets http:// links that actually work.
+   */
+  private async getProtocolForCustomDomain(
+    domain: StatusPageDomain,
+  ): Promise<Protocol> {
+    if (domain.isSslProvisioned || domain.isCustomCertificate) {
+      return Protocol.HTTPS;
+    }
+
+    return DatabaseConfig.getHttpProtocol();
+  }
+
   @CaptureSpan()
   public async getStatusPageURL(statusPageId: ObjectID): Promise<string> {
     const cacheKey: string = statusPageId.toString();
@@ -688,23 +773,14 @@ export class Service extends DatabaseService<StatusPage> {
     }
 
     const domain: StatusPageDomain | null =
-      await StatusPageDomainService.findOneBy({
-        query: {
-          statusPageId: statusPageId,
-          isSslProvisioned: true,
-        },
-        select: {
-          fullDomain: true,
-        },
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
+      await this.getUsableCustomDomain(statusPageId);
 
-    let statusPageURL: string = domain?.fullDomain
-      ? `https://${domain.fullDomain}`
-      : "";
+    let statusPageURL: string = "";
+
+    if (domain?.fullDomain) {
+      const protocol: Protocol = await this.getProtocolForCustomDomain(domain);
+      statusPageURL = `${protocol}${domain.fullDomain}`;
+    }
 
     if (!statusPageURL) {
       const host: Hostname = await DatabaseConfig.getHost();
@@ -724,39 +800,22 @@ export class Service extends DatabaseService<StatusPage> {
 
   @CaptureSpan()
   public async getStatusPageFirstURL(statusPageId: ObjectID): Promise<string> {
-    const domains: Array<StatusPageDomain> =
-      await StatusPageDomainService.findBy({
-        query: {
-          statusPageId: statusPageId,
-          isSslProvisioned: true,
-        },
-        select: {
-          fullDomain: true,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
+    const domain: StatusPageDomain | null =
+      await this.getUsableCustomDomain(statusPageId);
 
-    let statusPageURL: string = "";
-
-    if (domains.length === 0) {
-      const host: Hostname = await DatabaseConfig.getHost();
-
-      const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-      // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
-      statusPageURL = new URL(httpProtocol, host)
-        .addRoute("/status-page/" + statusPageId.toString())
-        .toString();
-    } else {
-      statusPageURL = domains[0]?.fullDomain || "";
+    if (domain?.fullDomain) {
+      const protocol: Protocol = await this.getProtocolForCustomDomain(domain);
+      return `${protocol}${domain.fullDomain}`;
     }
 
-    return statusPageURL;
+    const host: Hostname = await DatabaseConfig.getHost();
+
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
+    return new URL(httpProtocol, host)
+      .addRoute("/status-page/" + statusPageId.toString())
+      .toString();
   }
 
   @CaptureSpan()

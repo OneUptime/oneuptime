@@ -15,25 +15,25 @@ The MCP server is hosted alongside your OneUptime instance and accessible via th
 
 ## Key Features
 
-- **Complete API Coverage**: Access to 711 OneUptime API endpoints
-- **126 Resource Types**: Manage all OneUptime resources including monitors, incidents, teams, probes, and more
+- **~155 Tools**: Full CRUD tools for 22 resource types (incidents, alerts, monitors, status pages, on-call, and more), read-only telemetry tools, plus workflow and helper tools
 - **Real-time Operations**: Create, read, update, and delete resources in real-time
 - **Type-safe Interface**: Fully typed with comprehensive input validation
-- **Secure Authentication**: API key-based authentication with proper error handling
+- **Secure Authentication**: Per-request API key authentication with proper error handling
+- **Safety Annotations**: Read-only tools carry `readOnlyHint` and delete tools carry `destructiveHint`, so MCP clients can auto-approve safe calls and ask before destructive ones
 - **Easy Integration**: Works with Claude Desktop and other MCP-compatible clients
-- **Session Management**: Built-in session handling with automatic reconnection support
+- **Stateless by Design**: No session IDs — every request is self-contained, so the server works behind load balancers and multi-replica deployments
 
 ## What You Can Do
 
 With the OneUptime MCP Server, AI assistants can help you:
 
-- **Monitor Management**: Create and configure monitors, check their status, and manage monitor groups
-- **Incident Response**: Create incidents, add notes, assign team members, and track resolution
-- **Team Operations**: Manage teams, permissions, and on-call schedules
-- **Status Pages**: Update status pages, create announcements, and manage subscribers
-- **Alerting**: Configure alert rules, manage escalation policies, and check notification logs
-- **Probes**: Deploy and manage monitoring probes across different locations
-- **Reports & Analytics**: Generate reports and analyze monitoring data
+- **Monitor Management**: Create and configure monitors, check their status, and review status history
+- **Incident Response**: Create, acknowledge, and resolve incidents, add internal or public notes, and track resolution
+- **Team Operations**: Manage teams and on-call policies
+- **Status Pages**: Manage status pages and create announcements
+- **Alerting**: Acknowledge and resolve alerts, add alert notes, and manage alert states and severities
+- **Scheduled Maintenance**: Create and manage scheduled maintenance events
+- **Telemetry**: Query logs, metrics, traces, exceptions, and monitor logs (read-only)
 
 ## Requirements
 
@@ -49,6 +49,10 @@ With the OneUptime MCP Server, AI assistants can help you:
 4. Provide a name (e.g., "MCP Server")
 5. Select the appropriate permissions for your use case
 6. Copy the generated API key
+
+API keys are project-scoped: the MCP server infers your project from the key, so create tools never need a `projectId` argument.
+
+> **Warning — never give an AI agent a master key.** A OneUptime *master* API key is also accepted on this header and grants instance-wide admin access. Always use a project API key with the least privilege the agent needs (a read-only key is enough for all `get_`/`list_`/`count_` tools).
 
 ## Configuration
 
@@ -202,13 +206,13 @@ The configuration above uses input variables with `"password": true` to securely
 
 ## Available Endpoints
 
-| Endpoint      | Method | Description                                                  |
-| ------------- | ------ | ------------------------------------------------------------ |
-| `/mcp`        | GET    | Server-sent events stream for server-to-client notifications |
-| `/mcp`        | POST   | JSON-RPC requests for tool calls and other operations        |
-| `/mcp`        | DELETE | Session cleanup and termination                              |
-| `/mcp/health` | GET    | Health check endpoint                                        |
-| `/mcp/tools`  | GET    | REST API to list available tools                             |
+| Endpoint      | Method | Description                                                                                                                    |
+| ------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `/mcp`        | POST   | JSON-RPC requests for tool calls and other operations                                                                            |
+| `/mcp`        | GET    | Without an SSE `Accept` header: friendly JSON discovery payload. With one: `405` — the stateless server offers no standalone SSE stream (compliant clients proceed without it) |
+| `/mcp`        | DELETE | No-op (the server is stateless, so there is no session to terminate)                                                             |
+| `/mcp/health` | GET    | Health check endpoint                                                                                                            |
+| `/mcp/tools`  | GET    | REST API to list available tools                                                                                                 |
 
 ## Authentication
 
@@ -233,6 +237,58 @@ For all other operations (managing monitors, incidents, teams, etc.), authentica
 
 - `x-api-key`: Your OneUptime API key
 - `Authorization`: Bearer token with your API key (e.g., `Bearer your-api-key-here`)
+
+The `Bearer` scheme is case-insensitive. Tool errors are returned as in-band tool results (`isError: true`) with a `statusCode`, details, and a suggestion — not as MCP protocol errors — so agents can read the failure and self-correct.
+
+## Workflow Tools
+
+Beyond the per-resource CRUD tools, the server ships purpose-built workflow tools for incident and alert response:
+
+- **`acknowledge_incident`** / **`resolve_incident`**: Move an incident to the project's Acknowledged or Resolved state — equivalent to pressing the button in the dashboard
+- **`acknowledge_alert`** / **`resolve_alert`**: The same for alerts
+- **`add_incident_note`**: Add a note to an incident with `visibility: "internal"` (team only, the default) or `visibility: "public"` (posted to the status page). Markdown is supported
+- **`add_alert_note`**: Add an internal note to an alert
+
+A typical loop: `list_incidents` → `acknowledge_incident` → investigate with `list_logs` → `add_incident_note` (public) → `resolve_incident`.
+
+## Who Am I
+
+The **`oneuptime_whoami`** tool returns the project your API key belongs to (ID and name). It is a useful first call for an agent to orient itself — and since create tools infer `projectId` from the API key, the agent never needs to pass a project ID.
+
+## Querying Telemetry
+
+Logs, metrics, traces (spans), exceptions, and monitor logs are exposed as read-only `list_` and `count_` tools (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs`, and their `count_` counterparts). Telemetry is ingested via OpenTelemetry, so there are no create tools.
+
+Always query telemetry with a time-range filter. Query fields accept either a direct value or an operator object:
+
+```json
+{
+  "query": {
+    "time": { "_type": "GreaterThan", "value": "2026-07-04T00:00:00.000Z" }
+  },
+  "sort": { "time": "DESC" },
+  "limit": 50
+}
+```
+
+Supported operators: `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search`, `Includes`. Sort values are `"ASC"` or `"DESC"`.
+
+## Field Selection and Pagination
+
+`get_` and `list_` tools accept an optional `select` array of field names. By default all readable fields are returned except heavy ones (JSON, very-long-text, and HTML columns), which must be requested explicitly in `select`.
+
+List tools paginate with `limit` (default 10, max 100) and `skip`, and every list response reports exactly what it returned:
+
+```json
+{
+  "returnedCount": 10,
+  "totalCount": 42,
+  "skip": 0,
+  "limit": 10,
+  "hasMore": true,
+  "data": ["..."]
+}
+```
 
 ## Verification
 
@@ -286,9 +342,8 @@ curl https://your-oneuptime-domain.com/mcp/tools
 ### Team and On-Call
 
 ```
-"Who are the members of the infrastructure team?"
-"Who's currently on call for the infrastructure team?"
-"Show me the on-call schedule for this week"
+"List the teams in this project"
+"Show me our on-call policies"
 ```
 
 ### Status Page Management
@@ -366,15 +421,15 @@ If you receive session-related errors:
 
 ## Available Resources
 
-The MCP server provides access to 126 resource types including:
+The MCP server provides tools for the following resources:
 
-**Monitoring**: Monitor, MonitorStatus, MonitorGroup, Probe
-**Incidents**: Incident, IncidentState, IncidentNote, IncidentTemplate
-**Alerts**: Alert, AlertState, AlertSeverity
-**Status Pages**: StatusPage, StatusPageAnnouncement, StatusPageSubscriber
-**On-Call**: On-CallPolicy, EscalationRule, On-CallSchedule
-**Teams**: Team, TeamMember, TeamPermission
-**Telemetry**: TelemetryService, Log, Span, Metric
-**Workflows**: Workflow, WorkflowVariable, WorkflowLog
+**Monitoring**: Monitor, Monitor Status, Monitor Status Event
+**Incidents**: Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note
+**Alerts**: Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note
+**Status Pages**: Status Page, Status Page Announcement
+**Scheduled Maintenance**: Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline
+**Teams & On-Call**: Team, On-Call Policy
+**Labels**: Label
+**Telemetry (read-only)**: Log, Metric, Span, Exception Instance, Monitor Log
 
-Each resource supports standard operations: List, Count, Get, Create, Update, and Delete.
+Each database resource supports Create, Get, List, Update, Delete, and Count via snake_case tools — for example `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident`, `count_incidents`. Telemetry resources expose only `list_` and `count_` tools (for example `list_logs`, `count_spans`).

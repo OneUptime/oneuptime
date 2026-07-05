@@ -421,6 +421,12 @@ enum Permission {
   EditScheduledMaintenanceLabelRule = "EditScheduledMaintenanceLabelRule",
   ReadScheduledMaintenanceLabelRule = "ReadScheduledMaintenanceLabelRule",
 
+  // Scheduled Maintenance Reminder Rule Permissions
+  CreateScheduledMaintenanceReminderRule = "CreateScheduledMaintenanceReminderRule",
+  DeleteScheduledMaintenanceReminderRule = "DeleteScheduledMaintenanceReminderRule",
+  EditScheduledMaintenanceReminderRule = "EditScheduledMaintenanceReminderRule",
+  ReadScheduledMaintenanceReminderRule = "ReadScheduledMaintenanceReminderRule",
+
   CreateStatusPageOwnerTeam = "CreateStatusPageOwnerTeam",
   DeleteStatusPageOwnerTeam = "DeleteStatusPageOwnerTeam",
   EditStatusPageOwnerTeam = "EditStatusPageOwnerTeam",
@@ -1407,6 +1413,12 @@ enum Permission {
   EditAlertGroupingRule = "EditAlertGroupingRule",
   ReadAlertGroupingRule = "ReadAlertGroupingRule",
 
+  // Alert Reminder Rule Permissions
+  CreateAlertReminderRule = "CreateAlertReminderRule",
+  DeleteAlertReminderRule = "DeleteAlertReminderRule",
+  EditAlertReminderRule = "EditAlertReminderRule",
+  ReadAlertReminderRule = "ReadAlertReminderRule",
+
   // Alert On-Call Rule Permissions
   CreateAlertOnCallRule = "CreateAlertOnCallRule",
   DeleteAlertOnCallRule = "DeleteAlertOnCallRule",
@@ -1586,6 +1598,12 @@ enum Permission {
   DeleteIncidentSlaRule = "DeleteIncidentSlaRule",
   EditIncidentSlaRule = "EditIncidentSlaRule",
   ReadIncidentSlaRule = "ReadIncidentSlaRule",
+
+  // Incident Reminder Rule Permissions
+  CreateIncidentReminderRule = "CreateIncidentReminderRule",
+  DeleteIncidentReminderRule = "DeleteIncidentReminderRule",
+  EditIncidentReminderRule = "EditIncidentReminderRule",
+  ReadIncidentReminderRule = "ReadIncidentReminderRule",
 
   // Incident SLA Permissions
   CreateIncidentSla = "CreateIncidentSla",
@@ -11996,6 +12014,48 @@ export class PermissionHelper {
         group: PermissionGroup.ScheduledMaintenance,
       },
 
+      // Scheduled Maintenance Reminder Rule Permissions
+      {
+        permission: Permission.CreateScheduledMaintenanceReminderRule,
+        title: "Create Scheduled Maintenance Reminder Rule",
+        description:
+          "This permission can create Scheduled Maintenance Reminder Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ScheduledMaintenance,
+      },
+      {
+        permission: Permission.DeleteScheduledMaintenanceReminderRule,
+        title: "Delete Scheduled Maintenance Reminder Rule",
+        description:
+          "This permission can delete Scheduled Maintenance Reminder Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ScheduledMaintenance,
+      },
+      {
+        permission: Permission.EditScheduledMaintenanceReminderRule,
+        title: "Edit Scheduled Maintenance Reminder Rule",
+        description:
+          "This permission can edit Scheduled Maintenance Reminder Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ScheduledMaintenance,
+      },
+      {
+        permission: Permission.ReadScheduledMaintenanceReminderRule,
+        title: "Read Scheduled Maintenance Reminder Rule",
+        description:
+          "This permission can read Scheduled Maintenance Reminder Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ScheduledMaintenance,
+      },
+
       // Alert Episode Permissions
       {
         permission: Permission.CreateAlertEpisode,
@@ -12114,6 +12174,48 @@ export class PermissionHelper {
         title: "Read Alert Grouping Rule",
         description:
           "This permission can read Alert Grouping Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+
+      // Alert Reminder Rule Permissions
+      {
+        permission: Permission.CreateAlertReminderRule,
+        title: "Create Alert Reminder Rule",
+        description:
+          "This permission can create Alert Reminder Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.DeleteAlertReminderRule,
+        title: "Delete Alert Reminder Rule",
+        description:
+          "This permission can delete Alert Reminder Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.EditAlertReminderRule,
+        title: "Edit Alert Reminder Rule",
+        description:
+          "This permission can edit Alert Reminder Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.ReadAlertReminderRule,
+        title: "Read Alert Reminder Rule",
+        description:
+          "This permission can read Alert Reminder Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13396,6 +13498,48 @@ export class PermissionHelper {
         title: "Read Incident SLA Rule",
         description:
           "This permission can read Incident SLA Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Incident Reminder Rule Permissions
+      {
+        permission: Permission.CreateIncidentReminderRule,
+        title: "Create Incident Reminder Rule",
+        description:
+          "This permission can create Incident Reminder Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentReminderRule,
+        title: "Delete Incident Reminder Rule",
+        description:
+          "This permission can delete Incident Reminder Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentReminderRule,
+        title: "Edit Incident Reminder Rule",
+        description:
+          "This permission can edit Incident Reminder Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentReminderRule,
+        title: "Read Incident Reminder Rule",
+        description:
+          "This permission can read Incident Reminder Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

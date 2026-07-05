@@ -48,9 +48,10 @@ export function extractApiKey(req: ExpressRequest): string | undefined {
   for (const header of API_KEY_HEADERS) {
     const value: string | undefined = req.headers[header] as string | undefined;
     if (value) {
-      // Handle Bearer token format
-      if (header === "authorization" && value.startsWith("Bearer ")) {
-        return value.replace("Bearer ", "");
+      // Handle Bearer token format (scheme is case-insensitive per RFC 7235)
+      if (header === "authorization") {
+        const match: RegExpMatchArray | null = value.match(/^Bearer\s+(.+)$/i);
+        return match?.[1] ? match[1].trim() : value;
       }
       return value;
     }

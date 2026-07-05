@@ -1877,6 +1877,7 @@ const HostOverview: FunctionComponent<
       <ResourceActivityCards
         modelId={modelId}
         resourceQueryKey="hosts"
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
         incidentsRoute={RouteUtil.populateRouteParams(
           RouteMap[PageMap.HOST_VIEW_INCIDENTS] as Route,
           { modelId: modelId },

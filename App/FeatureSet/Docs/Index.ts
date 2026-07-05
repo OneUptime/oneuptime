@@ -1,4 +1,5 @@
 import { ContentPath, StaticPath, ViewsPath } from "./Utils/Config";
+import LlmsTxtUtil from "./Utils/LlmsTxt";
 import DocsNav, { NavGroup, NavLink } from "./Utils/Nav";
 import DocsRender from "./Utils/Render";
 import {
@@ -85,6 +86,41 @@ const DocsFeatureSet: FeatureSet = {
       const lang: string = pickLanguage(req);
       res.redirect(`/docs/${lang}/introduction/getting-started`);
     });
+
+    /*
+     * LLM / agent discovery endpoints (llms.txt convention). Registered
+     * before any parameterized /docs/:lang routes so they are never
+     * shadowed by language handling or 404 fallbacks.
+     */
+    app.get(
+      "/docs/llms.txt",
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const content: string = await LlmsTxtUtil.getLlmsTxt();
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          res.setHeader("Cache-Control", "public, max-age=600");
+          return Response.sendTextResponse(req, res, content);
+        } catch (err) {
+          logger.error(err);
+          return next(err);
+        }
+      },
+    );
+
+    app.get(
+      "/docs/llms-full.txt",
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const content: string = await LlmsTxtUtil.getLlmsFullTxt();
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          res.setHeader("Cache-Control", "public, max-age=600");
+          return Response.sendTextResponse(req, res, content);
+        } catch (err) {
+          logger.error(err);
+          return next(err);
+        }
+      },
+    );
 
     /*
      * Backward-compat: the legacy Chinese code "zh" was renamed to "zh-CN"

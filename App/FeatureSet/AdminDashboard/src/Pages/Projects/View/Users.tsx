@@ -16,7 +16,10 @@ import User from "Common/Models/DatabaseModels/User";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import { useUserEmailRegistrationStatus } from "Common/UI/Utils/UserEmailRegistrationStatus";
+import { JSONObject } from "Common/Types/JSON";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -39,6 +42,12 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
   const [showInviteUserModal, setShowInviteUserModal] =
     useState<boolean>(false);
   const [isFilterApplied, setIsFilterApplied] = useState<boolean>(false);
+
+  const { isEmailRegistered, checkEmail } = useUserEmailRegistrationStatus({
+    getRequestHeaders: () => {
+      return AdminModelAPI.getCommonHeaders();
+    },
+  });
 
   return (
     <ModelPage<Project>
@@ -328,25 +337,34 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                   field: {
                     user: true,
                   },
-                  title: "User Name",
-                  description:
-                    "Enter the name of the user you would like to invite. This is optional and will only be used if this user does not already have an account.",
-                  fieldType: FormFieldSchemaType.Text,
-                  required: false,
-                  placeholder: "John Smith",
-                  overrideFieldKey: "name",
-                },
-                {
-                  field: {
-                    user: true,
-                  },
-                  title: "User Email",
+                  title: "Email",
                   description:
                     "Enter the email of the user you would like to invite. We will send them an email letting them know they have been invited to the team you selected.",
                   fieldType: FormFieldSchemaType.Email,
                   required: true,
                   placeholder: "member@company.com",
                   overrideFieldKey: "email",
+                  onChange: (value: string) => {
+                    checkEmail(value);
+                  },
+                },
+                {
+                  field: {
+                    user: true,
+                  },
+                  title: "Name",
+                  description:
+                    "This email is not registered on OneUptime yet. Enter the name of the user you would like to invite — we will use it to set up their new account.",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  placeholder: "John Smith",
+                  overrideFieldKey: "name",
+                  showIf: (values: FormValues<TeamMember>): boolean => {
+                    return (
+                      Boolean((values as JSONObject)["email"]) &&
+                      isEmailRegistered === false
+                    );
+                  },
                 },
                 {
                   field: {

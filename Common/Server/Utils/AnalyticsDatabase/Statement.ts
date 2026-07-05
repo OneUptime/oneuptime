@@ -5,6 +5,7 @@ import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
@@ -108,7 +109,7 @@ export class Statement implements BaseQueryParams {
       v.value instanceof NotEqual
     ) {
       finalValue = v.value.value;
-    } else if (v.value instanceof Includes) {
+    } else if (v.value instanceof Includes || v.value instanceof IncludesNone) {
       if (
         v.type === TableColumnType.Text ||
         v.type === TableColumnType.ObjectID
@@ -198,9 +199,12 @@ export class Statement implements BaseQueryParams {
       [TableColumnType.UInt64]: "UInt64",
     };
 
-    if ((statementParam as StatementParameter).value instanceof Includes) {
+    if (
+      (statementParam as StatementParameter).value instanceof Includes ||
+      (statementParam as StatementParameter).value instanceof IncludesNone
+    ) {
       const includesValues: Array<string | number | ObjectID> = (
-        (statementParam as StatementParameter).value as Includes
+        (statementParam as StatementParameter).value as Includes | IncludesNone
       ).values as Array<string | number | ObjectID>;
 
       const isNumberArray: boolean = includesValues.every(

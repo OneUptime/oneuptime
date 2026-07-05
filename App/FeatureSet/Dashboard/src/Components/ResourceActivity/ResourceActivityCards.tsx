@@ -48,6 +48,12 @@ export interface ComponentProps {
   incidentsRoute: Route;
   alertsRoute: Route;
   scheduledMaintenanceRoute: Route;
+  /*
+   * Change this value (e.g. a last-refreshed timestamp) to make the cards
+   * re-fetch their counts — pages pass their auto-refresh signal here so
+   * the counts don't freeze at their mount-time values.
+   */
+  refreshToken?: number | undefined;
 }
 
 interface CardData {
@@ -183,7 +189,7 @@ const ResourceActivityCards: FunctionComponent<ComponentProps> = (
      * route param) but list it as a dep so the cards refresh if the page
      * is ever reused across resources without unmounting.
      */
-  }, [props.modelId.toString(), props.resourceQueryKey]);
+  }, [props.modelId.toString(), props.resourceQueryKey, props.refreshToken]);
 
   const formatCount: (count: number | null) => string = (
     count: number | null,

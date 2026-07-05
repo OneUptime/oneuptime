@@ -295,6 +295,22 @@ function discoverStaticPaths(): string[] {
         if (p.endsWith(".sh")) {
           continue;
         }
+        /*
+         * Exclude machine-readable endpoints (robots.txt, llms.txt, RSS,
+         * /data/*.json, .well-known, markdown page variants) — the sitemap is
+         * for HTML pages.
+         */
+        if (
+          p.endsWith(".txt") ||
+          p.endsWith(".json") ||
+          p.endsWith(".md") ||
+          p.endsWith(".xml")
+        ) {
+          continue;
+        }
+        if (p.startsWith("/data/") || p.startsWith("/.well-known")) {
+          continue;
+        }
         if (p.startsWith("/api") || p.startsWith("/blog/post")) {
           continue;
         }

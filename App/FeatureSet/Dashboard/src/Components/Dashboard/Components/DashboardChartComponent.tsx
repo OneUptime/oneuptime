@@ -73,13 +73,18 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
       : [];
   }, [formulaConfigsArg]);
 
+  /*
+   * refreshTick is a dep so each auto-refresh re-resolves the relative
+   * range ("Past 1 hour") to a fresh concrete window; without it the
+   * window is frozen at mount and every refresh re-queries stale data.
+   */
   const startAndEndDate: ReturnType<
     typeof RangeStartAndEndDateTimeUtil.getStartAndEndDate
   > = useMemo(() => {
     return RangeStartAndEndDateTimeUtil.getStartAndEndDate(
       props.dashboardStartAndEndDate,
     );
-  }, [props.dashboardStartAndEndDate]);
+  }, [props.dashboardStartAndEndDate, props.refreshTick]);
 
   const metricViewData: MetricViewData = useMemo(() => {
     return {

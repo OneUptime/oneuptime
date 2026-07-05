@@ -39,3 +39,7 @@ export const DocsRoute: Route = new Route("/docs");
 export const StatusPageApiRoute: Route = new Route("/status-page-api");
 
 export const PublicDashboardRoute: Route = new Route("/public-dashboard");
+
+export const PublicDashboardApiRoute: Route = new Route(
+  "/public-dashboard-api",
+);

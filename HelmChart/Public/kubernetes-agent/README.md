@@ -574,6 +574,28 @@ If you run a service mesh (Linkerd, Istio, Consul Connect) or an eBPF-based CNI 
 
 **Do NOT add broad globs like `*/proxy` to `excludeExePaths`** — `*/proxy` will also match *your* binaries (`auth-proxy`, `oauth2-proxy`, ...) and silently drop their traces. List the specific sidecar basename instead.
 
+### ClickHouse crash-loops with `CORRUPTED_DATA` after enabling the agent
+
+If a ClickHouse pod refuses to start and its logs show:
+
+```
+<Error> Application: Code: 246. DB::Exception: Calculated checksum of the executable
+(...) does not correspond to the reference checksum stored in the executable (...).
+(CORRUPTED_DATA)
+```
+
+the binary is fine — this is OBI attaching a **uprobe** to `/usr/bin/clickhouse` and patching its in-memory text. ClickHouse hashes its own executable at startup and aborts when the hash changes. Because OneUptime's own telemetry store is ClickHouse, an un-excluded agent will crash-loop the platform's database.
+
+The default `ebpf.excludeExePaths` now ships `*/clickhouse`, so a fresh install is protected. If you're on an older release or maintain a custom exclude list, add it and roll the agent:
+
+```bash
+helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+  --set ebpf.excludeExePaths="...existing list...,*/clickhouse"
+```
+
+Then restart the affected ClickHouse pod(s) — `kubectl delete pod -l app.kubernetes.io/name=clickhouse -n <ns>` — so it boots without the uprobe attached. Instrumenting a database server via uprobes has little value anyway; observe it through native metrics and client-side traces instead.
+
 ### No traces appear even though OBI pods are running
 
 Three things to check, in order:

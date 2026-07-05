@@ -10,6 +10,9 @@ import Project from "Common/Models/DatabaseModels/Project";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { useUserEmailRegistrationStatus } from "Common/UI/Utils/UserEmailRegistrationStatus";
+import { JSONObject } from "Common/Types/JSON";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -25,6 +28,12 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
   const teamId: ObjectID = Navigation.getLastParamAsObjectID(0);
   const projectId: ObjectID = Navigation.getLastParamAsObjectID(2);
+
+  const { isEmailRegistered, checkEmail } = useUserEmailRegistrationStatus({
+    getRequestHeaders: () => {
+      return AdminModelAPI.getCommonHeaders();
+    },
+  });
 
   return (
     <ModelPage<Project>
@@ -166,13 +175,34 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
               field: {
                 user: true,
               },
-              title: "User Email",
+              title: "Email",
               description:
                 "Enter the email of the user you would like to invite. We will send them an email letting them know they have been invited to this team.",
               fieldType: FormFieldSchemaType.Email,
               required: true,
               placeholder: "member@company.com",
               overrideFieldKey: "email",
+              onChange: (value: string) => {
+                checkEmail(value);
+              },
+            },
+            {
+              field: {
+                user: true,
+              },
+              title: "Name",
+              description:
+                "This email is not registered on OneUptime yet. Enter the name of the user you would like to invite — we will use it to set up their new account.",
+              fieldType: FormFieldSchemaType.Text,
+              required: false,
+              placeholder: "John Smith",
+              overrideFieldKey: "name",
+              showIf: (values: FormValues<TeamMember>): boolean => {
+                return (
+                  Boolean((values as JSONObject)["email"]) &&
+                  isEmailRegistered === false
+                );
+              },
             },
           ]}
           showRefreshButton={true}

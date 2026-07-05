@@ -15,25 +15,25 @@ Der MCP-Server wird zusammen mit Ihrer OneUptime-Instanz gehostet und ist über 
 
 ## Hauptfunktionen
 
-- **Vollständige API-Abdeckung**: Zugriff auf 711 OneUptime-API-Endpunkte
-- **126 Ressourcentypen**: Verwalten Sie alle OneUptime-Ressourcen einschließlich Monitore, Incidents, Teams, Probes und mehr
+- **~155 Tools**: Vollständige CRUD-Tools für 22 Ressourcentypen (Incidents, Alerts, Monitore, Status-Seiten, On-Call und mehr), schreibgeschützte Telemetrie-Tools sowie Workflow- und Hilfs-Tools
 - **Echtzeit-Vorgänge**: Ressourcen in Echtzeit erstellen, lesen, aktualisieren und löschen
 - **Typensichere Schnittstelle**: Vollständig typisiert mit umfassender Eingabevalidierung
-- **Sichere Authentifizierung**: API-Schlüssel-basierte Authentifizierung mit korrekter Fehlerbehandlung
+- **Sichere Authentifizierung**: API-Schlüssel-Authentifizierung pro Anfrage mit korrekter Fehlerbehandlung
+- **Sicherheitsannotationen**: Schreibgeschützte Tools tragen `readOnlyHint` und Lösch-Tools tragen `destructiveHint`, sodass MCP-Clients sichere Aufrufe automatisch genehmigen und vor destruktiven nachfragen können
 - **Einfache Integration**: Funktioniert mit Claude Desktop und anderen MCP-kompatiblen Clients
-- **Sitzungsverwaltung**: Eingebaute Sitzungsverwaltung mit automatischer Reconnection-Unterstützung
+- **Von Grund auf zustandslos**: Keine Sitzungs-IDs — jede Anfrage ist in sich abgeschlossen, sodass der Server hinter Load Balancern und in Multi-Replica-Deployments funktioniert
 
 ## Was Sie tun können
 
 Mit dem OneUptime MCP-Server können KI-Assistenten Ihnen helfen bei:
 
-- **Monitor-Verwaltung**: Monitore erstellen und konfigurieren, deren Status prüfen und Monitor-Gruppen verwalten
-- **Incident-Reaktion**: Incidents erstellen, Notizen hinzufügen, Teammitglieder zuweisen und Lösung verfolgen
-- **Team-Vorgänge**: Teams, Berechtigungen und On-Call-Pläne verwalten
-- **Status-Seiten**: Status-Seiten aktualisieren, Ankündigungen erstellen und Abonnenten verwalten
-- **Benachrichtigungen**: Benachrichtigungsregeln konfigurieren, Eskalationsrichtlinien verwalten und Benachrichtigungsprotokolle prüfen
-- **Probes**: Überwachungs-Probes an verschiedenen Standorten bereitstellen und verwalten
-- **Berichte & Analysen**: Berichte erstellen und Überwachungsdaten analysieren
+- **Monitor-Verwaltung**: Monitore erstellen und konfigurieren, deren Status prüfen und den Statusverlauf einsehen
+- **Incident-Reaktion**: Incidents erstellen, bestätigen und lösen, interne oder öffentliche Notizen hinzufügen und die Lösung verfolgen
+- **Team-Vorgänge**: Teams und On-Call-Richtlinien verwalten
+- **Status-Seiten**: Status-Seiten verwalten und Ankündigungen erstellen
+- **Alarmierung**: Alerts bestätigen und lösen, Alert-Notizen hinzufügen sowie Alert-Zustände und -Schweregrade verwalten
+- **Geplante Wartung**: Geplante Wartungsereignisse erstellen und verwalten
+- **Telemetrie**: Logs, Metriken, Traces, Exceptions und Monitor-Logs abfragen (nur lesend)
 
 ## Anforderungen
 
@@ -49,6 +49,10 @@ Mit dem OneUptime MCP-Server können KI-Assistenten Ihnen helfen bei:
 4. Geben Sie einen Namen an (z. B. "MCP Server")
 5. Wählen Sie die entsprechenden Berechtigungen für Ihren Anwendungsfall
 6. Kopieren Sie den generierten API-Schlüssel
+
+API-Schlüssel sind projektbezogen: Der MCP-Server leitet Ihr Projekt aus dem Schlüssel ab, sodass Create-Tools niemals ein `projectId`-Argument benötigen.
+
+> **Warnung — geben Sie einem KI-Agenten niemals einen Master-Schlüssel.** Ein OneUptime-*Master*-API-Schlüssel wird auf diesem Header ebenfalls akzeptiert und gewährt instanzweiten Admin-Zugriff. Verwenden Sie stets einen Projekt-API-Schlüssel mit den geringsten Rechten, die der Agent benötigt (ein Nur-Lese-Schlüssel genügt für alle `get_`-/`list_`-/`count_`-Tools).
 
 ## Konfiguration
 
@@ -202,13 +206,13 @@ Die obige Konfiguration verwendet Eingabevariablen mit `"password": true`, um si
 
 ## Verfügbare Endpunkte
 
-| Endpunkt      | Methode | Beschreibung                                                      |
-| ------------- | ------- | ----------------------------------------------------------------- |
-| `/mcp`        | GET     | Server-Sent-Events-Stream für Server-zu-Client-Benachrichtigungen |
-| `/mcp`        | POST    | JSON-RPC-Anfragen für Tool-Aufrufe und andere Vorgänge            |
-| `/mcp`        | DELETE  | Sitzungsbereinigung und -beendigung                               |
-| `/mcp/health` | GET     | Health-Check-Endpunkt                                             |
-| `/mcp/tools`  | GET     | REST API zum Auflisten verfügbarer Tools                          |
+| Endpunkt      | Methode | Beschreibung                                                                                                                    |
+| ------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `/mcp`        | POST    | JSON-RPC-Anfragen für Tool-Aufrufe und andere Vorgänge                                                                            |
+| `/mcp`        | GET     | Ohne SSE-`Accept`-Header: freundliche JSON-Discovery-Antwort. Mit einem solchen Header: `405` — der zustandslose Server bietet keinen eigenständigen SSE-Stream an (konforme Clients fahren ohne ihn fort) |
+| `/mcp`        | DELETE  | No-op (der Server ist zustandslos, es gibt also keine Sitzung, die beendet werden könnte)                                          |
+| `/mcp/health` | GET     | Health-Check-Endpunkt                                                                                                            |
+| `/mcp/tools`  | GET     | REST API zum Auflisten verfügbarer Tools                                                                                          |
 
 ## Authentifizierung
 
@@ -234,25 +238,77 @@ Für alle anderen Vorgänge (Monitore, Incidents, Teams usw. verwalten) ist eine
 - `x-api-key`: Ihr OneUptime-API-Schlüssel
 - `Authorization`: Bearer-Token mit Ihrem API-Schlüssel (z. B. `Bearer your-api-key-here`)
 
+Das `Bearer`-Schema ist unabhängig von Groß- und Kleinschreibung. Tool-Fehler werden als In-Band-Tool-Ergebnisse (`isError: true`) mit einem `statusCode`, Details und einem Vorschlag zurückgegeben — nicht als MCP-Protokollfehler —, sodass Agenten den Fehler lesen und sich selbst korrigieren können.
+
+## Workflow-Tools
+
+Über die CRUD-Tools pro Ressource hinaus liefert der Server speziell entwickelte Workflow-Tools für die Incident- und Alert-Reaktion:
+
+- **`acknowledge_incident`** / **`resolve_incident`**: Versetzen einen Incident in den Zustand „Bestätigt“ oder „Gelöst“ des Projekts — gleichbedeutend mit dem Klick auf die Schaltfläche im Dashboard
+- **`acknowledge_alert`** / **`resolve_alert`**: Dasselbe für Alerts
+- **`add_incident_note`**: Fügt einem Incident eine Notiz hinzu, mit `visibility: "internal"` (nur Team, der Standard) oder `visibility: "public"` (wird auf der Status-Seite veröffentlicht). Markdown wird unterstützt
+- **`add_alert_note`**: Fügt einem Alert eine interne Notiz hinzu
+
+Ein typischer Ablauf: `list_incidents` → `acknowledge_incident` → Untersuchung mit `list_logs` → `add_incident_note` (öffentlich) → `resolve_incident`.
+
+## Who Am I
+
+Das Tool **`oneuptime_whoami`** gibt das Projekt zurück, zu dem Ihr API-Schlüssel gehört (ID und Name). Es ist ein nützlicher erster Aufruf, mit dem sich ein Agent orientieren kann — und da Create-Tools die `projectId` aus dem API-Schlüssel ableiten, muss der Agent niemals eine Projekt-ID übergeben.
+
+## Telemetrie abfragen
+
+Logs, Metriken, Traces (Spans), Exceptions und Monitor-Logs werden als schreibgeschützte `list_`- und `count_`-Tools bereitgestellt (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` und ihre `count_`-Gegenstücke). Telemetrie wird über OpenTelemetry aufgenommen, daher gibt es keine Create-Tools.
+
+Fragen Sie Telemetrie immer mit einem Zeitbereichsfilter ab. Abfragefelder akzeptieren entweder einen direkten Wert oder ein Operator-Objekt:
+
+```json
+{
+  "query": {
+    "time": { "_type": "GreaterThan", "value": "2026-07-04T00:00:00.000Z" }
+  },
+  "sort": { "time": "DESC" },
+  "limit": 50
+}
+```
+
+Unterstützte Operatoren: `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search`, `Includes`. Sortierwerte sind `"ASC"` oder `"DESC"`.
+
+## Feldauswahl und Paginierung
+
+`get_`- und `list_`-Tools akzeptieren ein optionales `select`-Array mit Feldnamen. Standardmäßig werden alle lesbaren Felder zurückgegeben, mit Ausnahme der schwergewichtigen (JSON-, Sehr-lange-Text- und HTML-Spalten), die explizit in `select` angefordert werden müssen.
+
+List-Tools paginieren mit `limit` (Standard 10, maximal 100) und `skip`, und jede List-Antwort meldet genau, was sie zurückgegeben hat:
+
+```json
+{
+  "returnedCount": 10,
+  "totalCount": 42,
+  "skip": 0,
+  "limit": 10,
+  "hasMore": true,
+  "data": ["..."]
+}
+```
+
 ## Verifizierung
 
 Überprüfen Sie, ob der MCP-Server läuft:
 
 ```bash
-# Für OneUptime Cloud
+# For OneUptime Cloud
 curl https://oneuptime.com/mcp/health
 
-# Für selbst gehostetes OneUptime
+# For Self-Hosted
 curl https://your-oneuptime-domain.com/mcp/health
 ```
 
 Verfügbare Tools auflisten:
 
 ```bash
-# Für OneUptime Cloud
+# For OneUptime Cloud
 curl https://oneuptime.com/mcp/tools
 
-# Für selbst gehostetes OneUptime
+# For Self-Hosted
 curl https://your-oneuptime-domain.com/mcp/tools
 ```
 
@@ -286,9 +342,8 @@ curl https://your-oneuptime-domain.com/mcp/tools
 ### Team und On-Call
 
 ```
-"Who are the members of the infrastructure team?"
-"Who's currently on call for the infrastructure team?"
-"Show me the on-call schedule for this week"
+"List the teams in this project"
+"Show me our on-call policies"
 ```
 
 ### Status-Seiten-Verwaltung
@@ -360,21 +415,21 @@ Stellen Sie sicher, dass Ihr API-Schlüssel die erforderlichen Berechtigungen ha
 
 Wenn Sie sitzungsbezogene Fehler erhalten:
 
-- Der MCP-Server verwendet den `mcp-session-id`-Header zur Sitzungsverfolgung
-- Stellen Sie sicher, dass Ihr Client die vom Server zurückgegebene Sitzungs-ID korrekt verarbeitet
-- Sitzungen werden automatisch bereinigt, wenn Verbindungen geschlossen werden
+- Der MCP-Server ist zustandslos — er vergibt und verfolgt keine Sitzungs-IDs, sodass jede Anfrage gegen jedes Server-Replikat funktioniert
+- Clients, die einen `mcp-session-id`-Header aus einer früheren Serverversion senden, können ihn einfach weglassen; er wird ignoriert
+- Aktualisieren Sie ältere MCP-Client-Konfigurationen, die erwarten, dass der Server eine Sitzungs-ID zurückgibt
 
 ## Verfügbare Ressourcen
 
-Der MCP-Server bietet Zugriff auf 126 Ressourcentypen, darunter:
+Der MCP-Server bietet Tools für die folgenden Ressourcen:
 
-**Überwachung**: Monitor, MonitorStatus, MonitorGroup, Probe
-**Incidents**: Incident, IncidentState, IncidentNote, IncidentTemplate
-**Benachrichtigungen**: Alert, AlertState, AlertSeverity
-**Status-Seiten**: StatusPage, StatusPageAnnouncement, StatusPageSubscriber
-**On-Call**: On-CallPolicy, EscalationRule, On-CallSchedule
-**Teams**: Team, TeamMember, TeamPermission
-**Telemetrie**: TelemetryService, Log, Span, Metric
-**Workflows**: Workflow, WorkflowVariable, WorkflowLog
+**Überwachung**: Monitor, Monitor-Status, Monitor-Status-Ereignis
+**Incidents**: Incident, Incident-Zustand, Incident-Schweregrad, Incident-Zustandsverlauf, Öffentliche Incident-Notiz, Interne Incident-Notiz
+**Alerts**: Alert, Alert-Zustand, Alert-Schweregrad, Alert-Zustandsverlauf, Interne Alert-Notiz
+**Status-Seiten**: Status-Seite, Status-Seiten-Ankündigung
+**Geplante Wartung**: Geplantes Wartungsereignis, Wartungszustand, Wartungszustandsverlauf
+**Teams & On-Call**: Team, On-Call-Richtlinie
+**Labels**: Label
+**Telemetrie (nur lesend)**: Log, Metrik, Span, Exception-Instanz, Monitor-Log
 
-Jede Ressource unterstützt Standardvorgänge: List, Count, Get, Create, Update und Delete.
+Jede Datenbankressource unterstützt Create, Get, List, Update, Delete und Count über snake_case-Tools — zum Beispiel `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident`, `count_incidents`. Telemetrie-Ressourcen stellen nur `list_`- und `count_`-Tools bereit (zum Beispiel `list_logs`, `count_spans`).

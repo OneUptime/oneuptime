@@ -672,6 +672,55 @@ describe("StatementGenerator", () => {
         expect(statement.query).toBe("");
         expect(statement.query_params).toStrictEqual({});
       });
+
+      test("emits NOT hasAny(...) for IncludesNone on an Array(String) column", () => {
+        const statement: Statement = arrayGenerator.toWhereStatement({
+          entityKeys: new IncludesNone(["210dac24142f1baa"]),
+        } as any);
+        expect(statement.query).toBe(
+          "AND NOT hasAny({p0:Identifier}, {p1:Array(String)})",
+        );
+        expect(statement.query_params).toStrictEqual({
+          p0: "entityKeys",
+          p1: ["210dac24142f1baa"],
+        });
+      });
+
+      test("drops empty IncludesNone instead of NOT hasAny(col, [])", () => {
+        const statement: Statement = arrayGenerator.toWhereStatement({
+          entityKeys: new IncludesNone([]),
+        } as any);
+        expect(statement.query).toBe("");
+        expect(statement.query_params).toStrictEqual({});
+      });
+    });
+
+    describe("scalar IncludesNone exclusion", () => {
+      /*
+       * "is none of" on a scalar column compiles to `col NOT IN (...)` —
+       * the exception monitor uses this to exclude occurrences of
+       * resolved/archived exception groups by fingerprint.
+       */
+      test("emits NOT IN (...) for IncludesNone on a Text column", () => {
+        const statement: Statement = generator.toWhereStatement({
+          column_1: new IncludesNone(["<fingerprint-1>", "<fingerprint-2>"]),
+        } as any);
+        expect(statement.query).toBe(
+          "AND {p0:Identifier} NOT IN {p1:Array(String)}",
+        );
+        expect(statement.query_params).toStrictEqual({
+          p0: "column_1",
+          p1: ["<fingerprint-1>", "<fingerprint-2>"],
+        });
+      });
+
+      test("drops empty IncludesNone instead of producing NOT IN ()", () => {
+        const statement: Statement = generator.toWhereStatement({
+          column_1: new IncludesNone([]),
+        } as any);
+        expect(statement.query).toBe("");
+        expect(statement.query_params).toStrictEqual({});
+      });
     });
 
     describe("entityScope synthetic key", () => {

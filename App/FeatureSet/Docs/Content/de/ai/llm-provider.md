@@ -33,7 +33,7 @@ OneUptime unterstützt derzeit die folgenden LLM-Anbieter:
 ### Schritt 1: Zu den LLM-Anbieter-Einstellungen navigieren
 
 1. Melden Sie sich bei Ihrem OneUptime-Dashboard an
-2. Gehen Sie zu **Projekteinstellungen** > **KI** > **LLM-Anbieter**
+2. Gehen Sie zu **KI-Agenten** > **LLM-Anbieter**
 3. Klicken Sie auf **LLM-Anbieter erstellen**, um einen neuen Anbieter hinzuzufügen
 
 ### Schritt 2: Ihren Anbieter konfigurieren

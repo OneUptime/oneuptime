@@ -84,6 +84,8 @@ import IncidentSettingsLabelRules from "../Pages/Incidents/Settings/IncidentLabe
 
 import IncidentSettingsSlaRules from "../Pages/Incidents/Settings/IncidentSlaRules";
 
+import IncidentSettingsReminderRules from "../Pages/Incidents/Settings/IncidentReminderRules";
+
 import IncidentSettingsRoles from "../Pages/Incidents/Settings/IncidentRoles";
 
 import IncidentSettingsMore from "../Pages/Incidents/Settings/IncidentMoreSettings";
@@ -429,6 +431,20 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_SLA_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_REMINDER_RULES] || ""
+          }
+          element={
+            <IncidentSettingsReminderRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_REMINDER_RULES] as Route
               }
             />
           }

@@ -18,6 +18,8 @@ import { APP_API_URL } from "Common/UI/Config";
 import UserUtil from "Common/UI/Utils/User";
 import Banner from "Common/UI/Components/Banner/Banner";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { useUserEmailRegistrationStatus } from "Common/UI/Utils/UserEmailRegistrationStatus";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -43,6 +45,12 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
 
   const [isPushGroupsManaged, setIsPushGroupsManaged] =
     React.useState<boolean>(false);
+
+  const { isEmailRegistered, checkEmail } = useUserEmailRegistrationStatus({
+    getRequestHeaders: () => {
+      return ModelAPI.getCommonHeaders();
+    },
+  });
 
   React.useEffect(() => {
     const checkScim: () => Promise<void> = async () => {
@@ -128,25 +136,34 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
             field: {
               user: true,
             },
-            title: "User Name",
-            description:
-              "Enter the name of the user you would like to invite. This is optional and is only used if this user does not already have a OneUptime account.",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "John Smith",
-            overrideFieldKey: "name",
-          },
-          {
-            field: {
-              user: true,
-            },
-            title: "User Email",
+            title: "Email",
             description:
               "Please enter the email of the user you would like to invite. We will send them an email to let them know they have been invited to this team.",
             fieldType: FormFieldSchemaType.Email,
             required: true,
             placeholder: "member@company.com",
             overrideFieldKey: "email",
+            onChange: (value: string) => {
+              checkEmail(value);
+            },
+          },
+          {
+            field: {
+              user: true,
+            },
+            title: "Name",
+            description:
+              "This email is not registered on OneUptime yet. Enter the name of the user you would like to invite — we will use it to set up their new account.",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "John Smith",
+            overrideFieldKey: "name",
+            showIf: (values: FormValues<TeamMember>): boolean => {
+              return (
+                Boolean((values as JSONObject)["email"]) &&
+                isEmailRegistered === false
+              );
+            },
           },
         ]}
         showRefreshButton={true}

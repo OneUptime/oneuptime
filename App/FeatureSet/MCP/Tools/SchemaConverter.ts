@@ -30,6 +30,7 @@ interface OpenApiMetadata {
   format?: string;
   default?: unknown;
   items?: JSONSchemaProperty;
+  enum?: Array<string | number | boolean>;
 }
 
 // Type for Zod schema with shape
@@ -166,6 +167,11 @@ function buildPropertyFromMetadata(
 
   if (metadata.default !== undefined) {
     property.default = metadata.default;
+  }
+
+  // Preserve enums (e.g. sort order ASC/DESC) so agents see valid values
+  if (metadata.enum && metadata.enum.length > 0) {
+    property.enum = metadata.enum;
   }
 
   // Handle array types

@@ -1320,25 +1320,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           });
                         }
 
-                        /*
-                         * IoT device identity lives in datapoint labels
-                         * (device.id) and resource/datapoint attributes —
-                         * the buffer function reads the raw datapoint
-                         * attribute array directly.
-                         */
-                        if (
-                          iotFleetId &&
-                          IOT_SNAPSHOT_METRIC_NAMES.has(metricName)
-                        ) {
-                          bufferIoTSnapshotMetric({
-                            fleetIdStr: iotFleetId.toString(),
-                            metricName,
-                            datapoint: datapoint as JSONObject,
-                            resourceBuffer: iotResourceMetricsBuffer,
-                            fleetBuffer: iotFleetSnapshotBuffer,
-                          });
-                        }
-
                         const metricRow: JSONObject = this.buildMetricRow({
                           datapoint: datapoint as JSONObject,
                           baseAttributes: metricAttributes,
@@ -1369,6 +1350,28 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
                         if (transformed === null) {
                           continue;
+                        }
+
+                        /*
+                         * IoT device identity lives in datapoint labels
+                         * (device.id) and resource/datapoint attributes —
+                         * the buffer function reads the raw datapoint
+                         * attribute array directly. Unlike the snapshot
+                         * fast-paths above, this deliberately runs AFTER
+                         * the pipeline rules: a datapoint the user drops
+                         * must not keep mutating the device inventory.
+                         */
+                        if (
+                          iotFleetId &&
+                          IOT_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          bufferIoTSnapshotMetric({
+                            fleetIdStr: iotFleetId.toString(),
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                            resourceBuffer: iotResourceMetricsBuffer,
+                            fleetBuffer: iotFleetSnapshotBuffer,
+                          });
                         }
 
                         dbMetrics.push(transformed);

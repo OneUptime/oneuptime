@@ -1,0 +1,299 @@
+{{- if .Values.vllm.enabled }}
+{{- if or (and .Values.vllm.apiKey (not .Values.vllm.existingApiKeySecret.name)) (and .Values.vllm.huggingFace.token (not .Values.vllm.huggingFace.existingSecret.name)) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Release.Name }}-vllm
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-vllm
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: vllm
+    appname: oneuptime
+  annotations:
+    "helm.sh/resource-policy": "keep"
+type: Opaque
+stringData:
+  {{- if and .Values.vllm.apiKey (not .Values.vllm.existingApiKeySecret.name) }}
+  api-key: {{ .Values.vllm.apiKey | quote }}
+  {{- end }}
+  {{- if and .Values.vllm.huggingFace.token (not .Values.vllm.huggingFace.existingSecret.name) }}
+  hf-token: {{ .Values.vllm.huggingFace.token | quote }}
+  {{- end }}
+---
+{{- end }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-vllm
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-vllm
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: vllm
+    appname: oneuptime
+spec:
+  serviceName: {{ .Release.Name }}-vllm-headless
+  replicas: {{ .Values.vllm.replicaCount }}
+  # Model load can take many minutes; start replicas in parallel instead of serially.
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-vllm
+      app.kubernetes.io/component: vllm
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-vllm
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: vllm
+        appname: oneuptime
+      {{- $manageSecret := or (and .Values.vllm.apiKey (not .Values.vllm.existingApiKeySecret.name)) (and .Values.vllm.huggingFace.token (not .Values.vllm.huggingFace.existingSecret.name)) }}
+      {{- if or .Values.vllm.podAnnotations $manageSecret }}
+      annotations:
+        {{- if $manageSecret }}
+        # Roll the pods when the chart-managed secret content changes - env vars
+        # from secrets are only read at container start.
+        checksum/vllm-secret: {{ printf "%s|%s" .Values.vllm.apiKey .Values.vllm.huggingFace.token | sha256sum }}
+        {{- end }}
+        {{- with .Values.vllm.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.vllm.terminationGracePeriodSeconds }}
+      {{- if .Values.vllm.runtimeClassName }}
+      runtimeClassName: {{ .Values.vllm.runtimeClassName }}
+      {{- end }}
+      {{- with .Values.vllm.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.vllm.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.vllm.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- /* Unlike other services, vLLM security contexts intentionally do NOT
+      fall back to the chart-wide podSecurityContext/containerSecurityContext:
+      the official vllm/vllm-openai image runs as root and breaks under
+      runAsNonRoot/readOnlyRootFilesystem hardening applied globally. */}}
+      {{- with .Values.vllm.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: vllm
+        image: "{{ .Values.vllm.image.repository }}:{{ .Values.vllm.image.tag }}"
+        imagePullPolicy: {{ .Values.vllm.image.pullPolicy }}
+        {{- with .Values.vllm.containerSecurityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        # The official image entrypoint is `vllm serve`; the model is a
+        # positional argument (`--model` is rejected by `vllm serve`).
+        command: ["vllm", "serve"]
+        args:
+        - {{ .Values.vllm.model | quote }}
+        - --port={{ .Values.vllm.ports.http }}
+        {{- if .Values.vllm.servedModelName }}
+        - {{ printf "--served-model-name=%s" .Values.vllm.servedModelName | quote }}
+        {{- end }}
+        {{- range .Values.vllm.extraArgs }}
+        - {{ . | quote }}
+        {{- end }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.vllm.ports.http }}
+          protocol: TCP
+        env:
+        # Keep model weights and vLLM compile caches on the data volume so
+        # restarts do not re-download / re-compile.
+        - name: HF_HOME
+          value: /data/huggingface
+        - name: VLLM_CACHE_ROOT
+          value: /data/vllm-cache
+        {{- if or .Values.vllm.huggingFace.existingSecret.name .Values.vllm.huggingFace.token }}
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              {{- if .Values.vllm.huggingFace.existingSecret.name }}
+              name: {{ .Values.vllm.huggingFace.existingSecret.name }}
+              key: {{ required "vllm.huggingFace.existingSecret.key is required when vllm.huggingFace.existingSecret.name is set" .Values.vllm.huggingFace.existingSecret.key }}
+              {{- else }}
+              name: {{ .Release.Name }}-vllm
+              key: hf-token
+              {{- end }}
+        - name: HUGGING_FACE_HUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              {{- if .Values.vllm.huggingFace.existingSecret.name }}
+              name: {{ .Values.vllm.huggingFace.existingSecret.name }}
+              key: {{ required "vllm.huggingFace.existingSecret.key is required when vllm.huggingFace.existingSecret.name is set" .Values.vllm.huggingFace.existingSecret.key }}
+              {{- else }}
+              name: {{ .Release.Name }}-vllm
+              key: hf-token
+              {{- end }}
+        {{- end }}
+        {{- if or .Values.vllm.existingApiKeySecret.name .Values.vllm.apiKey }}
+        - name: VLLM_API_KEY
+          valueFrom:
+            secretKeyRef:
+              {{- if .Values.vllm.existingApiKeySecret.name }}
+              name: {{ .Values.vllm.existingApiKeySecret.name }}
+              key: {{ required "vllm.existingApiKeySecret.key is required when vllm.existingApiKeySecret.name is set" .Values.vllm.existingApiKeySecret.key }}
+              {{- else }}
+              name: {{ .Release.Name }}-vllm
+              key: api-key
+              {{- end }}
+        {{- end }}
+        {{- with .Values.vllm.extraEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.vllm.startupProbe.enabled }}
+        # The HTTP server only starts listening after model download + load +
+        # warmup completes, so /health responding means the server is ready.
+        # The budget below allows periodSeconds * failureThreshold for the
+        # first download of large models.
+        startupProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: {{ .Values.vllm.startupProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.vllm.startupProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.vllm.startupProbe.timeoutSeconds }}
+          failureThreshold: {{ .Values.vllm.startupProbe.failureThreshold }}
+        {{- end }}
+        {{- if .Values.vllm.readinessProbe.enabled }}
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          periodSeconds: {{ .Values.vllm.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.vllm.readinessProbe.timeoutSeconds }}
+          failureThreshold: {{ .Values.vllm.readinessProbe.failureThreshold }}
+        {{- end }}
+        {{- if .Values.vllm.livenessProbe.enabled }}
+        # Deliberately tolerant: a liveness kill forces a full model reload.
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          {{- if not .Values.vllm.startupProbe.enabled }}
+          # No startup probe to gate liveness: give model download + load the
+          # budget the startup probe would have allowed before liveness can
+          # kill the container.
+          initialDelaySeconds: {{ mul .Values.vllm.startupProbe.periodSeconds .Values.vllm.startupProbe.failureThreshold }}
+          {{- end }}
+          periodSeconds: {{ .Values.vllm.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.vllm.livenessProbe.timeoutSeconds }}
+          failureThreshold: {{ .Values.vllm.livenessProbe.failureThreshold }}
+        {{- end }}
+        {{- with .Values.vllm.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: shm
+          mountPath: /dev/shm
+      volumes:
+      # vLLM's multiprocess engine uses /dev/shm for shared-memory IPC (and
+      # NCCL needs it for tensor parallelism); the Kubernetes default of 64Mi
+      # is too small.
+      - name: shm
+        emptyDir:
+          medium: Memory
+          sizeLimit: {{ .Values.vllm.shm.sizeLimit }}
+      {{- if not .Values.vllm.persistence.enabled }}
+      - name: data
+        emptyDir:
+          sizeLimit: {{ .Values.vllm.persistence.size }}
+      {{- end }}
+  {{- if .Values.vllm.persistence.enabled }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      labels:
+        app: {{ .Release.Name }}-vllm
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: vllm
+        appname: oneuptime
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      {{- if .Values.vllm.persistence.storageClass }}
+      {{- if eq .Values.vllm.persistence.storageClass "-" }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: {{ .Values.vllm.persistence.storageClass }}
+      {{- end }}
+      {{- else }}
+      {{- if .Values.global.storageClass }}
+      storageClassName: {{ .Values.global.storageClass }}
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.vllm.persistence.size }}
+  {{- end }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-vllm
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-vllm
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: vllm
+    appname: oneuptime
+spec:
+  type: {{ .Values.vllm.service.type | default "ClusterIP" }}
+  ports:
+  - name: http
+    port: {{ .Values.vllm.ports.http }}
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: {{ .Release.Name }}-vllm
+    app.kubernetes.io/component: vllm
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-vllm-headless
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-vllm
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: vllm
+    appname: oneuptime
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http
+    port: {{ .Values.vllm.ports.http }}
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: {{ .Release.Name }}-vllm
+    app.kubernetes.io/component: vllm
+{{- end }}

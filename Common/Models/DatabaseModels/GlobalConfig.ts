@@ -13,6 +13,7 @@ import Email from "../../Types/Email";
 import MailTransportType from "../../Types/Email/MailTransportType";
 import OAuthProviderType from "../../Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "../../Types/Email/SMTPAuthenticationType";
+import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Phone from "../../Types/Phone";
@@ -42,6 +43,26 @@ export enum EmailServerType {
   update: [],
 })
 export default class GlobalConfig extends GlobalConfigModel {
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    computed: true,
+    title: "Instance ID",
+    description:
+      "Unique identifier for this OneUptime instance. Auto-generated when the instance is installed.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    unique: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public instanceId?: ObjectID = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],
@@ -853,6 +874,24 @@ export default class GlobalConfig extends GlobalConfigModel {
     nullable: true,
   })
   public enterpriseLicenseUserCountUpdatedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Enterprise License Instances",
+    description:
+      "Instances (staging, production, etc.) that share the validated enterprise license, as last reported by OneUptime. Users are counted uniquely across all of them.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public enterpriseLicenseInstances?: Array<EnterpriseLicenseInstanceSummary> =
+    undefined;
 
   @ColumnAccessControl({
     create: [],

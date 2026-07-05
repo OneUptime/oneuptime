@@ -62,6 +62,8 @@ RETURNS:
 - Active announcements
 - Monitor status history`,
     inputSchema: statusPageIdentifierSchema,
+    title: "Get Status Page Overview",
+    annotations: { readOnlyHint: true },
     modelName: "StatusPageOverview",
     operation: OneUptimeOperation.Read,
     modelType: ModelType.Database,
@@ -104,6 +106,8 @@ RETURNS:
       required: ["statusPageIdOrDomain"],
       additionalProperties: false,
     },
+    title: "Get Status Page Incidents",
+    annotations: { readOnlyHint: true },
     modelName: "StatusPageIncidents",
     operation: OneUptimeOperation.List,
     modelType: ModelType.Database,
@@ -147,6 +151,8 @@ RETURNS:
       required: ["statusPageIdOrDomain"],
       additionalProperties: false,
     },
+    title: "Get Status Page Maintenance",
+    annotations: { readOnlyHint: true },
     modelName: "StatusPageScheduledMaintenance",
     operation: OneUptimeOperation.List,
     modelType: ModelType.Database,
@@ -188,6 +194,8 @@ RETURNS:
       required: ["statusPageIdOrDomain"],
       additionalProperties: false,
     },
+    title: "Get Status Page Announcements",
+    annotations: { readOnlyHint: true },
     modelName: "StatusPageAnnouncements",
     operation: OneUptimeOperation.List,
     modelType: ModelType.Database,
@@ -210,6 +218,19 @@ export function isPublicStatusPageTool(toolName: string): boolean {
   );
 }
 
+/*
+ * statusPageIdOrDomain is interpolated into a URL path — only accept UUIDs
+ * or hostnames so crafted values (e.g. path traversal, query fragments)
+ * cannot reach other endpoints.
+ */
+const UUID_REGEX: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const HOSTNAME_REGEX: RegExp = /^[a-zA-Z0-9]([a-zA-Z0-9.-]{0,253})$/;
+
+function isValidStatusPageIdentifier(value: string): boolean {
+  return UUID_REGEX.test(value) || HOSTNAME_REGEX.test(value);
+}
+
 /**
  * Handle public status page tool execution
  */
@@ -224,6 +245,29 @@ export async function handlePublicStatusPageTool(
       success: false,
       error: "statusPageIdOrDomain is required",
     });
+  }
+
+  if (!isValidStatusPageIdentifier(statusPageIdOrDomain)) {
+    return JSON.stringify({
+      success: false,
+      error: `Invalid statusPageIdOrDomain '${statusPageIdOrDomain}': expected a UUID or a domain name like "status.company.com".`,
+    });
+  }
+
+  for (const idArg of [
+    "incidentId",
+    "scheduledMaintenanceId",
+    "announcementId",
+  ]) {
+    const value: unknown = args[idArg];
+    if (value !== undefined && value !== null && value !== "") {
+      if (typeof value !== "string" || !UUID_REGEX.test(value)) {
+        return JSON.stringify({
+          success: false,
+          error: `Invalid ${idArg}: expected a UUID.`,
+        });
+      }
+    }
   }
 
   try {

@@ -238,6 +238,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
+            title: "Reminder Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_REMINDER_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Bell,
+        },
+        {
+          link: {
             title: "Incident Roles",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.INCIDENTS_SETTINGS_ROLES] as Route,

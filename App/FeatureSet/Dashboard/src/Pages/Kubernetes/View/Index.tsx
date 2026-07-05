@@ -1049,7 +1049,15 @@ const KubernetesClusterOverview: FunctionComponent<
     }
     const timer: ReturnType<typeof setInterval> = setInterval(() => {
       if (cluster?.clusterIdentifier) {
+        /*
+         * Refresh every section, not just the golden charts — health,
+         * counts, top consumers, and warnings would otherwise freeze at
+         * their page-load values while the control claims to refresh.
+         */
         void loadGoldenMetricsRef.current(cluster.clusterIdentifier);
+        void loadSummary(modelId);
+        void loadTopPods(cluster.clusterIdentifier);
+        void loadWarnings(cluster.clusterIdentifier);
       }
     }, ms);
     return () => {
@@ -1069,6 +1077,9 @@ const KubernetesClusterOverview: FunctionComponent<
   const onManualRefresh: () => void = (): void => {
     if (cluster?.clusterIdentifier) {
       void loadGoldenMetricsRef.current(cluster.clusterIdentifier);
+      void loadSummary(modelId);
+      void loadTopPods(cluster.clusterIdentifier);
+      void loadWarnings(cluster.clusterIdentifier);
     }
   };
 
@@ -2207,6 +2218,7 @@ const KubernetesClusterOverview: FunctionComponent<
       <ResourceActivityCards
         modelId={modelId}
         resourceQueryKey="kubernetesClusters"
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
         incidentsRoute={RouteUtil.populateRouteParams(
           RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_INCIDENTS] as Route,
           { modelId: modelId },

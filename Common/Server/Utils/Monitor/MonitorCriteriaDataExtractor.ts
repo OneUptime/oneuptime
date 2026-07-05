@@ -14,6 +14,7 @@ import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import AggregateModel from "../../../Types/BaseDatabase/AggregatedModel";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
+import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 
 export default class MonitorCriteriaDataExtractor {
@@ -156,10 +157,12 @@ export default class MonitorCriteriaDataExtractor {
 
     let result: AggregatedResult | undefined;
 
+    const metricViewConfig: MetricsViewConfig | undefined =
+      MonitorStep.getMetricsViewConfig(input.monitorStep);
+
     if (alias) {
       const queryConfigs: Array<MetricQueryConfigData> =
-        input.monitorStep.data?.metricMonitor?.metricViewConfig?.queryConfigs ||
-        [];
+        metricViewConfig?.queryConfigs || [];
 
       let aliasIndex: number = queryConfigs.findIndex(
         (queryConfig: MetricQueryConfigData) => {
@@ -169,8 +172,7 @@ export default class MonitorCriteriaDataExtractor {
 
       if (aliasIndex < 0) {
         const formulaConfigs: Array<MetricFormulaConfigData> =
-          input.monitorStep.data?.metricMonitor?.metricViewConfig
-            ?.formulaConfigs || [];
+          metricViewConfig?.formulaConfigs || [];
 
         const formulaIndex: number = formulaConfigs.findIndex(
           (formulaConfig: MetricFormulaConfigData) => {
@@ -192,8 +194,7 @@ export default class MonitorCriteriaDataExtractor {
       result = aggregatedResults[0];
       if (!alias) {
         const defaultAlias: string | undefined =
-          input.monitorStep.data?.metricMonitor?.metricViewConfig
-            ?.queryConfigs?.[0]?.metricAliasData?.metricVariable;
+          metricViewConfig?.queryConfigs?.[0]?.metricAliasData?.metricVariable;
         alias = defaultAlias || null;
       }
     }
