@@ -20,6 +20,15 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import Query from "Common/Types/BaseDatabase/Query";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import ExceptionInstanceTable from "../../../Exceptions/ExceptionInstanceTable";
+import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "Common/UI/Utils/Project";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
+import OneUptimeDate from "Common/Types/Date";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 
 export interface ComponentProps {
   monitorStepExceptionMonitor: MonitorStepExceptionMonitor;
@@ -167,14 +176,147 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
     });
   };
 
+  const [excludedFingerprints, setExcludedFingerprints] = useState<
+    Array<string>
+  >([]);
+
+  /*
+   * Mirror the worker's evaluation: unless the monitor opts in, occurrences
+   * of resolved/archived exception groups don't count, so the preview must
+   * exclude them too. Group state lives on TelemetryException (Postgres);
+   * the fingerprint is the join key to the ExceptionInstance rows shown in
+   * the preview table. Fail-soft: if this lookup fails the preview simply
+   * shows unfiltered instances.
+   */
+  const telemetryServiceIdsKey: string =
+    formValues.telemetryServiceIds.join(",");
+
+  useEffect(() => {
+    let isCancelled: boolean = false;
+
+    const fetchExcludedFingerprints: () => Promise<void> =
+      async (): Promise<void> => {
+        const excludeResolved: boolean = !formValues.includeResolved;
+        const excludeArchived: boolean = !formValues.includeArchived;
+
+        if (!excludeResolved && !excludeArchived) {
+          if (!isCancelled) {
+            setExcludedFingerprints([]);
+          }
+          return;
+        }
+
+        try {
+          /*
+           * Same bound the worker uses: only groups seen near the monitor
+           * window can have occurrences inside it (ingestion advances
+           * lastSeenAt with every occurrence). The extra hour absorbs
+           * client/server clock skew.
+           */
+          const lastSeenAfter: Date = OneUptimeDate.addRemoveSeconds(
+            OneUptimeDate.getCurrentDate(),
+            ((formValues.lastXSecondsOfExceptions || 60) + 3600) * -1,
+          );
+
+          const statusFilters: Array<Query<TelemetryException>> = [];
+
+          if (excludeResolved) {
+            statusFilters.push({ isResolved: true });
+          }
+
+          if (excludeArchived) {
+            statusFilters.push({ isArchived: true });
+          }
+
+          const serviceIds: Array<ObjectID> = formValues.telemetryServiceIds
+            .filter((id: string): boolean => {
+              return Boolean(id);
+            })
+            .map((id: string): ObjectID => {
+              return new ObjectID(id);
+            });
+
+          const results: Array<ListResult<TelemetryException>> =
+            await Promise.all(
+              statusFilters.map(
+                (
+                  statusFilter: Query<TelemetryException>,
+                ): Promise<ListResult<TelemetryException>> => {
+                  const query: Query<TelemetryException> = {
+                    projectId: ProjectUtil.getCurrentProjectId()!,
+                    ...statusFilter,
+                    lastSeenAt: new GreaterThanOrEqual<Date>(lastSeenAfter),
+                  };
+
+                  if (serviceIds.length > 0) {
+                    query.primaryEntityId = new Includes(serviceIds);
+                  }
+
+                  return ModelAPI.getList<TelemetryException>({
+                    modelType: TelemetryException,
+                    query: query,
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
+                      fingerprint: true,
+                    },
+                    sort: {
+                      lastSeenAt: SortOrder.Descending,
+                    },
+                  });
+                },
+              ),
+            );
+
+          const fingerprints: Set<string> = new Set<string>();
+
+          for (const result of results) {
+            for (const telemetryException of result.data) {
+              if (telemetryException.fingerprint) {
+                fingerprints.add(telemetryException.fingerprint);
+              }
+            }
+          }
+
+          if (!isCancelled) {
+            setExcludedFingerprints(Array.from(fingerprints));
+          }
+        } catch {
+          if (!isCancelled) {
+            setExcludedFingerprints([]);
+          }
+        }
+      };
+
+    fetchExcludedFingerprints().catch((): void => {
+      // fail-soft — handled above.
+    });
+
+    return (): void => {
+      isCancelled = true;
+    };
+  }, [
+    formValues.includeResolved,
+    formValues.includeArchived,
+    formValues.lastXSecondsOfExceptions,
+    telemetryServiceIdsKey,
+  ]);
+
   const previewQuery: Query<ExceptionInstance> = useMemo(() => {
     const monitorConfig: MonitorStepExceptionMonitor =
       toMonitorConfig(formValues);
 
+    const query: Query<ExceptionInstance> =
+      MonitorStepExceptionMonitorUtil.toAnalyticsQuery(monitorConfig);
+
+    if (excludedFingerprints.length > 0) {
+      query.fingerprint = new IncludesNone(excludedFingerprints);
+    }
+
     return JSONFunctions.anyObjectToJSONObject(
-      MonitorStepExceptionMonitorUtil.toAnalyticsQuery(monitorConfig),
+      query,
     ) as Query<ExceptionInstance>;
-  }, [formValues]);
+  }, [formValues, excludedFingerprints]);
 
   return (
     <div>
@@ -269,7 +411,8 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             },
             fieldType: FormFieldSchemaType.Checkbox,
             title: "Include Resolved Exceptions",
-            description: "When enabled, resolved exceptions will be counted.",
+            description:
+              "By default, exceptions marked as resolved are not counted (an exception that occurs again is automatically un-resolved and counted). Enable this to count resolved exceptions too.",
             hideOptionalLabel: true,
             showIf: (): boolean => {
               return showAdvancedOptions;
@@ -282,7 +425,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Checkbox,
             title: "Include Archived Exceptions",
             description:
-              "When enabled, archived exceptions will be included in results.",
+              "By default, exceptions that are archived are not counted. Enable this to count archived exceptions too.",
             hideOptionalLabel: true,
             showIf: (): boolean => {
               return showAdvancedOptions;

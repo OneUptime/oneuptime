@@ -15,6 +15,10 @@ import AIAgentTaskTelemetryExceptionService from "./AIAgentTaskTelemetryExceptio
 import QueryHelper from "../Types/Database/QueryHelper";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import Query from "../Types/Database/Query";
+import Includes from "../../Types/BaseDatabase/Includes";
+import GreaterThanOrEqual from "../../Types/BaseDatabase/GreaterThanOrEqual";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 
 export interface CreateAIAgentTaskForExceptionParams {
   telemetryExceptionId: ObjectID;
@@ -261,6 +265,91 @@ export class Service extends DatabaseService<Model> {
       recentExceptions,
       serviceSummaries,
     };
+  }
+
+  /**
+   * Fingerprints of exception groups marked resolved and/or archived —
+   * used by the exception monitor (and its dashboard preview) to exclude
+   * occurrences of those groups from the exception count. Resolution
+   * state lives on this Postgres model per (projectId, primaryEntityId,
+   * fingerprint) group, while occurrences live in ClickHouse; fingerprints
+   * are the join key. Fingerprints hash projectId + primaryEntityId into
+   * the digest, so a fingerprint never collides across services and
+   * excluding by fingerprint alone is exact.
+   *
+   * `lastSeenAfter` bounds the scan to groups seen since that time.
+   * Ingestion advances lastSeenAt with every new occurrence (and clears
+   * isResolved), so groups whose lastSeenAt predates the monitor window
+   * cannot have occurrences inside it — skipping them keeps the exclusion
+   * list proportional to recently-active groups. If more than
+   * LIMIT_PER_PROJECT groups match, the most recently seen ones win and
+   * the overflow stays counted (fail-open: better a stale incident than
+   * a silently swallowed one).
+   */
+  @CaptureSpan()
+  public async getResolvedOrArchivedFingerprints(data: {
+    projectId: ObjectID;
+    telemetryServiceIds?: Array<ObjectID> | undefined;
+    resolved: boolean;
+    archived: boolean;
+    lastSeenAfter?: Date | undefined;
+  }): Promise<Array<string>> {
+    const statusFilters: Array<Query<Model>> = [];
+
+    if (data.resolved) {
+      statusFilters.push({ isResolved: true });
+    }
+
+    if (data.archived) {
+      statusFilters.push({ isArchived: true });
+    }
+
+    if (statusFilters.length === 0) {
+      return [];
+    }
+
+    const fingerprints: Set<string> = new Set<string>();
+
+    // resolved-OR-archived needs two indexed lookups — findBy has no OR.
+    await Promise.all(
+      statusFilters.map(async (statusFilter: Query<Model>): Promise<void> => {
+        const query: Query<Model> = {
+          projectId: data.projectId,
+          ...statusFilter,
+        };
+
+        if (data.telemetryServiceIds && data.telemetryServiceIds.length > 0) {
+          query.primaryEntityId = new Includes(data.telemetryServiceIds);
+        }
+
+        if (data.lastSeenAfter) {
+          query.lastSeenAt = new GreaterThanOrEqual<Date>(data.lastSeenAfter);
+        }
+
+        const exceptions: Array<Model> = await this.findBy({
+          query: query,
+          select: {
+            fingerprint: true,
+          },
+          sort: {
+            lastSeenAt: SortOrder.Descending,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        for (const exception of exceptions) {
+          if (exception.fingerprint) {
+            fingerprints.add(exception.fingerprint);
+          }
+        }
+      }),
+    );
+
+    return Array.from(fingerprints);
   }
 
   @CaptureSpan()

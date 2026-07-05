@@ -675,6 +675,41 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             type: tableColumn.type,
           }}`,
         );
+      } else if (
+        value instanceof IncludesNone &&
+        tableColumn.type === TableColumnType.ArrayText
+      ) {
+        /*
+         * Array(String) exclusion — the negation of the Includes/hasAny
+         * branch above. An empty IncludesNone excludes nothing, so it
+         * drops to no predicate (mirrors the empty-Includes behavior).
+         */
+        const arrayExcludeValues: Array<string> =
+          ((value as IncludesNone).values as Array<string>) || [];
+        if (arrayExcludeValues.length > 0) {
+          whereStatement.append(
+            SQL`AND NOT hasAny(${key}, ${{
+              value: arrayExcludeValues,
+              type: TableColumnType.ArrayText,
+            }})`,
+          );
+        }
+      } else if (value instanceof IncludesNone) {
+        /*
+         * Scalar exclusion ("is none of"): `col NOT IN (v1, v2, ...)`.
+         * An empty IncludesNone means "exclude nothing" — skip the
+         * predicate entirely rather than emitting `NOT IN ()`.
+         */
+        const excludeValues: Array<string | ObjectID | number> =
+          ((value as IncludesNone).values as Array<string | ObjectID>) || [];
+        if (excludeValues.length > 0) {
+          whereStatement.append(
+            SQL`AND ${key} NOT IN ${{
+              value: value,
+              type: tableColumn.type,
+            }}`,
+          );
+        }
       } else if (value instanceof IsNull) {
         if (tableColumn.type === TableColumnType.Text) {
           whereStatement.append(SQL`AND (${key} IS NULL OR ${key} = '')`);

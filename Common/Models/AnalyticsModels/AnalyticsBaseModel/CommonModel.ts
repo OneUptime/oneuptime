@@ -6,6 +6,7 @@ import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import GreaterThanOrNull from "../../../Types/BaseDatabase/GreaterThanOrNull";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
@@ -29,6 +30,7 @@ export type RecordValue =
   | GreaterThan<CompareType>
   | InBetween<CompareType>
   | Includes
+  | IncludesNone
   | Date
   | LessThan<CompareType>
   | LessThanOrEqual<CompareType>

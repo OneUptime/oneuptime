@@ -58,6 +58,8 @@ import MonitorStepExceptionMonitor, {
 } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import TelemetryExceptionService from "Common/Server/Services/TelemetryExceptionService";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import ProfileMonitorResponse from "Common/Types/Monitor/ProfileMonitor/ProfileMonitorResponse";
 import MonitorStepProfileMonitor, {
   MonitorStepProfileMonitorUtil,
@@ -1091,9 +1093,50 @@ const monitorException: MonitorExceptionFunction = async (data: {
 
   analyticsQuery.projectId = data.projectId;
 
+  /*
+   * Unless the monitor opts in via includeResolved / includeArchived,
+   * occurrences belonging to exception groups marked resolved/archived
+   * must not count toward the threshold — resolving an exception should
+   * close (or never open) the incident. Group state lives in Postgres
+   * (TelemetryException); occurrences live in ClickHouse — fingerprints
+   * are the join key, so the count query excludes the resolved/archived
+   * ones. Ingestion un-resolves a group on any new occurrence, so a
+   * recurring exception is counted again automatically.
+   */
+  const countQuery: Query<ExceptionInstance> = { ...analyticsQuery };
+
+  const excludeResolved: boolean = !exceptionMonitorConfig.includeResolved;
+  const excludeArchived: boolean = !exceptionMonitorConfig.includeArchived;
+
+  if (excludeResolved || excludeArchived) {
+    /*
+     * Only groups seen near the monitor window can have occurrences in
+     * it (lastSeenAt advances with every occurrence). The extra hour
+     * absorbs clock skew between client-reported occurrence time and
+     * the server-side lastSeenAt.
+     */
+    const lastSeenAfter: Date = OneUptimeDate.addRemoveSeconds(
+      OneUptimeDate.getCurrentDate(),
+      ((exceptionMonitorConfig.lastXSecondsOfExceptions || 60) + 3600) * -1,
+    );
+
+    const excludedFingerprints: Array<string> =
+      await TelemetryExceptionService.getResolvedOrArchivedFingerprints({
+        projectId: data.projectId,
+        telemetryServiceIds: exceptionMonitorConfig.telemetryServiceIds,
+        resolved: excludeResolved,
+        archived: excludeArchived,
+        lastSeenAfter: lastSeenAfter,
+      });
+
+    if (excludedFingerprints.length > 0) {
+      countQuery.fingerprint = new IncludesNone(excludedFingerprints);
+    }
+  }
+
   const exceptionCount: PositiveNumber = await ExceptionInstanceService.countBy(
     {
-      query: analyticsQuery,
+      query: countQuery,
       limit: LIMIT_PER_PROJECT,
       skip: 0,
       props: {
@@ -1102,6 +1145,12 @@ const monitorException: MonitorExceptionFunction = async (data: {
     },
   );
 
+  /*
+   * exceptionQuery intentionally stays the base query (no fingerprint
+   * exclusion list) — it is persisted with the status timeline for the
+   * "view exceptions" link, and a NOT IN list of thousands of hashes
+   * would bloat every timeline entry.
+   */
   return {
     projectId: data.projectId,
     exceptionCount: exceptionCount.toNumber(),
