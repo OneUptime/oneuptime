@@ -614,6 +614,12 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       projectId,
       NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
     );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION,
+    );
   }
 
   private async addMonitorNotificationSettings(
@@ -688,6 +694,12 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       userId,
       projectId,
       NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_ALERT_REMINDER_OWNER_NOTIFICATION,
     );
   }
 

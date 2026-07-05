@@ -100,6 +100,11 @@ const EVENT_LIBRARY: Record<
       description:
         "The state of an incident you own changes (e.g. acknowledged, resolved).",
     },
+  [NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION]: {
+    label: "Incident reminder",
+    description:
+      "Periodic reminder that an incident you own is still open, based on the project's reminder rules.",
+  },
   [NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION]: {
     label: "Incident note posted",
     description: "Someone posts a note on an incident you own.",
@@ -147,6 +152,11 @@ const EVENT_LIBRARY: Record<
   [NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION]: {
     label: "Alert state changed",
     description: "The state of an alert you own changes.",
+  },
+  [NotificationSettingEventType.SEND_ALERT_REMINDER_OWNER_NOTIFICATION]: {
+    label: "Alert reminder",
+    description:
+      "Periodic reminder that an alert you own is still open, based on the project's reminder rules.",
   },
   [NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION]: {
     label: "Alert note posted",
@@ -630,6 +640,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     buildSection("Incidents", "Notify me about incidents on resources I own.", [
       NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
     ]),
@@ -650,6 +661,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     buildSection("Alerts", "Notify me about alerts on resources I own.", [
       NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_ALERT_REMINDER_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_ALERT_OWNER_ADDED_NOTIFICATION,
     ]),

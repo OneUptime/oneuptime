@@ -2207,4 +2207,104 @@ export default class Alert extends BaseModel {
     nullable: true,
   })
   public isPrivate?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Send Reminders?",
+    description:
+      "Should reminder notifications be sent to owners while this alert is still open? Reminders are sent based on the reminder rules configured for this project.",
+    defaultValue: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: true,
+    nullable: true,
+  })
+  public enableReminders?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Next Reminder Notification At",
+    description:
+      "When will the next reminder notification be sent to owners of this alert? This is set automatically based on the reminder rules configured for this project.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public nextReminderNotificationAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Reminder Notifications Sent Count",
+    description:
+      "How many reminder notifications have been sent to owners of this alert so far.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public reminderNotificationSentCount?: number = undefined;
 }

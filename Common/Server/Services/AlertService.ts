@@ -50,6 +50,8 @@ import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import AlertSeverityService from "./AlertSeverityService";
+import AlertReminderRuleService from "./AlertReminderRuleService";
+import AlertReminderRule from "../../Models/DatabaseModels/AlertReminderRule";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import AlertWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Alert";
@@ -119,6 +121,58 @@ export class Service extends DatabaseService<Model> {
     }
 
     return false;
+  }
+
+  @CaptureSpan()
+  public async refreshReminderSchedule(data: {
+    alertId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const alert: Model | null = await this.findOneById({
+      id: data.alertId,
+      select: {
+        enableReminders: true,
+        alertSeverityId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alert) {
+      return;
+    }
+
+    let nextReminderNotificationAt: Date | null = null;
+
+    if (alert.enableReminders !== false) {
+      const matchingRule: AlertReminderRule | null =
+        await AlertReminderRuleService.findMatchingRule({
+          projectId: data.projectId,
+          alertSeverityId: alert.alertSeverityId,
+        });
+
+      if (
+        matchingRule &&
+        matchingRule.reminderIntervalInMinutes &&
+        !(await this.isAlertResolved({ alertId: data.alertId }))
+      ) {
+        nextReminderNotificationAt = OneUptimeDate.addRemoveMinutes(
+          OneUptimeDate.getCurrentDate(),
+          matchingRule.reminderIntervalInMinutes,
+        );
+      }
+    }
+
+    await this.updateOneById({
+      id: data.alertId,
+      data: {
+        nextReminderNotificationAt: nextReminderNotificationAt,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   @CaptureSpan()
@@ -477,6 +531,25 @@ export class Service extends DatabaseService<Model> {
             } as LogAttributes,
           );
           return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        // Schedule reminder notifications for alert if a matching reminder rule exists
+        try {
+          if (createdItem.projectId && createdItem.id) {
+            await this.refreshReminderSchedule({
+              alertId: createdItem.id,
+              projectId: createdItem.projectId,
+            });
+          }
+        } catch (error) {
+          logger.error(
+            `Reminder scheduling failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
         }
       })
       .catch((error: Error) => {
@@ -1090,6 +1163,31 @@ ${alertSeverity.name}
 `;
 
             shouldAddAlertFeed = true;
+          }
+        }
+
+        // Re-evaluate reminder schedule when severity changes or reminders are toggled
+        if (
+          (onUpdate.updateBy.data.alertSeverity &&
+            (onUpdate.updateBy.data.alertSeverity as any)._id) ||
+          Object.prototype.hasOwnProperty.call(
+            onUpdate.updateBy.data,
+            "enableReminders",
+          )
+        ) {
+          try {
+            await this.refreshReminderSchedule({
+              alertId: alertId,
+              projectId: projectId,
+            });
+          } catch (reminderError) {
+            logger.error(
+              `Reminder rescheduling failed in AlertService.onUpdateSuccess: ${reminderError}`,
+              {
+                projectId: projectId?.toString(),
+                alertId: alertId?.toString(),
+              } as LogAttributes,
+            );
           }
         }
 

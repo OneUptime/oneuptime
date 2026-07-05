@@ -35,6 +35,8 @@ const templateDashboardLinkVariableMap: Partial<
   [WhatsAppTemplateIds.IncidentStateChangedOwnerNotification]: "incident_link",
   [WhatsAppTemplateIds.IncidentOwnerAddedNotification]: "incident_link",
   [WhatsAppTemplateIds.IncidentMemberAddedNotification]: "incident_link",
+  [WhatsAppTemplateIds.IncidentReminderOwnerNotification]: "incident_link",
+  [WhatsAppTemplateIds.AlertReminderOwnerNotification]: "alert_link",
   [WhatsAppTemplateIds.MonitorOwnerAddedNotification]: "monitor_link",
   [WhatsAppTemplateIds.MonitorCreatedOwnerNotification]: "monitor_link",
   [WhatsAppTemplateIds.MonitorStatusChangedOwnerNotification]: "monitor_link",
@@ -78,6 +80,10 @@ const templateIdByEventType: Record<
     WhatsAppTemplateIds.IncidentOwnerAddedNotification,
   [NotificationSettingEventType.SEND_INCIDENT_MEMBER_ADDED_NOTIFICATION]:
     WhatsAppTemplateIds.IncidentMemberAddedNotification,
+  [NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION]:
+    WhatsAppTemplateIds.IncidentReminderOwnerNotification,
+  [NotificationSettingEventType.SEND_ALERT_REMINDER_OWNER_NOTIFICATION]:
+    WhatsAppTemplateIds.AlertReminderOwnerNotification,
   [NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION]:
     WhatsAppTemplateIds.AlertCreatedOwnerNotification,
   [NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION]:

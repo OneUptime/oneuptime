@@ -1,0 +1,36 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Reminder - Alert " alertNumber ": " alertTitle) }}
+
+{{> InfoBlock info="This alert is still open and needs your attention"}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Alert Title:" text=alertTitle }}
+{{> DetailBoxField title="Current State:" text=currentState }}
+{{> DetailBoxField title="Open For:" text=openDuration }}
+{{> DetailBoxField title="Created At:" text=createdAt }}
+{{> DetailBoxField title="Resources Affected:" text=resourcesAffected }}
+{{> DetailBoxField title="Severity:" text=alertSeverity }}
+{{> DetailBoxField title="Description:" text=alertDescription }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this alert by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=alertViewLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=alertViewLink}}
+
+{{> InfoBlock info="You will keep receiving these reminders until this alert is resolved. To stop receiving them, resolve the alert or turn off reminders for this alert on the dashboard."}}
+
+{{> OwnerInfo this }}
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

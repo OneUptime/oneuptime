@@ -56,6 +56,8 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import IncidentFeedService from "./IncidentFeedService";
 import IncidentSlaService from "./IncidentSlaService";
+import IncidentReminderRuleService from "./IncidentReminderRuleService";
+import IncidentReminderRule from "../../Models/DatabaseModels/IncidentReminderRule";
 import { setIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import IncidentGroupingEngineService from "./IncidentGroupingEngineService";
@@ -228,6 +230,58 @@ export class Service extends DatabaseService<Model> {
     }
 
     return false;
+  }
+
+  @CaptureSpan()
+  public async refreshReminderSchedule(data: {
+    incidentId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const incident: Model | null = await this.findOneById({
+      id: data.incidentId,
+      select: {
+        enableReminders: true,
+        incidentSeverityId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      return;
+    }
+
+    let nextReminderNotificationAt: Date | null = null;
+
+    if (incident.enableReminders !== false) {
+      const matchingRule: IncidentReminderRule | null =
+        await IncidentReminderRuleService.findMatchingRule({
+          projectId: data.projectId,
+          incidentSeverityId: incident.incidentSeverityId,
+        });
+
+      if (
+        matchingRule &&
+        matchingRule.reminderIntervalInMinutes &&
+        !(await this.isIncidentResolved({ incidentId: data.incidentId }))
+      ) {
+        nextReminderNotificationAt = OneUptimeDate.addRemoveMinutes(
+          OneUptimeDate.getCurrentDate(),
+          matchingRule.reminderIntervalInMinutes,
+        );
+      }
+    }
+
+    await this.updateOneById({
+      id: data.incidentId,
+      data: {
+        nextReminderNotificationAt: nextReminderNotificationAt,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   @CaptureSpan()
@@ -1161,6 +1215,26 @@ export class Service extends DatabaseService<Model> {
           );
         }
       })
+      .then(async () => {
+        // Schedule reminder notifications for incident if a matching reminder rule exists
+        try {
+          if (createdItem.projectId && createdItem.id) {
+            await this.refreshReminderSchedule({
+              incidentId: createdItem.id,
+              projectId: createdItem.projectId,
+            });
+          }
+        } catch (error) {
+          logger.error(
+            `Reminder scheduling failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+              userId: createdItem.createdByUserId?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
       .catch((error: Error) => {
         logger.error(
           `Critical error in IncidentService sequential operations: ${error}`,
@@ -1728,6 +1802,29 @@ ${incident.remediationNotes || "No remediation notes provided."}
           });
         }
 
+        // Re-evaluate reminder schedule when reminders are enabled or disabled for this incident
+        if (
+          Object.prototype.hasOwnProperty.call(
+            updatedIncidentData,
+            "enableReminders",
+          )
+        ) {
+          try {
+            await this.refreshReminderSchedule({
+              incidentId: incidentId,
+              projectId: projectId,
+            });
+          } catch (reminderError) {
+            logger.error(
+              `Reminder rescheduling failed in IncidentService.onUpdateSuccess: ${reminderError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
+          }
+        }
+
         // emit postmortem completion time metric when postmortemPostedAt is set
         if (
           Object.prototype.hasOwnProperty.call(
@@ -2010,6 +2107,22 @@ ${incidentSeverity.name}
             } catch (slaError) {
               logger.error(
                 `SLA recalculation failed in IncidentService.onUpdateSuccess: ${slaError}`,
+                {
+                  projectId: projectId?.toString(),
+                  incidentId: incidentId?.toString(),
+                } as LogAttributes,
+              );
+            }
+
+            // Re-match reminder rule when severity changes
+            try {
+              await this.refreshReminderSchedule({
+                incidentId: incidentId,
+                projectId: projectId,
+              });
+            } catch (reminderError) {
+              logger.error(
+                `Reminder rescheduling failed in IncidentService.onUpdateSuccess: ${reminderError}`,
                 {
                   projectId: projectId?.toString(),
                   incidentId: incidentId?.toString(),

@@ -25,6 +25,8 @@ import AlertsWorkspaceConnectionMicrosoftTeams from "../Pages/Alerts/WorkspaceCo
 import AlertOnCallPolicyExecutionLogs from "../Pages/Alerts/View/OnCallPolicyExecutionLogs";
 
 import AlertViewDelete from "../Pages/Alerts/View/Delete";
+
+import AlertViewSettings from "../Pages/Alerts/View/Settings";
 import AlertViewStateTimeline from "../Pages/Alerts/View/StateTimeline";
 
 import AlertInternalNote from "../Pages/Alerts/View/InternalNote";
@@ -58,6 +60,8 @@ import AlertSettingsOnCallRules from "../Pages/Alerts/Settings/AlertOnCallRules"
 
 import AlertSettingsOwnerRules from "../Pages/Alerts/Settings/AlertOwnerRules";
 import AlertSettingsRunbookRules from "../Pages/Alerts/Settings/AlertRunbookRules";
+
+import AlertSettingsReminderRules from "../Pages/Alerts/Settings/AlertReminderRules";
 
 import AlertSettingsPrivacyRules from "../Pages/Alerts/Settings/AlertPrivacyRules";
 
@@ -277,6 +281,18 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_REMINDER_RULES] || ""}
+          element={
+            <AlertSettingsReminderRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_REMINDER_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
           path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_PRIVACY_RULES] || ""}
           element={
             <AlertSettingsPrivacyRules
@@ -472,6 +488,16 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             <AlertViewDelete
               {...props}
               pageRoute={RouteMap[PageMap.ALERT_VIEW_DELETE] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_SETTINGS)}
+          element={
+            <AlertViewSettings
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_VIEW_SETTINGS] as Route}
             />
           }
         />

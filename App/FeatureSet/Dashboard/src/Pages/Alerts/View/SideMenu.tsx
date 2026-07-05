@@ -172,6 +172,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
         <SideMenuItem
           link={{
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERT_VIEW_SETTINGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Settings}
+        />
+
+        <SideMenuItem
+          link={{
             title: "Delete Alert",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.ALERT_VIEW_DELETE] as Route,

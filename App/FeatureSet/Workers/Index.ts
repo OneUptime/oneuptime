@@ -12,6 +12,7 @@ import "./Jobs/IncidentOwners/SendCreatedResourceNotification";
 import "./Jobs/IncidentOwners/SendNotePostedNotification";
 import "./Jobs/IncidentOwners/SendOwnerAddedNotification";
 import "./Jobs/IncidentOwners/SendStateChangeNotification";
+import "./Jobs/IncidentOwners/SendUnresolvedReminderNotification";
 
 // Incident Members
 import "./Jobs/IncidentMembers/SendMemberAddedNotification";
@@ -28,6 +29,7 @@ import "./Jobs/AlertOwners/SendCreatedResourceNotification";
 import "./Jobs/AlertOwners/SendNotePostedNotification";
 import "./Jobs/AlertOwners/SendOwnerAddedNotification";
 import "./Jobs/AlertOwners/SendStateChangeNotification";
+import "./Jobs/AlertOwners/SendUnresolvedReminderNotification";
 import "./Jobs/Alert/KeepCurrentStateConsistent";
 
 // Alert Episodes

@@ -37,11 +37,13 @@ enum EmailTemplateType {
   IncidentOwnerNotePosted = "IncidentOwnerNotePosted.hbs",
   IncidentOwnerResourceCreated = "IncidentOwnerResourceCreated.hbs",
   IncidentMemberAdded = "IncidentMemberAdded.hbs",
+  IncidentOwnerUnresolvedReminder = "IncidentOwnerUnresolvedReminder.hbs",
 
   AlertOwnerAdded = "AlertOwnerAdded.hbs",
   AlertOwnerStateChanged = "AlertOwnerStateChanged.hbs",
   AlertOwnerNotePosted = "AlertOwnerNotePosted.hbs",
   AlertOwnerResourceCreated = "AlertOwnerResourceCreated.hbs",
+  AlertOwnerUnresolvedReminder = "AlertOwnerUnresolvedReminder.hbs",
 
   AlertEpisodeOwnerAdded = "AlertEpisodeOwnerAdded.hbs",
   AlertEpisodeOwnerStateChanged = "AlertEpisodeOwnerStateChanged.hbs",

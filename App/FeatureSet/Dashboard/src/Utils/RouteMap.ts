@@ -547,6 +547,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_LABEL_RULES]: "settings/label-rules",
   [PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
   [PageMap.INCIDENTS_SETTINGS_SLA_RULES]: "settings/sla-rules",
+  [PageMap.INCIDENTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
   [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
   [PageMap.INCIDENTS_SETTINGS_MORE]: "settings/more",
 
@@ -605,6 +606,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_PRIVACY_RULES]: "settings/privacy-rules",
   [PageMap.ALERTS_SETTINGS_LABEL_RULES]: "settings/label-rules",
   [PageMap.ALERTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
+  [PageMap.ALERTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
   [PageMap.ALERTS_SETTINGS_MORE]: "settings/more",
 
   [PageMap.ALERT_VIEW]: `${RouteParams.ModelID}`,
@@ -614,6 +616,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERT_VIEW_NOTIFICATION_LOGS]: `${RouteParams.ModelID}/notification-logs`,
   [PageMap.ALERT_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai-logs`,
   [PageMap.ALERT_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.ALERT_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.ALERT_VIEW_DESCRIPTION]: `${RouteParams.ModelID}/description`,
   [PageMap.ALERT_VIEW_ROOT_CAUSE]: `${RouteParams.ModelID}/root-cause`,
   [PageMap.ALERT_VIEW_REMEDIATION]: `${RouteParams.ModelID}/remediation`,
@@ -1098,6 +1101,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ALERT_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW_SETTINGS]
+    }`,
+  ),
+
   [PageMap.ALERT_VIEW_DESCRIPTION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERT_VIEW_DESCRIPTION]
@@ -1186,6 +1195,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ALERTS_SETTINGS_RUNBOOK_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_RUNBOOK_RULES]
+    }`,
+  ),
+
+  [PageMap.ALERTS_SETTINGS_REMINDER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_REMINDER_RULES]
     }`,
   ),
 
@@ -1677,6 +1692,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_SLA_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_SLA_RULES]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_REMINDER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_REMINDER_RULES]
     }`,
   ),
 

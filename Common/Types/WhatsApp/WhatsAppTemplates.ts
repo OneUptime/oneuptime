@@ -10,6 +10,8 @@ type TemplateIdsMap = {
   readonly IncidentStateChangedOwnerNotification: "oneuptime_incident_state_change_owner_notification";
   readonly IncidentOwnerAddedNotification: "oneuptime_incident_owner_added_notification";
   readonly IncidentMemberAddedNotification: "oneuptime_incident_member_added_notification";
+  readonly IncidentReminderOwnerNotification: "oneuptime_incident_reminder_owner_notification";
+  readonly AlertReminderOwnerNotification: "oneuptime_alert_reminder_owner_notification";
   readonly AlertCreatedOwnerNotification: "oneuptime_alert_created_owner_notification";
   readonly AlertNotePostedOwnerNotification: "oneuptime_alert_note_posted_owner_notification";
   readonly AlertStateChangedOwnerNotification: "oneuptime_alert_state_changed_owner_notification";
@@ -63,6 +65,10 @@ const templateIds: TemplateIdsMap = {
   IncidentOwnerAddedNotification: "oneuptime_incident_owner_added_notification",
   IncidentMemberAddedNotification:
     "oneuptime_incident_member_added_notification",
+  IncidentReminderOwnerNotification:
+    "oneuptime_incident_reminder_owner_notification",
+  AlertReminderOwnerNotification:
+    "oneuptime_alert_reminder_owner_notification",
   AlertCreatedOwnerNotification: "oneuptime_alert_created_owner_notification",
   AlertNotePostedOwnerNotification:
     "oneuptime_alert_note_posted_owner_notification",
@@ -154,6 +160,8 @@ export const WhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition = {
   [WhatsAppTemplateIds.IncidentStateChangedOwnerNotification]: `Incident #{{incident_number}} ({{incident_title}}) state changed to {{incident_state}}. Track the incident status using {{incident_link}} on the OneUptime dashboard for more context.`,
   [WhatsAppTemplateIds.IncidentOwnerAddedNotification]: `You have been added as an owner of incident #{{incident_number}} ({{incident_title}}). Manage the incident using {{incident_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.IncidentMemberAddedNotification]: `You have been assigned as {{incident_role}} to incident #{{incident_number}} ({{incident_title}}). Manage the incident using {{incident_link}} on the OneUptime dashboard.`,
+  [WhatsAppTemplateIds.IncidentReminderOwnerNotification]: `Reminder: Incident #{{incident_number}} ({{incident_title}}) is still {{incident_state}} and has been open for {{elapsed_time}}. Review the incident using {{incident_link}} on the OneUptime dashboard.`,
+  [WhatsAppTemplateIds.AlertReminderOwnerNotification]: `Reminder: Alert #{{alert_number}} ({{alert_title}}) is still {{alert_state}} and has been open for {{elapsed_time}}. Review the alert using {{alert_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.AlertCreatedOwnerNotification]: `Alert #{{alert_number}} ({{alert_title}}) has been created for project {{project_name}}. View alert details using {{alert_link}} on the OneUptime dashboard `,
   [WhatsAppTemplateIds.AlertNotePostedOwnerNotification]: `A new note was posted on alert #{{alert_number}} ({{alert_title}}). Review the alert using {{alert_link}} on the OneUptime dashboard for updates.`,
   [WhatsAppTemplateIds.AlertStateChangedOwnerNotification]: `Alert #{{alert_number}} ({{alert_title}}) state changed to {{alert_state}}. Track the alert status using {{alert_link}} on the OneUptime dashboard to stay informed.`,
@@ -203,6 +211,8 @@ export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
   [WhatsAppTemplateIds.IncidentStateChangedOwnerNotification]: "en",
   [WhatsAppTemplateIds.IncidentOwnerAddedNotification]: "en",
   [WhatsAppTemplateIds.IncidentMemberAddedNotification]: "en",
+  [WhatsAppTemplateIds.IncidentReminderOwnerNotification]: "en",
+  [WhatsAppTemplateIds.AlertReminderOwnerNotification]: "en",
   [WhatsAppTemplateIds.AlertCreatedOwnerNotification]: "en",
   [WhatsAppTemplateIds.AlertNotePostedOwnerNotification]: "en",
   [WhatsAppTemplateIds.AlertStateChangedOwnerNotification]: "en",

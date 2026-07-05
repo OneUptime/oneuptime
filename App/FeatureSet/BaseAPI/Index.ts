@@ -378,6 +378,14 @@ import IncidentSlaRuleService, {
   Service as IncidentSlaRuleServiceType,
 } from "Common/Server/Services/IncidentSlaRuleService";
 
+import IncidentReminderRuleService, {
+  Service as IncidentReminderRuleServiceType,
+} from "Common/Server/Services/IncidentReminderRuleService";
+
+import AlertReminderRuleService, {
+  Service as AlertReminderRuleServiceType,
+} from "Common/Server/Services/AlertReminderRuleService";
+
 import IncidentCustomFieldService, {
   Service as IncidentCustomFieldServiceType,
 } from "Common/Server/Services/IncidentCustomFieldService";
@@ -972,6 +980,8 @@ import IncidentEpisodePrivacyRule from "Common/Models/DatabaseModels/IncidentEpi
 import IncidentEpisodeLabelRule from "Common/Models/DatabaseModels/IncidentEpisodeLabelRule";
 import IncidentSla from "Common/Models/DatabaseModels/IncidentSla";
 import IncidentSlaRule from "Common/Models/DatabaseModels/IncidentSlaRule";
+import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
+import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
 
 // IncidentEpisode Models
 import IncidentEpisodeFeed from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
@@ -2249,6 +2259,24 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<IncidentSlaRule, IncidentSlaRuleServiceType>(
         IncidentSlaRule,
         IncidentSlaRuleService,
+      ).getRouter(),
+    );
+
+    // IncidentReminderRule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentReminderRule, IncidentReminderRuleServiceType>(
+        IncidentReminderRule,
+        IncidentReminderRuleService,
+      ).getRouter(),
+    );
+
+    // AlertReminderRule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertReminderRule, AlertReminderRuleServiceType>(
+        AlertReminderRule,
+        AlertReminderRuleService,
       ).getRouter(),
     );
 

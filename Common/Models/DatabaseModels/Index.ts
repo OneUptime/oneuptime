@@ -337,6 +337,8 @@ import IncidentEpisodePrivacyRule from "./IncidentEpisodePrivacyRule";
 import IncidentEpisodeLabelRule from "./IncidentEpisodeLabelRule";
 import IncidentSlaRule from "./IncidentSlaRule";
 import IncidentSla from "./IncidentSla";
+import IncidentReminderRule from "./IncidentReminderRule";
+import AlertReminderRule from "./AlertReminderRule";
 import MonitorOwnerRule from "./MonitorOwnerRule";
 import MonitorLabelRule from "./MonitorLabelRule";
 import StatusPageOwnerRule from "./StatusPageOwnerRule";
@@ -512,6 +514,8 @@ const AllModelTypes: Array<{
   IncidentEpisodeLabelRule,
   IncidentSlaRule,
   IncidentSla,
+  IncidentReminderRule,
+  AlertReminderRule,
 
   MonitorOwnerRule,
   MonitorLabelRule,
