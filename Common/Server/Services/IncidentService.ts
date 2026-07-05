@@ -2079,8 +2079,10 @@ ${labels
           }
         }
 
-        // Re-match reminder rule on any labels change (including clearing all
-        // labels), since labels can change which reminder rule matches.
+        /*
+         * Re-match reminder rule on any labels change (including clearing all
+         * labels), since labels can change which reminder rule matches.
+         */
         if (
           updatedIncidentData.labels &&
           Array.isArray(updatedIncidentData.labels)
