@@ -543,6 +543,15 @@ export const StatusPageApiInternalUrl: URL = URL.fromString(
   AppApiClientUrl.toString(),
 ).addRoute(new Route("/status-page"));
 
+/*
+ *Internal URL for server-to-server communication with the Dashboard API.
+ *Note: The internal path is /api/dashboard (not /public-dashboard-api) because
+ * /public-dashboard-api is the external route that Nginx rewrites to /api/dashboard
+ */
+export const DashboardApiInternalUrl: URL = URL.fromString(
+  AppApiClientUrl.toString(),
+).addRoute(new Route("/dashboard"));
+
 export const DashboardClientUrl: URL = new URL(
   HttpProtocol,
   Host,

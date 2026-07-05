@@ -90,6 +90,7 @@ import RebuildMetricAggTablesMissingPrimaryEntityId from "./RebuildMetricAggTabl
 import DropPreclusteredAnalyticsBackupTables from "./DropPreclusteredAnalyticsBackupTables";
 import AddAttributeKeysToExceptionInstance from "./AddAttributeKeysToExceptionInstance";
 import AddMutableMetricTable from "./AddMutableMetricTable";
+import AddInstanceIdToGlobalConfig from "./AddInstanceIdToGlobalConfig";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -219,6 +220,13 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddAttributeKeysToExceptionInstance(),
   new DropPreclusteredAnalyticsBackupTables(),
   new AddMutableMetricTable(),
+  /*
+   * Backfills GlobalConfig.instanceId — the unique, auto-generated identifier
+   * for this OneUptime install. New installs get one from
+   * AddDefaultGlobalConfig; this covers installs created before the column
+   * existed. No-op when already set.
+   */
+  new AddInstanceIdToGlobalConfig(),
   /*
    * Cluster conversion. Runs only when CLICKHOUSE_CLUSTER_NAME is set (a no-op
    * otherwise) and after every legacy ClickHouse migration has been baselined,

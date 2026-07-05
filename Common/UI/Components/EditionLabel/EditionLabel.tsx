@@ -27,12 +27,76 @@ import {
   IS_ENTERPRISE_EDITION,
 } from "../../Config";
 import Alert, { AlertType } from "../Alerts/Alert";
+import EnterpriseLicenseInstanceSummary from "../../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
 
 export interface ComponentProps {
   className?: string | undefined;
 }
 
 const ENTERPRISE_URL: string = "https://oneuptime.com/enterprise/demo";
+
+type ParseLicenseInstancesFunction = (
+  value: unknown,
+) => Array<EnterpriseLicenseInstanceSummary>;
+
+const parseLicenseInstances: ParseLicenseInstancesFunction = (
+  value: unknown,
+): Array<EnterpriseLicenseInstanceSummary> => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const instances: Array<EnterpriseLicenseInstanceSummary> = [];
+
+  for (const item of value) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+
+    const instance: JSONObject = item as JSONObject;
+
+    instances.push({
+      instanceId:
+        typeof instance["instanceId"] === "string"
+          ? instance["instanceId"]
+          : "",
+      host:
+        typeof instance["host"] === "string" && instance["host"]
+          ? instance["host"]
+          : null,
+      userCount:
+        typeof instance["userCount"] === "number"
+          ? instance["userCount"]
+          : null,
+      lastReportedAt:
+        typeof instance["lastReportedAt"] === "string"
+          ? instance["lastReportedAt"]
+          : null,
+    });
+  }
+
+  return instances;
+};
+
+type FormatInstanceReportedAtFunction = (
+  lastReportedAt: string | null,
+) => string;
+
+const formatInstanceReportedAt: FormatInstanceReportedAtFunction = (
+  lastReportedAt: string | null,
+): string => {
+  if (!lastReportedAt) {
+    return "No usage reported yet.";
+  }
+
+  const reportedAt: Date = OneUptimeDate.fromString(lastReportedAt);
+
+  if (Number.isNaN(reportedAt.getTime())) {
+    return "No usage reported yet.";
+  }
+
+  return `Last reported ${reportedAt.toLocaleString()}.`;
+};
 
 const EditionLabel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -46,6 +110,18 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [isChangingLicense, setIsChangingLicense] = useState<boolean>(false);
+  const [licenseInstances, setLicenseInstances] = useState<
+    Array<EnterpriseLicenseInstanceSummary>
+  >([]);
+  const [thisInstanceId, setThisInstanceId] = useState<string>("");
+  /*
+   * Validity as computed by the server. The server redacts the license
+   * token for signed-out visitors (e.g. on the login page), so the client
+   * cannot always derive validity from the token itself.
+   */
+  const [serverLicenseValid, setServerLicenseValid] = useState<boolean | null>(
+    null,
+  );
   const licenseInputEditedRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
@@ -117,12 +193,25 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         }
 
         setGlobalConfig(configModel);
+        setLicenseInstances(parseLicenseInstances(payload["instances"]));
+        setThisInstanceId(
+          typeof payload["instanceId"] === "string"
+            ? payload["instanceId"]
+            : "",
+        );
+        setServerLicenseValid(
+          typeof payload["licenseValid"] === "boolean"
+            ? payload["licenseValid"]
+            : null,
+        );
 
         if (!licenseInputEditedRef.current) {
           setLicenseKeyInput(configModel.enterpriseLicenseKey || "");
         }
       } catch (err) {
         setGlobalConfig(null);
+        setLicenseInstances([]);
+        setServerLicenseValid(null);
         setConfigError(API.getFriendlyMessage(err));
       } finally {
         setIsConfigLoading(false);
@@ -136,6 +225,11 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const licenseValid: boolean = useMemo(() => {
     if (!IS_ENTERPRISE_EDITION) {
       return false;
+    }
+
+    // Prefer the server's verdict (works even when the token is redacted).
+    if (serverLicenseValid !== null) {
+      return serverLicenseValid;
     }
 
     if (
@@ -153,6 +247,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   }, [
     globalConfig?.enterpriseLicenseExpiresAt,
     globalConfig?.enterpriseLicenseToken,
+    serverLicenseValid,
   ]);
 
   const licenseExpiresAtText: string | null = useMemo(() => {
@@ -626,6 +721,15 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                           </p>
                         )}
 
+                        {licenseInstances.length > 1 && (
+                          <p className="mt-3 text-xs text-gray-500">
+                            Users are counted uniquely across all{" "}
+                            {licenseInstances.length} instances that share this
+                            license — the same user on multiple instances uses
+                            one seat.
+                          </p>
+                        )}
+
                         <p className="mt-3 text-xs text-gray-500">
                           {userCountUpdatedAtText
                             ? `Last reported to OneUptime on ${userCountUpdatedAtText}.`
@@ -635,6 +739,74 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                     </div>
                   </div>
                 )}
+
+                {!configError &&
+                  !isConfigLoading &&
+                  licenseValid &&
+                  licenseInstances.length > 0 && (
+                    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-gray-900">
+                          Instances using this license
+                        </h3>
+                        <span className="text-xs text-gray-500">
+                          {licenseInstances.length}{" "}
+                          {licenseInstances.length === 1
+                            ? "instance"
+                            : "instances"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500">
+                        Use the same license key on every instance you deploy
+                        (staging, production, and so on). Each instance reports
+                        its usage daily.
+                      </p>
+                      <ul className="mt-3 divide-y divide-gray-100">
+                        {licenseInstances.map(
+                          (
+                            instance: EnterpriseLicenseInstanceSummary,
+                            index: number,
+                          ) => {
+                            const isThisInstance: boolean =
+                              Boolean(thisInstanceId) &&
+                              instance.instanceId === thisInstanceId;
+
+                            return (
+                              <li
+                                key={instance.instanceId || index}
+                                className="flex items-center justify-between gap-3 py-2"
+                              >
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-medium text-gray-900">
+                                    {instance.host || "Unknown host"}
+                                    {isThisInstance && (
+                                      <span className="ml-2 inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                                        This instance
+                                      </span>
+                                    )}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {formatInstanceReportedAt(
+                                      instance.lastReportedAt,
+                                    )}
+                                  </p>
+                                </div>
+                                <div className="shrink-0 text-right text-sm text-gray-700">
+                                  {typeof instance.userCount === "number"
+                                    ? `${instance.userCount.toLocaleString()} ${
+                                        instance.userCount === 1
+                                          ? "user"
+                                          : "users"
+                                      }`
+                                    : "—"}
+                                </div>
+                              </li>
+                            );
+                          },
+                        )}
+                      </ul>
+                    </div>
+                  )}
 
                 {!configError &&
                   !isConfigLoading &&

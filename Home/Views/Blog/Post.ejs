@@ -10,7 +10,7 @@
     <meta name="description" content="<%= blogPost.description %>">
     <% const seo = { fullCanonicalUrl: 'https://oneuptime.com/blog/post/' + blogPost.fileName + '/view' }; %>
     <%- include('../head-basic') -%>
-        <link rel="alternate" type="application/rss+xml" title="OneUptime Blog RSS Feed" href="/blog/rss.xml">
+        <link rel="alternate" type="text/markdown" title="Markdown version of this post" href="/blog/post/<%= blogPost.fileName %>/markdown">
         <meta property="og:site_name" content="OneUptime | One Complete Observability platform.">
         <meta property="og:type" content="article">
         <meta property="og:title" content="<%= blogPost.title %>">
@@ -33,7 +33,8 @@
         <script type="application/ld+json">
 {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "BlogPosting",
+    "keywords": "<%= blogPost.tags.join(', ') %>",
     "publisher": {
         "@type": "Organization",
         "name": "OneUptime",
