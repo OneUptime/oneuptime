@@ -1,0 +1,81 @@
+<section id="autofix" class="relative bg-gray-900 py-24 lg:py-32 overflow-hidden scroll-mt-24" aria-labelledby="autofix-title">
+  <!-- Ambient glows -->
+  <div class="absolute inset-0 bg-gradient-to-b from-gray-900 via-gray-800/50 to-gray-900" aria-hidden="true"></div>
+  <div class="absolute -top-32 left-1/4 h-96 w-96 rounded-full pointer-events-none" style="background: radial-gradient(circle at center, rgb(139 92 246 / 0.12) 0%, transparent 70%);" aria-hidden="true"></div>
+  <div class="absolute -bottom-32 right-1/4 h-96 w-96 rounded-full pointer-events-none" style="background: radial-gradient(circle at center, rgb(217 70 239 / 0.1) 0%, transparent 70%);" aria-hidden="true"></div>
+
+  <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mx-auto max-w-2xl text-center mb-16">
+      <div class="flex items-center justify-center gap-3 mb-6">
+        <span class="inline-flex items-center rounded-full bg-white/5 px-2.5 py-1 font-mono text-xs text-gray-400 ring-1 ring-inset ring-white/10 tabular-nums">03:26</span>
+        <span class="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-1 ring-1 ring-inset ring-white/10">
+          <svg class="h-4 w-4 text-violet-300" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" /></svg>
+          <span class="text-xs font-semibold uppercase tracking-widest bg-gradient-to-r from-violet-300 to-fuchsia-300 bg-clip-text text-transparent">AI Reliability Agent</span>
+        </span>
+      </div>
+      <h2 id="autofix-title" class="text-4xl sm:text-5xl font-semibold tracking-tight text-white">
+        Wake up to pull requests, <span class="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">not pages.</span>
+      </h2>
+      <p class="mt-6 text-lg text-gray-400 leading-relaxed">
+        OneUptime's AI agent watches your logs, traces, and metrics around the clock. When it finds an issue, it reads your code, explains the root cause in plain English, and opens a PR with the fix. You review. You merge. You stay in control.
+      </p>
+    </div>
+
+    <!-- Steps -->
+    <div class="mx-auto grid max-w-5xl grid-cols-1 gap-4 md:grid-cols-3 mb-16">
+      <div class="rounded-2xl bg-white/5 ring-1 ring-inset ring-white/10 p-6">
+        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/20 text-sm font-semibold text-violet-300 mb-4">1</span>
+        <h3 class="text-base font-semibold text-white mb-1">Connect</h3>
+        <p class="text-sm text-gray-400 leading-relaxed">Link your GitHub or GitLab repository. OneUptime auto-instruments your code with OpenTelemetry.</p>
+      </div>
+      <div class="rounded-2xl bg-white/5 ring-1 ring-inset ring-white/10 p-6">
+        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/20 text-sm font-semibold text-violet-300 mb-4">2</span>
+        <h3 class="text-base font-semibold text-white mb-1">Detect</h3>
+        <p class="text-sm text-gray-400 leading-relaxed">The agent monitors logs, traces, and metrics 24/7 &mdash; errors, slow queries, and regressions included.</p>
+      </div>
+      <div class="rounded-2xl bg-white/5 ring-1 ring-inset ring-white/10 p-6">
+        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/20 text-sm font-semibold text-violet-300 mb-4">3</span>
+        <h3 class="text-base font-semibold text-white mb-1">Fix</h3>
+        <p class="text-sm text-gray-400 leading-relaxed">It opens a pull request with the fix and a plain-English explanation of the root cause. Always your call to merge.</p>
+      </div>
+    </div>
+
+    <!-- Screenshot -->
+    <div class="mx-auto max-w-4xl mb-16">
+      <div class="rounded-xl bg-white/5 p-2 ring-1 ring-inset ring-white/10" style="box-shadow: 0 0 80px -20px rgb(139 92 246 / 0.35);">
+        <img src="/img/ai-agent.png" alt="OneUptime AI agent explaining an incident's root cause and proposing a code fix" class="w-full rounded-lg" loading="lazy" decoding="async" />
+      </div>
+    </div>
+
+    <!-- Trust row -->
+    <div class="mx-auto grid max-w-5xl grid-cols-1 gap-4 md:grid-cols-3">
+      <div class="rounded-xl bg-white/5 ring-1 ring-inset ring-white/10 p-5 flex items-start gap-3">
+        <svg class="h-5 w-5 flex-none text-violet-300 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>
+        <p class="text-sm text-gray-300 leading-relaxed">Bring your own LLM &mdash; OpenAI, Anthropic, and others. Use your keys and pay OneUptime nothing for AI.</p>
+      </div>
+      <div class="rounded-xl bg-white/5 ring-1 ring-inset ring-white/10 p-5 flex items-start gap-3">
+        <svg class="h-5 w-5 flex-none text-violet-300 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7.5l3 4.5m0 0l3-4.5M12 12v5.25M15 12H9m6 3H9m12-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <p class="text-sm text-gray-300 leading-relaxed">Or simple usage pricing: $20 per 1M tokens &mdash; past 10M tokens a month, talk to sales for volume pricing.</p>
+      </div>
+      <div class="rounded-xl bg-white/5 ring-1 ring-inset ring-white/10 p-5 flex items-start gap-3">
+        <svg class="h-5 w-5 flex-none text-violet-300 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" /></svg>
+        <p class="text-sm text-gray-300 leading-relaxed">MCP server built in &mdash; wire OneUptime into the AI tools your team already uses.</p>
+      </div>
+    </div>
+
+    <!-- Narrative close + CTA -->
+    <p class="mt-14 text-center font-mono text-sm italic text-gray-400 tabular-nums">03:41 &mdash; incident resolved. Back to sleep.</p>
+
+    <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+      <a href="/enterprise/demo" class="group inline-flex items-center gap-2.5 rounded-lg bg-white px-6 py-2.5 text-sm font-medium text-gray-900 shadow-sm transition-all hover:bg-gray-100">
+        See it in action
+        <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5" /></svg>
+      </a>
+      <a href="/product/ai-agent" class="group inline-flex items-center gap-1 text-sm font-medium text-gray-400 hover:text-white transition-colors">
+        Explore the AI Agent
+        <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5" /></svg>
+      </a>
+    </div>
+  </div>
+</section>
