@@ -198,6 +198,7 @@ import "./Jobs/EnterpriseLicense/ReportUserCount";
 
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";
+import RunStartupMigrations from "./Utils/StartupMigration";
 import JobDictionary from "./Utils/JobDictionary";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Queue, { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
@@ -293,6 +294,21 @@ const WorkersFeatureSet: FeatureSet = {
           "RUN_DATABASE_MIGRATIONS_ON_BOOT=false: skipping boot ClickHouse schema sync + data migrations; the migrate Job owns them. This pod becomes Ready without issuing ON CLUSTER DDL.",
         );
       }
+
+      /*
+       * Startup migrations run on EVERY boot (unlike data migrations, which
+       * are tracked and run once) — they declaratively sync env-driven state
+       * such as the GLOBAL_LLM_PROVIDER_* seeded provider. Deliberately NOT
+       * gated on RUN_DATABASE_MIGRATIONS_ON_BOOT: pods that skip data
+       * migrations must still apply env-driven state on boot. Fire-and-forget
+       * so a slow seed (or lock contention) never blocks the listener.
+       */
+      RunStartupMigrations().catch((err: Error) => {
+        logger.error("Error running startup migrations", {
+          service: "workers",
+        });
+        logger.error(err, { service: "workers" });
+      });
 
       /*
        * Job process. Skipped in the "api" role (DISABLE_QUEUE_WORKERS=true) —

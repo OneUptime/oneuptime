@@ -3033,6 +3033,18 @@
                     },
                     "additionalProperties": false
                 },
+                "globalProvider": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "name": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "persistence": {
                     "type": "object",
                     "properties": {

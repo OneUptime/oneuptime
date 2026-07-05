@@ -14,12 +14,17 @@ You should then be able to access OneUptime cluster with that IP. Please make su
 vLLM (local LLM server) is enabled. Its OpenAI-compatible endpoint inside the cluster is:
 
 http://{{ .Release.Name }}-vllm.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }}:{{ .Values.vllm.ports.http }}/v1
+{{- if .Values.vllm.globalProvider.enabled }}
+
+It is registered automatically as a Global LLM Provider ("{{ .Values.vllm.globalProvider.name }}") at startup, so AI features work for all projects with no further setup. You can see it under AI Agents > LLM Providers in the dashboard. Note: project-scoped AI Agents cannot use global providers - create a project-specific LLM Provider for those. Disabling vllm.globalProvider.enabled (or vllm.enabled) removes the auto-registered provider on the next deploy.
+{{- else }}
 
 To use it with OneUptime AI features, go to AI Agents > LLM Providers > Create LLM Provider and set:
 - LLM Provider: OpenAI
 - Base URL: the endpoint above
 - Model Name: {{ if .Values.vllm.servedModelName }}{{ .Values.vllm.servedModelName }}{{ else }}{{ .Values.vllm.model }}{{ end }}
 - API Key: the value of vllm.apiKey{{ if not .Values.vllm.apiKey }} (not set, so any placeholder value works){{ end }}
+{{- end }}
 {{- end }}
 
 🚀 OneUptime is deployed! 🚀

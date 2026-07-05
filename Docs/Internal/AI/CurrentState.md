@@ -112,7 +112,7 @@ What a user sees today: `AI Agent Tasks` list (status tabs, logs tab, PRs tab), 
 ## 8. LLM infrastructure
 
 - `LLMService` (`Common/Server/Utils/LLM/LLMService.ts`) routes to six providers; defaults: `gpt-4o`, `claude-sonnet-4-20250514`, `llama-3.3-70b-versatile`, `mistral-large-latest`.
-- `docker-compose.llm.yml` defines a local HuggingFace-model service (GPU-reserved, port 8547) — currently a placeholder (`/LLM` Dockerfile is empty).
+- Local models are configured via LLM Provider settings (Ollama/OpenAI-compatible base URLs) or the opt-in vLLM deployment in the Helm chart; the old `docker-compose.llm.yml` local-model service has been removed.
 - Helm chart ships an optional `ai-agent` deployment with KEDA autoscaling support.
 
 ## 9. What we should keep, fix, and replace
