@@ -15,7 +15,7 @@ vLLM (local LLM server) is enabled. Its OpenAI-compatible endpoint inside the cl
 
 http://{{ .Release.Name }}-vllm.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }}:{{ .Values.vllm.ports.http }}/v1
 
-To use it with OneUptime AI features, go to Project Settings > AI > LLM Providers > Create LLM Provider and set:
+To use it with OneUptime AI features, go to AI Agents > LLM Providers > Create LLM Provider and set:
 - LLM Provider: OpenAI
 - Base URL: the endpoint above
 - Model Name: {{ if .Values.vllm.servedModelName }}{{ .Values.vllm.servedModelName }}{{ else }}{{ .Values.vllm.model }}{{ end }}

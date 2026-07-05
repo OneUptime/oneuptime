@@ -1358,7 +1358,7 @@ aiAgent:
 # for running local models in-cluster instead of calling OpenAI/Anthropic/etc.
 # Note: This is disabled by default. Enabling it requires NVIDIA GPU nodes
 # (device plugin or GPU Operator installed). Once running, connect OneUptime to
-# it from the dashboard: Project Settings > AI > LLM Providers > Create LLM Provider,
+# it from the dashboard: AI Agents > LLM Providers > Create LLM Provider,
 # with LLM Provider "OpenAI" and Base URL:
 #   http://<release>-vllm.<namespace>.svc.<clusterDomain>:8000/v1
 vllm:

@@ -460,7 +460,7 @@ vllm:
 
 For gated models (e.g. `meta-llama/*`), set `vllm.huggingFace.token` (or point `vllm.huggingFace.existingSecret` at a secret you manage). If the model does not fit your GPU's memory at its full context window, cap it with `vllm.extraArgs: ["--max-model-len=8192"]`.
 
-Then connect OneUptime to it — go to **Project Settings > AI > LLM Providers > Create LLM Provider** and set:
+Then connect OneUptime to it — go to **AI Agents > LLM Providers > Create LLM Provider** and set:
 
 - **LLM Provider**: `OpenAI`
 - **Base URL**: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`
