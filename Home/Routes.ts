@@ -113,6 +113,181 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
+    /*
+     * AI / LLM discovery endpoints. Everything below is generated from the
+     * same data that drives the HTML pages (see Utils/AIDiscovery.ts).
+     */
+
+    type GetRecentBlogPostLinksFunction = () => Promise<
+      Array<RecentBlogPostLink>
+    >;
+    const getRecentBlogPostLinks: GetRecentBlogPostLinksFunction =
+      async (): Promise<Array<RecentBlogPostLink>> => {
+        try {
+          const posts: Array<BlogPostHeader> =
+            await BlogPostUtil.getBlogPostList();
+          return posts.slice(0, 15).map((post: BlogPostHeader) => {
+            return {
+              title: post.title,
+              description: post.description,
+              fileName: post.fileName,
+            };
+          });
+        } catch {
+          // Blog content may be unavailable (e.g. local dev without the blog repo).
+          return [];
+        }
+      };
+
+    type SendAITextResponseFunction = (
+      res: ExpressResponse,
+      body: string,
+      contentType: string,
+    ) => void;
+    const sendAITextResponse: SendAITextResponseFunction = (
+      res: ExpressResponse,
+      body: string,
+      contentType: string,
+    ): void => {
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.send(body);
+    };
+
+    app.get("/llms.txt", async (_req: ExpressRequest, res: ExpressResponse) => {
+      try {
+        const txt: string = generateLlmsTxt(
+          res.locals["homeUrl"] as string,
+          await getRecentBlogPostLinks(),
+        );
+        sendAITextResponse(res, txt, "text/plain; charset=utf-8");
+      } catch {
+        res.status(500).send("Error generating llms.txt");
+      }
+    });
+
+    app.get(
+      "/llms-full.txt",
+      async (_req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const txt: string = generateLlmsFullTxt(
+            res.locals["homeUrl"] as string,
+            await getRecentBlogPostLinks(),
+          );
+          sendAITextResponse(res, txt, "text/plain; charset=utf-8");
+        } catch {
+          res.status(500).send("Error generating llms-full.txt");
+        }
+      },
+    );
+
+    // MCP client discovery manifest.
+    app.get(
+      "/.well-known/mcp.json",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader("Cache-Control", "public, max-age=600");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.json(generateMcpManifest(res.locals["homeUrl"] as string));
+      },
+    );
+
+    // Machine-readable marketing data.
+    app.get(
+      "/data/pricing.json",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader("Cache-Control", "public, max-age=600");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.json({
+          plans: PricingPlans,
+          telemetryIngestPricePerGB: "$0.10",
+          featureMatrix: Pricing,
+        });
+      },
+    );
+
+    app.get(
+      "/data/products.json",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader("Cache-Control", "public, max-age=600");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.json(generateProductsJson(res.locals["homeUrl"] as string));
+      },
+    );
+
+    app.get(
+      "/data/reviews.json",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader("Cache-Control", "public, max-age=600");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.json({
+          reviews: AllReviews.map((review: Review) => {
+            return { ...review };
+          }),
+        });
+      },
+    );
+
+    app.get(
+      "/data/compare.json",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader("Cache-Control", "public, max-age=600");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.json(generateCompareIndexJson(res.locals["homeUrl"] as string));
+      },
+    );
+
+    app.get(
+      "/data/compare/:product",
+      (req: ExpressRequest, res: ExpressResponse) => {
+        const product: Product | undefined = ProductCompare(
+          req.params["product"] as string,
+        );
+        if (!product) {
+          res.status(404);
+          res.setHeader("Access-Control-Allow-Origin", "*");
+          return res.json({ error: "Comparison not found" });
+        }
+        res.setHeader("Cache-Control", "public, max-age=600");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        return res.json(product as unknown as JSONObject);
+      },
+    );
+
+    /*
+     * Markdown variants of marketing pages: append `.md` to a page path
+     * (e.g. /pricing.md, /product/monitoring.md, /compare/pagerduty.md).
+     * Generated from the same structured data as the HTML pages.
+     */
+    app.get(/^\/.+\.md$/, (req: ExpressRequest, res: ExpressResponse) => {
+      const homeUrl: string = res.locals["homeUrl"] as string;
+      const pagePath: string = req.path.replace(/\.md$/, "");
+
+      let markdown: string | null = null;
+
+      if (pagePath === "/pricing") {
+        markdown = generatePricingMarkdown(homeUrl);
+      } else if (pagePath.startsWith("/compare/")) {
+        markdown = generateCompareMarkdown(
+          pagePath.replace("/compare/", ""),
+          homeUrl,
+        );
+      } else if (PageSEOConfig[pagePath]) {
+        markdown = generatePageMarkdown(PageSEOConfig[pagePath]!, homeUrl);
+      }
+
+      if (!markdown) {
+        res.status(404);
+        return res
+          .type("text/plain; charset=utf-8")
+          .send(
+            "No markdown variant for this page. See /llms.txt for available content.",
+          );
+      }
+
+      return sendAITextResponse(res, markdown, "text/markdown; charset=utf-8");
+    });
+
     app.get("/", (_req: ExpressRequest, res: ExpressResponse) => {
       const { reviewsList1, reviewsList2, reviewsList3 } = Reviews;
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
@@ -1625,181 +1800,6 @@ const HomeFeatureSet: FeatureSet = {
       // Encourage caches to revalidate often in case environment changes.
       res.setHeader("Cache-Control", "public, max-age=300"); // 5 minutes
       return res.status(200).send(body + "\n");
-    });
-
-    /*
-     * AI / LLM discovery endpoints. Everything below is generated from the
-     * same data that drives the HTML pages (see Utils/AIDiscovery.ts).
-     */
-
-    type GetRecentBlogPostLinksFunction = () => Promise<
-      Array<RecentBlogPostLink>
-    >;
-    const getRecentBlogPostLinks: GetRecentBlogPostLinksFunction =
-      async (): Promise<Array<RecentBlogPostLink>> => {
-        try {
-          const posts: Array<BlogPostHeader> =
-            await BlogPostUtil.getBlogPostList();
-          return posts.slice(0, 15).map((post: BlogPostHeader) => {
-            return {
-              title: post.title,
-              description: post.description,
-              fileName: post.fileName,
-            };
-          });
-        } catch {
-          // Blog content may be unavailable (e.g. local dev without the blog repo).
-          return [];
-        }
-      };
-
-    type SendAITextResponseFunction = (
-      res: ExpressResponse,
-      body: string,
-      contentType: string,
-    ) => void;
-    const sendAITextResponse: SendAITextResponseFunction = (
-      res: ExpressResponse,
-      body: string,
-      contentType: string,
-    ): void => {
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.send(body);
-    };
-
-    app.get("/llms.txt", async (_req: ExpressRequest, res: ExpressResponse) => {
-      try {
-        const txt: string = generateLlmsTxt(
-          res.locals["homeUrl"] as string,
-          await getRecentBlogPostLinks(),
-        );
-        sendAITextResponse(res, txt, "text/plain; charset=utf-8");
-      } catch {
-        res.status(500).send("Error generating llms.txt");
-      }
-    });
-
-    app.get(
-      "/llms-full.txt",
-      async (_req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          const txt: string = generateLlmsFullTxt(
-            res.locals["homeUrl"] as string,
-            await getRecentBlogPostLinks(),
-          );
-          sendAITextResponse(res, txt, "text/plain; charset=utf-8");
-        } catch {
-          res.status(500).send("Error generating llms-full.txt");
-        }
-      },
-    );
-
-    // MCP client discovery manifest.
-    app.get(
-      "/.well-known/mcp.json",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.setHeader("Cache-Control", "public, max-age=600");
-        res.setHeader("Access-Control-Allow-Origin", "*");
-        res.json(generateMcpManifest(res.locals["homeUrl"] as string));
-      },
-    );
-
-    // Machine-readable marketing data.
-    app.get(
-      "/data/pricing.json",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.setHeader("Cache-Control", "public, max-age=600");
-        res.setHeader("Access-Control-Allow-Origin", "*");
-        res.json({
-          plans: PricingPlans,
-          telemetryIngestPricePerGB: "$0.10",
-          featureMatrix: Pricing,
-        });
-      },
-    );
-
-    app.get(
-      "/data/products.json",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.setHeader("Cache-Control", "public, max-age=600");
-        res.setHeader("Access-Control-Allow-Origin", "*");
-        res.json(generateProductsJson(res.locals["homeUrl"] as string));
-      },
-    );
-
-    app.get(
-      "/data/reviews.json",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.setHeader("Cache-Control", "public, max-age=600");
-        res.setHeader("Access-Control-Allow-Origin", "*");
-        res.json({
-          reviews: AllReviews.map((review: Review) => {
-            return { ...review };
-          }),
-        });
-      },
-    );
-
-    app.get(
-      "/data/compare.json",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.setHeader("Cache-Control", "public, max-age=600");
-        res.setHeader("Access-Control-Allow-Origin", "*");
-        res.json(generateCompareIndexJson(res.locals["homeUrl"] as string));
-      },
-    );
-
-    app.get(
-      "/data/compare/:product",
-      (req: ExpressRequest, res: ExpressResponse) => {
-        const product: Product | undefined = ProductCompare(
-          req.params["product"] as string,
-        );
-        if (!product) {
-          res.status(404);
-          res.setHeader("Access-Control-Allow-Origin", "*");
-          return res.json({ error: "Comparison not found" });
-        }
-        res.setHeader("Cache-Control", "public, max-age=600");
-        res.setHeader("Access-Control-Allow-Origin", "*");
-        return res.json(product as unknown as JSONObject);
-      },
-    );
-
-    /*
-     * Markdown variants of marketing pages: append `.md` to a page path
-     * (e.g. /pricing.md, /product/monitoring.md, /compare/pagerduty.md).
-     * Generated from the same structured data as the HTML pages.
-     */
-    app.get(/^\/.+\.md$/, (req: ExpressRequest, res: ExpressResponse) => {
-      const homeUrl: string = res.locals["homeUrl"] as string;
-      const pagePath: string = req.path.replace(/\.md$/, "");
-
-      let markdown: string | null = null;
-
-      if (pagePath === "/pricing") {
-        markdown = generatePricingMarkdown(homeUrl);
-      } else if (pagePath.startsWith("/compare/")) {
-        markdown = generateCompareMarkdown(
-          pagePath.replace("/compare/", ""),
-          homeUrl,
-        );
-      } else if (PageSEOConfig[pagePath]) {
-        markdown = generatePageMarkdown(PageSEOConfig[pagePath]!, homeUrl);
-      }
-
-      if (!markdown) {
-        res.status(404);
-        return res
-          .type("text/plain; charset=utf-8")
-          .send(
-            "No markdown variant for this page. See /llms.txt for available content.",
-          );
-      }
-
-      return sendAITextResponse(res, markdown, "text/markdown; charset=utf-8");
     });
 
     /*

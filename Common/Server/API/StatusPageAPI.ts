@@ -2372,6 +2372,9 @@ export default class StatusPageAPI extends BaseAPI<
           timelineIncidents: BaseModel.toJSONArray(timelineIncidents, Incident),
         };
 
+        // These can serve private-page data on a GET; never let shared caches store them.
+        Response.setNoCacheHeaders(res);
+
         return Response.sendJsonObjectResponse(req, res, response);
       } catch (err) {
         next(err);
@@ -2492,6 +2495,9 @@ export default class StatusPageAPI extends BaseAPI<
           req,
         );
 
+        // These can serve private-page data on a GET; never let shared caches store them.
+        Response.setNoCacheHeaders(res);
+
         return Response.sendJsonObjectResponse(req, res, response);
       } catch (err) {
         next(err);
@@ -2540,6 +2546,9 @@ export default class StatusPageAPI extends BaseAPI<
           req,
         );
 
+        // These can serve private-page data on a GET; never let shared caches store them.
+        Response.setNoCacheHeaders(res);
+
         return Response.sendJsonObjectResponse(req, res, response);
       } catch (err) {
         next(err);
@@ -2586,6 +2595,9 @@ export default class StatusPageAPI extends BaseAPI<
 
           req,
         );
+
+        // These can serve private-page data on a GET; never let shared caches store them.
+        Response.setNoCacheHeaders(res);
 
         return Response.sendJsonObjectResponse(req, res, response);
       } catch (err) {

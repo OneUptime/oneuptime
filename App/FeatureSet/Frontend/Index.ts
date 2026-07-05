@@ -21,6 +21,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
   handleRSS,
+  handleLlmsTxt,
   StatusPageData,
   getStatusPageData,
 } from "./Utils/StatusPage";
@@ -105,6 +106,7 @@ const DashboardFallbackRoutePrefixesToSkip: Array<string> = [
   "/sw.js",
   "/browserconfig.xml",
   "/rss",
+  "/llms.txt",
 ];
 
 const StatusPageDomainFallbackRoutePrefixesToSkip: Array<string> = [
@@ -115,6 +117,7 @@ const StatusPageDomainFallbackRoutePrefixesToSkip: Array<string> = [
   "/public-dashboard-api",
   "/.well-known",
   "/rss",
+  "/llms.txt",
 ];
 
 const StatusPageFrontendConfig: FrontendConfig = {
@@ -127,11 +130,26 @@ const StatusPageFrontendConfig: FrontendConfig = {
   ): Promise<JSONObject> => {
     const statusPageData: StatusPageData | null = await getStatusPageData(req);
 
+    /*
+     * RSS feed path for the autodiscovery <link> tag. Status pages are
+     * hosted either on a custom domain (feed at /rss) or on a subpath
+     * at /status-page/:statusPageId (feed at /status-page/:statusPageId/rss).
+     */
+    const isPreviewPage: boolean = req.path.includes("/status-page/");
+    const previewStatusPageId: string = isPreviewPage
+      ? req.path.split("/status-page/")[1]?.split("/")[0] || ""
+      : "";
+    const rssFeedPath: string =
+      isPreviewPage && previewStatusPageId
+        ? `/status-page/${previewStatusPageId}/rss`
+        : "/rss";
+
     if (statusPageData) {
       return {
         title: statusPageData.title,
         description: statusPageData.description,
         faviconUrl: statusPageData.faviconUrl,
+        rssFeedPath: rssFeedPath,
       };
     }
 
@@ -141,6 +159,7 @@ const StatusPageFrontendConfig: FrontendConfig = {
         "Status Page lets you see real-time information about the status of our services.",
       faviconUrl:
         "/status-page-api/favicon/" + ObjectID.getZeroObjectID().toString(),
+      rssFeedPath: rssFeedPath,
     };
   },
 };
@@ -524,6 +543,10 @@ const registerDashboardRootPwaFiles: () => void = (): void => {
 const init: PromiseVoidFunction = async (): Promise<void> => {
   app.get("/rss", handleRSS);
   app.get("/status-page/:statusPageId/rss", handleRSS);
+
+  // llms.txt route (machine-readable entry point for AI agents)
+  app.get("/llms.txt", handleLlmsTxt);
+  app.get("/status-page/:statusPageId/llms.txt", handleLlmsTxt);
 
   registerFrontendApp({
     routePrefix: "/accounts",
