@@ -124,6 +124,15 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `nodeSelector`                                    | Node Selector. Please refer to Kubernetes documentation on how to use them.                                                                                                            | `{}`            |                 |
 | `tolerations`                                     | Tolerations. Please refer to Kubernetes documentation on how to use them.                                                                                                              | `[]`            |                 |
 | `affinity`                                        | Affinity. Please refer to Kubernetes documentation on how to use them.                                                                                                                 | `{}`            |                 |
+| `vllm.enabled`                                    | Deploy a vLLM server for running local models in-cluster (requires NVIDIA GPU nodes). See "Local models with vLLM" below.                                                              | `false`         |                 |
+| `vllm.image.repository` / `vllm.image.tag`        | vLLM image to run. The image is ~10GB+, so the first pull on a node can take several minutes.                                                                                          | `vllm/vllm-openai` / pinned release |  |
+| `vllm.model`                                      | HuggingFace model id to serve. The default is small, Apache-2.0 licensed and not gated.                                                                                                | `Qwen/Qwen2.5-1.5B-Instruct` |    |
+| `vllm.servedModelName`                            | Optional model alias exposed on `/v1/models`. If empty, use the full model id as the Model Name in the dashboard.                                                                      | `""`            |                 |
+| `vllm.apiKey`                                     | Optional API key guarding `/v1/*`. If unset, the server is unauthenticated (in-cluster only).                                                                                          | `""`            |                 |
+| `vllm.huggingFace.token`                          | HuggingFace token for gated models (e.g. `meta-llama/*`). Not needed for the default model.                                                                                            | `""`            |                 |
+| `vllm.persistence.enabled` / `vllm.persistence.size` | Persistent cache for model weights and compile artifacts (one PVC per replica).                                                                                                     | `true` / `50Gi` |                 |
+| `vllm.resources`                                  | Pod resources. Defaults request one `nvidia.com/gpu`.                                                                                                                                  | see values.yaml |                 |
+| `vllm.nodeSelector` / `vllm.tolerations`          | Schedule vLLM onto your GPU nodes.                                                                                                                                                     | `{}` / `[]`     |                 |
 | `extraTemplates`                                  | Extra templates to be added to the deployment                                                                                                                                          | `[]`            |                 |
 | `script.workflowScriptTimeoutInMs`                | Timeout for workflow script                                                                                                                                                            | `5000`          |                 |
 
@@ -427,6 +436,44 @@ externalClickhouse:
     key:
 ```
 
+
+## Local models with vLLM
+
+OneUptime's AI features (AI Agent, incident/exception AI) talk to LLM providers configured in the dashboard, and any OpenAI-compatible endpoint works via a custom Base URL. The chart can optionally run [vLLM](https://docs.vllm.ai) — a production-grade, OpenAI-compatible inference server — inside your cluster so those features use your own GPUs and no data leaves your infrastructure.
+
+This is **disabled by default**. It requires NVIDIA GPU nodes with the [NVIDIA device plugin](https://github.com/NVIDIA/k8s-device-plugin) or [GPU Operator](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/index.html) installed (the official vLLM image is a CUDA build and cannot run on CPU-only nodes).
+
+Enable it with:
+
+```yaml
+vllm:
+  enabled: true
+  # HuggingFace model id to serve. Default is small (~3GB), Apache-2.0 and not gated.
+  model: Qwen/Qwen2.5-1.5B-Instruct
+  # Optional: protect the endpoint; use the same value as the API Key in the dashboard.
+  apiKey: my-secret-key
+  # Schedule onto your GPU nodes if they are tainted:
+  # nodeSelector: { nvidia.com/gpu.present: "true" }
+  # tolerations: [{ key: nvidia.com/gpu, operator: Exists, effect: NoSchedule }]
+  # runtimeClassName: nvidia   # if your cluster uses the GPU Operator's runtime class
+```
+
+For gated models (e.g. `meta-llama/*`), set `vllm.huggingFace.token` (or point `vllm.huggingFace.existingSecret` at a secret you manage). If the model does not fit your GPU's memory at its full context window, cap it with `vllm.extraArgs: ["--max-model-len=8192"]`.
+
+Then connect OneUptime to it — go to **Project Settings > AI > LLM Providers > Create LLM Provider** and set:
+
+- **LLM Provider**: `OpenAI`
+- **Base URL**: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`
+- **Model Name**: the value of `vllm.servedModelName`, or the full HuggingFace model id if unset
+- **API Key**: the value of `vllm.apiKey` (any placeholder if unset)
+
+Notes on scaling and upgrades:
+
+- The first startup downloads the model, which can take a while; the pod reports `Running` but not `Ready` until the model is loaded (the startup probe allows ~40 minutes). Weights are cached on a per-replica PVC (`vllm.persistence`), so restarts are much faster.
+- `vllm.replicaCount: N` runs N independent copies of the model (each needs its own GPU and cache volume), load-balanced by the service. Cross-pod tensor parallelism is not supported; for multi-GPU inference in a single pod use `vllm.extraArgs: ["--tensor-parallel-size=2"]` with a matching `nvidia.com/gpu` limit.
+- With one replica, a pod restart (e.g. a `helm upgrade` that changes the image tag) means LLM downtime until the model is reloaded.
+
+Day-2 operations (smoke tests, changing models, GPU scheduling): see [vLLM ops guide](../../Docs/Vllm.md).
 
 ## If you would like to use a custom domain for your status page, please add these env vars 
 

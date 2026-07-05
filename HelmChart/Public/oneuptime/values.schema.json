@@ -1140,6 +1140,20 @@
             },
             "additionalProperties": false
         },
+        "imagePullSecrets": {
+            "type": [
+                "array",
+                "null"
+            ],
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "podDisruptionBudget": {
             "type": "object",
             "properties": {
@@ -2924,6 +2938,208 @@
                 },
                 "enableProfiling": {
                     "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        },
+        "vllm": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "replicaCount": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "repository": {
+                            "type": "string"
+                        },
+                        "tag": {
+                            "type": "string"
+                        },
+                        "pullPolicy": {
+                            "type": "string",
+                            "enum": ["IfNotPresent", "Always", "Never"]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "model": {
+                    "type": "string"
+                },
+                "servedModelName": {
+                    "type": ["string", "null"]
+                },
+                "extraArgs": {
+                    "type": ["array", "null"]
+                },
+                "extraEnv": {
+                    "type": ["array", "null"]
+                },
+                "ports": {
+                    "type": "object",
+                    "properties": {
+                        "http": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "service": {
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "apiKey": {
+                    "type": ["string", "null"]
+                },
+                "existingApiKeySecret": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": ["string", "null"]
+                        },
+                        "key": {
+                            "type": ["string", "null"]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "huggingFace": {
+                    "type": "object",
+                    "properties": {
+                        "token": {
+                            "type": ["string", "null"]
+                        },
+                        "existingSecret": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": ["string", "null"]
+                                },
+                                "key": {
+                                    "type": ["string", "null"]
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "persistence": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "size": {
+                            "type": "string"
+                        },
+                        "storageClass": {
+                            "type": ["string", "null"]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "shm": {
+                    "type": "object",
+                    "properties": {
+                        "sizeLimit": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "resources": {
+                    "type": ["object", "null"]
+                },
+                "runtimeClassName": {
+                    "type": ["string", "null"]
+                },
+                "terminationGracePeriodSeconds": {
+                    "type": "integer"
+                },
+                "nodeSelector": {
+                    "type": "object"
+                },
+                "tolerations": {
+                    "type": "array"
+                },
+                "affinity": {
+                    "type": "object"
+                },
+                "podAnnotations": {
+                    "type": "object"
+                },
+                "podSecurityContext": {
+                    "type": "object"
+                },
+                "containerSecurityContext": {
+                    "type": "object"
+                },
+                "startupProbe": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "initialDelaySeconds": {
+                            "type": "integer"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
+                        },
+                        "timeoutSeconds": {
+                            "type": "integer"
+                        },
+                        "failureThreshold": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "readinessProbe": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
+                        },
+                        "timeoutSeconds": {
+                            "type": "integer"
+                        },
+                        "failureThreshold": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "livenessProbe": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
+                        },
+                        "timeoutSeconds": {
+                            "type": "integer"
+                        },
+                        "failureThreshold": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false

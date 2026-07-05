@@ -42,7 +42,7 @@ Fill in the following fields:
 
 - **Name**: A friendly name for this LLM configuration (e.g., "Production OpenAI", "Local Ollama")
 - **Description** (optional): A description to help identify the purpose of this provider
-- **LLM Type**: Select the provider type (OpenAI, Anthropic, or Ollama)
+- **LLM Provider**: Select the provider type (OpenAI, Anthropic, or Ollama)
 - **API Key**: Your API key (required for OpenAI and Anthropic)
 - **Model Name**: The specific model to use (e.g., `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
 - **Base URL** (optional): Custom API endpoint URL (required for Ollama, optional for others)
@@ -52,7 +52,7 @@ Fill in the following fields:
 ### OpenAI
 
 1. Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
-2. Select **OpenAI** as the LLM Type
+2. Select **OpenAI** as the LLM Provider
 3. Enter your API key
 4. Choose a model name:
    - `gpt-4o` - Most capable model, best for complex tasks
@@ -64,7 +64,7 @@ Fill in the following fields:
 
 ```
 Name: Production OpenAI
-LLM Type: OpenAI
+LLM Provider: OpenAI
 API Key: sk-xxxxxxxxxxxxxxxxxxxx
 Model Name: gpt-4o
 ```
@@ -72,7 +72,7 @@ Model Name: gpt-4o
 ### Anthropic
 
 1. Get your API key from [Anthropic Console](https://console.anthropic.com/)
-2. Select **Anthropic** as the LLM Type
+2. Select **Anthropic** as the LLM Provider
 3. Enter your API key
 4. Choose a model name:
    - `claude-3-opus-20240229` - Most capable model
@@ -84,7 +84,7 @@ Model Name: gpt-4o
 
 ```
 Name: Production Anthropic
-LLM Type: Anthropic
+LLM Provider: Anthropic
 API Key: sk-ant-xxxxxxxxxxxxxxxxxxxx
 Model Name: claude-3-5-sonnet-20241022
 ```
@@ -96,7 +96,7 @@ Ollama allows you to run open-source LLMs locally or on your own infrastructure.
 1. Install Ollama from [ollama.ai](https://ollama.ai)
 2. Pull your desired model: `ollama pull llama2`
 3. Ensure Ollama is running and accessible
-4. Select **Ollama** as the LLM Type
+4. Select **Ollama** as the LLM Provider
 5. Enter the Base URL (e.g., `http://localhost:11434`)
 6. Enter the model name you pulled
 
@@ -104,7 +104,7 @@ Ollama allows you to run open-source LLMs locally or on your own infrastructure.
 
 ```
 Name: Local Ollama
-LLM Type: Ollama
+LLM Provider: Ollama
 Base URL: http://localhost:11434
 Model Name: llama2
 ```
@@ -116,6 +116,36 @@ Model Name: llama2
 - `mistral` - Mistral AI's model
 - `codellama` - Code-specialized Llama model
 - `mixtral` - Mistral's mixture of experts model
+
+### Self-Hosted vLLM on Kubernetes (Helm)
+
+If you self-host OneUptime with the Helm chart, you can run [vLLM](https://docs.vllm.ai) — an OpenAI-compatible inference server — inside your cluster and serve local models on your own GPUs. No data leaves your infrastructure.
+
+1. Enable it in your Helm values (requires NVIDIA GPU nodes):
+
+   ```yaml
+   vllm:
+     enabled: true
+     model: Qwen/Qwen2.5-1.5B-Instruct
+   ```
+
+2. Run `helm upgrade` and wait for the vLLM pod to become Ready (the first start downloads the model)
+3. Select **OpenAI** as the LLM Provider (vLLM speaks the OpenAI API)
+4. Enter the in-cluster Base URL: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`
+5. Enter the Model Name: the full HuggingFace model id (or `vllm.servedModelName` if you set one)
+6. Enter the API Key: the value of `vllm.apiKey`, or any placeholder if you did not set one
+
+**Example Configuration:**
+
+```
+Name: In-Cluster vLLM
+LLM Provider: OpenAI
+API Key: my-secret-key
+Base URL: http://oneuptime-vllm.default.svc.cluster.local:8000/v1
+Model Name: Qwen/Qwen2.5-1.5B-Instruct
+```
+
+See the [Helm chart README](https://github.com/OneUptime/oneuptime/tree/master/HelmChart/Public/oneuptime#local-models-with-vllm) for GPU scheduling, gated models and tuning options.
 
 ## Using Custom Base URLs
 

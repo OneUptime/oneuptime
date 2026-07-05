@@ -1354,6 +1354,137 @@ aiAgent:
       failureThreshold: 3
       replicas: 1
 
+# vLLM: self-hosted, OpenAI-compatible LLM inference server (https://docs.vllm.ai)
+# for running local models in-cluster instead of calling OpenAI/Anthropic/etc.
+# Note: This is disabled by default. Enabling it requires NVIDIA GPU nodes
+# (device plugin or GPU Operator installed). Once running, connect OneUptime to
+# it from the dashboard: Project Settings > AI > LLM Providers > Create LLM Provider,
+# with LLM Provider "OpenAI" and Base URL:
+#   http://<release>-vllm.<namespace>.svc.<clusterDomain>:8000/v1
+vllm:
+  enabled: false
+  # N replicas = N independent copies of the model (each replica needs its own
+  # GPU(s) and cache volume), load-balanced by the service. Cross-pod tensor
+  # parallelism is not supported; for multi-GPU inference in a single pod use
+  # extraArgs --tensor-parallel-size with a matching nvidia.com/gpu limit.
+  # Note: with 1 replica, a pod restart (e.g. helm upgrade with a new image tag)
+  # means LLM downtime until the model is loaded again.
+  replicaCount: 1
+  image:
+    repository: vllm/vllm-openai
+    # Pinned vLLM release. The image is ~10GB+, so the first pull on a node can take several minutes.
+    tag: v0.24.0
+    pullPolicy: IfNotPresent
+  # HuggingFace model id to serve. The default is small, Apache-2.0 licensed and
+  # NOT gated (no HuggingFace token required).
+  model: Qwen/Qwen2.5-1.5B-Instruct
+  # Optional model alias exposed on /v1/models (--served-model-name). If empty,
+  # the "Model Name" in the OneUptime LLM Provider form must be the full
+  # HuggingFace model id above.
+  servedModelName: ""
+  # Extra CLI args appended to `vllm serve <model>`. Examples:
+  # extraArgs:
+  #   - "--max-model-len=8192"           # cap context length to reduce KV-cache VRAM (fixes startup OOM on small GPUs)
+  #   - "--gpu-memory-utilization=0.85"  # default is 0.90
+  #   - "--tensor-parallel-size=2"       # multi-GPU in ONE pod; also set resources.limits."nvidia.com/gpu": 2
+  #   - "--host=::"                      # IPv6-only clusters
+  extraArgs: []
+  # Extra environment variables, e.g. [{name: VLLM_LOGGING_LEVEL, value: DEBUG}]
+  extraEnv: []
+  ports:
+    http: 8000
+  service:
+    type: ClusterIP
+  # Optional API key. When set, /v1/* requires "Authorization: Bearer <key>"
+  # (injected as VLLM_API_KEY via a chart-managed secret) - use the same value
+  # as the API Key in the OneUptime LLM Provider form. When unset, the server is
+  # unauthenticated (in-cluster ClusterIP only) and any placeholder value
+  # satisfies the form.
+  apiKey: ""
+  # Alternative to apiKey: reference an existing secret containing the API key.
+  existingApiKeySecret:
+    name: ""
+    key: ""
+  huggingFace:
+    # Token for gated models (e.g. meta-llama/*). Stored in a chart-managed
+    # secret and injected as HF_TOKEN. Not needed for the default model.
+    token: ""
+    # Alternative to token: reference an existing secret containing the token.
+    existingSecret:
+      name: ""
+      key: ""
+  # Persistent cache for model weights (HF_HOME) and vLLM compile cache
+  # (VLLM_CACHE_ROOT). One PVC per replica; size it to ~2-3x the total model
+  # weights. When disabled, a node-disk emptyDir capped at `size` is used
+  # instead and weights re-download on every pod restart.
+  # NOTE: changing size/storageClass/enabled after install requires recreating
+  # the StatefulSet (kubectl delete statefulset <release>-vllm --cascade=orphan)
+  # because volumeClaimTemplates are immutable; a plain helm upgrade will fail.
+  # See HelmChart/Docs/Vllm.md for the resize procedure.
+  persistence:
+    enabled: true
+    size: 50Gi
+    # Storage class for the cache volume. Empty = global.storageClass (or the
+    # cluster default), "-" = disable dynamic provisioning.
+    storageClass: ""
+  # Memory-backed /dev/shm for vLLM's shared-memory IPC and NCCL (tensor
+  # parallelism). Counts against resources.limits.memory.
+  shm:
+    sizeLimit: 2Gi
+  # A GPU is mandatory for the official vLLM image. The default requests one
+  # NVIDIA GPU, so the pod stays Pending (clear signal) instead of crash-looping
+  # when no GPU nodes exist. The memory limit accounts for --swap-space (4GiB
+  # per GPU by default), pinned host memory and the /dev/shm tmpfs above.
+  resources:
+    requests:
+      cpu: "2"
+      memory: 8Gi
+    limits:
+      memory: 16Gi
+      nvidia.com/gpu: 1
+  # RuntimeClass for GPU nodes if your cluster needs one (e.g. "nvidia" with the
+  # NVIDIA GPU Operator).
+  runtimeClassName: ""
+  # Lets in-flight generations finish on shutdown.
+  terminationGracePeriodSeconds: 60
+  # e.g. { nvidia.com/gpu.present: "true" }
+  nodeSelector: {}
+  # e.g. [{ key: nvidia.com/gpu, operator: Exists, effect: NoSchedule }]
+  tolerations: []
+  affinity: {}
+  # vLLM exposes Prometheus metrics on /metrics (same port) - add scrape
+  # annotations here if you use annotation-based discovery.
+  podAnnotations: {}
+  # Security contexts are intentionally NOT inherited from the chart-wide
+  # podSecurityContext/containerSecurityContext defaults: the official vLLM
+  # image runs as root and breaks under runAsNonRoot/readOnlyRootFilesystem.
+  podSecurityContext: {}
+  containerSecurityContext: {}
+  # The HTTP server only starts listening after model download + load + warmup,
+  # so /health responding implies "ready". The startup budget is
+  # periodSeconds * failureThreshold (default 40 min) to cover the first
+  # download of large models. Liveness is deliberately tolerant - a liveness
+  # kill forces a full model reload.
+  # If you disable the startup probe while liveness stays enabled, the liveness
+  # probe gets an initialDelaySeconds equal to the startup budget above so the
+  # model still has time to load before liveness can kill the container.
+  startupProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 160
+  readinessProbe:
+    enabled: true
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  livenessProbe:
+    enabled: true
+    periodSeconds: 15
+    timeoutSeconds: 10
+    failureThreshold: 8
+
 slackApp:
   clientId:
   clientSecret:

@@ -9,6 +9,18 @@ One all the pods are running. You can check the service status to see if the IP 
 kubectl get svc --namespace={{ $.Release.Namespace }} {{ $.Release.Name }}-nginx 
 
 You should then be able to access OneUptime cluster with that IP. Please make sure your host matches the host set in values.yaml which currently is {{ .Values.host }}. If you would like to change this host to another value, please do a helm upgrade.
+{{- if .Values.vllm.enabled }}
+
+vLLM (local LLM server) is enabled. Its OpenAI-compatible endpoint inside the cluster is:
+
+http://{{ .Release.Name }}-vllm.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }}:{{ .Values.vllm.ports.http }}/v1
+
+To use it with OneUptime AI features, go to Project Settings > AI > LLM Providers > Create LLM Provider and set:
+- LLM Provider: OpenAI
+- Base URL: the endpoint above
+- Model Name: {{ if .Values.vllm.servedModelName }}{{ .Values.vllm.servedModelName }}{{ else }}{{ .Values.vllm.model }}{{ end }}
+- API Key: the value of vllm.apiKey{{ if not .Values.vllm.apiKey }} (not set, so any placeholder value works){{ end }}
+{{- end }}
 
 🚀 OneUptime is deployed! 🚀
 
