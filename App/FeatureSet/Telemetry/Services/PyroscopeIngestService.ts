@@ -6,6 +6,7 @@ import {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
+import EventLoop from "Common/Server/Utils/EventLoop";
 import logger from "Common/Server/Utils/Logger";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import { JSONObject } from "Common/Types/JSON";
@@ -312,6 +313,15 @@ export default class PyroscopeIngestService {
           if (!sample.rawProfile || sample.rawProfile.length === 0) {
             continue;
           }
+
+          /*
+           * Each non-empty sample is gzip-decompressed, pprof-parsed and
+           * converted to OTLP below — heavy, variable-cost work (often
+           * 10-50ms per profile). Yield before every sample so a burst of
+           * large profiles can't hold the event loop long enough to starve
+           * the health probes.
+           */
+          await EventLoop.yieldToEventLoop();
 
           const profileBuffer: Buffer = Buffer.isBuffer(sample.rawProfile)
             ? sample.rawProfile
