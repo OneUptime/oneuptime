@@ -14,7 +14,7 @@ const AIAgentTasksLayout: FunctionComponent<LayoutPageComponentProps> = (
 
   return (
     <Page
-      title={"AI Agent Tasks"}
+      title={"AI Agents"}
       sideMenu={<SideMenu />}
       breadcrumbLinks={getAIAgentTasksBreadcrumbs(path)}
     >

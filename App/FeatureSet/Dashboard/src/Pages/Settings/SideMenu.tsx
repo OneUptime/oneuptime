@@ -113,51 +113,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       ],
     },
     {
-      title: "AI",
-      items: [
-        ...(BILLING_ENABLED
-          ? [
-              {
-                link: {
-                  title: "AI Credits",
-                  to: RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.SETTINGS_AI_BILLING] as Route,
-                  ),
-                },
-                icon: IconProp.Billing,
-              },
-            ]
-          : []),
-        {
-          link: {
-            title: "LLM Providers",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route,
-            ),
-          },
-          icon: IconProp.Brain,
-        },
-        {
-          link: {
-            title: "AI Logs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_AI_LOGS] as Route,
-            ),
-          },
-          icon: IconProp.Bolt,
-        },
-        {
-          link: {
-            title: "AI Agents",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route,
-            ),
-          },
-          icon: IconProp.Automation,
-        },
-      ],
-    },
-    {
       title: "Advanced",
       items: [
         {

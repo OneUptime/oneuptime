@@ -461,7 +461,7 @@ const AIAgentView: FunctionComponent<PageComponentProps> = (
         onDeleteSuccess={() => {
           Navigation.navigate(
             RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route,
+              RouteMap[PageMap.AI_AGENTS_AGENTS] as Route,
               { modelId },
             ),
           );

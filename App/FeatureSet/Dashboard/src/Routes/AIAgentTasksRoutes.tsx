@@ -18,6 +18,20 @@ import AIAgentTaskViewLogs from "../Pages/AIAgentTasks/View/Logs";
 
 import AIAgentTaskViewPullRequests from "../Pages/AIAgentTasks/View/PullRequests";
 
+import McpServer from "../Pages/AIAgentTasks/McpServer";
+
+import Agents from "../Pages/AIAgentTasks/Agents";
+
+import AgentView from "../Pages/AIAgentTasks/AgentView";
+
+import LlmProviders from "../Pages/AIAgentTasks/LlmProviders";
+
+import LlmProviderView from "../Pages/AIAgentTasks/LlmProviderView";
+
+import AICredits from "../Pages/AIAgentTasks/AICredits";
+
+import AILogs from "../Pages/AIAgentTasks/AILogs";
+
 const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -39,6 +53,71 @@ const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
             <AIAgentTasks
               {...props}
               pageRoute={RouteMap[PageMap.AI_AGENT_TASKS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={AIAgentTasksRoutePath[PageMap.AI_AGENTS_MCP_SERVER] || ""}
+          element={
+            <McpServer
+              {...props}
+              pageRoute={RouteMap[PageMap.AI_AGENTS_MCP_SERVER] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={AIAgentTasksRoutePath[PageMap.AI_AGENTS_AGENTS] || ""}
+          element={
+            <Agents
+              {...props}
+              pageRoute={RouteMap[PageMap.AI_AGENTS_AGENTS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={AIAgentTasksRoutePath[PageMap.AI_AGENTS_AGENT_VIEW] || ""}
+          element={
+            <AgentView
+              {...props}
+              pageRoute={RouteMap[PageMap.AI_AGENTS_AGENT_VIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={AIAgentTasksRoutePath[PageMap.AI_AGENTS_LLM_PROVIDERS] || ""}
+          element={
+            <LlmProviders
+              {...props}
+              pageRoute={RouteMap[PageMap.AI_AGENTS_LLM_PROVIDERS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            AIAgentTasksRoutePath[PageMap.AI_AGENTS_LLM_PROVIDER_VIEW] || ""
+          }
+          element={
+            <LlmProviderView
+              {...props}
+              pageRoute={RouteMap[PageMap.AI_AGENTS_LLM_PROVIDER_VIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={AIAgentTasksRoutePath[PageMap.AI_AGENTS_AI_CREDITS] || ""}
+          element={
+            <AICredits
+              {...props}
+              pageRoute={RouteMap[PageMap.AI_AGENTS_AI_CREDITS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={AIAgentTasksRoutePath[PageMap.AI_AGENTS_AI_LOGS] || ""}
+          element={
+            <AILogs
+              {...props}
+              pageRoute={RouteMap[PageMap.AI_AGENTS_AI_LOGS] as Route}
             />
           }
         />
