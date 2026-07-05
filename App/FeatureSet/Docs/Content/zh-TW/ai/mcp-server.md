@@ -15,25 +15,25 @@ MCP server 與您的 OneUptime 執行個體一同託管，並透過 Streamable H
 
 ## 主要功能
 
-- **完整的 API 涵蓋範圍**：可存取 711 個 OneUptime API 端點
-- **126 種資源類型**：管理所有 OneUptime 資源，包括 monitor、incident、team、probe 等等
+- **約 155 個工具**：涵蓋 22 種資源類型（incident、警示、monitor、狀態頁面、待命等）的完整 CRUD 工具、唯讀的遙測工具，以及工作流程與輔助工具
 - **即時操作**：即時建立、讀取、更新與刪除資源
 - **型別安全的介面**：完整型別化，並具備全面的輸入驗證
-- **安全的驗證機制**：以 API 金鑰為基礎的驗證，並具備妥善的錯誤處理
+- **安全的驗證機制**：以每個請求為單位的 API 金鑰驗證，並具備妥善的錯誤處理
+- **安全性註記**：唯讀工具帶有 `readOnlyHint`，刪除工具帶有 `destructiveHint`，讓 MCP 用戶端能自動核准安全的呼叫，並在破壞性操作前先行詢問
 - **輕鬆整合**：可與 Claude Desktop 及其他相容於 MCP 的用戶端搭配使用
-- **工作階段管理**：內建工作階段處理，並支援自動重新連線
+- **無狀態設計**：沒有工作階段 ID——每個請求都是自足的，因此伺服器可在負載平衡器與多副本部署之後正常運作
 
 ## 您可以做什麼
 
 透過 OneUptime MCP Server，AI 助理可以協助您：
 
-- **Monitor 管理**：建立與設定 monitor、檢查其狀態，以及管理 monitor 群組
-- **事件回應**：建立 incident、新增備註、指派團隊成員，以及追蹤解決進度
-- **團隊操作**：管理團隊、權限與待命排程
-- **狀態頁面**：更新狀態頁面、建立公告，以及管理訂閱者
-- **警示**：設定警示規則、管理升級政策，以及檢查通知記錄
-- **Probe**：在不同地點部署與管理監控 probe
-- **報表與分析**：產生報表並分析監控資料
+- **Monitor 管理**：建立與設定 monitor、檢查其狀態，以及檢視狀態歷史記錄
+- **事件回應**：建立、確認與解決 incident、新增內部或公開備註，以及追蹤解決進度
+- **團隊操作**：管理團隊與待命政策
+- **狀態頁面**：管理狀態頁面與建立公告
+- **警示**：確認與解決警示、新增警示備註，以及管理警示狀態與嚴重性
+- **排程維護**：建立與管理排程維護事件
+- **遙測**：查詢日誌、指標、追蹤、例外與 monitor 日誌（唯讀）
 
 ## 需求
 
@@ -49,6 +49,10 @@ MCP server 與您的 OneUptime 執行個體一同託管，並透過 Streamable H
 4. 提供一個名稱（例如「MCP Server」）
 5. 為您的使用情境選擇適當的權限
 6. 複製產生的 API 金鑰
+
+API 金鑰以專案為範圍：MCP server 會從金鑰推斷出您的專案，因此建立類工具永遠不需要 `projectId` 引數。
+
+> **警告——切勿將 master 金鑰交給 AI 代理程式。** OneUptime 的 *master* API 金鑰同樣會被此標頭接受，並授予整個執行個體的管理員存取權。請務必使用具備代理程式所需最低權限的專案 API 金鑰（唯讀金鑰即足以使用所有 `get_`／`list_`／`count_` 工具）。
 
 ## 設定
 
@@ -202,13 +206,13 @@ VS Code 原生支援搭配 GitHub Copilot（版本 1.99 以上）使用 MCP serv
 
 ## 可用端點
 
-| 端點          | 方法   | 說明                                             |
-| ------------- | ------ | ------------------------------------------------ |
-| `/mcp`        | GET    | 用於伺服器對用戶端通知的 Server-sent events 串流 |
-| `/mcp`        | POST   | 用於工具呼叫及其他操作的 JSON-RPC 請求           |
-| `/mcp`        | DELETE | 工作階段清理與終止                               |
-| `/mcp/health` | GET    | 健康狀態檢查端點                                 |
-| `/mcp/tools`  | GET    | 用於列出可用工具的 REST API                      |
+| 端點          | 方法   | 說明                                                                                                                    |
+| ------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `/mcp`        | POST   | 用於工具呼叫及其他操作的 JSON-RPC 請求                                                                            |
+| `/mcp`        | GET    | 未帶 SSE `Accept` 標頭時：回傳友善的 JSON 探索資訊。帶有該標頭時：回傳 `405`——無狀態伺服器不提供獨立的 SSE 串流（符合規範的用戶端可在沒有它的情況下繼續運作） |
+| `/mcp`        | DELETE | 不執行任何動作（伺服器為無狀態設計，因此沒有可終止的工作階段）                                                             |
+| `/mcp/health` | GET    | 健康狀態檢查端點                                                                                                            |
+| `/mcp/tools`  | GET    | 用於列出可用工具的 REST API                                                                                                 |
 
 ## 驗證
 
@@ -233,6 +237,58 @@ MCP server 支援兩種運作模式：
 
 - `x-api-key`：您的 OneUptime API 金鑰
 - `Authorization`：帶有您 API 金鑰的 Bearer token（例如 `Bearer your-api-key-here`）
+
+`Bearer` 配置不區分大小寫。工具錯誤會以帶內工具結果的形式回傳（`isError: true`），並附上 `statusCode`、詳細資訊與建議——而非以 MCP 協定錯誤回傳——因此代理程式可以讀取失敗內容並自行修正。
+
+## 工作流程工具
+
+除了各資源的 CRUD 工具外，伺服器還提供專為事件與警示回應打造的工作流程工具：
+
+- **`acknowledge_incident`**／**`resolve_incident`**：將 incident 移至專案的「已確認」或「已解決」狀態——等同於在儀表板中按下按鈕
+- **`acknowledge_alert`**／**`resolve_alert`**：對警示執行相同操作
+- **`add_incident_note`**：為 incident 新增備註，可使用 `visibility: "internal"`（僅限團隊，為預設值）或 `visibility: "public"`（發布至狀態頁面）。支援 Markdown
+- **`add_alert_note`**：為警示新增內部備註
+
+典型流程：`list_incidents` → `acknowledge_incident` → 使用 `list_logs` 進行調查 → `add_incident_note`（公開）→ `resolve_incident`。
+
+## 我是誰
+
+**`oneuptime_whoami`** 工具會回傳您的 API 金鑰所屬的專案（ID 與名稱）。這是代理程式用來確認自身環境的實用首次呼叫——而且由於建立類工具會從 API 金鑰推斷 `projectId`，代理程式永遠不需要傳入專案 ID。
+
+## 查詢遙測資料
+
+日誌、指標、追蹤（span）、例外與 monitor 日誌以唯讀的 `list_` 與 `count_` 工具形式提供（`list_logs`、`list_metrics`、`list_spans`、`list_exception_instances`、`list_monitor_logs`，以及對應的 `count_` 工具）。遙測資料透過 OpenTelemetry 擷取，因此沒有建立類工具。
+
+查詢遙測資料時請務必加上時間範圍篩選條件。查詢欄位可接受直接值或運算子物件：
+
+```json
+{
+  "query": {
+    "time": { "_type": "GreaterThan", "value": "2026-07-04T00:00:00.000Z" }
+  },
+  "sort": { "time": "DESC" },
+  "limit": 50
+}
+```
+
+支援的運算子：`EqualTo`、`NotEqual`、`IsNull`、`NotNull`、`EqualToOrNull`、`GreaterThan`、`LessThan`、`GreaterThanOrEqual`、`LessThanOrEqual`、`InBetween`、`Search`、`Includes`。排序值為 `"ASC"` 或 `"DESC"`。
+
+## 欄位選取與分頁
+
+`get_` 與 `list_` 工具可接受選用的 `select` 欄位名稱陣列。預設會回傳所有可讀取的欄位，但不包含較重的欄位（JSON、超長文字與 HTML 欄位），這些欄位必須在 `select` 中明確指定。
+
+列表工具以 `limit`（預設 10，最大 100）與 `skip` 進行分頁，且每個列表回應都會確切回報其回傳的內容：
+
+```json
+{
+  "returnedCount": 10,
+  "totalCount": 42,
+  "skip": 0,
+  "limit": 10,
+  "hasMore": true,
+  "data": ["..."]
+}
+```
 
 ## 驗證確認
 
@@ -286,9 +342,8 @@ curl https://your-oneuptime-domain.com/mcp/tools
 ### 團隊與待命
 
 ```
-"Who are the members of the infrastructure team?"
-"Who's currently on call for the infrastructure team?"
-"Show me the on-call schedule for this week"
+"List the teams in this project"
+"Show me our on-call policies"
 ```
 
 ### 狀態頁面管理
@@ -360,21 +415,21 @@ curl https://your-oneuptime-domain.com/mcp/tools
 
 若您收到與工作階段相關的錯誤：
 
-- MCP server 使用 `mcp-session-id` 標頭來追蹤工作階段
-- 請確保您的用戶端正確處理伺服器回傳的工作階段 ID
-- 工作階段會在連線關閉時自動清理
+- MCP server 為無狀態設計——它不會發放或追蹤工作階段 ID，因此每個請求都能在任何伺服器副本上運作
+- 若用戶端仍送出來自先前伺服器版本的 `mcp-session-id` 標頭，直接省略即可；該標頭會被忽略
+- 請更新那些預期伺服器會回傳工作階段 ID 的舊版 MCP 用戶端設定
 
 ## 可用資源
 
-MCP server 可存取 126 種資源類型，包括：
+MCP server 為以下資源提供工具：
 
-**監控**：Monitor、MonitorStatus、MonitorGroup、Probe
-**事件**：Incident、IncidentState、IncidentNote、IncidentTemplate
-**警示**：Alert、AlertState、AlertSeverity
-**狀態頁面**：StatusPage、StatusPageAnnouncement、StatusPageSubscriber
-**待命**：On-CallPolicy、EscalationRule、On-CallSchedule
-**團隊**：Team、TeamMember、TeamPermission
-**遙測**：TelemetryService、Log、Span、Metric
-**工作流程**：Workflow、WorkflowVariable、WorkflowLog
+**監控**：Monitor、Monitor Status、Monitor Status Event
+**事件**：Incident、Incident State、Incident Severity、Incident State Timeline、Incident Public Note、Incident Internal Note
+**警示**：Alert、Alert State、Alert Severity、Alert State Timeline、Alert Internal Note
+**狀態頁面**：Status Page、Status Page Announcement
+**排程維護**：Scheduled Maintenance Event、Scheduled Maintenance State、Scheduled Maintenance State Timeline
+**團隊與待命**：Team、On-Call Policy
+**標籤**：Label
+**遙測（唯讀）**：Log、Metric、Span、Exception Instance、Monitor Log
 
-每種資源都支援標準操作：List、Count、Get、Create、Update 與 Delete。
+每種資料庫資源都支援以 snake_case 工具進行 Create、Get、List、Update、Delete 與 Count——例如 `create_incident`、`get_incident`、`list_incidents`、`update_incident`、`delete_incident`、`count_incidents`。遙測資源僅提供 `list_` 與 `count_` 工具（例如 `list_logs`、`count_spans`）。

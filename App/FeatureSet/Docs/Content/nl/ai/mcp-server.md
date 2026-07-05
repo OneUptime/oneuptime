@@ -15,25 +15,25 @@ De MCP-server wordt gehost naast uw OneUptime-instantie en is toegankelijk via h
 
 ## Belangrijkste functies
 
-- **Volledige API-dekking**: Toegang tot 711 OneUptime API-eindpunten
-- **126 resourcetypen**: Beheer alle OneUptime-resources, waaronder monitors, incidenten, teams, probes en meer
+- **~155 tools**: Volledige CRUD-tools voor 22 resourcetypen (incidenten, meldingen, monitors, statuspagina's, piket en meer), alleen-lezen telemetrietools, plus workflow- en hulptools
 - **Realtime bewerkingen**: Resources aanmaken, lezen, bijwerken en verwijderen in realtime
 - **Type-veilige interface**: Volledig getypeerd met uitgebreide invoervalidatie
-- **Veilige authenticatie**: Op API-sleutels gebaseerde authenticatie met correcte foutafhandeling
+- **Veilige authenticatie**: API-sleutelauthenticatie per verzoek met correcte foutafhandeling
+- **Veiligheidsannotaties**: Alleen-lezen tools dragen `readOnlyHint` en verwijdertools dragen `destructiveHint`, zodat MCP-clients veilige aanroepen automatisch kunnen goedkeuren en om bevestiging kunnen vragen bij destructieve
 - **Eenvoudige integratie**: Werkt met Claude Desktop en andere MCP-compatibele clients
-- **Sessiebeheer**: Ingebouwd sessiebeheer met automatische herverbindingsondersteuning
+- **Stateless by design**: Geen sessie-ID's — elk verzoek is op zichzelf staand, zodat de server werkt achter load balancers en implementaties met meerdere replica's
 
 ## Wat u kunt doen
 
 Met de OneUptime MCP Server kunnen AI-assistenten u helpen bij:
 
-- **Monitorbeheer**: Monitors aanmaken en configureren, hun status controleren en monitorgroepen beheren
-- **Incidentrespons**: Incidenten aanmaken, notities toevoegen, teamleden toewijzen en de oplossing bijhouden
-- **Teambewerkingen**: Teams, machtigingen en piketschema's beheren
-- **Statuspagina's**: Statuspagina's bijwerken, aankondigingen aanmaken en abonnees beheren
-- **Meldingen**: Meldingsregels configureren, escalatiebeleid beheren en notificatielogboeken bekijken
-- **Probes**: Monitoringprobes implementeren en beheren op verschillende locaties
-- **Rapporten en analyses**: Rapporten genereren en monitoringgegevens analyseren
+- **Monitorbeheer**: Monitors aanmaken en configureren, hun status controleren en de statushistorie bekijken
+- **Incidentrespons**: Incidenten aanmaken, bevestigen en oplossen, interne of publieke notities toevoegen en de oplossing bijhouden
+- **Teambewerkingen**: Teams en piketbeleid beheren
+- **Statuspagina's**: Statuspagina's beheren en aankondigingen aanmaken
+- **Meldingen**: Meldingen bevestigen en oplossen, meldingsnotities toevoegen en meldingsstatussen en -ernstniveaus beheren
+- **Gepland onderhoud**: Geplande onderhoudsgebeurtenissen aanmaken en beheren
+- **Telemetrie**: Logs, metrics, traces, excepties en monitorlogs opvragen (alleen-lezen)
 
 ## Vereisten
 
@@ -49,6 +49,10 @@ Met de OneUptime MCP Server kunnen AI-assistenten u helpen bij:
 4. Geef een naam op (bijv. "MCP Server")
 5. Selecteer de juiste machtigingen voor uw gebruiksscenario
 6. Kopieer de gegenereerde API-sleutel
+
+API-sleutels zijn projectgebonden: de MCP-server leidt uw project af uit de sleutel, zodat aanmaaktools nooit een `projectId`-argument nodig hebben.
+
+> **Waarschuwing — geef een AI-agent nooit een master-sleutel.** Een OneUptime *master*-API-sleutel wordt ook op deze header geaccepteerd en verleent beheerderstoegang tot de hele instantie. Gebruik altijd een project-API-sleutel met de minste rechten die de agent nodig heeft (een alleen-lezen sleutel volstaat voor alle `get_`/`list_`/`count_`-tools).
 
 ## Configuratie
 
@@ -202,13 +206,13 @@ De bovenstaande configuratie gebruikt invoervariabelen met `"password": true` om
 
 ## Beschikbare eindpunten
 
-| Eindpunt      | Methode | Beschrijving                                                 |
-| ------------- | ------- | ------------------------------------------------------------ |
-| `/mcp`        | GET     | Server-sent events-stream voor server-naar-client-meldingen  |
-| `/mcp`        | POST    | JSON-RPC-verzoeken voor tool-aanroepen en andere bewerkingen |
-| `/mcp`        | DELETE  | Sessie opruimen en beëindigen                                |
-| `/mcp/health` | GET     | Gezondheidscontrolepunt                                      |
-| `/mcp/tools`  | GET     | REST API om beschikbare tools te vermelden                   |
+| Eindpunt      | Methode | Beschrijving                                                                                                                    |
+| ------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `/mcp`        | POST   | JSON-RPC-verzoeken voor tool-aanroepen en andere bewerkingen                                                                      |
+| `/mcp`        | GET    | Zonder een SSE-`Accept`-header: vriendelijke JSON-discovery-payload. Met zo'n header: `405` — de stateless server biedt geen zelfstandige SSE-stream (conforme clients gaan zonder verder) |
+| `/mcp`        | DELETE | No-op (de server is stateless, dus er is geen sessie om te beëindigen)                                                            |
+| `/mcp/health` | GET    | Gezondheidscontrolepunt                                                                                                           |
+| `/mcp/tools`  | GET    | REST API om beschikbare tools te vermelden                                                                                        |
 
 ## Authenticatie
 
@@ -229,30 +233,82 @@ Publieke statuspagina-tools accepteren een statuspagina-ID (UUID) of de domeinna
 
 ### Geauthenticeerde tools (API-sleutel vereist)
 
-Voor alle andere bewerkingen (monitoren, incidenten, teams beheren, enz.) is authenticatie vereist via een van de volgende headers:
+Voor alle andere bewerkingen (monitors, incidenten, teams beheren, enz.) is authenticatie vereist via een van de volgende headers:
 
 - `x-api-key`: Uw OneUptime API-sleutel
 - `Authorization`: Bearer-token met uw API-sleutel (bijv. `Bearer your-api-key-here`)
+
+Het `Bearer`-schema is hoofdletterongevoelig. Toolfouten worden geretourneerd als in-band toolresultaten (`isError: true`) met een `statusCode`, details en een suggestie — niet als MCP-protocolfouten — zodat agenten de fout kunnen lezen en zichzelf kunnen corrigeren.
+
+## Workflowtools
+
+Naast de CRUD-tools per resource levert de server speciaal gebouwde workflowtools voor incident- en meldingsrespons:
+
+- **`acknowledge_incident`** / **`resolve_incident`**: Verplaats een incident naar de status Bevestigd of Opgelost van het project — gelijkwaardig aan het indrukken van de knop in het dashboard
+- **`acknowledge_alert`** / **`resolve_alert`**: Hetzelfde voor meldingen
+- **`add_incident_note`**: Voeg een notitie toe aan een incident met `visibility: "internal"` (alleen team, de standaard) of `visibility: "public"` (gepubliceerd op de statuspagina). Markdown wordt ondersteund
+- **`add_alert_note`**: Voeg een interne notitie toe aan een melding
+
+Een typische lus: `list_incidents` → `acknowledge_incident` → onderzoeken met `list_logs` → `add_incident_note` (publiek) → `resolve_incident`.
+
+## Wie ben ik
+
+De tool **`oneuptime_whoami`** retourneert het project waartoe uw API-sleutel behoort (ID en naam). Het is een nuttige eerste aanroep waarmee een agent zich kan oriënteren — en omdat aanmaaktools `projectId` afleiden uit de API-sleutel, hoeft de agent nooit een project-ID mee te geven.
+
+## Telemetrie opvragen
+
+Logs, metrics, traces (spans), excepties en monitorlogs zijn beschikbaar als alleen-lezen `list_`- en `count_`-tools (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` en hun `count_`-tegenhangers). Telemetrie wordt geïngest via OpenTelemetry, dus er zijn geen aanmaaktools.
+
+Bevraag telemetrie altijd met een tijdbereikfilter. Queryvelden accepteren een directe waarde of een operatorobject:
+
+```json
+{
+  "query": {
+    "time": { "_type": "GreaterThan", "value": "2026-07-04T00:00:00.000Z" }
+  },
+  "sort": { "time": "DESC" },
+  "limit": 50
+}
+```
+
+Ondersteunde operatoren: `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search`, `Includes`. Sorteerwaarden zijn `"ASC"` of `"DESC"`.
+
+## Veldselectie en paginering
+
+`get_`- en `list_`-tools accepteren een optionele `select`-array met veldnamen. Standaard worden alle leesbare velden geretourneerd, behalve zware velden (JSON-, zeer-lange-tekst- en HTML-kolommen), die expliciet in `select` moeten worden aangevraagd.
+
+Lijsttools pagineren met `limit` (standaard 10, maximaal 100) en `skip`, en elke lijstrespons meldt exact wat er is geretourneerd:
+
+```json
+{
+  "returnedCount": 10,
+  "totalCount": 42,
+  "skip": 0,
+  "limit": 10,
+  "hasMore": true,
+  "data": ["..."]
+}
+```
 
 ## Verificatie
 
 Controleer of de MCP-server actief is:
 
 ```bash
-# Voor OneUptime Cloud
+# For OneUptime Cloud
 curl https://oneuptime.com/mcp/health
 
-# Voor zelf-gehost
+# For Self-Hosted
 curl https://your-oneuptime-domain.com/mcp/health
 ```
 
 Beschikbare tools weergeven:
 
 ```bash
-# Voor OneUptime Cloud
+# For OneUptime Cloud
 curl https://oneuptime.com/mcp/tools
 
-# Voor zelf-gehost
+# For Self-Hosted
 curl https://your-oneuptime-domain.com/mcp/tools
 ```
 
@@ -286,9 +342,8 @@ curl https://your-oneuptime-domain.com/mcp/tools
 ### Team en piket
 
 ```
-"Who are the members of the infrastructure team?"
-"Who's currently on call for the infrastructure team?"
-"Show me the on-call schedule for this week"
+"List the teams in this project"
+"Show me our on-call policies"
 ```
 
 ### Statuspaginabeheer
@@ -360,21 +415,21 @@ Zorg dat uw API-sleutel de benodigde machtigingen heeft:
 
 Als u sessiegerelateerde fouten ontvangt:
 
-- De MCP-server gebruikt de `mcp-session-id`-header om sessies bij te houden
-- Zorg dat uw client het sessie-ID dat de server retourneert correct verwerkt
-- Sessies worden automatisch opgeruimd wanneer verbindingen worden gesloten
+- De MCP-server is stateless — hij geeft geen sessie-ID's uit en houdt ze niet bij, dus elk verzoek werkt tegen elke serverreplica
+- Clients die een `mcp-session-id`-header uit een eerdere serverversie sturen, kunnen deze gewoon weglaten; hij wordt genegeerd
+- Werk oudere MCP-clientconfiguraties bij die verwachten dat de server een sessie-ID retourneert
 
 ## Beschikbare resources
 
-De MCP-server biedt toegang tot 126 resourcetypen, waaronder:
+De MCP-server biedt tools voor de volgende resources:
 
-**Monitoring**: Monitor, MonitorStatus, MonitorGroup, Probe
-**Incidenten**: Incident, IncidentState, IncidentNote, IncidentTemplate
-**Meldingen**: Alert, AlertState, AlertSeverity
-**Statuspagina's**: StatusPage, StatusPageAnnouncement, StatusPageSubscriber
-**Piket**: On-CallPolicy, EscalationRule, On-CallSchedule
-**Teams**: Team, TeamMember, TeamPermission
-**Telemetrie**: TelemetryService, Log, Span, Metric
-**Workflows**: Workflow, WorkflowVariable, WorkflowLog
+**Monitoring**: Monitor, Monitorstatus, Monitorstatusgebeurtenis
+**Incidenten**: Incident, Incidentstatus, Incidenternst, Incidentstatustijdlijn, Publieke incidentnotitie, Interne incidentnotitie
+**Meldingen**: Melding, Meldingsstatus, Meldingsernst, Meldingsstatustijdlijn, Interne meldingsnotitie
+**Statuspagina's**: Statuspagina, Statuspagina-aankondiging
+**Gepland onderhoud**: Geplande onderhoudsgebeurtenis, Gepland-onderhoudsstatus, Gepland-onderhoudsstatustijdlijn
+**Teams en piket**: Team, Piketbeleid
+**Labels**: Label
+**Telemetrie (alleen-lezen)**: Log, Metric, Span, Exceptie-instantie, Monitorlog
 
-Elke resource ondersteunt standaardbewerkingen: Weergeven, Tellen, Ophalen, Aanmaken, Bijwerken en Verwijderen.
+Elke databaseresource ondersteunt Aanmaken, Ophalen, Weergeven, Bijwerken, Verwijderen en Tellen via snake_case-tools — bijvoorbeeld `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident`, `count_incidents`. Telemetrieresources bieden alleen `list_`- en `count_`-tools (bijvoorbeeld `list_logs`, `count_spans`).
