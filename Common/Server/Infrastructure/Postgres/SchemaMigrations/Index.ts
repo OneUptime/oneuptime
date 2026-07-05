@@ -404,6 +404,7 @@ import { AddIoTFleetAndDeviceTables1782900000000 } from "./1782900000000-AddIoTF
 import { AddIoTFleetActivityJoinTables1783000000000 } from "./1783000000000-AddIoTFleetActivityJoinTables";
 import { MigrationName1783010000000 } from "./1783010000000-MigrationName";
 import { AddInstanceIdToGlobalConfig1783161406136 } from "./1783161406136-AddInstanceIdToGlobalConfig";
+import { AddEnterpriseLicenseInstance1783226868418 } from "./1783226868418-AddEnterpriseLicenseInstance";
 
 export default [
   InitialMigration,
@@ -812,4 +813,5 @@ export default [
   AddIoTFleetActivityJoinTables1783000000000,
   MigrationName1783010000000,
   AddInstanceIdToGlobalConfig1783161406136,
+  AddEnterpriseLicenseInstance1783226868418,
 ];

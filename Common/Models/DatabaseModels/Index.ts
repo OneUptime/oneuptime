@@ -182,6 +182,7 @@ import GlobalSSOProject from "./GlobalSsoProject";
 import GlobalOIDCProject from "./GlobalOidcProject";
 import PromoCode from "./PromoCode";
 import EnterpriseLicense from "./EnterpriseLicense";
+import EnterpriseLicenseInstance from "./EnterpriseLicenseInstance";
 import OpenSourceDeployment from "./OpenSourceDeployment";
 import Reseller from "./Reseller";
 import ResellerPlan from "./ResellerPlan";
@@ -651,6 +652,7 @@ const AllModelTypes: Array<{
 
   PromoCode,
   EnterpriseLicense,
+  EnterpriseLicenseInstance,
   OpenSourceDeployment,
 
   GlobalConfig,

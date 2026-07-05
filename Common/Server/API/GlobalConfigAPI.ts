@@ -16,7 +16,8 @@ import API from "../../Utils/API";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import PartialEntity from "../../Types/Database/PartialEntity";
-import { EnterpriseLicenseValidationUrl } from "../EnvironmentConfig";
+import { EnterpriseLicenseValidationUrl, Host } from "../EnvironmentConfig";
+import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
 import UserMiddleware from "../Middleware/UserAuthorization";
 
 export default class GlobalConfigAPI extends BaseAPI<
@@ -67,6 +68,8 @@ export default class GlobalConfigAPI extends BaseAPI<
                 enterpriseLicenseUserLimit: true,
                 enterpriseLicenseCurrentUserCount: true,
                 enterpriseLicenseUserCountUpdatedAt: true,
+                enterpriseLicenseInstances: true,
+                instanceId: true,
               },
               props: {
                 isRoot: true,
@@ -91,6 +94,12 @@ export default class GlobalConfigAPI extends BaseAPI<
             userCountUpdatedAt: config?.enterpriseLicenseUserCountUpdatedAt
               ? config.enterpriseLicenseUserCountUpdatedAt.toISOString()
               : null,
+            instances: Array.isArray(config?.enterpriseLicenseInstances)
+              ? config.enterpriseLicenseInstances
+              : [],
+            instanceId: config?.instanceId
+              ? config.instanceId.toString()
+              : null,
           };
 
           return Response.sendJsonObjectResponse(req, res, responseBody);
@@ -112,12 +121,38 @@ export default class GlobalConfigAPI extends BaseAPI<
             throw new BadDataException("License key is required");
           }
 
+          const globalConfigId: ObjectID = ObjectID.getZeroObjectID();
+
+          const existingConfig: GlobalConfig | null =
+            await GlobalConfigService.findOneById({
+              id: globalConfigId,
+              select: {
+                _id: true,
+                instanceId: true,
+              },
+              props: {
+                isRoot: true,
+                ignoreHooks: true,
+              },
+            });
+
+          /*
+           * Send this instance's id and host along with the key so the
+           * license server registers this instance against the license and
+           * it shows up in the instance list on all instances that share
+           * the license.
+           */
+          const instanceId: ObjectID =
+            existingConfig?.instanceId || ObjectID.generate();
+
           const validationResponse:
             | HTTPResponse<JSONObject>
             | HTTPErrorResponse = await API.post<JSONObject>({
             url: EnterpriseLicenseValidationUrl,
             data: {
               licenseKey,
+              instanceId: instanceId.toString(),
+              host: Host,
             },
           });
 
@@ -178,6 +213,13 @@ export default class GlobalConfigAPI extends BaseAPI<
             }
           }
 
+          const instances: Array<EnterpriseLicenseInstanceSummary> =
+            Array.isArray(payload["instances"])
+              ? (payload[
+                  "instances"
+                ] as Array<EnterpriseLicenseInstanceSummary>)
+              : [];
+
           const updatePayload: PartialEntity<GlobalConfig> = {
             enterpriseCompanyName: companyNameRaw || null,
             enterpriseLicenseKey: licenseKeyRaw || null,
@@ -186,21 +228,13 @@ export default class GlobalConfigAPI extends BaseAPI<
             enterpriseLicenseUserLimit: userLimit,
             enterpriseLicenseCurrentUserCount: currentUserCount,
             enterpriseLicenseUserCountUpdatedAt: userCountUpdatedAt,
+            enterpriseLicenseInstances: instances,
           };
 
-          const globalConfigId: ObjectID = ObjectID.getZeroObjectID();
-
-          const existingConfig: GlobalConfig | null =
-            await GlobalConfigService.findOneById({
-              id: globalConfigId,
-              select: {
-                _id: true,
-              },
-              props: {
-                isRoot: true,
-                ignoreHooks: true,
-              },
-            });
+          if (!existingConfig?.instanceId) {
+            // Installs that predate instance ids: persist the one we generated.
+            updatePayload.instanceId = instanceId;
+          }
 
           if (existingConfig) {
             await GlobalConfigService.updateOneById({
@@ -244,6 +278,9 @@ export default class GlobalConfigAPI extends BaseAPI<
                 userCountUpdatedAt;
             }
 
+            newConfig.enterpriseLicenseInstances = instances;
+            newConfig.instanceId = instanceId;
+
             await GlobalConfigService.create({
               data: newConfig,
               props: {
@@ -263,6 +300,8 @@ export default class GlobalConfigAPI extends BaseAPI<
             userCountUpdatedAt: userCountUpdatedAt
               ? userCountUpdatedAt.toISOString()
               : null,
+            instances: instances,
+            instanceId: instanceId.toString(),
           });
         } catch (err) {
           next(err);

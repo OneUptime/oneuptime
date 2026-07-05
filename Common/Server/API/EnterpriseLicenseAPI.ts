@@ -1,9 +1,17 @@
 import EnterpriseLicense from "../../Models/DatabaseModels/EnterpriseLicense";
+import EnterpriseLicenseInstance from "../../Models/DatabaseModels/EnterpriseLicenseInstance";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
+import PartialEntity from "../../Types/Database/PartialEntity";
+import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
+import EnterpriseLicenseUsageUtil from "../../Utils/EnterpriseLicense/EnterpriseLicenseUsage";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import ObjectID from "../../Types/ObjectID";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import EnterpriseLicenseService, {
   Service as EnterpriseLicenseServiceType,
 } from "../Services/EnterpriseLicenseService";
+import EnterpriseLicenseInstanceService from "../Services/EnterpriseLicenseInstanceService";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import JSONWebToken from "../Utils/JsonWebToken";
 import OneUptimeDate from "../../Types/Date";
@@ -15,6 +23,16 @@ import {
 } from "../Utils/Express";
 import BaseAPI from "./BaseAPI";
 // import { Host } from "../EnvironmentConfig";
+
+export interface LicenseInstanceUpsert {
+  licenseId: ObjectID;
+  instanceId: string;
+  host: string | undefined;
+  // Usage fields are only set on report-user-count, not on validate.
+  userCount?: number | undefined;
+  userEmailHashes?: Array<string> | undefined;
+  lastReportedAt?: Date | undefined;
+}
 
 export default class EnterpriseLicenseAPI extends BaseAPI<
   EnterpriseLicense,
@@ -50,6 +68,7 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
                 licenseKey: licenseKey,
               },
               select: {
+                _id: true,
                 companyName: true,
                 expiresAt: true,
                 licenseKey: true,
@@ -80,6 +99,27 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
             throw new BadDataException("License key has expired");
           }
 
+          /*
+           * The validating instance sends its instanceId and host so it
+           * shows up in the instance list right away (usage is reported
+           * later by the daily job on the instance).
+           */
+          const instanceId: string = this.parseShortText(
+            req.body["instanceId"],
+          );
+          const instanceHost: string = this.parseShortText(req.body["host"]);
+
+          if (instanceId) {
+            await this.upsertLicenseInstance({
+              licenseId: license.id!,
+              instanceId: instanceId,
+              host: instanceHost || undefined,
+            });
+          }
+
+          const instances: Array<EnterpriseLicenseInstance> =
+            await this.findLicenseInstances(license.id!);
+
           const payload: JSONObject = {
             companyName: license.companyName || "",
             expiresAt: license.expiresAt.toISOString(),
@@ -105,6 +145,7 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
             userCountUpdatedAt: license.userCountUpdatedAt
               ? license.userCountUpdatedAt.toISOString()
               : null,
+            instances: this.getInstanceSummaries(instances),
             token,
           });
         } catch (err) {
@@ -158,28 +199,207 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
 
           const reportedAt: Date = OneUptimeDate.getCurrentDate();
 
-          await EnterpriseLicenseService.updateOneById({
-            id: license.id!,
-            data: {
-              currentUserCount: userCount,
-              userCountUpdatedAt: reportedAt,
-            },
-            props: {
-              isRoot: true,
-              ignoreHooks: true,
-            },
-          });
+          const instanceId: string = this.parseShortText(
+            req.body["instanceId"],
+          );
+          const instanceHost: string = this.parseShortText(req.body["host"]);
+          const userEmailHashes: Array<string> =
+            EnterpriseLicenseUsageUtil.sanitizeUserEmailHashes(
+              req.body["userEmailHashes"],
+            );
+
+          if (instanceId) {
+            /*
+             * Multi-instance report: track usage per instance and count
+             * users uniquely across all instances of this license.
+             */
+            await this.upsertLicenseInstance({
+              licenseId: license.id!,
+              instanceId: instanceId,
+              host: instanceHost || undefined,
+              userCount: userCount,
+              userEmailHashes: userEmailHashes,
+              lastReportedAt: reportedAt,
+            });
+          }
+
+          const instances: Array<EnterpriseLicenseInstance> =
+            await this.findLicenseInstances(license.id!);
+
+          let currentUserCount: number = userCount;
+
+          if (instances.length > 0) {
+            currentUserCount = EnterpriseLicenseUsageUtil.getUniqueUserCount(
+              instances,
+              reportedAt,
+            );
+          }
+
+          /*
+           * Legacy reports (no instanceId) only drive the license-wide count
+           * while no instance has registered — otherwise they would stomp
+           * the deduplicated multi-instance count.
+           */
+          if (instanceId || instances.length === 0) {
+            await EnterpriseLicenseService.updateOneById({
+              id: license.id!,
+              data: {
+                currentUserCount: currentUserCount,
+                userCountUpdatedAt: reportedAt,
+              },
+              props: {
+                isRoot: true,
+                ignoreHooks: true,
+              },
+            });
+          }
 
           return Response.sendJsonObjectResponse(req, res, {
-            currentUserCount: userCount,
+            currentUserCount: currentUserCount,
             userCountUpdatedAt: reportedAt.toISOString(),
             userLimit:
               typeof license.userLimit === "number" ? license.userLimit : null,
+            instances: this.getInstanceSummaries(instances),
           });
         } catch (err) {
           next(err);
         }
       },
     );
+  }
+
+  private parseShortText(value: unknown): string {
+    if (typeof value !== "string") {
+      return "";
+    }
+
+    return value.trim().substring(0, 100);
+  }
+
+  private async findLicenseInstances(
+    licenseId: ObjectID,
+  ): Promise<Array<EnterpriseLicenseInstance>> {
+    return EnterpriseLicenseInstanceService.findBy({
+      query: {
+        enterpriseLicenseId: licenseId,
+      },
+      select: {
+        _id: true,
+        instanceId: true,
+        host: true,
+        userCount: true,
+        userEmailHashes: true,
+        lastReportedAt: true,
+      },
+      sort: {
+        createdAt: SortOrder.Ascending,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  private getInstanceSummaries(
+    instances: Array<EnterpriseLicenseInstance>,
+  ): Array<EnterpriseLicenseInstanceSummary> {
+    return instances.map(
+      (
+        instance: EnterpriseLicenseInstance,
+      ): EnterpriseLicenseInstanceSummary => {
+        return {
+          instanceId: instance.instanceId || "",
+          host: instance.host || null,
+          userCount:
+            typeof instance.userCount === "number" ? instance.userCount : null,
+          lastReportedAt: instance.lastReportedAt
+            ? instance.lastReportedAt.toISOString()
+            : null,
+        };
+      },
+    );
+  }
+
+  private async upsertLicenseInstance(
+    data: LicenseInstanceUpsert,
+  ): Promise<void> {
+    const existingInstance: EnterpriseLicenseInstance | null =
+      await EnterpriseLicenseInstanceService.findOneBy({
+        query: {
+          enterpriseLicenseId: data.licenseId,
+          instanceId: data.instanceId,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (existingInstance) {
+      const updateData: PartialEntity<EnterpriseLicenseInstance> = {};
+
+      if (data.host !== undefined) {
+        updateData.host = data.host;
+      }
+
+      if (data.userCount !== undefined) {
+        updateData.userCount = data.userCount;
+      }
+
+      if (data.userEmailHashes !== undefined) {
+        updateData.userEmailHashes = data.userEmailHashes;
+      }
+
+      if (data.lastReportedAt !== undefined) {
+        updateData.lastReportedAt = data.lastReportedAt;
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        return;
+      }
+
+      await EnterpriseLicenseInstanceService.updateOneById({
+        id: existingInstance.id!,
+        data: updateData,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+
+      return;
+    }
+
+    const newInstance: EnterpriseLicenseInstance =
+      new EnterpriseLicenseInstance();
+    newInstance.enterpriseLicenseId = data.licenseId;
+    newInstance.instanceId = data.instanceId;
+
+    if (data.host !== undefined) {
+      newInstance.host = data.host;
+    }
+
+    if (data.userCount !== undefined) {
+      newInstance.userCount = data.userCount;
+    }
+
+    if (data.userEmailHashes !== undefined) {
+      newInstance.userEmailHashes = data.userEmailHashes;
+    }
+
+    if (data.lastReportedAt !== undefined) {
+      newInstance.lastReportedAt = data.lastReportedAt;
+    }
+
+    await EnterpriseLicenseInstanceService.create({
+      data: newInstance,
+      props: {
+        isRoot: true,
+      },
+    });
   }
 }

@@ -2,6 +2,7 @@ import RunCron from "../../Utils/Cron";
 import { EVERY_DAY, EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 import {
   EnterpriseLicenseUserCountReportUrl,
+  Host,
   IsBillingEnabled,
   IsDevelopment,
   IsEnterpriseEdition,
@@ -9,14 +10,69 @@ import {
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import UserService from "Common/Server/Services/UserService";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import User from "Common/Models/DatabaseModels/User";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import API from "Common/Utils/API";
+import Crypto from "Common/Utils/Crypto";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
-import PositiveNumber from "Common/Types/PositiveNumber";
+import EnterpriseLicenseInstanceSummary from "Common/Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
+import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import PartialEntity from "Common/Types/Database/PartialEntity";
 import logger from "Common/Server/Utils/Logger";
+
+type GetUserEmailHashesFunction = () => Promise<Array<string>>;
+
+/*
+ * SHA-256 hashes of user emails identify users uniquely across all of the
+ * customer's instances (staging, production, etc.) that share one license,
+ * without sending raw emails to OneUptime. The same user on multiple
+ * instances consumes a single licensed seat.
+ */
+const getUserEmailHashes: GetUserEmailHashesFunction = async (): Promise<
+  Array<string>
+> => {
+  const emailHashes: Set<string> = new Set<string>();
+  let skip: number = 0;
+
+  for (;;) {
+    const users: Array<User> = await UserService.findBy({
+      query: {},
+      select: {
+        email: true,
+      },
+      sort: {
+        createdAt: SortOrder.Ascending,
+      },
+      skip: skip,
+      limit: LIMIT_MAX,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const user of users) {
+      const email: string = user.email?.toString().trim().toLowerCase() || "";
+
+      if (!email) {
+        continue;
+      }
+
+      emailHashes.add(Crypto.getSha256Hash(email));
+    }
+
+    if (users.length < LIMIT_MAX) {
+      break;
+    }
+
+    skip += LIMIT_MAX;
+  }
+
+  return Array.from(emailHashes);
+};
 
 RunCron(
   "EnterpriseLicense:ReportUserCount",
@@ -41,6 +97,7 @@ RunCron(
       id: ObjectID.getZeroObjectID(),
       select: {
         enterpriseLicenseKey: true,
+        instanceId: true,
       },
       props: {
         isRoot: true,
@@ -56,19 +113,35 @@ RunCron(
       return;
     }
 
-    const userCount: PositiveNumber = await UserService.countBy({
-      query: {},
-      props: {
-        isRoot: true,
-      },
-    });
+    let instanceId: ObjectID | undefined = config?.instanceId;
+
+    if (!instanceId) {
+      // Installs that predate instance ids: generate one now.
+      instanceId = ObjectID.generate();
+
+      await GlobalConfigService.updateOneById({
+        id: ObjectID.getZeroObjectID(),
+        data: {
+          instanceId: instanceId,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    }
+
+    const userEmailHashes: Array<string> = await getUserEmailHashes();
 
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.post<JSONObject>({
         url: EnterpriseLicenseUserCountReportUrl,
         data: {
           licenseKey: licenseKey,
-          userCount: userCount.toNumber(),
+          userCount: userEmailHashes.length,
+          instanceId: instanceId.toString(),
+          host: Host,
+          userEmailHashes: userEmailHashes,
         },
       });
 
@@ -86,12 +159,34 @@ RunCron(
 
     const reportedAt: Date = OneUptimeDate.getCurrentDate();
 
+    const payload: JSONObject = (response.data as JSONObject) || {};
+
+    /*
+     * The license server responds with the user count deduplicated across
+     * all instances that share this license, plus the instance list — store
+     * both so the license modal can show them.
+     */
+    const aggregatedUserCountRaw: unknown = payload["currentUserCount"];
+    const aggregatedUserCount: number =
+      typeof aggregatedUserCountRaw === "number" &&
+      Number.isFinite(aggregatedUserCountRaw)
+        ? aggregatedUserCountRaw
+        : userEmailHashes.length;
+
+    const updateData: PartialEntity<GlobalConfig> = {
+      enterpriseLicenseCurrentUserCount: aggregatedUserCount,
+      enterpriseLicenseUserCountUpdatedAt: reportedAt,
+    };
+
+    if (Array.isArray(payload["instances"])) {
+      updateData.enterpriseLicenseInstances = payload[
+        "instances"
+      ] as Array<EnterpriseLicenseInstanceSummary>;
+    }
+
     await GlobalConfigService.updateOneById({
       id: ObjectID.getZeroObjectID(),
-      data: {
-        enterpriseLicenseCurrentUserCount: userCount.toNumber(),
-        enterpriseLicenseUserCountUpdatedAt: reportedAt,
-      },
+      data: updateData,
       props: {
         isRoot: true,
         ignoreHooks: true,
@@ -99,7 +194,7 @@ RunCron(
     });
 
     logger.debug(
-      `EnterpriseLicense:ReportUserCount: Reported ${userCount.toNumber()} users to OneUptime.`,
+      `EnterpriseLicense:ReportUserCount: Reported ${userEmailHashes.length} users on this instance to OneUptime. Unique users across all instances: ${aggregatedUserCount}.`,
     );
   },
 );
