@@ -7,7 +7,7 @@ export class AddScheduledMaintenanceReminderRules1783320000000
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "ScheduledMaintenanceReminderRule" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "name" character varying(100) NOT NULL, "description" character varying(500), "order" integer NOT NULL DEFAULT '1', "isEnabled" boolean NOT NULL DEFAULT true, "reminderIntervalInMinutes" integer NOT NULL, "stopRemindersOnState" character varying NOT NULL DEFAULT 'Completed', "remindWhileScheduled" boolean NOT NULL DEFAULT false, "createdByUserId" uuid, "deletedByUserId" uuid, CONSTRAINT "PK_02c0366932aa9c0a3140113de4b" PRIMARY KEY ("_id"))`,
+      `CREATE TABLE "ScheduledMaintenanceReminderRule" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "name" character varying(100) NOT NULL, "description" character varying(500), "order" integer NOT NULL DEFAULT '1', "isEnabled" boolean NOT NULL DEFAULT true, "reminderIntervalInMinutes" integer NOT NULL, "stopRemindersOnState" character varying NOT NULL DEFAULT 'Completed', "createdByUserId" uuid, "deletedByUserId" uuid, CONSTRAINT "PK_02c0366932aa9c0a3140113de4b" PRIMARY KEY ("_id"))`,
     );
     await queryRunner.query(
       `CREATE INDEX "IDX_cdfe86ca6afb1ca38389dfd797" ON "ScheduledMaintenanceReminderRule" ("projectId") `,
