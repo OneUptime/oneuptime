@@ -70,8 +70,9 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    const projectId: ObjectID | undefined = onUpdate.updateBy.props
-      .tenantId as ObjectID | undefined;
+    const projectId: ObjectID | undefined = onUpdate.updateBy.props.tenantId as
+      | ObjectID
+      | undefined;
 
     if (projectId) {
       await this.refreshSchedulesForOpenAlerts(projectId);
@@ -85,8 +86,9 @@ export class Service extends DatabaseService<Model> {
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
-    const projectId: ObjectID | undefined = onDelete.deleteBy.props
-      .tenantId as ObjectID | undefined;
+    const projectId: ObjectID | undefined = onDelete.deleteBy.props.tenantId as
+      | ObjectID
+      | undefined;
 
     if (projectId) {
       await this.refreshSchedulesForOpenAlerts(projectId);

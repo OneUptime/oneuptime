@@ -263,9 +263,7 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
           alert_title: alert.title!,
           alert_state: currentStateName,
           alert_number:
-            alert.alertNumber !== undefined
-              ? alert.alertNumber.toString()
-              : "",
+            alert.alertNumber !== undefined ? alert.alertNumber.toString() : "",
           elapsed_time: openDuration,
           alert_link: alertViewLink,
         },

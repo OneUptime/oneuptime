@@ -67,8 +67,7 @@ const templateIds: TemplateIdsMap = {
     "oneuptime_incident_member_added_notification",
   IncidentReminderOwnerNotification:
     "oneuptime_incident_reminder_owner_notification",
-  AlertReminderOwnerNotification:
-    "oneuptime_alert_reminder_owner_notification",
+  AlertReminderOwnerNotification: "oneuptime_alert_reminder_owner_notification",
   AlertCreatedOwnerNotification: "oneuptime_alert_created_owner_notification",
   AlertNotePostedOwnerNotification:
     "oneuptime_alert_note_posted_owner_notification",

@@ -131,7 +131,10 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
     incidentId: incidentId,
   });
 
-  if (!shouldStop && rule.stopRemindersOnState === ReminderStopState.Acknowledged) {
+  if (
+    !shouldStop &&
+    rule.stopRemindersOnState === ReminderStopState.Acknowledged
+  ) {
     shouldStop = await IncidentService.isIncidentAcknowledged({
       incidentId: incidentId,
     });
