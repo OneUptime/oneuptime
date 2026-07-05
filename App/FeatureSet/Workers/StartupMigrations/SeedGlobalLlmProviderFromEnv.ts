@@ -73,8 +73,10 @@ export default class SeedGlobalLlmProviderFromEnv extends StartupMigrationBase {
     }
 
     const llmType: LlmType = llmTypeEnv as LlmType;
-    // Truncate cosmetic fields to their column caps so an over-long name can
-    // never fail the whole seed.
+    /*
+     * Truncate cosmetic fields to their column caps so an over-long name can
+     * never fail the whole seed.
+     */
     const name: string = (
       process.env["GLOBAL_LLM_PROVIDER_NAME"] || "Global LLM Provider"
     ).substring(0, ColumnLength.Name);
