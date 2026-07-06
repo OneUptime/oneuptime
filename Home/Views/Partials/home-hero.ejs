@@ -1,11 +1,11 @@
 <div class="relative isolate bg-white overflow-hidden" id="hero-section">
   <!-- Subtle grid pattern background -->
-  <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+  <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f4f4f5_1px,transparent_1px),linear-gradient(to_bottom,#f4f4f5_1px,transparent_1px)] bg-[size:5rem_5rem] [mask-image:radial-gradient(ellipse_55%_45%_at_50%_0%,#000_60%,transparent_105%)]"></div>
 
   <!-- Aurora backdrop -->
-  <div class="aurora-a absolute -top-40 left-1/2 -z-10 h-[520px] w-[780px] rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(59 130 246 / 0.13) 0%, transparent 62%); transform: translate(-60%, -12%);" aria-hidden="true"></div>
-  <div class="aurora-b absolute -top-24 left-1/2 -z-10 h-[460px] w-[700px] rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(139 92 246 / 0.11) 0%, transparent 62%); transform: translate(4%, -4%);" aria-hidden="true"></div>
-  <div class="aurora-c absolute top-40 left-1/2 -z-10 h-[380px] w-[560px] rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(16 185 129 / 0.08) 0%, transparent 62%); transform: translate(-18%, 16%);" aria-hidden="true"></div>
+  <div class="aurora-a absolute -top-40 left-1/2 -z-10 h-[520px] w-[780px] rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(59 130 246 / 0.15) 0%, transparent 60%); transform: translate(-60%, -12%);" aria-hidden="true"></div>
+  <div class="aurora-b absolute -top-24 left-1/2 -z-10 h-[460px] w-[700px] rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(124 58 237 / 0.12) 0%, transparent 60%); transform: translate(4%, -4%);" aria-hidden="true"></div>
+  <div class="aurora-c absolute top-40 left-1/2 -z-10 h-[380px] w-[560px] rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(99 102 241 / 0.07) 0%, transparent 62%); transform: translate(-18%, 16%);" aria-hidden="true"></div>
 
   <!-- Night sky: a few faint stars (the story starts at 2:47 AM) -->
   <div class="absolute inset-x-0 top-0 h-72 -z-10 pointer-events-none" aria-hidden="true">
@@ -18,17 +18,17 @@
   </div>
 
   <!-- Grid glow effect that follows cursor - glowing grid lines -->
-  <div id="grid-glow-effect" class="absolute inset-0 -z-[9] pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(59, 130, 246, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(59, 130, 246, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+  <div id="grid-glow-effect" class="absolute inset-0 -z-[9] pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(59, 130, 246, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(59, 130, 246, 0.3) 1px, transparent 1px); background-size: 5rem 5rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
 
   <div class="pt-24 pb-16 sm:pt-28 sm:pb-20 lg:pt-32 lg:pb-24">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
       <div class="mx-auto max-w-4xl text-center">
         <!-- Badge row: AI-native + open source -->
         <div data-reveal class="mb-8 flex flex-wrap items-center justify-center gap-2.5">
-          <span class="rounded-full bg-gradient-to-r from-blue-400/60 via-indigo-400/60 to-violet-400/60 p-px shadow-sm transition-transform hover:-translate-y-0.5">
+          <span class="rounded-full bg-gradient-to-r from-blue-500/50 via-indigo-500/50 to-violet-500/50 p-px shadow-sm transition-transform hover:-translate-y-0.5">
             <span class="flex h-8 items-center gap-1.5 rounded-full bg-white px-4">
               <svg class="h-4 w-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" /></svg>
-              <span class="gradient-pan text-xs font-semibold uppercase tracking-[0.15em] bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">AI-Native Observability</span>
+              <span class="gradient-pan text-xs font-semibold uppercase tracking-[0.15em] bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500 bg-clip-text text-transparent">AI-Native Observability</span>
             </span>
           </span>
           <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group inline-flex h-8 items-center gap-1.5 rounded-full bg-white px-4 text-sm text-gray-600 shadow-sm ring-1 ring-inset ring-gray-200 transition-all hover:-translate-y-0.5 hover:ring-gray-300">
@@ -45,9 +45,9 @@
         </div>
 
         <!-- Main headline -->
-        <h1 data-reveal data-reveal-delay="75" class="text-4xl font-semibold text-gray-900 sm:text-5xl lg:text-[4.5rem] lg:leading-[1.05] tracking-[-0.025em]">
+        <h1 data-reveal data-reveal-delay="75" class="text-4xl font-semibold text-gray-950 sm:text-5xl lg:text-[4.5rem] lg:leading-[1.05] tracking-[-0.025em]">
           Be the first to know.<br class="hidden sm:block" />
-          <span class="gradient-pan bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">Be the fastest to fix.</span>
+          <span class="gradient-pan bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500 bg-clip-text text-transparent">Be the fastest to fix.</span>
         </h1>
 
         <!-- Subheadline -->
@@ -58,17 +58,17 @@
         <!-- CTA buttons -->
         <div data-reveal data-reveal-delay="225" class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
           <a href="/accounts/register"
-            class="btn-shine w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-900 px-7 py-3 text-base font-medium text-white shadow-md shadow-gray-900/10 transition-all hover:bg-gray-700 hover:shadow-lg hover:shadow-gray-900/15 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
+            class="btn-shine w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-950 px-7 py-3 text-base font-medium text-white shadow-lg shadow-indigo-500/10 transition-all hover:bg-gray-800 hover:shadow-xl hover:shadow-indigo-500/15 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
             Get started free
             <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
           </a>
-          <a href="/enterprise/demo" class="relative z-10 w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-7 py-3 text-base font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">
+          <a href="/enterprise/demo" class="relative z-10 w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-7 py-3 text-base font-medium text-gray-800 shadow-sm ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-50 hover:ring-gray-300 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">
             Request a demo
           </a>
         </div>
 
         <!-- Trust microcopy -->
-        <div data-reveal data-reveal-delay="300" class="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-gray-500">
+        <div data-reveal data-reveal-delay="300" class="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-gray-500">
           <span class="inline-flex items-center gap-1.5">
             <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
             No credit card required
