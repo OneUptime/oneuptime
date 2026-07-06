@@ -2,83 +2,70 @@
   <!-- Subtle grid pattern background -->
   <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f4f4f5_1px,transparent_1px),linear-gradient(to_bottom,#f4f4f5_1px,transparent_1px)] bg-[size:5rem_5rem] [mask-image:radial-gradient(ellipse_55%_45%_at_50%_0%,#000_60%,transparent_105%)]"></div>
 
-  <!-- Aurora backdrop -->
-  <div class="aurora-a absolute -top-40 left-1/2 -z-10 h-[520px] w-[780px] rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(59 130 246 / 0.15) 0%, transparent 60%); transform: translate(-60%, -12%);" aria-hidden="true"></div>
-  <div class="aurora-b absolute -top-24 left-1/2 -z-10 h-[460px] w-[700px] rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(124 58 237 / 0.12) 0%, transparent 60%); transform: translate(4%, -4%);" aria-hidden="true"></div>
-  <div class="aurora-c absolute top-40 left-1/2 -z-10 h-[380px] w-[560px] rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(99 102 241 / 0.07) 0%, transparent 62%); transform: translate(-18%, 16%);" aria-hidden="true"></div>
-
-  <!-- Night sky: a few faint stars (the story starts at 2:47 AM) -->
-  <div class="absolute inset-x-0 top-0 h-72 -z-10 pointer-events-none" aria-hidden="true">
-    <span class="star absolute left-[12%] top-16 h-[3px] w-[3px] rounded-full bg-indigo-400" style="opacity: 0.2; --tw-dur: 3.6s;"></span>
-    <span class="star absolute left-[22%] top-36 h-[2px] w-[2px] rounded-full bg-blue-400" style="opacity: 0.2; --tw-dur: 5s; --tw-delay: 1.2s;"></span>
-    <span class="star absolute left-[38%] top-10 h-[2px] w-[2px] rounded-full bg-violet-400" style="opacity: 0.2; --tw-dur: 4.4s; --tw-delay: 0.6s;"></span>
-    <span class="star absolute left-[63%] top-14 h-[3px] w-[3px] rounded-full bg-indigo-400" style="opacity: 0.2; --tw-dur: 4s; --tw-delay: 2s;"></span>
-    <span class="star absolute left-[78%] top-32 h-[2px] w-[2px] rounded-full bg-blue-400" style="opacity: 0.2; --tw-dur: 5.4s; --tw-delay: 0.3s;"></span>
-    <span class="star absolute left-[89%] top-20 h-[2px] w-[2px] rounded-full bg-violet-400" style="opacity: 0.2; --tw-dur: 3.8s; --tw-delay: 1.6s;"></span>
-  </div>
+  <!-- Soft, cohesive cool glow behind the headline -->
+  <div class="aurora-a absolute -top-40 left-1/2 -z-10 h-[520px] w-[820px] rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(37 99 235 / 0.09) 0%, transparent 62%); transform: translate(-58%, -12%);" aria-hidden="true"></div>
+  <div class="aurora-b absolute -top-24 left-1/2 -z-10 h-[460px] w-[720px] rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(99 102 241 / 0.08) 0%, transparent 62%); transform: translate(2%, -4%);" aria-hidden="true"></div>
 
   <!-- Grid glow effect that follows cursor - glowing grid lines -->
-  <div id="grid-glow-effect" class="absolute inset-0 -z-[9] pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(59, 130, 246, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(59, 130, 246, 0.3) 1px, transparent 1px); background-size: 5rem 5rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+  <div id="grid-glow-effect" class="absolute inset-0 -z-[9] pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(99, 102, 241, 0.16) 1px, transparent 1px), linear-gradient(to bottom, rgba(99, 102, 241, 0.16) 1px, transparent 1px); background-size: 5rem 5rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
 
   <div class="pt-24 pb-16 sm:pt-28 sm:pb-20 lg:pt-32 lg:pb-24">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
       <div class="mx-auto max-w-4xl text-center">
         <!-- Badge row: AI-native + open source -->
-        <div data-reveal class="mb-8 flex flex-wrap items-center justify-center gap-2.5">
-          <span class="rounded-full bg-gradient-to-r from-blue-500/50 via-indigo-500/50 to-violet-500/50 p-px shadow-sm transition-transform hover:-translate-y-0.5">
-            <span class="flex h-8 items-center gap-1.5 rounded-full bg-white px-4">
-              <svg class="h-4 w-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" /></svg>
-              <span class="gradient-pan text-xs font-semibold uppercase tracking-[0.15em] bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500 bg-clip-text text-transparent">AI-Native Observability</span>
-            </span>
+        <div data-reveal class="mb-8 flex flex-wrap items-center justify-center gap-2">
+          <span class="inline-flex h-7 items-center gap-1.5 rounded-full border border-gray-200/80 bg-white/70 px-3 text-xs font-medium text-gray-700 shadow-sm backdrop-blur">
+            <svg class="h-3.5 w-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" /></svg>
+            <span class="tracking-tight">AI-native observability</span>
           </span>
-          <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group inline-flex h-8 items-center gap-1.5 rounded-full bg-white px-4 text-sm text-gray-600 shadow-sm ring-1 ring-inset ring-gray-200 transition-all hover:-translate-y-0.5 hover:ring-gray-300">
-            <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group inline-flex h-7 items-center gap-1.5 rounded-full border border-gray-200/80 bg-white/70 px-3 text-xs font-medium text-gray-600 shadow-sm backdrop-blur transition-colors hover:border-gray-300 hover:text-gray-900">
+            <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
             </svg>
             <span>100% open source</span>
             <% if (githubStars) { %>
             <span class="h-1 w-1 rounded-full bg-gray-300"></span>
-            <span class="tabular-nums"><%= githubStars %> stars</span>
+            <span class="tabular-nums text-gray-500"><%= githubStars %> stars</span>
             <% } %>
-            <svg class="h-3.5 w-3.5 text-gray-400 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+            <svg class="h-3 w-3 text-gray-400 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
           </a>
         </div>
 
         <!-- Main headline -->
-        <h1 data-reveal data-reveal-delay="75" class="text-4xl font-semibold text-gray-950 sm:text-5xl lg:text-[4.5rem] lg:leading-[1.05] tracking-[-0.025em]">
+        <h1 data-reveal data-reveal-delay="75" class="text-[2.5rem] font-semibold leading-[1.05] tracking-[-0.033em] text-gray-950 sm:text-6xl lg:text-[4.5rem] lg:leading-[1.02]">
           Be the first to know.<br class="hidden sm:block" />
-          <span class="gradient-pan bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500 bg-clip-text text-transparent">Be the fastest to fix.</span>
+          <span class="text-gray-400">Be the fastest to fix.</span>
         </h1>
 
         <!-- Subheadline -->
-        <p data-reveal data-reveal-delay="150" class="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8 max-w-2xl mx-auto">
+        <p data-reveal data-reveal-delay="150" class="mt-6 text-base leading-7 text-gray-500 sm:text-lg sm:leading-8 max-w-2xl mx-auto tracking-[-0.01em]">
           When something breaks at 2:47 AM, OneUptime catches it in seconds, pages the right person, updates your status page, finds the root cause, and opens the fix PR. Downtime costs you minutes, not customers.
         </p>
 
         <!-- CTA buttons -->
-        <div data-reveal data-reveal-delay="225" class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+        <div data-reveal data-reveal-delay="225" class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
           <a href="/accounts/register"
-            class="btn-shine w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-950 px-7 py-3 text-base font-medium text-white shadow-lg shadow-indigo-500/10 transition-all hover:bg-gray-800 hover:shadow-xl hover:shadow-indigo-500/15 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
+            class="btn-shine w-full sm:w-auto inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-gray-950 px-6 text-[15px] font-medium text-white shadow-sm transition-all hover:bg-gray-800 hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
             Get started free
-            <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
           </a>
-          <a href="/enterprise/demo" class="relative z-10 w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-7 py-3 text-base font-medium text-gray-800 shadow-sm ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-50 hover:ring-gray-300 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">
+          <a href="/enterprise/demo" class="relative z-10 w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-lg bg-white px-6 text-[15px] font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-50 hover:ring-gray-300 hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
             Request a demo
           </a>
         </div>
 
         <!-- Trust microcopy -->
-        <div data-reveal data-reveal-delay="300" class="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-gray-500">
+        <div data-reveal data-reveal-delay="300" class="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-gray-500">
           <span class="inline-flex items-center gap-1.5">
-            <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+            <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
             No credit card required
           </span>
           <span class="inline-flex items-center gap-1.5">
-            <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+            <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
             Free forever plan
           </span>
           <span class="inline-flex items-center gap-1.5">
-            <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+            <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
             Self-host anytime
           </span>
         </div>
