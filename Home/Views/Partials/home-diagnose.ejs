@@ -1,11 +1,13 @@
 <section id="diagnose" class="relative bg-white py-24 lg:py-32 overflow-hidden scroll-mt-24" aria-labelledby="diagnose-title">
   <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 to-white" aria-hidden="true"></div>
+  <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/70 to-transparent" aria-hidden="true"></div>
+  <div class="absolute -top-24 left-1/2 -translate-x-1/2 h-72 w-72 rounded-full bg-amber-100/50 blur-3xl pointer-events-none" aria-hidden="true"></div>
 
   <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
     <!-- Header -->
-    <div class="mx-auto max-w-2xl text-center mb-12">
+    <div data-reveal class="mx-auto max-w-2xl text-center mb-12">
       <div class="flex items-center justify-center gap-3 mb-4">
-        <span class="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-1 font-mono text-xs text-gray-500 ring-1 ring-inset ring-gray-200 tabular-nums">02:54</span>
+        <span class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 font-mono text-xs text-amber-600 ring-1 ring-inset ring-amber-200 tabular-nums">02:54</span>
         <p class="text-sm font-medium text-amber-600 tracking-wide uppercase">Diagnose</p>
       </div>
       <h2 id="diagnose-title" class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900">
@@ -17,9 +19,9 @@
     </div>
 
     <!-- Trace waterfall: the root cause, found -->
-    <div class="relative mx-auto max-w-4xl mb-12">
+    <div data-reveal data-reveal-delay="150" class="relative mx-auto max-w-4xl mb-12">
       <div class="absolute -inset-8 rounded-full pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(245 158 11 / 0.06) 0%, rgb(245 158 11 / 0.02) 40%, transparent 70%);" aria-hidden="true"></div>
-      <div class="relative">
+      <div class="relative tilt-c">
         <%- include('./home-mocks/mock-diagnose') -%>
       </div>
     </div>
@@ -27,24 +29,24 @@
     <!-- Linked signal cards -->
     <div class="relative mx-auto max-w-6xl">
       <div class="relative grid grid-cols-1 gap-4 md:grid-cols-3">
-        <a href="/product/traces" class="group relative z-10 rounded-2xl bg-white border border-gray-200 shadow-sm p-6 transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.1)]">
-          <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-50 ring-1 ring-inset ring-yellow-200 mb-4">
+        <a data-reveal href="/product/traces" class="group relative z-10 rounded-2xl bg-white border border-gray-200 shadow-sm p-6 transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.1)]">
+          <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-yellow-50 to-yellow-100 ring-1 ring-inset ring-yellow-200 mb-4">
             <svg class="h-5 w-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>
           </span>
           <h3 class="text-base font-semibold text-gray-900 mb-1">Traces</h3>
           <p class="text-sm text-gray-500 leading-relaxed">See every hop from frontend to database and pinpoint the slow service in seconds. Compare before and after a deploy.</p>
         </a>
 
-        <a href="/product/logs-management" class="group relative z-10 rounded-2xl bg-white border border-gray-200 shadow-sm p-6 transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.1)]">
-          <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 ring-1 ring-inset ring-amber-200 mb-4">
+        <a data-reveal data-reveal-delay="75" href="/product/logs-management" class="group relative z-10 rounded-2xl bg-white border border-gray-200 shadow-sm p-6 transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.1)]">
+          <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-amber-50 to-amber-100 ring-1 ring-inset ring-amber-200 mb-4">
             <svg class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>
           </span>
           <h3 class="text-base font-semibold text-gray-900 mb-1">Logs</h3>
           <p class="text-sm text-gray-500 leading-relaxed">Search fast, tail in real time, alert when error patterns spike. Jump from any log line to the trace it belongs to.</p>
         </a>
 
-        <a href="/product/exceptions" class="group relative z-10 rounded-2xl bg-white border border-gray-200 shadow-sm p-6 transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.1)]">
-          <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-inset ring-orange-200 mb-4">
+        <a data-reveal data-reveal-delay="150" href="/product/exceptions" class="group relative z-10 rounded-2xl bg-white border border-gray-200 shadow-sm p-6 transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.1)]">
+          <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-orange-50 to-orange-100 ring-1 ring-inset ring-orange-200 mb-4">
             <svg class="h-5 w-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
           </span>
           <h3 class="text-base font-semibold text-gray-900 mb-1">Errors &amp; Exceptions</h3>
@@ -53,7 +55,7 @@
       </div>
 
       <!-- OpenTelemetry strip -->
-      <div class="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
+      <div data-reveal data-reveal-delay="225" class="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
         <div class="flex items-start gap-4">
           <span class="mt-0.5 inline-flex h-10 w-10 flex-none items-center justify-center rounded-lg bg-gray-700">
             <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" /></svg>
@@ -72,7 +74,7 @@
       </div>
 
       <!-- Pricing callout + CTA -->
-      <div class="mt-10 text-center">
+      <div data-reveal data-reveal-delay="300" class="mt-10 text-center">
         <p class="inline-flex flex-wrap items-center justify-center gap-x-2 rounded-2xl sm:rounded-full bg-gray-50 px-5 py-2 text-sm text-gray-700 ring-1 ring-inset ring-gray-200">
           <span class="font-semibold text-gray-900">$0.10 per GB ingested</span>
           <span class="text-gray-500">&mdash; logs, traces, and metrics at one flat rate. No per-host pricing.</span>

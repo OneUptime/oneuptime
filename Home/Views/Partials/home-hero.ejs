@@ -2,9 +2,10 @@
   <!-- Subtle grid pattern background -->
   <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
 
-  <!-- Ambient color glows -->
-  <div class="absolute -top-32 left-1/2 -translate-x-[70%] -z-10 h-[420px] w-[680px] rounded-full pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(59 130 246 / 0.07) 0%, transparent 65%);" aria-hidden="true"></div>
-  <div class="absolute -top-16 left-1/2 translate-x-[10%] -z-10 h-[380px] w-[620px] rounded-full pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(139 92 246 / 0.06) 0%, transparent 65%);" aria-hidden="true"></div>
+  <!-- Aurora backdrop -->
+  <div class="aurora-a absolute -top-40 left-1/2 -z-10 h-[520px] w-[780px] rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(59 130 246 / 0.13) 0%, transparent 62%); transform: translate(-60%, -12%);" aria-hidden="true"></div>
+  <div class="aurora-b absolute -top-24 left-1/2 -z-10 h-[460px] w-[700px] rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(139 92 246 / 0.11) 0%, transparent 62%); transform: translate(4%, -4%);" aria-hidden="true"></div>
+  <div class="aurora-c absolute top-40 left-1/2 -z-10 h-[380px] w-[560px] rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(16 185 129 / 0.08) 0%, transparent 62%); transform: translate(-18%, 16%);" aria-hidden="true"></div>
 
   <!-- Grid glow effect that follows cursor - glowing grid lines -->
   <div id="grid-glow-effect" class="absolute inset-0 -z-[9] pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(59, 130, 246, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(59, 130, 246, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
@@ -13,7 +14,7 @@
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
       <div class="mx-auto max-w-3xl text-center">
         <!-- Subtle open-source indicator -->
-        <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group mb-8 inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-4 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100 hover:ring-gray-300">
+        <a href="https://github.com/oneuptime/oneuptime" target="_blank" data-reveal class="group mb-8 inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-4 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100 hover:ring-gray-300">
           <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
           </svg>
@@ -26,21 +27,21 @@
         </a>
 
         <!-- Main headline -->
-        <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
+        <h1 data-reveal data-reveal-delay="75" class="text-4xl font-semibold tracking-[-0.02em] text-gray-900 sm:text-5xl lg:text-[4rem] lg:leading-[1.08]">
           When things break,<br class="hidden sm:block" />
           be the first to know &mdash;<br class="hidden sm:block" />
           and <span class="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">the fastest to fix.</span>
         </h1>
 
         <!-- Subheadline -->
-        <p class="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8 max-w-2xl mx-auto">
+        <p data-reveal data-reveal-delay="150" class="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8 max-w-2xl mx-auto">
           OneUptime catches outages in seconds, pages the right engineer, keeps your customers posted, finds the root cause &mdash; and opens the fix PR. Downtime costs you minutes, not customers.
         </p>
 
         <!-- CTA buttons -->
-        <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+        <div data-reveal data-reveal-delay="225" class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
           <a href="/accounts/register"
-            class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-900 px-7 py-3 text-base font-medium text-white shadow-md shadow-gray-900/10 transition-all hover:bg-gray-700 hover:shadow-lg hover:shadow-gray-900/15 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
+            class="btn-shine w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-900 px-7 py-3 text-base font-medium text-white shadow-md shadow-gray-900/10 transition-all hover:bg-gray-700 hover:shadow-lg hover:shadow-gray-900/15 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
             Get started free
             <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
           </a>
@@ -50,7 +51,7 @@
         </div>
 
         <!-- Trust microcopy -->
-        <div class="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-gray-500">
+        <div data-reveal data-reveal-delay="300" class="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-gray-500">
           <span class="inline-flex items-center gap-1.5">
             <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
             No credit card required
@@ -68,11 +69,12 @@
       </div>
 
       <!-- Incident lifecycle timeline: the story of one outage, and the page's table of contents -->
-      <nav class="mt-20 mx-auto max-w-4xl text-center" aria-label="How OneUptime handles an incident">
+      <nav data-reveal data-reveal-delay="400" class="mt-20 mx-auto max-w-4xl text-center" aria-label="How OneUptime handles an incident">
         <p class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-8">One incident, handled end to end</p>
         <div class="relative">
           <!-- Connecting rail through the lifecycle, in its colors -->
           <div class="absolute left-[10%] right-[10%] top-5 hidden sm:block h-px bg-[linear-gradient(to_right,rgb(147_197_253/0.6)_10%,rgb(253_164_175/0.6)_30%,rgb(110_231_183/0.6)_50%,rgb(252_211_77/0.6)_70%,rgb(196_181_253/0.6)_90%)]" aria-hidden="true"></div>
+          <div class="rail-comet absolute top-5 hidden sm:block h-px w-24 -translate-y-px pointer-events-none" style="left: 10%; opacity: 0; background: linear-gradient(to right, transparent, rgb(99 102 241 / 0.9), transparent); box-shadow: 0 0 12px 1px rgb(99 102 241 / 0.45);" aria-hidden="true"></div>
           <ol class="grid grid-cols-2 gap-x-2 gap-y-8 sm:grid-cols-5">
             <li>
               <a href="#detect" class="group flex flex-col items-center gap-1 transition-transform hover:-translate-y-0.5">

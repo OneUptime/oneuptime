@@ -1,10 +1,12 @@
 <section id="detect" class="relative bg-white py-24 lg:py-32 overflow-hidden scroll-mt-24" aria-labelledby="detect-title">
+  <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-200/70 to-transparent" aria-hidden="true"></div>
+  <div class="absolute -top-24 right-[12%] h-72 w-72 rounded-full bg-blue-100/50 blur-3xl pointer-events-none" aria-hidden="true"></div>
   <div class="mx-auto max-w-7xl px-6 lg:px-8">
     <div class="grid grid-cols-1 items-center gap-16 lg:grid-cols-5 lg:gap-20">
       <!-- Copy -->
-      <div class="lg:col-span-2">
+      <div data-reveal class="lg:col-span-2">
         <div class="flex items-center gap-3 mb-4">
-          <span class="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-1 font-mono text-xs text-gray-500 ring-1 ring-inset ring-gray-200 tabular-nums">02:47</span>
+          <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 font-mono text-xs text-blue-600 ring-1 ring-inset ring-blue-200 tabular-nums">02:47</span>
           <p class="text-sm font-medium text-blue-600 tracking-wide uppercase">Detect</p>
         </div>
         <h2 id="detect-title" class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900">
@@ -58,14 +60,14 @@
 
       <!-- Visual -->
       <div class="lg:col-span-3">
-        <div class="relative">
+        <div data-reveal data-reveal-delay="150" class="relative">
           <div class="absolute -inset-8 rounded-full pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(59 130 246 / 0.06) 0%, rgb(59 130 246 / 0.02) 40%, transparent 70%);" aria-hidden="true"></div>
-          <div class="relative">
+          <div class="relative tilt-r">
             <%- include('./home-mocks/mock-detect') -%>
           </div>
         </div>
-        <p class="mt-6 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-400">Everything you can monitor</p>
-        <nav class="mt-3 flex flex-wrap justify-center gap-2" aria-label="Everything you can monitor">
+        <p data-reveal data-reveal-delay="300" class="mt-6 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-400">Everything you can monitor</p>
+        <nav data-reveal data-reveal-delay="375" class="mt-3 flex flex-wrap justify-center gap-2" aria-label="Everything you can monitor">
           <a href="/product/monitoring" class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-md border border-gray-200 hover:bg-gray-100 hover:text-gray-900 transition-colors">Websites &amp; APIs</a>
           <a href="/product/host" class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-md border border-gray-200 hover:bg-gray-100 hover:text-gray-900 transition-colors">Servers</a>
           <a href="/product/kubernetes" class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-md border border-gray-200 hover:bg-gray-100 hover:text-gray-900 transition-colors">Kubernetes</a>

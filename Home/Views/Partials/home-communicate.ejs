@@ -1,10 +1,12 @@
 <section id="communicate" class="relative bg-white py-24 lg:py-32 overflow-hidden scroll-mt-24" aria-labelledby="communicate-title">
+  <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/70 to-transparent" aria-hidden="true"></div>
+  <div class="absolute -top-24 right-[12%] h-72 w-72 rounded-full bg-emerald-100/50 blur-3xl pointer-events-none" aria-hidden="true"></div>
   <div class="mx-auto max-w-7xl px-6 lg:px-8">
     <div class="grid grid-cols-1 items-center gap-16 lg:grid-cols-5 lg:gap-20">
       <!-- Copy -->
-      <div class="lg:col-span-2">
+      <div data-reveal class="lg:col-span-2">
         <div class="flex items-center gap-3 mb-4">
-          <span class="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-1 font-mono text-xs text-gray-500 ring-1 ring-inset ring-gray-200 tabular-nums">02:49</span>
+          <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 font-mono text-xs text-emerald-600 ring-1 ring-inset ring-emerald-200 tabular-nums">02:49</span>
           <p class="text-sm font-medium text-emerald-600 tracking-wide uppercase">Communicate</p>
         </div>
         <h2 id="communicate-title" class="text-4xl sm:text-5xl font-semibold tracking-tight text-balance text-gray-900">
@@ -64,9 +66,9 @@
 
       <!-- Visual -->
       <div class="lg:col-span-3">
-        <div class="relative">
+        <div data-reveal data-reveal-delay="150" class="relative">
           <div class="absolute -inset-8 rounded-full pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(16 185 129 / 0.06) 0%, rgb(16 185 129 / 0.02) 40%, transparent 70%);" aria-hidden="true"></div>
-          <div class="relative">
+          <div class="relative tilt-r">
             <%- include('./home-mocks/mock-communicate') -%>
           </div>
         </div>
