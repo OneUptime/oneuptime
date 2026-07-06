@@ -615,6 +615,32 @@ export default class LlmLog extends BaseModel {
     ],
     update: [],
   })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "AI Run ID",
+    description: "ID of the AI run this LLM call was part of (if any)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public aiRunId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadLlmLog,
+    ],
+    update: [],
+  })
   @TableColumn({
     manyToOneRelationColumn: "scheduledMaintenanceId",
     type: TableColumnType.Entity,

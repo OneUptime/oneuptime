@@ -1,21 +1,47 @@
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import URL from "../../../Types/API/URL";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONArray, JSONObject } from "../../../Types/JSON";
+import JSONFunctions from "../../../Types/JSONFunctions";
 import API from "../../../Utils/API";
 import LlmType from "../../../Types/LLM/LlmType";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
+export interface LLMToolDefinition {
+  name: string;
+  description: string;
+  // JSON Schema for the tool's arguments.
+  inputSchema: JSONObject;
+}
+
+export interface LLMToolCall {
+  id: string;
+  name: string;
+  arguments: JSONObject;
+  /*
+   * Set when the provider returned malformed argument JSON that could not be
+   * parsed. Callers must NOT execute the tool with the empty arguments —
+   * surface the error to the model so it can retry.
+   */
+  argumentsParseError?: string | undefined;
+}
+
 export interface LLMMessage {
-  role: "system" | "user" | "assistant";
+  role: "system" | "user" | "assistant" | "tool";
   content: string;
+  // Set on assistant messages that requested tool calls.
+  toolCalls?: Array<LLMToolCall> | undefined;
+  // Set on tool messages: which tool call this result answers.
+  toolCallId?: string | undefined;
 }
 
 export interface LLMCompletionRequest {
   messages: Array<LLMMessage>;
-  temperature?: number;
+  temperature?: number | undefined;
+  maxTokens?: number | undefined;
+  tools?: Array<LLMToolDefinition> | undefined;
   llmProviderConfig: LLMProviderConfig;
 }
 
@@ -27,6 +53,8 @@ export interface LLMUsage {
 
 export interface LLMCompletionResponse {
   content: string;
+  toolCalls?: Array<LLMToolCall> | undefined;
+  stopReason?: "stop" | "tool_use" | undefined;
   usage: LLMUsage | undefined;
 }
 
@@ -60,6 +88,168 @@ export default class LLMService {
     }
   }
 
+  /*
+   * OpenAI-compatible wire format (OpenAI, Groq, Mistral, Azure OpenAI).
+   */
+
+  private static toOpenAIMessages(
+    messages: Array<LLMMessage>,
+  ): Array<JSONObject> {
+    return messages.map((msg: LLMMessage) => {
+      if (msg.role === "assistant" && msg.toolCalls && msg.toolCalls.length) {
+        return {
+          role: "assistant",
+          content: msg.content || null,
+          tool_calls: msg.toolCalls.map((toolCall: LLMToolCall) => {
+            return {
+              id: toolCall.id,
+              type: "function",
+              function: {
+                name: toolCall.name,
+                arguments: JSON.stringify(toolCall.arguments),
+              },
+            };
+          }),
+        };
+      }
+
+      if (msg.role === "tool") {
+        return {
+          role: "tool",
+          tool_call_id: msg.toolCallId || "",
+          content: msg.content,
+        };
+      }
+
+      return {
+        role: msg.role,
+        content: msg.content,
+      };
+    });
+  }
+
+  private static toOpenAITools(
+    tools: Array<LLMToolDefinition>,
+  ): Array<JSONObject> {
+    return tools.map((tool: LLMToolDefinition) => {
+      return {
+        type: "function",
+        function: {
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.inputSchema,
+        },
+      };
+    });
+  }
+
+  private static parseOpenAIToolCalls(
+    message: JSONObject,
+  ): Array<LLMToolCall> | undefined {
+    const rawToolCalls: JSONArray | undefined = message["tool_calls"] as
+      | JSONArray
+      | undefined;
+
+    if (!rawToolCalls || rawToolCalls.length === 0) {
+      return undefined;
+    }
+
+    return rawToolCalls.map((rawToolCall: JSONObject, index: number) => {
+      const fn: JSONObject = (rawToolCall["function"] as JSONObject) || {};
+      const parsed: { arguments: JSONObject; error?: string | undefined } =
+        this.parseToolCallArguments((fn["arguments"] as string) || "{}");
+
+      return {
+        id: (rawToolCall["id"] as string) || `tool_call_${index}`,
+        name: (fn["name"] as string) || "",
+        arguments: parsed.arguments,
+        argumentsParseError: parsed.error,
+      };
+    });
+  }
+
+  /*
+   * Models sometimes emit slightly malformed argument JSON (trailing commas,
+   * single quotes). Try strict JSON first, then tolerant JSON5, and report a
+   * parse error instead of silently executing with empty arguments.
+   */
+  private static parseToolCallArguments(rawArguments: string): {
+    arguments: JSONObject;
+    error?: string | undefined;
+  } {
+    try {
+      return { arguments: JSON.parse(rawArguments) };
+    } catch {
+      // fall through to tolerant parsing
+    }
+
+    try {
+      const parsed: JSONObject | unknown = JSONFunctions.parse(rawArguments);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return { arguments: parsed as JSONObject };
+      }
+      return {
+        arguments: {},
+        error: "Tool arguments were not a JSON object.",
+      };
+    } catch {
+      return {
+        arguments: {},
+        error: "Tool arguments were malformed JSON and could not be parsed.",
+      };
+    }
+  }
+
+  private static buildOpenAIRequestBody(
+    modelName: string,
+    request: LLMCompletionRequest,
+  ): JSONObject {
+    const data: JSONObject = {
+      model: modelName,
+      messages: this.toOpenAIMessages(request.messages),
+      temperature: request.temperature ?? 0.7,
+    };
+
+    if (request.maxTokens) {
+      data["max_tokens"] = request.maxTokens;
+    }
+
+    if (request.tools && request.tools.length > 0) {
+      data["tools"] = this.toOpenAITools(request.tools);
+    }
+
+    return data;
+  }
+
+  private static parseOpenAIResponse(
+    jsonData: JSONObject,
+    providerName: string,
+  ): LLMCompletionResponse {
+    const choices: Array<JSONObject> = jsonData["choices"] as Array<JSONObject>;
+
+    if (!choices || choices.length === 0) {
+      throw new BadDataException(`No response from ${providerName}`);
+    }
+
+    const message: JSONObject = choices[0]!["message"] as JSONObject;
+    const usage: JSONObject = jsonData["usage"] as JSONObject;
+    const toolCalls: Array<LLMToolCall> | undefined =
+      this.parseOpenAIToolCalls(message);
+
+    return {
+      content: (message["content"] as string) || "",
+      toolCalls: toolCalls,
+      stopReason: toolCalls && toolCalls.length > 0 ? "tool_use" : "stop",
+      usage: usage
+        ? {
+            promptTokens: usage["prompt_tokens"] as number,
+            completionTokens: usage["completion_tokens"] as number,
+            totalTokens: usage["total_tokens"] as number,
+          }
+        : undefined,
+    };
+  }
+
   @CaptureSpan()
   private static async getOpenAICompatibleCompletion(
     config: LLMProviderConfig,
@@ -90,16 +280,7 @@ export default class LLMService {
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post<JSONObject>({
         url: URL.fromString(`${baseUrl}/chat/completions`),
-        data: {
-          model: modelName,
-          messages: request.messages.map((msg: LLMMessage) => {
-            return {
-              role: msg.role,
-              content: msg.content,
-            };
-          }),
-          temperature: request.temperature ?? 0.7,
-        },
+        data: this.buildOpenAIRequestBody(modelName, request),
         headers: {
           Authorization: `Bearer ${config.apiKey}`,
           "Content-Type": "application/json",
@@ -124,26 +305,10 @@ export default class LLMService {
       );
     }
 
-    const jsonData: JSONObject = response.jsonData as JSONObject;
-    const choices: Array<JSONObject> = jsonData["choices"] as Array<JSONObject>;
-
-    if (!choices || choices.length === 0) {
-      throw new BadDataException(`No response from ${config.llmType}`);
-    }
-
-    const message: JSONObject = choices[0]!["message"] as JSONObject;
-    const usage: JSONObject = jsonData["usage"] as JSONObject;
-
-    return {
-      content: message["content"] as string,
-      usage: usage
-        ? {
-            promptTokens: usage["prompt_tokens"] as number,
-            completionTokens: usage["completion_tokens"] as number,
-            totalTokens: usage["total_tokens"] as number,
-          }
-        : undefined,
-    };
+    return this.parseOpenAIResponse(
+      response.jsonData as JSONObject,
+      config.llmType,
+    );
   }
 
   /*
@@ -192,16 +357,7 @@ export default class LLMService {
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post<JSONObject>({
         url: URL.fromString(requestUrl),
-        data: {
-          model: modelName,
-          messages: request.messages.map((msg: LLMMessage) => {
-            return {
-              role: msg.role,
-              content: msg.content,
-            };
-          }),
-          temperature: request.temperature ?? 0.7,
-        },
+        data: this.buildOpenAIRequestBody(modelName, request),
         headers: {
           "api-key": config.apiKey,
           "Content-Type": "application/json",
@@ -226,26 +382,86 @@ export default class LLMService {
       );
     }
 
-    const jsonData: JSONObject = response.jsonData as JSONObject;
-    const choices: Array<JSONObject> = jsonData["choices"] as Array<JSONObject>;
+    return this.parseOpenAIResponse(
+      response.jsonData as JSONObject,
+      "Azure OpenAI",
+    );
+  }
 
-    if (!choices || choices.length === 0) {
-      throw new BadDataException("No response from Azure OpenAI");
+  /*
+   * Anthropic wire format. System message is hoisted, tool results ride in
+   * user messages as tool_result blocks, and max_tokens is required by the
+   * API.
+   */
+
+  private static readonly ANTHROPIC_DEFAULT_MAX_TOKENS: number = 4096;
+
+  private static toAnthropicMessages(
+    messages: Array<LLMMessage>,
+  ): Array<JSONObject> {
+    const anthropicMessages: Array<JSONObject> = [];
+
+    for (const msg of messages) {
+      if (msg.role === "system") {
+        continue; // hoisted separately
+      }
+
+      if (msg.role === "assistant" && msg.toolCalls && msg.toolCalls.length) {
+        const contentBlocks: Array<JSONObject> = [];
+
+        if (msg.content) {
+          contentBlocks.push({ type: "text", text: msg.content });
+        }
+
+        for (const toolCall of msg.toolCalls) {
+          contentBlocks.push({
+            type: "tool_use",
+            id: toolCall.id,
+            name: toolCall.name,
+            input: toolCall.arguments,
+          });
+        }
+
+        anthropicMessages.push({ role: "assistant", content: contentBlocks });
+        continue;
+      }
+
+      if (msg.role === "tool") {
+        const toolResultBlock: JSONObject = {
+          type: "tool_result",
+          tool_use_id: msg.toolCallId || "",
+          content: msg.content,
+        };
+
+        /*
+         * Tool results must be user messages. Merge consecutive tool
+         * results into one user message so roles keep alternating.
+         */
+        const lastMessage: JSONObject | undefined =
+          anthropicMessages[anthropicMessages.length - 1];
+
+        if (
+          lastMessage &&
+          lastMessage["role"] === "user" &&
+          Array.isArray(lastMessage["content"])
+        ) {
+          (lastMessage["content"] as Array<JSONObject>).push(toolResultBlock);
+        } else {
+          anthropicMessages.push({
+            role: "user",
+            content: [toolResultBlock],
+          });
+        }
+        continue;
+      }
+
+      anthropicMessages.push({
+        role: msg.role,
+        content: msg.content,
+      });
     }
 
-    const message: JSONObject = choices[0]!["message"] as JSONObject;
-    const usage: JSONObject = jsonData["usage"] as JSONObject;
-
-    return {
-      content: message["content"] as string,
-      usage: usage
-        ? {
-            promptTokens: usage["prompt_tokens"] as number,
-            completionTokens: usage["completion_tokens"] as number,
-            totalTokens: usage["total_tokens"] as number,
-          }
-        : undefined,
-    };
+    return anthropicMessages;
   }
 
   @CaptureSpan()
@@ -260,29 +476,34 @@ export default class LLMService {
     const baseUrl: string = config.baseUrl || "https://api.anthropic.com/v1";
     const modelName: string = config.modelName || "claude-sonnet-4-20250514";
 
-    // Anthropic requires system message to be separate
     let systemMessage: string = "";
-    const userMessages: Array<{ role: string; content: string }> = [];
 
     for (const msg of request.messages) {
       if (msg.role === "system") {
         systemMessage = msg.content;
-      } else {
-        userMessages.push({
-          role: msg.role,
-          content: msg.content,
-        });
       }
     }
 
     const requestData: JSONObject = {
       model: modelName,
-      messages: userMessages,
+      messages: this.toAnthropicMessages(request.messages),
       temperature: request.temperature ?? 0.7,
+      // Anthropic requires max_tokens on every request.
+      max_tokens: request.maxTokens || LLMService.ANTHROPIC_DEFAULT_MAX_TOKENS,
     };
 
     if (systemMessage) {
       requestData["system"] = systemMessage;
+    }
+
+    if (request.tools && request.tools.length > 0) {
+      requestData["tools"] = request.tools.map((tool: LLMToolDefinition) => {
+        return {
+          name: tool.name,
+          description: tool.description,
+          input_schema: tool.inputSchema,
+        };
+      });
     }
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
@@ -321,20 +542,37 @@ export default class LLMService {
       throw new BadDataException("No response from Anthropic");
     }
 
-    const textContent: JSONObject | undefined = content.find(
-      (c: JSONObject) => {
-        return c["type"] === "text";
-      },
-    );
+    const textContent: string = content
+      .filter((block: JSONObject) => {
+        return block["type"] === "text";
+      })
+      .map((block: JSONObject) => {
+        return block["text"] as string;
+      })
+      .join("");
 
-    if (!textContent) {
+    const toolCalls: Array<LLMToolCall> = content
+      .filter((block: JSONObject) => {
+        return block["type"] === "tool_use";
+      })
+      .map((block: JSONObject) => {
+        return {
+          id: (block["id"] as string) || "",
+          name: (block["name"] as string) || "",
+          arguments: (block["input"] as JSONObject) || {},
+        };
+      });
+
+    if (!textContent && toolCalls.length === 0) {
       throw new BadDataException("No text content in Anthropic response");
     }
 
     const usage: JSONObject = jsonData["usage"] as JSONObject;
 
     return {
-      content: textContent["text"] as string,
+      content: textContent,
+      toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+      stopReason: jsonData["stop_reason"] === "tool_use" ? "tool_use" : "stop",
       usage: usage
         ? {
             promptTokens: usage["input_tokens"] as number,
@@ -347,6 +585,11 @@ export default class LLMService {
     };
   }
 
+  /*
+   * Ollama native /api/chat. Deliberately NOT routed through the
+   * OpenAI-compatible branch: Ollama deployments are keyless by design and
+   * the OpenAI branch requires an API key.
+   */
   @CaptureSpan()
   private static async getOllamaCompletion(
     config: LLMProviderConfig,
@@ -358,22 +601,44 @@ export default class LLMService {
 
     const modelName: string = config.modelName || "llama2";
 
+    const requestData: JSONObject = {
+      model: modelName,
+      messages: request.messages.map((msg: LLMMessage) => {
+        if (msg.role === "assistant" && msg.toolCalls && msg.toolCalls.length) {
+          return {
+            role: "assistant",
+            content: msg.content || "",
+            tool_calls: msg.toolCalls.map((toolCall: LLMToolCall) => {
+              return {
+                function: {
+                  name: toolCall.name,
+                  arguments: toolCall.arguments,
+                },
+              };
+            }),
+          };
+        }
+
+        return {
+          role: msg.role,
+          content: msg.content,
+        };
+      }),
+      stream: false,
+      options: {
+        temperature: request.temperature ?? 0.7,
+        ...(request.maxTokens ? { num_predict: request.maxTokens } : {}),
+      },
+    };
+
+    if (request.tools && request.tools.length > 0) {
+      requestData["tools"] = this.toOpenAITools(request.tools);
+    }
+
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post<JSONObject>({
         url: URL.fromString(`${config.baseUrl}/api/chat`),
-        data: {
-          model: modelName,
-          messages: request.messages.map((msg: LLMMessage) => {
-            return {
-              role: msg.role,
-              content: msg.content,
-            };
-          }),
-          stream: false,
-          options: {
-            temperature: request.temperature ?? 0.7,
-          },
-        },
+        data: requestData,
         headers: {
           "Content-Type": "application/json",
         },
@@ -404,8 +669,43 @@ export default class LLMService {
       throw new BadDataException("No response from Ollama");
     }
 
+    const rawToolCalls: JSONArray | undefined = message["tool_calls"] as
+      | JSONArray
+      | undefined;
+
+    let toolCalls: Array<LLMToolCall> | undefined = undefined;
+
+    if (rawToolCalls && rawToolCalls.length > 0) {
+      toolCalls = rawToolCalls.map((rawToolCall: JSONObject, index: number) => {
+        const fn: JSONObject = (rawToolCall["function"] as JSONObject) || {};
+
+        let parsedArguments: JSONObject = {};
+        let parseError: string | undefined = undefined;
+        const rawArguments: unknown = fn["arguments"];
+
+        if (typeof rawArguments === "string") {
+          const parsed: { arguments: JSONObject; error?: string | undefined } =
+            this.parseToolCallArguments(rawArguments);
+          parsedArguments = parsed.arguments;
+          parseError = parsed.error;
+        } else if (rawArguments && typeof rawArguments === "object") {
+          parsedArguments = rawArguments as JSONObject;
+        }
+
+        // Ollama does not return tool-call ids; synthesize stable ones.
+        return {
+          id: `tool_call_${index}`,
+          name: (fn["name"] as string) || "",
+          arguments: parsedArguments,
+          argumentsParseError: parseError,
+        };
+      });
+    }
+
     return {
-      content: message["content"] as string,
+      content: (message["content"] as string) || "",
+      toolCalls: toolCalls,
+      stopReason: toolCalls && toolCalls.length > 0 ? "tool_use" : "stop",
       usage: undefined, // Ollama doesn't provide token usage in the same way
     };
   }
