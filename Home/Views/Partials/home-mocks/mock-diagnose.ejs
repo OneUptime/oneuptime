@@ -1,7 +1,8 @@
 <!-- Mock: mock-diagnose — trace explorer waterfall pinpointing the 02:54 root cause (slow SELECT FOR UPDATE on orders) of the Checkout API incident -->
-<div role="img" aria-label="Trace explorer showing a 4.28 second waterfall for POST /api/checkout where a 3.91 second PostgreSQL SELECT FOR UPDATE span on the orders table is highlighted as the culprit, linked to a lock wait timeout error log and a root-cause finding of a missing index on orders.customer_id.">
+<div role="img" aria-label="Trace explorer showing a 4.28 second waterfall for POST /api/checkout where a 3.91 second PostgreSQL SELECT FOR UPDATE span on the orders table is highlighted as the culprit, linked to a lock wait timeout error log and a root-cause finding of a missing index on orders.customer_id, with a span detail panel showing 1.2 million rows examined and no index used.">
   <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
-    <div class="rounded-lg bg-white shadow-lg overflow-hidden ring-1 ring-gray-200">
+    <div class="rounded-lg bg-white shadow-xl overflow-hidden ring-1 ring-gray-200">
+      <div class="h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
 
       <!-- Window chrome -->
       <div class="bg-gray-50 px-4 py-2.5 flex items-center justify-between gap-3 border-b border-gray-200">
@@ -32,10 +33,17 @@
           </span>
           <span class="hidden sm:block pb-1.5 border-b-2 border-transparent flex-none">Metadata</span>
         </div>
-        <span class="hidden sm:block pb-1.5 font-mono text-[9px] text-gray-300 truncate">trace_id: a3f8c1d2e9 · 6 spans</span>
+        <div class="flex items-center gap-2 pb-1.5 min-w-0 justify-end">
+          <span class="hidden sm:block min-w-0 font-mono text-[9px] text-gray-300 truncate">trace_id: a3f8c1d2e9 · 6 spans</span>
+          <span class="hidden sm:inline-flex items-center gap-1 rounded-md bg-white px-1.5 py-0.5 text-[9px] font-medium text-gray-500 ring-1 ring-inset ring-gray-200 flex-none">
+            <svg class="h-2.5 w-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"/></svg>
+            Share
+          </span>
+        </div>
       </div>
 
-      <div class="p-3 sm:p-4">
+      <div class="p-3 sm:p-4 sm:flex sm:items-stretch">
+        <div class="min-w-0 sm:flex-1">
         <!-- Time axis -->
         <div class="flex items-center gap-2">
           <div class="w-24 sm:w-32 flex-none">
@@ -61,7 +69,7 @@
           </div>
 
           <!-- web-frontend -->
-          <div class="relative flex items-center gap-2">
+          <div class="relative flex items-center gap-2 rounded bg-gray-50/50 px-1 -mx-1">
             <div class="w-24 sm:w-32 flex-none min-w-0 flex items-center gap-1.5">
               <span class="h-1.5 w-1.5 rounded-full bg-gray-300 flex-none"></span>
               <span class="font-mono text-[10px] text-gray-700 truncate">web-frontend <span class="text-gray-400">· POST /checkout</span></span>
@@ -85,7 +93,7 @@
           </div>
 
           <!-- checkout-svc -->
-          <div class="relative flex items-center gap-2">
+          <div class="relative flex items-center gap-2 rounded bg-gray-50/50 px-1 -mx-1">
             <div class="w-24 sm:w-32 flex-none min-w-0 flex items-center gap-1.5 pl-1.5">
               <span class="h-1.5 w-1.5 rounded-full bg-blue-400 flex-none"></span>
               <span class="font-mono text-[10px] text-gray-700 truncate">checkout-svc <span class="text-gray-400">· createOrder</span></span>
@@ -166,6 +174,37 @@
             <svg class="h-3.5 w-3.5 flex-none text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/></svg>
             <span class="truncate">Root cause: missing index on <span class="font-mono">orders.customer_id</span></span>
           </span>
+        </div>
+        </div>
+
+        <!-- Span attributes panel (sm+) — the payoff detail -->
+        <div class="hidden sm:block w-44 flex-none pl-3 ml-3 border-l border-gray-100">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="h-1.5 w-1.5 rounded-full bg-amber-500 flex-none"></span>
+            <span class="uppercase text-[9px] tracking-wider text-gray-400 font-semibold truncate">Span &middot; postgres</span>
+          </div>
+          <dl class="mt-2 space-y-1.5 font-mono text-[9px]">
+            <div class="flex items-center justify-between gap-2 min-w-0">
+              <dt class="text-gray-400 flex-none">db.statement</dt>
+              <dd class="text-gray-600 truncate min-w-0">SELECT &hellip; FOR UPDATE</dd>
+            </div>
+            <div class="flex items-center justify-between gap-2 min-w-0">
+              <dt class="text-gray-400 flex-none">table</dt>
+              <dd class="text-gray-600 truncate">orders</dd>
+            </div>
+            <div class="flex items-center justify-between gap-2 min-w-0">
+              <dt class="text-gray-400 flex-none">lock_time</dt>
+              <dd class="tabular-nums font-semibold text-amber-700 truncate">3.91s</dd>
+            </div>
+            <div class="flex items-center justify-between gap-2 min-w-0">
+              <dt class="text-gray-400 flex-none">rows_examined</dt>
+              <dd class="tabular-nums text-gray-600 truncate">1.2M</dd>
+            </div>
+            <div class="flex items-center justify-between gap-2 min-w-0">
+              <dt class="text-gray-400 flex-none">index_used</dt>
+              <dd class="font-medium text-rose-600 truncate">none</dd>
+            </div>
+          </dl>
         </div>
       </div>
 

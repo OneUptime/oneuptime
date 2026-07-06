@@ -57,6 +57,10 @@
   .motion-on .tilt-l:hover,
   .motion-on .tilt-c:hover { transform: perspective(1600px) rotateY(0deg) rotateX(0deg); }
 
+  /* Story timeline active stop */
+  .story-dot.rail-active .time { color: #111827; font-weight: 600; }
+  .story-dot.rail-active .label { opacity: 1; }
+
   /* Shine sweep on the hero's primary CTA */
   .btn-shine { position: relative; overflow: hidden; }
   .motion-on .btn-shine::after {
@@ -74,28 +78,66 @@
   .motion-on .btn-shine:hover::after { left: 135%; }
 </style>
 
-<!-- Story progress rail: appears on xl screens while reading the incident chapters -->
-<nav id="story-rail" aria-label="Incident story progress" style="visibility: hidden;" class="fixed left-6 top-1/2 -translate-y-1/2 z-40 hidden xl:flex flex-col items-center gap-5 opacity-0 transition-[opacity,visibility] duration-500">
-  <a href="#detect" class="story-dot group relative flex h-3.5 w-3.5 items-center justify-center" data-dot-color="#3b82f6">
-    <span class="dot h-2 w-2 rounded-full bg-gray-300 transition-all duration-300"></span>
-    <span class="absolute left-5 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-0.5 font-mono text-[11px] text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">02:47 &middot; Detect</span>
-  </a>
-  <a href="#respond" class="story-dot group relative flex h-3.5 w-3.5 items-center justify-center" data-dot-color="#f43f5e">
-    <span class="dot h-2 w-2 rounded-full bg-gray-300 transition-all duration-300"></span>
-    <span class="absolute left-5 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-0.5 font-mono text-[11px] text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">02:48 &middot; Respond</span>
-  </a>
-  <a href="#communicate" class="story-dot group relative flex h-3.5 w-3.5 items-center justify-center" data-dot-color="#10b981">
-    <span class="dot h-2 w-2 rounded-full bg-gray-300 transition-all duration-300"></span>
-    <span class="absolute left-5 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-0.5 font-mono text-[11px] text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">02:49 &middot; Communicate</span>
-  </a>
-  <a href="#diagnose" class="story-dot group relative flex h-3.5 w-3.5 items-center justify-center" data-dot-color="#f59e0b">
-    <span class="dot h-2 w-2 rounded-full bg-gray-300 transition-all duration-300"></span>
-    <span class="absolute left-5 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-0.5 font-mono text-[11px] text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">02:54 &middot; Diagnose</span>
-  </a>
-  <a href="#autofix" class="story-dot group relative flex h-3.5 w-3.5 items-center justify-center" data-dot-color="#8b5cf6">
-    <span class="dot h-2 w-2 rounded-full bg-gray-300 transition-all duration-300"></span>
-    <span class="absolute left-5 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-0.5 font-mono text-[11px] text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">03:26 &middot; Auto-Fix</span>
-  </a>
+<!-- Story timeline: the night-to-morning journey, pinned on xl screens while reading the incident chapters -->
+<nav id="story-rail" aria-label="The incident timeline, through the night and into the morning" style="visibility: hidden;" class="fixed left-5 top-1/2 -translate-y-1/2 z-40 hidden xl:block opacity-0 transition-[opacity,visibility] duration-500">
+  <!-- Night -->
+  <div class="mb-2 flex w-[11px] justify-center" aria-hidden="true">
+    <svg class="h-3.5 w-3.5 text-gray-300" fill="currentColor" viewBox="0 0 24 24"><path d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" /></svg>
+  </div>
+  <ol class="flex flex-col">
+    <li class="flex flex-col">
+      <a href="#detect" class="story-dot group relative flex items-center gap-2.5" data-dot-color="#3b82f6">
+        <span class="dot ml-px h-[9px] w-[9px] flex-none rounded-full bg-gray-300 ring-2 ring-white transition-all duration-300"></span>
+        <span class="time font-mono text-[10px] tabular-nums text-gray-400 transition-colors duration-300">02:47</span>
+        <span class="label pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-0.5 font-mono text-[11px] text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">Detect</span>
+      </a>
+      <span class="ml-[5px] h-6 w-px" style="background: linear-gradient(to bottom, rgb(147 197 253 / 0.8), rgb(253 164 175 / 0.8));" aria-hidden="true"></span>
+    </li>
+    <li class="flex flex-col">
+      <a href="#respond" class="story-dot group relative flex items-center gap-2.5" data-dot-color="#f43f5e">
+        <span class="dot ml-px h-[9px] w-[9px] flex-none rounded-full bg-gray-300 ring-2 ring-white transition-all duration-300"></span>
+        <span class="time font-mono text-[10px] tabular-nums text-gray-400 transition-colors duration-300">02:48</span>
+        <span class="label pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-0.5 font-mono text-[11px] text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">Respond</span>
+      </a>
+      <span class="ml-[5px] h-6 w-px" style="background: linear-gradient(to bottom, rgb(253 164 175 / 0.8), rgb(110 231 183 / 0.8));" aria-hidden="true"></span>
+    </li>
+    <li class="flex flex-col">
+      <a href="#communicate" class="story-dot group relative flex items-center gap-2.5" data-dot-color="#10b981">
+        <span class="dot ml-px h-[9px] w-[9px] flex-none rounded-full bg-gray-300 ring-2 ring-white transition-all duration-300"></span>
+        <span class="time font-mono text-[10px] tabular-nums text-gray-400 transition-colors duration-300">02:49</span>
+        <span class="label pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-0.5 font-mono text-[11px] text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">Communicate</span>
+      </a>
+      <span class="ml-[5px] h-6 w-px" style="background: linear-gradient(to bottom, rgb(110 231 183 / 0.8), rgb(252 211 77 / 0.8));" aria-hidden="true"></span>
+    </li>
+    <li class="flex flex-col">
+      <a href="#diagnose" class="story-dot group relative flex items-center gap-2.5" data-dot-color="#f59e0b">
+        <span class="dot ml-px h-[9px] w-[9px] flex-none rounded-full bg-gray-300 ring-2 ring-white transition-all duration-300"></span>
+        <span class="time font-mono text-[10px] tabular-nums text-gray-400 transition-colors duration-300">02:54</span>
+        <span class="label pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-0.5 font-mono text-[11px] text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">Diagnose</span>
+      </a>
+      <span class="ml-[5px] h-6 w-px" style="background: linear-gradient(to bottom, rgb(252 211 77 / 0.8), rgb(196 181 253 / 0.8));" aria-hidden="true"></span>
+    </li>
+    <li class="flex flex-col">
+      <a href="#autofix" class="story-dot group relative flex items-center gap-2.5" data-dot-color="#8b5cf6">
+        <span class="dot ml-px h-[9px] w-[9px] flex-none rounded-full bg-gray-300 ring-2 ring-white transition-all duration-300"></span>
+        <span class="time font-mono text-[10px] tabular-nums text-gray-400 transition-colors duration-300">03:26</span>
+        <span class="label pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-0.5 font-mono text-[11px] text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">Auto-Fix</span>
+      </a>
+      <!-- Asleep: dashed gap between the 03:41 all-clear and the morning -->
+      <span class="ml-[5px] h-8 w-0 border-l border-dashed border-gray-300" aria-hidden="true"></span>
+    </li>
+    <li class="flex flex-col">
+      <a href="#consolidate" class="story-dot group relative flex items-center gap-2.5" data-dot-color="#6366f1">
+        <span class="dot ml-px h-[9px] w-[9px] flex-none rounded-full bg-gray-300 ring-2 ring-white transition-all duration-300"></span>
+        <span class="time font-mono text-[10px] tabular-nums text-gray-400 transition-colors duration-300">09:00</span>
+        <span class="label pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-0.5 font-mono text-[11px] text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">The morning after</span>
+      </a>
+    </li>
+  </ol>
+  <!-- Morning -->
+  <div class="mt-2 flex w-[11px] justify-center" aria-hidden="true">
+    <svg class="h-3.5 w-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" /></svg>
+  </div>
 </nav>
 
 <script>
@@ -162,7 +204,7 @@
 
     // Story progress rail (xl+): tracks which incident chapter is on screen
     var rail = document.getElementById('story-rail');
-    var chapters = ['detect', 'respond', 'communicate', 'diagnose', 'autofix'];
+    var chapters = ['detect', 'respond', 'communicate', 'diagnose', 'autofix', 'consolidate'];
     var sections = chapters
       .map(function (id) { return document.getElementById(id); })
       .filter(Boolean);
@@ -185,11 +227,13 @@
           if (!dot) return;
           if (id === current) {
             dot.style.backgroundColor = dots[id].getAttribute('data-dot-color');
-            dot.style.transform = 'scale(1.6)';
+            dot.style.transform = 'scale(1.5)';
+            dots[id].classList.add('rail-active');
             dots[id].setAttribute('aria-current', 'true');
           } else {
             dot.style.backgroundColor = '';
             dot.style.transform = '';
+            dots[id].classList.remove('rail-active');
             dots[id].removeAttribute('aria-current');
           }
         });

@@ -1,7 +1,8 @@
 <!-- Mock: Respond — Incident #482 command view seconds after detection -->
 <div role="img" aria-label="Incident command view for incident 482, Checkout API degraded: the alert is routed to the Payments on-call policy at 2:47 AM, Sarah K. is phoned and answers in 38 seconds, acknowledges the incident, the status page notifies 2,847 subscribers, and an incident update is posted from Slack, with escalation from primary to backup engineer shown in the footer.">
   <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
-    <div class="rounded-lg bg-white shadow-lg overflow-hidden ring-1 ring-gray-200">
+    <div class="rounded-lg bg-white shadow-xl overflow-hidden ring-1 ring-gray-200">
+      <div class="h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
 
       <!-- Window chrome -->
       <div class="bg-gray-50 px-4 py-2.5 flex items-center justify-between gap-3 border-b border-gray-200">
@@ -45,9 +46,9 @@
         </span>
       </div>
 
-      <!-- Timeline -->
-      <div class="p-4">
-        <div class="relative">
+      <!-- Body: timeline + sidebar -->
+      <div class="p-4 flex items-stretch gap-3">
+        <div class="relative min-w-0 flex-1">
           <div class="absolute left-[73.5px] top-2 bottom-3 border-l border-gray-200"></div>
 
           <!-- 02:47:58 alert routed -->
@@ -67,9 +68,19 @@
             </span>
             <div class="min-w-0 pt-1.5">
               <p class="text-[11px] text-gray-700 truncate">Calling <span class="font-medium text-gray-900">Sarah K.</span> <span class="text-gray-400">(primary on-call)</span></p>
-              <span class="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 rounded text-[10px] font-medium text-emerald-600 ring-1 ring-emerald-100">
-                <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-                answered in 38s
+              <span class="mt-1 flex items-center gap-2">
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 rounded text-[10px] font-medium text-emerald-600 ring-1 ring-emerald-100">
+                  <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                  answered in 38s
+                </span>
+                <span class="flex items-end gap-px h-3 flex-shrink-0" aria-hidden="true">
+                  <span class="w-0.5 h-1 rounded-full bg-rose-300"></span>
+                  <span class="w-0.5 h-2 rounded-full bg-rose-400"></span>
+                  <span class="w-0.5 h-3 rounded-full bg-rose-400"></span>
+                  <span class="w-0.5 h-1.5 rounded-full bg-rose-300"></span>
+                  <span class="w-0.5 h-2.5 rounded-full bg-rose-400"></span>
+                  <span class="w-0.5 h-1 rounded-full bg-rose-300"></span>
+                </span>
               </span>
             </div>
           </div>
@@ -109,6 +120,42 @@
             </div>
           </div>
         </div>
+
+        <!-- Right sidebar: responders + linked resources -->
+        <div class="hidden sm:flex flex-col gap-3 w-40 flex-none pl-3 border-l border-gray-100">
+          <div>
+            <p class="uppercase text-[9px] tracking-wider text-gray-400 font-semibold mb-1.5">Responders</p>
+            <div class="flex items-center gap-1.5 py-1 min-w-0">
+              <span class="w-5 h-5 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center text-[8px] font-semibold flex-shrink-0">SK</span>
+              <span class="min-w-0 text-[11px] font-medium text-gray-700 truncate">Sarah K.</span>
+              <span class="ml-auto flex items-center gap-1 flex-shrink-0">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span class="text-[9px] font-medium text-emerald-600">active</span>
+              </span>
+            </div>
+            <div class="flex items-center gap-1.5 py-1 min-w-0">
+              <span class="w-5 h-5 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-[8px] font-semibold flex-shrink-0">JM</span>
+              <span class="min-w-0 text-[11px] text-gray-400 truncate">J.M.</span>
+              <span class="ml-auto text-[9px] text-gray-400 flex-shrink-0">backup</span>
+            </div>
+          </div>
+          <div>
+            <p class="uppercase text-[9px] tracking-wider text-gray-400 font-semibold mb-1.5">Linked</p>
+            <div class="flex items-center gap-1.5 py-1 min-w-0">
+              <svg class="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918"/></svg>
+              <span class="min-w-0 text-[11px] text-gray-600 truncate">Status page</span>
+              <svg class="ml-auto w-3 h-3 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+            </div>
+            <div class="flex items-center gap-1.5 py-1 min-w-0">
+              <svg class="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 8.25h13.5m-13.5 7.5h13.5m-12-15l-3 18m10.5-18l-3 18"/></svg>
+              <span class="min-w-0 text-[11px] text-gray-600 truncate">#ops thread</span>
+              <svg class="ml-auto w-3 h-3 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+            </div>
+            <div class="flex items-center py-1 min-w-0">
+              <span class="inline-flex px-1.5 py-0.5 bg-gray-100 rounded text-[9px] font-medium text-gray-500 truncate">Incident #482</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Footer strip -->
@@ -119,10 +166,13 @@
           <svg class="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
           <span class="inline-flex px-1.5 py-0.5 bg-white rounded ring-1 ring-gray-200 text-[10px] font-medium text-gray-500 truncate">backup</span>
         </div>
-        <span class="hidden sm:flex items-center gap-1 text-[10px] text-gray-400 flex-shrink-0">
-          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          Every action recorded
-        </span>
+        <div class="hidden sm:flex items-center gap-2 flex-shrink-0">
+          <span class="flex items-center gap-1 text-[10px] text-gray-400">
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Every action recorded
+          </span>
+          <span class="inline-flex px-1.5 py-0.5 bg-white rounded ring-1 ring-gray-200 font-mono tabular-nums text-[9px] font-medium text-gray-600">MTTA 43s</span>
+        </div>
       </div>
 
     </div>

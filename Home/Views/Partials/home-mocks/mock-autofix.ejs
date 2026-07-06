@@ -1,7 +1,8 @@
 <!-- Mock: mockautofix — AI-agent pull request #1284 (dark PR view) -->
-<div role="img" aria-label="A pull request opened automatically by the OneUptime AI agent at 3:26 AM, adding a database index on orders.customer_id with a plain-English root-cause explanation, a three-line migration diff, and all checks passing while awaiting human review.">
+<div role="img" aria-label="A pull request opened automatically by the OneUptime AI agent at 3:26 AM and linked to incident 482, adding a database index on orders.customer_id with a plain-English root-cause explanation, a three-line migration diff, and all checks passing while awaiting review from Sarah K. — merging stays a human decision.">
   <div class="rounded-xl bg-white/5 p-1.5 ring-1 ring-white/10">
-    <div class="rounded-lg bg-gray-950 ring-1 ring-white/10 overflow-hidden">
+    <div class="rounded-lg bg-gray-950 ring-1 ring-white/10 shadow-xl overflow-hidden">
+      <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
 
       <!-- Window header bar -->
       <div class="bg-white/5 px-4 py-2.5 flex items-center justify-between gap-3 border-b border-white/10">
@@ -52,6 +53,18 @@
       </div>
 
       <div class="p-4 space-y-3">
+        <!-- PR meta rail -->
+        <div class="flex items-center gap-2 flex-wrap text-[10px]">
+          <span class="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-500/20 ring-1 ring-rose-500/30 text-rose-300 font-medium flex-shrink-0">
+            <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"/>
+            </svg>
+            Incident #482
+          </span>
+          <span class="px-1.5 py-0.5 rounded-md bg-white/5 ring-1 ring-white/10 font-mono tabular-nums text-emerald-300 flex-shrink-0">+3 &minus;0</span>
+          <span class="px-1.5 py-0.5 rounded-md bg-white/5 ring-1 ring-white/10 text-gray-400 flex-shrink-0">1 file</span>
+        </div>
+
         <!-- Agent comment bubble -->
         <div class="rounded-lg ring-1 ring-white/10 bg-white/5 p-3">
           <div class="flex items-center gap-2 min-w-0">
@@ -77,9 +90,9 @@
             <span class="ml-auto px-1.5 py-0.5 rounded bg-emerald-500/10 ring-1 ring-emerald-500/30 text-[9px] font-mono font-semibold text-emerald-300 flex-shrink-0">+3</span>
           </div>
           <div class="font-mono text-[11px] leading-relaxed">
-            <div class="bg-emerald-500/10 text-emerald-300 px-3 py-1 truncate">+ CREATE INDEX CONCURRENTLY idx_orders_customer_id</div>
-            <div class="bg-emerald-500/10 text-emerald-300 px-3 py-1 truncate">+&nbsp;&nbsp;&nbsp;ON orders (customer_id);</div>
-            <div class="bg-emerald-500/10 text-emerald-300 px-3 py-1 truncate">+ -- resolves lock contention on checkout</div>
+            <div class="bg-emerald-500/10 text-emerald-300 px-3 py-1 flex items-baseline min-w-0"><span class="hidden sm:block w-4 flex-shrink-0 text-[9px] text-gray-500 select-none">1</span><span class="truncate min-w-0">+ CREATE INDEX CONCURRENTLY idx_orders_customer_id</span></div>
+            <div class="bg-emerald-500/10 text-emerald-300 px-3 py-1 flex items-baseline min-w-0"><span class="hidden sm:block w-4 flex-shrink-0 text-[9px] text-gray-500 select-none">2</span><span class="truncate min-w-0">+&nbsp;&nbsp;&nbsp;ON orders (customer_id);</span></div>
+            <div class="bg-emerald-500/10 text-emerald-300 px-3 py-1 flex items-baseline min-w-0"><span class="hidden sm:block w-4 flex-shrink-0 text-[9px] text-gray-500 select-none">3</span><span class="truncate min-w-0">+ -- resolves lock contention on checkout</span></div>
           </div>
         </div>
 
@@ -106,6 +119,14 @@
             <span class="text-gray-300 font-medium flex-shrink-0">migration-lint</span>
             <span class="truncate min-w-0">&middot; passed</span>
           </div>
+        </div>
+
+        <!-- Reviewer row -->
+        <div class="flex items-center gap-2 px-1 min-w-0">
+          <span class="w-5 h-5 rounded-full bg-rose-500/30 flex items-center justify-center text-[9px] font-semibold text-rose-200 flex-shrink-0">SK</span>
+          <span class="text-[10px] text-gray-400 flex-shrink-0">review requested from</span>
+          <span class="text-[10px] font-medium text-gray-300 truncate min-w-0">sarah-k</span>
+          <span class="ml-auto px-1.5 py-0.5 rounded-full bg-white/5 ring-1 ring-white/10 text-[9px] uppercase tracking-wider font-semibold text-gray-500 flex-shrink-0">pending</span>
         </div>
 
         <!-- Merge box -->
