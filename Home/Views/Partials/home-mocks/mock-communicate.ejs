@@ -1,102 +1,118 @@
-<!-- Mock: mock-communicate — Acme public status page (browser window) at 02:49 UTC -->
-<div role="img" aria-label="Acme's public status page in a browser showing an amber Investigating banner for elevated checkout latency, Website, Dashboard and API operational, Checkout degraded, and 2,847 subscribers notified by email and SMS.">
-  <div class="relative">
-    <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
-    <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-2xl mx-auto border border-gray-200">
-      <!-- Browser chrome: traffic dots + centered URL pill -->
-      <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+<!-- Mock: mock-communicate — Acme's public status page in a browser at 02:49 UTC during the checkout latency incident -->
+<div role="img" aria-label="Acme's public status page in a browser at 02:49 UTC showing an amber banner investigating elevated checkout latency, with Website, Dashboard and API operational, Checkout API degraded, and 2,847 subscribers notified by email and SMS.">
+  <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10 max-w-2xl mx-auto">
+    <div class="rounded-lg bg-white shadow-lg overflow-hidden ring-1 ring-gray-200">
+      <!-- Browser chrome -->
+      <div class="bg-gray-50 px-4 py-2.5 flex items-center justify-between gap-3 border-b border-gray-200">
         <div class="flex gap-1.5 flex-shrink-0">
           <div class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
           <div class="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
           <div class="w-2.5 h-2.5 rounded-full bg-green-400"></div>
         </div>
         <div class="flex-1 flex justify-center min-w-0">
-          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white rounded-full border border-gray-200 text-[10px] text-gray-500 truncate">
-            <svg class="h-2.5 w-2.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
-            status.acme.com
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white rounded-full ring-1 ring-gray-200 text-[10px] text-gray-500 font-medium truncate">
+            <svg class="h-2.5 w-2.5 text-emerald-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
+            <span class="truncate">status.acme.com</span>
           </span>
         </div>
-        <div class="w-10 flex-shrink-0 hidden sm:block"></div>
+        <svg class="h-3.5 w-3.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
       </div>
-      <div class="p-4">
-        <!-- Brand row -->
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-2 min-w-0">
+      <!-- Site header -->
+      <div class="px-4 pt-4 sm:px-5 sm:pt-5">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5 min-w-0">
             <div class="w-6 h-6 rounded-md bg-gray-900 flex items-center justify-center flex-shrink-0"><span class="text-xs font-bold text-white">A</span></div>
             <span class="text-sm font-semibold text-gray-800 truncate">Acme Status</span>
           </div>
-          <span class="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-md border border-gray-200 text-xs text-gray-500 flex-shrink-0">
-            <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-600 text-white text-[10px] font-semibold flex-shrink-0 shadow-sm">
+            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
             Subscribe
           </span>
         </div>
-        <!-- Incident banner -->
-        <div class="flex items-start gap-2.5 p-3 bg-amber-50 rounded-lg border border-amber-200 mb-4">
+        <!-- Faux nav -->
+        <div class="flex items-center gap-4 mt-3 border-b border-gray-100 text-[10px]">
+          <span class="pb-1.5 text-gray-900 font-semibold border-b-2 border-emerald-500 -mb-px">Status</span>
+          <span class="pb-1.5 text-gray-400">Incidents</span>
+          <span class="pb-1.5 text-gray-400 hidden sm:block">Uptime</span>
+        </div>
+      </div>
+      <div class="p-4 sm:p-5 space-y-4">
+        <!-- Overall status banner -->
+        <div class="flex items-start gap-2.5 rounded-lg bg-amber-50 ring-1 ring-amber-200 p-3">
           <svg class="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.008v.008H12v-.008z"/></svg>
           <div class="min-w-0">
-            <div class="text-xs font-semibold text-amber-800">Investigating &mdash; Elevated checkout latency</div>
-            <div class="text-[10px] text-amber-700 mt-0.5">Posted 02:49 UTC &middot; We are investigating elevated latency on checkout.</div>
+            <div class="text-xs font-semibold text-amber-800 truncate">Some systems degraded</div>
+            <div class="text-[10px] text-amber-700/90 mt-0.5 truncate">Investigating &mdash; Elevated checkout latency &middot; Posted <span class="font-mono tabular-nums">02:49:04 UTC</span></div>
           </div>
         </div>
         <!-- Component list -->
-        <div class="rounded-lg border border-gray-200 divide-y divide-gray-100 overflow-hidden">
-          <div class="px-3 py-2.5">
-            <div class="flex items-center justify-between mb-1.5">
-              <span class="text-xs font-medium text-gray-800 truncate">Website</span>
-              <span class="flex items-center gap-1.5 text-emerald-600 text-[10px] font-medium flex-shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Operational</span>
+        <div class="rounded-lg ring-1 ring-gray-100 divide-y divide-gray-100 overflow-hidden">
+          <div class="flex items-center gap-3 px-3 py-2.5 min-w-0">
+            <span class="text-[11px] font-medium text-gray-800 truncate w-24 flex-shrink-0">Website</span>
+            <div class="hidden sm:flex items-center gap-[3px] flex-1 min-w-0 justify-end overflow-hidden">
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
             </div>
-            <div class="flex items-center gap-0.5">
-              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
-              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
-              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
-              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
-            </div>
+            <span class="flex items-center gap-1.5 text-emerald-600 text-[10px] font-medium flex-shrink-0 ml-auto sm:ml-0"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Operational</span>
+            <span class="font-mono tabular-nums text-[10px] text-gray-400 flex-shrink-0 w-12 text-right">99.99%</span>
           </div>
-          <div class="px-3 py-2.5">
-            <div class="flex items-center justify-between mb-1.5">
-              <span class="text-xs font-medium text-gray-800 truncate">Dashboard</span>
-              <span class="flex items-center gap-1.5 text-emerald-600 text-[10px] font-medium flex-shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Operational</span>
+          <div class="flex items-center gap-3 px-3 py-2.5 min-w-0">
+            <span class="text-[11px] font-medium text-gray-800 truncate w-24 flex-shrink-0">Dashboard</span>
+            <div class="hidden sm:flex items-center gap-[3px] flex-1 min-w-0 justify-end overflow-hidden">
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
             </div>
-            <div class="flex items-center gap-0.5">
-              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
-              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
-              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
-              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
-            </div>
+            <span class="flex items-center gap-1.5 text-emerald-600 text-[10px] font-medium flex-shrink-0 ml-auto sm:ml-0"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Operational</span>
+            <span class="font-mono tabular-nums text-[10px] text-gray-400 flex-shrink-0 w-12 text-right">100.0%</span>
           </div>
-          <div class="px-3 py-2.5">
-            <div class="flex items-center justify-between mb-1.5">
-              <span class="text-xs font-medium text-gray-800 truncate">API</span>
-              <span class="flex items-center gap-1.5 text-emerald-600 text-[10px] font-medium flex-shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Operational</span>
+          <div class="flex items-center gap-3 px-3 py-2.5 min-w-0">
+            <span class="text-[11px] font-medium text-gray-800 truncate w-24 flex-shrink-0">API</span>
+            <div class="hidden sm:flex items-center gap-[3px] flex-1 min-w-0 justify-end overflow-hidden">
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
             </div>
-            <div class="flex items-center gap-0.5">
-              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
-              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
-              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
-              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
-            </div>
+            <span class="flex items-center gap-1.5 text-emerald-600 text-[10px] font-medium flex-shrink-0 ml-auto sm:ml-0"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Operational</span>
+            <span class="font-mono tabular-nums text-[10px] text-gray-400 flex-shrink-0 w-12 text-right">99.98%</span>
           </div>
-          <div class="px-3 py-2.5">
-            <div class="flex items-center justify-between mb-1.5">
-              <span class="text-xs font-medium text-gray-800 truncate">Checkout</span>
-              <span class="flex items-center gap-1.5 text-amber-600 text-[10px] font-medium flex-shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Degraded performance</span>
+          <div class="flex items-center gap-3 px-3 py-2.5 min-w-0 bg-amber-50/40">
+            <span class="text-[11px] font-medium text-gray-800 truncate w-24 flex-shrink-0">Checkout API</span>
+            <div class="hidden sm:flex items-center gap-[3px] flex-1 min-w-0 justify-end overflow-hidden">
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span><span class="h-1.5 w-1.5 rounded-full bg-amber-500 flex-shrink-0"></span>
             </div>
-            <div class="flex items-center gap-0.5">
-              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
-              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
-              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
-              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-emerald-500"></div><div class="h-2 flex-1 rounded-full bg-amber-500"></div>
+            <span class="flex items-center gap-1.5 text-amber-600 text-[10px] font-medium flex-shrink-0 ml-auto sm:ml-0"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span><span class="hidden sm:inline">Degraded performance</span><span class="sm:hidden">Degraded</span></span>
+            <span class="font-mono tabular-nums text-[10px] text-gray-400 flex-shrink-0 w-12 text-right">99.95%</span>
+          </div>
+        </div>
+        <!-- Latest update feed -->
+        <div>
+          <div class="text-[9px] uppercase tracking-wider text-gray-400 font-semibold mb-2">Latest update</div>
+          <div class="flex items-start gap-2.5 rounded-lg bg-gray-50 ring-1 ring-gray-100 p-3">
+            <span class="relative flex h-2 w-2 mt-1 flex-shrink-0">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-baseline justify-between gap-3">
+                <span class="text-[11px] font-medium text-gray-800 truncate">Investigating</span>
+                <span class="font-mono tabular-nums text-[10px] text-gray-400 flex-shrink-0">02:49:04 UTC</span>
+              </div>
+              <p class="text-[11px] text-gray-500 mt-0.5 leading-relaxed">We are investigating elevated latency on checkout. Payments are processing with delays.</p>
             </div>
           </div>
         </div>
       </div>
       <!-- Footer -->
-      <div class="px-4 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-3">
+      <div class="px-4 py-2.5 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-3">
         <div class="flex items-center gap-1.5 min-w-0">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
-          <span class="text-[10px] text-gray-500 truncate">2,847 subscribers notified &middot; email &amp; SMS</span>
+          <span class="text-[10px] text-gray-500 truncate"><span class="font-mono tabular-nums font-medium text-gray-600">2,847</span> subscribers notified &middot; email &amp; SMS</span>
         </div>
-        <span class="text-[10px] text-gray-400 flex-shrink-0 hidden sm:block">Uptime last 90 days: 99.97%</span>
+        <span class="text-[10px] text-gray-400 flex-shrink-0 hidden sm:block">Uptime last 90 days: <span class="font-mono tabular-nums text-gray-500">99.97%</span></span>
       </div>
     </div>
   </div>
