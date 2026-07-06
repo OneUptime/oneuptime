@@ -1,0 +1,83 @@
+<section id="faq" class="relative bg-white py-24 lg:py-32 overflow-hidden scroll-mt-24" aria-labelledby="faq-title">
+  <div class="mx-auto max-w-7xl px-6 lg:px-8">
+    <!-- Header -->
+    <div data-reveal class="mx-auto max-w-2xl text-center mb-16">
+      <p class="text-sm font-medium text-gray-500 tracking-wide uppercase mb-4">Before you ask</p>
+      <h2 id="faq-title" class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900">
+        Questions engineers actually ask.
+      </h2>
+    </div>
+
+    <!-- FAQ list -->
+    <div class="mx-auto max-w-3xl space-y-3">
+      <details data-reveal class="group rounded-2xl border border-gray-200 bg-white">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 text-sm font-medium text-gray-900 [&::-webkit-details-marker]:hidden">
+          Is the free plan actually free?
+          <svg class="h-5 w-5 flex-none text-gray-400 transition-transform group-open:rotate-45" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+        </summary>
+        <div class="px-5 pb-5 text-sm text-gray-600 leading-relaxed">
+          Yes &mdash; $0, forever. You get 1 status page, 100 subscribers, unlimited manual monitors, and incident management, plus logs, traces &amp; metrics at usage pricing ($0.10/GB). No credit card required.
+        </div>
+      </details>
+
+      <details data-reveal data-reveal-delay="75" class="group rounded-2xl border border-gray-200 bg-white">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 text-sm font-medium text-gray-900 [&::-webkit-details-marker]:hidden">
+          Can I self-host it?
+          <svg class="h-5 w-5 flex-none text-gray-400 transition-transform group-open:rotate-45" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+        </summary>
+        <div class="px-5 pb-5 text-sm text-gray-600 leading-relaxed">
+          OneUptime is 100% open source under Apache 2.0 &mdash; not open-core &mdash; and the community edition is the full feature set. One Docker Compose command to try it; Kubernetes + Helm for production.
+        </div>
+      </details>
+
+      <details data-reveal data-reveal-delay="150" class="group rounded-2xl border border-gray-200 bg-white">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 text-sm font-medium text-gray-900 [&::-webkit-details-marker]:hidden">
+          What counts as a &ldquo;user&rdquo;?
+          <svg class="h-5 w-5 flex-none text-gray-400 transition-transform group-open:rotate-45" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+        </summary>
+        <div class="px-5 pb-5 text-sm text-gray-600 leading-relaxed">
+          A user is a teammate &mdash; someone on your team who signs in to OneUptime. Status page subscribers and viewers are always free.
+        </div>
+      </details>
+
+      <details data-reveal data-reveal-delay="225" class="group rounded-2xl border border-gray-200 bg-white">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 text-sm font-medium text-gray-900 [&::-webkit-details-marker]:hidden">
+          Do we have to migrate everything at once?
+          <svg class="h-5 w-5 flex-none text-gray-400 transition-transform group-open:rotate-45" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+        </summary>
+        <div class="px-5 pb-5 text-sm text-gray-600 leading-relaxed">
+          No. Start with one product &mdash; a status page, or a few monitors &mdash; and the rest is already integrated when you're ready for it. And because OneUptime is OpenTelemetry-native, your instrumentation stays portable.
+        </div>
+      </details>
+
+      <details data-reveal data-reveal-delay="300" class="group rounded-2xl border border-gray-200 bg-white">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 text-sm font-medium text-gray-900 [&::-webkit-details-marker]:hidden">
+          How does the AI agent touch our code?
+          <svg class="h-5 w-5 flex-none text-gray-400 transition-transform group-open:rotate-45" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+        </summary>
+        <div class="px-5 pb-5 text-sm text-gray-600 leading-relaxed">
+          You connect your GitHub or GitLab repository. When something breaks at 3 a.m., the agent reads your code and opens a pull request with a plain-English explanation of the root cause &mdash; merging is always your call. Bring your own LLM and pay OneUptime nothing for AI.
+        </div>
+      </details>
+
+      <details data-reveal data-reveal-delay="375" class="group rounded-2xl border border-gray-200 bg-white">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 text-sm font-medium text-gray-900 [&::-webkit-details-marker]:hidden">
+          What if we want to leave?
+          <svg class="h-5 w-5 flex-none text-gray-400 transition-transform group-open:rotate-45" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+        </summary>
+        <div class="px-5 pb-5 text-sm text-gray-600 leading-relaxed">
+          That's the point of Apache 2.0 open source: you can run the exact same platform yourself, on your own infrastructure. Your OpenTelemetry instrumentation works with any compatible backend, and there are no proprietary agents to rip out.
+        </div>
+      </details>
+    </div>
+
+    <!-- Micro-row -->
+    <div data-reveal data-reveal-delay="450" class="mt-10 flex flex-wrap items-center justify-center gap-2 text-center">
+      <p class="text-sm text-gray-500">Something else on your mind?</p>
+      <a href="/enterprise/demo" class="group inline-flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+        Talk to us
+        <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5" /></svg>
+      </a>
+    </div>
+  </div>
+</section>

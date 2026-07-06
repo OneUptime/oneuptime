@@ -1,0 +1,72 @@
+<section id="integrations" class="relative bg-white py-24 lg:py-32 overflow-hidden scroll-mt-24" aria-labelledby="integrations-title">
+  <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/70 to-transparent" aria-hidden="true"></div>
+  <div class="absolute -top-24 left-[12%] h-72 w-72 rounded-full bg-sky-100/50 blur-3xl pointer-events-none" aria-hidden="true"></div>
+
+  <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
+    <div class="grid grid-cols-1 items-center gap-16 lg:grid-cols-5 lg:gap-20">
+      <!-- Visual (left on desktop) -->
+      <div class="order-last lg:order-first lg:col-span-3">
+        <div data-reveal data-reveal-delay="150" class="relative">
+          <div class="absolute -inset-8 rounded-full pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(14 165 233 / 0.06) 0%, rgb(14 165 233 / 0.02) 40%, transparent 70%);" aria-hidden="true"></div>
+          <div class="relative tilt-l">
+            <%- include('./home-mocks/mock-workflows') -%>
+          </div>
+        </div>
+      </div>
+
+      <!-- Copy -->
+      <div data-reveal class="lg:col-span-2">
+        <p class="text-sm font-medium text-sky-600 tracking-wide uppercase mb-4">Plays well with others</p>
+        <h2 id="integrations-title" class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900">
+          Your stack is already wired in.
+        </h2>
+        <p class="mt-6 text-lg text-gray-600 leading-relaxed">
+          Connect the tools your team already lives in and let workflows handle the glue work &mdash; the pings, the tickets, the status updates that used to be somebody's job at 3 a.m.
+        </p>
+
+        <div class="mt-8 flex flex-wrap gap-2">
+          <span class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-md border border-gray-200">Slack</span>
+          <span class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-md border border-gray-200">Microsoft Teams</span>
+          <span class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-md border border-gray-200">Jira</span>
+          <span class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-md border border-gray-200">GitHub</span>
+          <span class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-md border border-gray-200">Twilio</span>
+          <span class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-md border border-gray-200">Email</span>
+          <span class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-md border border-gray-200">Webhooks</span>
+          <span class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-md border border-gray-200">APIs</span>
+          <span class="px-3 py-1.5 text-xs font-medium text-sky-700 bg-sky-50 rounded-md border border-sky-200">+ 5,000 more via workflows</span>
+        </div>
+
+        <ul class="mt-8 space-y-4">
+          <li class="flex gap-3">
+            <span class="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-sky-100">
+              <svg class="h-3 w-3 text-sky-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+            </span>
+            <span class="text-sm text-gray-600 leading-relaxed">Automate any process without writing code &mdash; drag-and-drop workflows, or drop into custom code when you want to</span>
+          </li>
+          <li class="flex gap-3">
+            <span class="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-sky-100">
+              <svg class="h-3 w-3 text-sky-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+            </span>
+            <span class="text-sm text-gray-600 leading-relaxed">Runbooks run your response steps automatically &mdash; the workflow shown here fired itself at 02:47</span>
+          </li>
+          <li class="flex gap-3">
+            <span class="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-sky-100">
+              <svg class="h-3 w-3 text-sky-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+            </span>
+            <span class="text-sm text-gray-600 leading-relaxed">API access on the Growth plan &mdash; build whatever the chip cloud is missing</span>
+          </li>
+        </ul>
+
+        <div class="mt-8 flex flex-wrap items-center gap-4">
+          <a href="/accounts/register" class="inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-700">
+            Build a workflow
+          </a>
+          <a href="/product/workflows" class="group inline-flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+            Explore Workflows
+            <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5" /></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
