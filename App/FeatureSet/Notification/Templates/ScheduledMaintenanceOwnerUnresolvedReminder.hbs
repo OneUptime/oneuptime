@@ -1,0 +1,35 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Reminder - Scheduled Maintenance " scheduledMaintenanceNumber ": " scheduledMaintenanceTitle) }}
+
+{{> InfoBlock info="This scheduled maintenance event is still open and needs your attention"}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Scheduled Maintenance Title:" text=scheduledMaintenanceTitle }}
+{{> DetailBoxField title="Current State:" text=currentState }}
+{{> DetailBoxField title="Open For:" text=openDuration }}
+{{> DetailBoxField title="Started At:" text=openedAt }}
+{{> DetailBoxField title="Resources Affected:" text=resourcesAffected }}
+{{> DetailBoxField title="Description:" text=scheduledMaintenanceDescription }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this scheduled maintenance event by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=scheduledMaintenanceViewLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=scheduledMaintenanceViewLink}}
+
+{{> InfoBlock info="You will keep receiving these reminders until this scheduled maintenance event is completed. To stop receiving them, complete the event or turn off reminders for this event on the dashboard."}}
+
+{{> OwnerInfo this }}
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

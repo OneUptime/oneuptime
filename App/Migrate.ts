@@ -6,6 +6,7 @@ import {
   ClickhouseMigrationInstance,
 } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import RunDatabaseMigrations from "./FeatureSet/Workers/Utils/DataMigration";
+import RunStartupMigrations from "./FeatureSet/Workers/Utils/StartupMigration";
 import AnalyticsTableManagement from "./FeatureSet/Workers/Utils/AnalyticsDatabase/TableManegement";
 import logger from "Common/Server/Utils/Logger";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -69,6 +70,21 @@ const migrate: PromiseVoidFunction = async (): Promise<void> => {
 
   logger.debug(`${APP_NAME}: running data migrations`);
   await RunDatabaseMigrations();
+
+  /*
+   * Startup migrations (run on every boot AND on every migrate Job) sync
+   * env-driven state such as the GLOBAL_LLM_PROVIDER_* seeded provider, so a
+   * deploy applies the desired state even before app pods restart. They are
+   * non-fatal by design (runtime pods only log failures), so never fail the
+   * migrate Job / deploy over them either.
+   */
+  logger.debug(`${APP_NAME}: running startup migrations`);
+  try {
+    await RunStartupMigrations();
+  } catch (err) {
+    logger.error(`${APP_NAME}: startup migrations failed (non-fatal):`);
+    logger.error(err);
+  }
 
   logger.debug(`${APP_NAME}: migrations complete`);
 };

@@ -130,10 +130,14 @@ If you self-host OneUptime with the Helm chart, you can run [vLLM](https://docs.
    ```
 
 2. Run `helm upgrade` and wait for the vLLM pod to become Ready (the first start downloads the model)
-3. Select **OpenAI** as the LLM Provider (vLLM speaks the OpenAI API)
-4. Enter the in-cluster Base URL: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`
-5. Enter the Model Name: the full HuggingFace model id (or `vllm.servedModelName` if you set one)
-6. Enter the API Key: the value of `vllm.apiKey`, or any placeholder if you did not set one
+3. That's it — vLLM is registered automatically as a Global LLM Provider at startup (`vllm.globalProvider.enabled`, default `true`), so AI features work for all projects. Note: project-scoped AI Agents cannot use global providers and still need a project-specific LLM Provider.
+
+If you disabled auto-registration (`vllm.globalProvider.enabled: false`), create the provider manually:
+
+1. Select **OpenAI** as the LLM Provider (vLLM speaks the OpenAI API)
+2. Enter the in-cluster Base URL: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`
+3. Enter the Model Name: the full HuggingFace model id (or `vllm.servedModelName` if you set one)
+4. Enter the API Key: the value of `vllm.apiKey`, or any placeholder if you did not set one
 
 **Example Configuration:**
 

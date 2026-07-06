@@ -6,6 +6,7 @@ import Model from "../../Models/DatabaseModels/AlertReminderRule";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import AlertState from "../../Models/DatabaseModels/AlertState";
+import Label from "../../Models/DatabaseModels/Label";
 import AlertService from "./AlertService";
 import AlertStateService from "./AlertStateService";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -168,6 +169,7 @@ export class Service extends DatabaseService<Model> {
   public async findMatchingRule(data: {
     projectId: ObjectID;
     alertSeverityId?: ObjectID | undefined;
+    labelIds?: Array<ObjectID> | undefined;
   }): Promise<Model | null> {
     // Get all enabled rules sorted by order. First matching rule wins.
     const rules: Array<Model> = await this.findBy({
@@ -185,6 +187,9 @@ export class Service extends DatabaseService<Model> {
         reminderIntervalInMinutes: true,
         stopRemindersOnState: true,
         alertSeverities: {
+          _id: true,
+        },
+        labels: {
           _id: true,
         },
       },
@@ -212,7 +217,27 @@ export class Service extends DatabaseService<Model> {
         }
       }
 
-      // Rule with no severities matches all alerts.
+      if (rule.labels && rule.labels.length > 0) {
+        if (!data.labelIds || data.labelIds.length === 0) {
+          continue;
+        }
+
+        const ruleLabelIds: Array<string> = rule.labels.map((label: Label) => {
+          return label.id?.toString() || "";
+        });
+
+        const hasMatchingLabel: boolean = data.labelIds.some(
+          (labelId: ObjectID) => {
+            return ruleLabelIds.includes(labelId.toString());
+          },
+        );
+
+        if (!hasMatchingLabel) {
+          continue;
+        }
+      }
+
+      // Rule with no severities and no labels matches all alerts.
       logger.debug(
         `Alert reminder rule ${rule.name || rule.id} matched for project ${data.projectId}`,
         { projectId: data.projectId?.toString() } as LogAttributes,

@@ -2,6 +2,15 @@
 
 The chart can run an opt-in [vLLM](https://docs.vllm.ai) server (`vllm.enabled: true`) that serves local models over an OpenAI-compatible API for OneUptime's AI features. See "Local models with vLLM" in the [chart README](../Public/oneuptime/README.md) for enabling and connecting it. This page covers day-2 operations. Commands below assume the release is named `oneuptime` and installed in the `default` namespace.
 
+### Global provider auto-registration
+
+With `vllm.globalProvider.enabled: true` (the default), every OneUptime startup declaratively syncs a Global LLM Provider row pointing at the in-cluster vLLM service — visible in the dashboard under AI Agents > LLM Providers ("Global LLM Providers" table). Lifecycle semantics:
+
+- Enabling vLLM registers/updates the provider at the next deploy or pod restart.
+- Disabling `vllm.globalProvider.enabled` (or `vllm.enabled`) removes it at the next deploy.
+- Manual edits to the env-managed fields of the auto-registered provider (name, description, type, model, base URL, API key) are overwritten at the next startup; other fields, such as cost per million tokens, are left alone. Create your own provider for hand-managed configuration (it will not be touched).
+- Project-specific LLM Providers always take precedence over the global one, and project-scoped AI Agents cannot use global providers at all.
+
 ### Smoke test the endpoint
 
 ```bash

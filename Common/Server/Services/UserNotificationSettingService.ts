@@ -580,6 +580,18 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     await this.addAlertNotificationSettings(userId, projectId);
     await this.addAlertEpisodeNotificationSettings(userId, projectId);
     await this.addIncidentEpisodeNotificationSettings(userId, projectId);
+    await this.addScheduledMaintenanceNotificationSettings(userId, projectId);
+  }
+
+  private async addScheduledMaintenanceNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_REMINDER_OWNER_NOTIFICATION,
+    );
   }
 
   private async addProbeOwnerNotificationSettings(

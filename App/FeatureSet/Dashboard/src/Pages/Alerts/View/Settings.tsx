@@ -2,10 +2,14 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import Label from "Common/Models/DatabaseModels/Label";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import NextReminderCountdown, {
+  ReminderRuleScope,
+} from "../../../Components/Reminders/NextReminderCountdown";
 
 const AlertSettings: FunctionComponent<
   PageComponentProps
@@ -89,8 +93,21 @@ const AlertSettings: FunctionComponent<
               field: {
                 nextReminderNotificationAt: true,
               },
-              title: "Next Reminder At",
-              fieldType: FieldType.DateTime,
+              title: "Next Reminder In",
+              fieldType: FieldType.Element,
+              getElement: (item: Alert): ReactElement => {
+                return (
+                  <NextReminderCountdown
+                    nextReminderAt={item.nextReminderNotificationAt}
+                    severityId={item.alertSeverityId}
+                    labelIds={(item.labels || []).map((label: Label) => {
+                      return label.id!;
+                    })}
+                    scope={ReminderRuleScope.Alert}
+                    remindersEnabled={item.enableReminders !== false}
+                  />
+                );
+              },
             },
             {
               field: {
@@ -100,6 +117,12 @@ const AlertSettings: FunctionComponent<
               fieldType: FieldType.Number,
             },
           ],
+          selectMoreFields: {
+            alertSeverityId: true,
+            labels: {
+              _id: true,
+            },
+          },
           modelId: modelId,
         }}
       />

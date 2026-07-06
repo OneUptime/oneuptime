@@ -339,6 +339,7 @@ import IncidentSlaRule from "./IncidentSlaRule";
 import IncidentSla from "./IncidentSla";
 import IncidentReminderRule from "./IncidentReminderRule";
 import AlertReminderRule from "./AlertReminderRule";
+import ScheduledMaintenanceReminderRule from "./ScheduledMaintenanceReminderRule";
 import MonitorOwnerRule from "./MonitorOwnerRule";
 import MonitorLabelRule from "./MonitorLabelRule";
 import StatusPageOwnerRule from "./StatusPageOwnerRule";
@@ -516,6 +517,7 @@ const AllModelTypes: Array<{
   IncidentSla,
   IncidentReminderRule,
   AlertReminderRule,
+  ScheduledMaintenanceReminderRule,
 
   MonitorOwnerRule,
   MonitorLabelRule,

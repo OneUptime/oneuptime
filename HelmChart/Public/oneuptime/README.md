@@ -460,7 +460,9 @@ vllm:
 
 For gated models (e.g. `meta-llama/*`), set `vllm.huggingFace.token` (or point `vllm.huggingFace.existingSecret` at a secret you manage). If the model does not fit your GPU's memory at its full context window, cap it with `vllm.extraArgs: ["--max-model-len=8192"]`.
 
-Then connect OneUptime to it — go to **AI Agents > LLM Providers > Create LLM Provider** and set:
+When enabled, vLLM is **registered automatically as a Global LLM Provider** at startup (`vllm.globalProvider.enabled`, default `true`), so AI features work for all projects with no dashboard setup — it appears under **AI Agents > LLM Providers** as "Self-Hosted vLLM" (configurable via `vllm.globalProvider.name`). The registration is declarative: disabling `vllm.globalProvider.enabled` (or `vllm.enabled`) removes the auto-registered provider on the next deploy, and manual edits to its env-managed fields (name, description, type, model, base URL, API key) in the Admin Dashboard are overwritten — other fields, such as the token cost used for AI-credit billing, are left alone. Two caveats: project-scoped AI Agents cannot use global providers (they need a project-specific LLM Provider), and on installs with `billing.enabled: true` global providers are subject to AI-credit balance checks.
+
+If you prefer to wire it up manually instead, set `vllm.globalProvider.enabled: false` and go to **AI Agents > LLM Providers > Create LLM Provider**:
 
 - **LLM Provider**: `OpenAI`
 - **Base URL**: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`

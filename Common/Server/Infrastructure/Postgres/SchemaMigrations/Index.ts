@@ -406,6 +406,9 @@ import { MigrationName1783010000000 } from "./1783010000000-MigrationName";
 import { AddInstanceIdToGlobalConfig1783161406136 } from "./1783161406136-AddInstanceIdToGlobalConfig";
 import { AddEnterpriseLicenseInstance1783226868418 } from "./1783226868418-AddEnterpriseLicenseInstance";
 import { AddIncidentAlertReminderRules1783234451106 } from "./1783234451106-AddIncidentAlertReminderRules";
+import { AddScheduledMaintenanceReminderRules1783320000000 } from "./1783320000000-AddScheduledMaintenanceReminderRules";
+import { AddRemindWhileScheduledToScheduledMaintenanceReminderRule1783330000000 } from "./1783330000000-AddRemindWhileScheduledToScheduledMaintenanceReminderRule";
+import { AddLabelsToIncidentAndAlertReminderRules1783340000000 } from "./1783340000000-AddLabelsToIncidentAndAlertReminderRules";
 
 export default [
   InitialMigration,
@@ -816,4 +819,7 @@ export default [
   AddInstanceIdToGlobalConfig1783161406136,
   AddEnterpriseLicenseInstance1783226868418,
   AddIncidentAlertReminderRules1783234451106,
+  AddScheduledMaintenanceReminderRules1783320000000,
+  AddRemindWhileScheduledToScheduledMaintenanceReminderRule1783330000000,
+  AddLabelsToIncidentAndAlertReminderRules1783340000000,
 ];

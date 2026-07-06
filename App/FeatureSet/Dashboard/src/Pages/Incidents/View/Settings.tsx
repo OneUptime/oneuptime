@@ -2,10 +2,14 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import Label from "Common/Models/DatabaseModels/Label";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import NextReminderCountdown, {
+  ReminderRuleScope,
+} from "../../../Components/Reminders/NextReminderCountdown";
 
 const IncidentDelete: FunctionComponent<
   PageComponentProps
@@ -104,8 +108,21 @@ const IncidentDelete: FunctionComponent<
               field: {
                 nextReminderNotificationAt: true,
               },
-              title: "Next Reminder At",
-              fieldType: FieldType.DateTime,
+              title: "Next Reminder In",
+              fieldType: FieldType.Element,
+              getElement: (item: Incident): ReactElement => {
+                return (
+                  <NextReminderCountdown
+                    nextReminderAt={item.nextReminderNotificationAt}
+                    severityId={item.incidentSeverityId}
+                    labelIds={(item.labels || []).map((label: Label) => {
+                      return label.id!;
+                    })}
+                    scope={ReminderRuleScope.Incident}
+                    remindersEnabled={item.enableReminders !== false}
+                  />
+                );
+              },
             },
             {
               field: {
@@ -115,6 +132,12 @@ const IncidentDelete: FunctionComponent<
               fieldType: FieldType.Number,
             },
           ],
+          selectMoreFields: {
+            incidentSeverityId: true,
+            labels: {
+              _id: true,
+            },
+          },
           modelId: modelId,
         }}
       />

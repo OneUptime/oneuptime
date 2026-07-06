@@ -43,6 +43,7 @@ enum NotificationSettingEventType {
   SEND_SCHEDULED_MAINTENANCE_NOTE_POSTED_OWNER_NOTIFICATION = "Send event note posted notification when I am the owner of the event",
   SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the event",
   SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION = "Send event state changed notification when I am the owner of the event",
+  SEND_SCHEDULED_MAINTENANCE_REMINDER_OWNER_NOTIFICATION = "Send reminder notification when a scheduled maintenance event I own is still not complete",
 
   // Status Page
   SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION = "Send status page announcement created notification when I am the owner of the status page",
