@@ -25,7 +25,10 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
-import { getClickhouseClusterName } from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
+import {
+  getClickhouseClusterName,
+  getStorageTableName,
+} from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
 import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
 
 const router: ExpressRouter = Express.getRouter();
@@ -2055,16 +2058,24 @@ async function getClickhouseTelemetryIngestion(): Promise<JSONObject> {
      * bytes_on_disk. It is a metadata aggregate (no data scan), so it stays cheap
      * regardless of table size. Guarded independently so a failure here never
      * drops the ingestion counts below.
+     *
+     * The app-facing table names (LogItemV3, …) are Distributed wrappers, which
+     * hold NO parts of their own — the rows live in the per-shard local storage
+     * tables (`<tableName>Local`). So we filter system.parts on the *Local names
+     * (and key the size map by them); filtering on the Distributed names would
+     * match nothing and leave every "Actual size" cell blank. Like the
+     * instance-health ClickHouse overview, this reads the connected node's parts.
      */
-    const uncompressedBytesByTable: Map<string, number | null> = new Map();
+    const uncompressedBytesByStorageTable: Map<string, number | null> =
+      new Map();
     try {
       const databaseLiteral: string = ClickhouseDatabaseName.replace(
         /'/g,
         "''",
       );
-      const tableListLiteral: string = TELEMETRY_INGESTION_TABLES.map(
+      const storageTableListLiteral: string = TELEMETRY_INGESTION_TABLES.map(
         (spec: { table: AnalyticsTableName }): string => {
-          return `'${String(spec.table).replace(/'/g, "''")}'`;
+          return `'${getStorageTableName(String(spec.table)).replace(/'/g, "''")}'`;
         },
       ).join(", ");
 
@@ -2073,7 +2084,7 @@ async function getClickhouseTelemetryIngestion(): Promise<JSONObject> {
           query:
             "SELECT table, sum(data_uncompressed_bytes) AS uncompressed_bytes " +
             "FROM system.parts " +
-            `WHERE active AND database = '${databaseLiteral}' AND table IN (${tableListLiteral}) ` +
+            `WHERE active AND database = '${databaseLiteral}' AND table IN (${storageTableListLiteral}) ` +
             "GROUP BY table" +
             CH_DIAG_QUERY_SETTINGS,
           format: "JSON",
@@ -2081,7 +2092,7 @@ async function getClickhouseTelemetryIngestion(): Promise<JSONObject> {
       ).json()) as ClickhouseJsonResult;
 
       for (const row of sizesResult.data || []) {
-        uncompressedBytesByTable.set(
+        uncompressedBytesByStorageTable.set(
           String(row["table"]),
           toNumberOrNull(row["uncompressed_bytes"]),
         );
@@ -2100,7 +2111,9 @@ async function getClickhouseTelemetryIngestion(): Promise<JSONObject> {
         lastMinute: null,
         lastHour: null,
         lastDay: null,
-        uncompressedBytes: uncompressedBytesByTable.get(spec.table) ?? null,
+        uncompressedBytes:
+          uncompressedBytesByStorageTable.get(getStorageTableName(spec.table)) ??
+          null,
         available: false,
       };
 
