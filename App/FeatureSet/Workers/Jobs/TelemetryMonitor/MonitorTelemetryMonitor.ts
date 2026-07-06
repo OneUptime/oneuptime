@@ -1947,7 +1947,7 @@ const monitorHost: MonitorHostFunction = async (data: {
     projectId: data.projectId,
   });
 
-  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+  let seriesBreakdown: Array<MetricSeriesResult> | undefined =
     groupByAttributeKeys.length > 0
       ? buildSeriesBreakdown({
           queryConfigs: hostMonitorConfig.metricViewConfig.queryConfigs,
@@ -1958,6 +1958,26 @@ const monitorHost: MonitorHostFunction = async (data: {
           projectId: data.projectId,
         })
       : undefined;
+
+  /*
+   * Seed synthetic "no data" series for expected hosts that went silent, so
+   * a fleet-wide host-grouped monitor detects an individual host going down
+   * (see injectExpectedAbsentHostSeries). Skipped when the monitor is scoped
+   * to a single host via hostIdentifier: that scoping lives on the local
+   * query attributes (not queryConfig.filterData), so the generic subset
+   * guard can't see it, and a single-host monitor already down-detects its
+   * one host via the empty-window monitor-level no-data trigger.
+   */
+  if (!hostMonitorConfig.hostIdentifier) {
+    seriesBreakdown = await injectExpectedAbsentHostSeries({
+      monitorStep: data.monitorStep,
+      seriesBreakdown,
+      groupByAttributeKeys,
+      queryConfigs: hostMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: hostMonitorConfig.metricViewConfig.formulaConfigs || [],
+      projectId: data.projectId,
+    });
+  }
 
   return {
     projectId: data.projectId,
