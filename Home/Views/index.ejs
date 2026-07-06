@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html lang="en" id="home">
 
-<meta http-equiv="content-type" content="text/html;charset=utf-8" />
-
 <head>
   <title>OneUptime | The Open-Source Observability Platform</title>
   <meta name="description"
-    content="The open-source observability platform. Infrastructure monitoring, incident management, status pages, and APM — unified and self-hostable.">
+    content="Catch outages in seconds, page the right engineer, and keep customers in the loop — one open-source platform that replaces your monitoring, incident management, and status page stack.">
   <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
@@ -17,31 +15,41 @@
   <%- include('nav') -%>
 
   <main id="main-content">
-    <%- include('./Partials/hero') -%>
+    <%- include('./Partials/home-motion') -%>
+
+    <%- include('./Partials/home-hero') -%>
 
     <%- include('logo-roll') -%>
 
-    <%- include('./Partials/product-tabs') -%>
+    <%- include('./Partials/home-stakes') -%>
+
+    <%- include('./Partials/home-detect') -%>
+
+    <%- include('./Partials/home-respond') -%>
+
+    <%- include('./Partials/home-communicate') -%>
+
+    <%- include('./Partials/home-diagnose') -%>
+
+    <%- include('./Partials/home-autofix') -%>
+
+    <%- include('./Partials/home-results') -%>
+
+    <%- include('./Partials/home-consolidate') -%>
+
+    <%- include('./Partials/home-products') -%>
+
+    <%- include('./Partials/home-integrations') -%>
+
+    <%- include('./Partials/home-own-it') -%>
 
     <%- include('./Partials/reviews') -%>
-
-    <%- include('features-table') -%>
-
-    <%- include('./Partials/copilot') -%>
-
-    <%- include('./Partials/enterprise-ready') -%>
-
-    <%- include('./Partials/proudly-open-source') -%>
-
-    <!-- Place this tag in your head or just before your close body tag. -->
-    <script async defer src="https://buttons.github.io/buttons.js"></script>
 
     <%- include('cta') -%>
   </main>
 
   <%- include('footer') -%>
 
-  <%- include('./Partials/video-script') -%>
   <%- include('./Partials/cta-tracking') -%>
 
 </body>

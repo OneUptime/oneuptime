@@ -42,6 +42,36 @@ const formatNumber: (value: unknown) => string = (value: unknown): string => {
   return isNaN(parsed) ? "—" : parsed.toLocaleString();
 };
 
+const toNumOrNull: (value: unknown) => number | null = (
+  value: unknown,
+): number | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const parsed: number = Number(value);
+  return isNaN(parsed) ? null : parsed;
+};
+
+// Human-readable byte count (base-1024), matching the other health cards.
+const bytesToReadable: (value: number | null) => string = (
+  value: number | null,
+): string => {
+  if (value === null || isNaN(value)) {
+    return "—";
+  }
+  if (value === 0) {
+    return "0 B";
+  }
+  const units: Array<string> = ["B", "KB", "MB", "GB", "TB", "PB"];
+  const exponent: number = Math.min(
+    Math.floor(Math.log(value) / Math.log(1024)),
+    units.length - 1,
+  );
+  const scaled: number = value / Math.pow(1024, exponent);
+  const decimals: number = scaled >= 10 || exponent === 0 ? 0 : 1;
+  return `${scaled.toFixed(decimals)} ${units[exponent]}`;
+};
+
 const ClickhouseCluster: FunctionComponent = (): ReactElement => {
   const [data, setData] = useState<JSONObject | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
@@ -97,6 +127,33 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
           const recovering: boolean = toNum(shard["estimatedRecoveryTime"]) > 0;
           const errors: number = toNum(shard["errorsCount"]);
 
+          // Per-node storage: data footprint + disk headroom for this replica.
+          const dataSize: number | null = toNumOrNull(shard["dataSizeInBytes"]);
+          const diskTotal: number | null = toNumOrNull(
+            shard["diskTotalInBytes"],
+          );
+          const diskFree: number | null = toNumOrNull(shard["diskFreeInBytes"]);
+          const diskUsed: number | null =
+            diskTotal !== null && diskFree !== null
+              ? diskTotal - diskFree
+              : null;
+          const diskPercent: number | null =
+            diskTotal && diskUsed !== null && diskTotal > 0
+              ? Math.round((diskUsed / diskTotal) * 100)
+              : null;
+
+          const storageParts: Array<string> = [];
+          if (dataSize !== null) {
+            storageParts.push(`${bytesToReadable(dataSize)} data`);
+          }
+          if (diskTotal !== null) {
+            storageParts.push(
+              `disk ${bytesToReadable(diskUsed)} / ${bytesToReadable(diskTotal)}${
+                diskPercent !== null ? ` · ${diskPercent}%` : ""
+              }`,
+            );
+          }
+
           return (
             <div
               key={index}
@@ -110,6 +167,13 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
                 <div className="text-xs text-gray-500 font-mono truncate">
                   {String(shard["hostName"] ?? "—")}
                 </div>
+                {storageParts.length > 0 ? (
+                  <div className="text-xs text-gray-600 mt-0.5 tabular-nums">
+                    {storageParts.join(" · ")}
+                  </div>
+                ) : (
+                  <></>
+                )}
                 {errors > 0 ? (
                   <div className="text-xs text-gray-500 mt-0.5">
                     {formatNumber(errors)} connection errors

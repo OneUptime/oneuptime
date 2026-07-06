@@ -25,7 +25,10 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
-import { getClickhouseClusterName } from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
+import {
+  getClickhouseClusterName,
+  getStorageTableName,
+} from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
 import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
 
 const router: ExpressRouter = Express.getRouter();
@@ -39,6 +42,24 @@ const CACHE_TTL_MS: number = 15000;
 let overviewCache: { data: JSONObject; expiresAt: number } | null = null;
 
 type ClickhouseJsonResult = { data: Array<JSONObject> };
+
+// Per-node ClickHouse storage: data footprint (bytes_on_disk) + disk capacity.
+type HostStorage = {
+  dataSizeInBytes: number | null;
+  diskFreeInBytes: number | null;
+  diskTotalInBytes: number | null;
+};
+
+/*
+ * Normalise a ClickHouse host identifier to its first DNS label, lower-cased, so
+ * a shard/replica's `system.clusters.host_name` can be matched to the per-node
+ * `hostName()` that storage metrics are keyed by — the two can differ by domain
+ * suffix (short pod name vs FQDN) in a Kubernetes / Altinity-operator cluster.
+ */
+function normalizeHostLabel(host: string): string {
+  const label: string = host.split(".")[0] || host;
+  return label.toLowerCase();
+}
 
 // Parse a possibly-bigint-as-string value (Postgres/ClickHouse return UInt64/bigint as strings in JSON).
 function toNumberOrNull(value: unknown): number | null {
@@ -149,6 +170,7 @@ async function getClickhouseStats(): Promise<JSONObject> {
     dataSizeInBytes: null,
     diskFreeInBytes: null,
     diskTotalInBytes: null,
+    diskByNode: [],
     topTables: [],
   };
 
@@ -160,49 +182,112 @@ async function getClickhouseStats(): Promise<JSONObject> {
       return result;
     }
 
-    // Total size of active parts on disk.
-    const sizeResult: ClickhouseJsonResult = (await (
-      await client.query({
-        query:
-          "SELECT sum(bytes_on_disk) AS bytes FROM system.parts WHERE active",
-        format: "JSON",
-      })
-    ).json()) as ClickhouseJsonResult;
-
-    result["connected"] = true;
-    result["dataSizeInBytes"] = toNumberOrNull(sizeResult.data?.[0]?.["bytes"]);
-
-    // Underlying volume free/total capacity.
-    const diskResult: ClickhouseJsonResult = (await (
-      await client.query({
-        query:
-          "SELECT sum(free_space) AS free, sum(total_space) AS total FROM system.disks",
-        format: "JSON",
-      })
-    ).json()) as ClickhouseJsonResult;
-
-    result["diskFreeInBytes"] = toNumberOrNull(diskResult.data?.[0]?.["free"]);
-    result["diskTotalInBytes"] = toNumberOrNull(
-      diskResult.data?.[0]?.["total"],
+    const clusterNameLiteral: string = getClickhouseClusterName().replace(
+      /'/g,
+      "''",
     );
 
-    // Largest tables (usually the telemetry tables) so operators can see what consumes space.
-    const tablesResult: ClickhouseJsonResult = (await (
-      await client.query({
-        query:
-          "SELECT table AS name, sum(bytes_on_disk) AS bytes FROM system.parts WHERE active GROUP BY table ORDER BY bytes DESC LIMIT 8",
-        format: "JSON",
-      })
-    ).json()) as ClickhouseJsonResult;
+    /*
+     * Total on-disk (compressed) size of active parts, summed ACROSS THE CLUSTER.
+     * system.parts is node-local, so we read it through `cluster(<name>, …)` —
+     * which hits one replica per shard — and sum: every shard counted once, no
+     * replica double-counting (clusterAllReplicas would overcount by the
+     * replication factor). On a single-node "cluster of one" this equals a plain
+     * system.parts read. Independently guarded so a failure here doesn't drop the
+     * disk / table stats below.
+     */
+    try {
+      const sizeResult: ClickhouseJsonResult = (await (
+        await client.query({
+          query:
+            `SELECT sum(bytes_on_disk) AS bytes FROM cluster('${clusterNameLiteral}', system.parts) WHERE active` +
+            CH_DIAG_QUERY_SETTINGS,
+          format: "JSON",
+        })
+      ).json()) as ClickhouseJsonResult;
 
-    result["topTables"] = (tablesResult.data || []).map(
-      (row: JSONObject): JSONObject => {
-        return {
-          name: String(row["name"]),
-          sizeInBytes: toNumberOrNull(row["bytes"]),
-        };
-      },
-    );
+      result["connected"] = true;
+      result["dataSizeInBytes"] = toNumberOrNull(
+        sizeResult.data?.[0]?.["bytes"],
+      );
+    } catch (err) {
+      logger.error("AdminHealth: failed to read ClickHouse data size");
+      logger.error(err);
+    }
+
+    /*
+     * Disk capacity PER NODE. Every physical node (each shard AND each replica)
+     * has its own disk that can independently fill up, so we list them rather than
+     * sum — a single node at 95% must never be hidden inside an aggregate. We read
+     * through `clusterAllReplicas(<name>, system.disks)` (EVERY node, not one per
+     * shard) and group by host, summing each node's own volumes. diskFree/Total
+     * keep a raw cluster-wide aggregate for the support bundle and the UI's
+     * single-bar fallback.
+     */
+    try {
+      const diskResult: ClickhouseJsonResult = (await (
+        await client.query({
+          query:
+            `SELECT hostName() AS host, sum(free_space) AS free, sum(total_space) AS total FROM clusterAllReplicas('${clusterNameLiteral}', system.disks) GROUP BY host ORDER BY host ASC` +
+            CH_DIAG_QUERY_SETTINGS,
+          format: "JSON",
+        })
+      ).json()) as ClickhouseJsonResult;
+
+      const nodes: JSONArray = [];
+      let totalSum: number = 0;
+      let freeSum: number = 0;
+
+      for (const row of diskResult.data || []) {
+        const totalInBytes: number | null = toNumberOrNull(row["total"]);
+        const freeInBytes: number | null = toNumberOrNull(row["free"]);
+        nodes.push({
+          host: String(row["host"]),
+          freeInBytes: freeInBytes,
+          totalInBytes: totalInBytes,
+        });
+        totalSum += totalInBytes ?? 0;
+        freeSum += freeInBytes ?? 0;
+      }
+
+      result["connected"] = true;
+      result["diskByNode"] = nodes;
+      result["diskTotalInBytes"] = nodes.length > 0 ? totalSum : null;
+      result["diskFreeInBytes"] = nodes.length > 0 ? freeSum : null;
+    } catch (err) {
+      logger.error("AdminHealth: failed to read ClickHouse disk capacity");
+      logger.error(err);
+    }
+
+    /*
+     * Largest tables across the cluster — same `cluster(<name>)`
+     * one-replica-per-shard read as the data size, so each table is totalled once.
+     * Groups by the physical (…Local) storage-table name, which is what actually
+     * holds the bytes.
+     */
+    try {
+      const tablesResult: ClickhouseJsonResult = (await (
+        await client.query({
+          query:
+            `SELECT table AS name, sum(bytes_on_disk) AS bytes FROM cluster('${clusterNameLiteral}', system.parts) WHERE active GROUP BY table ORDER BY bytes DESC LIMIT 8` +
+            CH_DIAG_QUERY_SETTINGS,
+          format: "JSON",
+        })
+      ).json()) as ClickhouseJsonResult;
+
+      result["connected"] = true;
+      result["topTables"] = (tablesResult.data || []).map(
+        (row: JSONObject): JSONObject => {
+          return {
+            name: String(row["name"]),
+            sizeInBytes: toNumberOrNull(row["bytes"]),
+          };
+        },
+      );
+    } catch (err) {
+      logger.error("AdminHealth: failed to read ClickHouse top tables");
+      logger.error(err);
+    }
   } catch (err) {
     logger.error("AdminHealth: failed to read ClickHouse stats");
     logger.error(err);
@@ -1752,6 +1837,69 @@ async function getClickhouseDiagnostics(): Promise<JSONObject> {
       keeperConnection: [],
     };
 
+    /*
+     * Per-node storage, so each shard/replica below can show how much data it
+     * holds and its disk headroom. Read through `clusterAllReplicas(<name>, …)`
+     * (EVERY node, not one per shard) and keyed by hostName(): data footprint from
+     * system.parts (bytes_on_disk), disk capacity from system.disks. Each replica
+     * of a shard keeps its own copy, so per-replica figures also surface a replica
+     * that has drifted from its peers. Joined to system.clusters.host_name by
+     * normalised host label. Independently guarded — this is best-effort
+     * enrichment and must never drop the topology below.
+     */
+    const storageByHost: Map<string, HostStorage> = new Map();
+
+    try {
+      const partsByHostResult: ClickhouseJsonResult = (await (
+        await client.query({
+          query:
+            `SELECT hostName() AS host, sum(bytes_on_disk) AS data_bytes FROM clusterAllReplicas('${clusterNameLiteral}', system.parts) WHERE active GROUP BY host` +
+            CH_DIAG_QUERY_SETTINGS,
+          format: "JSON",
+        })
+      ).json()) as ClickhouseJsonResult;
+
+      for (const row of partsByHostResult.data || []) {
+        const key: string = normalizeHostLabel(String(row["host"]));
+        const entry: HostStorage = storageByHost.get(key) || {
+          dataSizeInBytes: null,
+          diskFreeInBytes: null,
+          diskTotalInBytes: null,
+        };
+        entry.dataSizeInBytes = toNumberOrNull(row["data_bytes"]);
+        storageByHost.set(key, entry);
+      }
+    } catch {
+      logger.debug("AdminHealth: per-node ClickHouse data size unavailable");
+    }
+
+    try {
+      const disksByHostResult: ClickhouseJsonResult = (await (
+        await client.query({
+          query:
+            `SELECT hostName() AS host, sum(free_space) AS free, sum(total_space) AS total FROM clusterAllReplicas('${clusterNameLiteral}', system.disks) GROUP BY host` +
+            CH_DIAG_QUERY_SETTINGS,
+          format: "JSON",
+        })
+      ).json()) as ClickhouseJsonResult;
+
+      for (const row of disksByHostResult.data || []) {
+        const key: string = normalizeHostLabel(String(row["host"]));
+        const entry: HostStorage = storageByHost.get(key) || {
+          dataSizeInBytes: null,
+          diskFreeInBytes: null,
+          diskTotalInBytes: null,
+        };
+        entry.diskFreeInBytes = toNumberOrNull(row["free"]);
+        entry.diskTotalInBytes = toNumberOrNull(row["total"]);
+        storageByHost.set(key, entry);
+      }
+    } catch {
+      logger.debug(
+        "AdminHealth: per-node ClickHouse disk capacity unavailable",
+      );
+    }
+
     // 1. Cluster topology + per-host error counters (is every shard reachable?).
     try {
       const clustersResult: ClickhouseJsonResult = (await (
@@ -1764,15 +1912,22 @@ async function getClickhouseDiagnostics(): Promise<JSONObject> {
       ).json()) as ClickhouseJsonResult;
       clusterHealth["clusters"] = (clustersResult.data || []).map(
         (row: JSONObject): JSONObject => {
+          const hostName: string = String(row["host_name"]);
+          const storage: HostStorage | undefined = storageByHost.get(
+            normalizeHostLabel(hostName),
+          );
           return {
             shardNum: toNumberOrNull(row["shard_num"]),
             replicaNum: toNumberOrNull(row["replica_num"]),
-            hostName: String(row["host_name"]),
+            hostName: hostName,
             errorsCount: toNumberOrNull(row["errors_count"]),
             slowdownsCount: toNumberOrNull(row["slowdowns_count"]),
             estimatedRecoveryTime: toNumberOrNull(
               row["estimated_recovery_time"],
             ),
+            dataSizeInBytes: storage?.dataSizeInBytes ?? null,
+            diskFreeInBytes: storage?.diskFreeInBytes ?? null,
+            diskTotalInBytes: storage?.diskTotalInBytes ?? null,
           };
         },
       );
@@ -2055,16 +2210,38 @@ async function getClickhouseTelemetryIngestion(): Promise<JSONObject> {
      * bytes_on_disk. It is a metadata aggregate (no data scan), so it stays cheap
      * regardless of table size. Guarded independently so a failure here never
      * drops the ingestion counts below.
+     *
+     * Two cluster subtleties are handled here:
+     *
+     *   1. The app-facing table names (LogItemV3, …) are Distributed wrappers,
+     *      which hold NO parts of their own — the rows live in the per-shard local
+     *      storage tables (`<tableName>Local`). So we filter system.parts on the
+     *      *Local names (and key the size map by them); the Distributed names would
+     *      match nothing and leave every "Actual size" cell blank.
+     *
+     *   2. system.parts is node-local, so a plain read would only size the
+     *      connected node's shard. We read it through
+     *      `cluster(<name>, system.parts)` which — like the Distributed read path
+     *      the ingestion counts use — hits ONE replica per shard, so
+     *      sum(...) GROUP BY table totals every shard exactly once (no replica
+     *      double-counting; clusterAllReplicas would overcount by the replication
+     *      factor). On a single-node "cluster of one" this equals reading
+     *      system.parts directly.
      */
-    const uncompressedBytesByTable: Map<string, number | null> = new Map();
+    const uncompressedBytesByStorageTable: Map<string, number | null> =
+      new Map();
     try {
       const databaseLiteral: string = ClickhouseDatabaseName.replace(
         /'/g,
         "''",
       );
-      const tableListLiteral: string = TELEMETRY_INGESTION_TABLES.map(
+      const clusterNameLiteral: string = getClickhouseClusterName().replace(
+        /'/g,
+        "''",
+      );
+      const storageTableListLiteral: string = TELEMETRY_INGESTION_TABLES.map(
         (spec: { table: AnalyticsTableName }): string => {
-          return `'${String(spec.table).replace(/'/g, "''")}'`;
+          return `'${getStorageTableName(String(spec.table)).replace(/'/g, "''")}'`;
         },
       ).join(", ");
 
@@ -2072,8 +2249,8 @@ async function getClickhouseTelemetryIngestion(): Promise<JSONObject> {
         await client.query({
           query:
             "SELECT table, sum(data_uncompressed_bytes) AS uncompressed_bytes " +
-            "FROM system.parts " +
-            `WHERE active AND database = '${databaseLiteral}' AND table IN (${tableListLiteral}) ` +
+            `FROM cluster('${clusterNameLiteral}', system.parts) ` +
+            `WHERE active AND database = '${databaseLiteral}' AND table IN (${storageTableListLiteral}) ` +
             "GROUP BY table" +
             CH_DIAG_QUERY_SETTINGS,
           format: "JSON",
@@ -2081,7 +2258,7 @@ async function getClickhouseTelemetryIngestion(): Promise<JSONObject> {
       ).json()) as ClickhouseJsonResult;
 
       for (const row of sizesResult.data || []) {
-        uncompressedBytesByTable.set(
+        uncompressedBytesByStorageTable.set(
           String(row["table"]),
           toNumberOrNull(row["uncompressed_bytes"]),
         );
@@ -2100,7 +2277,10 @@ async function getClickhouseTelemetryIngestion(): Promise<JSONObject> {
         lastMinute: null,
         lastHour: null,
         lastDay: null,
-        uncompressedBytes: uncompressedBytesByTable.get(spec.table) ?? null,
+        uncompressedBytes:
+          uncompressedBytesByStorageTable.get(
+            getStorageTableName(spec.table),
+          ) ?? null,
         available: false,
       };
 

@@ -107,7 +107,16 @@ const HealthOverview: FunctionComponent = (): ReactElement => {
   const queues: JSONArray = (data?.["queues"] || []) as JSONArray;
   const topTables: JSONArray = (clickhouse["topTables"] || []) as JSONArray;
 
-  // ClickHouse disk utilization (the one datastore that reports volume capacity directly).
+  /*
+   * ClickHouse disk utilization, reported per node: every node (each shard AND
+   * each replica) has its own disk that fills independently, so we render one bar
+   * per node rather than a single aggregate that could hide a near-full node.
+   */
+  const clickhouseDiskNodes: JSONArray = (clickhouse["diskByNode"] ||
+    []) as JSONArray;
+
+  // Raw cluster-wide aggregate — used only as a single-bar fallback (older backend
+  // or per-node query unavailable).
   const chDiskTotal: number | null = toNumberOrNull(
     clickhouse["diskTotalInBytes"],
   );
@@ -153,6 +162,61 @@ const HealthOverview: FunctionComponent = (): ReactElement => {
         </div>
       </div>
     );
+  };
+
+  // One ClickHouse disk bar per node, falling back to a single aggregate bar.
+  const renderClickHouseDiskBars: () => ReactElement = (): ReactElement => {
+    if (clickhouseDiskNodes.length > 0) {
+      const bars: Array<ReactElement> = [];
+
+      clickhouseDiskNodes.forEach((node: unknown, index: number): void => {
+        const nodeObject: JSONObject = (node || {}) as JSONObject;
+        const total: number | null = toNumberOrNull(nodeObject["totalInBytes"]);
+        const free: number | null = toNumberOrNull(nodeObject["freeInBytes"]);
+        const used: number | null =
+          total !== null && free !== null ? total - free : null;
+        const percent: number | null =
+          total && used !== null && total > 0 ? (used / total) * 100 : null;
+
+        if (percent === null) {
+          return;
+        }
+
+        const host: string = String(nodeObject["host"] ?? "");
+        // With a single node the host name is noise; label it plainly.
+        const label: string =
+          clickhouseDiskNodes.length === 1 || host.length === 0
+            ? "ClickHouse disk"
+            : `ClickHouse disk · ${host}`;
+
+        bars.push(
+          <ResourceUsageBar
+            key={`ch-disk-${index}`}
+            label={label}
+            value={percent}
+            valueLabel={`${percent.toFixed(0)}%`}
+            secondaryLabel={`${bytesToReadable(used)} / ${bytesToReadable(total)}`}
+          />,
+        );
+      });
+
+      if (bars.length > 0) {
+        return <>{bars}</>;
+      }
+    }
+
+    if (chDiskPercent !== null) {
+      return (
+        <ResourceUsageBar
+          label="ClickHouse disk"
+          value={chDiskPercent}
+          valueLabel={`${chDiskPercent.toFixed(0)}%`}
+          secondaryLabel={`${bytesToReadable(chDiskUsed)} / ${bytesToReadable(chDiskTotal)}`}
+        />
+      );
+    }
+
+    return <></>;
   };
 
   if (isInitialLoading && !data) {
@@ -211,16 +275,7 @@ const HealthOverview: FunctionComponent = (): ReactElement => {
         description="Disk and memory utilization of the databases backing this instance."
       >
         <div className="space-y-4">
-          {chDiskPercent !== null ? (
-            <ResourceUsageBar
-              label="ClickHouse disk"
-              value={chDiskPercent}
-              valueLabel={`${chDiskPercent.toFixed(0)}%`}
-              secondaryLabel={`${bytesToReadable(chDiskUsed)} / ${bytesToReadable(chDiskTotal)}`}
-            />
-          ) : (
-            <></>
-          )}
+          {renderClickHouseDiskBars()}
 
           {redisPercent !== null ? (
             <ResourceUsageBar

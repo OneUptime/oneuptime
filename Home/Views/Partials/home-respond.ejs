@@ -1,0 +1,85 @@
+<section id="respond" class="relative bg-white py-24 lg:py-32 overflow-hidden scroll-mt-24" aria-labelledby="respond-title">
+  <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 to-white" aria-hidden="true"></div>
+  <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-rose-200/70 to-transparent" aria-hidden="true"></div>
+  <div class="absolute -top-24 left-[12%] h-72 w-72 rounded-full bg-rose-100/50 blur-3xl pointer-events-none" aria-hidden="true"></div>
+  <div class="pointer-events-none select-none absolute -top-6 left-8 hidden lg:block font-mono text-[10rem] leading-none font-semibold tracking-tighter text-rose-600/[0.05]" aria-hidden="true">2:48 AM</div>
+
+  <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
+    <div class="grid grid-cols-1 items-center gap-16 lg:grid-cols-5 lg:gap-20">
+      <!-- Visual (left on desktop) -->
+      <div class="order-last lg:order-first lg:col-span-3">
+        <div data-reveal data-reveal-delay="150" class="relative">
+          <div class="absolute -inset-8 rounded-full pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(244 63 94 / 0.06) 0%, rgb(244 63 94 / 0.02) 40%, transparent 70%);" aria-hidden="true"></div>
+          <div class="relative tilt-l">
+            <%- include('./home-mocks/mock-respond') -%>
+          </div>
+        </div>
+      </div>
+
+      <!-- Copy -->
+      <div data-reveal class="lg:col-span-2">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-1 font-mono text-xs text-rose-600 ring-1 ring-inset ring-rose-200 tabular-nums">2:48 AM</span>
+          <p class="text-sm font-medium text-rose-600 tracking-wide uppercase">Respond</p>
+        </div>
+        <h2 id="respond-title" class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900">
+          From 3 a.m. page to all-clear - without the chaos.
+        </h2>
+        <p class="mt-6 text-lg text-gray-600 leading-relaxed">
+          OneUptime pages a person, not a channel: it calls whoever is on rotation and runs the incident from a single timeline. Nobody scrolls Slack asking &ldquo;who's on this?&rdquo; ever again.
+        </p>
+
+        <ul class="mt-8 space-y-4">
+          <li class="flex gap-3">
+            <span class="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-rose-100">
+              <svg class="h-3 w-3 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+            </span>
+            <span class="text-sm text-gray-600 leading-relaxed">Phone calls that actually wake you - plus SMS, email, and push</span>
+          </li>
+          <li class="flex gap-3">
+            <span class="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-rose-100">
+              <svg class="h-3 w-3 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+            </span>
+            <span class="text-sm text-gray-600 leading-relaxed">No answer? It escalates to the backup automatically - no alert ever gets dropped</span>
+          </li>
+          <li class="flex gap-3">
+            <span class="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-rose-100">
+              <svg class="h-3 w-3 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+            </span>
+            <span class="text-sm text-gray-600 leading-relaxed">Fair rotations with vacation overrides - on-call without the burnout</span>
+          </li>
+          <li class="flex gap-3">
+            <span class="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-rose-100">
+              <svg class="h-3 w-3 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+            </span>
+            <span class="text-sm text-gray-600 leading-relaxed">Declare and run incidents straight from Slack or Microsoft Teams</span>
+          </li>
+          <li class="flex gap-3">
+            <span class="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-rose-100">
+              <svg class="h-3 w-3 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+            </span>
+            <span class="text-sm text-gray-600 leading-relaxed">Every action lands on the timeline automatically - the postmortem writes itself</span>
+          </li>
+        </ul>
+
+        <div class="mt-8 border-t border-gray-200 pt-6">
+          <p class="text-sm text-gray-600"><span class="font-semibold text-gray-900">Email alerts are always free.</span> SMS from $0.10 - or bring your own Twilio and pay nothing.</p>
+        </div>
+
+        <div class="mt-8 flex flex-wrap items-center gap-4">
+          <a href="/accounts/register" class="inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-700">
+            Set up on-call
+          </a>
+          <a href="/product/on-call" class="group inline-flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+            Explore On-Call
+            <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5" /></svg>
+          </a>
+          <a href="/product/incident-management" class="group inline-flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+            Explore Incident Management
+            <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5" /></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
