@@ -580,34 +580,13 @@ export default class MailService {
     const provider: MicrosoftGraphMailProvider =
       new MicrosoftGraphMailProvider();
 
-    let lastError: unknown;
-    const maxRetries: number = 3;
-
-    for (let attempt: number = 1; attempt <= maxRetries; attempt++) {
-      try {
-        await provider.send(mail, emailServer);
-        return;
-      } catch (error) {
-        lastError = error;
-        logger.error(`Microsoft Graph send attempt ${attempt} failed:`);
-        logger.error(error);
-
-        if (attempt === maxRetries) {
-          break;
-        }
-
-        // Exponential backoff with jitter, same shape as SMTP path.
-        const baseWaitTime: number = Math.pow(2, attempt - 1) * 1000;
-        const jitter: number = Math.random() * 1000;
-        const waitTime: number = baseWaitTime + jitter;
-
-        await new Promise<void>((resolve: (value: void) => void) => {
-          setTimeout(resolve, waitTime);
-        });
-      }
-    }
-
-    throw lastError;
+    /*
+     * The provider owns throttling concerns for Graph: a per-mailbox
+     * concurrency gate (to stay under Graph's MailboxConcurrency limit) and a
+     * Retry-After-aware retry loop. We intentionally do NOT wrap another retry
+     * loop here — that would multiply attempts and ignore Graph's Retry-After.
+     */
+    await provider.send(mail, emailServer);
   }
 
   public static async send(
