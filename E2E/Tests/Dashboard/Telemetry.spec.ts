@@ -2,7 +2,10 @@ import { BASE_URL } from "../../Config";
 import { Page, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
-import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
+import {
+  registerAndCreateProject,
+  describeProductOnboarding,
+} from "./Helpers/ProductOnboarding";
 import {
   createTelemetryIngestionKey,
   postOtlpLogs,
@@ -31,7 +34,7 @@ import {
  * self-hosted job runs with billing off, and the SaaS job injects test-mode
  * Stripe keys from repo secrets.
  */
-test.describe("Telemetry Ingestion", () => {
+describeProductOnboarding("Telemetry Ingestion", () => {
   /*
    * Register + project + billing + ingest-key setup plus the ingest->query
    * poll needs more than the default 240s, so give these tests extra headroom.

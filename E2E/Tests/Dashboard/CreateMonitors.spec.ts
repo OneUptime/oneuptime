@@ -1,6 +1,9 @@
 import { Browser, Page, test, Locator } from "@playwright/test";
 import Faker from "Common/Utils/Faker";
-import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
+import {
+  registerAndCreateProject,
+  describeProductOnboarding,
+} from "./Helpers/ProductOnboarding";
 import {
   createInfraMonitor,
   createMonitor,
@@ -277,7 +280,7 @@ interface SharedContext {
   projectId: string;
 }
 
-test.describe("Monitor Creation - All Types", () => {
+describeProductOnboarding("Monitor Creation - All Types", () => {
   const ctx: SharedContext = {
     page: undefined as unknown as Page,
     projectId: "",

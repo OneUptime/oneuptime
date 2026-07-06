@@ -5,6 +5,7 @@ import Faker from "Common/Utils/Faker";
 import {
   registerAndCreateProject,
   gotoProjectPage,
+  describeProductOnboarding,
 } from "./Helpers/ProductOnboarding";
 import { createTelemetryIngestionKey } from "./Helpers/Telemetry";
 import {
@@ -115,7 +116,7 @@ interface SharedContext {
   ingestionKey: string;
 }
 
-test.describe("Infra Resource Pages - Metrics", () => {
+describeProductOnboarding("Infra Resource Pages - Metrics", () => {
   const ctx: SharedContext = {
     page: undefined as unknown as Page,
     projectId: "",
