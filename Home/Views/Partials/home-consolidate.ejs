@@ -15,7 +15,7 @@
 
     <div class="mx-auto grid max-w-6xl grid-cols-1 gap-8 lg:grid-cols-2">
       <!-- The cancel list -->
-      <div class="rounded-2xl bg-white border border-gray-300 shadow-sm p-8">
+      <div class="rounded-2xl bg-white border border-gray-200 shadow-sm p-8">
         <h3 class="text-base font-semibold text-gray-900 mb-4">Your cancellation list</h3>
         <ul class="divide-y divide-gray-200/60">
           <li class="flex items-center justify-between gap-4 py-3">
@@ -67,8 +67,9 @@
       </div>
 
       <!-- Pricing card -->
-      <div class="rounded-2xl bg-gray-900 p-8 text-white">
-        <h3 class="text-base font-semibold text-white">Pricing that fits on a sticky note</h3>
+      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800 ring-1 ring-white/10 p-8 text-white">
+        <div class="absolute -top-20 -right-20 h-48 w-48 rounded-full pointer-events-none" style="background: radial-gradient(circle at center, rgb(99 102 241 / 0.15) 0%, transparent 70%);" aria-hidden="true"></div>
+        <h3 class="relative text-base font-semibold text-white">Pricing that fits on a sticky note</h3>
         <ul class="mt-4 divide-y divide-white/10">
           <li class="flex items-baseline justify-between gap-4 py-4">
             <div>
@@ -94,7 +95,7 @@
         </ul>
 
         <div class="mt-2 border-t border-white/10 pt-5">
-          <p class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">Usage, in one breath</p>
+          <p class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Usage, in one breath</p>
           <ul class="space-y-2 text-xs text-gray-400">
             <li class="flex justify-between gap-4"><span>Active monitors</span><span class="text-white">$1/mo each</span></li>
             <li class="flex justify-between gap-4"><span>Logs, traces &amp; metrics</span><span class="text-white">$0.10/GB</span></li>
