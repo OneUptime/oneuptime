@@ -1,4 +1,3 @@
-import { IS_BILLING_ENABLED } from "../../Config";
 import { Browser, Page, test, Locator } from "@playwright/test";
 import Faker from "Common/Utils/Faker";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
@@ -278,16 +277,7 @@ interface SharedContext {
   projectId: string;
 }
 
-/*
- * Registering a user + creating a project goes through the billing backend
- * (Stripe) when BILLING_ENABLED=true. The SaaS e2e environment enables billing
- * but ships no Stripe keys, so project creation fails there; run this suite in
- * the non-billing (self-hosted) e2e environment.
- */
-const describeMonitors: (title: string, callback: () => void) => void =
-  IS_BILLING_ENABLED ? test.describe.skip : test.describe;
-
-describeMonitors("Monitor Creation - All Types", () => {
+test.describe("Monitor Creation - All Types", () => {
   const ctx: SharedContext = {
     page: undefined as unknown as Page,
     projectId: "",

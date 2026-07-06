@@ -1,4 +1,4 @@
-import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
+import { BASE_URL } from "../../Config";
 import { Browser, Page, expect, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
@@ -115,16 +115,7 @@ interface SharedContext {
   ingestionKey: string;
 }
 
-/*
- * Registering a user + creating a project goes through the billing backend
- * (Stripe) when BILLING_ENABLED=true. The SaaS e2e environment enables billing
- * but ships no Stripe keys, so project creation fails there; run this suite in
- * the non-billing (self-hosted) e2e environment.
- */
-const describeInfra: (title: string, callback: () => void) => void =
-  IS_BILLING_ENABLED ? test.describe.skip : test.describe;
-
-describeInfra("Infra Resource Pages - Metrics", () => {
+test.describe("Infra Resource Pages - Metrics", () => {
   const ctx: SharedContext = {
     page: undefined as unknown as Page,
     projectId: "",
