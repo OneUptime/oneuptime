@@ -1,0 +1,293 @@
+<style>
+  /* ===== Homepage motion system =====
+     Active only when JS adds .motion-on to <html>; without JS (or with
+     prefers-reduced-motion) everything renders fully visible and static. */
+
+  .motion-on [data-reveal] {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    transition-delay: var(--reveal-delay, 0ms);
+    will-change: opacity, transform;
+  }
+  .motion-on [data-reveal].is-revealed {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Aurora blobs (hero) */
+  @keyframes aurora-a {
+    0%, 100% { transform: translate(-60%, -12%) scale(1); }
+    50% { transform: translate(-48%, 4%) scale(1.18); }
+  }
+  @keyframes aurora-b {
+    0%, 100% { transform: translate(4%, -4%) scale(1.1); }
+    50% { transform: translate(16%, 10%) scale(0.94); }
+  }
+  @keyframes aurora-c {
+    0%, 100% { transform: translate(-18%, 16%) scale(0.95); }
+    50% { transform: translate(-8%, 2%) scale(1.12); }
+  }
+  .motion-on .aurora-a { animation: aurora-a 22s ease-in-out infinite; }
+  .motion-on .aurora-b { animation: aurora-b 26s ease-in-out infinite; }
+  .motion-on .aurora-c { animation: aurora-c 19s ease-in-out infinite; }
+
+  /* Comet traveling the lifecycle rail */
+  @keyframes rail-comet {
+    0% { left: 10%; opacity: 0; }
+    10% { opacity: 1; }
+    88% { opacity: 1; }
+    100% { left: calc(90% - 6rem); opacity: 0; }
+  }
+  .motion-on .rail-comet {
+    animation: rail-comet 5.5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    animation-delay: 1.2s;
+  }
+
+  /* 3D presentation for mock windows; flattens on hover */
+  .motion-on .tilt-r,
+  .motion-on .tilt-l,
+  .motion-on .tilt-c {
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .motion-on .tilt-r { transform: perspective(1600px) rotateY(-5deg) rotateX(2deg); }
+  .motion-on .tilt-l { transform: perspective(1600px) rotateY(5deg) rotateX(2deg); }
+  .motion-on .tilt-c { transform: perspective(1600px) rotateX(3deg); }
+  .motion-on .tilt-r:hover,
+  .motion-on .tilt-l:hover,
+  .motion-on .tilt-c:hover { transform: perspective(1600px) rotateY(0deg) rotateX(0deg); }
+
+  /* Slow gradient shimmer for hero gradient text */
+  @keyframes gradient-pan {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .motion-on .gradient-pan {
+    background-size: 200% auto;
+    animation: gradient-pan 6s ease-in-out infinite;
+  }
+
+  /* Hero command-center presentation */
+  .motion-on .hero-tilt {
+    transform: perspective(1800px) rotateX(7deg) scale(0.99);
+    transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .motion-on .hero-tilt:hover { transform: perspective(1800px) rotateX(0deg) scale(1); }
+
+  /* Floating story notifications around the hero mock */
+  @keyframes float-a {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-7px); }
+  }
+  @keyframes float-b {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(6px); }
+  }
+  .motion-on .float-a { animation: float-a 6s ease-in-out infinite; }
+  .motion-on .float-b { animation: float-b 7.5s ease-in-out infinite; }
+
+  /* Night sky: twinkling stars in the hero backdrop */
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.15; }
+    50% { opacity: 0.6; }
+  }
+  .motion-on .star { animation: twinkle var(--tw-dur, 4s) ease-in-out infinite; animation-delay: var(--tw-delay, 0s); }
+
+  /* Story timeline active stop */
+  .story-dot.rail-active .time { color: #111827; font-weight: 600; }
+  .story-dot.rail-active .label { opacity: 1; }
+
+  /* Shine sweep on the hero's primary CTA */
+  .btn-shine { position: relative; overflow: hidden; }
+  .motion-on .btn-shine::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -70%;
+    width: 45%;
+    height: 100%;
+    background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+    transform: skewX(-20deg);
+    transition: left 0.65s ease;
+    pointer-events: none;
+  }
+  .motion-on .btn-shine:hover::after { left: 135%; }
+</style>
+
+<!-- Story timeline: the night-to-morning journey, pinned on xl screens while reading the incident chapters -->
+<nav id="story-rail" aria-label="The incident timeline, through the night and into the morning" style="visibility: hidden;" class="fixed left-5 top-1/2 -translate-y-1/2 z-40 hidden xl:block opacity-0 transition-[opacity,visibility] duration-500">
+  <!-- Night -->
+  <div class="mb-2 flex w-[11px] justify-center" aria-hidden="true">
+    <svg class="h-3.5 w-3.5 text-gray-300" fill="currentColor" viewBox="0 0 24 24"><path d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" /></svg>
+  </div>
+  <ol class="flex flex-col">
+    <li class="flex flex-col">
+      <a href="#detect" class="story-dot group relative flex items-center gap-2.5" data-dot-color="#3b82f6">
+        <span class="dot ml-px h-[9px] w-[9px] flex-none rounded-full bg-gray-300 ring-2 ring-white transition-all duration-300"></span>
+        <span class="time font-mono text-[10px] tabular-nums text-gray-400 transition-colors duration-300">2:47 AM</span>
+        <span class="label pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-0.5 font-mono text-[11px] text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">2:47 AM &middot; Detect</span>
+      </a>
+      <span class="ml-[5px] h-6 w-px" style="background: linear-gradient(to bottom, rgb(147 197 253 / 0.8), rgb(253 164 175 / 0.8));" aria-hidden="true"></span>
+    </li>
+    <li class="flex flex-col">
+      <a href="#respond" class="story-dot group relative flex items-center gap-2.5" data-dot-color="#f43f5e">
+        <span class="dot ml-px h-[9px] w-[9px] flex-none rounded-full bg-gray-300 ring-2 ring-white transition-all duration-300"></span>
+        <span class="time font-mono text-[10px] tabular-nums text-gray-400 transition-colors duration-300">2:48 AM</span>
+        <span class="label pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-0.5 font-mono text-[11px] text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">2:48 AM &middot; Respond</span>
+      </a>
+      <span class="ml-[5px] h-6 w-px" style="background: linear-gradient(to bottom, rgb(253 164 175 / 0.8), rgb(110 231 183 / 0.8));" aria-hidden="true"></span>
+    </li>
+    <li class="flex flex-col">
+      <a href="#communicate" class="story-dot group relative flex items-center gap-2.5" data-dot-color="#10b981">
+        <span class="dot ml-px h-[9px] w-[9px] flex-none rounded-full bg-gray-300 ring-2 ring-white transition-all duration-300"></span>
+        <span class="time font-mono text-[10px] tabular-nums text-gray-400 transition-colors duration-300">2:49 AM</span>
+        <span class="label pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-0.5 font-mono text-[11px] text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">2:49 AM &middot; Communicate</span>
+      </a>
+      <span class="ml-[5px] h-6 w-px" style="background: linear-gradient(to bottom, rgb(110 231 183 / 0.8), rgb(252 211 77 / 0.8));" aria-hidden="true"></span>
+    </li>
+    <li class="flex flex-col">
+      <a href="#diagnose" class="story-dot group relative flex items-center gap-2.5" data-dot-color="#f59e0b">
+        <span class="dot ml-px h-[9px] w-[9px] flex-none rounded-full bg-gray-300 ring-2 ring-white transition-all duration-300"></span>
+        <span class="time font-mono text-[10px] tabular-nums text-gray-400 transition-colors duration-300">2:54 AM</span>
+        <span class="label pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-0.5 font-mono text-[11px] text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">2:54 AM &middot; Diagnose</span>
+      </a>
+      <span class="ml-[5px] h-6 w-px" style="background: linear-gradient(to bottom, rgb(252 211 77 / 0.8), rgb(196 181 253 / 0.8));" aria-hidden="true"></span>
+    </li>
+    <li class="flex flex-col">
+      <a href="#autofix" class="story-dot group relative flex items-center gap-2.5" data-dot-color="#8b5cf6">
+        <span class="dot ml-px h-[9px] w-[9px] flex-none rounded-full bg-gray-300 ring-2 ring-white transition-all duration-300"></span>
+        <span class="time font-mono text-[10px] tabular-nums text-gray-400 transition-colors duration-300">3:26 AM</span>
+        <span class="label pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-0.5 font-mono text-[11px] text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">3:26 AM &middot; Auto-Fix</span>
+      </a>
+      <!-- Asleep: dashed gap between the 03:41 all-clear and the morning -->
+      <span class="ml-[5px] h-8 w-0 border-l border-dashed border-gray-300" aria-hidden="true"></span>
+    </li>
+    <li class="flex flex-col">
+      <a href="#consolidate" class="story-dot group relative flex items-center gap-2.5" data-dot-color="#6366f1">
+        <span class="dot ml-px h-[9px] w-[9px] flex-none rounded-full bg-gray-300 ring-2 ring-white transition-all duration-300"></span>
+        <span class="time font-mono text-[10px] tabular-nums text-gray-400 transition-colors duration-300">9:00 AM</span>
+        <span class="label pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-0.5 font-mono text-[11px] text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">9:00 AM &middot; The morning after</span>
+      </a>
+    </li>
+  </ol>
+  <!-- Morning -->
+  <div class="mt-2 flex w-[11px] justify-center" aria-hidden="true">
+    <svg class="h-3.5 w-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" /></svg>
+  </div>
+</nav>
+
+<script>
+(function () {
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || !('IntersectionObserver' in window)) return;
+  document.documentElement.classList.add('motion-on');
+
+  function init() {
+    // Scroll reveals
+    var els = document.querySelectorAll('[data-reveal]');
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          e.target.classList.add('is-revealed');
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    els.forEach(function (el) {
+      var d = el.getAttribute('data-reveal-delay');
+      if (d) el.style.setProperty('--reveal-delay', d + 'ms');
+      io.observe(el);
+    });
+    // Release the reveal styles once the entrance finishes, so hover
+    // transitions and transforms on the element behave normally again.
+    document.addEventListener('transitionend', function (ev) {
+      var el = ev.target;
+      if (el.nodeType === 1 && el.hasAttribute && el.hasAttribute('data-reveal') && el.classList.contains('is-revealed')) {
+        el.removeAttribute('data-reveal');
+        el.style.removeProperty('--reveal-delay');
+      }
+    });
+
+    // Count-up stats (e.g. "150", "30k", "100%", "80+")
+    var nums = document.querySelectorAll('[data-countup]');
+    var io2 = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        io2.unobserve(e.target);
+        var el = e.target;
+        var raw = el.textContent.trim();
+        var m = raw.match(/^([0-9][0-9,]*)(.*)$/);
+        if (!m || m[1].indexOf('.') !== -1) return;
+        var target = parseInt(m[1].replace(/,/g, ''), 10);
+        if (!isFinite(target)) return;
+        var useCommas = m[1].indexOf(',') !== -1;
+        var suffix = m[2];
+        var t0 = null;
+        var dur = 1200;
+        function step(ts) {
+          if (!t0) t0 = ts;
+          var p = Math.min(1, (ts - t0) / dur);
+          var eased = 1 - Math.pow(1 - p, 3);
+          var v = Math.round(target * eased);
+          el.textContent = (useCommas ? v.toLocaleString('en-US') : String(v)) + suffix;
+          if (p < 1) requestAnimationFrame(step);
+          else el.textContent = raw;
+        }
+        requestAnimationFrame(step);
+      });
+    }, { threshold: 0.4 });
+    nums.forEach(function (el) { io2.observe(el); });
+
+    // Story progress rail (xl+): tracks which incident chapter is on screen
+    var rail = document.getElementById('story-rail');
+    var chapters = ['detect', 'respond', 'communicate', 'diagnose', 'autofix', 'consolidate'];
+    var sections = chapters
+      .map(function (id) { return document.getElementById(id); })
+      .filter(Boolean);
+    if (rail && sections.length === chapters.length) {
+      var dots = {};
+      rail.querySelectorAll('.story-dot').forEach(function (a) {
+        dots[a.getAttribute('href').slice(1)] = a;
+      });
+      var visible = {};
+      function update() {
+        var anyVisible = chapters.some(function (id) { return visible[id]; });
+        rail.style.opacity = anyVisible ? '1' : '0';
+        rail.style.visibility = anyVisible ? 'visible' : 'hidden';
+        var current = null;
+        for (var i = 0; i < chapters.length; i++) {
+          if (visible[chapters[i]]) { current = chapters[i]; break; }
+        }
+        chapters.forEach(function (id) {
+          var dot = dots[id] && dots[id].querySelector('.dot');
+          if (!dot) return;
+          if (id === current) {
+            dot.style.backgroundColor = dots[id].getAttribute('data-dot-color');
+            dot.style.transform = 'scale(1.5)';
+            dots[id].classList.add('rail-active');
+            dots[id].setAttribute('aria-current', 'true');
+          } else {
+            dot.style.backgroundColor = '';
+            dot.style.transform = '';
+            dots[id].classList.remove('rail-active');
+            dots[id].removeAttribute('aria-current');
+          }
+        });
+      }
+      var io3 = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          visible[e.target.id] = e.isIntersecting;
+        });
+        update();
+      }, { rootMargin: '-30% 0px -30% 0px' });
+      sections.forEach(function (s) { io3.observe(s); });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>

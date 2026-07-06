@@ -497,6 +497,56 @@ export class Service extends DatabaseService<Model> {
       }
     }
   }
+
+  @CaptureSpan()
+  public async getExpectedHostIdentifiers(data: {
+    projectId: ObjectID;
+    seenWithinMinutes: number;
+  }): Promise<Array<string>> {
+    /*
+     * "Expected" hosts for per-host down-detection: non-archived hosts in
+     * the project that reported within the recency window. Their canonical
+     * hostIdentifier equals the metric's `resource.host.name` value (both
+     * canonicalized at ingest), so the telemetry monitor can diff this set
+     * against the hosts present in the current evaluation window and
+     * synthesize a "no data" series for any that have gone silent — a
+     * group-by-host query returns no row for a silent host, so absence is
+     * otherwise invisible. See HostAbsenceSeries and
+     * MonitorTelemetryMonitor.injectExpectedAbsentHostSeries.
+     */
+    const cutoff: Date = OneUptimeDate.addRemoveMinutes(
+      OneUptimeDate.getCurrentDate(),
+      -Math.abs(data.seenWithinMinutes),
+    );
+
+    const hosts: Array<Model> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        lastSeenAt: QueryHelper.greaterThanEqualTo(cutoff),
+      },
+      select: {
+        hostIdentifier: true,
+        isArchived: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const identifiers: Array<string> = [];
+    for (const host of hosts) {
+      // isArchived is nullable; treat null/undefined as not archived.
+      if (host.isArchived) {
+        continue;
+      }
+      if (host.hostIdentifier) {
+        identifiers.push(canonicalizeEntityValue(host.hostIdentifier));
+      }
+    }
+    return identifiers;
+  }
 }
 
 function fingerprintLabelIds(labelIds: Array<ObjectID>): string {

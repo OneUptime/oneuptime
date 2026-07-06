@@ -1,0 +1,213 @@
+<!-- Mock: mock-diagnose - trace explorer waterfall pinpointing the 02:54 root cause (slow SELECT FOR UPDATE on orders) of the Checkout API incident -->
+<div role="img" aria-label="Trace explorer showing a 4.28 second waterfall for POST /api/checkout where a 3.91 second PostgreSQL SELECT FOR UPDATE span on the orders table is highlighted as the culprit, linked to a lock wait timeout error log and a root-cause finding of a missing index on orders.customer_id, with a span detail panel showing 1.2 million rows examined and no index used.">
+  <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+    <div class="rounded-lg bg-white shadow-xl overflow-hidden ring-1 ring-gray-200">
+      <div class="h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
+
+      <!-- Window chrome -->
+      <div class="bg-gray-50 px-4 py-2.5 flex items-center justify-between gap-3 border-b border-gray-200">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="flex gap-1.5 flex-none">
+            <div class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-green-400"></div>
+          </div>
+          <span class="text-sm font-semibold text-gray-800 truncate">Trace · <span class="font-mono font-medium text-[12px] text-gray-700">POST /api/checkout</span></span>
+        </div>
+        <div class="flex items-center gap-1.5 flex-none">
+          <span class="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-200">
+            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="font-mono tabular-nums">4.28s</span>&nbsp;total
+          </span>
+          <span class="hidden sm:inline-flex items-center rounded-md bg-white px-2 py-0.5 font-mono tabular-nums text-[10px] text-gray-500 ring-1 ring-inset ring-gray-200">02:54:07</span>
+        </div>
+      </div>
+
+      <!-- Tab row -->
+      <div class="flex items-center justify-between gap-3 px-4 pt-2 border-b border-gray-100">
+        <div class="flex items-center gap-4 text-[10px] font-medium text-gray-400 min-w-0">
+          <span class="pb-1.5 border-b-2 border-amber-500 text-gray-900 font-semibold flex-none">Waterfall</span>
+          <span class="pb-1.5 border-b-2 border-transparent flex-none">Logs</span>
+          <span class="hidden sm:inline-flex items-center gap-1 pb-1.5 border-b-2 border-transparent flex-none">Errors
+            <span class="rounded bg-rose-50 px-1 font-mono tabular-nums text-[9px] text-rose-600 ring-1 ring-inset ring-rose-100">1</span>
+          </span>
+          <span class="hidden sm:block pb-1.5 border-b-2 border-transparent flex-none">Metadata</span>
+        </div>
+        <div class="flex items-center gap-2 pb-1.5 min-w-0 justify-end">
+          <span class="hidden sm:block min-w-0 font-mono text-[9px] text-gray-300 truncate">trace_id: a3f8c1d2e9 · 6 spans</span>
+          <span class="hidden sm:inline-flex items-center gap-1 rounded-md bg-white px-1.5 py-0.5 text-[9px] font-medium text-gray-500 ring-1 ring-inset ring-gray-200 flex-none">
+            <svg class="h-2.5 w-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"/></svg>
+            Share
+          </span>
+        </div>
+      </div>
+
+      <div class="p-3 sm:p-4 sm:flex sm:items-stretch">
+        <div class="min-w-0 sm:flex-1">
+        <!-- Time axis -->
+        <div class="flex items-center gap-2">
+          <div class="w-24 sm:w-32 flex-none">
+            <span class="uppercase text-[9px] tracking-wider text-gray-400 font-semibold">Service</span>
+          </div>
+          <div class="relative flex-1 min-w-0 rounded bg-gray-50 px-1 py-0.5">
+            <div class="absolute inset-y-0 w-px bg-gray-100" style="left:25%"></div>
+            <div class="absolute inset-y-0 w-px bg-gray-100" style="left:50%"></div>
+            <div class="absolute inset-y-0 w-px bg-gray-100" style="left:75%"></div>
+            <div class="relative flex justify-between font-mono tabular-nums text-[9px] text-gray-400">
+              <span>0s</span><span>1.07s</span><span>2.14s</span><span class="hidden sm:block">3.21s</span><span>4.28s</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Waterfall -->
+        <div class="relative mt-2 space-y-1">
+          <!-- shared vertical gridlines over the track area -->
+          <div class="pointer-events-none absolute inset-y-0 right-0 left-[6.5rem] sm:left-[8.5rem]">
+            <div class="absolute inset-y-0 w-px bg-gray-100" style="left:25%"></div>
+            <div class="absolute inset-y-0 w-px bg-gray-100" style="left:50%"></div>
+            <div class="absolute inset-y-0 w-px bg-gray-100" style="left:75%"></div>
+          </div>
+
+          <!-- web-frontend -->
+          <div class="relative flex items-center gap-2 rounded bg-gray-50/50 px-1 -mx-1">
+            <div class="w-24 sm:w-32 flex-none min-w-0 flex items-center gap-1.5">
+              <span class="h-1.5 w-1.5 rounded-full bg-gray-300 flex-none"></span>
+              <span class="font-mono text-[10px] text-gray-700 truncate">web-frontend <span class="text-gray-400">· POST /checkout</span></span>
+            </div>
+            <div class="relative h-5 flex-1 min-w-0">
+              <div class="absolute top-1/2 -translate-y-1/2 h-2.5 rounded bg-gray-300" style="left:0%;width:100%"></div>
+              <span class="absolute right-1 top-1/2 -translate-y-1/2 font-mono tabular-nums text-[9px] font-medium text-gray-600">4.28s</span>
+            </div>
+          </div>
+
+          <!-- api-gateway -->
+          <div class="relative flex items-center gap-2">
+            <div class="w-24 sm:w-32 flex-none min-w-0 flex items-center gap-1.5 pl-1.5">
+              <span class="h-1.5 w-1.5 rounded-full bg-blue-300 flex-none"></span>
+              <span class="font-mono text-[10px] text-gray-700 truncate">api-gateway <span class="text-gray-400">· route</span></span>
+            </div>
+            <div class="relative h-5 flex-1 min-w-0">
+              <div class="absolute top-1/2 -translate-y-1/2 h-2.5 rounded bg-blue-300" style="left:2%;width:6%"></div>
+              <span class="absolute top-1/2 -translate-y-1/2 font-mono tabular-nums text-[9px] text-gray-400 whitespace-nowrap" style="left:calc(8% + 5px)">120ms</span>
+            </div>
+          </div>
+
+          <!-- checkout-svc -->
+          <div class="relative flex items-center gap-2 rounded bg-gray-50/50 px-1 -mx-1">
+            <div class="w-24 sm:w-32 flex-none min-w-0 flex items-center gap-1.5 pl-1.5">
+              <span class="h-1.5 w-1.5 rounded-full bg-blue-400 flex-none"></span>
+              <span class="font-mono text-[10px] text-gray-700 truncate">checkout-svc <span class="text-gray-400">· createOrder</span></span>
+            </div>
+            <div class="relative h-5 flex-1 min-w-0">
+              <div class="absolute top-1/2 -translate-y-1/2 h-2.5 rounded bg-blue-400" style="left:7%;width:91%"></div>
+              <span class="absolute top-1/2 -translate-y-1/2 pr-1 font-mono tabular-nums text-[9px] font-medium text-white" style="right:2%">4.15s</span>
+            </div>
+          </div>
+
+          <!-- payments-svc -->
+          <div class="relative flex items-center gap-2">
+            <div class="w-24 sm:w-32 flex-none min-w-0 flex items-center gap-1.5 pl-4">
+              <span class="h-1.5 w-1.5 rounded-full bg-blue-300 flex-none"></span>
+              <span class="font-mono text-[10px] text-gray-700 truncate">payments-svc <span class="text-gray-400">· authorize</span></span>
+            </div>
+            <div class="relative h-5 flex-1 min-w-0">
+              <div class="absolute top-1/2 -translate-y-1/2 h-2.5 rounded bg-blue-300" style="left:9%;width:8%"></div>
+              <span class="absolute top-1/2 -translate-y-1/2 font-mono tabular-nums text-[9px] text-gray-400 whitespace-nowrap" style="left:calc(17% + 5px)">210ms</span>
+            </div>
+          </div>
+
+          <!-- postgres - the culprit -->
+          <div class="relative flex items-center gap-2 rounded bg-amber-50/60 ring-1 ring-inset ring-amber-200 px-1 -mx-1 py-0.5">
+            <div class="w-24 sm:w-32 flex-none min-w-0 flex items-center gap-1.5 pl-4">
+              <span class="h-1.5 w-1.5 rounded-full bg-amber-500 flex-none"></span>
+              <span class="font-mono text-[10px] font-medium text-gray-800 truncate">postgres <span class="font-normal text-gray-500">· SELECT … FOR UPDATE</span></span>
+            </div>
+            <div class="relative h-5 flex-1 min-w-0">
+              <div class="absolute top-1/2 -translate-y-1/2 h-3 rounded bg-amber-500" style="left:12%;width:85%"></div>
+              <div class="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-1 rounded bg-amber-50 pl-1 pr-0.5">
+                <span class="rounded bg-rose-100 px-1 py-px text-[9px] font-medium leading-none text-rose-600">slow</span>
+                <span class="font-mono tabular-nums text-[9px] font-semibold text-amber-700">3.91s</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- redis -->
+          <div class="relative flex items-center gap-2">
+            <div class="w-24 sm:w-32 flex-none min-w-0 flex items-center gap-1.5 pl-4">
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-none"></span>
+              <span class="font-mono text-[10px] text-gray-700 truncate">redis <span class="text-gray-400">· GET session</span></span>
+            </div>
+            <div class="relative h-5 flex-1 min-w-0">
+              <div class="absolute top-1/2 -translate-y-1/2 h-2.5 min-w-[3px] rounded bg-emerald-400" style="left:12%;width:1.5%"></div>
+              <span class="absolute top-1/2 -translate-y-1/2 font-mono tabular-nums text-[9px] text-gray-400 whitespace-nowrap" style="left:calc(13.5% + 6px)">3ms</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Linked evidence: log panel -->
+        <div class="mt-3">
+          <div class="uppercase text-[9px] tracking-wider text-gray-400 font-semibold mb-1.5">Linked evidence</div>
+          <div class="rounded-lg bg-gray-900 p-3 font-mono text-[10px] space-y-1.5">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="tabular-nums text-gray-500 flex-none">02:54:09</span>
+              <span class="text-amber-400/80 flex-none">WARN</span>
+              <span class="text-gray-400 truncate">slow query detected - orders (3.2s)</span>
+            </div>
+            <div class="flex items-center justify-between gap-2 rounded bg-rose-400/10 px-1.5 py-1 -mx-1.5">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="tabular-nums text-gray-500 flex-none">02:54:11</span>
+                <span class="text-rose-400 font-semibold flex-none">ERROR</span>
+                <span class="text-rose-300 truncate">lock wait timeout exceeded - table: orders</span>
+              </div>
+              <span class="flex-none rounded px-1.5 py-0.5 text-[9px] text-amber-300 ring-1 ring-inset ring-amber-300/30">from this span</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Evidence chips -->
+        <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+          <span class="inline-flex items-center gap-1.5 rounded-md bg-orange-50 px-2 py-1 text-[10px] font-medium text-orange-700 ring-1 ring-inset ring-orange-200 min-w-0">
+            <svg class="h-3 w-3 flex-none text-orange-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+            <span class="truncate">Exception: <span class="font-mono">LockWaitTimeout</span> - <span class="font-mono tabular-nums">214</span> occurrences</span>
+          </span>
+          <span class="inline-flex items-center gap-1.5 rounded-md bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-800 ring-1 ring-inset ring-amber-300 min-w-0">
+            <svg class="h-3.5 w-3.5 flex-none text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/></svg>
+            <span class="truncate">Root cause: missing index on <span class="font-mono">orders.customer_id</span></span>
+          </span>
+        </div>
+        </div>
+
+        <!-- Span attributes panel (sm+) - the payoff detail -->
+        <div class="hidden sm:block w-44 flex-none pl-3 ml-3 border-l border-gray-100">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="h-1.5 w-1.5 rounded-full bg-amber-500 flex-none"></span>
+            <span class="uppercase text-[9px] tracking-wider text-gray-400 font-semibold truncate">Span &middot; postgres</span>
+          </div>
+          <dl class="mt-2 space-y-1.5 font-mono text-[9px]">
+            <div class="flex items-center justify-between gap-2 min-w-0">
+              <dt class="text-gray-400 flex-none">db.statement</dt>
+              <dd class="text-gray-600 truncate min-w-0">SELECT &hellip; FOR UPDATE</dd>
+            </div>
+            <div class="flex items-center justify-between gap-2 min-w-0">
+              <dt class="text-gray-400 flex-none">table</dt>
+              <dd class="text-gray-600 truncate">orders</dd>
+            </div>
+            <div class="flex items-center justify-between gap-2 min-w-0">
+              <dt class="text-gray-400 flex-none">lock_time</dt>
+              <dd class="tabular-nums font-semibold text-amber-700 truncate">3.91s</dd>
+            </div>
+            <div class="flex items-center justify-between gap-2 min-w-0">
+              <dt class="text-gray-400 flex-none">rows_examined</dt>
+              <dd class="tabular-nums text-gray-600 truncate">1.2M</dd>
+            </div>
+            <div class="flex items-center justify-between gap-2 min-w-0">
+              <dt class="text-gray-400 flex-none">index_used</dt>
+              <dd class="font-medium text-rose-600 truncate">none</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

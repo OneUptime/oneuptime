@@ -1,0 +1,150 @@
+<!-- Mock: Workflows - builder canvas for the Incident escalation workflow that ran at 02:47 -->
+<div role="img" aria-label="OneUptime workflow builder canvas showing the enabled Incident escalation workflow with 1,284 runs: an incident-created trigger for severity 2 and above connects to a page on-call step using the Payments policy, which fans out to three actions - post to the ops channel in Slack, create a Jira ticket, and update the status page. The last run at 2:47:58 AM completed in 1.2 seconds with all 3 actions succeeding.">
+  <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+    <div class="rounded-lg bg-white shadow-xl overflow-hidden ring-1 ring-gray-200">
+      <div class="h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
+
+      <!-- Window chrome -->
+      <div class="bg-gray-50 px-4 py-2.5 flex items-center justify-between gap-3 border-b border-gray-200">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="flex gap-1.5 flex-shrink-0">
+            <div class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-green-400"></div>
+          </div>
+          <span class="text-sm font-semibold text-gray-800 truncate">Workflow &middot; Incident escalation</span>
+        </div>
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          <span class="flex items-center gap-1.5 px-2 py-0.5 bg-sky-50 rounded-full text-[10px] font-semibold text-sky-600 ring-1 ring-sky-200">
+            <span class="relative flex w-1.5 h-1.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+              <span class="relative inline-flex w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+            </span>
+            Enabled
+          </span>
+          <span class="hidden sm:inline-flex px-2 py-0.5 bg-white rounded-full text-[10px] font-semibold text-gray-500 ring-1 ring-gray-200 font-mono tabular-nums">Runs: 1,284</span>
+        </div>
+      </div>
+
+      <!-- Builder body: palette strip + canvas -->
+      <div class="flex">
+
+        <!-- Palette strip (sm+) -->
+        <div class="hidden sm:flex flex-col gap-2 w-8 items-center border-r border-gray-100 py-2 flex-shrink-0" aria-hidden="true">
+          <span class="w-5 h-5 rounded bg-gray-50 ring-1 ring-gray-100 flex items-center justify-center">
+            <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
+          </span>
+          <span class="w-5 h-5 rounded bg-gray-50 ring-1 ring-gray-100 flex items-center justify-center">
+            <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+          </span>
+          <span class="w-5 h-5 rounded bg-gray-50 ring-1 ring-gray-100 flex items-center justify-center">
+            <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 8.25h13.5m-13.5 7.5h13.5m-12-15l-3 18m10.5-18l-3 18"/></svg>
+          </span>
+          <span class="w-5 h-5 rounded bg-gray-50 ring-1 ring-gray-100 flex items-center justify-center">
+            <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"/></svg>
+          </span>
+        </div>
+
+        <!-- Canvas -->
+        <div class="relative flex-1 min-w-0 h-64 sm:h-72 bg-[radial-gradient(circle,#e5e7eb_1px,transparent_1px)] bg-[size:16px_16px]">
+
+          <!-- Connectors -->
+          <svg class="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none" fill="none" aria-hidden="true">
+            <!-- trigger -> condition -->
+            <path d="M 21 18 C 33 18, 20 44, 21 45" class="stroke-gray-300" stroke-width="0.6" vector-effect="non-scaling-stroke"/>
+            <!-- condition -> page on-call (yes) -->
+            <path d="M 34.5 46 C 39 46, 43 48, 46 48" class="stroke-emerald-300" stroke-width="0.6" vector-effect="non-scaling-stroke"/>
+            <!-- condition -> stop (no) -->
+            <path d="M 27 47 C 27 56, 27 66, 27 75" class="stroke-gray-300" stroke-width="0.6" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>
+            <!-- page on-call -> three actions -->
+            <path d="M 62.5 46 C 69 46, 66 16, 72 16" class="stroke-gray-300" stroke-width="0.6" vector-effect="non-scaling-stroke"/>
+            <path d="M 62.5 50 C 66 50, 69 50, 72 50" class="stroke-gray-300" stroke-width="0.6" vector-effect="non-scaling-stroke"/>
+            <path d="M 62.5 54 C 69 54, 66 79.5, 72 79.5" class="stroke-gray-300" stroke-width="0.6" vector-effect="non-scaling-stroke"/>
+            <circle cx="25" cy="31" r="1" class="fill-sky-500"/>
+          </svg>
+
+          <!-- Trigger node -->
+          <div class="absolute left-[5%] top-[10%] rounded-lg bg-white ring-1 ring-gray-200 shadow-sm px-3 py-2 text-[10px]">
+            <div class="flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-500 flex-shrink-0"></span>
+              <span class="text-[9px] font-semibold uppercase tracking-wider text-gray-500">Trigger</span>
+            </div>
+            <p class="mt-0.5 font-medium text-gray-800">Incident created</p>
+          </div>
+
+          <!-- Condition node -->
+          <div class="absolute left-[21%] top-[38%] rounded-md bg-white ring-1 ring-amber-200 shadow-sm px-2.5 py-1.5 text-[10px]">
+            <div class="flex items-center gap-1.5">
+              <svg class="w-2.5 h-2.5 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v6m0 0l-5.25 5.25M12 9l5.25 5.25M6.75 14.25v6m10.5-6v6"/></svg>
+              <span class="font-mono text-[9px] font-medium text-gray-800">sev &gt;= 2?</span>
+            </div>
+          </div>
+
+          <!-- Edge labels -->
+          <span class="hidden sm:block absolute left-[38%] top-[41%] text-[8px] font-semibold text-emerald-500" aria-hidden="true">yes</span>
+          <span class="absolute left-[29%] top-[60%] text-[8px] font-semibold text-gray-400" aria-hidden="true">no</span>
+
+          <!-- Stop chip -->
+          <div class="absolute left-[24%] top-[75%] rounded-full bg-gray-100 ring-1 ring-gray-200 px-2 py-0.5 text-[9px] font-medium text-gray-500">stop</div>
+
+          <!-- Center node: Page on-call -->
+          <div class="absolute left-[46%] top-[40%] max-w-[22%] rounded-lg bg-white ring-1 ring-gray-200 shadow-sm px-3 py-2 text-[10px]">
+            <div class="flex items-center gap-1.5">
+              <span class="w-4 h-4 rounded bg-sky-50 flex items-center justify-center flex-shrink-0">
+                <svg class="w-2.5 h-2.5 text-sky-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
+              </span>
+              <span class="min-w-0 truncate font-medium text-gray-800">Page on-call</span>
+            </div>
+            <p class="mt-0.5 text-[9px] text-gray-500 truncate">policy: Payments</p>
+          </div>
+
+          <!-- Action: Post to #ops -->
+          <div class="absolute left-[72%] top-[8%] max-w-[26%] rounded-lg bg-white ring-1 ring-gray-200 shadow-sm px-3 py-2 text-[10px]">
+            <div class="flex items-center gap-1.5">
+              <svg class="w-3 h-3 text-gray-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 8.25h13.5m-13.5 7.5h13.5m-12-15l-3 18m10.5-18l-3 18"/></svg>
+              <span class="min-w-0 truncate font-medium text-gray-800">Post to #ops</span>
+            </div>
+            <span class="mt-1 inline-flex px-1.5 py-px bg-gray-100 rounded text-[9px] font-medium text-gray-600">Slack</span>
+          </div>
+
+          <!-- Action: Create ticket -->
+          <div class="absolute left-[72%] top-[42%] max-w-[26%] rounded-lg bg-white ring-1 ring-gray-200 shadow-sm px-3 py-2 text-[10px]">
+            <div class="flex items-center gap-1.5">
+              <svg class="w-3 h-3 text-gray-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 3h6m-7.5 6h9a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m-4.5 0V6.108"/></svg>
+              <span class="min-w-0 truncate font-medium text-gray-800">Create ticket</span>
+            </div>
+            <span class="mt-1 inline-flex px-1.5 py-px bg-gray-100 rounded text-[9px] font-medium text-gray-600">Jira</span>
+          </div>
+
+          <!-- Action: Update status page -->
+          <div class="absolute left-[72%] top-[74%] max-w-[26%] rounded-lg bg-white ring-1 ring-gray-200 shadow-sm px-3 py-2 text-[10px]">
+            <div class="flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></span>
+              <span class="min-w-0 truncate font-medium text-gray-800">Update status page</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Run history footer -->
+      <div class="bg-gray-50 border-t border-gray-100 divide-y divide-gray-100">
+        <div class="px-4 py-2 flex items-center justify-between gap-3">
+          <span class="flex items-center gap-1.5 min-w-0">
+            <svg class="w-2.5 h-2.5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+            <span class="font-mono text-[10px] text-gray-500 tabular-nums truncate">02:47:58 &middot; completed in 1.2s</span>
+          </span>
+          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 rounded text-[10px] font-medium text-emerald-600 ring-1 ring-emerald-100 flex-shrink-0">
+            <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+            3 actions succeeded
+          </span>
+        </div>
+        <div class="hidden sm:flex px-4 py-2 items-center gap-1.5">
+          <svg class="w-2.5 h-2.5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+          <span class="font-mono text-[10px] text-gray-500 tabular-nums truncate">yesterday 14:02 &middot; completed in 1.1s</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
