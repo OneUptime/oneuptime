@@ -11,9 +11,11 @@
 
   <div class="pt-24 pb-16 sm:pt-28 sm:pb-20 lg:pt-32 lg:pb-24">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
-      <div class="mx-auto max-w-4xl text-center">
-        <!-- Open-source eyebrow -->
-        <div data-reveal class="mb-6 flex justify-center">
+      <div class="grid items-center gap-x-10 gap-y-10 lg:grid-cols-2">
+        <!-- LEFT column: eyebrow + heading -->
+        <div class="text-center lg:text-left">
+          <!-- Open-source eyebrow -->
+          <div data-reveal class="mb-6 flex justify-center lg:justify-start">
           <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group inline-flex h-7 items-center gap-1.5 rounded-full border border-gray-200/80 bg-white/70 px-3 text-xs font-medium text-gray-600 shadow-sm backdrop-blur transition-colors hover:border-gray-300 hover:text-gray-900">
             <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
@@ -31,19 +33,22 @@
         <h1 data-reveal data-reveal-delay="75" class="text-4xl font-semibold leading-[1.03] tracking-[-0.035em] text-gray-950 sm:text-6xl lg:text-[4.5rem] lg:leading-[1.0]">
           Agentic observability
         </h1>
+        </div>
 
-        <!-- Subheading: the value-prop tagline -->
-        <p data-reveal data-reveal-delay="130" class="mt-5 text-2xl font-medium tracking-[-0.02em] text-gray-950 sm:text-[1.75rem] sm:leading-tight max-w-3xl mx-auto">
-          When things go wrong, be the first to know <span class="text-gray-400">— and the fastest to fix.</span>
-        </p>
+        <!-- RIGHT column: value prop + description + CTAs + trust -->
+        <div class="text-center lg:text-left">
+          <!-- Subheading: the value-prop tagline -->
+          <p data-reveal data-reveal-delay="130" class="text-2xl font-medium tracking-[-0.02em] text-gray-950 sm:text-[1.75rem] sm:leading-tight">
+            When things go wrong, be the first to know <span class="text-gray-400">— and the fastest to fix.</span>
+          </p>
 
-        <!-- Supporting description -->
-        <p data-reveal data-reveal-delay="190" class="mt-5 text-base leading-7 text-gray-500 sm:text-lg sm:leading-8 max-w-2xl mx-auto tracking-[-0.01em]">
+          <!-- Supporting description -->
+          <p data-reveal data-reveal-delay="190" class="mt-5 text-base leading-7 text-gray-500 sm:text-lg sm:leading-8 max-w-xl mx-auto lg:mx-0 tracking-[-0.01em]">
           When something breaks at 2:47 AM, OneUptime catches it in seconds, pages the right person, updates your status page, finds the root cause, and opens the fix PR. Downtime costs you minutes, not customers.
         </p>
 
-        <!-- CTA buttons -->
-        <div data-reveal data-reveal-delay="225" class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <!-- CTA buttons -->
+          <div data-reveal data-reveal-delay="225" class="mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
           <a href="/accounts/register"
             class="btn-shine w-full sm:w-auto inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-gray-950 px-6 text-[15px] font-medium text-white shadow-sm transition-all hover:bg-gray-800 hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
             Get started free
@@ -54,8 +59,8 @@
           </a>
         </div>
 
-        <!-- Trust microcopy -->
-        <div data-reveal data-reveal-delay="300" class="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-gray-500">
+          <!-- Trust microcopy -->
+          <div data-reveal data-reveal-delay="300" class="mt-6 flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-xs text-gray-500">
           <span class="inline-flex items-center gap-1.5">
             <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
             No credit card required
@@ -68,7 +73,9 @@
             <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
             Self-host anytime
           </span>
+          </div>
         </div>
+        <!-- /RIGHT column -->
 
       </div>
 

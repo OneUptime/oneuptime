@@ -2,6 +2,14 @@ import OneUptimeDate from "Common/Types/Date";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorService from "Common/Server/Services/MonitorService";
+import HostService from "Common/Server/Services/HostService";
+import {
+  HOST_ABSENCE_EXPECTED_WINDOW_MINUTES,
+  buildAbsentHostSeries,
+  getHostAbsenceGroupByKey,
+  monitorStepOptsIntoNoDataDetection,
+  queriesScopeHostSubset,
+} from "Common/Server/Utils/Monitor/HostAbsenceSeries";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -672,6 +680,93 @@ const buildSeriesBreakdown: (input: {
 };
 
 /**
+ * Reconstruct the "expected" host set and seed an empty "no data" series
+ * for every expected host missing from the current window's breakdown, so
+ * the criteria evaluator's per-series NoDataPolicy fires one correctly-
+ * labeled alert per host that has gone silent.
+ *
+ * A group-by-host query only returns series for hosts that reported, so an
+ * absent host is otherwise never evaluated and the no-data trigger fires
+ * only on a total fleet blackout (via the single monitor-level synthetic
+ * series). Injection is intentionally skipped when the current window is
+ * empty: a totally silent window is ambiguous (whole pipeline down vs.
+ * every host down) and is already covered by that monitor-level trigger. A
+ * non-empty window proves the pipeline is live, so a host missing from it
+ * is genuinely silent. Self-gates (via HostAbsenceSeries) to a pure
+ * single-key host group-by, a criteria that opts into no-data detection,
+ * and queries without host-scoping attribute filters — otherwise returns
+ * the breakdown unchanged.
+ */
+const injectExpectedAbsentHostSeries: (input: {
+  monitorStep: MonitorStep;
+  seriesBreakdown: Array<MetricSeriesResult> | undefined;
+  groupByAttributeKeys: Array<string>;
+  queryConfigs: Array<MetricQueryConfigData>;
+  formulaConfigs: Array<MetricFormulaConfigData>;
+  projectId: ObjectID;
+}) => Promise<Array<MetricSeriesResult> | undefined> = async (input: {
+  monitorStep: MonitorStep;
+  seriesBreakdown: Array<MetricSeriesResult> | undefined;
+  groupByAttributeKeys: Array<string>;
+  queryConfigs: Array<MetricQueryConfigData>;
+  formulaConfigs: Array<MetricFormulaConfigData>;
+  projectId: ObjectID;
+}): Promise<Array<MetricSeriesResult> | undefined> => {
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    input.seriesBreakdown;
+
+  if (!seriesBreakdown || seriesBreakdown.length === 0) {
+    return seriesBreakdown;
+  }
+
+  const hostKey: string | null = getHostAbsenceGroupByKey(
+    input.groupByAttributeKeys,
+  );
+  if (!hostKey) {
+    return seriesBreakdown;
+  }
+
+  if (!monitorStepOptsIntoNoDataDetection(input.monitorStep)) {
+    return seriesBreakdown;
+  }
+
+  if (queriesScopeHostSubset(input.queryConfigs)) {
+    return seriesBreakdown;
+  }
+
+  const expectedHostIdentifiers: Array<string> =
+    await HostService.getExpectedHostIdentifiers({
+      projectId: input.projectId,
+      seenWithinMinutes: HOST_ABSENCE_EXPECTED_WINDOW_MINUTES,
+    });
+
+  if (expectedHostIdentifiers.length === 0) {
+    return seriesBreakdown;
+  }
+
+  const absentSeries: Array<MetricSeriesResult> = buildAbsentHostSeries({
+    presentSeries: seriesBreakdown,
+    expectedHostIdentifiers,
+    hostKey,
+    slotCount: input.queryConfigs.length + input.formulaConfigs.length,
+  });
+
+  if (absentSeries.length === 0) {
+    return seriesBreakdown;
+  }
+
+  logger.debug(
+    `Seeded ${absentSeries.length} absent-host no-data series (expected ${expectedHostIdentifiers.length}, present ${seriesBreakdown.length})`,
+    {
+      service: "workers",
+      projectId: input.projectId.toString(),
+    },
+  );
+
+  return [...seriesBreakdown, ...absentSeries];
+};
+
+/**
  * Evaluate all formulas and append their results to the aggregated
  * results array, in the order they appear in formulaConfigs. Criteria
  * evaluation (MetricMonitorCriteria) resolves formulas via
@@ -1034,7 +1129,7 @@ const monitorMetric: MonitorMetricFunction = async (data: {
     projectId: data.projectId,
   });
 
-  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+  let seriesBreakdown: Array<MetricSeriesResult> | undefined =
     groupByAttributeKeys.length > 0
       ? buildSeriesBreakdown({
           queryConfigs: metricMonitorConfig.metricViewConfig.queryConfigs,
@@ -1045,6 +1140,22 @@ const monitorMetric: MonitorMetricFunction = async (data: {
           projectId: data.projectId,
         })
       : undefined;
+
+  /*
+   * Seed synthetic "no data" series for hosts that are expected to be
+   * reporting but produced no row this window, so per-host down-detection
+   * fires instead of only catching a total fleet blackout. No-op unless the
+   * monitor is a single-key host group-by whose criteria opts into no-data
+   * detection (see injectExpectedAbsentHostSeries).
+   */
+  seriesBreakdown = await injectExpectedAbsentHostSeries({
+    monitorStep: data.monitorStep,
+    seriesBreakdown,
+    groupByAttributeKeys,
+    queryConfigs: metricMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs: metricMonitorConfig.metricViewConfig.formulaConfigs || [],
+    projectId: data.projectId,
+  });
 
   /*
    * Re-serialise the native-units Map to a plain dictionary so it
