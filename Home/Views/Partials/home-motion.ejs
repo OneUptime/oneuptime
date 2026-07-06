@@ -57,6 +57,16 @@
   .motion-on .tilt-l:hover,
   .motion-on .tilt-c:hover { transform: perspective(1600px) rotateY(0deg) rotateX(0deg); }
 
+  /* Slow gradient shimmer for hero gradient text */
+  @keyframes gradient-pan {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .motion-on .gradient-pan {
+    background-size: 200% auto;
+    animation: gradient-pan 6s ease-in-out infinite;
+  }
+
   /* Hero command-center presentation */
   .motion-on .hero-tilt {
     transform: perspective(1800px) rotateX(7deg) scale(0.99);
