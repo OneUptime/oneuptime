@@ -1,4 +1,4 @@
-import { BASE_URL } from "../../Config";
+import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
 import { Page, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
@@ -25,8 +25,17 @@ import {
  *
  *   cd E2E && HOST=localhost npx playwright test \
  *     Tests/Dashboard/Telemetry.spec.ts --project=chromium
+ *
+ * These specs register a user and create a project. When BILLING_ENABLED=true,
+ * project creation goes through the billing backend (Stripe). The SaaS e2e
+ * environment enables billing but ships no Stripe keys, so project creation
+ * returns a server error there — so this suite is skipped when billing is
+ * enabled and runs in the non-billing (self-hosted) e2e environment.
  */
-test.describe("Telemetry Ingestion", () => {
+const describeTelemetry: (title: string, callback: () => void) => void =
+  IS_BILLING_ENABLED ? test.describe.skip : test.describe;
+
+describeTelemetry("Telemetry Ingestion", () => {
   /*
    * Register + project + billing + ingest-key setup plus the ingest->query
    * poll needs more than the default 240s, so give these tests extra headroom.
