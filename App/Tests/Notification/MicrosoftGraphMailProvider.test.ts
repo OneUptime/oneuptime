@@ -339,4 +339,251 @@ describe("MicrosoftGraphMailProvider", () => {
     // Should fail before any network call.
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  test("honors Retry-After on every retryable attempt, not just the first", async () => {
+    const requestedDelays: number[] = installInstantTimersRecordingDelays();
+
+    fetchMock
+      .mockResolvedValueOnce(makeResponse(429, { retryAfter: "2" }))
+      .mockResolvedValueOnce(makeResponse(429, { retryAfter: "2" }))
+      .mockResolvedValueOnce(makeResponse(202));
+
+    const provider: MicrosoftGraphMailProvider =
+      new MicrosoftGraphMailProvider();
+
+    await provider.send(makeMail(), makeEmailServer());
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    // Both retries waited the header's 2000ms — proves it's honored per-attempt.
+    expect(
+      requestedDelays.filter((delay: number) => {
+        return delay === 2000;
+      }),
+    ).toHaveLength(2);
+  });
+
+  test("caps the honored Retry-After at MAX_RETRY_WAIT_MS (60s)", async () => {
+    const requestedDelays: number[] = installInstantTimersRecordingDelays();
+
+    fetchMock
+      .mockResolvedValueOnce(makeResponse(429, { retryAfter: "120" }))
+      .mockResolvedValueOnce(makeResponse(202));
+
+    const provider: MicrosoftGraphMailProvider =
+      new MicrosoftGraphMailProvider();
+
+    await provider.send(makeMail(), makeEmailServer());
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    // 120s asked, but the backoff is clamped to the 60s cap.
+    expect(requestedDelays).toContain(60000);
+  });
+
+  test("falls back to exponential backoff for an HTTP-date Retry-After", async () => {
+    const requestedDelays: number[] = installInstantTimersRecordingDelays();
+
+    fetchMock
+      .mockResolvedValueOnce(
+        makeResponse(429, { retryAfter: "Wed, 21 Oct 2026 07:28:00 GMT" }),
+      )
+      .mockResolvedValueOnce(makeResponse(202));
+
+    const provider: MicrosoftGraphMailProvider =
+      new MicrosoftGraphMailProvider();
+
+    await provider.send(makeMail(), makeEmailServer());
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    /*
+     * The date form is not parsed as delta-seconds, so the retry uses the
+     * attempt-1 exponential backoff (1000-2000ms) rather than the raw header.
+     */
+    expect(
+      requestedDelays.some((delay: number) => {
+        return delay >= 1000 && delay < 2000;
+      }),
+    ).toBe(true);
+  });
+
+  test('falls back to exponential backoff for a non-finite Retry-After ("Infinity")', async () => {
+    const requestedDelays: number[] = installInstantTimersRecordingDelays();
+
+    fetchMock
+      .mockResolvedValueOnce(makeResponse(429, { retryAfter: "Infinity" }))
+      .mockResolvedValueOnce(makeResponse(202));
+
+    const provider: MicrosoftGraphMailProvider =
+      new MicrosoftGraphMailProvider();
+
+    await provider.send(makeMail(), makeEmailServer());
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    /*
+     * "Infinity" parses to a non-finite number and must be rejected, using
+     * exponential backoff (1000-2000ms) rather than being clamped to the 60s cap.
+     */
+    expect(requestedDelays).not.toContain(60000);
+    expect(
+      requestedDelays.some((delay: number) => {
+        return delay >= 1000 && delay < 2000;
+      }),
+    ).toBe(true);
+  });
+
+  test("retries a transient 408 Request Timeout and recovers", async () => {
+    fetchMock
+      .mockResolvedValueOnce(makeResponse(408, { retryAfter: "0" }))
+      .mockResolvedValueOnce(makeResponse(202));
+
+    const provider: MicrosoftGraphMailProvider =
+      new MicrosoftGraphMailProvider();
+
+    await provider.send(makeMail(), makeEmailServer());
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("does NOT retry a 401 and surfaces token/tenant guidance", async () => {
+    fetchMock.mockResolvedValue(
+      makeResponse(401, {
+        body: JSON.stringify({
+          error: { code: "InvalidAuthenticationToken", message: "bad token" },
+        }),
+      }),
+    );
+
+    const provider: MicrosoftGraphMailProvider =
+      new MicrosoftGraphMailProvider();
+
+    await expect(provider.send(makeMail(), makeEmailServer())).rejects.toThrow(
+      /401|Tenant ID/,
+    );
+
+    // Auth failure is non-retryable — exactly one attempt.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("does NOT retry a 404 and points at the sender mailbox", async () => {
+    fetchMock.mockResolvedValue(
+      makeResponse(404, {
+        body: JSON.stringify({
+          error: { code: "ErrorInvalidUser", message: "not found" },
+        }),
+      }),
+    );
+
+    const provider: MicrosoftGraphMailProvider =
+      new MicrosoftGraphMailProvider();
+
+    await expect(provider.send(makeMail(), makeEmailServer())).rejects.toThrow(
+      /licensed Exchange Online mailbox/,
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("exhausts retries on a persistent 5xx and surfaces the HTTP status", async () => {
+    fetchMock.mockResolvedValue(makeResponse(503, { retryAfter: "0" }));
+
+    const provider: MicrosoftGraphMailProvider =
+      new MicrosoftGraphMailProvider();
+
+    await expect(provider.send(makeMail(), makeEmailServer())).rejects.toThrow(
+      /HTTP 503/,
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(MAX_RETRIES);
+  });
+
+  test("gates are independent per mailbox", async () => {
+    let inFlight: number = 0;
+    let maxInFlight: number = 0;
+
+    fetchMock.mockImplementation(async () => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise<void>((resolve: () => void) => {
+        realSetTimeout(resolve, 15);
+      });
+      inFlight--;
+      return makeResponse(202);
+    });
+
+    const provider: MicrosoftGraphMailProvider =
+      new MicrosoftGraphMailProvider();
+    const serverA: EmailServer = makeEmailServer("a@contoso.com");
+    const serverB: EmailServer = makeEmailServer("b@contoso.com");
+
+    // 3 through each of two distinct mailboxes — neither gate blocks the other.
+    const sends: Array<Promise<void>> = [
+      ...Array.from({ length: 3 }, () => {
+        return provider.send(makeMail(), serverA);
+      }),
+      ...Array.from({ length: 3 }, () => {
+        return provider.send(makeMail(), serverB);
+      }),
+    ];
+
+    await Promise.all(sends);
+
+    expect(fetchMock).toHaveBeenCalledTimes(6);
+    // All 6 overlap (2 mailboxes × cap of 3) — a single global counter would cap at 3.
+    expect(maxInFlight).toBe(2 * MAX_CONCURRENT_PER_MAILBOX);
+  });
+
+  test("releases the mailbox slot when the OAuth token fetch fails", async () => {
+    const tokenError: Error = new Error("token fetch failed");
+    // beforeEach already replaced getAccessToken with a jest mock resolving a token.
+    const tokenMock: jest.Mock =
+      SMTPOAuthService.getAccessToken as unknown as jest.Mock;
+
+    /*
+     * Fail the token fetch MAX_CONCURRENT_PER_MAILBOX times in a row. If the
+     * concurrency slot leaked on failure, the counter would reach the cap and the
+     * final send would block forever (test timeout). It succeeding proves every
+     * failed send released its slot via the finally block.
+     */
+    for (let i: number = 0; i < MAX_CONCURRENT_PER_MAILBOX; i++) {
+      tokenMock.mockRejectedValueOnce(tokenError);
+    }
+    fetchMock.mockResolvedValue(makeResponse(202));
+
+    const provider: MicrosoftGraphMailProvider =
+      new MicrosoftGraphMailProvider();
+    const server: EmailServer = makeEmailServer("leaky@contoso.com");
+
+    for (let i: number = 0; i < MAX_CONCURRENT_PER_MAILBOX; i++) {
+      await expect(provider.send(makeMail(), server)).rejects.toThrow(
+        /token fetch failed/,
+      );
+    }
+
+    // Token failed before any HTTP call was made.
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // Slots were released, so this send acquires immediately and succeeds.
+    await provider.send(makeMail(), server);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("bounds total time to the caller-supplied timeout", async () => {
+    /*
+     * With a 0ms deadline, the retry loop must give up immediately rather than
+     * grinding through MAX_RETRIES on a persistent throttle. Uses instant timers
+     * so a bug (ignoring the deadline) would still finish, but with the wrong
+     * fetch count — the assertion, not wall-clock, catches the regression.
+     */
+    installInstantTimersRecordingDelays();
+    fetchMock.mockResolvedValue(makeResponse(429, { retryAfter: "0" }));
+
+    const provider: MicrosoftGraphMailProvider =
+      new MicrosoftGraphMailProvider();
+
+    await expect(
+      provider.send(makeMail(), makeEmailServer(), { timeoutMs: 0 }),
+    ).rejects.toThrow();
+
+    // Deadline already passed → no retries beyond the first attempt.
+    expect(fetchMock.mock.calls.length).toBeLessThan(MAX_RETRIES);
+  });
 });

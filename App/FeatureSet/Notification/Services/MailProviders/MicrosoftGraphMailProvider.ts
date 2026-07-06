@@ -107,6 +107,7 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
   public async send(
     mail: EmailMessage,
     emailServer: EmailServer,
+    options?: { timeoutMs?: number | undefined } | undefined,
   ): Promise<void> {
     if (
       !emailServer.clientId ||
@@ -131,11 +132,23 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
 
     const senderAddress: string = emailServer.fromEmail.toString();
 
+    /*
+     * Optional total deadline. Callers like the "Test mail config" endpoint pass
+     * a short timeout expecting a fast failure; without this the retry loop
+     * (up to MAX_RETRIES × FETCH_TIMEOUT_MS + backoff) could run for minutes and
+     * make the UI hang. An absolute timestamp is easier to reason about than a
+     * shrinking budget as we thread it through the retry loop.
+     */
+    const deadlineAt: number | undefined =
+      options && options.timeoutMs !== undefined
+        ? Date.now() + options.timeoutMs
+        : undefined;
+
     // Gate on the sender mailbox to stay under Graph's MailboxConcurrency limit.
     await MicrosoftGraphMailProvider.acquireMailboxSlot(senderAddress);
 
     try {
-      await this.sendWithRetry(mail, emailServer, senderAddress);
+      await this.sendWithRetry(mail, emailServer, senderAddress, deadlineAt);
     } finally {
       MicrosoftGraphMailProvider.releaseMailboxSlot(senderAddress);
     }
@@ -144,11 +157,17 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
   /**
    * Retry loop that honors Graph's Retry-After header on throttling and only
    * retries errors that could plausibly succeed on a subsequent attempt.
+   *
+   * When `deadlineAt` is set, the loop never runs past it: the per-attempt fetch
+   * timeout shrinks to the remaining budget, and a retry is skipped if its
+   * backoff would blow the deadline. This bounds the worst case for callers that
+   * supply a timeout.
    */
   private async sendWithRetry(
     mail: EmailMessage,
     emailServer: EmailServer,
     senderAddress: string,
+    deadlineAt: number | undefined,
   ): Promise<void> {
     let lastError: unknown;
 
@@ -157,8 +176,20 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
       attempt <= MicrosoftGraphMailProvider.MAX_RETRIES;
       attempt++
     ) {
+      if (deadlineAt !== undefined && Date.now() >= deadlineAt) {
+        throw (
+          lastError ??
+          new GraphSendException(
+            "Microsoft Graph send exceeded the caller-supplied timeout before completing.",
+            { isRetryable: false },
+          )
+        );
+      }
+
       try {
-        await this.sendOnce(mail, emailServer, senderAddress);
+        const fetchTimeoutMs: number =
+          MicrosoftGraphMailProvider.effectiveFetchTimeoutMs(deadlineAt);
+        await this.sendOnce(mail, emailServer, senderAddress, fetchTimeoutMs);
         return;
       } catch (error) {
         lastError = error;
@@ -182,6 +213,14 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
           attempt,
           retryAfterSeconds,
         );
+
+        /*
+         * Don't wait (and retry) if doing so would exceed the caller's deadline —
+         * surface the failure now instead of blocking past the budget.
+         */
+        if (deadlineAt !== undefined && Date.now() + waitTime >= deadlineAt) {
+          throw error;
+        }
 
         logger.warn(
           `Microsoft Graph send attempt ${attempt} failed (retryable). ` +
@@ -212,6 +251,7 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
     mail: EmailMessage,
     emailServer: EmailServer,
     senderAddress: string,
+    fetchTimeoutMs: number,
   ): Promise<void> {
     const accessToken: string = await SMTPOAuthService.getAccessToken({
       clientId: emailServer.clientId!,
@@ -260,7 +300,7 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
     const controller: AbortController = new AbortController();
     const timeoutId: ReturnType<typeof setTimeout> = setTimeout(() => {
       controller.abort();
-    }, MicrosoftGraphMailProvider.FETCH_TIMEOUT_MS);
+    }, fetchTimeoutMs);
 
     let response: Response;
     try {
@@ -277,7 +317,7 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
       // Timeouts and network errors are transient — worth retrying.
       if (error instanceof Error && error.name === "AbortError") {
         throw new GraphSendException(
-          `Microsoft Graph request timed out after ${MicrosoftGraphMailProvider.FETCH_TIMEOUT_MS}ms. ` +
+          `Microsoft Graph request timed out after ${fetchTimeoutMs}ms. ` +
             `Check network connectivity to graph.microsoft.com.`,
           { isRetryable: true },
         );
@@ -322,11 +362,13 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
     );
 
     /*
-     * 429 (throttling) and 5xx (transient server) are retryable; auth,
-     * permission and mailbox errors are not.
+     * 429 (throttling), 408 (request timeout) and 5xx (transient server) are
+     * retryable; auth, permission and mailbox errors (4xx) are not.
      */
     const isRetryable: boolean =
-      response.status === 429 || response.status >= 500;
+      response.status === 429 ||
+      response.status === 408 ||
+      response.status >= 500;
 
     throw new GraphSendException(
       MicrosoftGraphMailProvider.explainGraphError(response.status, detail),
@@ -361,7 +403,35 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
   private static releaseMailboxSlot(mailbox: string): void {
     const key: string = mailbox.toLowerCase();
     const current: number = this.mailboxConcurrency.get(key) || 0;
-    this.mailboxConcurrency.set(key, Math.max(0, current - 1));
+    const next: number = Math.max(0, current - 1);
+
+    /*
+     * Delete the key when it drops to 0 rather than leaving a 0-count entry —
+     * acquireMailboxSlot treats absent and 0 identically via `(get(key) || 0)`,
+     * so this is behavior-preserving and keeps the Map from growing unbounded in
+     * multi-tenant deployments with many distinct sender mailboxes.
+     */
+    if (next === 0) {
+      this.mailboxConcurrency.delete(key);
+    } else {
+      this.mailboxConcurrency.set(key, next);
+    }
+  }
+
+  /**
+   * The per-attempt fetch timeout: the standard FETCH_TIMEOUT_MS, but never more
+   * than the time remaining before a caller-supplied deadline. Returns 0 once
+   * the deadline has passed (the caller checks the deadline before using this).
+   */
+  private static effectiveFetchTimeoutMs(
+    deadlineAt: number | undefined,
+  ): number {
+    if (deadlineAt === undefined) {
+      return this.FETCH_TIMEOUT_MS;
+    }
+
+    const remaining: number = deadlineAt - Date.now();
+    return Math.max(0, Math.min(this.FETCH_TIMEOUT_MS, remaining));
   }
 
   /**
@@ -375,8 +445,12 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
       return undefined;
     }
 
+    /*
+     * Number.isFinite (not !isNaN) so non-finite values like "Infinity" fall
+     * through to computed backoff instead of pinning the wait at the 60s cap.
+     */
     const seconds: number = Number(headerValue);
-    if (!isNaN(seconds) && seconds >= 0) {
+    if (Number.isFinite(seconds) && seconds >= 0) {
       return seconds;
     }
 

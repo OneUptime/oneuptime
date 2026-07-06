@@ -516,7 +516,11 @@ export default class MailService {
     if (
       options.emailServer.transportType === MailTransportType.MicrosoftGraph
     ) {
-      await this.transportViaMicrosoftGraph(mail, options.emailServer);
+      await this.transportViaMicrosoftGraph(
+        mail,
+        options.emailServer,
+        options.timeout,
+      );
       return;
     }
 
@@ -576,6 +580,7 @@ export default class MailService {
   private static async transportViaMicrosoftGraph(
     mail: EmailMessage,
     emailServer: EmailServer,
+    timeout?: number | undefined,
   ): Promise<void> {
     const provider: MicrosoftGraphMailProvider =
       new MicrosoftGraphMailProvider();
@@ -585,8 +590,12 @@ export default class MailService {
      * concurrency gate (to stay under Graph's MailboxConcurrency limit) and a
      * Retry-After-aware retry loop. We intentionally do NOT wrap another retry
      * loop here — that would multiply attempts and ignore Graph's Retry-After.
+     *
+     * The caller's timeout becomes a total deadline for the whole retry loop, so
+     * fast-failing callers (e.g. the "Test mail config" endpoint) don't hang for
+     * minutes on a throttled or unreachable mailbox.
      */
-    await provider.send(mail, emailServer);
+    await provider.send(mail, emailServer, { timeoutMs: timeout });
   }
 
   public static async send(
