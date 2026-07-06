@@ -1,0 +1,115 @@
+<!-- Mock: distributed-trace waterfall pinpointing the 02:54 root cause of the Checkout API incident -->
+<div role="img" aria-label="Distributed trace waterfall for POST /api/checkout showing a 3.91 second PostgreSQL SELECT FOR UPDATE query as the slow span, linked to a lock wait timeout error log and a missing-index root cause.">
+  <div class="relative">
+    <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+    <div class="relative bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+      <div class="bg-gray-50 px-4 py-2.5 flex items-center justify-between gap-3 border-b border-gray-200">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="flex gap-1.5 flex-shrink-0">
+            <div class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-green-400"></div>
+          </div>
+          <div class="flex items-center gap-2 min-w-0">
+            <svg class="h-4 w-4 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 5.25h16.5M5.25 9.75h9M7.5 14.25h11.25M9.75 18.75h6"/></svg>
+            <span class="text-xs font-semibold text-gray-700 truncate">Trace · POST /api/checkout</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <span class="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 rounded-md text-xs font-medium text-amber-700 border border-amber-200">
+            <svg class="h-3 w-3 text-amber-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            4.28s total
+          </span>
+          <span class="hidden sm:flex items-center px-2.5 py-1 bg-white rounded-md border border-gray-200 text-xs text-gray-500">02:54:07</span>
+        </div>
+      </div>
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center gap-2 mb-2">
+          <div class="w-24 sm:w-44 flex-shrink-0"></div>
+          <div class="flex-1 flex justify-between font-mono text-[8px] text-gray-300">
+            <span>0s</span><span>1s</span><span>2s</span><span>3s</span><span>4.28s</span>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <div class="flex items-center gap-2">
+            <div class="w-24 sm:w-44 flex-shrink-0 min-w-0">
+              <div class="text-[11px] truncate"><span class="font-mono text-gray-700">web-frontend</span><span class="text-gray-400"> · POST /checkout</span></div>
+            </div>
+            <div class="relative flex-1 h-5">
+              <div class="absolute top-1/2 -translate-y-1/2 h-1 rounded-full bg-gray-300" style="left:0%;width:100%"></div>
+              <span class="absolute right-0 top-1/2 -translate-y-1/2 pl-1 bg-white text-[10px] text-gray-500">4.28s</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-24 sm:w-44 flex-shrink-0 min-w-0 pl-1.5">
+              <div class="text-[11px] truncate"><span class="font-mono text-gray-700">api-gateway</span><span class="text-gray-400"> · route</span></div>
+            </div>
+            <div class="relative flex-1 h-5">
+              <div class="absolute top-1/2 -translate-y-1/2 h-2 rounded-full bg-blue-300" style="left:1%;width:3.5%"></div>
+              <span class="absolute top-1/2 -translate-y-1/2 text-[10px] text-gray-400 whitespace-nowrap" style="left:calc(4.5% + 6px)">120ms</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-24 sm:w-44 flex-shrink-0 min-w-0 pl-3">
+              <div class="text-[11px] truncate"><span class="font-mono text-gray-700">checkout-svc</span><span class="text-gray-400"> · createOrder</span></div>
+            </div>
+            <div class="relative flex-1 h-5">
+              <div class="absolute top-1/2 -translate-y-1/2 h-2 rounded-full bg-blue-400" style="left:4%;width:88%"></div>
+              <span class="absolute right-0 top-1/2 -translate-y-1/2 pl-1 bg-white text-[10px] text-gray-500">4.15s</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-24 sm:w-44 flex-shrink-0 min-w-0 pl-4">
+              <div class="text-[11px] truncate"><span class="font-mono text-gray-700">payments-svc</span><span class="text-gray-400"> · authorize</span></div>
+            </div>
+            <div class="relative flex-1 h-5">
+              <div class="absolute top-1/2 -translate-y-1/2 h-2 rounded-full bg-blue-300" style="left:5.5%;width:5%"></div>
+              <span class="absolute top-1/2 -translate-y-1/2 text-[10px] text-gray-400 whitespace-nowrap" style="left:calc(10.5% + 6px)">210ms</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-24 sm:w-44 flex-shrink-0 min-w-0 pl-4">
+              <div class="text-[11px] truncate"><span class="font-mono text-gray-700">postgres</span><span class="text-gray-400"> · SELECT … FOR UPDATE</span></div>
+            </div>
+            <div class="relative flex-1 h-5">
+              <div class="absolute top-1/2 -translate-y-1/2 h-2.5 rounded-full bg-amber-500" style="left:11%;width:81%"></div>
+              <div class="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-1 pl-1 bg-white">
+                <span class="px-1 py-0.5 bg-rose-100 rounded text-[10px] font-medium leading-none text-rose-600">slow</span>
+                <span class="text-[10px] font-medium text-amber-700">3.91s</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-24 sm:w-44 flex-shrink-0 min-w-0 pl-4">
+              <div class="text-[11px] truncate"><span class="font-mono text-gray-700">redis</span><span class="text-gray-400"> · GET session</span></div>
+            </div>
+            <div class="relative flex-1 h-5">
+              <div class="absolute top-1/2 -translate-y-1/2 h-2 rounded-full bg-emerald-500" style="left:4.5%;width:4px"></div>
+              <span class="absolute top-1/2 -translate-y-1/2 text-[10px] text-gray-400 whitespace-nowrap" style="left:calc(4.5% + 10px)">3ms</span>
+            </div>
+          </div>
+        </div>
+        <div class="mt-5">
+          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Linked evidence</div>
+          <div class="bg-gray-900 rounded-lg px-3.5 py-2.5 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2 font-mono text-[11px] min-w-0">
+              <span class="text-emerald-400 flex-shrink-0">02:54:11</span>
+              <span class="text-white truncate">ERROR lock wait timeout exceeded — table: orders</span>
+            </div>
+            <span class="flex-shrink-0 px-2 py-0.5 bg-amber-400/10 rounded text-[10px] text-amber-300 border border-amber-400/20">from this span</span>
+          </div>
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <span class="flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 rounded-md border border-orange-200 text-[10px] font-medium text-orange-700">
+              <svg class="h-3 w-3 text-orange-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+              <span>Exception: LockWaitTimeout — 214 occurrences</span>
+            </span>
+            <span class="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 rounded-md border border-amber-200 text-[10px] font-medium text-amber-700">
+              <svg class="h-3 w-3 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/></svg>
+              <span>Root cause: missing index on <span class="font-mono">orders.customer_id</span></span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
