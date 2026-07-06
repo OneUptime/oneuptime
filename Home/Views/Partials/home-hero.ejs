@@ -22,40 +22,37 @@
 
   <div class="pt-24 pb-16 sm:pt-28 sm:pb-20 lg:pt-32 lg:pb-24">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
-      <div class="mx-auto max-w-3xl text-center">
-        <!-- Badge row: open source + AI-native -->
+      <div class="mx-auto max-w-4xl text-center">
+        <!-- Badge row: AI-native + open source -->
         <div data-reveal class="mb-8 flex flex-wrap items-center justify-center gap-2.5">
-        <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-4 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100 hover:ring-gray-300">
-          <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
-          </svg>
-          <span>100% open source</span>
-          <% if (githubStars) { %>
-          <span class="h-1 w-1 rounded-full bg-gray-300"></span>
-          <span class="tabular-nums"><%= githubStars %> stars</span>
-          <% } %>
-          <svg class="h-3.5 w-3.5 text-gray-400 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
-        </a>
-
-        <!-- AI-native pill (gradient border) -->
-        <span class="rounded-full bg-gradient-to-r from-blue-400/60 via-indigo-400/60 to-violet-400/60 p-px shadow-sm">
-          <span class="flex items-center gap-1.5 rounded-full bg-white px-4 py-[5px]">
-            <svg class="h-4 w-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" /></svg>
-            <span class="gradient-pan text-xs font-semibold uppercase tracking-[0.15em] bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">AI-Native Observability</span>
+          <span class="rounded-full bg-gradient-to-r from-blue-400/60 via-indigo-400/60 to-violet-400/60 p-px shadow-sm transition-transform hover:-translate-y-0.5">
+            <span class="flex h-8 items-center gap-1.5 rounded-full bg-white px-4">
+              <svg class="h-4 w-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" /></svg>
+              <span class="gradient-pan text-xs font-semibold uppercase tracking-[0.15em] bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">AI-Native Observability</span>
+            </span>
           </span>
-        </span>
+          <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group inline-flex h-8 items-center gap-1.5 rounded-full bg-white px-4 text-sm text-gray-600 shadow-sm ring-1 ring-inset ring-gray-200 transition-all hover:-translate-y-0.5 hover:ring-gray-300">
+            <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
+            </svg>
+            <span>100% open source</span>
+            <% if (githubStars) { %>
+            <span class="h-1 w-1 rounded-full bg-gray-300"></span>
+            <span class="tabular-nums"><%= githubStars %> stars</span>
+            <% } %>
+            <svg class="h-3.5 w-3.5 text-gray-400 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+          </a>
         </div>
 
         <!-- Main headline -->
-        <h1 data-reveal data-reveal-delay="75" class="text-4xl font-semibold text-gray-900 sm:text-5xl lg:text-[4.25rem] lg:leading-[1.05] tracking-[-0.025em]">
-          When things break,<br class="hidden sm:block" />
-          be the first to know -<br class="hidden sm:block" />
-          and <span class="gradient-pan bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">the fastest to fix.</span>
+        <h1 data-reveal data-reveal-delay="75" class="text-4xl font-semibold text-gray-900 sm:text-5xl lg:text-[4.5rem] lg:leading-[1.05] tracking-[-0.025em]">
+          Be the first to know.<br class="hidden sm:block" />
+          <span class="gradient-pan bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">Be the fastest to fix.</span>
         </h1>
 
         <!-- Subheadline -->
         <p data-reveal data-reveal-delay="150" class="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8 max-w-2xl mx-auto">
-          OneUptime catches outages in seconds, pages the right engineer, keeps your customers posted, finds the root cause - and opens the fix PR. Downtime costs you minutes, not customers.
+          When something breaks at 2:47 AM, OneUptime catches it in seconds, pages the right person, updates your status page, finds the root cause, and opens the fix PR. Downtime costs you minutes, not customers.
         </p>
 
         <!-- CTA buttons -->
