@@ -1,40 +1,63 @@
-<section class="relative bg-gradient-to-b from-gray-50/50 to-white py-16 lg:py-20 overflow-hidden">
+<section class="relative bg-gradient-to-b from-gray-50/50 to-white py-20 lg:py-24 overflow-hidden" aria-labelledby="results-title">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <h2 class="sr-only">What one platform changes</h2>
-        <p data-reveal class="text-center text-sm font-medium text-gray-500 tracking-wide uppercase">The payoff</p>
+        <!-- Header -->
+        <div data-reveal class="mx-auto max-w-2xl text-center mb-12">
+            <p class="text-sm font-medium text-gray-500 tracking-wide uppercase mb-4">The payoff</p>
+            <h2 id="results-title" class="text-3xl sm:text-4xl font-semibold tracking-tight text-gray-900">
+                One bad night, measured.
+            </h2>
+            <p class="mt-4 text-lg text-gray-600 leading-relaxed">
+                Every minute of that timeline is a number your team stops paying.
+            </p>
+        </div>
 
-        <div class="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-3">
+        <div class="mx-auto grid max-w-5xl grid-cols-1 gap-6 sm:grid-cols-3">
             <!-- Monitoring: detection -->
-            <div data-reveal data-reveal-delay="75" class="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-                <p class="text-5xl font-semibold tracking-tight tabular-nums text-blue-600">&lt;30s</p>
-                <p class="mt-3 text-sm text-gray-600">Detect outages in under 30 seconds, anywhere in the world.</p>
-                <a href="/product/monitoring" class="mt-4 inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600">
-                    Monitoring
-                    <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <div data-reveal data-reveal-delay="75" class="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)]">
+                <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-400/70 via-blue-300/40 to-transparent" aria-hidden="true"></div>
+                <div class="absolute -top-14 -right-14 h-36 w-36 rounded-full bg-blue-100/40 blur-2xl pointer-events-none" aria-hidden="true"></div>
+                <span class="relative inline-flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-inset ring-blue-200 mb-5">
+                    <svg class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.348 14.652a3.75 3.75 0 010-5.304m5.304 0a3.75 3.75 0 010 5.304m-7.425 2.121a6.75 6.75 0 010-9.546m9.546 0a6.75 6.75 0 010 9.546M5.106 18.894c-3.808-3.807-3.808-9.98 0-13.788m13.788 0c3.808 3.807 3.808 9.98 0 13.788M12 12h.008v.008H12V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
+                </span>
+                <p class="relative text-5xl font-semibold tracking-tight tabular-nums text-blue-600">&lt;30s</p>
+                <p class="relative mt-3 text-sm text-gray-600 leading-relaxed">To detect an outage &mdash; from anywhere in the world, before a customer notices.</p>
+                <a href="/product/monitoring" class="relative mt-5 inline-flex items-center gap-1 text-xs font-medium text-gray-500 transition-colors hover:text-blue-600">
+                    From Monitoring
+                    <svg aria-hidden="true" class="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12l-7.5 7.5M21 12H3" />
                     </svg>
                 </a>
             </div>
 
             <!-- Incidents: resolution -->
-            <div data-reveal data-reveal-delay="150" class="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-                <p data-countup class="text-5xl font-semibold tracking-tight tabular-nums text-rose-600">50%</p>
-                <p class="mt-3 text-sm text-gray-600">Cut mean time to resolution (MTTR) in half.</p>
-                <a href="/product/incident-management" class="mt-4 inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600">
-                    Incident Management
-                    <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <div data-reveal data-reveal-delay="150" class="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)]">
+                <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-400/70 via-rose-300/40 to-transparent" aria-hidden="true"></div>
+                <div class="absolute -top-14 -right-14 h-36 w-36 rounded-full bg-rose-100/40 blur-2xl pointer-events-none" aria-hidden="true"></div>
+                <span class="relative inline-flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-inset ring-rose-200 mb-5">
+                    <svg class="h-5 w-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </span>
+                <p data-countup class="relative text-5xl font-semibold tracking-tight tabular-nums text-rose-600">50%</p>
+                <p class="relative mt-3 text-sm text-gray-600 leading-relaxed">Off mean time to resolution &mdash; the right person, paged with the right context.</p>
+                <a href="/product/incident-management" class="relative mt-5 inline-flex items-center gap-1 text-xs font-medium text-gray-500 transition-colors hover:text-rose-600">
+                    From Incident Management
+                    <svg aria-hidden="true" class="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12l-7.5 7.5M21 12H3" />
                     </svg>
                 </a>
             </div>
 
             <!-- Status pages: fewer tickets -->
-            <div data-reveal data-reveal-delay="225" class="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-                <p data-countup class="text-5xl font-semibold tracking-tight tabular-nums text-emerald-600">40%</p>
-                <p class="mt-3 text-sm text-gray-600">Fewer support tickets during incidents.</p>
-                <a href="/product/status-page" class="mt-4 inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600">
-                    Status Pages
-                    <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <div data-reveal data-reveal-delay="225" class="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)]">
+                <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400/70 via-emerald-300/40 to-transparent" aria-hidden="true"></div>
+                <div class="absolute -top-14 -right-14 h-36 w-36 rounded-full bg-emerald-100/40 blur-2xl pointer-events-none" aria-hidden="true"></div>
+                <span class="relative inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-inset ring-emerald-200 mb-5">
+                    <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46" /></svg>
+                </span>
+                <p data-countup class="relative text-5xl font-semibold tracking-tight tabular-nums text-emerald-600">40%</p>
+                <p class="relative mt-3 text-sm text-gray-600 leading-relaxed">Fewer support tickets &mdash; customers heard it from you, not the other way around.</p>
+                <a href="/product/status-page" class="relative mt-5 inline-flex items-center gap-1 text-xs font-medium text-gray-500 transition-colors hover:text-emerald-600">
+                    From Status Pages
+                    <svg aria-hidden="true" class="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12l-7.5 7.5M21 12H3" />
                     </svg>
                 </a>
