@@ -57,6 +57,32 @@
   .motion-on .tilt-l:hover,
   .motion-on .tilt-c:hover { transform: perspective(1600px) rotateY(0deg) rotateX(0deg); }
 
+  /* Hero command-center presentation */
+  .motion-on .hero-tilt {
+    transform: perspective(1800px) rotateX(7deg) scale(0.99);
+    transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .motion-on .hero-tilt:hover { transform: perspective(1800px) rotateX(0deg) scale(1); }
+
+  /* Floating story notifications around the hero mock */
+  @keyframes float-a {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-7px); }
+  }
+  @keyframes float-b {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(6px); }
+  }
+  .motion-on .float-a { animation: float-a 6s ease-in-out infinite; }
+  .motion-on .float-b { animation: float-b 7.5s ease-in-out infinite; }
+
+  /* Night sky: twinkling stars in the hero backdrop */
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.15; }
+    50% { opacity: 0.6; }
+  }
+  .motion-on .star { animation: twinkle var(--tw-dur, 4s) ease-in-out infinite; animation-delay: var(--tw-delay, 0s); }
+
   /* Story timeline active stop */
   .story-dot.rail-active .time { color: #111827; font-weight: 600; }
   .story-dot.rail-active .label { opacity: 1; }
