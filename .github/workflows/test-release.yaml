@@ -824,6 +824,26 @@ jobs:
           set -euo pipefail
           npm run prerun
           bash ./Tests/Scripts/enable-billing-env-var.sh
+      - name: Inject billing (Stripe) secrets for SaaS e2e
+        env:
+          BILLING_PUBLIC_KEY: ${{ secrets.BILLING_PUBLIC_KEY }}
+          BILLING_PRIVATE_KEY: ${{ secrets.BILLING_PRIVATE_KEY }}
+          BILLING_WEBHOOK_SECRET: ${{ secrets.BILLING_WEBHOOK_SECRET }}
+        run: |
+          set -euo pipefail
+          # The env template ships empty Stripe keys; billing-mode project
+          # creation (exercised by the Dashboard e2e specs) needs real
+          # test-mode keys, injected here from repo secrets. Values come in via
+          # the step env (not interpolated into the command) and are all
+          # alphanumeric, so sed replacement is safe.
+          for k in BILLING_PUBLIC_KEY BILLING_PRIVATE_KEY BILLING_WEBHOOK_SECRET; do
+            v="$(printenv "$k" || true)"
+            if grep -q "^${k}=" config.env; then
+              sed -i "s|^${k}=.*|${k}=${v}|" config.env
+            else
+              echo "${k}=${v}" >> config.env
+            fi
+          done
       - name: Pin APP_TAG to test release
         run: |
           set -euo pipefail
