@@ -4,6 +4,7 @@ import {
   getScalarEntityKeyColumns,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
+import EventLoop from "Common/Server/Utils/EventLoop";
 import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
 import OneUptimeDate from "Common/Types/Date";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
@@ -304,7 +305,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       for (const resourceSpan of resourceSpans) {
         try {
           if (resourceSpanCounter % 25 === 0) {
-            await Promise.resolve();
+            await EventLoop.yieldToEventLoop();
           }
           resourceSpanCounter++;
           const resourceAttributes_raw: JSONArray =
@@ -456,7 +457,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           for (const scopeSpan of scopeSpans) {
             try {
               if (scopeSpanCounter % 50 === 0) {
-                await Promise.resolve();
+                await EventLoop.yieldToEventLoop();
               }
               scopeSpanCounter++;
               const spans: JSONArray = scopeSpan["spans"] as JSONArray;
@@ -470,7 +471,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               for (const span of spans) {
                 try {
                   if (spanCounter % 200 === 0) {
-                    await Promise.resolve();
+                    await EventLoop.yieldToEventLoop();
                   }
                   spanCounter++;
 

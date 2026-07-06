@@ -4,6 +4,7 @@ import {
   getScalarEntityKeyColumns,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
+import EventLoop from "Common/Server/Utils/EventLoop";
 import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
 import OneUptimeDate from "Common/Types/Date";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
@@ -243,7 +244,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
       for (const resourceProfile of resourceProfiles) {
         try {
           if (resourceProfileCounter % 25 === 0) {
-            await Promise.resolve();
+            await EventLoop.yieldToEventLoop();
           }
           resourceProfileCounter++;
 
@@ -392,7 +393,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
           for (const scopeProfile of scopeProfiles) {
             try {
               if (scopeProfileCounter % 50 === 0) {
-                await Promise.resolve();
+                await EventLoop.yieldToEventLoop();
               }
               scopeProfileCounter++;
 
@@ -409,7 +410,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
               for (const profileItem of profileContainers) {
                 try {
                   if (profileCounter % 100 === 0) {
-                    await Promise.resolve();
+                    await EventLoop.yieldToEventLoop();
                   }
                   profileCounter++;
 
@@ -555,7 +556,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                   for (const sample of samples) {
                     try {
                       if (sampleCounter % 200 === 0) {
-                        await Promise.resolve();
+                        await EventLoop.yieldToEventLoop();
                       }
                       sampleCounter++;
 
