@@ -1,30 +1,11 @@
 import { BASE_URL, IS_BILLING_ENABLED } from "../../../Config";
-import { Page, expect, Response, Locator, test } from "@playwright/test";
+import { Page, expect, Response, Locator } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
 import selectProjectPlan from "../../Helpers/selectProjectPlan";
 
 const projectDashboardUrlRegex: RegExp =
   /\/dashboard\/([a-f0-9-]+)(?:\/home\/?)?$/;
-
-/*
- * Wrapper for the dashboard product-onboarding suites (monitors, telemetry,
- * infra resources) that call registerAndCreateProject.
- *
- * When billing is enabled, project creation goes through the paid-plan /
- * Stripe checkout step, which the SaaS e2e environment can't complete — the
- * app stays on /dashboard/welcome and never reaches the project dashboard. So
- * these suites run only with billing OFF (the self-hosted job), where they
- * provide full coverage. Billing-only surfaces are covered by the Home/*
- * specs, which run only when billing is enabled.
- *
- * Using test.describe.skip (rather than an in-body skip) guarantees the
- * beforeAll project-setup hooks are skipped too.
- */
-export const describeProductOnboarding: (
-  title: string,
-  callback: () => void,
-) => void = IS_BILLING_ENABLED ? test.describe.skip : test.describe;
 
 /*
  * Registers a fresh user, creates a project, and returns the project id.
