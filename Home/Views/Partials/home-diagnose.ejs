@@ -3,7 +3,7 @@
 
   <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
     <!-- Header -->
-    <div class="mx-auto max-w-2xl text-center mb-16">
+    <div class="mx-auto max-w-2xl text-center mb-12">
       <div class="flex items-center justify-center gap-3 mb-4">
         <span class="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-1 font-mono text-xs text-gray-500 ring-1 ring-inset ring-gray-200 tabular-nums">02:54</span>
         <p class="text-sm font-medium text-amber-600 tracking-wide uppercase">Diagnose</p>
@@ -17,7 +17,7 @@
     </div>
 
     <!-- Trace waterfall: the root cause, found -->
-    <div class="relative mx-auto max-w-4xl mb-16">
+    <div class="relative mx-auto max-w-4xl mb-12">
       <div class="absolute -inset-8 rounded-full pointer-events-none" style="background: radial-gradient(ellipse at center, rgb(245 158 11 / 0.06) 0%, rgb(245 158 11 / 0.02) 40%, transparent 70%);" aria-hidden="true"></div>
       <div class="relative">
         <%- include('./home-mocks/mock-diagnose') -%>
@@ -48,7 +48,7 @@
             <svg class="h-5 w-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
           </span>
           <h3 class="text-base font-semibold text-gray-900 mb-1">Errors &amp; Exceptions</h3>
-          <p class="text-sm text-gray-500 leading-relaxed">Stack traces grouped so one bug isn't fifty alerts &mdash; and you see exactly which deploy introduced it.</p>
+          <p class="text-sm text-gray-500 leading-relaxed">Stack traces grouped so one bug isn't 214 alerts &mdash; and you see exactly which deploy introduced it.</p>
         </a>
       </div>
 
@@ -72,16 +72,16 @@
       </div>
 
       <!-- Pricing callout + CTA -->
-      <div class="mt-12 text-center">
-        <p class="inline-flex flex-wrap items-center justify-center gap-x-2 rounded-full bg-gray-50 px-5 py-2 text-sm text-gray-700 ring-1 ring-inset ring-gray-200">
+      <div class="mt-10 text-center">
+        <p class="inline-flex flex-wrap items-center justify-center gap-x-2 rounded-2xl sm:rounded-full bg-gray-50 px-5 py-2 text-sm text-gray-700 ring-1 ring-inset ring-gray-200">
           <span class="font-semibold text-gray-900">$0.10 per GB ingested</span>
           <span class="text-gray-500">&mdash; logs, traces, and metrics at one flat rate. No per-host pricing.</span>
         </p>
-        <div class="mt-8 flex flex-wrap items-center justify-center gap-4">
+        <div class="mt-6 flex flex-wrap items-center justify-center gap-4">
           <a href="/accounts/register" class="inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-700">
             Send your first traces
           </a>
-          <a href="/product/logs-management" class="group inline-flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+          <a href="/product/traces" class="group inline-flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
             Explore Observability
             <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5" /></svg>
           </a>
