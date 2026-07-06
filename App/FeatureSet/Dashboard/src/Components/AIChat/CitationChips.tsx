@@ -5,6 +5,8 @@ import {
   AIChatCitation,
   AIChatCitationTargetType,
 } from "Common/Types/AI/AIChatTypes";
+import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -24,6 +26,20 @@ const targetTypeToPageMap: { [key in AIChatCitationTargetType]: PageMap } = {
   [AIChatCitationTargetType.AlertView]: PageMap.ALERT_VIEW,
   [AIChatCitationTargetType.Monitors]: PageMap.MONITORS,
   [AIChatCitationTargetType.MonitorView]: PageMap.MONITOR_VIEW,
+};
+
+const targetTypeToIcon: { [key in AIChatCitationTargetType]: IconProp } = {
+  [AIChatCitationTargetType.Logs]: IconProp.Logs,
+  [AIChatCitationTargetType.Traces]: IconProp.Activity,
+  [AIChatCitationTargetType.TraceView]: IconProp.Activity,
+  [AIChatCitationTargetType.Metrics]: IconProp.ChartBar,
+  [AIChatCitationTargetType.Exceptions]: IconProp.Error,
+  [AIChatCitationTargetType.Incidents]: IconProp.Alert,
+  [AIChatCitationTargetType.IncidentView]: IconProp.Alert,
+  [AIChatCitationTargetType.Alerts]: IconProp.Bell,
+  [AIChatCitationTargetType.AlertView]: IconProp.Bell,
+  [AIChatCitationTargetType.Monitors]: IconProp.Cube,
+  [AIChatCitationTargetType.MonitorView]: IconProp.Cube,
 };
 
 /*
@@ -67,33 +83,67 @@ const CitationChips: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className="mt-2 flex flex-wrap gap-1.5">
-      {props.citations.map((citation: AIChatCitation) => {
-        const isEmpty: boolean = citation.rowCount === 0;
-        const isNavigable: boolean = Boolean(citation.target);
+    <div>
+      <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+        Sources
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {props.citations.map((citation: AIChatCitation) => {
+          const isEmpty: boolean = citation.rowCount === 0;
+          const isNavigable: boolean = Boolean(citation.target);
+          const icon: IconProp = citation.target
+            ? targetTypeToIcon[citation.target.type]
+            : IconProp.Search;
 
-        return (
-          <button
-            key={citation.id}
-            type="button"
-            disabled={!isNavigable}
-            title={
-              isEmpty ? `${citation.label} — checked, 0 rows` : citation.label
-            }
-            onClick={() => {
-              navigateToCitation(citation);
-            }}
-            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs ${
-              isEmpty
-                ? "border-gray-200 text-gray-400"
-                : "border-indigo-200 text-indigo-700 bg-indigo-50"
-            } ${isNavigable ? "cursor-pointer hover:bg-indigo-100" : "cursor-default"}`}
-          >
-            <span className="font-semibold mr-1">{citation.id}</span>
-            <span className="max-w-xs truncate">{citation.label}</span>
-          </button>
-        );
-      })}
+          return (
+            <button
+              key={citation.id}
+              type="button"
+              disabled={!isNavigable}
+              title={
+                isEmpty
+                  ? `${citation.label} — checked, found nothing`
+                  : citation.label
+              }
+              onClick={() => {
+                navigateToCitation(citation);
+              }}
+              className={`group inline-flex max-w-full items-center gap-1.5 rounded-full border py-1 pl-1.5 pr-2.5 text-xs transition-colors ${
+                isEmpty
+                  ? "border-gray-200 bg-gray-50 text-gray-400"
+                  : "border-indigo-100 bg-indigo-50 text-indigo-700"
+              } ${
+                isNavigable && !isEmpty
+                  ? "cursor-pointer hover:border-indigo-300 hover:bg-indigo-100"
+                  : isNavigable
+                    ? "cursor-pointer hover:bg-gray-100"
+                    : "cursor-default"
+              }`}
+            >
+              <span
+                className={`flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold ${
+                  isEmpty
+                    ? "bg-gray-200 text-gray-500"
+                    : "bg-indigo-600 text-white"
+                }`}
+              >
+                {citation.id.replace("C", "")}
+              </span>
+              <Icon icon={icon} className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{citation.label}</span>
+              <span
+                className={`rounded-full px-1.5 text-[10px] font-medium ${
+                  isEmpty
+                    ? "bg-gray-100 text-gray-400"
+                    : "bg-white/70 text-indigo-600"
+                }`}
+              >
+                {isEmpty ? "0 rows" : `${citation.rowCount}`}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 };
