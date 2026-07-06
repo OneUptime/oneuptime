@@ -824,20 +824,41 @@ jobs:
           set -euo pipefail
           npm run prerun
           bash ./Tests/Scripts/enable-billing-env-var.sh
-      - name: Inject billing (Stripe) secrets for SaaS e2e
+      - name: Inject billing (Stripe) config for SaaS e2e
         env:
+          # Secret Stripe credentials (private key + webhook secret must not be
+          # committed; the public key is browser-exposed but kept alongside).
           BILLING_PUBLIC_KEY: ${{ secrets.BILLING_PUBLIC_KEY }}
           BILLING_PRIVATE_KEY: ${{ secrets.BILLING_PRIVATE_KEY }}
           BILLING_WEBHOOK_SECRET: ${{ secrets.BILLING_WEBHOOK_SECRET }}
+          # Real Stripe test-mode subscription plans (Stripe account ...ANuQdJ93r7,
+          # matching the injected keys and the hardcoded test metered price IDs in
+          # BillingService). config.env is gitignored, so CI generates it from
+          # config.example.env which ships placeholder price IDs (priceMonthlyId
+          # / priceYearlyId); billing-mode project creation subscribes the project
+          # to one of these plans via Stripe, so the SaaS e2e job needs the real
+          # price IDs. These IDs are non-secret (already served to the browser via
+          # /env.js), so they are stored as repo *variables* (auditable, and not
+          # masked in logs) rather than secrets.
+          SUBSCRIPTION_PLAN_BASIC: ${{ vars.SUBSCRIPTION_PLAN_BASIC }}
+          SUBSCRIPTION_PLAN_GROWTH: ${{ vars.SUBSCRIPTION_PLAN_GROWTH }}
+          SUBSCRIPTION_PLAN_SCALE: ${{ vars.SUBSCRIPTION_PLAN_SCALE }}
+          SUBSCRIPTION_PLAN_ENTERPRISE: ${{ vars.SUBSCRIPTION_PLAN_ENTERPRISE }}
         run: |
           set -euo pipefail
-          # The env template ships empty Stripe keys; billing-mode project
-          # creation (exercised by the Dashboard e2e specs) needs real
-          # test-mode keys, injected here from repo secrets. Values come in via
-          # the step env (not interpolated into the command) and are all
-          # alphanumeric, so sed replacement is safe.
-          for k in BILLING_PUBLIC_KEY BILLING_PRIVATE_KEY BILLING_WEBHOOK_SECRET; do
+          # Values arrive via the step env (never interpolated into the command)
+          # and contain no '|' or newlines, so the sed replacement is safe.
+          # Fail fast if any are missing/empty: without them the app silently
+          # falls back to config.example.env placeholders and every billing-mode
+          # project-creation test fails with an opaque "Server Error".
+          for k in BILLING_PUBLIC_KEY BILLING_PRIVATE_KEY BILLING_WEBHOOK_SECRET \
+                   SUBSCRIPTION_PLAN_BASIC SUBSCRIPTION_PLAN_GROWTH \
+                   SUBSCRIPTION_PLAN_SCALE SUBSCRIPTION_PLAN_ENTERPRISE; do
             v="$(printenv "$k" || true)"
+            if [ -z "$v" ]; then
+              echo "::error::${k} is empty. Set the matching GitHub Actions secret/variable (Settings > Secrets and variables > Actions)." >&2
+              exit 1
+            fi
             if grep -q "^${k}=" config.env; then
               sed -i "s|^${k}=.*|${k}=${v}|" config.env
             else
