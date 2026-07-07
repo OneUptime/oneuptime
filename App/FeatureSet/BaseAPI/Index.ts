@@ -8,6 +8,23 @@ import GlobalConfigAPI from "Common/Server/API/GlobalConfigAPI";
 import MonitorGroupAPI from "Common/Server/API/MonitorGroupAPI";
 import NotificationAPI from "Common/Server/API/NotificationAPI";
 import AIBillingAPI from "Common/Server/API/AIBillingAPI";
+import AIChatAPI from "Common/Server/API/AIChatAPI";
+import AIConversation from "Common/Models/DatabaseModels/AIConversation";
+import AIConversationService, {
+  Service as AIConversationServiceType,
+} from "Common/Server/Services/AIConversationService";
+import AIConversationMessage from "Common/Models/DatabaseModels/AIConversationMessage";
+import AIConversationMessageService, {
+  Service as AIConversationMessageServiceType,
+} from "Common/Server/Services/AIConversationMessageService";
+import AIRun from "Common/Models/DatabaseModels/AIRun";
+import AIRunService, {
+  Service as AIRunServiceType,
+} from "Common/Server/Services/AIRunService";
+import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
+import AIRunEventService, {
+  Service as AIRunEventServiceType,
+} from "Common/Server/Services/AIRunEventService";
 import TelemetryAPI from "Common/Server/API/TelemetryAPI";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
 import AIAgentAPI from "Common/Server/API/AIAgentAPI";
@@ -4078,6 +4095,38 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, NotificationAPI);
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIBillingAPI);
+
+    // AI Observability Chat
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIChatAPI);
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AIConversation, AIConversationServiceType>(
+        AIConversation,
+        AIConversationService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AIConversationMessage, AIConversationMessageServiceType>(
+        AIConversationMessage,
+        AIConversationMessageService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AIRun, AIRunServiceType>(AIRun, AIRunService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AIRunEvent, AIRunEventServiceType>(
+        AIRunEvent,
+        AIRunEventService,
+      ).getRouter(),
+    );
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, TelemetryAPI);
 

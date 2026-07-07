@@ -9,6 +9,8 @@ import LLMService, {
   LLMProviderConfig,
   LLMCompletionResponse,
   LLMMessage,
+  LLMToolCall,
+  LLMToolDefinition,
 } from "../Utils/LLM/LLMService";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import LlmLog from "../../Models/DatabaseModels/LlmLog";
@@ -25,13 +27,22 @@ export interface AILogRequest {
   incidentId?: ObjectID;
   alertId?: ObjectID;
   scheduledMaintenanceId?: ObjectID;
+  aiRunId?: ObjectID;
   messages: Array<LLMMessage>;
-  maxTokens?: number;
-  temperature?: number;
+  tools?: Array<LLMToolDefinition> | undefined;
+  maxTokens?: number | undefined;
+  temperature?: number | undefined;
+  /*
+   * When false, prompt/response previews are NOT persisted to LlmLog.
+   * Use for features whose content is private to a single user (e.g. AI
+   * chat) — LlmLog is readable by all project members.
+   */
+  storeContentPreviews?: boolean | undefined;
 }
 
 export interface AILogResponse {
   content: string;
+  toolCalls?: Array<LLMToolCall> | undefined;
   llmLog: LlmLog;
 }
 
@@ -67,12 +78,18 @@ export class Service extends BaseService {
     logEntry.projectId = request.projectId;
     logEntry.isGlobalProvider = llmProvider.isGlobalLlm || false;
     logEntry.feature = request.feature;
-    logEntry.requestPrompt = request.messages
-      .map((m: LLMMessage) => {
-        return m.content;
-      })
-      .join("\n")
-      .substring(0, 5000); // Store first 5000 chars
+
+    const storeContentPreviews: boolean =
+      request.storeContentPreviews !== false;
+
+    logEntry.requestPrompt = storeContentPreviews
+      ? request.messages
+          .map((m: LLMMessage) => {
+            return m.content;
+          })
+          .join("\n")
+          .substring(0, 5000) // Store first 5000 chars
+      : "[Redacted — this content is private to the requesting user]";
     logEntry.requestStartedAt = startTime;
 
     // Set optional fields only if they have values
@@ -99,6 +116,9 @@ export class Service extends BaseService {
     }
     if (request.scheduledMaintenanceId) {
       logEntry.scheduledMaintenanceId = request.scheduledMaintenanceId;
+    }
+    if (request.aiRunId) {
+      logEntry.aiRunId = request.aiRunId;
     }
 
     // Check if billing should apply
@@ -153,6 +173,8 @@ export class Service extends BaseService {
         llmProviderConfig: llmConfig,
         messages: request.messages,
         temperature: request.temperature ?? 0.7,
+        maxTokens: request.maxTokens,
+        tools: request.tools,
       });
 
       const endTime: Date = new Date();
@@ -160,7 +182,9 @@ export class Service extends BaseService {
       // Update log with success info
       logEntry.status = LlmLogStatus.Success;
       logEntry.totalTokens = response.usage?.totalTokens || 0;
-      logEntry.responsePreview = response.content.substring(0, 2000); // Store first 2000 chars
+      logEntry.responsePreview = storeContentPreviews
+        ? response.content.substring(0, 2000) // Store first 2000 chars
+        : "[Redacted — this content is private to the requesting user]";
       logEntry.requestCompletedAt = endTime;
       logEntry.durationMs = endTime.getTime() - startTime.getTime();
 
@@ -221,6 +245,7 @@ export class Service extends BaseService {
 
       return {
         content: response.content,
+        toolCalls: response.toolCalls,
         llmLog: savedLog,
       };
     } catch (error) {
