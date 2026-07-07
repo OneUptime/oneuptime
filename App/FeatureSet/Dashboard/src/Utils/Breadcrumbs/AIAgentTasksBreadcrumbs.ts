@@ -34,11 +34,6 @@ export function getAIAgentTasksBreadcrumbs(
       "View Task",
       "Delete Task",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENTS_MCP_SERVER, [
-      "Project",
-      "AI Agents",
-      "MCP Server",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENTS_AGENTS, [
       "Project",
       "AI Agents",

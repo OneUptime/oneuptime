@@ -54,6 +54,8 @@ import SettingsAICredits from "../Pages/Settings/AICredits";
 
 import SettingsAILogs from "../Pages/Settings/AILogs";
 
+import SettingsMcpServer from "../Pages/Settings/McpServer";
+
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -155,6 +157,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsAILogs
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_AI_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_MCP_SERVER)}
+          element={
+            <SettingsMcpServer
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_MCP_SERVER] as Route}
             />
           }
         />

@@ -146,6 +146,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Logs,
         },
+        {
+          link: {
+            title: "MCP Server",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_MCP_SERVER] as Route,
+            ),
+          },
+          icon: IconProp.Terminal,
+        },
       ],
     },
     {

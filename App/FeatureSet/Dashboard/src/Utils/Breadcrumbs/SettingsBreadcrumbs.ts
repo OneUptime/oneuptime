@@ -54,6 +54,11 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "AI Logs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_MCP_SERVER, [
+      "Project",
+      "Settings",
+      "MCP Server",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_DOMAINS, [
       "Project",
       "Settings",

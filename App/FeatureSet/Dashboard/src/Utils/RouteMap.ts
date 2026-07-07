@@ -364,7 +364,6 @@ export const AIAgentTasksRoutePath: Dictionary<string> = {
   [PageMap.AI_AGENT_TASK_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS]: `${RouteParams.ModelID}/pull-requests`,
   [PageMap.AI_AGENT_TASK_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
-  [PageMap.AI_AGENTS_MCP_SERVER]: "mcp-server",
   [PageMap.AI_AGENTS_AGENTS]: "agents",
   [PageMap.AI_AGENTS_AGENT_VIEW]: `agents/${RouteParams.ModelID}`,
 };
@@ -684,6 +683,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW]: `llm-providers/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_AI_CREDITS]: "ai-credits",
   [PageMap.SETTINGS_AI_LOGS]: "ai-logs",
+  [PageMap.SETTINGS_MCP_SERVER]: "mcp-server",
   [PageMap.SETTINGS_APIKEYS]: `api-keys`,
   [PageMap.SETTINGS_APIKEY_VIEW]: `api-keys/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS]: `telemetry-ingestion-keys`,
@@ -4540,6 +4540,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SETTINGS_MCP_SERVER]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_MCP_SERVER]
+    }`,
+  ),
+
   [PageMap.SETTINGS_APIKEYS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_APIKEYS]
@@ -4876,12 +4882,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.AI_AGENT_TASK_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ai/agents/${
       AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW_DELETE]
-    }`,
-  ),
-
-  [PageMap.AI_AGENTS_MCP_SERVER]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
-      AIAgentTasksRoutePath[PageMap.AI_AGENTS_MCP_SERVER]
     }`,
   ),
 

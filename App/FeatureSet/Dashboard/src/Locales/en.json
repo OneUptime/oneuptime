@@ -100,7 +100,7 @@
       "aiChatTitle": "AI Chat",
       "aiChatDescription": "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
       "aiAgentsTitle": "Agents",
-      "aiAgentsDescription": "AI agents and MCP server.",
+      "aiAgentsDescription": "AI agents and their tasks.",
       "codeRepositoriesTitle": "Code Repositories",
       "codeRepositoriesDescription": "GitHub and GitLab integrations.",
       "usersTitle": "Users",

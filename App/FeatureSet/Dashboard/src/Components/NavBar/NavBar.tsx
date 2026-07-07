@@ -187,7 +187,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       title: t("navbar.items.aiAgentsTitle", "Agents"),
       description: t(
         "navbar.items.aiAgentsDescription",
-        "AI agents and MCP server.",
+        "AI agents and their tasks.",
       ),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.AI_AGENT_TASKS] as Route,

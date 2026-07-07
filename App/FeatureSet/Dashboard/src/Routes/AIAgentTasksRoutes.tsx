@@ -18,8 +18,6 @@ import AIAgentTaskViewLogs from "../Pages/AIAgentTasks/View/Logs";
 
 import AIAgentTaskViewPullRequests from "../Pages/AIAgentTasks/View/PullRequests";
 
-import McpServer from "../Pages/AIAgentTasks/McpServer";
-
 import Agents from "../Pages/AIAgentTasks/Agents";
 
 import AgentView from "../Pages/AIAgentTasks/AgentView";
@@ -45,15 +43,6 @@ const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
             <AIAgentTasks
               {...props}
               pageRoute={RouteMap[PageMap.AI_AGENT_TASKS] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={AIAgentTasksRoutePath[PageMap.AI_AGENTS_MCP_SERVER] || ""}
-          element={
-            <McpServer
-              {...props}
-              pageRoute={RouteMap[PageMap.AI_AGENTS_MCP_SERVER] as Route}
             />
           }
         />

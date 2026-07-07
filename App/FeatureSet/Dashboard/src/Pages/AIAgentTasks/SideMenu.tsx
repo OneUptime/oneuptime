@@ -29,15 +29,6 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
           }}
           icon={IconProp.Automation}
         />
-        <SideMenuItem
-          link={{
-            title: "MCP Server",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.AI_AGENTS_MCP_SERVER] as Route,
-            ),
-          }}
-          icon={IconProp.Terminal}
-        />
       </SideMenuSection>
     </SideMenu>
   );
