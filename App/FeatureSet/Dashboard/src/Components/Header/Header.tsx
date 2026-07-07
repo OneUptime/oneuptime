@@ -6,6 +6,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
  * import SearchBox from './SearchBox';
  * import Notifications from './Notifications';
  */
+import AskAI from "./AskAI";
 import Help from "./Help";
 import Logo from "./Logo";
 import ProjectPicker from "./ProjectPicker";
@@ -890,6 +891,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
               items={buildNotificationItems()}
               onItemClick={handleNotificationItemClick}
             />
+            <AskAI />
             <Help />
             <UserProfile
               onClickUserProfile={() => {

@@ -166,6 +166,10 @@ import AIAgentTask from "./AIAgentTask";
 import AIAgentTaskLog from "./AIAgentTaskLog";
 import AIAgentTaskPullRequest from "./AIAgentTaskPullRequest";
 import AIAgentTaskTelemetryException from "./AIAgentTaskTelemetryException";
+import AIConversation from "./AIConversation";
+import AIConversationMessage from "./AIConversationMessage";
+import AIRun from "./AIRun";
+import AIRunEvent from "./AIRunEvent";
 import LlmProvider from "./LlmProvider";
 import LlmLog from "./LlmLog";
 import Project from "./Project";
@@ -713,6 +717,10 @@ const AllModelTypes: Array<{
   AIAgentTaskLog,
   AIAgentTaskPullRequest,
   AIAgentTaskTelemetryException,
+  AIConversation,
+  AIConversationMessage,
+  AIRun,
+  AIRunEvent,
 
   LlmProvider,
   LlmLog,

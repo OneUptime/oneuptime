@@ -1,4 +1,5 @@
 import ToastLayout from "Common/UI/Components/Toast/ToastInit";
+import AIChatPanel from "./Components/AIChat/AIChatPanel";
 import MasterPage from "./Components/MasterPage/MasterPage";
 import UseTimezoneInitElement from "./Components/UserTimezone/UserTimezoneInit";
 import EventName from "./Utils/EventName";
@@ -523,6 +524,7 @@ const App: () => JSX.Element = () => {
     >
       <UseTimezoneInitElement />
       <ToastLayout />
+      <AIChatPanel />
       <Suspense fallback={<PageLoader isVisible={true} />}>
         <Routes>
           <PageRoute

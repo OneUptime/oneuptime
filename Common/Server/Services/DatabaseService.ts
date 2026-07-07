@@ -2106,6 +2106,25 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     );
   }
 
+  /*
+   * Atomically subtract `value` from a numeric column in a single UPDATE
+   * (SET col = col - value) so concurrent callers never lose each other's
+   * writes the way a read-modify-write would. The column can go negative;
+   * callers that gate on a non-negative balance simply reject the next
+   * request rather than silently forgiving the overage.
+   */
+  protected async atomicDecrementColumnValueBy(data: {
+    id: ObjectID;
+    columnName: keyof TBaseModel;
+    value: number;
+  }): Promise<void> {
+    await this.getRepository().decrement(
+      { _id: data.id.toString() } as any,
+      data.columnName as string,
+      data.value,
+    );
+  }
+
   @CaptureSpan()
   public async searchBy({
     skip,

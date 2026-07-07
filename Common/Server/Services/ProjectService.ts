@@ -1916,6 +1916,30 @@ export class ProjectService extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  /*
+   * Atomically deduct AI spend from the project's balance. A single
+   * SET aiCurrentBalanceInUSDCents = aiCurrentBalanceInUSDCents - amount
+   * so concurrent AI runs (many LLM calls per turn, several turns per
+   * project) can't clobber each other's deductions the way a
+   * read-then-write would. No-op for non-positive amounts.
+   */
+  @CaptureSpan()
+  public async deductAiBalanceInUSDCents(data: {
+    projectId: ObjectID;
+    amountInUSDCents: number;
+  }): Promise<void> {
+    if (!data.amountInUSDCents || data.amountInUSDCents <= 0) {
+      return;
+    }
+
+    await this.atomicDecrementColumnValueBy({
+      id: data.projectId,
+      columnName: "aiCurrentBalanceInUSDCents",
+      value: data.amountInUSDCents,
+    });
+  }
+
+  @CaptureSpan()
   public async incrementAndGetIncidentCounter(
     projectId: ObjectID,
   ): Promise<{ counter: number; prefix: string | undefined }> {

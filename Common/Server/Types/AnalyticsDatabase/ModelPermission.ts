@@ -703,18 +703,31 @@ export default class ModelPermission {
    * scale to telemetry volume; one Postgres roundtrip + one indexed
    * predicate does. See Internal/Docs/PermissionsSimplification.md.
    */
-  private static async addOwnedScopeToQuery<TBaseModel extends BaseModel>(
+  /*
+   * Resolves the owned-scope decision for an analytics model without touching
+   * a query. Returns `null` when no ownership filter applies (root/master,
+   * creates, models without @OwnedThrough, no applicable permission rows, or
+   * an unrestricted grant) — i.e. the caller has full access. Otherwise
+   * returns the FK column plus the exact set of parent resource IDs the user
+   * may read (possibly empty, meaning "access to nothing").
+   *
+   * This is the single source of truth for owned-scope resolution:
+   * addOwnedScopeToQuery injects it into a ClickHouse query, and
+   * getAccessibleServiceIdsForAnalyticsModel exposes it to callers that build
+   * their own aggregation SQL (e.g. the AI toolbox), so the two can never
+   * drift apart.
+   */
+  private static async resolveOwnedScope<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
-    query: Query<TBaseModel>,
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
-  ): Promise<Query<TBaseModel>> {
+  ): Promise<{ fkColumn: string; allowedResourceIds: Set<string> } | null> {
     if (props.isRoot || props.isMasterAdmin) {
-      return query;
+      return null;
     }
 
     if (type === DatabaseRequestType.Create) {
-      return query;
+      return null;
     }
 
     /*
@@ -725,7 +738,7 @@ export default class ModelPermission {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const model: any = new modelType();
     if (!model.ownedThrough) {
-      return query;
+      return null;
     }
 
     const modelPermissions: Array<Permission> = this.getModelPermissions(
@@ -748,7 +761,7 @@ export default class ModelPermission {
     );
 
     if (applicableRows.length === 0) {
-      return query;
+      return null;
     }
 
     /*
@@ -771,7 +784,7 @@ export default class ModelPermission {
       },
     );
     if (hasUnrestrictedGrant) {
-      return query;
+      return null;
     }
 
     const allowedResourceIds: Set<string> = new Set<string>();
@@ -831,7 +844,59 @@ export default class ModelPermission {
       allowedResourceIds.add(props.tenantId.toString());
     }
 
-    const fkColumn: string = model.ownedThrough.fkColumn;
+    return { fkColumn: model.ownedThrough.fkColumn, allowedResourceIds };
+  }
+
+  /*
+   * The set of parent resource (Service) IDs the user may read for an analytics
+   * model, for callers that bypass findBy() and build aggregation SQL directly
+   * (e.g. the AI toolbox's log_histogram / query_traces, which call the
+   * aggregation services with a raw projectId). Pass the result as the
+   * aggregation's `serviceIds` filter.
+   *
+   * `null` means no ownership restriction applies — do NOT constrain (the user
+   * has project-wide access). A returned array (even empty) means the user is
+   * label/owned-restricted: constrain to exactly these IDs, and treat an empty
+   * array as "no accessible services" (match nothing), NEVER as "no filter".
+   */
+  public static async getAccessibleServiceIdsForAnalyticsModel<
+    TBaseModel extends BaseModel,
+  >(
+    modelType: { new (): TBaseModel },
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): Promise<Array<ObjectID> | null> {
+    const scope: {
+      fkColumn: string;
+      allowedResourceIds: Set<string>;
+    } | null = await this.resolveOwnedScope(modelType, props, type);
+
+    if (!scope) {
+      return null;
+    }
+
+    return Array.from(scope.allowedResourceIds).map((id: string) => {
+      return new ObjectID(id);
+    });
+  }
+
+  private static async addOwnedScopeToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): Promise<Query<TBaseModel>> {
+    const scope: {
+      fkColumn: string;
+      allowedResourceIds: Set<string>;
+    } | null = await this.resolveOwnedScope(modelType, props, type);
+
+    if (!scope) {
+      return query;
+    }
+
+    const fkColumn: string = scope.fkColumn;
+    const allowedResourceIds: Set<string> = scope.allowedResourceIds;
     const sentinelNoMatch: Array<string> = [
       ObjectID.getZeroObjectID().toString(),
     ];
