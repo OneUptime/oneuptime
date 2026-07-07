@@ -25,7 +25,7 @@ const StatCardsWidget: FunctionComponent<ComponentProps> = (
             <div className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
               {stat.label}
             </div>
-            <div className="mt-1 text-lg font-semibold tabular-nums text-gray-900">
+            <div className="mt-1 break-words text-lg font-semibold tabular-nums text-gray-900">
               {typeof stat.value === "number"
                 ? stat.value.toLocaleString()
                 : stat.value}

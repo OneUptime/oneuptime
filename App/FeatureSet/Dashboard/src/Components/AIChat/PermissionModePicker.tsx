@@ -79,7 +79,7 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
       </button>
 
       {isOpen && (
-        <div className="absolute bottom-full left-0 z-50 mb-2 w-72 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+        <div className="absolute bottom-full right-0 z-50 mb-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
           <div className="border-b border-gray-100 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
             Copilot permissions
           </div>
