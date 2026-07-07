@@ -102,21 +102,22 @@ const ChatInput: FunctionComponent<ComponentProps> = (
           )}
         </button>
       </div>
-      <div className="mt-2 flex items-center justify-between gap-2 px-1 text-[11px] text-gray-400">
-        <div className="flex min-w-0 items-center gap-2">
-          {props.leading ? (
-            props.leading
-          ) : (
-            <span>
-              <span className="font-medium text-gray-500">Enter</span> to send ·{" "}
-              <span className="font-medium text-gray-500">Shift + Enter</span>{" "}
-              for a new line
-            </span>
-          )}
+      <div className="mt-2.5 space-y-2 px-1">
+        {/*
+         * Controls (model + permission pickers) get their own row so they can
+         * breathe and never collide with the hint text on narrow surfaces.
+         */}
+        {props.leading}
+        <div className="flex items-center justify-between gap-2 text-[11px] text-gray-400">
+          <span className="min-w-0 truncate">
+            <span className="font-medium text-gray-500">Enter</span> to send ·{" "}
+            <span className="font-medium text-gray-500">Shift + Enter</span> for
+            a new line
+          </span>
+          <span className="hidden flex-shrink-0 sm:inline">
+            Every answer cites its queries
+          </span>
         </div>
-        <span className="hidden flex-shrink-0 sm:inline">
-          Every answer cites its queries
-        </span>
       </div>
     </div>
   );

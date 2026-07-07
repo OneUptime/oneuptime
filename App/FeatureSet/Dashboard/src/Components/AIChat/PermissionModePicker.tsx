@@ -71,11 +71,17 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
           });
         }}
         title="Choose what the copilot is allowed to do"
-        className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+        className="flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50 disabled:opacity-50"
       >
-        <Icon icon={modeIcon[props.value]} className="h-3.5 w-3.5" />
+        <Icon
+          icon={modeIcon[props.value]}
+          className="h-3.5 w-3.5 flex-shrink-0"
+        />
         <span>{shortLabel[props.value]}</span>
-        <Icon icon={IconProp.ChevronDown} className="h-3 w-3 text-gray-400" />
+        <Icon
+          icon={IconProp.ChevronDown}
+          className="h-3 w-3 flex-shrink-0 text-gray-400"
+        />
       </button>
 
       {isOpen && (

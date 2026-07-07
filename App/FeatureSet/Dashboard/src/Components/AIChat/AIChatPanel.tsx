@@ -91,7 +91,7 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
   }
 
   const composerLeading: ReactElement = (
-    <div className="flex items-center gap-1.5">
+    <div className="flex flex-wrap items-center gap-1.5">
       <ProviderPicker
         providers={chat.providers}
         selectedProviderId={chat.selectedProviderId}

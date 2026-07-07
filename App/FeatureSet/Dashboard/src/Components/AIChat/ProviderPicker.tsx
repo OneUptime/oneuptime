@@ -19,8 +19,11 @@ export interface ComponentProps {
 }
 
 function providerLabel(provider: ChatProvider): string {
-  // Prefer the concrete model, falling back to the provider's friendly name.
-  return provider.modelName || provider.name || "Model";
+  /*
+   * Lead with the provider's friendly name; the concrete model is shown as a
+   * secondary detail so the provider stays the prominent identity.
+   */
+  return provider.name || provider.modelName || "Provider";
 }
 
 /*
@@ -69,20 +72,20 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
 
   const triggerLabel: string = selected
     ? providerLabel(selected)
-    : "Default model";
+    : "Default provider";
 
   return (
     <div className="relative" ref={containerRef}>
       <button
         type="button"
         disabled={props.disabled}
-        title="Choose AI model"
+        title="Choose AI provider"
         onClick={() => {
           setIsOpen((open: boolean) => {
             return !open;
           });
         }}
-        className={`flex max-w-[190px] items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 ${
+        className={`flex max-w-[240px] items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 ${
           variant === "compact" ? "" : "px-3 py-1.5"
         }`}
       >
@@ -90,7 +93,14 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
           icon={IconProp.Sparkles}
           className="h-3.5 w-3.5 flex-shrink-0 text-gray-500"
         />
-        <span className="truncate font-medium">{triggerLabel}</span>
+        <span className="truncate">
+          <span className="font-semibold text-gray-800">{triggerLabel}</span>
+          {selected?.modelName && selected.modelName !== selected.name ? (
+            <span className="ml-1 font-normal text-gray-400">
+              {selected.modelName}
+            </span>
+          ) : null}
+        </span>
         <Icon
           icon={isOpen ? IconProp.ChevronUp : IconProp.ChevronDown}
           className="h-3 w-3 flex-shrink-0 text-gray-400"
@@ -101,7 +111,7 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
         <div className="absolute bottom-full left-0 z-50 mb-1.5 w-72 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
           <div className="border-b border-gray-100 px-3 py-2">
             <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-              AI model
+              AI provider
             </div>
           </div>
           <div className="max-h-72 overflow-y-auto py-1">
@@ -139,8 +149,8 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="truncate text-sm font-medium text-gray-900">
-                        {provider.modelName || provider.name}
+                      <span className="truncate text-sm font-semibold text-gray-900">
+                        {provider.name || provider.modelName}
                       </span>
                       {provider.isDefault && (
                         <span className="flex-shrink-0 rounded bg-emerald-50 px-1 py-px text-[9px] font-semibold uppercase text-emerald-600">
@@ -154,8 +164,9 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
                       )}
                     </div>
                     <div className="mt-0.5 truncate text-[11px] text-gray-400">
-                      {provider.name}
-                      {provider.llmType ? ` · ${provider.llmType}` : ""}
+                      {[provider.modelName, provider.llmType]
+                        .filter(Boolean)
+                        .join(" · ") || "Model"}
                     </div>
                   </div>
                 </button>
