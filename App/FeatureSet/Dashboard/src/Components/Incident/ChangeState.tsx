@@ -20,14 +20,22 @@ import API from "Common/UI/Utils/API/API";
 import Exception from "Common/Types/Exception/Exception";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ProgressButtons from "Common/UI/Components/ProgressButtons/ProgressButtons";
 import { Black } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
+import IconProp from "Common/Types/Icon/IconProp";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import EventStatusPanel, {
+  EventStateAction,
+  EventStateItem,
+} from "../EventView/EventStatusPanel";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 export interface ComponentProps {
   incidentId: ObjectID;
   onActionComplete: () => void;
+  severity?: { name: string; color: Color } | undefined;
+  isPrivate?: boolean | undefined;
 }
 
 const ChangeIncidentState: FunctionComponent<ComponentProps> = (
@@ -100,6 +108,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
           select: {
             _id: true,
             incidentStateId: true,
+            startsAt: true,
           },
           sort: {
             startsAt: SortOrder.Ascending,
@@ -185,28 +194,142 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
-  return (
-    <div className="-ml-3 mt-1">
-      <ProgressButtons
-        id="incident-state-progress-buttons"
-        completedStepId={currentIncidentState?.id?.toString() || ""}
-        onStepClick={(stepId: string) => {
-          const incidentState: IncidentState | undefined = incidentStates.find(
-            (state: IncidentState) => {
-              return state.id?.toString() === stepId;
-            },
-          );
+  const ackState: IncidentState | undefined = incidentStates.find(
+    (state: IncidentState) => {
+      return state.isAcknowledgedState;
+    },
+  );
 
-          setSelectedIncidentState(incidentState);
-          setShowModal(true);
-        }}
-        progressButtonItems={incidentStates.map((state: IncidentState) => {
+  const resolvedState: IncidentState | undefined = incidentStates.find(
+    (state: IncidentState) => {
+      return state.isResolvedState;
+    },
+  );
+
+  type GetStateIndexFunction = (state: IncidentState | undefined) => number;
+
+  const getStateIndex: GetStateIndexFunction = (
+    state: IncidentState | undefined,
+  ): number => {
+    if (!state) {
+      return -1;
+    }
+
+    return incidentStates.findIndex((incidentState: IncidentState) => {
+      return incidentState.id?.toString() === state.id?.toString();
+    });
+  };
+
+  const currentStateIndex: number = getStateIndex(currentIncidentState);
+  const ackStateIndex: number = getStateIndex(ackState);
+  const resolvedStateIndex: number = getStateIndex(resolvedState);
+
+  const actions: Array<EventStateAction> = [];
+
+  if (ackState && currentStateIndex < ackStateIndex) {
+    actions.push({
+      stateId: ackState.id?.toString() || "",
+      label: "Acknowledge",
+      icon: IconProp.Check,
+      buttonStyle: ButtonStyleType.PRIMARY,
+      id: "incident-acknowledge-btn",
+    });
+
+    if (resolvedState) {
+      actions.push({
+        stateId: resolvedState.id?.toString() || "",
+        label: "Resolve",
+        icon: IconProp.CheckCircle,
+        buttonStyle: ButtonStyleType.OUTLINE,
+        id: "incident-resolve-btn",
+      });
+    }
+  } else if (resolvedState && currentStateIndex < resolvedStateIndex) {
+    actions.push({
+      stateId: resolvedState.id?.toString() || "",
+      label: "Resolve",
+      icon: IconProp.CheckCircle,
+      buttonStyle: ButtonStyleType.PRIMARY,
+      id: "incident-resolve-btn",
+    });
+  }
+
+  const durationStartsAt: Date | undefined =
+    incidentStateTimelines[0]?.startsAt;
+
+  let durationEndsAt: Date | undefined = undefined;
+  let durationPrefix: string = "Ongoing for";
+
+  if (currentIncidentState?.isResolvedState && resolvedState) {
+    const resolvedTimeline: IncidentStateTimeline | undefined = [
+      ...incidentStateTimelines,
+    ]
+      .reverse()
+      .find((timeline: IncidentStateTimeline) => {
+        return (
+          timeline.incidentStateId?.toString() === resolvedState.id?.toString()
+        );
+      });
+
+    if (resolvedTimeline?.startsAt) {
+      durationEndsAt = resolvedTimeline.startsAt;
+      durationPrefix = "Resolved in";
+    }
+  }
+
+  const openModalForState: (stateId: string) => void = (
+    stateId: string,
+  ): void => {
+    const incidentState: IncidentState | undefined = incidentStates.find(
+      (state: IncidentState) => {
+        return state.id?.toString() === stateId;
+      },
+    );
+
+    setSelectedIncidentState(incidentState);
+    setShowModal(true);
+  };
+
+  let modalTitle: string =
+    "Mark Incident as " + (selectedIncidentState?.name || "");
+  let modalSubmitButtonText: string =
+    "Mark as " + (selectedIncidentState?.name || "");
+  let modalDescription: string =
+    "You are about to mark this incident as " +
+    (selectedIncidentState?.name || "") +
+    ".";
+
+  if (selectedIncidentState?.isAcknowledgedState) {
+    modalTitle = "Acknowledge Incident";
+    modalSubmitButtonText = "Acknowledge";
+    modalDescription =
+      "This records an acknowledgement on the incident timeline. You can add an optional public note for status page subscribers.";
+  } else if (selectedIncidentState?.isResolvedState) {
+    modalTitle = "Resolve Incident";
+    modalSubmitButtonText = "Resolve";
+    modalDescription =
+      "This marks the incident as resolved on the incident timeline. You can add an optional public note for status page subscribers.";
+  }
+
+  return (
+    <>
+      <EventStatusPanel
+        states={incidentStates.map((state: IncidentState): EventStateItem => {
           return {
             id: state.id?.toString() || "",
-            title: state.name || "",
+            name: state.name || "",
             color: state.color || Black,
           };
         })}
+        currentStateId={currentIncidentState?.id?.toString()}
+        severity={props.severity}
+        isPrivate={props.isPrivate}
+        durationPrefix={durationStartsAt ? durationPrefix : undefined}
+        durationStartsAt={durationStartsAt}
+        durationEndsAt={durationEndsAt}
+        actions={actions}
+        onActionClick={openModalForState}
+        onStateSelect={openModalForState}
       />
 
       {showModal && (
@@ -214,16 +337,12 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
           modalWidth={ModalWidth.Large}
           modelType={IncidentStateTimeline}
           name={"create-incident-state-timeline"}
-          title={"Mark Incident as " + selectedIncidentState?.name}
-          description={
-            "You are about to mark this incident as " +
-            selectedIncidentState?.name +
-            "."
-          }
+          title={modalTitle}
+          description={modalDescription}
           onClose={() => {
             setShowModal(false);
           }}
-          submitButtonText="Save"
+          submitButtonText={modalSubmitButtonText}
           onBeforeCreate={async (model: IncidentStateTimeline) => {
             const projectId: ObjectID | undefined | null =
               ProjectUtil.getCurrentProject()?.id;
@@ -238,24 +357,22 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
 
             return model;
           }}
-          onSuccess={(model: IncidentStateTimeline) => {
-            //get incident state and update current incident state
-            const incidentState: IncidentState | undefined =
-              incidentStates.find((state: IncidentState) => {
-                return (
-                  state.id?.toString() === model.incidentStateId?.toString()
-                );
-              });
-
-            setCurrentIncidentState(incidentState);
-
+          onSuccess={async (): Promise<void> => {
             setShowModal(false);
+
+            try {
+              // refetch timelines so the panel's duration and current state are fresh.
+              await fetchIncidentStateTimelines();
+            } catch (err: unknown) {
+              setError(API.getFriendlyMessage(err as Exception));
+            }
+
             props.onActionComplete();
           }}
           formProps={{
-            name: "create-scheduled-maintenance-state-timeline",
+            name: "create-incident-state-timeline",
             modelType: IncidentStateTimeline,
-            id: "create-scheduled-maintenance-state-timeline",
+            id: "create-incident-state-timeline",
             fields: [
               {
                 field: {
@@ -331,7 +448,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
           }}
         />
       )}
-    </div>
+    </>
   );
 };
 

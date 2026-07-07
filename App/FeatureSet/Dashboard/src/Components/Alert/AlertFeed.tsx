@@ -342,7 +342,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
           <ModelFormModal
             modalWidth={ModalWidth.Large}
             modelType={AlertInternalNote}
-            name={"create-alertt-internal-note"}
+            name={"create-alert-internal-note"}
             title={"Add Private Note to this Alert"}
             description={
               "Add a private note to this alert. This note will be visible only to the team members of this alert."

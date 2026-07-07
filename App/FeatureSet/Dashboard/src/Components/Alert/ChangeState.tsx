@@ -9,6 +9,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -20,14 +21,22 @@ import API from "Common/UI/Utils/API/API";
 import Exception from "Common/Types/Exception/Exception";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ProgressButtons from "Common/UI/Components/ProgressButtons/ProgressButtons";
 import { Black } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
+import IconProp from "Common/Types/Icon/IconProp";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import EventStatusPanel, {
+  EventStateAction,
+  EventStateItem,
+} from "../EventView/EventStatusPanel";
 
 export interface ComponentProps {
   alertId: ObjectID;
   onActionComplete: () => void;
+  severity?: { name: string; color: Color } | undefined;
+  isPrivate?: boolean | undefined;
 }
 
 const ChangeAlertState: FunctionComponent<ComponentProps> = (
@@ -124,6 +133,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
           select: {
             _id: true,
             alertStateId: true,
+            startsAt: true,
           },
           sort: {
             startsAt: SortOrder.Ascending,
@@ -185,28 +195,167 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
-  return (
-    <div className="-ml-3 mt-1">
-      <ProgressButtons
-        id="alert-state-progress-buttons"
-        completedStepId={currentAlertState?.id?.toString() || ""}
-        onStepClick={(stepId: string) => {
-          const alertState: AlertState | undefined = alertStates.find(
-            (state: AlertState) => {
-              return state.id?.toString() === stepId;
-            },
-          );
+  const acknowledgedState: AlertState | undefined = alertStates.find(
+    (state: AlertState) => {
+      return state.isAcknowledgedState;
+    },
+  );
 
-          setSelectedAlertState(alertState);
-          setShowModal(true);
-        }}
-        progressButtonItems={alertStates.map((state: AlertState) => {
+  const resolvedState: AlertState | undefined = alertStates.find(
+    (state: AlertState) => {
+      return state.isResolvedState;
+    },
+  );
+
+  const currentStateIndex: number = alertStates.findIndex(
+    (state: AlertState) => {
+      return state.id?.toString() === currentAlertState?.id?.toString();
+    },
+  );
+
+  const acknowledgedStateIndex: number = alertStates.findIndex(
+    (state: AlertState) => {
+      return state.isAcknowledgedState;
+    },
+  );
+
+  const resolvedStateIndex: number = alertStates.findIndex(
+    (state: AlertState) => {
+      return state.isResolvedState;
+    },
+  );
+
+  const isAcknowledged: boolean =
+    acknowledgedStateIndex >= 0 &&
+    currentStateIndex >= 0 &&
+    currentStateIndex >= acknowledgedStateIndex;
+
+  const isResolved: boolean =
+    resolvedStateIndex >= 0 &&
+    currentStateIndex >= 0 &&
+    currentStateIndex >= resolvedStateIndex;
+
+  const getActions: () => Array<EventStateAction> =
+    (): Array<EventStateAction> => {
+      if (isResolved) {
+        return [];
+      }
+
+      const actions: Array<EventStateAction> = [];
+
+      if (acknowledgedState && !isAcknowledged) {
+        actions.push({
+          stateId: acknowledgedState.id?.toString() || "",
+          label: "Acknowledge",
+          icon: IconProp.Check,
+          buttonStyle: ButtonStyleType.PRIMARY,
+          id: "alert-acknowledge-btn",
+        });
+
+        if (resolvedState) {
+          actions.push({
+            stateId: resolvedState.id?.toString() || "",
+            label: "Resolve",
+            icon: IconProp.CheckCircle,
+            buttonStyle: ButtonStyleType.OUTLINE,
+            id: "alert-resolve-btn",
+          });
+        }
+      } else if (resolvedState) {
+        actions.push({
+          stateId: resolvedState.id?.toString() || "",
+          label: "Resolve",
+          icon: IconProp.CheckCircle,
+          buttonStyle: ButtonStyleType.PRIMARY,
+          id: "alert-resolve-btn",
+        });
+      }
+
+      return actions;
+    };
+
+  const durationStartsAt: Date | undefined = alertStateTimelines[0]?.startsAt;
+
+  let durationPrefix: string = "Ongoing for";
+  let durationEndsAt: Date | undefined = undefined;
+
+  if (isResolved && resolvedState) {
+    const resolvedTimelines: Array<AlertStateTimeline> =
+      alertStateTimelines.filter((timeline: AlertStateTimeline) => {
+        return (
+          timeline.alertStateId?.toString() === resolvedState.id?.toString()
+        );
+      });
+
+    const lastResolvedTimeline: AlertStateTimeline | undefined =
+      resolvedTimelines[resolvedTimelines.length - 1];
+
+    if (lastResolvedTimeline?.startsAt) {
+      durationPrefix = "Resolved in";
+      durationEndsAt = lastResolvedTimeline.startsAt;
+    }
+  }
+
+  const openModalForState: (stateId: string) => void = (
+    stateId: string,
+  ): void => {
+    const alertState: AlertState | undefined = alertStates.find(
+      (state: AlertState) => {
+        return state.id?.toString() === stateId;
+      },
+    );
+
+    setSelectedAlertState(alertState);
+    setShowModal(true);
+  };
+
+  const isAcknowledgeTarget: boolean =
+    selectedAlertState?.isAcknowledgedState || false;
+  const isResolveTarget: boolean = selectedAlertState?.isResolvedState || false;
+
+  const modalTitle: string = isAcknowledgeTarget
+    ? "Acknowledge Alert"
+    : isResolveTarget
+      ? "Resolve Alert"
+      : "Mark Alert as " + (selectedAlertState?.name || "");
+
+  const modalSubmitButtonText: string = isAcknowledgeTarget
+    ? "Acknowledge"
+    : isResolveTarget
+      ? "Resolve"
+      : "Mark as " + (selectedAlertState?.name || "");
+
+  const modalDescription: string = isAcknowledgeTarget
+    ? "This records an acknowledgement on the alert timeline. You can add an optional private note for your team."
+    : isResolveTarget
+      ? "This marks the alert as resolved on the alert timeline. You can add an optional private note for your team."
+      : "You are about to mark this alert as " +
+        (selectedAlertState?.name || "") +
+        ".";
+
+  return (
+    <Fragment>
+      <EventStatusPanel
+        states={alertStates.map((state: AlertState): EventStateItem => {
           return {
             id: state.id?.toString() || "",
-            title: state.name || "",
+            name: state.name || "",
             color: state.color || Black,
           };
         })}
+        currentStateId={currentAlertState?.id?.toString()}
+        severity={props.severity}
+        isPrivate={props.isPrivate}
+        durationPrefix={durationPrefix}
+        durationStartsAt={durationStartsAt}
+        durationEndsAt={durationEndsAt}
+        actions={getActions()}
+        onActionClick={(stateId: string) => {
+          openModalForState(stateId);
+        }}
+        onStateSelect={(stateId: string) => {
+          openModalForState(stateId);
+        }}
       />
 
       {showModal && (
@@ -214,16 +363,12 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
           modalWidth={ModalWidth.Large}
           modelType={AlertStateTimeline}
           name={"create-alert-state-timeline"}
-          title={"Mark Alert as " + selectedAlertState?.name}
-          description={
-            "You are about to mark this alert as " +
-            selectedAlertState?.name +
-            "."
-          }
+          title={modalTitle}
+          description={modalDescription}
           onClose={() => {
             setShowModal(false);
           }}
-          submitButtonText="Save"
+          submitButtonText={modalSubmitButtonText}
           onBeforeCreate={async (model: AlertStateTimeline) => {
             const projectId: ObjectID | undefined | null =
               ProjectUtil.getCurrentProject()?.id;
@@ -238,23 +383,22 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
 
             return model;
           }}
-          onSuccess={(model: AlertStateTimeline) => {
-            //get alert state and update current alert state
-            const alertState: AlertState | undefined = alertStates.find(
-              (state: AlertState) => {
-                return state.id?.toString() === model.alertStateId?.toString();
-              },
-            );
-
-            setCurrentAlertState(alertState);
-
+          onSuccess={async (_model: AlertStateTimeline) => {
             setShowModal(false);
+
+            try {
+              // refetch timelines so the panel's duration and current state are fresh.
+              await fetchAlertStateTimelines();
+            } catch (err: unknown) {
+              setError(API.getFriendlyMessage(err as Exception));
+            }
+
             props.onActionComplete();
           }}
           formProps={{
-            name: "create-scheduled-maintenance-state-timeline",
+            name: "create-alert-state-timeline",
             modelType: AlertStateTimeline,
-            id: "create-scheduled-maintenance-state-timeline",
+            id: "create-alert-state-timeline",
             fields: [
               {
                 field: {
@@ -307,7 +451,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
                 } as any,
                 fieldType: FormFieldSchemaType.Markdown,
                 description:
-                  "Post a private note about this state change to the status page.",
+                  "Add an optional private note about this state change. Only your team can see it.",
                 title: "Private Note",
                 required: false,
                 overrideFieldKey: "privateNote",
@@ -318,7 +462,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
           }}
         />
       )}
-    </div>
+    </Fragment>
   );
 };
 

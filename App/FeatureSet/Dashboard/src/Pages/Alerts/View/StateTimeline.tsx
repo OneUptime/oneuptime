@@ -40,7 +40,7 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
       <ModelTable<AlertStateTimeline>
         modelType={AlertStateTimeline}
         id="table-alert-status-timeline"
-        name="Monitor > State Timeline"
+        name="Alert > State Timeline"
         userPreferencesKey="alert-status-timeline-table"
         saveFilterProps={{
           tableId: "alert-status-timeline-table",
@@ -237,7 +237,7 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
       {showViewLogsModal ? (
         <Modal
           title={"Why did the status change?"}
-          description="Here is more information about why the status changed for this monitor."
+          description="Here is more information about why the status changed for this alert."
           isLoading={false}
           modalWidth={ModalWidth.Large}
           onSubmit={() => {

@@ -23,9 +23,9 @@ import React, {
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ProjectUtil from "Common/UI/Utils/Project";
 
-const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
-  props: PageComponentProps,
-): ReactElement => {
+const ScheduledMaintenanceViewStateTimeline: FunctionComponent<
+  PageComponentProps
+> = (props: PageComponentProps): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
 
@@ -276,4 +276,4 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
   );
 };
 
-export default ScheduledMaintenanceDelete;
+export default ScheduledMaintenanceViewStateTimeline;

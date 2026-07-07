@@ -5,20 +5,17 @@ import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolic
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Black, Red500 } from "Common/Types/BrandColors";
+import { Black } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import Icon from "Common/UI/Components/Icon/Icon";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import Pill from "Common/UI/Components/Pill/Pill";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import BaseAPI from "Common/UI/Utils/API/API";
@@ -54,6 +51,7 @@ import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import IncidentAffectedResources from "./AffectedResources";
 import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
+import EventStatTile from "../../../Components/EventView/EventStatTile";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
@@ -90,6 +88,9 @@ const IncidentView: FunctionComponent<
     null,
   );
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
+  const [severity, setSeverity] = useState<
+    { name: string; color: Color } | undefined
+  >(undefined);
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -138,6 +139,10 @@ const IncidentView: FunctionComponent<
         select: {
           telemetryQuery: true,
           isPrivate: true,
+          incidentSeverity: {
+            name: true,
+            color: true,
+          },
         },
       });
 
@@ -150,6 +155,16 @@ const IncidentView: FunctionComponent<
       }
 
       setIsPrivate(incident?.isPrivate === true);
+
+      if (incident?.incidentSeverity) {
+        setSeverity({
+          name: incident.incidentSeverity.name || "Unknown",
+          color: incident.incidentSeverity.color || Black,
+        });
+      } else {
+        setSeverity(undefined);
+      }
+
       setTelemetryQuery(telemetryQuery);
       setIncidentStates(incidentStates.data as IncidentState[]);
       setIncidentStateTimeline(
@@ -227,7 +242,8 @@ const IncidentView: FunctionComponent<
     const incidentStartTime: Date =
       incidentStateTimeline[0]?.startsAt || new Date();
 
-    const acknowledgeTime: Date | undefined = incidentStateTimeline
+    // last matching acknowledge entry (search a copy in reverse; do not mutate state).
+    const acknowledgeTime: Date | undefined = [...incidentStateTimeline]
       .reverse()
       .find((timeline: IncidentStateTimeline) => {
         return (
@@ -236,14 +252,15 @@ const IncidentView: FunctionComponent<
         );
       })?.startsAt;
 
-    const resolveTime: Date | undefined = incidentStateTimeline
-      .reverse()
-      .find((timeline: IncidentStateTimeline) => {
+    // first matching resolved entry.
+    const resolveTime: Date | undefined = incidentStateTimeline.find(
+      (timeline: IncidentStateTimeline) => {
         return (
           timeline.incidentStateId?.toString() ===
           getResolvedState()?._id?.toString()
         );
-      })?.startsAt;
+      },
+    )?.startsAt;
 
     if (!acknowledgeTime && !resolveTime) {
       return (
@@ -287,621 +304,531 @@ const IncidentView: FunctionComponent<
     );
   };
 
-  type GetInfoCardFunction = (value: string) => ReactElement;
-
-  const getInfoCardValue: GetInfoCardFunction = (
-    value: string,
-  ): ReactElement => {
-    return <div className="font-medium text-gray-900 text-lg">{value}</div>;
-  };
-
   return (
     <Fragment>
-      {isPrivate && (
-        <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-          <Icon
-            icon={IconProp.Lock}
-            className="w-5 h-5 mt-0.5 text-red-600 shrink-0"
-          />
-          <div>
-            <div className="text-sm font-semibold text-red-800">
-              Private Incident
-            </div>
-            <div className="text-sm text-red-700">
-              Visible only to this incident&apos;s owner users, members of its
-              owner teams, project admins, and project owners. This incident is
-              hidden from all status pages and from other project members.
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Incident View  */}
-      <CardModelDetail<Incident>
-        name="Incident Details"
-        cardProps={{
-          title: "Incident Details",
-          description: "Here are more details for this incident.",
-        }}
-        isEditable={true}
-        formSteps={[
-          {
-            title: "Incident Details",
-            id: "incident-details",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
-        formFields={[
-          {
-            field: {
-              title: true,
-            },
-            title: "Incident Title",
-            stepId: "incident-details",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Incident Title",
-            validation: {
-              minLength: 2,
-            },
-          },
-
-          {
-            field: {
-              incidentSeverity: true,
-            },
-            title: "Incident Severity",
-            description: "What type of incident is this?",
-            fieldType: FormFieldSchemaType.Dropdown,
-            stepId: "incident-details",
-            dropdownModal: {
-              type: IncidentSeverity,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: true,
-            placeholder: "Incident Severity",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels ",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
-        modelDetailProps={{
-          selectMoreFields: {
-            incidentNumberWithPrefix: true,
-            createdByUser: {
-              _id: true,
-              name: true,
-              email: true,
-              profilePictureId: true,
-            },
-            subscriberNotificationStatusMessage: true,
-          },
-          onBeforeFetch: async (): Promise<JSONObject> => {
-            // get ack incident.
-
-            const incidentTimelines: ListResult<IncidentStateTimeline> =
-              await ModelAPI.getList({
-                modelType: IncidentStateTimeline,
-                query: {
-                  incidentId: modelId,
-                },
-                limit: LIMIT_PER_PROJECT,
-                skip: 0,
-                select: {
-                  _id: true,
-
-                  createdAt: true,
-                  createdByUser: {
-                    name: true,
-                    email: true,
-                    profilePictureId: true,
-                  },
-                  incidentState: {
-                    name: true,
-                    isResolvedState: true,
-                    isAcknowledgedState: true,
-                  },
-                },
-                sort: {},
-              });
-
-            return incidentTimelines;
-          },
-          showDetailsInNumberOfColumns: 2,
-          modelType: Incident,
-          id: "model-detail-incidents",
-          fields: [
-            {
-              field: {
-                incidentNumber: true,
-                incidentNumberWithPrefix: true,
-              },
-              title: "Incident Number",
-              fieldType: FieldType.Element,
-              getElement: (item: Incident): ReactElement => {
-                if (!item.incidentNumber) {
-                  return <>-</>;
-                }
-
-                return (
-                  <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200">
-                    <div className="flex items-center justify-center w-6 h-6 rounded-md bg-gray-100">
-                      <svg
-                        className="w-3.5 h-3.5 text-gray-500"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                        />
-                      </svg>
-                    </div>
-                    <span className="text-lg font-semibold text-gray-700">
-                      {item.incidentNumberWithPrefix ||
-                        `#${item.incidentNumber}`}
-                    </span>
-                  </div>
-                );
-              },
-            },
-            {
-              field: {
-                _id: true,
-              },
-              title: "Incident ID",
-              fieldType: FieldType.ObjectID,
-            },
-
-            {
-              field: {
-                title: true,
-              },
-              title: "Incident Title",
-              fieldType: FieldType.Text,
-            },
-
-            {
-              field: {
-                currentIncidentState: {
-                  color: true,
-                  name: true,
-                },
-              },
-              title: "Current State",
-              fieldType: FieldType.Entity,
-              getElement: (item: Incident): ReactElement => {
-                if (!item["currentIncidentState"]) {
-                  throw new BadDataException("Incident Status not found");
-                }
-
-                return (
-                  <Pill
-                    color={item.currentIncidentState.color || Black}
-                    text={item.currentIncidentState.name || "Unknown"}
-                  />
-                );
-              },
-            },
-            {
-              field: {
-                incidentSeverity: {
-                  color: true,
-                  name: true,
-                },
-              },
-              title: "Incident Severity",
-              fieldType: FieldType.Entity,
-              getElement: (item: Incident): ReactElement => {
-                if (!item["incidentSeverity"]) {
-                  throw new BadDataException("Incident Severity not found");
-                }
-
-                return (
-                  <Pill
-                    color={item.incidentSeverity.color || Black}
-                    text={item.incidentSeverity.name || "Unknown"}
-                  />
-                );
-              },
-            },
-            {
-              field: {
-                isPrivate: true,
-              },
-              title: "Visibility",
-              fieldType: FieldType.Element,
-              showIf: (item: Incident): boolean => {
-                return item.isPrivate === true;
-              },
-              getElement: (): ReactElement => {
-                return <Pill color={Red500} text="Private" />;
-              },
-            },
-            {
-              field: {
-                onCallDutyPolicies: {
-                  name: true,
-                  _id: true,
-                },
-              },
-              title: "On-Call Duty Policies",
-              fieldType: FieldType.Element,
-              getElement: (item: Incident): ReactElement => {
-                return (
-                  <OnCallDutyPoliciesView
-                    onCallPolicies={item.onCallDutyPolicies || []}
-                  />
-                );
-              },
-            },
-            {
-              field: {
-                declaredAt: true,
-              },
-              title: "Declared At",
-              fieldType: FieldType.DateTime,
-            },
-            {
-              field: {
-                createdByProbe: {
-                  name: true,
-                  iconFileId: true,
-                },
-              },
-              title: "Declared By",
-              fieldType: FieldType.Element,
-              getElement: (item: Incident): ReactElement => {
-                if (item.createdByProbe) {
-                  return <ProbeElement probe={item.createdByProbe} />;
-                }
-
-                if (item.createdByUser) {
-                  return <UserElement user={item.createdByUser} />;
-                }
-
-                return <p>Unknown</p>;
-              },
-            },
-            {
-              field: {
-                subscriberNotificationStatusOnIncidentCreated: true,
-              },
-              title: "Subscriber Notification Status",
-              fieldType: FieldType.Element,
-              getElement: (item: Incident): ReactElement => {
-                return (
-                  <SubscriberNotificationStatus
-                    status={item.subscriberNotificationStatusOnIncidentCreated}
-                    subscriberNotificationStatusMessage={
-                      item.subscriberNotificationStatusMessage
-                    }
-                    onResendNotification={handleResendNotification}
-                  />
-                );
-              },
-            },
-
-            {
-              field: {
-                labels: {
-                  name: true,
-                  color: true,
-                },
-              },
-              title: "Labels",
-              fieldType: FieldType.Element,
-              getElement: (item: Incident): ReactElement => {
-                return <LabelsElement labels={item["labels"] || []} />;
-              },
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
-
-      <CardModelDetail<Incident>
-        name="Affected Resources"
-        cardProps={{
-          title: "Affected Resources",
-          description:
-            "Monitors, hosts, Kubernetes clusters, Docker hosts, and services affected by this incident.",
-        }}
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              monitors: true,
-            },
-            title: "",
-            description:
-              "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services affected by this incident.",
-            fieldType: FormFieldSchemaType.CustomComponent,
-            required: false,
-            getCustomElement: (
-              values: FormValues<Incident>,
-              elementProps: CustomElementProps,
-            ) => {
-              return (
-                <AffectedResourcesPicker
-                  monitors={values.monitors as Array<Monitor>}
-                  hosts={values.hosts as Array<Host>}
-                  kubernetesClusters={
-                    values.kubernetesClusters as Array<KubernetesCluster>
-                  }
-                  dockerHosts={values.dockerHosts as Array<DockerHost>}
-                  podmanHosts={values.podmanHosts as Array<PodmanHost>}
-                  services={values.services as Array<Service>}
-                  onChange={(payload: unknown) => {
-                    elementProps.onChange?.(payload);
-                  }}
-                />
-              );
-            },
-            onChange: (
-              value: unknown,
-              currentValues: FormValues<Incident>,
-              setNewFormValues: (values: FormValues<Incident>) => void,
-            ) => {
-              if (isAffectedResourcesPayload(value)) {
-                const payload: typeof value = value;
-                queueMicrotask(() => {
-                  setNewFormValues({
-                    ...currentValues,
-                    monitors: payload.monitors,
-                    hosts: payload.hosts,
-                    kubernetesClusters: payload.kubernetesClusters,
-                    dockerHosts: payload.dockerHosts,
-                    podmanHosts: payload.podmanHosts,
-                    services: payload.services,
-                  } as FormValues<Incident>);
-                });
-              }
-            },
-          },
-          /*
-           * Hidden registrations so ModelForm.getSelectFields includes
-           * hosts/kubernetesClusters/dockerHosts/services on load and submit.
-           */
-          {
-            field: { hosts: true },
-            title: "",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: () => {
-              return false;
-            },
-          },
-          {
-            field: { kubernetesClusters: true },
-            title: "",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: () => {
-              return false;
-            },
-          },
-          {
-            field: { dockerHosts: true },
-            title: "",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: () => {
-              return false;
-            },
-          },
-          {
-            field: { podmanHosts: true },
-            title: "",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: () => {
-              return false;
-            },
-          },
-          {
-            field: { services: true },
-            title: "",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: () => {
-              return false;
-            },
-          },
-          {
-            field: {
-              changeMonitorStatusTo: true,
-            },
-            title: "Change Monitor Status to ",
-            description:
-              "This will change the status of all the monitors attached to this incident.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: MonitorStatus,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Monitor Status",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: Incident,
-          id: "model-detail-incident-affected-resources",
-          fields: [
-            {
-              field: {
-                monitors: {
-                  name: true,
-                  _id: true,
-                },
-                hosts: {
-                  name: true,
-                  _id: true,
-                },
-                kubernetesClusters: {
-                  name: true,
-                  _id: true,
-                },
-                dockerHosts: {
-                  name: true,
-                  _id: true,
-                },
-                podmanHosts: {
-                  name: true,
-                  _id: true,
-                },
-                services: {
-                  name: true,
-                  _id: true,
-                  serviceColor: true,
-                },
-              },
-              title: "",
-              fieldType: FieldType.Element,
-              getElement: (item: Incident): ReactElement => {
-                return (
-                  <AffectedResourcesDisplay
-                    monitors={item.monitors || []}
-                    hosts={item.hosts || []}
-                    kubernetesClusters={item.kubernetesClusters || []}
-                    dockerHosts={item.dockerHosts || []}
-                    podmanHosts={item.podmanHosts || []}
-                    services={item.services || []}
-                  />
-                );
-              },
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
-
-      <ChangeIncidentState
-        incidentId={modelId}
-        onActionComplete={async () => {
-          await fetchData();
-        }}
-      />
-
-      <IncidentMemberRoleAssignment
-        incidentId={modelId}
-        onMemberChange={async () => {
-          await fetchData();
-        }}
-      />
-
-      <div className="flex space-x-5 mt-5 mb-5 w-full justify-between">
-        <InfoCard
-          title={`${getAcknowledgeState()?.name || "Acknowledged"} in`}
-          value={getInfoCardValue(getTimeToAcknowledge())}
-          className="w-1/2"
-        />
-        <InfoCard
-          title={`${getResolvedState()?.name || "Resolved"} in`}
-          value={getInfoCardValue(getTimeToResolve())}
-          className="w-1/2"
+      <div className="mb-5">
+        <ChangeIncidentState
+          incidentId={modelId}
+          severity={severity}
+          isPrivate={isPrivate}
+          onActionComplete={async () => {
+            await fetchData();
+          }}
         />
       </div>
 
-      {telemetryQuery &&
-        telemetryQuery.telemetryType === TelemetryType.Log &&
-        telemetryQuery.telemetryQuery && (
-          <div>
-            <Card title={"Logs"} description={"Logs for this incident."}>
-              <DashboardLogsViewer
-                id="logs-preview"
-                logQuery={telemetryQuery.telemetryQuery as Query<Log>}
-                limit={10}
-                noLogsMessage="No logs found"
-              />
-            </Card>
-          </div>
-        )}
-
-      {telemetryQuery &&
-        telemetryQuery.telemetryType === TelemetryType.Trace &&
-        telemetryQuery.telemetryQuery && (
-          <div>
-            <TraceTable
-              spanQuery={telemetryQuery.telemetryQuery as Query<Span>}
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
+        <div className="min-w-0 xl:col-span-2">
+          <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <EventStatTile
+              label={`${getAcknowledgeState()?.name || "Acknowledged"} in`}
+              icon={IconProp.Check}
+              value={getTimeToAcknowledge()}
+            />
+            <EventStatTile
+              label={`${getResolvedState()?.name || "Resolved"} in`}
+              icon={IconProp.CheckCircle}
+              value={getTimeToResolve()}
             />
           </div>
-        )}
 
-      {telemetryQuery &&
-        telemetryQuery.telemetryType === TelemetryType.Metric &&
-        telemetryQuery.metricViewData && (
-          <Card
-            title={"Metrics"}
-            description={"Metrics related to this incident."}
-            rightElement={
-              telemetryQuery.metricViewData.startAndEndDate ? (
-                <HeaderAlert
-                  icon={IconProp.Clock}
-                  onClick={() => {
+          {telemetryQuery &&
+            telemetryQuery.telemetryType === TelemetryType.Log &&
+            telemetryQuery.telemetryQuery && (
+              <div>
+                <Card title={"Logs"} description={"Logs for this incident."}>
+                  <DashboardLogsViewer
+                    id="logs-preview"
+                    logQuery={telemetryQuery.telemetryQuery as Query<Log>}
+                    limit={10}
+                    noLogsMessage="No logs found"
+                  />
+                </Card>
+              </div>
+            )}
+
+          {telemetryQuery &&
+            telemetryQuery.telemetryType === TelemetryType.Trace &&
+            telemetryQuery.telemetryQuery && (
+              <div>
+                <TraceTable
+                  spanQuery={telemetryQuery.telemetryQuery as Query<Span>}
+                />
+              </div>
+            )}
+
+          {telemetryQuery &&
+            telemetryQuery.telemetryType === TelemetryType.Metric &&
+            telemetryQuery.metricViewData && (
+              <Card
+                title={"Metrics"}
+                description={"Metrics related to this incident."}
+                rightElement={
+                  telemetryQuery.metricViewData.startAndEndDate ? (
+                    <HeaderAlert
+                      icon={IconProp.Clock}
+                      onClick={() => {
+                        // do nothing!
+                      }}
+                      title={OneUptimeDate.getInBetweenDatesAsFormattedString(
+                        telemetryQuery.metricViewData.startAndEndDate,
+                      )}
+                      alertType={HeaderAlertType.INFO}
+                      colorSwatch={ColorSwatch.Blue}
+                    />
+                  ) : (
+                    <></>
+                  )
+                }
+              >
+                <MetricView
+                  data={telemetryQuery.metricViewData}
+                  hideQueryElements={true}
+                  chartCssClass="rounded-lg border border-gray-200 shadow-sm"
+                  hideStartAndEndDate={true}
+                  onChange={(_data: MetricViewData) => {
                     // do nothing!
                   }}
-                  title={OneUptimeDate.getInBetweenDatesAsFormattedString(
-                    telemetryQuery.metricViewData.startAndEndDate,
-                  )}
-                  alertType={HeaderAlertType.INFO}
-                  colorSwatch={ColorSwatch.Blue}
                 />
-              ) : (
-                <></>
-              )
-            }
-          >
-            <MetricView
-              data={telemetryQuery.metricViewData}
-              hideQueryElements={true}
-              chartCssClass="rounded-lg border border-gray-200 shadow-sm"
-              hideStartAndEndDate={true}
-              onChange={(_data: MetricViewData) => {
-                // do nothing!
-              }}
-            />
-          </Card>
-        )}
+              </Card>
+            )}
 
-      {telemetryQuery &&
-        telemetryQuery.telemetryType === TelemetryType.Exception &&
-        telemetryQuery.telemetryQuery && (
-          <ExceptionInstanceTable
-            title="Exceptions"
-            description="Exceptions related to this incident."
-            query={telemetryQuery.telemetryQuery as Query<ExceptionInstance>}
+          {telemetryQuery &&
+            telemetryQuery.telemetryType === TelemetryType.Exception &&
+            telemetryQuery.telemetryQuery && (
+              <ExceptionInstanceTable
+                title="Exceptions"
+                description="Exceptions related to this incident."
+                query={
+                  telemetryQuery.telemetryQuery as Query<ExceptionInstance>
+                }
+              />
+            )}
+
+          <IncidentAffectedResources incidentId={modelId} />
+
+          <EntityRunbooks incidentId={modelId} hideIfEmpty={true} />
+
+          <IncidentFeedElement incidentId={modelId} />
+        </div>
+
+        <div className="min-w-0 xl:col-span-1">
+          {/* Incident View  */}
+          <CardModelDetail<Incident>
+            name="Incident Details"
+            cardProps={{
+              title: "Incident Details",
+              description: "Here are more details for this incident.",
+            }}
+            isEditable={true}
+            onSaveSuccess={() => {
+              // refresh page-level state (severity/visibility pills) shown in the status panel above.
+              fetchData().catch((err: Error) => {
+                setError(BaseAPI.getFriendlyMessage(err));
+              });
+            }}
+            formSteps={[
+              {
+                title: "Incident Details",
+                id: "incident-details",
+              },
+              {
+                title: "Labels",
+                id: "labels",
+              },
+            ]}
+            formFields={[
+              {
+                field: {
+                  title: true,
+                },
+                title: "Incident Title",
+                stepId: "incident-details",
+                fieldType: FormFieldSchemaType.Text,
+                required: true,
+                placeholder: "Incident Title",
+                validation: {
+                  minLength: 2,
+                },
+              },
+
+              {
+                field: {
+                  incidentSeverity: true,
+                },
+                title: "Incident Severity",
+                description: "What type of incident is this?",
+                fieldType: FormFieldSchemaType.Dropdown,
+                stepId: "incident-details",
+                dropdownModal: {
+                  type: IncidentSeverity,
+                  labelField: "name",
+                  valueField: "_id",
+                },
+                required: true,
+                placeholder: "Incident Severity",
+              },
+              {
+                field: {
+                  labels: true,
+                },
+                title: "Labels ",
+                stepId: "labels",
+                description:
+                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+                fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                dropdownModal: {
+                  type: Label,
+                  labelField: "name",
+                  valueField: "_id",
+                },
+                required: false,
+                placeholder: "Labels",
+              },
+            ]}
+            modelDetailProps={{
+              selectMoreFields: {
+                incidentNumberWithPrefix: true,
+                createdByUser: {
+                  _id: true,
+                  name: true,
+                  email: true,
+                  profilePictureId: true,
+                },
+                subscriberNotificationStatusMessage: true,
+              },
+              onBeforeFetch: async (): Promise<JSONObject> => {
+                // get ack incident.
+
+                const incidentTimelines: ListResult<IncidentStateTimeline> =
+                  await ModelAPI.getList({
+                    modelType: IncidentStateTimeline,
+                    query: {
+                      incidentId: modelId,
+                    },
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
+                      _id: true,
+
+                      createdAt: true,
+                      createdByUser: {
+                        name: true,
+                        email: true,
+                        profilePictureId: true,
+                      },
+                      incidentState: {
+                        name: true,
+                        isResolvedState: true,
+                        isAcknowledgedState: true,
+                      },
+                    },
+                    sort: {},
+                  });
+
+                return incidentTimelines;
+              },
+              showDetailsInNumberOfColumns: 1,
+              modelType: Incident,
+              id: "model-detail-incidents",
+              fields: [
+                {
+                  field: {
+                    incidentNumber: true,
+                    incidentNumberWithPrefix: true,
+                  },
+                  title: "Incident Number",
+                  fieldType: FieldType.Element,
+                  getElement: (item: Incident): ReactElement => {
+                    if (!item.incidentNumber) {
+                      return <>-</>;
+                    }
+
+                    return (
+                      <span className="text-sm font-semibold text-gray-900">
+                        {item.incidentNumberWithPrefix ||
+                          "#" + item.incidentNumber}
+                      </span>
+                    );
+                  },
+                },
+                {
+                  field: {
+                    _id: true,
+                  },
+                  title: "Incident ID",
+                  fieldType: FieldType.ObjectID,
+                },
+                {
+                  field: {
+                    onCallDutyPolicies: {
+                      name: true,
+                      _id: true,
+                    },
+                  },
+                  title: "On-Call Duty Policies",
+                  fieldType: FieldType.Element,
+                  getElement: (item: Incident): ReactElement => {
+                    return (
+                      <OnCallDutyPoliciesView
+                        onCallPolicies={item.onCallDutyPolicies || []}
+                      />
+                    );
+                  },
+                },
+                {
+                  field: {
+                    declaredAt: true,
+                  },
+                  title: "Declared At",
+                  fieldType: FieldType.DateTime,
+                },
+                {
+                  field: {
+                    createdByProbe: {
+                      name: true,
+                      iconFileId: true,
+                    },
+                  },
+                  title: "Declared By",
+                  fieldType: FieldType.Element,
+                  getElement: (item: Incident): ReactElement => {
+                    if (item.createdByProbe) {
+                      return <ProbeElement probe={item.createdByProbe} />;
+                    }
+
+                    if (item.createdByUser) {
+                      return <UserElement user={item.createdByUser} />;
+                    }
+
+                    return <p>Unknown</p>;
+                  },
+                },
+                {
+                  field: {
+                    subscriberNotificationStatusOnIncidentCreated: true,
+                  },
+                  title: "Subscriber Notification Status",
+                  fieldType: FieldType.Element,
+                  getElement: (item: Incident): ReactElement => {
+                    return (
+                      <SubscriberNotificationStatus
+                        status={
+                          item.subscriberNotificationStatusOnIncidentCreated
+                        }
+                        subscriberNotificationStatusMessage={
+                          item.subscriberNotificationStatusMessage
+                        }
+                        onResendNotification={handleResendNotification}
+                      />
+                    );
+                  },
+                },
+
+                {
+                  field: {
+                    labels: {
+                      name: true,
+                      color: true,
+                    },
+                  },
+                  title: "Labels",
+                  fieldType: FieldType.Element,
+                  getElement: (item: Incident): ReactElement => {
+                    return <LabelsElement labels={item["labels"] || []} />;
+                  },
+                },
+              ],
+              modelId: modelId,
+            }}
           />
-        )}
 
-      <IncidentAffectedResources incidentId={modelId} />
+          <CardModelDetail<Incident>
+            name="Affected Resources"
+            cardProps={{
+              title: "Affected Resources",
+              description:
+                "Monitors, hosts, Kubernetes clusters, Docker hosts, and services affected by this incident.",
+            }}
+            isEditable={true}
+            formFields={[
+              {
+                field: {
+                  monitors: true,
+                },
+                title: "",
+                description:
+                  "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services affected by this incident.",
+                fieldType: FormFieldSchemaType.CustomComponent,
+                required: false,
+                getCustomElement: (
+                  values: FormValues<Incident>,
+                  elementProps: CustomElementProps,
+                ) => {
+                  return (
+                    <AffectedResourcesPicker
+                      monitors={values.monitors as Array<Monitor>}
+                      hosts={values.hosts as Array<Host>}
+                      kubernetesClusters={
+                        values.kubernetesClusters as Array<KubernetesCluster>
+                      }
+                      dockerHosts={values.dockerHosts as Array<DockerHost>}
+                      podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                      services={values.services as Array<Service>}
+                      onChange={(payload: unknown) => {
+                        elementProps.onChange?.(payload);
+                      }}
+                    />
+                  );
+                },
+                onChange: (
+                  value: unknown,
+                  currentValues: FormValues<Incident>,
+                  setNewFormValues: (values: FormValues<Incident>) => void,
+                ) => {
+                  if (isAffectedResourcesPayload(value)) {
+                    const payload: typeof value = value;
+                    queueMicrotask(() => {
+                      setNewFormValues({
+                        ...currentValues,
+                        monitors: payload.monitors,
+                        hosts: payload.hosts,
+                        kubernetesClusters: payload.kubernetesClusters,
+                        dockerHosts: payload.dockerHosts,
+                        podmanHosts: payload.podmanHosts,
+                        services: payload.services,
+                      } as FormValues<Incident>);
+                    });
+                  }
+                },
+              },
+              /*
+               * Hidden registrations so ModelForm.getSelectFields includes
+               * hosts/kubernetesClusters/dockerHosts/services on load and submit.
+               */
+              {
+                field: { hosts: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { kubernetesClusters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { dockerHosts: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { podmanHosts: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { services: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: {
+                  changeMonitorStatusTo: true,
+                },
+                title: "Change Monitor Status to ",
+                description:
+                  "This will change the status of all the monitors attached to this incident.",
+                fieldType: FormFieldSchemaType.Dropdown,
+                dropdownModal: {
+                  type: MonitorStatus,
+                  labelField: "name",
+                  valueField: "_id",
+                },
+                required: false,
+                placeholder: "Monitor Status",
+              },
+            ]}
+            modelDetailProps={{
+              showDetailsInNumberOfColumns: 1,
+              modelType: Incident,
+              id: "model-detail-incident-affected-resources",
+              fields: [
+                {
+                  field: {
+                    monitors: {
+                      name: true,
+                      _id: true,
+                    },
+                    hosts: {
+                      name: true,
+                      _id: true,
+                    },
+                    kubernetesClusters: {
+                      name: true,
+                      _id: true,
+                    },
+                    dockerHosts: {
+                      name: true,
+                      _id: true,
+                    },
+                    podmanHosts: {
+                      name: true,
+                      _id: true,
+                    },
+                    services: {
+                      name: true,
+                      _id: true,
+                      serviceColor: true,
+                    },
+                  },
+                  title: "",
+                  fieldType: FieldType.Element,
+                  getElement: (item: Incident): ReactElement => {
+                    return (
+                      <AffectedResourcesDisplay
+                        monitors={item.monitors || []}
+                        hosts={item.hosts || []}
+                        kubernetesClusters={item.kubernetesClusters || []}
+                        dockerHosts={item.dockerHosts || []}
+                        podmanHosts={item.podmanHosts || []}
+                        services={item.services || []}
+                      />
+                    );
+                  },
+                },
+              ],
+              modelId: modelId,
+            }}
+          />
 
-      <EntityRunbooks incidentId={modelId} hideIfEmpty={true} />
-
-      <IncidentFeedElement incidentId={modelId} />
+          <IncidentMemberRoleAssignment
+            incidentId={modelId}
+            onMemberChange={async () => {
+              await fetchData();
+            }}
+          />
+        </div>
+      </div>
     </Fragment>
   );
 };

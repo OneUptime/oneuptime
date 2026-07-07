@@ -759,9 +759,20 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           <ConfirmModal
             title={`No Scheduled Maintenance Templates`}
             description={`No scheduled maintenance templates have been created yet. You can create these in Project Settings > Scheduled Maintenance Templates.`}
-            submitButtonText={"Close"}
+            submitButtonText={"Create Template"}
             onSubmit={() => {
-              return setShowScheduledMaintenanceTemplateModal(false);
+              setShowScheduledMaintenanceTemplateModal(false);
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  RouteMap[
+                    PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES
+                  ] as Route,
+                ),
+              );
+            }}
+            closeButtonText={"Close"}
+            onClose={() => {
+              setShowScheduledMaintenanceTemplateModal(false);
             }}
           />
         )}

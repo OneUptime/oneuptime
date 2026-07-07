@@ -3,14 +3,12 @@ import ChangeScheduledMaintenanceState from "../../../Components/ScheduledMainte
 import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElement";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import PageComponentProps from "../../PageComponentProps";
-import { Black } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import IconProp from "Common/Types/Icon/IconProp";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -33,6 +31,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useState,
 } from "react";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -42,6 +41,8 @@ import Recurring from "Common/Types/Events/Recurring";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
 import ScheduledMaintenanceFeedElement from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceFeed";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
+import EventStatTile from "../../../Components/EventView/EventStatTile";
+import LiveDuration from "../../../Components/EventView/LiveDuration";
 import OneUptimeDate from "Common/Types/Date";
 
 const ScheduledMaintenanceView: FunctionComponent<
@@ -49,6 +50,36 @@ const ScheduledMaintenanceView: FunctionComponent<
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+  const [scheduledMaintenance, setScheduledMaintenance] =
+    useState<ScheduledMaintenance | null>(null);
+
+  const fetchScheduledMaintenance: () => Promise<void> =
+    async (): Promise<void> => {
+      try {
+        const item: ScheduledMaintenance | null =
+          await ModelAPI.getItem<ScheduledMaintenance>({
+            modelType: ScheduledMaintenance,
+            id: modelId,
+            select: {
+              startsAt: true,
+              endsAt: true,
+            },
+          });
+
+        setScheduledMaintenance(item);
+      } catch {
+        // The status panel and stat tiles degrade gracefully without these dates.
+      }
+    };
+
+  useEffect(() => {
+    fetchScheduledMaintenance().catch(() => {
+      // Errors are handled inside fetchScheduledMaintenance.
+    });
+  }, [refreshToggle]);
+
+  const eventStartsAt: Date | undefined = scheduledMaintenance?.startsAt;
+  const eventEndsAt: Date | undefined = scheduledMaintenance?.endsAt;
 
   const handleResendNotification: () => Promise<void> =
     async (): Promise<void> => {
@@ -74,564 +105,578 @@ const ScheduledMaintenanceView: FunctionComponent<
 
   return (
     <Fragment>
-      {/* ScheduledMaintenance View  */}
-      <CardModelDetail<ScheduledMaintenance>
-        name="Scheduled Maintenance Details"
-        cardProps={{
-          title: "Scheduled Maintenance Details",
-          description: "Here are more details for this event.",
-        }}
-        formSteps={[
-          {
-            title: "Event Info",
-            id: "event-info",
-          },
-          {
-            title: "Status Pages",
-            id: "status-pages",
-          },
-          {
-            title: "Subscribers",
-            id: "subscribers",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              title: true,
-            },
-            stepId: "event-info",
-            title: "Scheduled Maintenance Title",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Scheduled Maintenance Title",
-            validation: {
-              minLength: 2,
-            },
-          },
-
-          {
-            field: {
-              startsAt: true,
-            },
-            stepId: "event-info",
-            title: "Event Starts At",
-            fieldType: FormFieldSchemaType.DateTime,
-            required: true,
-            placeholder: "Pick Date and Time",
-          },
-          {
-            field: {
-              endsAt: true,
-            },
-            title: "Ends At",
-            stepId: "event-info",
-            fieldType: FormFieldSchemaType.DateTime,
-            required: true,
-            placeholder: "Pick Date and Time",
-          },
-          {
-            field: {
-              statusPages: true,
-            },
-            title: "Show event on these status pages ",
-            stepId: "status-pages",
-            description: "Select status pages to show this event on",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: StatusPage,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Status Pages",
-          },
-
-          {
-            field: {
-              shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
-            },
-
-            title: "Event Created: Notify Status Page Subscribers",
-            stepId: "subscribers",
-            description:
-              "Should status page subscribers be notified when this event is created?",
-            fieldType: FormFieldSchemaType.Checkbox,
-            defaultValue: true,
-            required: false,
-          },
-          {
-            field: {
-              shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
-                true,
-            },
-
-            title: "Event Ongoing: Notify Status Page Subscribers",
-            stepId: "subscribers",
-            description:
-              "Should status page subscribers be notified when this event state changes to ongoing?",
-            fieldType: FormFieldSchemaType.Checkbox,
-            defaultValue: true,
-            required: false,
-          },
-          {
-            field: {
-              shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded:
-                true,
-            },
-
-            title: "Event Ended: Notify Status Page Subscribers",
-            stepId: "subscribers",
-            description:
-              "Should status page subscribers be notified when this event state changes to ended?",
-            fieldType: FormFieldSchemaType.Checkbox,
-            defaultValue: true,
-            required: false,
-          },
-          {
-            field: {
-              sendSubscriberNotificationsOnBeforeTheEvent: true,
-            },
-            stepId: "subscribers",
-            title: "Send reminders to subscribers before the event",
-            description:
-              "Please add a list of notification options to notify subscribers before the event",
-            fieldType: FormFieldSchemaType.CustomComponent,
-            getCustomElement: (
-              value: FormValues<ScheduledMaintenance>,
-              props: CustomElementProps,
-            ) => {
-              return (
-                <RecurringArrayFieldElement
-                  {...props}
-                  initialValue={
-                    value.sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>
-                  }
-                />
-              );
-            },
-            required: false,
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels ",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
-        modelDetailProps={{
-          onBeforeFetch: async (): Promise<JSONObject> => {
-            // get ack scheduledMaintenance.
-
-            const scheduledMaintenanceTimelines: ListResult<ScheduledMaintenanceStateTimeline> =
-              await ModelAPI.getList({
-                modelType: ScheduledMaintenanceStateTimeline,
-                query: {
-                  scheduledMaintenanceId: modelId,
-                },
-                limit: LIMIT_PER_PROJECT,
-                skip: 0,
-                select: {
-                  _id: true,
-
-                  createdAt: true,
-                  createdByUser: {
-                    name: true,
-                    email: true,
-                    profilePictureId: true,
-                  },
-                  scheduledMaintenanceState: {
-                    name: true,
-                    isResolvedState: true,
-                    isOngoingState: true,
-                    isScheduledState: true,
-                  },
-                },
-                sort: {},
-              });
-
-            return scheduledMaintenanceTimelines;
-          },
-          showDetailsInNumberOfColumns: 2,
-          modelType: ScheduledMaintenance,
-          id: "model-detail-scheduledMaintenances",
-          selectMoreFields: {
-            scheduledMaintenanceNumberWithPrefix: true,
-            shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
-              true,
-            shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
-            nextSubscriberNotificationBeforeTheEventAt: true,
-            subscriberNotificationStatusMessage: true,
-          },
-          fields: [
-            {
-              field: {
-                scheduledMaintenanceNumber: true,
-                scheduledMaintenanceNumberWithPrefix: true,
-              },
-              title: "Scheduled Maintenance Number",
-              fieldType: FieldType.Element,
-              getElement: (item: ScheduledMaintenance): ReactElement => {
-                if (!item.scheduledMaintenanceNumber) {
-                  return <>-</>;
-                }
-
-                return (
-                  <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200">
-                    <div className="flex items-center justify-center w-6 h-6 rounded-md bg-gray-100">
-                      <svg
-                        className="w-3.5 h-3.5 text-gray-500"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M21.75 6.75a4.5 4.5 0 01-4.884 4.484c-1.076-.091-2.264.071-2.95.904l-7.152 8.684a2.548 2.548 0 11-3.586-3.586l8.684-7.152c.833-.686.995-1.874.904-2.95a4.5 4.5 0 016.336-4.486l-3.276 3.276a3.004 3.004 0 002.25 2.25l3.276-3.276c.256.565.398 1.192.398 1.852z"
-                        />
-                      </svg>
-                    </div>
-                    <span className="text-lg font-semibold text-gray-700">
-                      {item.scheduledMaintenanceNumberWithPrefix ||
-                        `#${item.scheduledMaintenanceNumber}`}
-                    </span>
-                  </div>
-                );
-              },
-            },
-            {
-              field: {
-                _id: true,
-              },
-              title: "Scheduled Maintenance ID",
-              fieldType: FieldType.ObjectID,
-            },
-            {
-              field: {
-                title: true,
-              },
-              title: "Scheduled Maintenance Title",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                currentScheduledMaintenanceState: {
-                  color: true,
-                  name: true,
-                },
-              },
-              title: "Current State",
-              fieldType: FieldType.Entity,
-              getElement: (item: ScheduledMaintenance): ReactElement => {
-                if (!item["currentScheduledMaintenanceState"]) {
-                  throw new BadDataException(
-                    "Scheduled Maintenance Status not found",
-                  );
-                }
-
-                return (
-                  <Pill
-                    color={item.currentScheduledMaintenanceState.color || Black}
-                    text={
-                      item.currentScheduledMaintenanceState.name || "Unknown"
-                    }
-                  />
-                );
-              },
-            },
-            {
-              field: {
-                statusPages: {
-                  name: true,
-                  _id: true,
-                },
-              },
-              title: "Shown on Status Pages",
-              fieldType: FieldType.Element,
-              getElement: (item: ScheduledMaintenance): ReactElement => {
-                return (
-                  <StatusPagesElement statusPages={item.statusPages || []} />
-                );
-              },
-            },
-            {
-              field: {
-                startsAt: true,
-              },
-              title: "Starts At",
-              fieldType: FieldType.DateTime,
-            },
-            {
-              field: {
-                endsAt: true,
-              },
-              title: "Ends At",
-              fieldType: FieldType.DateTime,
-            },
-            {
-              field: {
-                createdAt: true,
-              },
-              title: "Created At",
-              fieldType: FieldType.DateTime,
-            },
-            {
-              field: {
-                sendSubscriberNotificationsOnBeforeTheEvent: true,
-              },
-              title: "Send reminders to subscribers before the event",
-              fieldType: FieldType.Boolean,
-              getElement: (item: ScheduledMaintenance): ReactElement => {
-                return (
-                  <div>
-                    <RecurringArrayViewElement
-                      value={item.sendSubscriberNotificationsOnBeforeTheEvent}
-                      postfix=" before the event is begins"
-                    />
-                    {item.nextSubscriberNotificationBeforeTheEventAt ? (
-                      <div className="mt-2">
-                        <span className="font-semibold">
-                          Next reminder will be sent at:
-                        </span>{" "}
-                        {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                          item.nextSubscriberNotificationBeforeTheEventAt,
-                        )}
-                      </div>
-                    ) : (
-                      <div> No reminders scheduled </div>
-                    )}
-                  </div>
-                );
-              },
-            },
-            {
-              field: {
-                subscriberNotificationStatusOnEventScheduled: true,
-              },
-              title: "Subscriber Notification Status",
-              fieldType: FieldType.Element,
-              getElement: (item: ScheduledMaintenance): ReactElement => {
-                return (
-                  <SubscriberNotificationStatus
-                    status={item.subscriberNotificationStatusOnEventScheduled}
-                    subscriberNotificationStatusMessage={
-                      item.subscriberNotificationStatusMessage
-                    }
-                    onResendNotification={handleResendNotification}
-                  />
-                );
-              },
-            },
-            {
-              field: {
-                labels: {
-                  name: true,
-                  color: true,
-                },
-              },
-              title: "Labels",
-              fieldType: FieldType.Element,
-              getElement: (item: ScheduledMaintenance): ReactElement => {
-                return <LabelsElement labels={item["labels"] || []} />;
-              },
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
-
-      <CardModelDetail<ScheduledMaintenance>
-        name="Affected Resources"
-        cardProps={{
-          title: "Affected Resources",
-          description:
-            "Monitors, hosts, Kubernetes clusters, Docker hosts, and services affected by this scheduled maintenance.",
-        }}
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              monitors: true,
-            },
-            title: "",
-            description:
-              "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services affected by this scheduled maintenance.",
-            fieldType: FormFieldSchemaType.CustomComponent,
-            required: false,
-            getCustomElement: (
-              values: FormValues<ScheduledMaintenance>,
-              elementProps: CustomElementProps,
-            ) => {
-              return (
-                <AffectedResourcesPicker
-                  monitors={values.monitors as Array<Monitor>}
-                  hosts={values.hosts as Array<Host>}
-                  kubernetesClusters={
-                    values.kubernetesClusters as Array<KubernetesCluster>
-                  }
-                  dockerHosts={values.dockerHosts as Array<DockerHost>}
-                  podmanHosts={values.podmanHosts as Array<PodmanHost>}
-                  services={values.services as Array<Service>}
-                  onChange={(payload: unknown) => {
-                    elementProps.onChange?.(payload);
-                  }}
-                />
-              );
-            },
-            onChange: (
-              value: unknown,
-              currentValues: FormValues<ScheduledMaintenance>,
-              setNewFormValues: (
-                values: FormValues<ScheduledMaintenance>,
-              ) => void,
-            ) => {
-              if (isAffectedResourcesPayload(value)) {
-                const payload: typeof value = value;
-                queueMicrotask(() => {
-                  setNewFormValues({
-                    ...currentValues,
-                    monitors: payload.monitors,
-                    hosts: payload.hosts,
-                    kubernetesClusters: payload.kubernetesClusters,
-                    dockerHosts: payload.dockerHosts,
-                    podmanHosts: payload.podmanHosts,
-                    services: payload.services,
-                  } as FormValues<ScheduledMaintenance>);
-                });
-              }
-            },
-          },
-          /*
-           * Hidden registrations so ModelForm.getSelectFields includes
-           * hosts/kubernetesClusters/dockerHosts/services on load and submit.
-           */
-          {
-            field: { hosts: true },
-            title: "",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: () => {
-              return false;
-            },
-          },
-          {
-            field: { kubernetesClusters: true },
-            title: "",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: () => {
-              return false;
-            },
-          },
-          {
-            field: { dockerHosts: true },
-            title: "",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: () => {
-              return false;
-            },
-          },
-          {
-            field: { podmanHosts: true },
-            title: "",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: () => {
-              return false;
-            },
-          },
-          {
-            field: { services: true },
-            title: "",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: () => {
-              return false;
-            },
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: ScheduledMaintenance,
-          id: "model-detail-scheduled-maintenance-affected-resources",
-          fields: [
-            {
-              field: {
-                monitors: {
-                  name: true,
-                  _id: true,
-                },
-                hosts: {
-                  name: true,
-                  _id: true,
-                },
-                kubernetesClusters: {
-                  name: true,
-                  _id: true,
-                },
-                dockerHosts: {
-                  name: true,
-                  _id: true,
-                },
-                podmanHosts: {
-                  name: true,
-                  _id: true,
-                },
-                services: {
-                  name: true,
-                  _id: true,
-                  serviceColor: true,
-                },
-              },
-              title: "",
-              fieldType: FieldType.Element,
-              getElement: (item: ScheduledMaintenance): ReactElement => {
-                return (
-                  <AffectedResourcesDisplay
-                    monitors={item.monitors || []}
-                    hosts={item.hosts || []}
-                    kubernetesClusters={item.kubernetesClusters || []}
-                    dockerHosts={item.dockerHosts || []}
-                    podmanHosts={item.podmanHosts || []}
-                    services={item.services || []}
-                  />
-                );
-              },
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
-
       <ChangeScheduledMaintenanceState
         scheduledMaintenanceId={modelId}
-        onActionComplete={async () => {
-          // do nothing!
+        eventStartsAt={eventStartsAt}
+        eventEndsAt={eventEndsAt}
+        onActionComplete={() => {
+          setRefreshToggle((prev: boolean) => {
+            return !prev;
+          });
         }}
       />
 
-      <EntityRunbooks scheduledMaintenanceId={modelId} hideIfEmpty={true} />
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
+        <div className="min-w-0 xl:col-span-2">
+          {eventStartsAt && eventEndsAt && (
+            <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <EventStatTile
+                label="Starts"
+                value={OneUptimeDate.getDateAsLocalFormattedString(
+                  eventStartsAt,
+                )}
+                description={
+                  "Your local timezone (" +
+                  OneUptimeDate.getCurrentTimezoneString() +
+                  ")"
+                }
+                icon={IconProp.Clock}
+              />
+              <EventStatTile
+                label="Ends"
+                value={OneUptimeDate.getDateAsLocalFormattedString(eventEndsAt)}
+                icon={IconProp.Clock}
+              />
+              <EventStatTile
+                label="Window"
+                value={
+                  <LiveDuration
+                    startDate={eventStartsAt}
+                    endDate={eventEndsAt}
+                  />
+                }
+                icon={IconProp.Clock}
+              />
+            </div>
+          )}
 
-      <ScheduledMaintenanceFeedElement scheduledMaintenanceId={modelId} />
+          <EntityRunbooks scheduledMaintenanceId={modelId} hideIfEmpty={true} />
+
+          <ScheduledMaintenanceFeedElement scheduledMaintenanceId={modelId} />
+        </div>
+
+        <div className="min-w-0 xl:col-span-1">
+          {/* ScheduledMaintenance View  */}
+          <CardModelDetail<ScheduledMaintenance>
+            name="Scheduled Maintenance Details"
+            cardProps={{
+              title: "Scheduled Maintenance Details",
+              description: "Here are more details for this event.",
+            }}
+            refresher={refreshToggle}
+            formSteps={[
+              {
+                title: "Event Info",
+                id: "event-info",
+              },
+              {
+                title: "Status Pages",
+                id: "status-pages",
+              },
+              {
+                title: "Subscribers",
+                id: "subscribers",
+              },
+              {
+                title: "Labels",
+                id: "labels",
+              },
+            ]}
+            isEditable={true}
+            onSaveSuccess={() => {
+              // refresh page-level state (event window stat tiles + status-panel countdown) after an in-card edit.
+              setRefreshToggle((prev: boolean) => {
+                return !prev;
+              });
+            }}
+            formFields={[
+              {
+                field: {
+                  title: true,
+                },
+                stepId: "event-info",
+                title: "Scheduled Maintenance Title",
+                fieldType: FormFieldSchemaType.Text,
+                required: true,
+                placeholder: "Scheduled Maintenance Title",
+                validation: {
+                  minLength: 2,
+                },
+              },
+
+              {
+                field: {
+                  startsAt: true,
+                },
+                stepId: "event-info",
+                title: "Event Starts At",
+                description:
+                  "Shown in your local timezone (" +
+                  OneUptimeDate.getCurrentTimezoneString() +
+                  ").",
+                fieldType: FormFieldSchemaType.DateTime,
+                required: true,
+                placeholder: "Pick Date and Time",
+              },
+              {
+                field: {
+                  endsAt: true,
+                },
+                title: "Ends At",
+                stepId: "event-info",
+                description:
+                  "Shown in your local timezone (" +
+                  OneUptimeDate.getCurrentTimezoneString() +
+                  ").",
+                fieldType: FormFieldSchemaType.DateTime,
+                required: true,
+                placeholder: "Pick Date and Time",
+              },
+              {
+                field: {
+                  statusPages: true,
+                },
+                title: "Show event on these status pages ",
+                stepId: "status-pages",
+                description: "Select status pages to show this event on",
+                fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                dropdownModal: {
+                  type: StatusPage,
+                  labelField: "name",
+                  valueField: "_id",
+                },
+                required: false,
+                placeholder: "Select Status Pages",
+              },
+
+              {
+                field: {
+                  shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
+                },
+
+                title: "Event Created: Notify Status Page Subscribers",
+                stepId: "subscribers",
+                description:
+                  "Should status page subscribers be notified when this event is created?",
+                fieldType: FormFieldSchemaType.Checkbox,
+                defaultValue: true,
+                required: false,
+              },
+              {
+                field: {
+                  shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
+                    true,
+                },
+
+                title: "Event Ongoing: Notify Status Page Subscribers",
+                stepId: "subscribers",
+                description:
+                  "Should status page subscribers be notified when this event state changes to ongoing?",
+                fieldType: FormFieldSchemaType.Checkbox,
+                defaultValue: true,
+                required: false,
+              },
+              {
+                field: {
+                  shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded:
+                    true,
+                },
+
+                title: "Event Ended: Notify Status Page Subscribers",
+                stepId: "subscribers",
+                description:
+                  "Should status page subscribers be notified when this event state changes to ended?",
+                fieldType: FormFieldSchemaType.Checkbox,
+                defaultValue: true,
+                required: false,
+              },
+              {
+                field: {
+                  sendSubscriberNotificationsOnBeforeTheEvent: true,
+                },
+                stepId: "subscribers",
+                title: "Send reminders to subscribers before the event",
+                description:
+                  "Please add a list of notification options to notify subscribers before the event",
+                fieldType: FormFieldSchemaType.CustomComponent,
+                getCustomElement: (
+                  value: FormValues<ScheduledMaintenance>,
+                  props: CustomElementProps,
+                ) => {
+                  return (
+                    <RecurringArrayFieldElement
+                      {...props}
+                      initialValue={
+                        value.sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>
+                      }
+                    />
+                  );
+                },
+                required: false,
+              },
+              {
+                field: {
+                  labels: true,
+                },
+                title: "Labels ",
+                stepId: "labels",
+                description:
+                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+                fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                dropdownModal: {
+                  type: Label,
+                  labelField: "name",
+                  valueField: "_id",
+                },
+                required: false,
+                placeholder: "Labels",
+              },
+            ]}
+            modelDetailProps={{
+              onBeforeFetch: async (): Promise<JSONObject> => {
+                // get ack scheduledMaintenance.
+
+                const scheduledMaintenanceTimelines: ListResult<ScheduledMaintenanceStateTimeline> =
+                  await ModelAPI.getList({
+                    modelType: ScheduledMaintenanceStateTimeline,
+                    query: {
+                      scheduledMaintenanceId: modelId,
+                    },
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
+                      _id: true,
+
+                      createdAt: true,
+                      createdByUser: {
+                        name: true,
+                        email: true,
+                        profilePictureId: true,
+                      },
+                      scheduledMaintenanceState: {
+                        name: true,
+                        isResolvedState: true,
+                        isOngoingState: true,
+                        isScheduledState: true,
+                      },
+                    },
+                    sort: {},
+                  });
+
+                return scheduledMaintenanceTimelines;
+              },
+              showDetailsInNumberOfColumns: 1,
+              modelType: ScheduledMaintenance,
+              id: "model-detail-scheduledMaintenances",
+              selectMoreFields: {
+                scheduledMaintenanceNumberWithPrefix: true,
+                shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
+                  true,
+                shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded:
+                  true,
+                nextSubscriberNotificationBeforeTheEventAt: true,
+                subscriberNotificationStatusMessage: true,
+              },
+              fields: [
+                {
+                  field: {
+                    scheduledMaintenanceNumber: true,
+                    scheduledMaintenanceNumberWithPrefix: true,
+                  },
+                  title: "Scheduled Maintenance Number",
+                  fieldType: FieldType.Element,
+                  getElement: (item: ScheduledMaintenance): ReactElement => {
+                    if (!item.scheduledMaintenanceNumber) {
+                      return <>-</>;
+                    }
+
+                    return (
+                      <span className="text-sm font-semibold text-gray-900">
+                        {item.scheduledMaintenanceNumberWithPrefix ||
+                          `#${item.scheduledMaintenanceNumber}`}
+                      </span>
+                    );
+                  },
+                },
+                {
+                  field: {
+                    _id: true,
+                  },
+                  title: "Scheduled Maintenance ID",
+                  fieldType: FieldType.ObjectID,
+                },
+                {
+                  field: {
+                    statusPages: {
+                      name: true,
+                      _id: true,
+                    },
+                  },
+                  title: "Shown on Status Pages",
+                  fieldType: FieldType.Element,
+                  getElement: (item: ScheduledMaintenance): ReactElement => {
+                    return (
+                      <StatusPagesElement
+                        statusPages={item.statusPages || []}
+                      />
+                    );
+                  },
+                },
+                {
+                  field: {
+                    startsAt: true,
+                  },
+                  title: "Starts At",
+                  fieldType: FieldType.DateTime,
+                },
+                {
+                  field: {
+                    endsAt: true,
+                  },
+                  title: "Ends At",
+                  fieldType: FieldType.DateTime,
+                },
+                {
+                  field: {
+                    createdAt: true,
+                  },
+                  title: "Created At",
+                  fieldType: FieldType.DateTime,
+                },
+                {
+                  field: {
+                    sendSubscriberNotificationsOnBeforeTheEvent: true,
+                  },
+                  title: "Send reminders to subscribers before the event",
+                  fieldType: FieldType.Boolean,
+                  getElement: (item: ScheduledMaintenance): ReactElement => {
+                    return (
+                      <div>
+                        <RecurringArrayViewElement
+                          value={
+                            item.sendSubscriberNotificationsOnBeforeTheEvent
+                          }
+                          postfix=" before the event is begins"
+                        />
+                        {item.nextSubscriberNotificationBeforeTheEventAt ? (
+                          <div className="mt-2">
+                            <span className="font-semibold">
+                              Next reminder will be sent at:
+                            </span>{" "}
+                            {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                              item.nextSubscriberNotificationBeforeTheEventAt,
+                            )}
+                          </div>
+                        ) : (
+                          <div> No reminders scheduled </div>
+                        )}
+                      </div>
+                    );
+                  },
+                },
+                {
+                  field: {
+                    subscriberNotificationStatusOnEventScheduled: true,
+                  },
+                  title: "Subscriber Notification Status",
+                  fieldType: FieldType.Element,
+                  getElement: (item: ScheduledMaintenance): ReactElement => {
+                    return (
+                      <SubscriberNotificationStatus
+                        status={
+                          item.subscriberNotificationStatusOnEventScheduled
+                        }
+                        subscriberNotificationStatusMessage={
+                          item.subscriberNotificationStatusMessage
+                        }
+                        onResendNotification={handleResendNotification}
+                      />
+                    );
+                  },
+                },
+                {
+                  field: {
+                    labels: {
+                      name: true,
+                      color: true,
+                    },
+                  },
+                  title: "Labels",
+                  fieldType: FieldType.Element,
+                  getElement: (item: ScheduledMaintenance): ReactElement => {
+                    return <LabelsElement labels={item["labels"] || []} />;
+                  },
+                },
+              ],
+              modelId: modelId,
+            }}
+          />
+
+          <CardModelDetail<ScheduledMaintenance>
+            name="Affected Resources"
+            cardProps={{
+              title: "Affected Resources",
+              description:
+                "Monitors, hosts, Kubernetes clusters, Docker hosts, and services affected by this scheduled maintenance.",
+            }}
+            isEditable={true}
+            formFields={[
+              {
+                field: {
+                  monitors: true,
+                },
+                title: "",
+                description:
+                  "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services affected by this scheduled maintenance.",
+                fieldType: FormFieldSchemaType.CustomComponent,
+                required: false,
+                getCustomElement: (
+                  values: FormValues<ScheduledMaintenance>,
+                  elementProps: CustomElementProps,
+                ) => {
+                  return (
+                    <AffectedResourcesPicker
+                      monitors={values.monitors as Array<Monitor>}
+                      hosts={values.hosts as Array<Host>}
+                      kubernetesClusters={
+                        values.kubernetesClusters as Array<KubernetesCluster>
+                      }
+                      dockerHosts={values.dockerHosts as Array<DockerHost>}
+                      podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                      services={values.services as Array<Service>}
+                      onChange={(payload: unknown) => {
+                        elementProps.onChange?.(payload);
+                      }}
+                    />
+                  );
+                },
+                onChange: (
+                  value: unknown,
+                  currentValues: FormValues<ScheduledMaintenance>,
+                  setNewFormValues: (
+                    values: FormValues<ScheduledMaintenance>,
+                  ) => void,
+                ) => {
+                  if (isAffectedResourcesPayload(value)) {
+                    const payload: typeof value = value;
+                    queueMicrotask(() => {
+                      setNewFormValues({
+                        ...currentValues,
+                        monitors: payload.monitors,
+                        hosts: payload.hosts,
+                        kubernetesClusters: payload.kubernetesClusters,
+                        dockerHosts: payload.dockerHosts,
+                        podmanHosts: payload.podmanHosts,
+                        services: payload.services,
+                      } as FormValues<ScheduledMaintenance>);
+                    });
+                  }
+                },
+              },
+              /*
+               * Hidden registrations so ModelForm.getSelectFields includes
+               * hosts/kubernetesClusters/dockerHosts/services on load and submit.
+               */
+              {
+                field: { hosts: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { kubernetesClusters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { dockerHosts: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { podmanHosts: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { services: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+            ]}
+            modelDetailProps={{
+              showDetailsInNumberOfColumns: 1,
+              modelType: ScheduledMaintenance,
+              id: "model-detail-scheduled-maintenance-affected-resources",
+              fields: [
+                {
+                  field: {
+                    monitors: {
+                      name: true,
+                      _id: true,
+                    },
+                    hosts: {
+                      name: true,
+                      _id: true,
+                    },
+                    kubernetesClusters: {
+                      name: true,
+                      _id: true,
+                    },
+                    dockerHosts: {
+                      name: true,
+                      _id: true,
+                    },
+                    podmanHosts: {
+                      name: true,
+                      _id: true,
+                    },
+                    services: {
+                      name: true,
+                      _id: true,
+                      serviceColor: true,
+                    },
+                  },
+                  title: "",
+                  fieldType: FieldType.Element,
+                  getElement: (item: ScheduledMaintenance): ReactElement => {
+                    return (
+                      <AffectedResourcesDisplay
+                        monitors={item.monitors || []}
+                        hosts={item.hosts || []}
+                        kubernetesClusters={item.kubernetesClusters || []}
+                        dockerHosts={item.dockerHosts || []}
+                        podmanHosts={item.podmanHosts || []}
+                        services={item.services || []}
+                      />
+                    );
+                  },
+                },
+              ],
+              modelId: modelId,
+            }}
+          />
+        </div>
+      </div>
     </Fragment>
   );
 };

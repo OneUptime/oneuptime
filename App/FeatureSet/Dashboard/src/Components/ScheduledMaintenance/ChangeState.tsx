@@ -20,14 +20,22 @@ import API from "Common/UI/Utils/API/API";
 import Exception from "Common/Types/Exception/Exception";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ProgressButtons from "Common/UI/Components/ProgressButtons/ProgressButtons";
 import { Black } from "Common/Types/BrandColors";
 import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import OneUptimeDate from "Common/Types/Date";
+import IconProp from "Common/Types/Icon/IconProp";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import EventStatusPanel, {
+  EventStateAction,
+  EventStateItem,
+} from "../EventView/EventStatusPanel";
 
 export interface ComponentProps {
   scheduledMaintenanceId: ObjectID;
   onActionComplete: () => void;
+  eventStartsAt?: Date | undefined;
+  eventEndsAt?: Date | undefined;
 }
 
 const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
@@ -134,6 +142,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
           select: {
             _id: true,
             scheduledMaintenanceStateId: true,
+            startsAt: true,
           },
           sort: {
             startsAt: SortOrder.Ascending,
@@ -207,32 +216,169 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
-  return (
-    <div className="-ml-3 mt-1">
-      <ProgressButtons
-        id="scheduledMaintenance-state-progress-buttons"
-        completedStepId={currentScheduledMaintenanceState?.id?.toString() || ""}
-        onStepClick={(stepId: string) => {
-          const scheduledMaintenanceState:
-            | ScheduledMaintenanceState
-            | undefined = scheduledMaintenanceStates.find(
-            (state: ScheduledMaintenanceState) => {
-              return state.id?.toString() === stepId;
-            },
-          );
+  const currentStateIndex: number = scheduledMaintenanceStates.findIndex(
+    (state: ScheduledMaintenanceState) => {
+      return (
+        state.id?.toString() ===
+        currentScheduledMaintenanceState?.id?.toString()
+      );
+    },
+  );
 
-          setSelectedScheduledMaintenanceState(scheduledMaintenanceState);
-          setShowModal(true);
-        }}
-        progressButtonItems={scheduledMaintenanceStates.map(
-          (state: ScheduledMaintenanceState) => {
+  const ongoingStateIndex: number = scheduledMaintenanceStates.findIndex(
+    (state: ScheduledMaintenanceState) => {
+      return Boolean(state.isOngoingState);
+    },
+  );
+
+  const ongoingState: ScheduledMaintenanceState | undefined =
+    scheduledMaintenanceStates.find((state: ScheduledMaintenanceState) => {
+      return Boolean(state.isOngoingState);
+    });
+
+  const endState: ScheduledMaintenanceState | undefined =
+    scheduledMaintenanceStates.find((state: ScheduledMaintenanceState) => {
+      return Boolean(state.isEndedState);
+    }) ||
+    scheduledMaintenanceStates.find((state: ScheduledMaintenanceState) => {
+      return Boolean(state.isResolvedState);
+    });
+
+  const isCurrentStateEnded: boolean =
+    Boolean(currentScheduledMaintenanceState?.isEndedState) ||
+    Boolean(currentScheduledMaintenanceState?.isResolvedState);
+
+  const isCurrentStateOngoing: boolean = Boolean(
+    currentScheduledMaintenanceState?.isOngoingState,
+  );
+
+  const isCurrentStateScheduled: boolean =
+    Boolean(currentScheduledMaintenanceState?.isScheduledState) ||
+    (currentStateIndex >= 0 &&
+      ongoingStateIndex >= 0 &&
+      currentStateIndex < ongoingStateIndex);
+
+  const actions: Array<EventStateAction> = [];
+
+  if (!isCurrentStateEnded) {
+    if (isCurrentStateScheduled) {
+      if (ongoingState) {
+        actions.push({
+          stateId: ongoingState.id?.toString() || "",
+          label: "Mark as " + (ongoingState.name || "Ongoing"),
+          icon: IconProp.Clock,
+          buttonStyle: ButtonStyleType.PRIMARY,
+          id: "sm-mark-ongoing-btn",
+        });
+      }
+
+      if (endState) {
+        actions.push({
+          stateId: endState.id?.toString() || "",
+          label: "Mark as " + (endState.name || "Complete"),
+          icon: IconProp.CheckCircle,
+          buttonStyle: ButtonStyleType.OUTLINE,
+          id: "sm-mark-complete-btn",
+        });
+      }
+    } else if (isCurrentStateOngoing && endState) {
+      actions.push({
+        stateId: endState.id?.toString() || "",
+        label: "Mark as " + (endState.name || "Complete"),
+        icon: IconProp.CheckCircle,
+        buttonStyle: ButtonStyleType.PRIMARY,
+        id: "sm-mark-complete-btn",
+      });
+    }
+  }
+
+  const getLastTimelineStartsAtForState: (
+    state: ScheduledMaintenanceState | undefined,
+  ) => Date | undefined = (
+    state: ScheduledMaintenanceState | undefined,
+  ): Date | undefined => {
+    if (!state) {
+      return undefined;
+    }
+
+    let lastStartsAt: Date | undefined = undefined;
+
+    for (const timeline of scheduledMaintenanceStateTimelines) {
+      if (
+        timeline.scheduledMaintenanceStateId?.toString() ===
+          state.id?.toString() &&
+        timeline.startsAt
+      ) {
+        lastStartsAt = timeline.startsAt;
+      }
+    }
+
+    return lastStartsAt;
+  };
+
+  let durationPrefix: string | undefined = undefined;
+  let durationStartsAt: Date | undefined = undefined;
+  let durationEndsAt: Date | undefined = undefined;
+
+  if (
+    isCurrentStateScheduled &&
+    props.eventStartsAt &&
+    OneUptimeDate.isInTheFuture(props.eventStartsAt)
+  ) {
+    durationPrefix = "Starts in";
+    durationStartsAt = props.eventStartsAt;
+  } else if (isCurrentStateOngoing) {
+    const inProgressSince: Date | undefined =
+      getLastTimelineStartsAtForState(ongoingState) || props.eventStartsAt;
+
+    if (inProgressSince) {
+      durationPrefix = "In progress for";
+      durationStartsAt = inProgressSince;
+    }
+  } else if (isCurrentStateEnded) {
+    const windowStartedAt: Date | undefined =
+      props.eventStartsAt || scheduledMaintenanceStateTimelines[0]?.startsAt;
+    const completedAt: Date | undefined =
+      getLastTimelineStartsAtForState(endState) || props.eventEndsAt;
+
+    if (windowStartedAt && completedAt) {
+      durationPrefix = "Completed in";
+      durationStartsAt = windowStartedAt;
+      durationEndsAt = completedAt;
+    }
+  }
+
+  const openModalForState: (stateId: string) => void = (
+    stateId: string,
+  ): void => {
+    const scheduledMaintenanceState: ScheduledMaintenanceState | undefined =
+      scheduledMaintenanceStates.find((state: ScheduledMaintenanceState) => {
+        return state.id?.toString() === stateId;
+      });
+
+    setSelectedScheduledMaintenanceState(scheduledMaintenanceState);
+    setShowModal(true);
+  };
+
+  return (
+    <div className="mb-5">
+      <EventStatusPanel
+        states={scheduledMaintenanceStates.map(
+          (state: ScheduledMaintenanceState): EventStateItem => {
             return {
               id: state.id?.toString() || "",
-              title: state.name || "",
+              name: state.name || "",
               color: state.color || Black,
             };
           },
         )}
+        currentStateId={currentScheduledMaintenanceState?.id?.toString()}
+        durationPrefix={durationPrefix}
+        durationStartsAt={durationStartsAt}
+        durationEndsAt={durationEndsAt}
+        actions={actions}
+        onActionClick={openModalForState}
+        onStateSelect={openModalForState}
       />
 
       {showModal && (
@@ -245,14 +391,14 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
             selectedScheduledMaintenanceState?.name
           }
           description={
-            "You are about to mark this scheduled maintenance as " +
-            selectedScheduledMaintenanceState?.name +
-            "."
+            "This updates the event timeline. You can add an optional public note for status page subscribers."
           }
           onClose={() => {
             setShowModal(false);
           }}
-          submitButtonText="Save"
+          submitButtonText={
+            "Mark as " + (selectedScheduledMaintenanceState?.name || "")
+          }
           onBeforeCreate={async (model: ScheduledMaintenanceStateTimeline) => {
             const projectId: ObjectID | undefined | null =
               ProjectUtil.getCurrentProject()?.id;
@@ -268,7 +414,9 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
 
             return model;
           }}
-          onSuccess={(model: ScheduledMaintenanceStateTimeline) => {
+          onSuccess={async (
+            model: ScheduledMaintenanceStateTimeline,
+          ): Promise<void> => {
             //get scheduledMaintenance state and update current scheduledMaintenance state
             const scheduledMaintenanceState:
               | ScheduledMaintenanceState
@@ -284,6 +432,13 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
             setCurrentScheduledMaintenanceState(scheduledMaintenanceState);
 
             setShowModal(false);
+
+            try {
+              await fetchScheduledMaintenanceStateTimelines();
+            } catch (err: unknown) {
+              setError(API.getFriendlyMessage(err as Exception));
+            }
+
             props.onActionComplete();
           }}
           formProps={{

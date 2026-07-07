@@ -785,9 +785,18 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           <ConfirmModal
             title={`No Incident Templates`}
             description={`No incident templates have been created yet. You can create these in Project Settings > Incident Templates.`}
-            submitButtonText={"Close"}
+            submitButtonText={"Create Template"}
             onSubmit={() => {
-              return setShowIncidentTemplateModal(false);
+              setShowIncidentTemplateModal(false);
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES] as Route,
+                ),
+              );
+            }}
+            closeButtonText={"Close"}
+            onClose={() => {
+              setShowIncidentTemplateModal(false);
             }}
           />
         )}
