@@ -227,6 +227,12 @@ function EventTriage<
         modelType: config.timelineModelType,
       });
       await fetchData();
+      const label: string = config.getNumberLabel(item) || "Record";
+      ShowToastNotification({
+        title: `${label} ${verb === "resolve" ? "resolved" : "acknowledged"}`,
+        description: "",
+        type: ToastType.SUCCESS,
+      });
     } catch (err) {
       ShowToastNotification({
         title: `Couldn't ${verb}`,
@@ -393,7 +399,7 @@ function EventTriage<
                     setSelectedIndex(index);
                   }
                 }}
-                className={`flex cursor-pointer items-center gap-3 border-b border-gray-100 px-3 py-2 text-sm last:border-b-0 ${
+                className={`group flex cursor-pointer items-center gap-3 border-b border-gray-100 px-3 py-2 text-sm last:border-b-0 ${
                   isSelected ? "bg-indigo-50" : "hover:bg-gray-50"
                 }`}
               >
@@ -416,6 +422,32 @@ function EventTriage<
                   {config.getCreatedAt(item)
                     ? OneUptimeDate.fromNow(config.getCreatedAt(item)!)
                     : ""}
+                </span>
+                <span className="flex flex-shrink-0 items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                  <button
+                    type="button"
+                    title="Acknowledge (a)"
+                    disabled={actionInFlight}
+                    onClick={(e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      acknowledge(item);
+                    }}
+                    className="rounded p-1 text-gray-400 hover:bg-white hover:text-gray-700 disabled:opacity-50"
+                  >
+                    <Icon icon={IconProp.Check} className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    title="Resolve (r)"
+                    disabled={actionInFlight}
+                    onClick={(e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      resolve(item);
+                    }}
+                    className="rounded p-1 text-gray-400 hover:bg-white hover:text-gray-700 disabled:opacity-50"
+                  >
+                    <Icon icon={IconProp.CheckCircle} className="h-4 w-4" />
+                  </button>
                 </span>
               </div>
             );
