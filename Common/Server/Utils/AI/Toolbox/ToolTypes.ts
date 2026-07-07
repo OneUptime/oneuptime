@@ -116,6 +116,40 @@ export class ToolArgs {
   }
 
   /*
+   * Combines the caller's optional serviceId filter with the user's owned-scope
+   * access (from ModelPermission.getAccessibleServiceIdsForAnalyticsModel) into
+   * the `serviceIds` filter to hand an aggregation service.
+   *
+   * `allowed === null` means the user has project-wide access: pass only the
+   * caller's own filter (or undefined for no filter). Otherwise the user is
+   * label/owned-restricted: intersect with any requested service and NEVER
+   * return undefined or an empty array — an empty result is forced to a
+   * no-match sentinel, because the aggregation services treat a missing/empty
+   * serviceIds as "no filter" (which would leak the whole project).
+   */
+  public static scopeServiceIds(
+    allowed: Array<ObjectID> | null,
+    requested: ObjectID | undefined,
+  ): Array<ObjectID> | undefined {
+    if (allowed === null) {
+      return requested ? [requested] : undefined;
+    }
+
+    let effective: Array<ObjectID> = allowed;
+    if (requested) {
+      effective = allowed.filter((id: ObjectID) => {
+        return id.toString() === requested.toString();
+      });
+    }
+
+    if (effective.length === 0) {
+      return [ObjectID.getZeroObjectID()];
+    }
+
+    return effective;
+  }
+
+  /*
    * Time range for a tool call: explicit ISO startTime/endTime arguments,
    * clamped to a maximum window, defaulting to the last hour.
    */
