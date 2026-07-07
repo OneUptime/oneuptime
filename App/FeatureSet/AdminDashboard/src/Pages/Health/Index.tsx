@@ -115,8 +115,10 @@ const HealthOverview: FunctionComponent = (): ReactElement => {
   const clickhouseDiskNodes: JSONArray = (clickhouse["diskByNode"] ||
     []) as JSONArray;
 
-  // Raw cluster-wide aggregate — used only as a single-bar fallback (older backend
-  // or per-node query unavailable).
+  /*
+   * Raw cluster-wide aggregate — used only as a single-bar fallback (older backend
+   * or per-node query unavailable).
+   */
   const chDiskTotal: number | null = toNumberOrNull(
     clickhouse["diskTotalInBytes"],
   );
