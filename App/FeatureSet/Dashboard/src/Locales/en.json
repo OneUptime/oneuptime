@@ -97,7 +97,7 @@
       "workflowsDescription": "No-code automation builder.",
       "runbooksTitle": "Runbooks",
       "runbooksDescription": "Reusable response procedures: manual checklists or scripts.",
-      "aiChatTitle": "AI Copilot",
+      "aiChatTitle": "AI Chat",
       "aiChatDescription": "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
       "aiAgentsTitle": "Agents",
       "aiAgentsDescription": "AI agents and MCP server.",

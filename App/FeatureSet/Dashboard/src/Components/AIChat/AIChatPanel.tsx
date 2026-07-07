@@ -148,14 +148,14 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
               <div className="truncate text-xs text-gray-400">
                 {chat.isWorking
                   ? "Investigating your data…"
-                  : "Your observability copilot"}
+                  : "Your observability assistant"}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-0.5">
             <button
               type="button"
-              title="Open in full Copilot"
+              title="Open in full page"
               onClick={openFullCopilot}
               className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
             >

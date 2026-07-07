@@ -18,9 +18,9 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
 /*
  * Meaningful, non-redundant page header copy. The title is the feature name;
  * the description stays high level (the chat card below already lists the data
- * types it queries), leading with what the copilot does — answer and act.
+ * types it queries), leading with what the assistant does — answer and act.
  */
-const AI_COPILOT_DESCRIPTION: string =
+const AI_CHAT_DESCRIPTION: string =
   "Ask across your observability data and act on what you find — answers cite the real queries behind them, and actions run with your approval.";
 
 /*
@@ -60,7 +60,7 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
   );
 
   return (
-    <Page title="AI Copilot" description={AI_COPILOT_DESCRIPTION}>
+    <Page title="AI Chat" description={AI_CHAT_DESCRIPTION}>
       <div
         className="flex overflow-hidden rounded-2xl border border-gray-200 bg-white"
         style={{ height: "calc(100vh - 220px)", minHeight: "560px" }}
@@ -153,7 +153,7 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 <div className="truncate text-sm font-semibold text-gray-900">
                   {chat.isConversationView
                     ? chat.activeConversationTitle
-                    : "AI Copilot"}
+                    : "AI Chat"}
                 </div>
                 <div className="truncate text-xs text-gray-400">
                   {chat.isWorking

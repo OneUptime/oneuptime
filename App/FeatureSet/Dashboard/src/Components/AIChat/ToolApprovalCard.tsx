@@ -151,7 +151,7 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
             </div>
             <div className="text-xs font-semibold text-amber-800">
               {props.interactive
-                ? `The copilot wants to perform ${pending.length} action${
+                ? `The AI wants to perform ${pending.length} action${
                     pending.length === 1 ? "" : "s"
                   }`
                 : "Waiting for approval"}

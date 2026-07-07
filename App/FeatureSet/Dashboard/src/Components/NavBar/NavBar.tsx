@@ -170,7 +170,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     },
     // AI
     {
-      title: t("navbar.items.aiChatTitle", "AI Copilot"),
+      title: t("navbar.items.aiChatTitle", "AI Chat"),
       description: t(
         "navbar.items.aiChatDescription",
         "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
