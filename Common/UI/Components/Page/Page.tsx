@@ -10,6 +10,12 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
   title?: string | undefined;
+  /*
+   * Optional one-line subtitle rendered under the title. Use it to say what the
+   * page is for when the title alone is not self-explanatory. Kept optional so
+   * existing pages that carry their description in a content card are unchanged.
+   */
+  description?: string | undefined;
   breadcrumbLinks?: Array<Link> | undefined;
   children: Array<ReactElement> | ReactElement;
   sideMenu?: undefined | ReactElement;
@@ -25,6 +31,9 @@ const Page: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { translateString } = useTranslateValue();
   const translatedTitle: string | undefined = translateString(props.title);
+  const translatedDescription: string | undefined = translateString(
+    props.description,
+  );
 
   useEffect(() => {
     if (props.breadcrumbLinks && props.breadcrumbLinks.length > 0) {
@@ -92,6 +101,11 @@ const Page: FunctionComponent<ComponentProps> = (
                   <h1 className="text-xl font-semibold leading-7 text-gray-900 sm:text-xl sm:tracking-tight sm:truncate">
                     {translatedTitle}
                   </h1>
+                  {translatedDescription && (
+                    <p className="max-w-3xl text-sm leading-6 text-gray-500">
+                      {translatedDescription}
+                    </p>
+                  )}
                 </div>
                 {props.headerRight && (
                   <div className="flex flex-wrap items-center sm:justify-end gap-3">

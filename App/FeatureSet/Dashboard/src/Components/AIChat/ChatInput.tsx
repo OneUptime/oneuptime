@@ -55,9 +55,11 @@ const ChatInput: FunctionComponent<ComponentProps> = (
     textareaRef.current?.focus();
   };
 
+  const isSendable: boolean = Boolean(props.value.trim()) && props.canSend;
+
   return (
-    <div className="border-t border-gray-100 bg-white px-4 pb-3 pt-3">
-      <div className="flex items-end gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm transition-shadow focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-100">
+    <div className="border-t border-gray-200 bg-white px-4 pb-4 pt-3">
+      <div className="flex items-end gap-2 rounded-2xl border border-gray-200 bg-white px-3.5 py-2.5 transition-all focus-within:border-gray-300 focus-within:ring-4 focus-within:ring-gray-900/[0.04]">
         <textarea
           ref={textareaRef}
           rows={1}
@@ -78,18 +80,18 @@ const ChatInput: FunctionComponent<ComponentProps> = (
               trySend();
             }
           }}
-          className="max-h-40 flex-1 resize-none border-0 bg-transparent p-0 text-sm leading-6 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-0"
+          className="max-h-40 flex-1 resize-none border-0 bg-transparent p-0 text-sm leading-6 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
         />
         <button
           type="button"
           title="Send (Enter)"
-          disabled={!props.value.trim() || !props.canSend}
+          disabled={!isSendable}
           onClick={() => {
             trySend();
           }}
           className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors ${
-            props.value.trim() && props.canSend
-              ? "bg-indigo-600 text-white shadow-sm hover:bg-indigo-700"
+            isSendable
+              ? "bg-gray-900 text-white hover:bg-gray-800"
               : "bg-gray-100 text-gray-300"
           }`}
         >
@@ -100,21 +102,22 @@ const ChatInput: FunctionComponent<ComponentProps> = (
           )}
         </button>
       </div>
-      <div className="mt-1.5 flex items-center justify-between gap-2 px-1 text-[10px] text-gray-300">
-        <div className="flex min-w-0 items-center gap-2">
-          {props.leading ? (
-            props.leading
-          ) : (
-            <span>
-              <span className="font-medium text-gray-400">Enter</span> to send ·{" "}
-              <span className="font-medium text-gray-400">Shift + Enter</span>{" "}
-              for a new line
-            </span>
-          )}
+      <div className="mt-2.5 space-y-2 px-1">
+        {/*
+         * Controls (model + permission pickers) get their own row so they can
+         * breathe and never collide with the hint text on narrow surfaces.
+         */}
+        {props.leading}
+        <div className="flex items-center justify-between gap-2 text-[11px] text-gray-400">
+          <span className="min-w-0 truncate">
+            <span className="font-medium text-gray-500">Enter</span> to send ·{" "}
+            <span className="font-medium text-gray-500">Shift + Enter</span> for
+            a new line
+          </span>
+          <span className="hidden flex-shrink-0 sm:inline">
+            Every answer cites its queries
+          </span>
         </div>
-        <span className="flex-shrink-0">
-          Read-only · every answer cites its queries
-        </span>
       </div>
     </div>
   );

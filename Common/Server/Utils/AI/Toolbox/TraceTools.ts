@@ -6,12 +6,16 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
-import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
+import {
+  AIChatCitationTargetType,
+  AIChatWidgetSpan,
+} from "../../../../Types/AI/AIChatTypes";
 import SpanService from "../../../Services/SpanService";
 import TraceAggregationService, {
   TraceAnalyticsTableRow,
 } from "../../../Services/TraceAggregationService";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
+import WidgetBuilder from "./WidgetBuilder";
 import {
   ObservabilityTool,
   TimeRangeSchemaProperties,
@@ -201,6 +205,24 @@ export const QueryTracesTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
+      widget:
+        rows.length > 0
+          ? WidgetBuilder.table({
+              title: `Trace analytics by ${groupBy}`,
+              description: `Ranked by ${metric} · ${startTime.toISOString()} – ${endTime.toISOString()}`,
+              columns: [
+                { key: groupBy, title: groupBy, type: "text" },
+                { key: "count", title: "Count", type: "number" },
+                { key: "errorCount", title: "Errors", type: "number" },
+                { key: "avgMs", title: "Avg (ms)", type: "number" },
+                { key: "p90Ms", title: "p90 (ms)", type: "number" },
+                { key: "p95Ms", title: "p95 (ms)", type: "number" },
+                { key: "p99Ms", title: "p99 (ms)", type: "number" },
+              ],
+              rows: rows,
+              link: { type: AIChatCitationTargetType.Traces },
+            })
+          : undefined,
     };
   },
 };
@@ -313,6 +335,45 @@ export const GetTraceTool: ObservabilityTool = {
       spans.length,
     );
 
+    /*
+     * Build the waterfall widget: each span's start is expressed as an offset in
+     * ms from the earliest span start (the trace start), so the renderer can lay
+     * out proportional bars without any wall-clock math.
+     */
+    let traceStartNano: number | undefined = undefined;
+    let traceEndNano: number = 0;
+    for (const span of spans) {
+      const start: number = Number(span.startTimeUnixNano);
+      const end: number = start + Number(span.durationUnixNano);
+      if (traceStartNano === undefined || start < traceStartNano) {
+        traceStartNano = start;
+      }
+      if (end > traceEndNano) {
+        traceEndNano = end;
+      }
+    }
+
+    const nanoToMs: (nano: number) => number = (nano: number): number => {
+      return Math.round((nano / 1_000_000) * 100) / 100;
+    };
+
+    const widgetSpans: Array<AIChatWidgetSpan> = spans.map((span: Span) => {
+      const start: number = Number(span.startTimeUnixNano);
+      return {
+        spanId: span.spanId?.toString() || "",
+        parentSpanId: span.parentSpanId?.toString() || undefined,
+        name: span.name || "(unnamed span)",
+        startOffsetMs: nanoToMs(start - (traceStartNano ?? start)),
+        durationMs: nanoToMs(Number(span.durationUnixNano)),
+        isError: Number(span.statusCode) === 2,
+      };
+    });
+
+    const totalDurationMs: number =
+      traceStartNano !== undefined
+        ? nanoToMs(traceEndNano - traceStartNano)
+        : 0;
+
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
@@ -323,6 +384,19 @@ export const GetTraceTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated || isSpanLimitHit,
+      widget:
+        widgetSpans.length > 0
+          ? WidgetBuilder.traceWaterfall({
+              title: `Trace waterfall (${spans.length}${isSpanLimitHit ? "+" : ""} spans)`,
+              description: `${totalDurationMs} ms total`,
+              spans: widgetSpans,
+              totalDurationMs: totalDurationMs,
+              link: {
+                type: AIChatCitationTargetType.TraceView,
+                params: { traceId: traceId },
+              },
+            })
+          : undefined,
     };
   },
 };

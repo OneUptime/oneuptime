@@ -26,6 +26,11 @@ const friendlyToolNames: { [key: string]: string } = {
   query_traces: "Analyzing traces",
   get_trace: "Reading trace",
   lookup_context: "Resolving names",
+  create_incident: "Creating incident",
+  acknowledge_incident: "Acknowledging incident",
+  resolve_incident: "Resolving incident",
+  acknowledge_alert: "Acknowledging alert",
+  resolve_alert: "Resolving alert",
 };
 
 function friendlyToolName(toolName: string | undefined): string {
@@ -120,27 +125,27 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
   const visibleSteps: Array<ActivityStep> = steps.slice(-1 * maxVisibleSteps);
 
   return (
-    <div className="flex gap-2.5">
-      <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-sm">
-        <Icon icon={IconProp.Sparkles} className="h-4 w-4 text-white" />
+    <div className="flex gap-3.5">
+      <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-gray-900">
+        <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5 text-white" />
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="rounded-2xl rounded-tl-sm border border-indigo-100 bg-white px-4 py-3 shadow-sm">
+        <div className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500"></span>
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gray-400 opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-gray-500"></span>
             </span>
-            <span className="text-sm font-medium text-indigo-700">
+            <span className="text-sm font-medium text-gray-700">
               Investigating…
             </span>
           </div>
 
           {visibleSteps.length > 0 && (
-            <div className="mt-3 space-y-1.5 border-t border-gray-50 pt-3">
+            <div className="mt-3 space-y-1.5 border-t border-gray-200/70 pt-3">
               {hiddenStepCount > 0 && (
-                <div className="text-[11px] text-gray-300">
+                <div className="text-[11px] text-gray-400">
                   + {hiddenStepCount} earlier{" "}
                   {hiddenStepCount === 1 ? "step" : "steps"}
                 </div>
@@ -152,7 +157,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
                     className="flex items-center gap-2 text-xs"
                   >
                     {step.status === "running" && (
-                      <span className="h-3 w-3 flex-shrink-0 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600"></span>
+                      <span className="h-3 w-3 flex-shrink-0 animate-spin rounded-full border-2 border-gray-200 border-t-gray-600"></span>
                     )}
                     {step.status === "done" && (
                       <Icon
@@ -177,7 +182,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
                       {step.status === "running" ? "…" : ""}
                     </span>
                     {step.detail && (
-                      <span className="text-gray-300">· {step.detail}</span>
+                      <span className="text-gray-400">· {step.detail}</span>
                     )}
                   </div>
                 );

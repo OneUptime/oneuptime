@@ -21,6 +21,14 @@ import SubscriptionPlan, {
 import { IsBillingEnabled, getAllEnvVars } from "../EnvironmentConfig";
 import AIChatMessageRole from "../../Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "../../Types/AI/AIChatMessageStatus";
+import AIChatPermissionMode, {
+  AIChatPermissionModeHelper,
+} from "../../Types/AI/AIChatPermissionMode";
+import {
+  AIChatToolAction,
+  AIChatToolActionStatus,
+} from "../../Types/AI/AIChatTypes";
+import { JSONArray, JSONObject } from "../../Types/JSON";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIConversation from "../../Models/DatabaseModels/AIConversation";
@@ -33,7 +41,10 @@ import AIRunService from "../Services/AIRunService";
 import ProjectService from "../Services/ProjectService";
 import LlmProviderService from "../Services/LlmProviderService";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
-import ChatAgentRunner from "../Utils/AI/Chat/ChatAgentRunner";
+import ChatAgentRunner, {
+  ResumeToolDecision,
+} from "../Utils/AI/Chat/ChatAgentRunner";
+import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
 
 const MAX_USER_MESSAGE_LENGTH: number = 8000;
@@ -121,6 +132,17 @@ router.post(
         }
       }
 
+      /*
+       * Optional per-conversation permission mode chosen in the composer
+       * (AskForApproval | AutoRun | ReadOnly). Like the provider, it is sticky:
+       * persisted on the conversation and reused across turns. Invalid values
+       * are ignored (fall through to the conversation's current mode / default).
+       */
+      const requestedPermissionMode: AIChatPermissionMode | undefined =
+        AIChatPermissionModeHelper.isValid(req.body["permissionMode"] as string)
+          ? (req.body["permissionMode"] as AIChatPermissionMode)
+          : undefined;
+
       // Plan gate: custom endpoints get no automatic billing check.
       if (
         IsBillingEnabled &&
@@ -192,6 +214,10 @@ router.post(
        */
       let effectiveLlmProviderId: ObjectID | undefined = requestedLlmProviderId;
 
+      // Same stickiness for the permission mode; default is AskForApproval.
+      let effectivePermissionMode: AIChatPermissionMode =
+        requestedPermissionMode || AIChatPermissionModeHelper.getDefault();
+
       if (req.body["conversationId"]) {
         conversationId = new ObjectID(req.body["conversationId"] as string);
 
@@ -199,7 +225,7 @@ router.post(
         const conversation: AIConversation | null =
           await AIConversationService.findOneById({
             id: conversationId,
-            select: { _id: true, llmProviderId: true },
+            select: { _id: true, llmProviderId: true, permissionMode: true },
             props: props,
           });
 
@@ -225,19 +251,45 @@ router.post(
         effectiveLlmProviderId =
           requestedLlmProviderId || conversation.llmProviderId;
 
-        const runningRunsInConversation: number = (
+        effectivePermissionMode = AIChatPermissionModeHelper.parse(
+          requestedPermissionMode || conversation.permissionMode,
+        );
+
+        if (
+          requestedPermissionMode &&
+          requestedPermissionMode !== conversation.permissionMode
+        ) {
+          // The user switched the permission mode mid-conversation — persist it.
+          await AIConversationService.updateOneById({
+            id: conversationId,
+            data: {
+              permissionMode: requestedPermissionMode,
+            } as never,
+            props: { isRoot: true },
+          });
+        }
+
+        /*
+         * Block a new send while the conversation is busy: a run is either
+         * actively generating (Running) or paused waiting for the user to
+         * approve pending actions (WaitingForApproval).
+         */
+        const busyRunsInConversation: number = (
           await AIRunService.countBy({
             query: {
               conversationId: conversationId,
-              status: AIRunStatus.Running,
+              status: QueryHelper.any([
+                AIRunStatus.Running,
+                AIRunStatus.WaitingForApproval,
+              ]),
             },
             props: { isRoot: true },
           })
         ).toNumber();
 
-        if (runningRunsInConversation > 0) {
+        if (busyRunsInConversation > 0) {
           throw new BadDataException(
-            "A response is already being generated in this conversation.",
+            "A response is already being generated (or is waiting for your approval) in this conversation.",
           );
         }
       } else {
@@ -261,6 +313,7 @@ router.post(
           id: conversationId,
           data: {
             title: content.substring(0, 90),
+            permissionMode: effectivePermissionMode,
             ...(requestedLlmProviderId
               ? { llmProviderId: requestedLlmProviderId }
               : {}),
@@ -381,6 +434,7 @@ router.post(
         assistantMessageId: createdAssistantMessage.id!,
         aiRunId: createdRun.id!,
         llmProviderId: effectiveLlmProviderId,
+        permissionMode: effectivePermissionMode,
         props: props,
       }).catch((error: Error) => {
         logger.error(`AI chat turn crashed: ${error.message}`);
@@ -450,6 +504,183 @@ router.post(
             isGlobal: provider.isGlobalLlm || false,
           };
         }),
+      });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * Responds to a paused turn's approval request: the user approves or denies the
+ * pending mutating actions, and the agent turn resumes detached. Progress then
+ * flows back through the same message/run/event polling as a normal turn.
+ */
+router.post(
+  "/ai-chat/respond-to-approval",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!props.userId) {
+        throw new NotAuthorizedException(
+          "AI chat requires a logged-in user session.",
+        );
+      }
+
+      if (!props.tenantId) {
+        throw new BadDataException("Project ID is required (tenantid header).");
+      }
+
+      const projectId: ObjectID = props.tenantId;
+      const userId: ObjectID = props.userId;
+
+      const conversationIdString: string = req.body["conversationId"] as string;
+      const assistantMessageIdString: string = req.body[
+        "assistantMessageId"
+      ] as string;
+
+      if (!conversationIdString || !assistantMessageIdString) {
+        throw new BadDataException(
+          "conversationId and assistantMessageId are required.",
+        );
+      }
+
+      const conversationId: ObjectID = new ObjectID(conversationIdString);
+      const assistantMessageId: ObjectID = new ObjectID(
+        assistantMessageIdString,
+      );
+
+      // The privacy pin makes these return null for other users' rows.
+      const conversation: AIConversation | null =
+        await AIConversationService.findOneById({
+          id: conversationId,
+          select: { _id: true, llmProviderId: true, permissionMode: true },
+          props: props,
+        });
+
+      if (!conversation) {
+        throw new BadDataException("Conversation not found.");
+      }
+
+      const message: AIConversationMessage | null =
+        await AIConversationMessageService.findOneById({
+          id: assistantMessageId,
+          select: {
+            _id: true,
+            conversationId: true,
+            status: true,
+            aiRunId: true,
+            toolActions: true,
+          },
+          props: props,
+        });
+
+      if (
+        !message ||
+        message.conversationId?.toString() !== conversationId.toString()
+      ) {
+        throw new BadDataException("Message not found.");
+      }
+
+      if (
+        message.status !== AIChatMessageStatus.WaitingForApproval ||
+        !message.aiRunId
+      ) {
+        throw new BadDataException("This message is not waiting for approval.");
+      }
+
+      const pendingActions: Array<AIChatToolAction> = (
+        message.toolActions || []
+      ).filter((action: AIChatToolAction) => {
+        return (
+          action.status === AIChatToolActionStatus.Pending &&
+          action.requiresApproval
+        );
+      });
+
+      if (pendingActions.length === 0) {
+        throw new BadDataException(
+          "There are no actions waiting for approval on this message.",
+        );
+      }
+
+      /*
+       * Decisions can be provided explicitly (per tool-call) or as a single
+       * `approved` boolean applied to every pending action (the Approve-all /
+       * Deny-all buttons). Any pending action left without a decision defaults
+       * to denied inside the runner — approvals are always explicit.
+       */
+      const decisions: Array<ResumeToolDecision> = [];
+      const bodyDecisions: JSONArray | undefined = req.body["decisions"] as
+        | JSONArray
+        | undefined;
+
+      if (Array.isArray(bodyDecisions)) {
+        for (const decision of bodyDecisions) {
+          const decisionObject: JSONObject = decision as JSONObject;
+          const toolCallId: string = decisionObject["toolCallId"] as string;
+          if (toolCallId) {
+            decisions.push({
+              toolCallId: toolCallId,
+              approved: decisionObject["approved"] === true,
+            });
+          }
+        }
+      } else if (typeof req.body["approved"] === "boolean") {
+        const approveAll: boolean = req.body["approved"] === true;
+        for (const action of pendingActions) {
+          decisions.push({ toolCallId: action.id, approved: approveAll });
+        }
+      } else {
+        throw new BadDataException(
+          "Provide either a `decisions` array or an `approved` boolean.",
+        );
+      }
+
+      // Confirm the run is still awaiting approval before kicking the resume.
+      const run: AIRun | null = await AIRunService.findOneById({
+        id: message.aiRunId,
+        select: { _id: true, status: true },
+        props: { isRoot: true },
+      });
+
+      if (!run || run.status !== AIRunStatus.WaitingForApproval) {
+        throw new BadDataException("This turn is no longer awaiting approval.");
+      }
+
+      const permissionMode: AIChatPermissionMode =
+        AIChatPermissionModeHelper.parse(conversation.permissionMode);
+
+      // Detach the resume; the client follows progress via the usual polling.
+      ChatAgentRunner.resumeTurn(
+        {
+          projectId: projectId,
+          userId: userId,
+          conversationId: conversationId,
+          assistantMessageId: assistantMessageId,
+          aiRunId: message.aiRunId,
+          llmProviderId: conversation.llmProviderId,
+          permissionMode: permissionMode,
+          props: props,
+        },
+        decisions,
+      ).catch((error: Error) => {
+        logger.error(`AI chat turn resume crashed: ${error.message}`);
+      });
+
+      Response.sendJsonObjectResponse(req, res, {
+        conversationId: conversationId.toString(),
+        assistantMessageId: assistantMessageId.toString(),
+        aiRunId: message.aiRunId.toString(),
       });
       return;
     } catch (err) {

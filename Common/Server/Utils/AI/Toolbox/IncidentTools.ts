@@ -8,6 +8,7 @@ import IncidentService from "../../../Services/IncidentService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import OneUptimeDate from "../../../../Types/Date";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
+import WidgetBuilder from "./WidgetBuilder";
 import {
   ObservabilityTool,
   ToolArgs,
@@ -96,6 +97,17 @@ export const QueryIncidentsTool: ObservabilityTool = {
         },
         redactionCount: serialized.redactionCount,
         isTruncated: serialized.isTruncated,
+        widget:
+          rows.length > 0
+            ? WidgetBuilder.incidentList({
+                title: `Incident #${incident?.incidentNumber ?? ""}`.trim(),
+                items: rows,
+                link: {
+                  type: AIChatCitationTargetType.IncidentView,
+                  params: { incidentId: incidentId.toString() },
+                },
+              })
+            : undefined,
       };
     }
 
@@ -163,6 +175,15 @@ export const QueryIncidentsTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
+      widget:
+        rows.length > 0
+          ? WidgetBuilder.incidentList({
+              title: `Incidents (${rows.length})`,
+              description: `Created in the last ${createdWithinHours}h`,
+              items: rows,
+              link: { type: AIChatCitationTargetType.Incidents },
+            })
+          : undefined,
     };
   },
 };

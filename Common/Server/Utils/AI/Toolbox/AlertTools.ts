@@ -8,6 +8,7 @@ import AlertService from "../../../Services/AlertService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import OneUptimeDate from "../../../../Types/Date";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
+import WidgetBuilder from "./WidgetBuilder";
 import {
   ObservabilityTool,
   ToolArgs,
@@ -93,6 +94,17 @@ export const QueryAlertsTool: ObservabilityTool = {
         },
         redactionCount: serialized.redactionCount,
         isTruncated: serialized.isTruncated,
+        widget:
+          rows.length > 0
+            ? WidgetBuilder.alertList({
+                title: `Alert #${alert?.alertNumber ?? ""}`.trim(),
+                items: rows,
+                link: {
+                  type: AIChatCitationTargetType.AlertView,
+                  params: { alertId: alertId.toString() },
+                },
+              })
+            : undefined,
       };
     }
 
@@ -160,6 +172,15 @@ export const QueryAlertsTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
+      widget:
+        rows.length > 0
+          ? WidgetBuilder.alertList({
+              title: `Alerts (${rows.length})`,
+              description: `Created in the last ${createdWithinHours}h`,
+              items: rows,
+              link: { type: AIChatCitationTargetType.Alerts },
+            })
+          : undefined,
     };
   },
 };

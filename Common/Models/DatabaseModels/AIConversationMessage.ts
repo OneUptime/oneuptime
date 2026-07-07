@@ -21,7 +21,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import AIChatMessageRole from "../../Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "../../Types/AI/AIChatMessageStatus";
-import { AIChatCitation } from "../../Types/AI/AIChatTypes";
+import {
+  AIChatCitation,
+  AIChatToolAction,
+  AIChatWidget,
+} from "../../Types/AI/AIChatTypes";
 
 /*
  * A single message in an AI conversation. Create/update table permissions are
@@ -345,6 +349,50 @@ export default class AIConversationMessage extends BaseModel {
     type: ColumnType.JSON,
   })
   public citations?: Array<AIChatCitation> = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Widgets",
+    description:
+      "Inline widgets (charts, tables, trace waterfalls, resource cards) built from this assistant message's tool results and rendered inline in the chat.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public widgets?: Array<AIChatWidget> = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Tool Actions",
+    description:
+      "Mutating actions the agent proposed or performed in this turn, with their approval status (pending, approved, denied, executed).",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public toolActions?: Array<AIChatToolAction> = undefined;
 
   @ColumnAccessControl({
     create: [],
