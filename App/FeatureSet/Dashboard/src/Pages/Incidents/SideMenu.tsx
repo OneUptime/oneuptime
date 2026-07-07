@@ -48,6 +48,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             },
           } as any,
         },
+        {
+          link: {
+            title: "Triage",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_TRIAGE] as Route,
+            ),
+          },
+          icon: IconProp.Bolt,
+        },
       ],
     },
     {

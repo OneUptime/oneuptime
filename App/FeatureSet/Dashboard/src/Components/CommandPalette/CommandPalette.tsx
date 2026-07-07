@@ -97,6 +97,15 @@ const NAV_COMMANDS: Array<NavCommandSpec> = [
     pageMapKey: PageMap.UNRESOLVED_INCIDENTS,
   },
   {
+    id: "nav-incidents-triage",
+    title: "Incident triage",
+    subtitle: "Fast keyboard triage of active incidents",
+    keywords: "incident triage queue keyboard peek acknowledge resolve",
+    icon: IconProp.Bolt,
+    group: "Navigate",
+    pageMapKey: PageMap.INCIDENT_TRIAGE,
+  },
+  {
     id: "nav-alerts",
     title: "Alerts",
     subtitle: "All alerts",

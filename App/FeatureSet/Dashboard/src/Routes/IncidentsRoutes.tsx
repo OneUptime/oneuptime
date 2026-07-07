@@ -37,6 +37,7 @@ import IncidentViewSla from "../Pages/Incidents/View/Sla";
 import IncidentInternalNote from "../Pages/Incidents/View/InternalNote";
 import IncidentPublicNote from "../Pages/Incidents/View/PublicNote";
 import UnresolvedIncidents from "../Pages/Incidents/Unresolved";
+import IncidentTriagePage from "../Pages/Incidents/Triage";
 import IncidentViewCustomFields from "../Pages/Incidents/View/CustomFields";
 import IncidentViewOwner from "../Pages/Incidents/View/Owners";
 
@@ -164,6 +165,16 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             <UnresolvedIncidents
               {...props}
               pageRoute={RouteMap[PageMap.UNRESOLVED_INCIDENTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENT_TRIAGE] || ""}
+          element={
+            <IncidentTriagePage
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_TRIAGE] as Route}
             />
           }
         />
