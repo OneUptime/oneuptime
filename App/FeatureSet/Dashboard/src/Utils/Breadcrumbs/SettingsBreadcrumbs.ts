@@ -33,6 +33,27 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Notification Logs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_LLM_PROVIDERS, [
+      "Project",
+      "Settings",
+      "LLM Providers",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW, [
+      "Project",
+      "Settings",
+      "LLM Providers",
+      "View Provider",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_CREDITS, [
+      "Project",
+      "Settings",
+      "AI Credits",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_LOGS, [
+      "Project",
+      "Settings",
+      "AI Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_DOMAINS, [
       "Project",
       "Settings",

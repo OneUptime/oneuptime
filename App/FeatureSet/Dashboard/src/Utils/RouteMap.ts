@@ -367,10 +367,6 @@ export const AIAgentTasksRoutePath: Dictionary<string> = {
   [PageMap.AI_AGENTS_MCP_SERVER]: "mcp-server",
   [PageMap.AI_AGENTS_AGENTS]: "agents",
   [PageMap.AI_AGENTS_AGENT_VIEW]: `agents/${RouteParams.ModelID}`,
-  [PageMap.AI_AGENTS_LLM_PROVIDERS]: "llm-providers",
-  [PageMap.AI_AGENTS_LLM_PROVIDER_VIEW]: `llm-providers/${RouteParams.ModelID}`,
-  [PageMap.AI_AGENTS_AI_CREDITS]: "ai-credits",
-  [PageMap.AI_AGENTS_AI_LOGS]: "ai-logs",
 };
 
 // Logs product routes
@@ -684,6 +680,10 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_NOTIFICATION_SETTINGS]: "notification-settings",
   [PageMap.SETTINGS_NOTIFICATION_LOGS]: "notification-logs",
   [PageMap.SETTINGS_MOBILE_APPS]: "mobile-apps",
+  [PageMap.SETTINGS_AI_LLM_PROVIDERS]: "llm-providers",
+  [PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW]: `llm-providers/${RouteParams.ModelID}`,
+  [PageMap.SETTINGS_AI_CREDITS]: "ai-credits",
+  [PageMap.SETTINGS_AI_LOGS]: "ai-logs",
   [PageMap.SETTINGS_APIKEYS]: `api-keys`,
   [PageMap.SETTINGS_APIKEY_VIEW]: `api-keys/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS]: `telemetry-ingestion-keys`,
@@ -4516,6 +4516,30 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SETTINGS_AI_LLM_PROVIDERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_AI_LLM_PROVIDERS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_AI_CREDITS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_AI_CREDITS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_AI_LOGS]
+    }`,
+  ),
+
   [PageMap.SETTINGS_APIKEYS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_APIKEYS]
@@ -4870,30 +4894,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.AI_AGENTS_AGENT_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ai/agents/${
       AIAgentTasksRoutePath[PageMap.AI_AGENTS_AGENT_VIEW]
-    }`,
-  ),
-
-  [PageMap.AI_AGENTS_LLM_PROVIDERS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
-      AIAgentTasksRoutePath[PageMap.AI_AGENTS_LLM_PROVIDERS]
-    }`,
-  ),
-
-  [PageMap.AI_AGENTS_LLM_PROVIDER_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
-      AIAgentTasksRoutePath[PageMap.AI_AGENTS_LLM_PROVIDER_VIEW]
-    }`,
-  ),
-
-  [PageMap.AI_AGENTS_AI_CREDITS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
-      AIAgentTasksRoutePath[PageMap.AI_AGENTS_AI_CREDITS]
-    }`,
-  ),
-
-  [PageMap.AI_AGENTS_AI_LOGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
-      AIAgentTasksRoutePath[PageMap.AI_AGENTS_AI_LOGS]
     }`,
   ),
 

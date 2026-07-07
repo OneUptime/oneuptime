@@ -24,14 +24,6 @@ import Agents from "../Pages/AIAgentTasks/Agents";
 
 import AgentView from "../Pages/AIAgentTasks/AgentView";
 
-import LlmProviders from "../Pages/AIAgentTasks/LlmProviders";
-
-import LlmProviderView from "../Pages/AIAgentTasks/LlmProviderView";
-
-import AICredits from "../Pages/AIAgentTasks/AICredits";
-
-import AILogs from "../Pages/AIAgentTasks/AILogs";
-
 const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -80,44 +72,6 @@ const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
             <AgentView
               {...props}
               pageRoute={RouteMap[PageMap.AI_AGENTS_AGENT_VIEW] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={AIAgentTasksRoutePath[PageMap.AI_AGENTS_LLM_PROVIDERS] || ""}
-          element={
-            <LlmProviders
-              {...props}
-              pageRoute={RouteMap[PageMap.AI_AGENTS_LLM_PROVIDERS] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={
-            AIAgentTasksRoutePath[PageMap.AI_AGENTS_LLM_PROVIDER_VIEW] || ""
-          }
-          element={
-            <LlmProviderView
-              {...props}
-              pageRoute={RouteMap[PageMap.AI_AGENTS_LLM_PROVIDER_VIEW] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={AIAgentTasksRoutePath[PageMap.AI_AGENTS_AI_CREDITS] || ""}
-          element={
-            <AICredits
-              {...props}
-              pageRoute={RouteMap[PageMap.AI_AGENTS_AI_CREDITS] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={AIAgentTasksRoutePath[PageMap.AI_AGENTS_AI_LOGS] || ""}
-          element={
-            <AILogs
-              {...props}
-              pageRoute={RouteMap[PageMap.AI_AGENTS_AI_LOGS] as Route}
             />
           }
         />

@@ -46,6 +46,14 @@ import SettingsMobileApps from "../Pages/Settings/MobileApps";
 import SettingsAuditLogs from "../Pages/Settings/AuditLogs";
 import SettingsAuditLogsSettings from "../Pages/Settings/AuditLogsSettings";
 
+import SettingsLlmProviders from "../Pages/Settings/LlmProviders";
+
+import SettingsLlmProviderView from "../Pages/Settings/LlmProviderView";
+
+import SettingsAICredits from "../Pages/Settings/AICredits";
+
+import SettingsAILogs from "../Pages/Settings/AILogs";
+
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -102,6 +110,51 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsMobileApps
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_MOBILE_APPS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_LLM_PROVIDERS)}
+          element={
+            <SettingsLlmProviders
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_LLM_PROVIDERS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW,
+            2,
+          )}
+          element={
+            <SettingsLlmProviderView
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_CREDITS)}
+          element={
+            <SettingsAICredits
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_CREDITS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_LOGS)}
+          element={
+            <SettingsAILogs
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_LOGS] as Route}
             />
           }
         />
