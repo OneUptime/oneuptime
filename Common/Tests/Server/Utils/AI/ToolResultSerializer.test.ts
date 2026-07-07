@@ -45,6 +45,31 @@ describe("ToolResultSerializer.redact", () => {
     expect(result.text).toContain("[redacted-hex]");
   });
 
+  test("preserves 32-char OTel trace IDs and 16-char span IDs", () => {
+    /*
+     * Exactly 32 hex = W3C/OTel trace ID; exactly 16 hex = span ID. Both must
+     * survive so the model can pivot search_logs -> get_trace.
+     */
+    const traceId: string = "4bf92f3577b34da6a3ce929d0e0e4736";
+    const spanId: string = "00f067aa0ba902b7";
+    const result: { text: string; count: number } = ToolResultSerializer.redact(
+      `traceId=${traceId} spanId=${spanId}`,
+    );
+    expect(result.text).toContain(traceId);
+    expect(result.text).toContain(spanId);
+    expect(result.text).not.toContain("[redacted-hex]");
+    expect(result.count).toBe(0);
+  });
+
+  test("still redacts hex secrets longer than a trace ID (33+ chars)", () => {
+    const sha256: string = "a".repeat(64);
+    const result: { text: string; count: number } = ToolResultSerializer.redact(
+      `digest ${sha256} verified`,
+    );
+    expect(result.text).toContain("[redacted-hex]");
+    expect(result.text).not.toContain(sha256);
+  });
+
   test("redacts key=value secrets and keeps the key via capture groups", () => {
     const result: { text: string; count: number } = ToolResultSerializer.redact(
       "config: password=supersecretvalue retries=3",

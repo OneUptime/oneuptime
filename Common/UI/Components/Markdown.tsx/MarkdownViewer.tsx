@@ -144,6 +144,14 @@ const MermaidDiagram: FunctionComponent<{ chart: string }> = ({
 
 export interface ComponentProps {
   text: string;
+  /*
+   * Hardened rendering for untrusted / LLM-generated content. When true, links
+   * render as non-clickable text and images are never fetched — both are
+   * neutralized on react-markdown's PARSED tree, so (unlike pre-processing the
+   * raw markdown with regexes) no CommonMark syntax trick can smuggle a
+   * clickable exfil link or a zero-click tracking pixel through.
+   */
+  safeMode?: boolean;
 }
 
 // Language display names
@@ -348,6 +356,9 @@ const extractTextFromChildren: (children: unknown) => string = (
 const MarkdownViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // Captured here because the component overrides below shadow `props`.
+  const safeMode: boolean = props.safeMode === true;
+
   return (
     <div className="max-w-none">
       <ReactMarkdown
@@ -409,19 +420,40 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
               />
             );
           },
-          a: ({ ...props }: any) => {
+          a: ({ children, ...props }: any) => {
+            if (safeMode) {
+              // Keep the link text, drop the href: no navigation, no exfil.
+              return (
+                <span className="underline decoration-dotted text-gray-700 font-medium">
+                  {children}
+                </span>
+              );
+            }
             return (
               <a
                 className="underline text-blue-600 hover:text-blue-800 font-medium transition-colors"
                 {...props}
-              />
+              >
+                {children}
+              </a>
             );
           },
-          img: ({ ...props }: any) => {
+          img: ({ alt, ...props }: any) => {
+            if (safeMode) {
+              /*
+               * Never emit an <img> for untrusted content — the browser would
+               * fetch its src on render (a zero-click exfil channel). Show the
+               * alt text (already plain, React-escaped) instead.
+               */
+              return alt ? (
+                <span className="text-gray-500 italic">{`[image: ${alt}]`}</span>
+              ) : null;
+            }
             return (
               <img
                 className="max-w-full h-auto rounded-md border border-gray-200 my-3"
                 loading="lazy"
+                alt={alt}
                 {...props}
               />
             );

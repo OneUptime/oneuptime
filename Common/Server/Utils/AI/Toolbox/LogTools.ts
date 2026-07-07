@@ -1,4 +1,6 @@
 import Log from "../../../../Models/AnalyticsModels/Log";
+import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
+import ModelPermission from "../../../Types/AnalyticsDatabase/ModelPermission";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import Search from "../../../../Types/BaseDatabase/Search";
@@ -200,6 +202,18 @@ export const LogHistogramTool: ObservabilityTool = {
       "serviceId",
     );
 
+    /*
+     * getHistogram builds raw aggregation SQL and skips the model layer's
+     * owned-scope filter, so a label-restricted user would otherwise see
+     * project-wide volume. Constrain to the services this user may read.
+     */
+    const accessibleServiceIds: Array<ObjectID> | null =
+      await ModelPermission.getAccessibleServiceIdsForAnalyticsModel(
+        Log,
+        ctx.props,
+        DatabaseRequestType.Read,
+      );
+
     const buckets: Array<HistogramBucket> =
       await LogAggregationService.getHistogram({
         projectId: ctx.projectId,
@@ -208,7 +222,7 @@ export const LogHistogramTool: ObservabilityTool = {
         bucketSizeInMinutes: bucketSizeInMinutes,
         severityTexts: ToolArgs.getStringArray(args, "severityTexts"),
         bodySearchText: ToolArgs.getString(args, "bodySearchText"),
-        serviceIds: serviceId ? [serviceId] : undefined,
+        serviceIds: ToolArgs.scopeServiceIds(accessibleServiceIds, serviceId),
       });
 
     const rows: Array<JSONObject> = buckets.map((bucket: HistogramBucket) => {

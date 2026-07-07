@@ -1,4 +1,6 @@
 import Span from "../../../../Models/AnalyticsModels/Span";
+import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
+import ModelPermission from "../../../Types/AnalyticsDatabase/ModelPermission";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
@@ -135,6 +137,19 @@ export const QueryTracesTool: ObservabilityTool = {
     const windowMinutes: number =
       (endTime.getTime() - startTime.getTime()) / (60 * 1000);
 
+    /*
+     * getAnalyticsTable builds raw aggregation SQL and skips the model layer's
+     * owned-scope filter, so a label-restricted user would otherwise see
+     * project-wide trace analytics. Constrain to the services this user may
+     * read (spans are owned through Service, same as logs).
+     */
+    const accessibleServiceIds: Array<ObjectID> | null =
+      await ModelPermission.getAccessibleServiceIdsForAnalyticsModel(
+        Span,
+        ctx.props,
+        DatabaseRequestType.Read,
+      );
+
     const tableRows: Array<TraceAnalyticsTableRow> =
       await TraceAggregationService.getAnalyticsTable({
         projectId: ctx.projectId,
@@ -146,7 +161,7 @@ export const QueryTracesTool: ObservabilityTool = {
         groupBy: [groupBy],
         limit: limit,
         nameSearchText: ToolArgs.getString(args, "nameSearchText"),
-        serviceIds: serviceId ? [serviceId] : undefined,
+        serviceIds: ToolArgs.scopeServiceIds(accessibleServiceIds, serviceId),
         hasException: ToolArgs.getBoolean(args, "hasException"),
         rootOnly: ToolArgs.getBoolean(args, "rootOnly"),
       });

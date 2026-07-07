@@ -200,26 +200,15 @@ export class Service extends BaseService {
 
         // Deduct from project balance
         if (totalCost > 0) {
-          const project: Project | null = await ProjectService.findOneById({
-            id: request.projectId,
-            select: { aiCurrentBalanceInUSDCents: true },
-            props: { isRoot: true },
+          /*
+           * Atomic decrement — concurrent LLM calls within and across chat
+           * turns must not lose each other's deductions (a read-modify-write
+           * here silently forgave overlapping spend).
+           */
+          await ProjectService.deductAiBalanceInUSDCents({
+            projectId: request.projectId,
+            amountInUSDCents: totalCost,
           });
-
-          if (project) {
-            const newBalance: number = Math.max(
-              0,
-              (project.aiCurrentBalanceInUSDCents || 0) - totalCost,
-            );
-
-            await ProjectService.updateOneById({
-              id: request.projectId,
-              data: {
-                aiCurrentBalanceInUSDCents: newBalance,
-              },
-              props: { isRoot: true },
-            });
-          }
 
           // Check if auto-recharge is needed (do this async, don't wait)
           AIBillingService.rechargeIfBalanceIsLow(request.projectId).catch(
