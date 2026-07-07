@@ -23,9 +23,9 @@ import { useAiChat, UseAiChat } from "./useAiChat";
 /*
  * The "Ask AI" quick launcher: a compact slide-over for fast questions from
  * anywhere in the app, opened from the header (or the AI_CHAT_TOGGLE global
- * event). It shares all of its behavior with the full-page AI Copilot via the
- * useAiChat hook, and offers a one-click "Open in Copilot" to jump to the
- * spacious full-page workspace.
+ * event). It shares all of its behavior with the full-page AI Chat via the
+ * useAiChat hook, and offers a one-click expand to jump to the spacious
+ * full-page workspace.
  */
 const AIChatPanel: FunctionComponent = (): ReactElement => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
