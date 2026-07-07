@@ -58,6 +58,11 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
       });
   };
 
+  /*
+   * Assistant output reads as clean prose on the page surface — no chat bubble.
+   * Only structured artifacts (widgets, tool approvals, citations) get their own
+   * quiet cards below the text.
+   */
   const renderAssistantBody: (
     message: AIConversationMessage,
     isWaiting: boolean,
@@ -69,13 +74,13 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
     const toolActions: Array<AIChatToolAction> = message.toolActions || [];
 
     return (
-      <div className="rounded-2xl rounded-tl-sm border border-gray-200 bg-white px-4 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+      <div className="space-y-3">
         {message.contentInMarkdown ? (
-          <div className="text-sm">
+          <div className="text-sm leading-relaxed text-gray-800">
             <SafeChatMarkdown text={message.contentInMarkdown} />
           </div>
         ) : isWaiting ? (
-          <div className="text-sm text-gray-500 dark:text-gray-400">
+          <div className="text-sm leading-relaxed text-gray-500">
             I&rsquo;d like to take the action{toolActions.length > 1 ? "s" : ""}{" "}
             below. Review and approve to continue.
           </div>
@@ -98,7 +103,7 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
         )}
 
         {message.citations && message.citations.length > 0 && (
-          <div className="mt-3 border-t border-gray-50 pt-3 dark:border-gray-800">
+          <div className="border-t border-gray-100 pt-3">
             <CitationChips citations={message.citations} />
           </div>
         )}
@@ -107,7 +112,7 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-7">
       {props.messages.map((message: AIConversationMessage) => {
         const messageId: string = message.id?.toString() || "";
         const timestamp: string = message.createdAt
@@ -116,19 +121,16 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
 
         if (message.role === AIChatMessageRole.User) {
           return (
-            <div key={messageId} className="flex justify-end gap-2.5">
-              <div className="flex max-w-md flex-col items-end">
-                <div className="whitespace-pre-wrap break-words rounded-2xl rounded-tr-sm bg-indigo-600 px-4 py-2.5 text-sm text-white shadow-sm">
+            <div key={messageId} className="flex justify-end">
+              <div className="flex max-w-[85%] flex-col items-end">
+                <div className="whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-gray-100 px-4 py-2.5 text-sm leading-relaxed text-gray-900">
                   {message.contentInMarkdown}
                 </div>
                 {timestamp && (
-                  <div className="mt-1 text-[10px] text-gray-300">
+                  <div className="mt-1.5 px-1 text-[11px] text-gray-400">
                     {timestamp}
                   </div>
                 )}
-              </div>
-              <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-semibold text-indigo-700">
-                {props.userInitials}
               </div>
             </div>
           );
@@ -152,15 +154,18 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
         }
 
         return (
-          <div key={messageId} className="flex gap-2.5">
-            <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-sm">
-              <Icon icon={IconProp.Sparkles} className="h-4 w-4 text-white" />
+          <div key={messageId} className="flex gap-3.5">
+            <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-gray-900">
+              <Icon
+                icon={IconProp.Sparkles}
+                className="h-3.5 w-3.5 text-white"
+              />
             </div>
 
             <div className="min-w-0 flex-1">
               {message.status === AIChatMessageStatus.Error && (
-                <div className="rounded-2xl rounded-tl-sm border border-red-100 bg-red-50 px-4 py-3 shadow-sm">
-                  <div className="flex items-start gap-2">
+                <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+                  <div className="flex items-start gap-2.5">
                     <Icon
                       icon={IconProp.Error}
                       className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-400"
@@ -186,11 +191,11 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
                   {renderAssistantBody(message, isWaiting)}
 
                   {message.status === AIChatMessageStatus.Completed && (
-                    <div className="mt-1 flex items-center gap-2 text-[10px] text-gray-300">
+                    <div className="mt-2.5 flex items-center gap-2.5 text-[11px] text-gray-400">
                       {timestamp && <span>{timestamp}</span>}
                       {props.latestRun &&
                         messageId === lastCompletedAssistantId && (
-                          <span>
+                          <span className="truncate">
                             {props.latestRun.totalCostInUSDCents
                               ? `· $${(props.latestRun.totalCostInUSDCents / 100).toFixed(4)} `
                               : ""}
@@ -212,7 +217,7 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
                         onClick={() => {
                           copyMessage(message);
                         }}
-                        className="flex items-center gap-1 rounded px-1 py-0.5 text-gray-300 transition-colors hover:bg-gray-100 hover:text-gray-500"
+                        className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
                       >
                         {copiedMessageId === messageId ? (
                           <>

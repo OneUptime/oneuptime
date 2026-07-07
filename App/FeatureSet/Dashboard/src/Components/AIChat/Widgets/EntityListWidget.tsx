@@ -46,12 +46,12 @@ const Badge: FunctionComponent<{ text: string; tone: string }> = ({
 function stateTone(state: string): string {
   const lower: string = state.toLowerCase();
   if (lower.includes("resolv")) {
-    return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
+    return "bg-emerald-50 text-emerald-700";
   }
   if (lower.includes("acknow")) {
-    return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
+    return "bg-amber-50 text-amber-700";
   }
-  return "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300";
+  return "bg-rose-50 text-rose-700";
 }
 
 const EntityListWidget: FunctionComponent<ComponentProps> = (
@@ -78,30 +78,30 @@ const EntityListWidget: FunctionComponent<ComponentProps> = (
           return (
             <div
               key={index}
-              className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-gray-800/40"
+              className="rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2.5"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="truncate text-xs font-semibold text-gray-800 dark:text-gray-100">
+                  <div className="truncate text-xs font-semibold text-gray-900">
                     {toStr(item["type"]) || "Exception"}
                   </div>
-                  <div className="mt-0.5 line-clamp-2 text-[11px] text-gray-500 dark:text-gray-400">
+                  <div className="mt-0.5 line-clamp-2 text-[11px] text-gray-500">
                     {toStr(item["message"])}
                   </div>
                 </div>
                 <div className="flex flex-shrink-0 flex-col items-end gap-1">
-                  <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-900/40 dark:text-rose-300">
+                  <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
                     {toStr(item["occurrences"]) || "0"}×
                   </span>
                   {item["isResolved"] ? (
                     <Badge
                       text="Resolved"
-                      tone="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                      tone="bg-emerald-50 text-emerald-700"
                     />
                   ) : null}
                 </div>
               </div>
-              <div className="mt-1 text-[10px] text-gray-400">
+              <div className="mt-1.5 text-[10px] text-gray-400">
                 Last seen {timeAgo(item["lastSeenAt"])}
               </div>
             </div>
@@ -115,16 +115,16 @@ const EntityListWidget: FunctionComponent<ComponentProps> = (
         return (
           <div
             key={index}
-            className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-gray-800/40"
+            className="rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2.5"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <div className="truncate text-xs font-semibold text-gray-800 dark:text-gray-100">
+                <div className="truncate text-xs font-semibold text-gray-900">
                   {numberField ? `#${numberField} · ` : ""}
                   {toStr(item["title"])}
                 </div>
                 {item["description"] ? (
-                  <div className="mt-0.5 line-clamp-1 text-[11px] text-gray-500 dark:text-gray-400">
+                  <div className="mt-0.5 line-clamp-1 text-[11px] text-gray-500">
                     {toStr(item["description"])}
                   </div>
                 ) : null}
@@ -144,7 +144,7 @@ const EntityListWidget: FunctionComponent<ComponentProps> = (
               </div>
             </div>
             {item["createdAt"] ? (
-              <div className="mt-1 text-[10px] text-gray-400">
+              <div className="mt-1.5 text-[10px] text-gray-400">
                 Created {timeAgo(item["createdAt"])}
               </div>
             ) : null}

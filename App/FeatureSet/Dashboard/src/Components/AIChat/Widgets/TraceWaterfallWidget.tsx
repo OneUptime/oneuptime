@@ -71,7 +71,7 @@ const TraceWaterfallWidget: FunctionComponent<ComponentProps> = (
         return (
           <div key={span.spanId || index} className="flex items-center gap-2">
             <div
-              className="min-w-0 flex-shrink-0 truncate text-[11px] text-gray-600 dark:text-gray-300"
+              className="min-w-0 flex-shrink-0 truncate text-[11px] text-gray-600"
               style={{
                 width: "42%",
                 paddingLeft: `${Math.min(depth, 8) * 10}px`,
@@ -88,7 +88,7 @@ const TraceWaterfallWidget: FunctionComponent<ComponentProps> = (
               )}
               {span.name}
             </div>
-            <div className="relative h-4 flex-1 rounded bg-gray-100 dark:bg-gray-800">
+            <div className="relative h-4 flex-1 rounded bg-gray-100">
               <div
                 className={`absolute top-0 h-4 rounded ${barColor}`}
                 style={{
@@ -98,7 +98,7 @@ const TraceWaterfallWidget: FunctionComponent<ComponentProps> = (
                 title={`${span.name} · ${span.durationMs} ms`}
               />
             </div>
-            <div className="w-16 flex-shrink-0 text-right text-[11px] tabular-nums text-gray-500 dark:text-gray-400">
+            <div className="w-16 flex-shrink-0 text-right text-[11px] tabular-nums text-gray-500">
               {span.durationMs.toLocaleString()} ms
             </div>
           </div>

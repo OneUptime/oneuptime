@@ -47,12 +47,12 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-left text-xs">
         <thead>
-          <tr className="border-b border-gray-200 text-gray-500 dark:border-gray-700 dark:text-gray-400">
+          <tr className="border-b border-gray-200 text-[11px] uppercase tracking-wide text-gray-400">
             {columns.map((column: AIChatWidgetColumn) => {
               return (
                 <th
                   key={column.key}
-                  className={`whitespace-nowrap px-2.5 py-2 font-semibold ${
+                  className={`whitespace-nowrap px-2.5 py-2 font-medium ${
                     column.type === "number" ? "text-right" : "text-left"
                   }`}
                 >
@@ -67,13 +67,13 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
             return (
               <tr
                 key={rowIndex}
-                className="border-b border-gray-100 last:border-0 dark:border-gray-800"
+                className="border-b border-gray-100 last:border-0"
               >
                 {columns.map((column: AIChatWidgetColumn) => {
                   return (
                     <td
                       key={column.key}
-                      className={`max-w-[22rem] truncate px-2.5 py-1.5 text-gray-700 dark:text-gray-300 ${
+                      className={`max-w-[22rem] truncate px-2.5 py-2 text-gray-700 ${
                         column.type === "number"
                           ? "text-right tabular-nums"
                           : "text-left"

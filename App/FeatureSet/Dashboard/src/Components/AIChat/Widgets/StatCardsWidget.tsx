@@ -20,12 +20,12 @@ const StatCardsWidget: FunctionComponent<ComponentProps> = (
         return (
           <div
             key={index}
-            className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-gray-800/40"
+            className="rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2.5"
           >
-            <div className="text-[10px] font-medium uppercase tracking-wider text-gray-400">
+            <div className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
               {stat.label}
             </div>
-            <div className="mt-0.5 text-lg font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+            <div className="mt-1 text-lg font-semibold tabular-nums text-gray-900">
               {typeof stat.value === "number"
                 ? stat.value.toLocaleString()
                 : stat.value}

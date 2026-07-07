@@ -65,15 +65,15 @@ const WidgetCard: FunctionComponent<{ widget: AIChatWidget }> = ({
   const link: AIChatCitationTarget | undefined = widget.data.link;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
-      <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-3 py-2 dark:border-gray-800">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <div className="flex items-center justify-between gap-2 border-b border-gray-100 bg-gray-50/60 px-3.5 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
           <Icon
             icon={iconForType[widget.type] || IconProp.ChartBar}
-            className="h-3.5 w-3.5 flex-shrink-0 text-indigo-500"
+            className="h-3.5 w-3.5 flex-shrink-0 text-gray-500"
           />
           <div className="min-w-0">
-            <div className="truncate text-xs font-semibold text-gray-800 dark:text-gray-100">
+            <div className="truncate text-xs font-semibold text-gray-900">
               {widget.title}
             </div>
             {widget.description && (
@@ -89,14 +89,14 @@ const WidgetCard: FunctionComponent<{ widget: AIChatWidget }> = ({
             onClick={() => {
               navigateToCitationTarget(link);
             }}
-            className="flex flex-shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-indigo-600 transition-colors hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/40"
+            className="flex flex-shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
           >
             Open
             <Icon icon={IconProp.ExternalLink} className="h-3 w-3" />
           </button>
         )}
       </div>
-      <div className="p-3">{renderBody(widget)}</div>
+      <div className="p-3.5">{renderBody(widget)}</div>
     </div>
   );
 };
@@ -113,7 +113,7 @@ const WidgetRenderer: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div className="mt-3 space-y-2.5">
+    <div className="space-y-2.5">
       {props.widgets.map((widget: AIChatWidget) => {
         return <WidgetCard key={widget.id} widget={widget} />;
       })}

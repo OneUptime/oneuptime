@@ -111,7 +111,7 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
     <div className="relative z-40" role="dialog" aria-modal="true">
       <div
         className={`fixed inset-0 bg-gray-900 transition-opacity duration-300 ${
-          isVisible ? "bg-opacity-30" : "bg-opacity-0"
+          isVisible ? "bg-opacity-25" : "bg-opacity-0"
         }`}
         onClick={() => {
           setIsOpen(false);
@@ -119,12 +119,12 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
       ></div>
 
       <div
-        className={`fixed inset-y-0 right-0 z-50 flex w-screen max-w-md transform flex-col bg-gray-50 shadow-2xl transition-transform duration-300 ease-in-out ${
+        className={`fixed inset-y-0 right-0 z-50 flex w-screen max-w-md transform flex-col border-l border-gray-200 bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
           isVisible ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 bg-white px-4 py-3">
+        <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
             {chat.activeConversationId && (
               <button
@@ -133,13 +133,13 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
                 onClick={() => {
                   chat.newConversation();
                 }}
-                className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
+                className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
               >
                 <Icon icon={IconProp.ChevronLeft} className="h-4 w-4" />
               </button>
             )}
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-sm">
-              <Icon icon={IconProp.Sparkles} className="h-5 w-5 text-white" />
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gray-900">
+              <Icon icon={IconProp.Sparkles} className="h-4 w-4 text-white" />
             </div>
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold text-gray-900">
@@ -147,19 +147,19 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
                   ? chat.activeConversationTitle
                   : "Ask AI"}
               </div>
-              <div className="truncate text-[11px] text-gray-400">
+              <div className="truncate text-xs text-gray-400">
                 {chat.isWorking
                   ? "Investigating your data…"
                   : "Your observability copilot"}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <button
               type="button"
               title="Open in full Copilot"
               onClick={openFullCopilot}
-              className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-50 hover:text-indigo-600"
+              className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
             >
               <Icon icon={IconProp.Expand} className="h-4 w-4" />
             </button>
@@ -170,7 +170,7 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
                 onClick={() => {
                   chat.newConversation();
                 }}
-                className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
+                className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
               >
                 <Icon icon={IconProp.Add} className="h-4 w-4" />
               </button>
@@ -181,7 +181,7 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
               onClick={() => {
                 setIsOpen(false);
               }}
-              className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
+              className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
             >
               <Icon icon={IconProp.Close} className="h-4 w-4" />
             </button>
@@ -231,10 +231,10 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
           )}
 
           {chat.isConversationView && (
-            <div className="px-4 py-5">
+            <div className="px-4 py-6">
               {chat.messages.length === 0 && !chat.isWorking && (
                 <div className="flex justify-center py-10">
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-indigo-500"></span>
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-500"></span>
                 </div>
               )}
 
