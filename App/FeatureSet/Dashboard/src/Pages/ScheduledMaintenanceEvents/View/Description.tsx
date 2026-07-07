@@ -1,62 +1,27 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
-import MarkdownUtil from "Common/UI/Utils/Markdown";
 import React, { FunctionComponent, ReactElement } from "react";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FieldType from "Common/UI/Components/Types/FieldType";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import { Navigate } from "react-router-dom";
 
-const ScheduledMaintenanceDelete: FunctionComponent<
+/*
+ * The scheduled maintenance description now lives inline on the overview page.
+ * This route is retained only as a deep-link fallback and redirects there.
+ */
+const ScheduledMaintenanceViewDescriptionRedirect: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  return (
-    <CardModelDetail
-      name="Scheduled Maintenance Description"
-      cardProps={{
-        title: "Scheduled Maintenance Description",
-        description:
-          "Description of this scheduled maintenance. This is visible on Status Page and is in markdown format.",
-      }}
-      createEditModalWidth={ModalWidth.Large}
-      editButtonText="Edit Scheduled Maintenance Description"
-      isEditable={true}
-      formFields={[
-        {
-          field: {
-            description: true,
-          },
-          title: "Description",
-
-          fieldType: FormFieldSchemaType.Markdown,
-          required: false,
-          placeholder: "Description",
-          description: MarkdownUtil.getMarkdownCheatsheet(
-            "Describe the scheduled maintenance event here",
-          ),
-        },
-      ]}
-      modelDetailProps={{
-        showDetailsInNumberOfColumns: 1,
-        modelType: ScheduledMaintenance,
-        id: "model-detail-scheduled-maintenance-description",
-        fields: [
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FieldType.Markdown,
-          },
-        ],
-        modelId: modelId,
-      }}
-    />
+  const overviewRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route,
+    { modelId },
   );
+
+  return <Navigate to={overviewRoute.toString()} replace={true} />;
 };
 
-export default ScheduledMaintenanceDelete;
+export default ScheduledMaintenanceViewDescriptionRedirect;

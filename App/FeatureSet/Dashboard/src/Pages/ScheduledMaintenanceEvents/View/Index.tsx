@@ -46,6 +46,8 @@ import LiveDuration from "../../../Components/EventView/LiveDuration";
 import OneUptimeDate from "Common/Types/Date";
 import InlineEditField from "Common/UI/Components/InlineEdit/InlineEditField";
 import EventDetailLayout from "../../../Components/EventView/EventDetailLayout";
+import MarkdownUtil from "Common/UI/Utils/Markdown";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const ScheduledMaintenanceView: FunctionComponent<
   PageComponentProps
@@ -185,6 +187,52 @@ const ScheduledMaintenanceView: FunctionComponent<
           )}
 
           <EntityRunbooks scheduledMaintenanceId={modelId} hideIfEmpty={true} />
+
+          {/*
+           * Description inline on the overview — no route hop. The
+           * /description route still exists as a deep-link fallback.
+           */}
+          <CardModelDetail<ScheduledMaintenance>
+            name="Scheduled Maintenance Description"
+            cardProps={{
+              title: "Description",
+              description:
+                "Description of this scheduled maintenance. Visible on the status page and in markdown format.",
+            }}
+            createEditModalWidth={ModalWidth.Large}
+            editButtonText="Edit Description"
+            isEditable={true}
+            formFields={[
+              {
+                field: {
+                  description: true,
+                },
+                title: "Description",
+                fieldType: FormFieldSchemaType.Markdown,
+                required: false,
+                placeholder: "Description",
+                description: MarkdownUtil.getMarkdownCheatsheet(
+                  "Describe the scheduled maintenance event here",
+                ),
+              },
+            ]}
+            modelDetailProps={{
+              showDetailsInNumberOfColumns: 1,
+              modelType: ScheduledMaintenance,
+              id: "model-detail-scheduled-maintenance-description",
+              fields: [
+                {
+                  field: {
+                    description: true,
+                  },
+                  title: "Description",
+                  placeholder: "No description added for this event.",
+                  fieldType: FieldType.Markdown,
+                },
+              ],
+              modelId: modelId,
+            }}
+          />
 
           <ScheduledMaintenanceFeedElement scheduledMaintenanceId={modelId} />
         </div>

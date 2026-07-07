@@ -29,16 +29,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Info}
         />
 
-        <SideMenuItem
-          link={{
-            title: "Description",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_DESCRIPTION] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Chat}
-        />
+        {/*
+         * Description now lives inline on the Overview page; its route
+         * redirects there as a deep-link fallback.
+         */}
         <SideMenuItem
           link={{
             title: "Owners",
