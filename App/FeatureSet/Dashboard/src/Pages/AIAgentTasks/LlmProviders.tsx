@@ -2,15 +2,27 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import TestLLMProvider, {
+  LLMProviderTestResult,
+} from "Common/UI/Utils/TestLLMProvider";
 import Navigation from "Common/UI/Utils/Navigation";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import LlmType from "Common/Types/LLM/LlmType";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -18,6 +30,32 @@ import { Green } from "Common/Types/BrandColors";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 
 const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const [showTestModal, setShowTestModal] = useState<boolean>(false);
+  const [isTesting, setIsTesting] = useState<boolean>(false);
+  const [testError, setTestError] = useState<string>("");
+  const [testMessage, setTestMessage] = useState<string>("");
+
+  const runTest: (item: LlmProvider) => Promise<void> = async (
+    item: LlmProvider,
+  ): Promise<void> => {
+    setIsTesting(true);
+    setTestError("");
+    setTestMessage("");
+
+    const result: LLMProviderTestResult = await TestLLMProvider.test({
+      llmProviderId: item["_id"]?.toString() || "",
+      headers: ModelAPI.getCommonHeaders(),
+    });
+
+    if (result.success) {
+      setTestMessage(result.message);
+    } else {
+      setTestError(result.message);
+    }
+
+    setIsTesting(false);
+  };
+
   return (
     <Fragment>
       <>
@@ -189,6 +227,27 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isEditable={false}
           isViewable={true}
           isCreateable={true}
+          actionButtons={[
+            {
+              title: "Test",
+              buttonStyleType: ButtonStyleType.NORMAL,
+              icon: IconProp.Play,
+              onClick: async (
+                item: LlmProvider,
+                onCompleteAction: VoidFunction,
+                onError: ErrorFunction,
+              ) => {
+                try {
+                  setShowTestModal(true);
+                  await runTest(item);
+                  onCompleteAction();
+                } catch (err) {
+                  onCompleteAction();
+                  onError(err as Error);
+                }
+              },
+            },
+          ]}
           cardProps={{
             title: "Bring Your Own Large Language Model",
             description: BILLING_ENABLED
@@ -352,6 +411,26 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           ]}
         />
+
+        {showTestModal ? (
+          <ConfirmModal
+            title={"Test LLM Provider"}
+            error={testError}
+            description={
+              isTesting
+                ? "Sending a test prompt to your LLM provider…"
+                : testMessage ||
+                  "Testing the connection to your LLM provider. This sends a small prompt using your configured API key, model, and base URL."
+            }
+            submitButtonText={"Close"}
+            isLoading={isTesting}
+            onSubmit={async () => {
+              setShowTestModal(false);
+              setTestError("");
+              setTestMessage("");
+            }}
+          />
+        ) : null}
       </>
     </Fragment>
   );

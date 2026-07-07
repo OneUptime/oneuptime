@@ -3,11 +3,18 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import IconProp from "Common/Types/Icon/IconProp";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import TestLLMProvider, {
+  LLMProviderTestResult,
+} from "Common/UI/Utils/TestLLMProvider";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import LlmType from "Common/Types/LLM/LlmType";
 import React, {
@@ -25,6 +32,30 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   const [modelId] = useState<ObjectID>(Navigation.getLastParamAsObjectID());
 
+  const [showTestModal, setShowTestModal] = useState<boolean>(false);
+  const [isTesting, setIsTesting] = useState<boolean>(false);
+  const [testError, setTestError] = useState<string>("");
+  const [testMessage, setTestMessage] = useState<string>("");
+
+  const runTest: () => Promise<void> = async (): Promise<void> => {
+    setIsTesting(true);
+    setTestError("");
+    setTestMessage("");
+
+    const result: LLMProviderTestResult = await TestLLMProvider.test({
+      llmProviderId: modelId.toString(),
+      headers: ModelAPI.getCommonHeaders(),
+    });
+
+    if (result.success) {
+      setTestMessage(result.message);
+    } else {
+      setTestError(result.message);
+    }
+
+    setIsTesting(false);
+  };
+
   return (
     <Fragment>
       {/* LLM Provider View  */}
@@ -34,6 +65,19 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
           title: "LLM Provider Details",
           description:
             "Here are more details for this LLM Provider configuration.",
+          buttons: [
+            {
+              title: "Test",
+              icon: IconProp.Play,
+              buttonStyle: ButtonStyleType.NORMAL,
+              onClick: () => {
+                setShowTestModal(true);
+                runTest().catch(() => {
+                  // errors are surfaced via the test result modal
+                });
+              },
+            },
+          ],
         }}
         isEditable={true}
         formSteps={[
@@ -203,6 +247,26 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
           );
         }}
       />
+
+      {showTestModal ? (
+        <ConfirmModal
+          title={"Test LLM Provider"}
+          error={testError}
+          description={
+            isTesting
+              ? "Sending a test prompt to your LLM provider…"
+              : testMessage ||
+                "Testing the connection to your LLM provider. This sends a small prompt using your configured API key, model, and base URL."
+          }
+          submitButtonText={"Close"}
+          isLoading={isTesting}
+          onSubmit={async () => {
+            setShowTestModal(false);
+            setTestError("");
+            setTestMessage("");
+          }}
+        />
+      ) : null}
     </Fragment>
   );
 };
