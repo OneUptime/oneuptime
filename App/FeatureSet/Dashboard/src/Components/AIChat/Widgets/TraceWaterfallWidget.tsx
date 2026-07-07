@@ -6,14 +6,6 @@ export interface ComponentProps {
 }
 
 const MAX_SPANS: number = 40;
-const BAR_COLORS: Array<string> = [
-  "bg-indigo-500",
-  "bg-violet-500",
-  "bg-sky-500",
-  "bg-emerald-500",
-  "bg-amber-500",
-  "bg-cyan-500",
-];
 
 const TraceWaterfallWidget: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -64,9 +56,7 @@ const TraceWaterfallWidget: FunctionComponent<ComponentProps> = (
           ),
         );
         const depth: number = depthOf(span);
-        const barColor: string = span.isError
-          ? "bg-red-500"
-          : BAR_COLORS[index % BAR_COLORS.length]!;
+        const barColor: string = span.isError ? "bg-rose-500" : "bg-gray-700";
 
         return (
           <div key={span.spanId || index} className="flex items-center gap-2">

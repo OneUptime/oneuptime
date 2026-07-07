@@ -106,7 +106,7 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
           </div>
           <div className="max-h-72 overflow-y-auto py-1">
             {props.providers.length === 0 && (
-              <div className="px-3 py-3 text-xs text-gray-400">
+              <div className="px-3 py-3 text-xs text-gray-500">
                 No AI providers configured yet. Add one in Settings → AI → LLM
                 Providers.
               </div>

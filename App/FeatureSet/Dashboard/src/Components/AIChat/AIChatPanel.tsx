@@ -18,7 +18,6 @@ import ChatInput from "./ChatInput";
 import ChatMessageList from "./ChatMessageList";
 import ProviderPicker from "./ProviderPicker";
 import PermissionModePicker from "./PermissionModePicker";
-import getUserInitials from "./UserInitials";
 import { useAiChat, UseAiChat } from "./useAiChat";
 
 /*
@@ -33,7 +32,6 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
   const [isVisible, setIsVisible] = useState<boolean>(false);
 
   const chat: UseAiChat = useAiChat({ enabled: isOpen });
-  const userInitials: string = getUserInitials();
 
   // ---- open/close ----------------------------------------------------------
 
@@ -190,20 +188,21 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
 
         {/* Error banner */}
         {chat.error && (
-          <div className="flex items-start justify-between gap-2 border-b border-red-100 bg-red-50 px-4 py-2">
-            <div className="flex items-start gap-2 text-xs text-red-700">
+          <div className="flex items-start justify-between gap-2 border-b border-rose-100 bg-rose-50 px-4 py-2.5">
+            <div className="flex items-start gap-2 text-xs text-rose-700">
               <Icon
                 icon={IconProp.Error}
-                className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-red-400"
+                className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-rose-500"
               />
               {chat.error}
             </div>
             <button
               type="button"
+              title="Dismiss"
               onClick={() => {
                 chat.setError("");
               }}
-              className="text-red-300 hover:text-red-500"
+              className="-m-1 rounded p-1 text-rose-500 transition-colors hover:bg-rose-100 hover:text-rose-700"
             >
               <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
             </button>
@@ -241,7 +240,6 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
               <ChatMessageList
                 messages={chat.messages}
                 latestRun={chat.latestRun}
-                userInitials={userInitials}
                 isSubmittingApproval={chat.isSubmittingApproval}
                 onRespondToApproval={(
                   assistantMessageId: string,

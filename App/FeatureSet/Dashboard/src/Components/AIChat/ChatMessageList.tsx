@@ -16,7 +16,6 @@ export interface ComponentProps {
   messages: Array<AIConversationMessage>;
   // Run of the newest completed assistant message, for the cost footer.
   latestRun?: AIRun | undefined;
-  userInitials: string;
   isSubmittingApproval: boolean;
   onRespondToApproval: (
     assistantMessageId: string,
@@ -164,18 +163,18 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
 
             <div className="min-w-0 flex-1">
               {message.status === AIChatMessageStatus.Error && (
-                <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+                <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3">
                   <div className="flex items-start gap-2.5">
                     <Icon
                       icon={IconProp.Error}
-                      className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-400"
+                      className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-500"
                     />
                     <div>
-                      <div className="text-sm text-red-700">
+                      <div className="text-sm text-rose-700">
                         {message.errorMessage ||
                           "Something went wrong generating this response."}
                       </div>
-                      <div className="mt-1 text-xs text-red-400">
+                      <div className="mt-1 text-xs text-rose-500">
                         Try asking again.
                       </div>
                     </div>

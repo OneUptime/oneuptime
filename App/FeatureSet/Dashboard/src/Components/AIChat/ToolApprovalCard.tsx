@@ -173,7 +173,7 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                         {action.title}
                       </div>
                       {preview && (
-                        <div className="mt-0.5 line-clamp-2 font-mono text-[10px] text-gray-400">
+                        <div className="mt-1 line-clamp-2 font-mono text-[10.5px] leading-relaxed text-gray-600">
                           {preview}
                         </div>
                       )}

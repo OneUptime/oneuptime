@@ -5,7 +5,6 @@ import ChatInput from "../../Components/AIChat/ChatInput";
 import ChatMessageList from "../../Components/AIChat/ChatMessageList";
 import ProviderPicker from "../../Components/AIChat/ProviderPicker";
 import PermissionModePicker from "../../Components/AIChat/PermissionModePicker";
-import getUserInitials from "../../Components/AIChat/UserInitials";
 import { useAiChat, UseAiChat } from "../../Components/AIChat/useAiChat";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -26,7 +25,6 @@ import React, { FunctionComponent, ReactElement } from "react";
  */
 const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const chat: UseAiChat = useAiChat({ enabled: true });
-  const userInitials: string = getUserInitials();
 
   const composerLeading: ReactElement = (
     <div className="flex items-center gap-1.5">
@@ -125,7 +123,7 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         event.stopPropagation();
                         chat.deleteConversation(conversationId);
                       }}
-                      className="rounded-md p-1 text-gray-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
+                      className="rounded-md p-1.5 text-gray-400 opacity-0 transition-all hover:bg-rose-50 hover:text-rose-500 focus:opacity-100 group-hover:opacity-100"
                     >
                       <Icon icon={IconProp.Trash} className="h-3.5 w-3.5" />
                     </button>
@@ -174,20 +172,21 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
           {/* Error banner */}
           {chat.error && (
-            <div className="flex items-start justify-between gap-2 border-b border-red-100 bg-red-50 px-6 py-2.5">
-              <div className="flex items-start gap-2 text-xs text-red-700">
+            <div className="flex items-start justify-between gap-2 border-b border-rose-100 bg-rose-50 px-6 py-2.5">
+              <div className="flex items-start gap-2 text-xs text-rose-700">
                 <Icon
                   icon={IconProp.Error}
-                  className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-red-400"
+                  className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-rose-500"
                 />
                 {chat.error}
               </div>
               <button
                 type="button"
+                title="Dismiss"
                 onClick={() => {
                   chat.setError("");
                 }}
-                className="text-red-400 hover:text-red-600"
+                className="-m-1 rounded p-1 text-rose-500 transition-colors hover:bg-rose-100 hover:text-rose-700"
               >
                 <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
               </button>
@@ -222,7 +221,6 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 <ChatMessageList
                   messages={chat.messages}
                   latestRun={chat.latestRun}
-                  userInitials={userInitials}
                   isSubmittingApproval={chat.isSubmittingApproval}
                   onRespondToApproval={(
                     assistantMessageId: string,
