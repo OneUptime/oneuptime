@@ -581,6 +581,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
 };
 
 export const AlertsRoutePath: Dictionary<string> = {
+  [PageMap.ALERT_TRIAGE]: "triage",
   [PageMap.ALERT_CREATE]: "create",
   [PageMap.UNRESOLVED_ALERTS]: "unresolved",
   [PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
@@ -1042,6 +1043,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.UNRESOLVED_ALERTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.UNRESOLVED_ALERTS]
+    }`,
+  ),
+
+  [PageMap.ALERT_TRIAGE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_TRIAGE]
     }`,
   ),
 

@@ -32,6 +32,7 @@ import AlertViewStateTimeline from "../Pages/Alerts/View/StateTimeline";
 import AlertInternalNote from "../Pages/Alerts/View/InternalNote";
 
 import UnresolvedAlerts from "../Pages/Alerts/Unresolved";
+import AlertTriagePage from "../Pages/Alerts/Triage";
 import AlertViewCustomFields from "../Pages/Alerts/View/CustomFields";
 import AlertViewOwner from "../Pages/Alerts/View/Owners";
 import AlertViewRunbooks from "../Pages/Alerts/View/Runbooks";
@@ -129,6 +130,16 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             <UnresolvedAlerts
               {...props}
               pageRoute={RouteMap[PageMap.UNRESOLVED_ALERTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERT_TRIAGE] || ""}
+          element={
+            <AlertTriagePage
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_TRIAGE] as Route}
             />
           }
         />

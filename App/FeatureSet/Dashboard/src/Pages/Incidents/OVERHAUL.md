@@ -45,13 +45,18 @@ engine and rebuild the shell around it.
   `View/Remediation.tsx`), so old bookmarks / Slack links / breadcrumbs land on the
   content in its new inline home. This establishes the redirect pattern to extend to the
   rest of the 18-item sidebar.
-- **Dense triage list + PeekView** — a new keyboard-first triage lane at
-  `/incidents/triage` (`Components/Incident/IncidentTriage.tsx`, page `Pages/Incidents/
-  Triage.tsx`, reachable from the incidents side menu and the command palette). Compact
-  one-line rows (severity dot · number · title · state pill · age); selecting a row peeks
-  its detail beside the list via the reusable `Components/EventView/PeekView.tsx` instead
-  of navigating away. Keyboard: `j/k` move, `a` acknowledge, `r` resolve, `↵` open full,
-  `esc` close. Additive — the existing All/Active tables are untouched.
+- **Dense triage list + PeekView (incidents & alerts)** — a keyboard-first triage lane at
+  `/incidents/triage` and `/alerts/triage`, reachable from each side menu and the command
+  palette. Compact one-line rows (severity dot · number · title · state pill · age);
+  selecting a row peeks its detail beside the list via the reusable
+  `Components/EventView/PeekView.tsx` instead of navigating away. Keyboard: `j/k` move,
+  `a` acknowledge, `r` resolve, `↵` open full, `esc` close. Additive — the existing
+  All/Active tables are untouched.
+- **`EventTriage` (shared, config-driven)** — `Components/EventView/EventTriage.tsx` holds
+  all the triage logic once; `Components/Incident/IncidentTriage.tsx` and
+  `Components/Alert/AlertTriage.tsx` are thin adapters that map their model's fields onto
+  the config. This is the unification pattern the overhaul is built on (one component,
+  many event types) applied for real.
 - **Bulk Acknowledge / Resolve** — first-class one-click triage verbs on the incident and
   alert tables (`Components/Incident/IncidentsTable.tsx`,
   `Components/Alert/AlertsTable.tsx`), shown only when the project defines an acknowledged
