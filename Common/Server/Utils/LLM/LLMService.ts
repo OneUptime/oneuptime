@@ -251,6 +251,82 @@ export default class LLMService {
     };
   }
 
+  /*
+   * Build the chat completions URL for an OpenAI-compatible server from the
+   * configured base URL. Users enter the base URL in a few different ways, and
+   * we normalize all of them onto the right endpoint instead of 404-ing:
+   *
+   *   - Already a full endpoint (".../chat/completions") -> used as-is.
+   *   - Includes a path (".../v1", ".../openai/v1") -> append "/chat/completions".
+   *   - Bare server root ("http://host:8000") -> append "/v1/chat/completions",
+   *     since vLLM, LocalAI and similar servers expose the OpenAI-compatible API
+   *     under /v1 by default. This is the most common self-hosted setup and the
+   *     easiest one for users to get wrong (omitting /v1 returns FastAPI's
+   *     {"detail":"Not Found"}).
+   *
+   * The endpoint segment is only ever appended to the PATH portion: any
+   * ?query or #fragment on the base URL is split off first and re-attached
+   * afterwards (otherwise "/chat/completions" would land inside the query or
+   * fragment). Trailing slashes are stripped so we never emit
+   * ".../v1//chat/completions", and the URL scheme is lower-cased because URL
+   * schemes are case-insensitive but downstream URL parsing only recognizes
+   * lowercase http/https.
+   */
+  private static buildOpenAICompatibleChatCompletionsUrl(
+    baseUrl: string,
+  ): string {
+    const raw: string = baseUrl.trim();
+
+    // Split off #fragment, then ?query, so we can operate on the path alone.
+    const fragmentIndex: number = raw.indexOf("#");
+    const fragment: string =
+      fragmentIndex >= 0 ? raw.substring(fragmentIndex) : "";
+    const withoutFragment: string =
+      fragmentIndex >= 0 ? raw.substring(0, fragmentIndex) : raw;
+
+    const queryIndex: number = withoutFragment.indexOf("?");
+    const query: string =
+      queryIndex >= 0 ? withoutFragment.substring(queryIndex) : "";
+
+    let base: string =
+      queryIndex >= 0
+        ? withoutFragment.substring(0, queryIndex)
+        : withoutFragment;
+
+    // Lower-case the scheme (e.g. "HTTP://" -> "http://") and strip trailing
+    // slashes.
+    const schemeRegex: RegExp = /^[a-z][a-z0-9+.-]*:\/\//i;
+    base = base
+      .replace(schemeRegex, (scheme: string) => {
+        return scheme.toLowerCase();
+      })
+      .replace(/\/+$/, "");
+
+    let path: string;
+    const fullEndpointRegex: RegExp = /\/chat\/completions$/i;
+    const hasPathAfterHostRegex: RegExp = /^[a-z][a-z0-9+.-]*:\/\/[^/]+\/.+/i;
+
+    if (fullEndpointRegex.test(base)) {
+      // The user already pointed us at the full endpoint.
+      path = base;
+    } else if (hasPathAfterHostRegex.test(base)) {
+      /*
+       * The base URL carries a path after the host[:port] (e.g.
+       * "http://host:8000/v1" or ".../openai/v1") — trust it and only append
+       * the endpoint.
+       */
+      path = `${base}/chat/completions`;
+    } else {
+      /*
+       * Bare server root ("http://host:8000") — add the conventional /v1
+       * prefix that OpenAI-compatible servers (vLLM, LocalAI, ...) use.
+       */
+      path = `${base}/v1/chat/completions`;
+    }
+
+    return `${path}${query}${fragment}`;
+  }
+
   @CaptureSpan()
   private static async getOpenAICompatibleCompletion(
     config: LLMProviderConfig,
@@ -302,7 +378,9 @@ export default class LLMService {
       config.modelName || defaultModels[config.llmType] || "gpt-4o";
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post<JSONObject>({
-        url: URL.fromString(`${baseUrl}/chat/completions`),
+        url: URL.fromString(
+          this.buildOpenAICompatibleChatCompletionsUrl(baseUrl),
+        ),
         data: this.buildOpenAIRequestBody(modelName, request),
         headers: {
           "Content-Type": "application/json",
