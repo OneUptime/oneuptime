@@ -887,11 +887,11 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
+            <AskAI />
             <NotificationBell
               items={buildNotificationItems()}
               onItemClick={handleNotificationItemClick}
             />
-            <AskAI />
             <Help />
             <UserProfile
               onClickUserProfile={() => {

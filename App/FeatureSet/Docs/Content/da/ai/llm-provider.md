@@ -22,11 +22,15 @@ Hvis du foretrækker at bruge dine egne API-nøgler eller en bestemt udbyder, ka
 
 OneUptime understøtter i øjeblikket følgende LLM-udbydere:
 
-| Udbyder       | Beskrivelse                                                             | API-nøgle påkrævet | Base URL påkrævet     |
-| ------------- | ----------------------------------------------------------------------- | ------------------ | --------------------- |
-| **OpenAI**    | GPT-4, GPT-4o, GPT-3.5 Turbo og andre OpenAI-modeller                   | Ja                 | Nej (bruger standard) |
-| **Anthropic** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku og andre Claude-modeller | Ja                 | Nej (bruger standard) |
-| **Ollama**    | Selvhostede open source-modeller som Llama 2, Mistral, CodeLlama osv.   | Nej                | Ja                    |
+| Udbyder               | Beskrivelse                                                             | API-nøgle påkrævet | Base URL påkrævet     |
+| --------------------- | ----------------------------------------------------------------------- | ------------------ | --------------------- |
+| **OpenAI**            | GPT-4, GPT-4o, GPT-3.5 Turbo og andre OpenAI-modeller                   | Ja                 | Nej (bruger standard) |
+| **Azure OpenAI**      | OpenAI-modeller hostet på din Azure-deployment                          | Ja                 | Ja                    |
+| **Anthropic**         | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku og andre Claude-modeller | Ja                 | Nej (bruger standard) |
+| **Groq**              | Hurtig inferens til Llama, Mixtral og andre åbne modeller               | Ja                 | Nej (bruger standard) |
+| **Mistral**           | Mistrals hostede modeller                                               | Ja                 | Nej (bruger standard) |
+| **Ollama**            | Selvhostede open source-modeller som Llama 2, Mistral, CodeLlama osv.   | Nej                | Ja                    |
+| **OpenAI Compatible** | Enhver OpenAI-kompatibel server (vLLM, LocalAI, LM Studio osv.)         | Nej (valgfrit)     | Ja                    |
 
 ## Opsætning af en LLM-udbyder
 
@@ -42,10 +46,10 @@ Udfyld følgende felter:
 
 - **Navn**: Et brugervenligt navn til denne LLM-konfiguration (f.eks. "Produktions-OpenAI", "Lokal Ollama")
 - **Beskrivelse** (valgfrit): En beskrivelse til at identificere formålet med denne udbyder
-- **LLM-type**: Vælg udbydertype (OpenAI, Anthropic eller Ollama)
-- **API-nøgle**: Din API-nøgle (påkrævet for OpenAI og Anthropic)
+- **LLM-type**: Vælg udbydertype (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama eller OpenAI Compatible)
+- **API-nøgle**: Din API-nøgle (påkrævet for OpenAI, Azure OpenAI, Anthropic, Groq og Mistral; valgfrit for Ollama og OpenAI-kompatible servere)
 - **Modelnavn**: Den specifikke model, der skal bruges (f.eks. `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
-- **Base URL** (valgfrit): Brugerdefineret API-endpoint-URL (påkrævet for Ollama, valgfrit for andre)
+- **Base URL** (valgfrit): Brugerdefineret API-endpoint-URL (påkrævet for Azure OpenAI, Ollama og OpenAI Compatible; valgfrit for andre)
 
 ## Udbyderspecifik konfiguration
 
@@ -117,6 +121,62 @@ Modelnavn: llama2
 - `codellama` – Kodespecialiseret Llama-model
 - `mixtral` – Mistrals mixture of experts-model
 
+### OpenAI Compatible (vLLM, LocalAI, LM Studio osv.)
+
+Brug udbyderen **OpenAI Compatible** til enhver server, der implementerer OpenAIs `/chat/completions`-API, men som ikke er OpenAI selv — for eksempel [vLLM](https://docs.vllm.ai), [LocalAI](https://localai.io), [LM Studio](https://lmstudio.ai) eller text-generation-webui. Disse er typisk selvhostede på din egen URL og kører ofte uden autentificering.
+
+1. Start din OpenAI-kompatible server, og notér dens base-URL (den slutter som regel med `/v1`)
+2. Vælg **OpenAI Compatible** som LLM-type
+3. Indtast **Base URL** (påkrævet), f.eks. `http://your-server:8000/v1`
+4. Indtast **Modelnavn** (påkrævet) — det skal matche en model, som din server tilbyder
+5. Indtast **API-nøgle** kun hvis din server kræver det; lad den stå tom for nøgleløse servere
+
+**Eksempelkonfiguration (nøgleløs vLLM):**
+
+```
+Name: Self-Hosted vLLM
+LLM Provider: OpenAI Compatible
+Base URL: http://vllm.internal:8000/v1
+Model Name: meta-llama/Llama-3.1-8B-Instruct
+API Key: (leave blank)
+```
+
+> Tip: Når du har gemt, kan du bruge knappen **Test** på udbyderen for at bekræfte, at forbindelse, modelnavn og base-URL er korrekte.
+
+### Selvhostet vLLM på Kubernetes (Helm)
+
+Hvis du selv-hoster OneUptime med Helm-charten, kan du køre [vLLM](https://docs.vllm.ai) — en OpenAI-kompatibel inferensserver — inde i din klynge og servere lokale modeller på dine egne GPU'er. Ingen data forlader din infrastruktur.
+
+1. Aktivér det i dine Helm-værdier (kræver NVIDIA GPU-noder):
+
+   ```yaml
+   vllm:
+     enabled: true
+     model: Qwen/Qwen2.5-1.5B-Instruct
+   ```
+
+2. Kør `helm upgrade`, og vent på, at vLLM-poden bliver Ready (den første start henter modellen)
+3. Det er det — vLLM registreres automatisk som en Global LLM-udbyder ved opstart (`vllm.globalProvider.enabled`, standard `true`), så AI-funktioner fungerer for alle projekter. Bemærk: projektspecifikke AI Agenter kan ikke bruge globale udbydere og skal stadig have en projektspecifik LLM-udbyder.
+
+Hvis du har deaktiveret automatisk registrering (`vllm.globalProvider.enabled: false`), skal du oprette udbyderen manuelt:
+
+1. Vælg **OpenAI Compatible** som LLM-type (vLLM taler OpenAI-API'et)
+2. Indtast den klynge-interne Base URL: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`
+3. Indtast Modelnavn: det fulde HuggingFace-model-id (eller `vllm.servedModelName`, hvis du har angivet et)
+4. Indtast kun API-nøgle, hvis du har angivet `vllm.apiKey`; lad den stå tom for en nøgleløs vLLM
+
+**Eksempelkonfiguration:**
+
+```
+Name: In-Cluster vLLM
+LLM Provider: OpenAI Compatible
+Base URL: http://oneuptime-vllm.default.svc.cluster.local:8000/v1
+Model Name: Qwen/Qwen2.5-1.5B-Instruct
+API Key: (leave blank unless vllm.apiKey is set)
+```
+
+Se [Helm chart README](https://github.com/OneUptime/oneuptime/tree/master/HelmChart/Public/oneuptime#local-models-with-vllm) for GPU-scheduling, gated modeller og tuning-muligheder.
+
 ## Brug af brugerdefinerede Base URLs
 
 Til enterprise-deployments eller ved brug af proxytjenester kan du angive en brugerdefineret Base URL:
@@ -138,6 +198,7 @@ Til enterprise-deployments eller ved brug af proxytjenester kan du angive en bru
 
 - **OpenAI/Anthropic**: Bekræft, at din API-nøgle er gyldig og har tilstrækkelig kredit
 - **Ollama**: Sørg for, at Ollama-serveren kører, og at Base URL er korrekt
+- **OpenAI Compatible**: Sørg for, at Base URL slutter med `/v1` (eller matcher din server), at Modelnavn matcher en model, som din server tilbyder, og angiv kun en API-nøgle, hvis din server kræver det
 - **Firewall**: Kontroller, at dit netværk tillader udgående forbindelser til udbyderens API
 
 ### Model ikke fundet

@@ -22,11 +22,15 @@ Se preferir usar suas próprias chaves de API ou um provedor específico, ainda 
 
 O OneUptime atualmente suporta os seguintes provedores de LLM:
 
-| Provedor      | Descrição                                                                       | Chave de API Necessária | URL Base Necessária |
-| ------------- | ------------------------------------------------------------------------------- | ----------------------- | ------------------- |
-| **OpenAI**    | GPT-4, GPT-4o, GPT-3.5 Turbo e outros modelos OpenAI                            | Sim                     | Não (usa o padrão)  |
-| **Anthropic** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku e outros modelos Claude          | Sim                     | Não (usa o padrão)  |
-| **Ollama**    | Modelos de código aberto auto-hospedados como Llama 2, Mistral, CodeLlama, etc. | Não                     | Sim                 |
+| Provedor              | Descrição                                                                       | Chave de API Necessária | URL Base Necessária |
+| --------------------- | ------------------------------------------------------------------------------- | ----------------------- | ------------------- |
+| **OpenAI**            | GPT-4, GPT-4o, GPT-3.5 Turbo e outros modelos OpenAI                            | Sim                     | Não (usa o padrão)  |
+| **Azure OpenAI**      | Modelos OpenAI hospedados na sua implantação Azure                              | Sim                     | Sim                 |
+| **Anthropic**         | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku e outros modelos Claude          | Sim                     | Não (usa o padrão)  |
+| **Groq**              | Inferência rápida para Llama, Mixtral e outros modelos abertos                  | Sim                     | Não (usa o padrão)  |
+| **Mistral**           | Modelos hospedados da Mistral                                                   | Sim                     | Não (usa o padrão)  |
+| **Ollama**            | Modelos de código aberto auto-hospedados como Llama 2, Mistral, CodeLlama, etc. | Não                     | Sim                 |
+| **OpenAI Compatible** | Qualquer servidor compatível com a OpenAI (vLLM, LocalAI, LM Studio, etc.)      | Não (opcional)          | Sim                 |
 
 ## Configurando um Provedor de LLM
 
@@ -42,10 +46,10 @@ Preencha os seguintes campos:
 
 - **Nome**: Um nome amigável para esta configuração de LLM (ex.: "OpenAI de Produção", "Ollama Local")
 - **Descrição** (opcional): Uma descrição para ajudar a identificar o propósito deste provedor
-- **Tipo de LLM**: Selecione o tipo de provedor (OpenAI, Anthropic ou Ollama)
-- **Chave de API**: Sua chave de API (obrigatória para OpenAI e Anthropic)
+- **Tipo de LLM**: Selecione o tipo de provedor (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama ou OpenAI Compatible)
+- **Chave de API**: Sua chave de API (obrigatória para OpenAI, Azure OpenAI, Anthropic, Groq e Mistral; opcional para Ollama e servidores compatíveis com OpenAI)
 - **Nome do Modelo**: O modelo específico a ser usado (ex.: `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
-- **URL Base** (opcional): URL do endpoint de API personalizado (obrigatória para Ollama, opcional para outros)
+- **URL Base** (opcional): URL do endpoint de API personalizado (obrigatória para Azure OpenAI, Ollama e OpenAI Compatible; opcional para outros)
 
 ## Configuração Específica por Provedor
 
@@ -117,6 +121,62 @@ Nome do Modelo: llama2
 - `codellama` - Modelo Llama especializado em código
 - `mixtral` - Modelo mixture of experts da Mistral
 
+### OpenAI Compatible (vLLM, LocalAI, LM Studio, etc.)
+
+Use o provedor **OpenAI Compatible** para qualquer servidor que implemente a API `/chat/completions` da OpenAI, mas que não seja a OpenAI em si — por exemplo, [vLLM](https://docs.vllm.ai), [LocalAI](https://localai.io), [LM Studio](https://lmstudio.ai) ou text-generation-webui. Esses servidores geralmente são auto-hospedados em sua própria URL e frequentemente funcionam sem autenticação.
+
+1. Inicie seu servidor compatível com OpenAI e anote sua URL base (geralmente termina em `/v1`)
+2. Selecione **OpenAI Compatible** como o Tipo de LLM
+3. Insira a **URL Base** (obrigatória), ex.: `http://your-server:8000/v1`
+4. Insira o **Nome do Modelo** (obrigatório) — deve corresponder a um modelo exposto pelo seu servidor
+5. Insira a **Chave de API** somente se o seu servidor exigir uma; deixe em branco para servidores sem autenticação
+
+**Exemplo de Configuração (vLLM sem chave):**
+
+```
+Nome: vLLM Auto-Hospedado
+Tipo de LLM: OpenAI Compatible
+URL Base: http://vllm.internal:8000/v1
+Nome do Modelo: meta-llama/Llama-3.1-8B-Instruct
+Chave de API: (deixe em branco)
+```
+
+> Dica: Após salvar, use o botão **Test** no provedor para confirmar que a conexão, o nome do modelo e a URL base estão corretos.
+
+### vLLM Auto-Hospedado no Kubernetes (Helm)
+
+Se você auto-hospeda o OneUptime com o Helm chart, pode executar o [vLLM](https://docs.vllm.ai) — um servidor de inferência compatível com OpenAI — dentro do seu cluster e servir modelos locais em suas próprias GPUs. Nenhum dado sai da sua infraestrutura.
+
+1. Habilite-o nos seus valores do Helm (requer nós com GPU NVIDIA):
+
+   ```yaml
+   vllm:
+     enabled: true
+     model: Qwen/Qwen2.5-1.5B-Instruct
+   ```
+
+2. Execute `helm upgrade` e aguarde o pod do vLLM ficar pronto (a primeira inicialização baixa o modelo)
+3. Pronto — o vLLM é registrado automaticamente como um Provedor de LLM Global na inicialização (`vllm.globalProvider.enabled`, padrão `true`), então os recursos de IA funcionam para todos os projetos. Nota: Agentes de IA com escopo de projeto não podem usar provedores globais e ainda precisam de um Provedor de LLM específico do projeto.
+
+Se você desabilitou o registro automático (`vllm.globalProvider.enabled: false`), crie o provedor manualmente:
+
+1. Selecione **OpenAI Compatible** como o Tipo de LLM (o vLLM fala a API da OpenAI)
+2. Insira a URL Base interna do cluster: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`
+3. Insira o Nome do Modelo: o id completo do modelo no HuggingFace (ou `vllm.servedModelName` se você definiu um)
+4. Insira a Chave de API somente se você definiu `vllm.apiKey`; deixe em branco para um vLLM sem autenticação
+
+**Exemplo de Configuração:**
+
+```
+Nome: vLLM no Cluster
+Tipo de LLM: OpenAI Compatible
+URL Base: http://oneuptime-vllm.default.svc.cluster.local:8000/v1
+Nome do Modelo: Qwen/Qwen2.5-1.5B-Instruct
+Chave de API: (deixe em branco, a menos que vllm.apiKey esteja definido)
+```
+
+Consulte o [README do Helm chart](https://github.com/OneUptime/oneuptime/tree/master/HelmChart/Public/oneuptime#local-models-with-vllm) para agendamento de GPU, modelos restritos e opções de ajuste.
+
 ## Usando URLs Base Personalizadas
 
 Para implantações empresariais ou ao usar serviços de proxy, você pode especificar uma URL Base personalizada:
@@ -138,6 +198,7 @@ Para implantações empresariais ou ao usar serviços de proxy, você pode espec
 
 - **OpenAI/Anthropic**: Verifique se sua chave de API é válida e tem créditos suficientes
 - **Ollama**: Certifique-se de que o servidor Ollama está em execução e a URL Base está correta
+- **OpenAI Compatible**: Certifique-se de que a URL Base termina em `/v1` (ou corresponde ao seu servidor), que o Nome do Modelo corresponde a um modelo exposto pelo seu servidor, e defina uma Chave de API somente se o seu servidor exigir uma
 - **Firewall**: Verifique se sua rede permite conexões de saída para a API do provedor
 
 ### Modelo Não Encontrado

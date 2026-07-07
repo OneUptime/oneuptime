@@ -1382,6 +1382,26 @@ vllm:
   # the "Model Name" in the OneUptime LLM Provider form must be the full
   # HuggingFace model id above.
   servedModelName: ""
+  # Tool / function calling. OneUptime's AI features (Ask AI copilot and AI
+  # Agents) drive the model with OpenAI-style tool calls, so vLLM MUST be
+  # started with tool calling enabled - otherwise every request fails with:
+  #   {"error":{"message":"\"auto\" tool choice requires --enable-auto-tool-choice
+  #   and --tool-call-parser to be set", ... "code":400}}
+  # This injects `--enable-auto-tool-choice` and `--tool-call-parser=<parser>`.
+  # The correct parser depends on the model FAMILY (not size). `hermes` matches
+  # the default Qwen2.5 model; if you change `model` above, set the matching
+  # parser here (e.g. llama3_json / pythonic for Llama, mistral for Mistral).
+  # See https://docs.vllm.ai/en/latest/features/tool_calling.html for the full
+  # parser table and whether your model needs a tool-aware --chat-template.
+  toolCalling:
+    enabled: true
+    # vLLM --tool-call-parser value. Required when enabled. `hermes` is correct
+    # for the default Qwen2.5 model.
+    parser: hermes
+    # Optional --chat-template (a path inside the image or a mounted file, or an
+    # inline Jinja template). Leave empty to use the model's built-in template;
+    # most tool-capable models (incl. the default Qwen2.5) ship a suitable one.
+    chatTemplate: ""
   # Extra CLI args appended to `vllm serve <model>`. Examples:
   # extraArgs:
   #   - "--max-model-len=8192"           # cap context length to reduce KV-cache VRAM (fixes startup OOM on small GPUs)

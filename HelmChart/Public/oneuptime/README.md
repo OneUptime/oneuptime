@@ -128,6 +128,7 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `vllm.image.repository` / `vllm.image.tag`        | vLLM image to run. The image is ~10GB+, so the first pull on a node can take several minutes.                                                                                          | `vllm/vllm-openai` / pinned release |  |
 | `vllm.model`                                      | HuggingFace model id to serve. The default is small, Apache-2.0 licensed and not gated.                                                                                                | `Qwen/Qwen2.5-1.5B-Instruct` |    |
 | `vllm.servedModelName`                            | Optional model alias exposed on `/v1/models`. If empty, use the full model id as the Model Name in the dashboard.                                                                      | `""`            |                 |
+| `vllm.toolCalling.enabled` / `vllm.toolCalling.parser` | Enable OpenAI tool/function calling (`--enable-auto-tool-choice --tool-call-parser`). Required for the AI copilot & agents. Parser is model-family specific (`hermes` for Qwen). | `true` / `hermes` |               |
 | `vllm.apiKey`                                     | Optional API key guarding `/v1/*`. If unset, the server is unauthenticated (in-cluster only).                                                                                          | `""`            |                 |
 | `vllm.huggingFace.token`                          | HuggingFace token for gated models (e.g. `meta-llama/*`). Not needed for the default model.                                                                                            | `""`            |                 |
 | `vllm.persistence.enabled` / `vllm.persistence.size` | Persistent cache for model weights and compile artifacts (one PVC per replica).                                                                                                     | `true` / `50Gi` |                 |
@@ -464,10 +465,10 @@ When enabled, vLLM is **registered automatically as a Global LLM Provider** at s
 
 If you prefer to wire it up manually instead, set `vllm.globalProvider.enabled: false` and go to **AI Agents > LLM Providers > Create LLM Provider**:
 
-- **LLM Provider**: `OpenAI`
+- **LLM Provider**: `OpenAI Compatible`
 - **Base URL**: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`
 - **Model Name**: the value of `vllm.servedModelName`, or the full HuggingFace model id if unset
-- **API Key**: the value of `vllm.apiKey` (any placeholder if unset)
+- **API Key**: the value of `vllm.apiKey`; leave blank if you did not set one (vLLM is keyless by default)
 
 Notes on scaling and upgrades:
 

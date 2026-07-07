@@ -2973,6 +2973,21 @@
                 "servedModelName": {
                     "type": ["string", "null"]
                 },
+                "toolCalling": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "parser": {
+                            "type": ["string", "null"]
+                        },
+                        "chatTemplate": {
+                            "type": ["string", "null"]
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "extraArgs": {
                     "type": ["array", "null"]
                 },

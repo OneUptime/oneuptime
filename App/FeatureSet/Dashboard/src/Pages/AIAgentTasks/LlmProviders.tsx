@@ -2,22 +2,59 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import TestLLMProvider, {
+  LLMProviderTestResult,
+} from "Common/UI/Utils/TestLLMProvider";
 import Navigation from "Common/UI/Utils/Navigation";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
-import LlmType from "Common/Types/LLM/LlmType";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import LlmTypeDropdownOptions from "Common/UI/Utils/LlmTypeDropdownOptions";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 
 const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const [showTestModal, setShowTestModal] = useState<boolean>(false);
+  const [isTesting, setIsTesting] = useState<boolean>(false);
+  const [testError, setTestError] = useState<string>("");
+  const [testMessage, setTestMessage] = useState<string>("");
+
+  const runTest: (item: LlmProvider) => Promise<void> = async (
+    item: LlmProvider,
+  ): Promise<void> => {
+    setIsTesting(true);
+    setTestError("");
+    setTestMessage("");
+
+    const result: LLMProviderTestResult = await TestLLMProvider.test({
+      llmProviderId: item["_id"]?.toString() || "",
+      headers: ModelAPI.getCommonHeaders(),
+    });
+
+    if (result.success) {
+      setTestMessage(result.message);
+    } else {
+      setTestError(result.message);
+    }
+
+    setIsTesting(false);
+  };
+
   return (
     <Fragment>
       <>
@@ -189,6 +226,27 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isEditable={false}
           isViewable={true}
           isCreateable={true}
+          actionButtons={[
+            {
+              title: "Test",
+              buttonStyleType: ButtonStyleType.NORMAL,
+              icon: IconProp.Play,
+              onClick: async (
+                item: LlmProvider,
+                onCompleteAction: VoidFunction,
+                onError: ErrorFunction,
+              ) => {
+                try {
+                  setShowTestModal(true);
+                  await runTest(item);
+                  onCompleteAction();
+                } catch (err) {
+                  onCompleteAction();
+                  onError(err as Error);
+                }
+              },
+            },
+          ]}
           cardProps={{
             title: "Bring Your Own Large Language Model",
             description: BILLING_ENABLED
@@ -246,7 +304,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               fieldType: FormFieldSchemaType.Dropdown,
               required: true,
               placeholder: "Select LLM Provider",
-              dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(LlmType),
+              dropdownOptions: LlmTypeDropdownOptions,
             },
             {
               field: {
@@ -258,7 +316,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               required: false,
               placeholder: "sk-...",
               description:
-                "Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. Not required for Ollama if self-hosted.",
+                "Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.",
             },
             {
               field: {
@@ -270,7 +328,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               required: false,
               placeholder: "gpt-4o, claude-3-opus, llama-3.3-70b-versatile",
               description:
-                "The specific model or deployment name to use (e.g., gpt-4o for OpenAI, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral).",
+                "The specific model or deployment name to use (e.g., gpt-4o for OpenAI, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.",
             },
             {
               field: {
@@ -282,7 +340,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               required: false,
               placeholder: "http://localhost:11434",
               description:
-                "Required for Azure OpenAI and Ollama. For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint.",
+                "Required for Azure OpenAI, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint.",
             },
             {
               field: {
@@ -352,6 +410,26 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           ]}
         />
+
+        {showTestModal ? (
+          <ConfirmModal
+            title={"Test LLM Provider"}
+            error={testError}
+            description={
+              isTesting
+                ? "Sending a test prompt to your LLM provider…"
+                : testMessage ||
+                  "Testing the connection to your LLM provider. This sends a small prompt using your configured API key, model, and base URL."
+            }
+            submitButtonText={"Close"}
+            isLoading={isTesting}
+            onSubmit={async () => {
+              setShowTestModal(false);
+              setTestError("");
+              setTestMessage("");
+            }}
+          />
+        ) : null}
       </>
     </Fragment>
   );

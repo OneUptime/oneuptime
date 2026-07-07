@@ -109,6 +109,16 @@ spec:
         {{- if .Values.vllm.servedModelName }}
         - {{ printf "--served-model-name=%s" .Values.vllm.servedModelName | quote }}
         {{- end }}
+        {{- if .Values.vllm.toolCalling.enabled }}
+        # OneUptime's AI copilot/agents send OpenAI-style tool calls; without
+        # these flags vLLM rejects every request with an HTTP 400 ("auto" tool
+        # choice requires --enable-auto-tool-choice and --tool-call-parser).
+        - --enable-auto-tool-choice
+        - {{ printf "--tool-call-parser=%s" (required "vllm.toolCalling.parser is required when vllm.toolCalling.enabled is true (e.g. hermes for Qwen, llama3_json for Llama, mistral for Mistral)" .Values.vllm.toolCalling.parser) | quote }}
+        {{- if .Values.vllm.toolCalling.chatTemplate }}
+        - {{ printf "--chat-template=%s" .Values.vllm.toolCalling.chatTemplate | quote }}
+        {{- end }}
+        {{- end }}
         {{- range .Values.vllm.extraArgs }}
         - {{ . | quote }}
         {{- end }}

@@ -4,20 +4,53 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import IconProp from "Common/Types/Icon/IconProp";
 import Banner from "Common/UI/Components/Banner/Banner";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
-import LlmType from "Common/Types/LLM/LlmType";
-import React, { FunctionComponent, ReactElement } from "react";
+import LlmTypeDropdownOptions from "Common/UI/Utils/LlmTypeDropdownOptions";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
+import TestLLMProvider, {
+  LLMProviderTestResult,
+} from "Common/UI/Utils/TestLLMProvider";
 import { BILLING_ENABLED } from "Common/UI/Config";
 
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+
+  const [showTestModal, setShowTestModal] = useState<boolean>(false);
+  const [isTesting, setIsTesting] = useState<boolean>(false);
+  const [testError, setTestError] = useState<string>("");
+  const [testMessage, setTestMessage] = useState<string>("");
+
+  const runTest: (item: LlmProvider) => Promise<void> = async (
+    item: LlmProvider,
+  ): Promise<void> => {
+    setIsTesting(true);
+    setTestError("");
+    setTestMessage("");
+
+    const result: LLMProviderTestResult = await TestLLMProvider.test({
+      llmProviderId: item["_id"]?.toString() || "",
+      headers: AdminModelAPI.getCommonHeaders(),
+    });
+
+    if (result.success) {
+      setTestMessage(result.message);
+    } else {
+      setTestError(result.message);
+    }
+
+    setIsTesting(false);
+  };
+
   return (
     <Page
       title={t("pages.settings.title")}
@@ -59,6 +92,27 @@ const Settings: FunctionComponent = (): ReactElement => {
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
+        actionButtons={[
+          {
+            title: "Test",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.Play,
+            onClick: async (
+              item: LlmProvider,
+              onCompleteAction: VoidFunction,
+              onError: ErrorFunction,
+            ) => {
+              try {
+                setShowTestModal(true);
+                await runTest(item);
+                onCompleteAction();
+              } catch (err) {
+                onCompleteAction();
+                onError(err as Error);
+              }
+            },
+          },
+        ]}
         cardProps={{
           title: t("pages.settings.llmProviders.cardTitle"),
           description: t("pages.settings.llmProviders.cardDescription"),
@@ -126,7 +180,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
             placeholder: "Select LLM Provider",
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(LlmType),
+            dropdownOptions: LlmTypeDropdownOptions,
           },
           {
             field: {
@@ -138,7 +192,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             required: false,
             placeholder: "sk-...",
             description:
-              "Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. Not required for Ollama if self-hosted.",
+              "Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.",
           },
           {
             field: {
@@ -150,7 +204,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             required: false,
             placeholder: "gpt-4o, claude-3-opus, llama-3.3-70b-versatile",
             description:
-              "The specific model or deployment name to use (e.g., gpt-4o for OpenAI, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral).",
+              "The specific model or deployment name to use (e.g., gpt-4o for OpenAI, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.",
           },
           {
             field: {
@@ -162,7 +216,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             required: false,
             placeholder: "http://localhost:11434",
             description:
-              "Required for Azure OpenAI and Ollama. For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint.",
+              "Required for Azure OpenAI, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint.",
           },
           ...(BILLING_ENABLED
             ? [
@@ -244,6 +298,28 @@ const Settings: FunctionComponent = (): ReactElement => {
             : []),
         ]}
       />
+
+      {showTestModal ? (
+        <ConfirmModal
+          title={"Test LLM Provider"}
+          error={testError}
+          description={
+            isTesting
+              ? "Sending a test prompt to the LLM provider…"
+              : testMessage ||
+                "Testing the connection to this global LLM provider. This sends a small prompt using its configured API key, model, and base URL."
+          }
+          submitButtonText={"Close"}
+          isLoading={isTesting}
+          onSubmit={async () => {
+            setShowTestModal(false);
+            setTestError("");
+            setTestMessage("");
+          }}
+        />
+      ) : (
+        <></>
+      )}
     </Page>
   );
 };
