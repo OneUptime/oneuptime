@@ -88,12 +88,15 @@ const Navbar: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
-  // Open/close the products menu with Cmd/Ctrl + K from anywhere.
+  /*
+   * Open/close the products menu with Cmd/Ctrl + / from anywhere.
+   * Cmd/Ctrl + K is reserved for the global command palette.
+   */
   useEffect(() => {
     const handleGlobalKeyDown: (event: KeyboardEvent) => void = (
       event: KeyboardEvent,
     ): void => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      if ((event.metaKey || event.ctrlKey) && event.key === "/") {
         event.preventDefault();
         setIsMoreMenuVisible((visible: boolean) => {
           return !visible;

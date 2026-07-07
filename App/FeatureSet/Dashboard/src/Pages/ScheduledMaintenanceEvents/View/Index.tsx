@@ -464,7 +464,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                           value={
                             item.sendSubscriberNotificationsOnBeforeTheEvent
                           }
-                          postfix=" before the event is begins"
+                          postfix=" before the event begins"
                         />
                         {item.nextSubscriberNotificationBeforeTheEventAt ? (
                           <div className="mt-2">

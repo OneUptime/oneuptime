@@ -296,38 +296,34 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     fetchIncidentStates();
   }, []);
 
-  const handleBulkStateChange: (
-    targetStateId: ObjectID,
-  ) => Promise<void> = async (targetStateId: ObjectID): Promise<void> => {
-    if (!bulkActionProps) {
-      return;
-    }
-
+  /*
+   * Generic bulk state-change core. Runs every selected incident in PARALLEL
+   * (instead of the old sequential O(2N) loop) and is IDEMPOTENT: an incident
+   * already at or past the target state is a success no-op, not a "Skipped"
+   * failure.
+   */
+  const runBulkStateChange: (
+    targetState: IncidentState,
+    actionProps: BulkActionOnClickProps<Incident>,
+  ) => Promise<void> = async (
+    targetState: IncidentState,
+    actionProps: BulkActionOnClickProps<Incident>,
+  ): Promise<void> => {
     const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      bulkActionProps;
-
-    const targetState: IncidentState | undefined = incidentStates.find(
-      (s: IncidentState) => {
-        return s.id?.toString() === targetStateId.toString();
-      },
-    );
-
-    if (!targetState) {
-      return;
-    }
+      actionProps;
 
     const targetOrder: number = targetState.order || 0;
 
     onBulkActionStart();
 
-    const inProgressItems: Array<Incident> = [...items];
     const totalItems: Array<Incident> = [...items];
+    const inProgressItems: Array<Incident> = [...items];
     const successItems: Array<Incident> = [];
     const failedItems: Array<BulkActionFailed<Incident>> = [];
 
-    for (const incident of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(incident), 1);
-
+    const settleIncident: (incident: Incident) => Promise<void> = async (
+      incident: Incident,
+    ): Promise<void> => {
       try {
         if (!incident.id) {
           throw new Error("Incident ID not found");
@@ -349,43 +345,45 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         const currentOrder: number =
           fetchedIncident?.currentIncidentState?.order || 0;
 
-        // Skip if already at or past the target state
-        if (currentOrder >= targetOrder) {
-          const currentStateName: string =
-            fetchedIncident?.currentIncidentState?.name || "Unknown";
-          failedItems.push({
-            item: incident,
-            failedMessage: `Skipped: Already at "${currentStateName}" (at or past "${targetState.name}")`,
-          });
-        } else {
-          // Create state timeline to change state
+        // Idempotent: only advance if the incident is behind the target state.
+        if (currentOrder < targetOrder) {
           const stateTimeline: IncidentStateTimeline =
             new IncidentStateTimeline();
           stateTimeline.incidentId = incident.id;
-          stateTimeline.incidentStateId = targetStateId;
+          stateTimeline.incidentStateId = targetState.id!;
           stateTimeline.projectId = ProjectUtil.getCurrentProjectId()!;
 
           await ModelAPI.create<IncidentStateTimeline>({
             model: stateTimeline,
             modelType: IncidentStateTimeline,
           });
-
-          successItems.push(incident);
         }
+
+        successItems.push(incident);
       } catch (err) {
         failedItems.push({
           item: incident,
           failedMessage: API.getFriendlyMessage(err),
         });
+      } finally {
+        const idx: number = inProgressItems.indexOf(incident);
+        if (idx > -1) {
+          inProgressItems.splice(idx, 1);
+        }
+        onProgressInfo({
+          totalItems: totalItems,
+          failed: failedItems,
+          successItems: successItems,
+          inProgressItems: inProgressItems,
+        });
       }
+    };
 
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
-    }
+    await Promise.all(
+      totalItems.map((incident: Incident) => {
+        return settleIncident(incident);
+      }),
+    );
 
     onBulkActionEnd();
     setShowBulkStateChangeModal(false);
@@ -394,6 +392,70 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     // Trigger sidebar badge count refresh
     GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
   };
+
+  const handleBulkStateChange: (
+    targetStateId: ObjectID,
+  ) => Promise<void> = async (targetStateId: ObjectID): Promise<void> => {
+    if (!bulkActionProps) {
+      return;
+    }
+
+    const targetState: IncidentState | undefined = incidentStates.find(
+      (s: IncidentState) => {
+        return s.id?.toString() === targetStateId.toString();
+      },
+    );
+
+    if (!targetState) {
+      return;
+    }
+
+    await runBulkStateChange(targetState, bulkActionProps);
+  };
+
+  // The acknowledged / resolved states power the one-click bulk triage verbs.
+  const acknowledgedState: IncidentState | undefined = incidentStates.find(
+    (s: IncidentState) => {
+      return s.isAcknowledgedState;
+    },
+  );
+  const resolvedState: IncidentState | undefined = incidentStates.find(
+    (s: IncidentState) => {
+      return s.isResolvedState;
+    },
+  );
+
+  const getBulkAcknowledgeAction: () => BulkActionButtonSchema<Incident> =
+    (): BulkActionButtonSchema<Incident> => {
+      return {
+        title: "Acknowledge",
+        buttonStyleType: ButtonStyleType.NORMAL,
+        icon: IconProp.Check,
+        onClick: async (
+          actionProps: BulkActionOnClickProps<Incident>,
+        ): Promise<void> => {
+          if (acknowledgedState) {
+            await runBulkStateChange(acknowledgedState, actionProps);
+          }
+        },
+      };
+    };
+
+  const getBulkResolveAction: () => BulkActionButtonSchema<Incident> =
+    (): BulkActionButtonSchema<Incident> => {
+      return {
+        title: "Resolve",
+        buttonStyleType: ButtonStyleType.NORMAL,
+        icon: IconProp.CheckCircle,
+        onClick: async (
+          actionProps: BulkActionOnClickProps<Incident>,
+        ): Promise<void> => {
+          if (resolvedState) {
+            await runBulkStateChange(resolvedState, actionProps);
+          }
+        },
+      };
+    };
 
   const getBulkChangeStateAction: () => BulkActionButtonSchema<Incident> =
     (): BulkActionButtonSchema<Incident> => {
@@ -473,6 +535,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         userPreferencesKey="incidents-table"
         bulkActions={{
           buttons: [
+            ...(acknowledgedState ? [getBulkAcknowledgeAction()] : []),
+            ...(resolvedState ? [getBulkResolveAction()] : []),
             getBulkChangeStateAction(),
             ...labelBulkActions,
             ...ownerBulkActions,

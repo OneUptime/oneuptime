@@ -365,38 +365,34 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     fetchAlertStates();
   }, []);
 
-  const handleBulkStateChange: (
-    targetStateId: ObjectID,
-  ) => Promise<void> = async (targetStateId: ObjectID): Promise<void> => {
-    if (!bulkActionProps) {
-      return;
-    }
-
+  /*
+   * Generic bulk state-change core. Runs every selected alert in PARALLEL
+   * (instead of the old sequential O(2N) loop) and is IDEMPOTENT: an alert
+   * already at or past the target state is a success no-op, not a "Skipped"
+   * failure.
+   */
+  const runBulkStateChange: (
+    targetState: AlertState,
+    actionProps: BulkActionOnClickProps<Alert>,
+  ) => Promise<void> = async (
+    targetState: AlertState,
+    actionProps: BulkActionOnClickProps<Alert>,
+  ): Promise<void> => {
     const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      bulkActionProps;
-
-    const targetState: AlertState | undefined = alertStates.find(
-      (s: AlertState) => {
-        return s.id?.toString() === targetStateId.toString();
-      },
-    );
-
-    if (!targetState) {
-      return;
-    }
+      actionProps;
 
     const targetOrder: number = targetState.order || 0;
 
     onBulkActionStart();
 
-    const inProgressItems: Array<Alert> = [...items];
     const totalItems: Array<Alert> = [...items];
+    const inProgressItems: Array<Alert> = [...items];
     const successItems: Array<Alert> = [];
     const failedItems: Array<BulkActionFailed<Alert>> = [];
 
-    for (const alert of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(alert), 1);
-
+    const settleAlert: (alert: Alert) => Promise<void> = async (
+      alert: Alert,
+    ): Promise<void> => {
       try {
         if (!alert.id) {
           throw new Error("Alert ID not found");
@@ -417,42 +413,44 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         const currentOrder: number =
           fetchedAlert?.currentAlertState?.order || 0;
 
-        // Skip if already at or past the target state
-        if (currentOrder >= targetOrder) {
-          const currentStateName: string =
-            fetchedAlert?.currentAlertState?.name || "Unknown";
-          failedItems.push({
-            item: alert,
-            failedMessage: `Skipped: Already at "${currentStateName}" (at or past "${targetState.name}")`,
-          });
-        } else {
-          // Create state timeline to change state
+        // Idempotent: only advance if the alert is behind the target state.
+        if (currentOrder < targetOrder) {
           const stateTimeline: AlertStateTimeline = new AlertStateTimeline();
           stateTimeline.alertId = alert.id;
-          stateTimeline.alertStateId = targetStateId;
+          stateTimeline.alertStateId = targetState.id!;
           stateTimeline.projectId = ProjectUtil.getCurrentProjectId()!;
 
           await ModelAPI.create<AlertStateTimeline>({
             model: stateTimeline,
             modelType: AlertStateTimeline,
           });
-
-          successItems.push(alert);
         }
+
+        successItems.push(alert);
       } catch (err) {
         failedItems.push({
           item: alert,
           failedMessage: API.getFriendlyMessage(err),
         });
+      } finally {
+        const idx: number = inProgressItems.indexOf(alert);
+        if (idx > -1) {
+          inProgressItems.splice(idx, 1);
+        }
+        onProgressInfo({
+          totalItems: totalItems,
+          failed: failedItems,
+          successItems: successItems,
+          inProgressItems: inProgressItems,
+        });
       }
+    };
 
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
-    }
+    await Promise.all(
+      totalItems.map((alert: Alert) => {
+        return settleAlert(alert);
+      }),
+    );
 
     onBulkActionEnd();
     setShowBulkStateChangeModal(false);
@@ -461,6 +459,70 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     // Trigger sidebar badge count refresh
     GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
   };
+
+  const handleBulkStateChange: (
+    targetStateId: ObjectID,
+  ) => Promise<void> = async (targetStateId: ObjectID): Promise<void> => {
+    if (!bulkActionProps) {
+      return;
+    }
+
+    const targetState: AlertState | undefined = alertStates.find(
+      (s: AlertState) => {
+        return s.id?.toString() === targetStateId.toString();
+      },
+    );
+
+    if (!targetState) {
+      return;
+    }
+
+    await runBulkStateChange(targetState, bulkActionProps);
+  };
+
+  // The acknowledged / resolved states power the one-click bulk triage verbs.
+  const acknowledgedState: AlertState | undefined = alertStates.find(
+    (s: AlertState) => {
+      return s.isAcknowledgedState;
+    },
+  );
+  const resolvedState: AlertState | undefined = alertStates.find(
+    (s: AlertState) => {
+      return s.isResolvedState;
+    },
+  );
+
+  const getBulkAcknowledgeAction: () => BulkActionButtonSchema<Alert> =
+    (): BulkActionButtonSchema<Alert> => {
+      return {
+        title: "Acknowledge",
+        buttonStyleType: ButtonStyleType.NORMAL,
+        icon: IconProp.Check,
+        onClick: async (
+          actionProps: BulkActionOnClickProps<Alert>,
+        ): Promise<void> => {
+          if (acknowledgedState) {
+            await runBulkStateChange(acknowledgedState, actionProps);
+          }
+        },
+      };
+    };
+
+  const getBulkResolveAction: () => BulkActionButtonSchema<Alert> =
+    (): BulkActionButtonSchema<Alert> => {
+      return {
+        title: "Resolve",
+        buttonStyleType: ButtonStyleType.NORMAL,
+        icon: IconProp.CheckCircle,
+        onClick: async (
+          actionProps: BulkActionOnClickProps<Alert>,
+        ): Promise<void> => {
+          if (resolvedState) {
+            await runBulkStateChange(resolvedState, actionProps);
+          }
+        },
+      };
+    };
 
   const getBulkChangeStateAction: () => BulkActionButtonSchema<Alert> =
     (): BulkActionButtonSchema<Alert> => {
@@ -503,6 +565,8 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         userPreferencesKey="alerts-table"
         bulkActions={{
           buttons: [
+            ...(acknowledgedState ? [getBulkAcknowledgeAction()] : []),
+            ...(resolvedState ? [getBulkResolveAction()] : []),
             getBulkChangeStateAction(),
             ...labelBulkActions,
             ...ownerBulkActions,
