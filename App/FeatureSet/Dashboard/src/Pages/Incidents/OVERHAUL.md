@@ -31,6 +31,15 @@ engine and rebuild the shell around it.
   (`Pages/Incidents/View/Index.tsx`, `Pages/Alerts/View/Index.tsx`,
   `Pages/ScheduledMaintenanceEvents/View/Index.tsx`): click to rename, optimistic save via
   `ModelAPI.updateById`, rollback + toast on failure. No modal, no Save button.
+- **`EventDetailLayout`** — `Components/EventView/EventDetailLayout.tsx`. The shared header
+  chassis (state/action panel + full-width eyebrow + inline title + actions slot), adopted
+  by all three event detail pages. First step of the one-page detail; grows to own the
+  body + right rail next.
+- **Investigation content inline on the incident overview** — Description, Root Cause
+  (with its metric chart) and Remediation now render as editable cards on
+  `Pages/Incidents/View/Index.tsx` instead of three separate routes. The `/description`,
+  `/root-cause` and `/remediation` routes remain as deep-link fallbacks (the 18-item
+  sidebar is not torn down yet).
 - **Bulk Acknowledge / Resolve** — first-class one-click triage verbs on the incident and
   alert tables (`Components/Incident/IncidentsTable.tsx`,
   `Components/Alert/AlertsTable.tsx`), shown only when the project defines an acknowledged

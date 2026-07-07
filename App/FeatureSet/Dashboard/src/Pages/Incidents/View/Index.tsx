@@ -36,6 +36,10 @@ import React, {
 import UserElement from "../../../Components/User/User";
 import Card from "Common/UI/Components/Card/Card";
 import InlineEditField from "Common/UI/Components/InlineEdit/InlineEditField";
+import EventDetailLayout from "../../../Components/EventView/EventDetailLayout";
+import IncidentRootCauseMetricChart from "../../../Components/Incident/IncidentRootCauseMetricChart";
+import MarkdownUtil from "Common/UI/Utils/Markdown";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -320,46 +324,42 @@ const IncidentView: FunctionComponent<
 
   return (
     <Fragment>
-      <div className="mb-5">
-        <ChangeIncidentState
-          incidentId={modelId}
-          eventNumber={eventNumber}
-          severity={severity}
-          isPrivate={isPrivate}
-          onActionComplete={async () => {
-            await fetchData();
-          }}
-        />
-      </div>
+      <EventDetailLayout
+        header={
+          <ChangeIncidentState
+            incidentId={modelId}
+            eventNumber={eventNumber}
+            severity={severity}
+            isPrivate={isPrivate}
+            onActionComplete={async () => {
+              await fetchData();
+            }}
+          />
+        }
+        eyebrow={eventNumber}
+        title={
+          <InlineEditField
+            value={incidentTitle}
+            placeholder="Untitled incident"
+            ariaLabel="Incident title"
+            errorTitle="Couldn't rename incident"
+            className="-ml-2 text-2xl font-semibold text-gray-900"
+            onSave={async (newTitle: string) => {
+              setIncidentTitle(newTitle);
+              await ModelAPI.updateById<Incident>({
+                id: modelId,
+                modelType: Incident,
+                data: {
+                  title: newTitle,
+                },
+              });
+            }}
+          />
+        }
+      />
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
-          {/* Inline-editable incident title — click to rename, saves optimistically. */}
-          <div className="mb-5">
-            {eventNumber && (
-              <div className="mb-1 text-sm font-medium text-gray-400">
-                {eventNumber}
-              </div>
-            )}
-            <InlineEditField
-              value={incidentTitle}
-              placeholder="Untitled incident"
-              ariaLabel="Incident title"
-              errorTitle="Couldn't rename incident"
-              className="-ml-2 text-xl font-semibold text-gray-900"
-              onSave={async (newTitle: string) => {
-                setIncidentTitle(newTitle);
-                await ModelAPI.updateById<Incident>({
-                  id: modelId,
-                  modelType: Incident,
-                  data: {
-                    title: newTitle,
-                  },
-                });
-              }}
-            />
-          </div>
-
           <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <EventStatTile
               label={`${getAcknowledgeState()?.name || "Acknowledged"} in`}
@@ -449,6 +449,138 @@ const IncidentView: FunctionComponent<
           <IncidentAffectedResources incidentId={modelId} />
 
           <EntityRunbooks incidentId={modelId} hideIfEmpty={true} />
+
+          {/*
+           * Investigation content, inline on the overview — no route hop.
+           * Previously separate /description, /root-cause and /remediation
+           * sub-pages; those routes still exist as deep-link fallbacks.
+           */}
+          <CardModelDetail<Incident>
+            name="Incident Description"
+            cardProps={{
+              title: "Description",
+              description:
+                "Description of this incident. This is visible on the status page and is in markdown format.",
+            }}
+            createEditModalWidth={ModalWidth.Large}
+            editButtonText="Edit Description"
+            isEditable={true}
+            formFields={[
+              {
+                field: {
+                  description: true,
+                },
+                title: "Description",
+                fieldType: FormFieldSchemaType.Markdown,
+                required: false,
+                placeholder: "Description",
+                description: MarkdownUtil.getMarkdownCheatsheet(
+                  "Describe the incident details here",
+                ),
+              },
+            ]}
+            modelDetailProps={{
+              showDetailsInNumberOfColumns: 1,
+              modelType: Incident,
+              id: "model-detail-incident-description",
+              fields: [
+                {
+                  field: {
+                    description: true,
+                  },
+                  title: "Description",
+                  placeholder: "No description added for this incident.",
+                  fieldType: FieldType.Markdown,
+                },
+              ],
+              modelId: modelId,
+            }}
+          />
+
+          <CardModelDetail<Incident>
+            name="Root Cause"
+            cardProps={{
+              title: "Root Cause",
+              description:
+                "Why did this incident happen? Here is the root cause of this incident.",
+            }}
+            createEditModalWidth={ModalWidth.Large}
+            isEditable={true}
+            editButtonText="Edit Root Cause"
+            formFields={[
+              {
+                field: {
+                  rootCause: true,
+                },
+                title: "Root Cause",
+                fieldType: FormFieldSchemaType.Markdown,
+                required: false,
+                placeholder: "Root Cause",
+                description: MarkdownUtil.getMarkdownCheatsheet(
+                  "Describe the root cause of this incident here",
+                ),
+              },
+            ]}
+            modelDetailProps={{
+              showDetailsInNumberOfColumns: 1,
+              modelType: Incident,
+              id: "model-detail-incident-root-cause",
+              fields: [
+                {
+                  field: {
+                    rootCause: true,
+                  },
+                  title: "",
+                  placeholder: "No root cause identified for this incident.",
+                  fieldType: FieldType.Markdown,
+                },
+              ],
+              modelId: modelId,
+            }}
+          />
+          <IncidentRootCauseMetricChart incidentId={modelId} />
+
+          <CardModelDetail<Incident>
+            name="Remediation Notes"
+            cardProps={{
+              title: "Remediation Notes",
+              description:
+                "What steps should be taken to resolve this incident? Here are the remediation notes.",
+            }}
+            createEditModalWidth={ModalWidth.Large}
+            editButtonText="Edit Remediation Notes"
+            isEditable={true}
+            formFields={[
+              {
+                field: {
+                  remediationNotes: true,
+                },
+                title: "Remediation Notes",
+                fieldType: FormFieldSchemaType.Markdown,
+                required: false,
+                placeholder: "Remediation Notes",
+                description: MarkdownUtil.getMarkdownCheatsheet(
+                  "Add remediation notes for this incident here",
+                ),
+              },
+            ]}
+            modelDetailProps={{
+              showDetailsInNumberOfColumns: 1,
+              modelType: Incident,
+              id: "model-detail-incident-remediation-notes",
+              fields: [
+                {
+                  field: {
+                    remediationNotes: true,
+                  },
+                  title: "Remediation Notes",
+                  placeholder: "No remediation notes added for this incident.",
+                  fieldType: FieldType.Markdown,
+                },
+              ],
+              modelId: modelId,
+            }}
+          />
 
           <IncidentFeedElement incidentId={modelId} />
         </div>

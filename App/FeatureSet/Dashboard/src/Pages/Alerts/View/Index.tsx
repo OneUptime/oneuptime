@@ -34,6 +34,7 @@ import React, {
 import UserElement from "../../../Components/User/User";
 import Card from "Common/UI/Components/Card/Card";
 import InlineEditField from "Common/UI/Components/InlineEdit/InlineEditField";
+import EventDetailLayout from "../../../Components/EventView/EventDetailLayout";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -301,46 +302,42 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Fragment>
-      <div className="mb-5">
-        <ChangeAlertState
-          alertId={modelId}
-          eventNumber={eventNumber}
-          severity={severity}
-          isPrivate={isPrivate}
-          onActionComplete={async () => {
-            await fetchData();
-          }}
-        />
-      </div>
+      <EventDetailLayout
+        header={
+          <ChangeAlertState
+            alertId={modelId}
+            eventNumber={eventNumber}
+            severity={severity}
+            isPrivate={isPrivate}
+            onActionComplete={async () => {
+              await fetchData();
+            }}
+          />
+        }
+        eyebrow={eventNumber}
+        title={
+          <InlineEditField
+            value={alertTitle}
+            placeholder="Untitled alert"
+            ariaLabel="Alert title"
+            errorTitle="Couldn't rename alert"
+            className="-ml-2 text-2xl font-semibold text-gray-900"
+            onSave={async (newTitle: string) => {
+              setAlertTitle(newTitle);
+              await ModelAPI.updateById<Alert>({
+                id: modelId,
+                modelType: Alert,
+                data: {
+                  title: newTitle,
+                },
+              });
+            }}
+          />
+        }
+      />
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
-          {/* Inline-editable alert title — click to rename, saves optimistically. */}
-          <div className="mb-5">
-            {eventNumber && (
-              <div className="mb-1 text-sm font-medium text-gray-400">
-                {eventNumber}
-              </div>
-            )}
-            <InlineEditField
-              value={alertTitle}
-              placeholder="Untitled alert"
-              ariaLabel="Alert title"
-              errorTitle="Couldn't rename alert"
-              className="-ml-2 text-xl font-semibold text-gray-900"
-              onSave={async (newTitle: string) => {
-                setAlertTitle(newTitle);
-                await ModelAPI.updateById<Alert>({
-                  id: modelId,
-                  modelType: Alert,
-                  data: {
-                    title: newTitle,
-                  },
-                });
-              }}
-            />
-          </div>
-
           <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <EventStatTile
               label={`${getAcknowledgeState()?.name || "Acknowledged"} in`}
