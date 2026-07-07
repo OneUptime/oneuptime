@@ -87,6 +87,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     { name: string; color: Color } | undefined
   >(undefined);
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
+  const [eventNumber, setEventNumber] = useState<string | undefined>(undefined);
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -135,6 +136,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         select: {
           telemetryQuery: true,
           isPrivate: true,
+          alertNumber: true,
+          alertNumberWithPrefix: true,
           alertSeverity: {
             name: true,
             color: true,
@@ -160,6 +163,11 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       }
 
       setIsPrivate(alert?.isPrivate || false);
+
+      setEventNumber(
+        alert?.alertNumberWithPrefix ||
+          (alert?.alertNumber ? "#" + alert.alertNumber : undefined),
+      );
 
       setTelemetryQuery(telemetryQuery);
       setAlertStates(alertStates.data as AlertState[]);
@@ -292,6 +300,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <div className="mb-5">
         <ChangeAlertState
           alertId={modelId}
+          eventNumber={eventNumber}
           severity={severity}
           isPrivate={isPrivate}
           onActionComplete={async () => {

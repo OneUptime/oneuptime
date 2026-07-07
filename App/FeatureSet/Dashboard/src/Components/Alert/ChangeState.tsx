@@ -35,6 +35,7 @@ import EventStatusPanel, {
 export interface ComponentProps {
   alertId: ObjectID;
   onActionComplete: () => void;
+  eventNumber?: string | undefined;
   severity?: { name: string; color: Color } | undefined;
   isPrivate?: boolean | undefined;
 }
@@ -249,6 +250,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
           label: "Acknowledge",
           icon: IconProp.Check,
           buttonStyle: ButtonStyleType.PRIMARY,
+          color: acknowledgedState.color || Black,
           id: "alert-acknowledge-btn",
         });
 
@@ -258,6 +260,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
             label: "Resolve",
             icon: IconProp.CheckCircle,
             buttonStyle: ButtonStyleType.OUTLINE,
+            color: resolvedState.color || Black,
             id: "alert-resolve-btn",
           });
         }
@@ -267,6 +270,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
           label: "Resolve",
           icon: IconProp.CheckCircle,
           buttonStyle: ButtonStyleType.PRIMARY,
+          color: resolvedState.color || Black,
           id: "alert-resolve-btn",
         });
       }
@@ -343,6 +347,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
             color: state.color || Black,
           };
         })}
+        identifier={props.eventNumber}
         currentStateId={currentAlertState?.id?.toString()}
         severity={props.severity}
         isPrivate={props.isPrivate}

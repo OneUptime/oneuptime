@@ -63,6 +63,8 @@ const ScheduledMaintenanceView: FunctionComponent<
             select: {
               startsAt: true,
               endsAt: true,
+              scheduledMaintenanceNumber: true,
+              scheduledMaintenanceNumberWithPrefix: true,
             },
           });
 
@@ -80,6 +82,11 @@ const ScheduledMaintenanceView: FunctionComponent<
 
   const eventStartsAt: Date | undefined = scheduledMaintenance?.startsAt;
   const eventEndsAt: Date | undefined = scheduledMaintenance?.endsAt;
+  const eventNumber: string | undefined =
+    scheduledMaintenance?.scheduledMaintenanceNumberWithPrefix ||
+    (scheduledMaintenance?.scheduledMaintenanceNumber
+      ? "#" + scheduledMaintenance.scheduledMaintenanceNumber
+      : undefined);
 
   const handleResendNotification: () => Promise<void> =
     async (): Promise<void> => {
@@ -107,6 +114,7 @@ const ScheduledMaintenanceView: FunctionComponent<
     <Fragment>
       <ChangeScheduledMaintenanceState
         scheduledMaintenanceId={modelId}
+        eventNumber={eventNumber}
         eventStartsAt={eventStartsAt}
         eventEndsAt={eventEndsAt}
         onActionComplete={() => {

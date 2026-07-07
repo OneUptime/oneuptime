@@ -22,10 +22,14 @@ export interface EventStateAction {
   icon?: IconProp | undefined;
   buttonStyle: ButtonStyleType;
   id?: string | undefined;
+  // The color of the state this action moves the event to. When set, the button
+  // is rendered in that color so it visually matches the state it belongs to.
+  color?: Color | undefined;
 }
 
 export interface ComponentProps {
   states: Array<EventStateItem>; // ordered by state order.
+  identifier?: string | undefined; // e.g. "INC-42", "#42" — shown at the start of the panel.
   currentStateId?: string | undefined;
   severity?: { name: string; color: Color } | undefined;
   isPrivate?: boolean | undefined;
@@ -108,10 +112,74 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     },
   );
 
+  const getActionButton: (action: EventStateAction) => ReactElement = (
+    action: EventStateAction,
+  ): ReactElement => {
+    // When the action carries the color of the state it moves the event to,
+    // render the button in that color instead of the generic button palette.
+    if (action.color) {
+      const isSolid: boolean = action.buttonStyle === ButtonStyleType.PRIMARY;
+      const colorString: string = action.color.toString();
+      const useDarkText: boolean = Color.shouldUseDarkText(action.color);
+
+      const style: React.CSSProperties = isSolid
+        ? {
+            backgroundColor: colorString,
+            borderColor: colorString,
+            color: useDarkText ? "#000000" : "#ffffff",
+          }
+        : {
+            borderColor: colorString,
+            color: colorString,
+          };
+
+      return (
+        <button
+          key={action.stateId}
+          id={action.id}
+          type="button"
+          disabled={props.isDisabled}
+          onClick={() => {
+            props.onActionClick(action.stateId);
+          }}
+          style={style}
+          className={`inline-flex items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium shadow-sm transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
+            isSolid ? "" : "bg-white"
+          }`}
+        >
+          {action.icon && <Icon icon={action.icon} className="h-4 w-4" />}
+          {action.label}
+        </button>
+      );
+    }
+
+    return (
+      <Button
+        key={action.stateId}
+        id={action.id}
+        title={action.label}
+        icon={action.icon}
+        buttonStyle={action.buttonStyle}
+        disabled={props.isDisabled}
+        onClick={() => {
+          props.onActionClick(action.stateId);
+        }}
+      />
+    );
+  };
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
       <div className="flex flex-col gap-3 px-4 py-4 sm:px-5 md:flex-row md:items-center md:justify-between">
         <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+          {props.identifier && (
+            <span
+              className="text-sm font-semibold text-gray-900"
+              title="Number"
+            >
+              {props.identifier}
+            </span>
+          )}
           {currentState && (
             <Pill
               color={currentState.color || Black}
@@ -152,19 +220,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {props.actions.map((action: EventStateAction) => {
-            return (
-              <Button
-                key={action.stateId}
-                id={action.id}
-                title={action.label}
-                icon={action.icon}
-                buttonStyle={action.buttonStyle}
-                disabled={props.isDisabled}
-                onClick={() => {
-                  props.onActionClick(action.stateId);
-                }}
-              />
-            );
+            return getActionButton(action);
           })}
           {props.onStateSelect && statesForMenu.length > 0 && (
             <MoreMenu>

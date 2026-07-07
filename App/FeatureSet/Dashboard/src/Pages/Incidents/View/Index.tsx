@@ -88,6 +88,7 @@ const IncidentView: FunctionComponent<
     null,
   );
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
+  const [eventNumber, setEventNumber] = useState<string | undefined>(undefined);
   const [severity, setSeverity] = useState<
     { name: string; color: Color } | undefined
   >(undefined);
@@ -139,6 +140,8 @@ const IncidentView: FunctionComponent<
         select: {
           telemetryQuery: true,
           isPrivate: true,
+          incidentNumber: true,
+          incidentNumberWithPrefix: true,
           incidentSeverity: {
             name: true,
             color: true,
@@ -155,6 +158,13 @@ const IncidentView: FunctionComponent<
       }
 
       setIsPrivate(incident?.isPrivate === true);
+
+      setEventNumber(
+        incident?.incidentNumberWithPrefix ||
+          (incident?.incidentNumber
+            ? "#" + incident.incidentNumber
+            : undefined),
+      );
 
       if (incident?.incidentSeverity) {
         setSeverity({
@@ -309,6 +319,7 @@ const IncidentView: FunctionComponent<
       <div className="mb-5">
         <ChangeIncidentState
           incidentId={modelId}
+          eventNumber={eventNumber}
           severity={severity}
           isPrivate={isPrivate}
           onActionComplete={async () => {

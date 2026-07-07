@@ -34,6 +34,7 @@ import EventStatusPanel, {
 export interface ComponentProps {
   scheduledMaintenanceId: ObjectID;
   onActionComplete: () => void;
+  eventNumber?: string | undefined;
   eventStartsAt?: Date | undefined;
   eventEndsAt?: Date | undefined;
 }
@@ -268,6 +269,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
           label: "Mark as " + (ongoingState.name || "Ongoing"),
           icon: IconProp.Clock,
           buttonStyle: ButtonStyleType.PRIMARY,
+          color: ongoingState.color || Black,
           id: "sm-mark-ongoing-btn",
         });
       }
@@ -278,6 +280,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
           label: "Mark as " + (endState.name || "Complete"),
           icon: IconProp.CheckCircle,
           buttonStyle: ButtonStyleType.OUTLINE,
+          color: endState.color || Black,
           id: "sm-mark-complete-btn",
         });
       }
@@ -287,6 +290,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
         label: "Mark as " + (endState.name || "Complete"),
         icon: IconProp.CheckCircle,
         buttonStyle: ButtonStyleType.PRIMARY,
+        color: endState.color || Black,
         id: "sm-mark-complete-btn",
       });
     }
@@ -372,6 +376,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
             };
           },
         )}
+        identifier={props.eventNumber}
         currentStateId={currentScheduledMaintenanceState?.id?.toString()}
         durationPrefix={durationPrefix}
         durationStartsAt={durationStartsAt}
