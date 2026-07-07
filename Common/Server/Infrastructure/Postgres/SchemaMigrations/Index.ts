@@ -829,5 +829,5 @@ export default [
   AddAIChatModels1783363279075,
   AddLlmProviderToAIConversation1783443471795,
   AddAIChatWriteActionsAndWidgets1783453297388,
-  MigrationName1783461767405
+  MigrationName1783461767405,
 ];

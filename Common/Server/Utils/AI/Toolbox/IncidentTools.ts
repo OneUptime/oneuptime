@@ -16,8 +16,21 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
-// Derived from the model ACL so the tool gate can never drift from RBAC.
-const READ_PERMISSIONS: Array<Permission> = new Incident().getReadPermissions();
+/*
+ * Derived from the model ACL so the tool gate can never drift from RBAC.
+ * Resolved lazily rather than at module load: this module is pulled in through
+ * the service import graph before the Incident model class is fully wired up,
+ * so calling a model method at import time throws a circular-dependency
+ * TypeError. By the time a tool actually executes, every module is loaded.
+ */
+let cachedReadPermissions: Array<Permission> | null = null;
+const resolveReadPermissions: () => Array<Permission> =
+  (): Array<Permission> => {
+    if (!cachedReadPermissions) {
+      cachedReadPermissions = new Incident().getReadPermissions();
+    }
+    return cachedReadPermissions;
+  };
 
 export const QueryIncidentsTool: ObservabilityTool = {
   name: "query_incidents",
@@ -41,7 +54,9 @@ export const QueryIncidentsTool: ObservabilityTool = {
       },
     },
   },
-  requiredPermissions: READ_PERMISSIONS,
+  get requiredPermissions(): Array<Permission> {
+    return resolveReadPermissions();
+  },
   execute: async (
     args: JSONObject,
     ctx: ToolContext,

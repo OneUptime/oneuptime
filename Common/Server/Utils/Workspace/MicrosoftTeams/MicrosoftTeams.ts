@@ -96,9 +96,7 @@ import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
  * "ask" experience where a Teams user can question the OneUptime AI about
  * their logs, traces, metrics, incidents and monitors.
  */
-import ObservabilityAssistant, {
-  ObservabilityAssistantResult,
-} from "../../AI/Chat/ObservabilityAssistant";
+import type { ObservabilityAssistantResult } from "../../AI/Chat/ObservabilityAssistant";
 import AccessTokenService from "../../../Services/AccessTokenService";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
@@ -2494,6 +2492,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             projectId: projectId,
           },
         );
+
+      /*
+       * Loaded on demand: importing the AI toolbox at module top pulls the
+       * entire observability tool graph — and its database infrastructure —
+       * into the core API module graph at import time, which trips
+       * circular-dependency init-order crashes. Teams ChatOps is the only
+       * caller, so it is resolved lazily here instead.
+       */
+      const { default: ObservabilityAssistant } = await import(
+        "../../AI/Chat/ObservabilityAssistant"
+      );
 
       const result: ObservabilityAssistantResult =
         await ObservabilityAssistant.answerQuestion({

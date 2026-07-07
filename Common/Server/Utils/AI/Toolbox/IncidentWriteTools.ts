@@ -17,10 +17,29 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
-const CREATE_PERMISSIONS: Array<Permission> =
-  new Incident().getCreatePermissions();
-const UPDATE_PERMISSIONS: Array<Permission> =
-  new Incident().getUpdatePermissions();
+/*
+ * Derived from the model ACL so the tool gate can never drift from RBAC.
+ * Resolved lazily rather than at module load: this module is pulled in through
+ * the service import graph before the Incident model class is fully wired up,
+ * so calling a model method at import time throws a circular-dependency
+ * TypeError. By the time a tool actually executes, every module is loaded.
+ */
+let cachedCreatePermissions: Array<Permission> | null = null;
+const resolveCreatePermissions: () => Array<Permission> =
+  (): Array<Permission> => {
+    if (!cachedCreatePermissions) {
+      cachedCreatePermissions = new Incident().getCreatePermissions();
+    }
+    return cachedCreatePermissions;
+  };
+let cachedUpdatePermissions: Array<Permission> | null = null;
+const resolveUpdatePermissions: () => Array<Permission> =
+  (): Array<Permission> => {
+    if (!cachedUpdatePermissions) {
+      cachedUpdatePermissions = new Incident().getUpdatePermissions();
+    }
+    return cachedUpdatePermissions;
+  };
 
 /*
  * Write tools mutate the project. They are gated twice: once by the tool's
@@ -53,7 +72,9 @@ export const CreateIncidentTool: ObservabilityTool = {
     },
     required: ["title"],
   },
-  requiredPermissions: CREATE_PERMISSIONS,
+  get requiredPermissions(): Array<Permission> {
+    return resolveCreatePermissions();
+  },
   isMutation: true,
   buildActionTitle: (args: JSONObject): string => {
     return `Create incident: ${ToolArgs.getString(args, "title") || "Untitled"}`;
@@ -284,7 +305,9 @@ export const AcknowledgeIncidentTool: ObservabilityTool = {
     },
     required: ["incidentId"],
   },
-  requiredPermissions: UPDATE_PERMISSIONS,
+  get requiredPermissions(): Array<Permission> {
+    return resolveUpdatePermissions();
+  },
   isMutation: true,
   buildActionTitle: (args: JSONObject): string => {
     return `Acknowledge incident ${ToolArgs.getString(args, "incidentId") || ""}`.trim();
@@ -311,7 +334,9 @@ export const ResolveIncidentTool: ObservabilityTool = {
     },
     required: ["incidentId"],
   },
-  requiredPermissions: UPDATE_PERMISSIONS,
+  get requiredPermissions(): Array<Permission> {
+    return resolveUpdatePermissions();
+  },
   isMutation: true,
   buildActionTitle: (args: JSONObject): string => {
     return `Resolve incident ${ToolArgs.getString(args, "incidentId") || ""}`.trim();

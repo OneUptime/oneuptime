@@ -14,8 +14,21 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
-const UPDATE_PERMISSIONS: Array<Permission> =
-  new Alert().getUpdatePermissions();
+/*
+ * Derived from the model ACL so the tool gate can never drift from RBAC.
+ * Resolved lazily rather than at module load: this module is pulled in through
+ * the service import graph before the Alert model class is fully wired up, so
+ * calling a model method at import time throws a circular-dependency
+ * TypeError. By the time a tool actually executes, every module is loaded.
+ */
+let cachedUpdatePermissions: Array<Permission> | null = null;
+const resolveUpdatePermissions: () => Array<Permission> =
+  (): Array<Permission> => {
+    if (!cachedUpdatePermissions) {
+      cachedUpdatePermissions = new Alert().getUpdatePermissions();
+    }
+    return cachedUpdatePermissions;
+  };
 
 async function changeAlertStateTool(data: {
   args: JSONObject;
@@ -116,7 +129,9 @@ export const AcknowledgeAlertTool: ObservabilityTool = {
     },
     required: ["alertId"],
   },
-  requiredPermissions: UPDATE_PERMISSIONS,
+  get requiredPermissions(): Array<Permission> {
+    return resolveUpdatePermissions();
+  },
   isMutation: true,
   buildActionTitle: (args: JSONObject): string => {
     return `Acknowledge alert ${ToolArgs.getString(args, "alertId") || ""}`.trim();
@@ -143,7 +158,9 @@ export const ResolveAlertTool: ObservabilityTool = {
     },
     required: ["alertId"],
   },
-  requiredPermissions: UPDATE_PERMISSIONS,
+  get requiredPermissions(): Array<Permission> {
+    return resolveUpdatePermissions();
+  },
   isMutation: true,
   buildActionTitle: (args: JSONObject): string => {
     return `Resolve alert ${ToolArgs.getString(args, "alertId") || ""}`.trim();
