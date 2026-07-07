@@ -166,12 +166,21 @@ export class ToolArgs {
       "startTime",
     );
 
+    /*
+     * Reject unparseable timestamps instead of silently falling back to the
+     * default window — a silent fallback answers a different question than the
+     * one asked. Throwing lets the model see the error and retry with a valid
+     * ISO 8601 value.
+     */
     let endTime: Date = OneUptimeDate.getCurrentDate();
     if (endTimeString) {
       const parsed: Date = new Date(endTimeString);
-      if (!isNaN(parsed.getTime())) {
-        endTime = parsed;
+      if (isNaN(parsed.getTime())) {
+        throw new BadDataException(
+          `endTime "${endTimeString}" is not a valid ISO 8601 timestamp (e.g. 2024-01-31T14:00:00Z).`,
+        );
       }
+      endTime = parsed;
     }
 
     let startTime: Date = OneUptimeDate.addRemoveHours(
@@ -180,9 +189,12 @@ export class ToolArgs {
     );
     if (startTimeString) {
       const parsed: Date = new Date(startTimeString);
-      if (!isNaN(parsed.getTime())) {
-        startTime = parsed;
+      if (isNaN(parsed.getTime())) {
+        throw new BadDataException(
+          `startTime "${startTimeString}" is not a valid ISO 8601 timestamp (e.g. 2024-01-31T13:00:00Z).`,
+        );
       }
+      startTime = parsed;
     }
 
     if (startTime.getTime() >= endTime.getTime()) {

@@ -22,6 +22,9 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
+// Keep pivoted histogram rows under the serializer's 50-row cap.
+const MAX_HISTOGRAM_BUCKETS: number = 48;
+
 const LOG_READ_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
@@ -192,9 +195,16 @@ export const LogHistogramTool: ObservabilityTool = {
 
     const windowMinutes: number =
       (endTime.getTime() - startTime.getTime()) / (60 * 1000);
+    /*
+     * Bound the number of time buckets. getHistogram returns one row per
+     * (bucket, severity); after we pivot to one row per bucket that is at most
+     * MAX_HISTOGRAM_BUCKETS rows, which stays under the serializer's row cap so
+     * the most recent buckets are never dropped (spike detection reads the tail
+     * of the window).
+     */
     const bucketSizeInMinutes: number = Math.max(
       1,
-      Math.round(windowMinutes / 60),
+      Math.ceil(windowMinutes / MAX_HISTOGRAM_BUCKETS),
     );
 
     const serviceId: ObjectID | undefined = ToolArgs.getObjectID(
@@ -225,9 +235,27 @@ export const LogHistogramTool: ObservabilityTool = {
         serviceIds: ToolArgs.scopeServiceIds(accessibleServiceIds, serviceId),
       });
 
-    const rows: Array<JSONObject> = buckets.map((bucket: HistogramBucket) => {
-      return bucket as unknown as JSONObject;
-    });
+    /*
+     * Pivot (time, severity, count) rows into one row per time bucket with a
+     * column per severity, e.g. "time=… | Error=12 | Warn=3". This is both more
+     * compact for the model and collapses the row count from
+     * buckets×severities down to just buckets.
+     */
+    const rowsByTime: Map<string, JSONObject> = new Map();
+    for (const bucket of buckets) {
+      let row: JSONObject | undefined = rowsByTime.get(bucket.time);
+      if (!row) {
+        row = { time: bucket.time };
+        rowsByTime.set(bucket.time, row);
+      }
+      row[bucket.severity || "Unspecified"] = bucket.count;
+    }
+
+    const rows: Array<JSONObject> = Array.from(rowsByTime.values()).sort(
+      (a: JSONObject, b: JSONObject) => {
+        return String(a["time"]).localeCompare(String(b["time"]));
+      },
+    );
 
     const serialized: SerializedResult =
       ToolResultSerializer.serializeRows(rows);

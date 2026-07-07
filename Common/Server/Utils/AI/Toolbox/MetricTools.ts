@@ -1,5 +1,6 @@
 import Metric from "../../../../Models/AnalyticsModels/Metric";
 import AggregationType from "../../../../Types/BaseDatabase/AggregationType";
+import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
@@ -92,8 +93,15 @@ export const QueryMetricsTool: ObservabilityTool = {
       );
     }
 
+    /*
+     * The time filter must be part of the query's WHERE clause. aggregateBy's
+     * startTimestamp/endTimestamp only define the bucket grid — without an
+     * explicit `time` filter the percentile/aggregate scans the metric's whole
+     * retention and mixes in data outside the requested window.
+     */
     const query: JSONObject = {
       name: metricName,
+      time: new InBetween(startTime, endTime),
     };
 
     const entityId: ObjectID | undefined = ToolArgs.getObjectID(

@@ -101,6 +101,23 @@ describe("ToolResultSerializer.serializeRows", () => {
     expect(result.text.split("\n").length).toBeLessThanOrEqual(51);
   });
 
+  test("tells the model how many rows were hidden when capped", () => {
+    const rows: Array<JSONObject> = [];
+    for (let i: number = 0; i < 80; i++) {
+      rows.push({ index: i, value: `row-${i}` });
+    }
+
+    const result: SerializedResult = ToolResultSerializer.serializeRows(rows);
+    expect(result.text).toContain("first 50 of 80 rows");
+  });
+
+  test("does not add a truncation marker when rows fit", () => {
+    const rows: Array<JSONObject> = [{ index: 1 }, { index: 2 }];
+    const result: SerializedResult = ToolResultSerializer.serializeRows(rows);
+    expect(result.isTruncated).toBe(false);
+    expect(result.text).not.toContain("showing the first");
+  });
+
   test("truncates long field values", () => {
     const result: SerializedResult = ToolResultSerializer.serializeRows([
       { body: "x".repeat(2000) },
