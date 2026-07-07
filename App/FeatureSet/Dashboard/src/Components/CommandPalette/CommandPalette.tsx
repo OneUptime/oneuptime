@@ -1,9 +1,17 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import Query from "Common/Types/BaseDatabase/Query";
+import Search from "Common/Types/BaseDatabase/Search";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
+import ObjectID from "Common/Types/ObjectID";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import Incident from "Common/Models/DatabaseModels/Incident";
 import Icon from "Common/UI/Components/Icon/Icon";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -266,6 +274,118 @@ const isTypingTarget: IsTypingTarget = (
   );
 };
 
+// Minimum query length before we hit the server for entity search.
+const ENTITY_SEARCH_MIN_CHARS: number = 2;
+
+// A query that is only digits (optionally #-prefixed) is a record-number lookup.
+const NUMBER_QUERY_PATTERN: RegExp = /^#?[0-9]+$/u;
+
+type SearchIncidents = (term: string) => Promise<Array<PaletteCommand>>;
+
+const searchIncidents: SearchIncidents = async (
+  term: string,
+): Promise<Array<PaletteCommand>> => {
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  if (!projectId) {
+    return [];
+  }
+  const digits: string = term.replace(/[^0-9]/g, "");
+  const isNumberSearch: boolean =
+    NUMBER_QUERY_PATTERN.test(term.trim()) && digits !== "";
+  const query: Query<Incident> = isNumberSearch
+    ? ({ projectId, incidentNumber: parseInt(digits, 10) } as Query<Incident>)
+    : ({ projectId, title: new Search(term) } as Query<Incident>);
+
+  const result: ListResult<Incident> = await ModelAPI.getList<Incident>({
+    modelType: Incident,
+    query: query,
+    limit: 5,
+    skip: 0,
+    select: {
+      _id: true,
+      title: true,
+      incidentNumber: true,
+      incidentNumberWithPrefix: true,
+    },
+    sort: { createdAt: SortOrder.Descending },
+  });
+
+  return result.data.map((incident: Incident): PaletteCommand => {
+    return {
+      id: `incident-${incident.id?.toString()}`,
+      title: incident.title || "Untitled incident",
+      subtitle:
+        incident.incidentNumberWithPrefix ||
+        (incident.incidentNumber ? `#${incident.incidentNumber}` : "Incident"),
+      icon: IconProp.Alert,
+      group: "Incidents",
+      perform: (): void => {
+        if (incident.id) {
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_VIEW] as Route,
+              { modelId: incident.id },
+            ),
+          );
+        }
+      },
+    };
+  });
+};
+
+type SearchAlerts = (term: string) => Promise<Array<PaletteCommand>>;
+
+const searchAlerts: SearchAlerts = async (
+  term: string,
+): Promise<Array<PaletteCommand>> => {
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  if (!projectId) {
+    return [];
+  }
+  const digits: string = term.replace(/[^0-9]/g, "");
+  const isNumberSearch: boolean =
+    NUMBER_QUERY_PATTERN.test(term.trim()) && digits !== "";
+  const query: Query<Alert> = isNumberSearch
+    ? ({ projectId, alertNumber: parseInt(digits, 10) } as Query<Alert>)
+    : ({ projectId, title: new Search(term) } as Query<Alert>);
+
+  const result: ListResult<Alert> = await ModelAPI.getList<Alert>({
+    modelType: Alert,
+    query: query,
+    limit: 5,
+    skip: 0,
+    select: {
+      _id: true,
+      title: true,
+      alertNumber: true,
+      alertNumberWithPrefix: true,
+    },
+    sort: { createdAt: SortOrder.Descending },
+  });
+
+  return result.data.map((alert: Alert): PaletteCommand => {
+    return {
+      id: `alert-${alert.id?.toString()}`,
+      title: alert.title || "Untitled alert",
+      subtitle:
+        alert.alertNumberWithPrefix ||
+        (alert.alertNumber ? `#${alert.alertNumber}` : "Alert"),
+      icon: IconProp.ExclaimationCircle,
+      group: "Alerts",
+      perform: (): void => {
+        if (alert.id) {
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERT_VIEW] as Route,
+              { modelId: alert.id },
+            ),
+          );
+        }
+      },
+    };
+  });
+};
+
 const CommandPalette: FunctionComponent = (): ReactElement | null => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
@@ -311,6 +431,45 @@ const CommandPalette: FunctionComponent = (): ReactElement | null => {
       });
     });
   }, [query, commands]);
+
+  // Server-backed entity search: jump to any incident / alert by number or title.
+  const [entityResults, setEntityResults] = useState<Array<PaletteCommand>>([]);
+  const searchSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+
+  useEffect(() => {
+    const term: string = query.trim();
+    if (term.length < ENTITY_SEARCH_MIN_CHARS) {
+      setEntityResults([]);
+      return undefined;
+    }
+
+    const seq: number = searchSeqRef.current + 1;
+    searchSeqRef.current = seq;
+
+    const handle: ReturnType<typeof setTimeout> = setTimeout(() => {
+      Promise.all([searchIncidents(term), searchAlerts(term)])
+        .then((lists: Array<Array<PaletteCommand>>) => {
+          // Ignore out-of-order responses.
+          if (seq === searchSeqRef.current) {
+            setEntityResults([...lists[0]!, ...lists[1]!]);
+          }
+        })
+        .catch(() => {
+          if (seq === searchSeqRef.current) {
+            setEntityResults([]);
+          }
+        });
+    }, 200);
+
+    return () => {
+      return clearTimeout(handle);
+    };
+  }, [query]);
+
+  // Static command matches first, then live entity results.
+  const results: Array<PaletteCommand> = useMemo(() => {
+    return [...filtered, ...entityResults];
+  }, [filtered, entityResults]);
 
   const closePalette: () => void = (): void => {
     setIsOpen(false);
@@ -418,15 +577,15 @@ const CommandPalette: FunctionComponent = (): ReactElement | null => {
     return undefined;
   }, [isOpen]);
 
-  // Keep the active index in range as the filtered list shrinks.
+  // Keep the active index in range as the result list changes.
   useEffect(() => {
     setActiveIndex((index: number): number => {
-      if (index > filtered.length - 1) {
-        return Math.max(0, filtered.length - 1);
+      if (index > results.length - 1) {
+        return Math.max(0, results.length - 1);
       }
       return index;
     });
-  }, [filtered.length]);
+  }, [results.length]);
 
   // Scroll the active row into view.
   useEffect(() => {
@@ -445,7 +604,7 @@ const CommandPalette: FunctionComponent = (): ReactElement | null => {
     if (event.key === "ArrowDown") {
       event.preventDefault();
       setActiveIndex((index: number): number => {
-        return Math.min(index + 1, filtered.length - 1);
+        return Math.min(index + 1, results.length - 1);
       });
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
@@ -454,7 +613,7 @@ const CommandPalette: FunctionComponent = (): ReactElement | null => {
       });
     } else if (event.key === "Enter") {
       event.preventDefault();
-      runCommand(filtered[activeIndex]);
+      runCommand(results[activeIndex]);
     } else if (event.key === "Escape") {
       event.preventDefault();
       closePalette();
@@ -475,10 +634,10 @@ const CommandPalette: FunctionComponent = (): ReactElement | null => {
     return null;
   }
 
-  // Group the filtered results for display while keeping a flat index.
+  // Group the results for display while keeping a flat index.
   let runningIndex: number = -1;
   const groups: Array<string> = [];
-  for (const command of filtered) {
+  for (const command of results) {
     if (!groups.includes(command.group)) {
       groups.push(command.group);
     }
@@ -510,7 +669,7 @@ const CommandPalette: FunctionComponent = (): ReactElement | null => {
               setActiveIndex(0);
             }}
             onKeyDown={onInputKeyDown}
-            placeholder="Search for a page or action…"
+            placeholder="Search pages, actions, incidents, alerts…"
             className="w-full border-0 bg-transparent py-4 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
             aria-label="Search commands"
             autoComplete="off"
@@ -522,9 +681,9 @@ const CommandPalette: FunctionComponent = (): ReactElement | null => {
         </div>
 
         <div ref={listRef} className="max-h-[50vh] overflow-y-auto py-2">
-          {filtered.length === 0 && (
+          {results.length === 0 && (
             <div className="px-4 py-8 text-center text-sm text-gray-400">
-              No matching commands.
+              No matching commands or records.
             </div>
           )}
 
@@ -534,7 +693,7 @@ const CommandPalette: FunctionComponent = (): ReactElement | null => {
                 <div className="px-4 pb-1 pt-2 text-xs font-medium uppercase tracking-wider text-gray-400">
                   {group}
                 </div>
-                {filtered
+                {results
                   .filter((command: PaletteCommand): boolean => {
                     return command.group === group;
                   })

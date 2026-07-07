@@ -12,6 +12,15 @@ URL-persisted facets, bulk actions, `/`-to-search; `EventStatusPanel`; `Realtime
 strong. The problem is the card-and-modal, one-route-per-facet **shell**. We keep the
 engine and rebuild the shell around it.
 
+## Verification status
+
+Every commit passes `tsc --noEmit` (Common + Dashboard) and `eslint` on the changed
+files, and the whole Dashboard **bundles cleanly via esbuild** (`npm run dev-build`) — so
+all imports/routes resolve into a working app artifact. Not yet exercised in a running
+browser: the ⌘K palette + record search, `g`-chords, inline rename, inline investigation
+cards, and the `/incidents/triage` + `/alerts/triage` keyboard/peek flows should get a
+manual pass before merge.
+
 ---
 
 ## Shipped in this branch (Phase 0 + interaction foundation)
@@ -25,6 +34,9 @@ engine and rebuild the shell around it.
 - **"Go to" navigation chords** — `g` then a key jumps (`g i` incidents, `g a` alerts,
   `g m` maintenance, `g o` on-call, `g h` home). Fire only on page chrome, never while
   typing.
+- **Command palette record search** — typing in ⌘K now also searches incidents and alerts
+  by title or number (server-backed, debounced, race-guarded) so you can jump straight to
+  any record. `INCIDENT_VIEW` / `ALERT_VIEW` navigation on select.
 - **Keyboard shortcut cheat-sheet (`?`)** — bundled in the command palette component.
 - **Inline title editing on all three detail pages** — the record title is an
   `InlineEditField` at the top of the incident, alert and scheduled-maintenance overviews
