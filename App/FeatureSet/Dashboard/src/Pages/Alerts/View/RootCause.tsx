@@ -1,43 +1,27 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import Alert from "Common/Models/DatabaseModels/Alert";
 import React, { FunctionComponent, ReactElement } from "react";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FieldType from "Common/UI/Components/Types/FieldType";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import { Navigate } from "react-router-dom";
 
-const AlertDelete: FunctionComponent<PageComponentProps> = (): ReactElement => {
+/*
+ * The alert root cause now lives inline on the overview page. This route is
+ * retained only as a deep-link fallback and redirects to the overview.
+ */
+const AlertViewRootCauseRedirect: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  return (
-    <CardModelDetail
-      name="Root Cause"
-      cardProps={{
-        title: "Root Cause",
-        description:
-          "Why did this alert happen? Here is the root cause of this alert.",
-      }}
-      createEditModalWidth={ModalWidth.Large}
-      isEditable={true}
-      modelDetailProps={{
-        showDetailsInNumberOfColumns: 1,
-        modelType: Alert,
-        id: "model-detail-alert-root-cause",
-        fields: [
-          {
-            field: {
-              rootCause: true,
-            },
-            title: "",
-            placeholder: "No root cause identified for this alert.",
-            fieldType: FieldType.Markdown,
-          },
-        ],
-        modelId: modelId,
-      }}
-    />
+  const overviewRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.ALERT_VIEW] as Route,
+    { modelId },
   );
+
+  return <Navigate to={overviewRoute.toString()} replace={true} />;
 };
 
-export default AlertDelete;
+export default AlertViewRootCauseRedirect;

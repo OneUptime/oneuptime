@@ -1,56 +1,27 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import Alert from "Common/Models/DatabaseModels/Alert";
 import React, { FunctionComponent, ReactElement } from "react";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FieldType from "Common/UI/Components/Types/FieldType";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import { Navigate } from "react-router-dom";
 
-const AlertDelete: FunctionComponent<PageComponentProps> = (): ReactElement => {
+/*
+ * The alert description now lives inline on the overview page. This route is
+ * retained only as a deep-link fallback and redirects to the overview.
+ */
+const AlertViewDescriptionRedirect: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  return (
-    <CardModelDetail
-      name="Alert Description"
-      cardProps={{
-        title: "Alert Description",
-        description:
-          "Description of this alert. This is visible on Status Page and is in markdown format.",
-      }}
-      createEditModalWidth={ModalWidth.Large}
-      editButtonText="Edit Alert Description"
-      isEditable={true}
-      formFields={[
-        {
-          field: {
-            description: true,
-          },
-          title: "Description",
-
-          fieldType: FormFieldSchemaType.Markdown,
-          required: false,
-          placeholder: "Description",
-        },
-      ]}
-      modelDetailProps={{
-        showDetailsInNumberOfColumns: 1,
-        modelType: Alert,
-        id: "model-detail-alert-description",
-        fields: [
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FieldType.Markdown,
-          },
-        ],
-        modelId: modelId,
-      }}
-    />
+  const overviewRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.ALERT_VIEW] as Route,
+    { modelId },
   );
+
+  return <Navigate to={overviewRoute.toString()} replace={true} />;
 };
 
-export default AlertDelete;
+export default AlertViewDescriptionRedirect;
