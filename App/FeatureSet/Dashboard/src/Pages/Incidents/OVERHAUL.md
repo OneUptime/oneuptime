@@ -37,9 +37,14 @@ engine and rebuild the shell around it.
   body + right rail next.
 - **Investigation content inline on the incident overview** — Description, Root Cause
   (with its metric chart) and Remediation now render as editable cards on
-  `Pages/Incidents/View/Index.tsx` instead of three separate routes. The `/description`,
-  `/root-cause` and `/remediation` routes remain as deep-link fallbacks (the 18-item
-  sidebar is not torn down yet).
+  `Pages/Incidents/View/Index.tsx` instead of three separate routes.
+- **Sidebar teardown (started) + deep-link redirects** — the Description, Root Cause and
+  Remediation items are removed from the incident detail sidebar
+  (`Pages/Incidents/View/SideMenu.tsx`), and their route components now render
+  `<Navigate replace>` to the overview (`View/Description.tsx`, `View/RootCause.tsx`,
+  `View/Remediation.tsx`), so old bookmarks / Slack links / breadcrumbs land on the
+  content in its new inline home. This establishes the redirect pattern to extend to the
+  rest of the 18-item sidebar.
 - **Bulk Acknowledge / Resolve** — first-class one-click triage verbs on the incident and
   alert tables (`Components/Incident/IncidentsTable.tsx`,
   `Components/Alert/AlertsTable.tsx`), shown only when the project defines an acknowledged

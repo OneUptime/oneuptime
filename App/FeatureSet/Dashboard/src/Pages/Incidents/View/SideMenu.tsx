@@ -53,39 +53,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       <SideMenuSection title="Investigation">
-        <SideMenuItem
-          link={{
-            title: "Description",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENT_VIEW_DESCRIPTION] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Chat}
-        />
-
-        <SideMenuItem
-          link={{
-            title: "Root Cause",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENT_VIEW_ROOT_CAUSE] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Cube}
-        />
-
-        <SideMenuItem
-          link={{
-            title: "Remediation",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENT_VIEW_REMEDIATION] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Wrench}
-        />
-
+        {/*
+         * Description, Root Cause and Remediation now live inline on the
+         * Overview page; their routes redirect there as deep-link fallbacks.
+         */}
         <SideMenuItem
           link={{
             title: "Runbooks",

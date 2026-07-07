@@ -1,63 +1,28 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import Incident from "Common/Models/DatabaseModels/Incident";
-import MarkdownUtil from "Common/UI/Utils/Markdown";
 import React, { FunctionComponent, ReactElement } from "react";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FieldType from "Common/UI/Components/Types/FieldType";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import { Navigate } from "react-router-dom";
 
-const IncidentDelete: FunctionComponent<
+/*
+ * The incident remediation notes now live inline on the overview page. This
+ * route is retained only as a deep-link fallback and redirects to the overview
+ * so old bookmarks and links still land on the content.
+ */
+const IncidentViewRemediationRedirect: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  return (
-    <CardModelDetail
-      name="Remediation Notes"
-      cardProps={{
-        title: "Remediation Notes",
-        description:
-          "What steps should be taken to resolve this incident? Here are the remediation notes.",
-      }}
-      createEditModalWidth={ModalWidth.Large}
-      editButtonText="Edit Remediation Notes"
-      isEditable={true}
-      formFields={[
-        {
-          field: {
-            remediationNotes: true,
-          },
-          title: "Remediation Notes",
-
-          fieldType: FormFieldSchemaType.Markdown,
-          required: true,
-          placeholder: "Remediation Notes",
-          description: MarkdownUtil.getMarkdownCheatsheet(
-            "Add remediation notes for this incident here",
-          ),
-        },
-      ]}
-      modelDetailProps={{
-        showDetailsInNumberOfColumns: 1,
-        modelType: Incident,
-        id: "model-detail-incident-remediation-notes",
-        fields: [
-          {
-            field: {
-              remediationNotes: true,
-            },
-            title: "Remediation Notes",
-            placeholder: "No remediation notes added for this incident.",
-            fieldType: FieldType.Markdown,
-          },
-        ],
-        modelId: modelId,
-      }}
-    />
+  const overviewRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.INCIDENT_VIEW] as Route,
+    { modelId },
   );
+
+  return <Navigate to={overviewRoute.toString()} replace={true} />;
 };
 
-export default IncidentDelete;
+export default IncidentViewRemediationRedirect;
