@@ -45,9 +45,28 @@ const InlineEditField: FunctionComponent<ComponentProps> = (
   // The value we render — updated optimistically, rolled back on failure.
   const [displayValue, setDisplayValue] = useState<string>(props.value);
   const [draft, setDraft] = useState<string>(props.value);
+  // After a successful save, hold the prior value briefly so the edit is undoable.
+  const [undoValue, setUndoValue] = useState<string | null>(null);
 
   const inputRef: React.RefObject<HTMLInputElement> =
     useRef<HTMLInputElement>(null);
+  const undoTimerRef: React.MutableRefObject<ReturnType<
+    typeof setTimeout
+  > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearUndoTimer: () => void = (): void => {
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
+  };
+
+  // Clear any pending undo timer on unmount.
+  useEffect(() => {
+    return () => {
+      return clearUndoTimer();
+    };
+  }, []);
 
   // Keep local state in sync when the source value changes upstream.
   useEffect(() => {
@@ -94,6 +113,12 @@ const InlineEditField: FunctionComponent<ComponentProps> = (
 
     try {
       await props.onSave(trimmed);
+      // Offer a brief window to undo the change.
+      setUndoValue(previousValue);
+      clearUndoTimer();
+      undoTimerRef.current = setTimeout(() => {
+        setUndoValue(null);
+      }, 6000);
     } catch (err) {
       // Roll back and surface a loud, actionable error.
       setDisplayValue(previousValue);
@@ -104,6 +129,35 @@ const InlineEditField: FunctionComponent<ComponentProps> = (
           err instanceof Error
             ? err.message
             : "The change was reverted. Please try again.",
+        type: ToastType.DANGER,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const undo: () => Promise<void> = async (): Promise<void> => {
+    if (undoValue === null) {
+      return;
+    }
+    const revertTo: string = undoValue;
+    const current: string = displayValue;
+    clearUndoTimer();
+    setUndoValue(null);
+    setDisplayValue(revertTo);
+    setDraft(revertTo);
+    setIsSaving(true);
+    try {
+      await props.onSave(revertTo);
+    } catch (err) {
+      setDisplayValue(current);
+      setDraft(current);
+      ShowToastNotification({
+        title: props.errorTitle || "Couldn't undo change",
+        description:
+          err instanceof Error
+            ? err.message
+            : "The undo failed. Please try again.",
         type: ToastType.DANGER,
       });
     } finally {
@@ -147,32 +201,47 @@ const InlineEditField: FunctionComponent<ComponentProps> = (
   const showPlaceholder: boolean = !displayValue && Boolean(props.placeholder);
 
   return (
-    <span
-      role={props.disabled ? undefined : "button"}
-      tabIndex={props.disabled ? undefined : 0}
-      onClick={startEditing}
-      onKeyDown={(e: React.KeyboardEvent<HTMLSpanElement>) => {
-        if (!props.disabled && (e.key === "Enter" || e.key === " ")) {
-          e.preventDefault();
-          startEditing();
-        }
-      }}
-      title={props.disabled ? undefined : "Click to edit"}
-      className={`group inline-flex items-center gap-1.5 rounded-md px-2 py-1 ${
-        props.disabled
-          ? "cursor-default"
-          : "cursor-text hover:bg-gray-100 focus:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-300"
-      } ${isSaving ? "opacity-70" : ""} ${props.className || ""}`}
-      aria-label={props.ariaLabel}
-    >
-      <span className={showPlaceholder ? "text-gray-400" : ""}>
-        {showPlaceholder ? props.placeholder : displayValue}
+    <span className="inline-flex items-center gap-2">
+      <span
+        role={props.disabled ? undefined : "button"}
+        tabIndex={props.disabled ? undefined : 0}
+        onClick={startEditing}
+        onKeyDown={(e: React.KeyboardEvent<HTMLSpanElement>) => {
+          if (!props.disabled && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            startEditing();
+          }
+        }}
+        title={props.disabled ? undefined : "Click to edit"}
+        className={`group inline-flex items-center gap-1.5 rounded-md px-2 py-1 ${
+          props.disabled
+            ? "cursor-default"
+            : "cursor-text hover:bg-gray-100 focus:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-300"
+        } ${isSaving ? "opacity-70" : ""} ${props.className || ""}`}
+        aria-label={props.ariaLabel}
+      >
+        <span className={showPlaceholder ? "text-gray-400" : ""}>
+          {showPlaceholder ? props.placeholder : displayValue}
+        </span>
+        {!props.disabled && (
+          <Icon
+            icon={IconProp.Edit}
+            className="h-3.5 w-3.5 text-gray-300 opacity-0 transition-opacity group-hover:opacity-100"
+          />
+        )}
       </span>
-      {!props.disabled && (
-        <Icon
-          icon={IconProp.Edit}
-          className="h-3.5 w-3.5 text-gray-300 opacity-0 transition-opacity group-hover:opacity-100"
-        />
+      {undoValue !== null && !props.disabled && (
+        <button
+          type="button"
+          onClick={(e: React.MouseEvent) => {
+            e.stopPropagation();
+            undo();
+          }}
+          className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50"
+        >
+          <Icon icon={IconProp.Reload} className="h-3 w-3" />
+          Undo
+        </button>
       )}
     </span>
   );
