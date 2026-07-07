@@ -44,6 +44,13 @@
         "description": "Create a new Scheduled Maintenance in OneUptime",
         "usage_hint": "[maintenance title]",
         "should_escape": false
+      },
+      {
+        "command": "/oneuptime",
+        "url": "{{SERVER_URL}}/api/slack/command",
+        "description": "Ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
+        "usage_hint": "ask which monitors are down?",
+        "should_escape": false
       }
     ]
   },
@@ -53,6 +60,7 @@
       "user": ["users:read"],
       "bot": [
         "commands",
+        "app_mentions:read",
         "channels:history",
         "channels:join",
         "channels:manage",
@@ -85,7 +93,7 @@
     "token_rotation_enabled": false,
     "event_subscriptions": {
       "request_url": "{{SERVER_URL}}/api/slack/events",
-      "bot_events": ["reaction_added"]
+      "bot_events": ["reaction_added", "app_mention", "message.im"]
     }
   }
 }

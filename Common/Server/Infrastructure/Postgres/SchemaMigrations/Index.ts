@@ -410,6 +410,7 @@ import { AddScheduledMaintenanceReminderRules1783320000000 } from "./17833200000
 import { AddRemindWhileScheduledToScheduledMaintenanceReminderRule1783330000000 } from "./1783330000000-AddRemindWhileScheduledToScheduledMaintenanceReminderRule";
 import { AddLabelsToIncidentAndAlertReminderRules1783340000000 } from "./1783340000000-AddLabelsToIncidentAndAlertReminderRules";
 import { AddAIChatModels1783363279075 } from "./1783363279075-AddAIChatModels";
+import { AddLlmProviderToAIConversation1783443471795 } from "./1783443471795-AddLlmProviderToAIConversation";
 
 export default [
   InitialMigration,
@@ -824,4 +825,5 @@ export default [
   AddRemindWhileScheduledToScheduledMaintenanceReminderRule1783330000000,
   AddLabelsToIncidentAndAlertReminderRules1783340000000,
   AddAIChatModels1783363279075,
+  AddLlmProviderToAIConversation1783443471795,
 ];

@@ -10,6 +10,11 @@ export interface ComponentProps {
   onOpenConversation: (conversationId: string) => void;
   onDeleteConversation: (conversationId: string) => void;
   onAsk: (question: string) => void;
+  /*
+   * The full-page Copilot shows conversations in its own rail, so it hides the
+   * list here and keeps only the hero + suggested prompts.
+   */
+  hideConversations?: boolean | undefined;
 }
 
 interface SuggestedQuestion {
@@ -94,7 +99,7 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
         })}
       </div>
 
-      {props.conversations.length > 0 && (
+      {!props.hideConversations && props.conversations.length > 0 && (
         <div className="min-h-0 flex-1">
           <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
             Recent conversations

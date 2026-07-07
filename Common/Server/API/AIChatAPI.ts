@@ -31,6 +31,8 @@ import AIConversationService from "../Services/AIConversationService";
 import AIConversationMessageService from "../Services/AIConversationMessageService";
 import AIRunService from "../Services/AIRunService";
 import ProjectService from "../Services/ProjectService";
+import LlmProviderService from "../Services/LlmProviderService";
+import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import ChatAgentRunner from "../Utils/AI/Chat/ChatAgentRunner";
 import logger from "../Utils/Logger";
 
@@ -80,6 +82,43 @@ router.post(
         throw new BadDataException(
           `Message is too long. Maximum length is ${MAX_USER_MESSAGE_LENGTH} characters.`,
         );
+      }
+
+      /*
+       * Optional provider override chosen in the chat provider switcher. It is
+       * validated against the project below (must be a global provider or one
+       * owned by this project) so a member can't point a conversation at
+       * another project's provider.
+       */
+      let requestedLlmProviderId: ObjectID | undefined = undefined;
+
+      if (req.body["llmProviderId"]) {
+        requestedLlmProviderId = new ObjectID(
+          req.body["llmProviderId"] as string,
+        );
+
+        const chosenProvider: LlmProvider | null =
+          await LlmProviderService.findOneById({
+            id: requestedLlmProviderId,
+            select: {
+              _id: true,
+              projectId: true,
+              isGlobalLlm: true,
+            },
+            props: { isRoot: true },
+          });
+
+        const isAccessible: boolean = Boolean(
+          chosenProvider &&
+            (chosenProvider.isGlobalLlm === true ||
+              chosenProvider.projectId?.toString() === projectId.toString()),
+        );
+
+        if (!isAccessible) {
+          throw new BadDataException(
+            "The selected AI provider is not available for this project.",
+          );
+        }
       }
 
       // Plan gate: custom endpoints get no automatic billing check.
@@ -146,6 +185,13 @@ router.post(
        */
       let conversationId: ObjectID | undefined = undefined;
 
+      /*
+       * The provider actually used for this turn: the explicit choice if made,
+       * otherwise whatever the conversation was last set to (so the picker is
+       * "sticky" across turns), otherwise undefined (project default).
+       */
+      let effectiveLlmProviderId: ObjectID | undefined = requestedLlmProviderId;
+
       if (req.body["conversationId"]) {
         conversationId = new ObjectID(req.body["conversationId"] as string);
 
@@ -153,13 +199,31 @@ router.post(
         const conversation: AIConversation | null =
           await AIConversationService.findOneById({
             id: conversationId,
-            select: { _id: true },
+            select: { _id: true, llmProviderId: true },
             props: props,
           });
 
         if (!conversation) {
           throw new BadDataException("Conversation not found.");
         }
+
+        if (
+          requestedLlmProviderId &&
+          requestedLlmProviderId.toString() !==
+            conversation.llmProviderId?.toString()
+        ) {
+          // The user switched providers mid-conversation — persist the change.
+          await AIConversationService.updateOneById({
+            id: conversationId,
+            data: {
+              llmProviderId: requestedLlmProviderId,
+            } as never,
+            props: { isRoot: true },
+          });
+        }
+
+        effectiveLlmProviderId =
+          requestedLlmProviderId || conversation.llmProviderId;
 
         const runningRunsInConversation: number = (
           await AIRunService.countBy({
@@ -190,12 +254,16 @@ router.post(
 
         /*
          * Title is server-generated; the column is deliberately not
-         * user-writable.
+         * user-writable. The provider choice (if any) is stored here too so it
+         * sticks for the rest of the conversation.
          */
         await AIConversationService.updateOneById({
           id: conversationId,
           data: {
             title: content.substring(0, 90),
+            ...(requestedLlmProviderId
+              ? { llmProviderId: requestedLlmProviderId }
+              : {}),
           } as never,
           props: { isRoot: true },
         });
@@ -312,6 +380,7 @@ router.post(
         conversationId: conversationId,
         assistantMessageId: createdAssistantMessage.id!,
         aiRunId: createdRun.id!,
+        llmProviderId: effectiveLlmProviderId,
         props: props,
       }).catch((error: Error) => {
         logger.error(`AI chat turn crashed: ${error.message}`);
@@ -322,6 +391,65 @@ router.post(
         userMessageId: createdUserMessage.id!.toString(),
         assistantMessageId: createdAssistantMessage.id!.toString(),
         aiRunId: createdRun.id!.toString(),
+      });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * Lists the LLM providers a member can choose from in the chat provider
+ * switcher: every provider configured for the project plus the shared global
+ * providers. Secrets are never returned. `defaultProviderId` is the provider
+ * the project resolves to today, so the UI can pre-select it.
+ */
+router.post(
+  "/ai-chat/providers",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!props.userId) {
+        throw new NotAuthorizedException(
+          "AI chat requires a logged-in user session.",
+        );
+      }
+
+      if (!props.tenantId) {
+        throw new BadDataException("Project ID is required (tenantid header).");
+      }
+
+      const projectId: ObjectID = props.tenantId;
+
+      const [providers, defaultProvider]: [
+        Array<LlmProvider>,
+        LlmProvider | null,
+      ] = await Promise.all([
+        LlmProviderService.getSelectableProvidersForProject(projectId),
+        LlmProviderService.getLLMProviderForProject(projectId),
+      ]);
+
+      Response.sendJsonObjectResponse(req, res, {
+        defaultProviderId: defaultProvider?.id?.toString() || null,
+        providers: providers.map((provider: LlmProvider) => {
+          return {
+            id: provider.id?.toString(),
+            name: provider.name,
+            llmType: provider.llmType?.toString() || null,
+            modelName: provider.modelName || null,
+            isDefault: provider.isDefault || false,
+            isGlobal: provider.isGlobalLlm || false,
+          };
+        }),
       });
       return;
     } catch (err) {

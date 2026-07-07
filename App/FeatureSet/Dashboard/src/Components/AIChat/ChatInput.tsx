@@ -17,6 +17,12 @@ export interface ComponentProps {
    */
   canSend: boolean;
   isWorking: boolean;
+  /*
+   * Optional control rendered on the left of the composer footer (the model
+   * switcher). Kept as a slot so the composer stays reusable across surfaces.
+   */
+  leading?: ReactElement | undefined;
+  placeholder?: string | undefined;
 }
 
 const MAX_TEXTAREA_HEIGHT_PX: number = 160;
@@ -58,9 +64,10 @@ const ChatInput: FunctionComponent<ComponentProps> = (
           value={props.value}
           autoFocus={true}
           placeholder={
-            props.isWorking
+            props.placeholder ||
+            (props.isWorking
               ? "Type your next question — it can be sent when this answer finishes…"
-              : "Ask about your logs, traces, metrics, incidents…"
+              : "Ask about your logs, traces, metrics, incidents…")
           }
           onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
             props.onChange(event.target.value);
@@ -93,13 +100,21 @@ const ChatInput: FunctionComponent<ComponentProps> = (
           )}
         </button>
       </div>
-      <div className="mt-1.5 flex items-center justify-between px-1 text-[10px] text-gray-300">
-        <span>
-          <span className="font-medium text-gray-400">Enter</span> to send ·{" "}
-          <span className="font-medium text-gray-400">Shift + Enter</span> for a
-          new line
+      <div className="mt-1.5 flex items-center justify-between gap-2 px-1 text-[10px] text-gray-300">
+        <div className="flex min-w-0 items-center gap-2">
+          {props.leading ? (
+            props.leading
+          ) : (
+            <span>
+              <span className="font-medium text-gray-400">Enter</span> to send ·{" "}
+              <span className="font-medium text-gray-400">Shift + Enter</span>{" "}
+              for a new line
+            </span>
+          )}
+        </div>
+        <span className="flex-shrink-0">
+          Read-only · every answer cites its queries
         </span>
-        <span>Read-only · every answer cites its queries</span>
       </div>
     </div>
   );

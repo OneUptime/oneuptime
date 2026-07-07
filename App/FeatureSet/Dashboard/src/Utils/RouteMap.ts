@@ -4910,6 +4910,10 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.LLM_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/llm/*`),
 
+  [PageMap.AI_COPILOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai-copilot`,
+  ),
+
   [PageMap.LLM]: new Route(
     `/dashboard/${RouteParams.ProjectID}/llm/${LlmRoutePath[PageMap.LLM]}`,
   ),

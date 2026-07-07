@@ -156,6 +156,20 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: observabilityCategory,
     },
     {
+      title: t("navbar.items.aiCopilotTitle", "AI Copilot"),
+      description: t(
+        "navbar.items.aiCopilotDescription",
+        "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.AI_COPILOT] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.AI_COPILOT],
+      icon: IconProp.Sparkles,
+      iconColor: "violet",
+      category: observabilityCategory,
+    },
+    {
       title: t("navbar.items.llmObservabilityTitle", "AI / LLM"),
       description: t(
         "navbar.items.llmObservabilityDescription",

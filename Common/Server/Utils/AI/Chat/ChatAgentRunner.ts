@@ -33,6 +33,8 @@ export interface ChatTurnRequest {
   conversationId: ObjectID;
   assistantMessageId: ObjectID;
   aiRunId: ObjectID;
+  // The provider the user chose for this conversation (undefined = default).
+  llmProviderId?: ObjectID | undefined;
   // The requesting user's real permission props, captured at request time.
   props: DatabaseCommonInteractionProps;
 }
@@ -161,6 +163,7 @@ export default class ChatAgentRunner {
         projectId: request.projectId,
         userId: request.userId,
         aiRunId: request.aiRunId,
+        llmProviderId: request.llmProviderId,
         feature: OBSERVABILITY_CHAT_FEATURE,
         messages: messages,
         tools: budgetExhausted ? undefined : AIToolbox.getLlmToolDefinitions(),

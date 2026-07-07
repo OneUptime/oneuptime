@@ -171,6 +171,40 @@ export default class AIConversation extends BaseModel {
   })
   public lastMessageAt?: Date = undefined;
 
+  /*
+   * The LLM provider the user chose for this conversation. Stored as a plain
+   * ObjectID (no foreign key) so it can reference either a project-scoped
+   * provider or a cross-tenant global provider, and so deleting the provider
+   * gracefully falls back to the project default rather than cascading. Set
+   * server-side from the /ai-chat/send-message endpoint (never member-writable
+   * through CRUD), so the model can't be forged to point at another project's
+   * provider.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ObjectID,
+    canReadOnRelationQuery: true,
+    title: "LLM Provider ID",
+    description:
+      "The LLM provider selected for this conversation. If empty, the project default (or global) provider is used.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public llmProviderId?: ObjectID = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],
