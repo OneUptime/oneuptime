@@ -43,13 +43,18 @@ async function chatCompletionsUrlFor(
     messages: [{ role: "user", content: "hi" }],
   });
 
-  const call: Array<unknown> | undefined = fromStringSpy.mock.calls.find(
+  /*
+   * Use the MOST RECENT chat/completions call: jest.spyOn on an already-spied
+   * method shares one call history, so if a test invokes this helper more than
+   * once the earlier calls are still present — the last match is this call's.
+   */
+  const matches: Array<Array<unknown>> = fromStringSpy.mock.calls.filter(
     (c: Array<unknown>) => {
       return String(c[0]).includes("chat/completions");
     },
   );
 
-  return String(call![0]);
+  return String(matches[matches.length - 1]![0]);
 }
 
 afterEach(() => {

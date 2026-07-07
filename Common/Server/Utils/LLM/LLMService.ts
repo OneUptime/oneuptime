@@ -293,8 +293,10 @@ export default class LLMService {
         ? withoutFragment.substring(0, queryIndex)
         : withoutFragment;
 
-    // Lower-case the scheme (e.g. "HTTP://" -> "http://") and strip trailing
-    // slashes.
+    /*
+     * Lower-case the scheme (e.g. "HTTP://" -> "http://") and strip trailing
+     * slashes.
+     */
     const schemeRegex: RegExp = /^[a-z][a-z0-9+.-]*:\/\//i;
     base = base
       .replace(schemeRegex, (scheme: string) => {
