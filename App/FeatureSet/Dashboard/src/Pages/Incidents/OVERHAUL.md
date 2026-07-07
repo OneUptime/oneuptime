@@ -26,9 +26,10 @@ engine and rebuild the shell around it.
   `g m` maintenance, `g o` on-call, `g h` home). Fire only on page chrome, never while
   typing.
 - **Keyboard shortcut cheat-sheet (`?`)** — bundled in the command palette component.
-- **Inline title editing on the incident and alert detail pages** — the record title is an
-  `InlineEditField` at the top of `Pages/Incidents/View/Index.tsx` and
-  `Pages/Alerts/View/Index.tsx`: click to rename, optimistic save via
+- **Inline title editing on all three detail pages** — the record title is an
+  `InlineEditField` at the top of the incident, alert and scheduled-maintenance overviews
+  (`Pages/Incidents/View/Index.tsx`, `Pages/Alerts/View/Index.tsx`,
+  `Pages/ScheduledMaintenanceEvents/View/Index.tsx`): click to rename, optimistic save via
   `ModelAPI.updateById`, rollback + toast on failure. No modal, no Save button.
 - **Bulk Acknowledge / Resolve** — first-class one-click triage verbs on the incident and
   alert tables (`Components/Incident/IncidentsTable.tsx`,

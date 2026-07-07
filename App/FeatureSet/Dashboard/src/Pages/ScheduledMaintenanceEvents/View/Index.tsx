@@ -44,6 +44,7 @@ import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import LiveDuration from "../../../Components/EventView/LiveDuration";
 import OneUptimeDate from "Common/Types/Date";
+import InlineEditField from "Common/UI/Components/InlineEdit/InlineEditField";
 
 const ScheduledMaintenanceView: FunctionComponent<
   PageComponentProps
@@ -61,6 +62,7 @@ const ScheduledMaintenanceView: FunctionComponent<
             modelType: ScheduledMaintenance,
             id: modelId,
             select: {
+              title: true,
               startsAt: true,
               endsAt: true,
               scheduledMaintenanceNumber: true,
@@ -126,6 +128,31 @@ const ScheduledMaintenanceView: FunctionComponent<
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
+          {/* Inline-editable event title — click to rename, saves optimistically. */}
+          <div className="mb-5">
+            {eventNumber && (
+              <div className="mb-1 text-sm font-medium text-gray-400">
+                {eventNumber}
+              </div>
+            )}
+            <InlineEditField
+              value={scheduledMaintenance?.title || ""}
+              placeholder="Untitled maintenance event"
+              ariaLabel="Scheduled maintenance title"
+              errorTitle="Couldn't rename event"
+              className="-ml-2 text-xl font-semibold text-gray-900"
+              onSave={async (newTitle: string) => {
+                await ModelAPI.updateById<ScheduledMaintenance>({
+                  id: modelId,
+                  modelType: ScheduledMaintenance,
+                  data: {
+                    title: newTitle,
+                  },
+                });
+              }}
+            />
+          </div>
+
           {eventStartsAt && eventEndsAt && (
             <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <EventStatTile
