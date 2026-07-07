@@ -52,6 +52,24 @@ type NavCommandSpec = {
 // Navigation targets, kept in sync with the dashboard NavBar.
 const NAV_COMMANDS: Array<NavCommandSpec> = [
   {
+    id: "create-incident",
+    title: "Declare incident",
+    subtitle: "Start a new incident",
+    keywords: "new declare create incident outage",
+    icon: IconProp.Add,
+    group: "Create",
+    pageMapKey: PageMap.INCIDENT_CREATE,
+  },
+  {
+    id: "create-alert",
+    title: "Create alert",
+    subtitle: "Start a new alert",
+    keywords: "new create alert",
+    icon: IconProp.Add,
+    group: "Create",
+    pageMapKey: PageMap.ALERT_CREATE,
+  },
+  {
     id: "nav-home",
     title: "Home",
     subtitle: "Your on-call overview",
@@ -197,6 +215,22 @@ const NAV_COMMANDS: Array<NavCommandSpec> = [
   },
 ];
 
+/*
+ * "Go to" navigation chords: press `g` then one of these keys to jump.
+ * e.g. g i = incidents, g a = alerts.
+ */
+const G_NAV_MAP: Record<string, PageMap> = {
+  h: PageMap.HOME,
+  i: PageMap.INCIDENTS,
+  a: PageMap.ALERTS,
+  m: PageMap.SCHEDULED_MAINTENANCE_EVENTS,
+  o: PageMap.ON_CALL_DUTY,
+  s: PageMap.STATUS_PAGES,
+};
+
+// How long after pressing `g` a follow-up key still counts as a chord.
+const G_CHORD_WINDOW_MS: number = 1200;
+
 type IsTypingTarget = (target: EventTarget | null) => boolean;
 
 const isTypingTarget: IsTypingTarget = (
@@ -223,6 +257,8 @@ const CommandPalette: FunctionComponent = (): ReactElement | null => {
   const inputRef: React.RefObject<HTMLInputElement> =
     useRef<HTMLInputElement>(null);
   const listRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+  // Timestamp of the last `g` press, for the "go to" navigation chord.
+  const gChordRef: React.MutableRefObject<number> = useRef<number>(0);
 
   const commands: Array<PaletteCommand> = useMemo(() => {
     return NAV_COMMANDS.map((spec: NavCommandSpec): PaletteCommand => {
@@ -303,6 +339,36 @@ const CommandPalette: FunctionComponent = (): ReactElement | null => {
         setIsHelpOpen((open: boolean): boolean => {
           return !open;
         });
+        return;
+      }
+
+      // "g" then a key = go to (navigation chord). Only on page chrome.
+      if (
+        !isTypingTarget(event.target) &&
+        !isOpen &&
+        !isHelpOpen &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey
+      ) {
+        const key: string = event.key.toLowerCase();
+        const now: number = Date.now();
+
+        if (
+          gChordRef.current &&
+          now - gChordRef.current < G_CHORD_WINDOW_MS &&
+          G_NAV_MAP[key]
+        ) {
+          gChordRef.current = 0;
+          event.preventDefault();
+          const route: Route | undefined = RouteMap[G_NAV_MAP[key]!];
+          if (route) {
+            Navigation.navigate(RouteUtil.populateRouteParams(route));
+          }
+          return;
+        }
+
+        gChordRef.current = key === "g" ? now : 0;
       }
     };
 
@@ -317,7 +383,7 @@ const CommandPalette: FunctionComponent = (): ReactElement | null => {
       document.removeEventListener("keydown", onKeyDown);
       window.removeEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpenEvent);
     };
-  }, [isOpen]);
+  }, [isOpen, isHelpOpen]);
 
   // Focus the input when the palette opens; reset selection.
   useEffect(() => {
@@ -537,6 +603,11 @@ interface HelpProps {
 const HELP_SHORTCUTS: Array<{ keys: Array<string>; label: string }> = [
   { keys: ["⌘", "K"], label: "Open the command palette" },
   { keys: ["⌘", "/"], label: "Switch products (menu)" },
+  { keys: ["G", "I"], label: "Go to incidents" },
+  { keys: ["G", "A"], label: "Go to alerts" },
+  { keys: ["G", "M"], label: "Go to scheduled maintenance" },
+  { keys: ["G", "O"], label: "Go to on-call duty" },
+  { keys: ["G", "H"], label: "Go to home" },
   { keys: ["/"], label: "Focus search on any list" },
   { keys: ["?"], label: "Show this shortcut sheet" },
   { keys: ["Esc"], label: "Close a dialog, menu or peek" },

@@ -35,6 +35,7 @@ import React, {
 } from "react";
 import UserElement from "../../../Components/User/User";
 import Card from "Common/UI/Components/Card/Card";
+import InlineEditField from "Common/UI/Components/InlineEdit/InlineEditField";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -88,6 +89,7 @@ const IncidentView: FunctionComponent<
     null,
   );
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
+  const [incidentTitle, setIncidentTitle] = useState<string>("");
   const [eventNumber, setEventNumber] = useState<string | undefined>(undefined);
   const [severity, setSeverity] = useState<
     { name: string; color: Color } | undefined
@@ -138,6 +140,7 @@ const IncidentView: FunctionComponent<
         id: modelId,
         modelType: Incident,
         select: {
+          title: true,
           telemetryQuery: true,
           isPrivate: true,
           incidentNumber: true,
@@ -158,6 +161,7 @@ const IncidentView: FunctionComponent<
       }
 
       setIsPrivate(incident?.isPrivate === true);
+      setIncidentTitle(incident?.title || "");
 
       setEventNumber(
         incident?.incidentNumberWithPrefix ||
@@ -330,6 +334,32 @@ const IncidentView: FunctionComponent<
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
+          {/* Inline-editable incident title — click to rename, saves optimistically. */}
+          <div className="mb-5">
+            {eventNumber && (
+              <div className="mb-1 text-sm font-medium text-gray-400">
+                {eventNumber}
+              </div>
+            )}
+            <InlineEditField
+              value={incidentTitle}
+              placeholder="Untitled incident"
+              ariaLabel="Incident title"
+              errorTitle="Couldn't rename incident"
+              className="-ml-2 text-xl font-semibold text-gray-900"
+              onSave={async (newTitle: string) => {
+                setIncidentTitle(newTitle);
+                await ModelAPI.updateById<Incident>({
+                  id: modelId,
+                  modelType: Incident,
+                  data: {
+                    title: newTitle,
+                  },
+                });
+              }}
+            />
+          </div>
+
           <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <EventStatTile
               label={`${getAcknowledgeState()?.name || "Acknowledged"} in`}

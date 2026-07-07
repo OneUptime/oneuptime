@@ -17,11 +17,19 @@ engine and rebuild the shell around it.
 ## Shipped in this branch (Phase 0 + interaction foundation)
 
 - **Command palette (⌘K)** — `Components/CommandPalette/CommandPalette.tsx`, mounted in
-  `App.tsx`. Fuzzy-search navigation across the product; ↑↓ to move, ↵ to open, esc to
-  close. `⌘K` was reclaimed from the NavBar product switcher, which now opens on `⌘/`
+  `App.tsx`. Fuzzy-search navigation across the product plus **Create** actions (Declare
+  incident, Create alert); ↑↓ to move, ↵ to open, esc to close. `⌘K` was reclaimed from
+  the NavBar product switcher, which now opens on `⌘/`
   (`Common/UI/Components/Navbar/NavBar.tsx`). Other components can open the palette by
   dispatching `OPEN_COMMAND_PALETTE_EVENT`.
+- **"Go to" navigation chords** — `g` then a key jumps (`g i` incidents, `g a` alerts,
+  `g m` maintenance, `g o` on-call, `g h` home). Fire only on page chrome, never while
+  typing.
 - **Keyboard shortcut cheat-sheet (`?`)** — bundled in the command palette component.
+- **Inline title editing on the incident and alert detail pages** — the record title is an
+  `InlineEditField` at the top of `Pages/Incidents/View/Index.tsx` and
+  `Pages/Alerts/View/Index.tsx`: click to rename, optimistic save via
+  `ModelAPI.updateById`, rollback + toast on failure. No modal, no Save button.
 - **Bulk Acknowledge / Resolve** — first-class one-click triage verbs on the incident and
   alert tables (`Components/Incident/IncidentsTable.tsx`,
   `Components/Alert/AlertsTable.tsx`), shown only when the project defines an acknowledged
