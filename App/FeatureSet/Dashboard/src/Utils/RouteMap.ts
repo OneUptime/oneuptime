@@ -4846,7 +4846,7 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  // AI Agents section (tasks, agents, MCP server, LLM providers, credits, logs)
+  // AI Agents section (tasks, agents, MCP server)
   [PageMap.AI_AGENT_TASKS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ai/agents/*`,
   ),
