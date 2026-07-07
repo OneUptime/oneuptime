@@ -21,6 +21,7 @@ import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
+import PostUpdateComposer from "../EventView/PostUpdateComposer";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -264,6 +265,21 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
       ]}
     >
       <div>
+        <PostUpdateComposer
+          placeholder="Post an internal note…"
+          successMessage="Note added"
+          visibilityOptions={[{ key: "internal", label: "Internal note" }]}
+          onPost={async (args: { note: string; visibility: string }) => {
+            const privateNote: AlertInternalNote = new AlertInternalNote();
+            privateNote.note = args.note;
+            privateNote.alertId = props.alertId;
+            await ModelAPI.create<AlertInternalNote>({
+              model: privateNote,
+              modelType: AlertInternalNote,
+            });
+            await fetchItems();
+          }}
+        />
         {isLoading && <ComponentLoader />}
         {error && <ErrorMessage message={error} />}
         {!isLoading && !error && (

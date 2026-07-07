@@ -32,6 +32,7 @@ import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import Icon from "Common/UI/Components/Icon/Icon";
 import RunbookPicker from "../Runbook/RunbookPicker";
+import PostUpdateComposer from "../EventView/PostUpdateComposer";
 
 export interface ComponentProps {
   incidentId: ObjectID;
@@ -327,6 +328,36 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
       ]}
     >
       <div>
+        <PostUpdateComposer
+          placeholder="Post an update or note…"
+          successMessage="Note added"
+          visibilityOptions={[
+            { key: "internal", label: "Internal note" },
+            { key: "public", label: "Public · status page", danger: true },
+          ]}
+          onPost={async (args: { note: string; visibility: string }) => {
+            if (args.visibility === "public") {
+              const publicNote: IncidentPublicNote = new IncidentPublicNote();
+              publicNote.note = args.note;
+              publicNote.incidentId = props.incidentId;
+              publicNote.postedAt = OneUptimeDate.getCurrentDate();
+              await ModelAPI.create<IncidentPublicNote>({
+                model: publicNote,
+                modelType: IncidentPublicNote,
+              });
+            } else {
+              const privateNote: IncidentInternalNote =
+                new IncidentInternalNote();
+              privateNote.note = args.note;
+              privateNote.incidentId = props.incidentId;
+              await ModelAPI.create<IncidentInternalNote>({
+                model: privateNote,
+                modelType: IncidentInternalNote,
+              });
+            }
+            await fetchItems();
+          }}
+        />
         {isLoading && <ComponentLoader />}
         {error && <ErrorMessage message={error} />}
         {!isLoading && !error && (
