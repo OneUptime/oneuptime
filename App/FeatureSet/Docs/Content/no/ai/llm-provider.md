@@ -22,11 +22,15 @@ Hvis du foretrekker å bruke egne API-nøkler eller en spesifikk leverandør, ka
 
 OneUptime støtter for øyeblikket følgende LLM-leverandører:
 
-| Leverandør    | Beskrivelse                                                              | API-nøkkel påkrevd | Basis-URL påkrevd     |
-| ------------- | ------------------------------------------------------------------------ | ------------------ | --------------------- |
-| **OpenAI**    | GPT-4, GPT-4o, GPT-3.5 Turbo og andre OpenAI-modeller                    | Ja                 | Nei (bruker standard) |
-| **Anthropic** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku og andre Claude-modeller  | Ja                 | Nei (bruker standard) |
-| **Ollama**    | Selvhostede åpen kildekode-modeller som Llama 2, Mistral, CodeLlama osv. | Nei                | Ja                    |
+| Leverandør            | Beskrivelse                                                              | API-nøkkel påkrevd | Basis-URL påkrevd     |
+| --------------------- | ------------------------------------------------------------------------ | ------------------ | --------------------- |
+| **OpenAI**            | GPT-4, GPT-4o, GPT-3.5 Turbo og andre OpenAI-modeller                    | Ja                 | Nei (bruker standard) |
+| **Azure OpenAI**      | OpenAI-modeller hostet på din Azure-distribusjon                         | Ja                 | Ja                    |
+| **Anthropic**         | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku og andre Claude-modeller  | Ja                 | Nei (bruker standard) |
+| **Groq**              | Rask inferens for Llama, Mixtral og andre åpne modeller                  | Ja                 | Nei (bruker standard) |
+| **Mistral**           | Mistrals hostede modeller                                                | Ja                 | Nei (bruker standard) |
+| **Ollama**            | Selvhostede åpen kildekode-modeller som Llama 2, Mistral, CodeLlama osv. | Nei                | Ja                    |
+| **OpenAI-kompatibel** | Enhver OpenAI-kompatibel server (vLLM, LocalAI, LM Studio osv.)          | Nei (valgfritt)    | Ja                    |
 
 ## Konfigurere en LLM-leverandør
 
@@ -42,10 +46,10 @@ Fyll inn følgende felt:
 
 - **Navn**: Et vennlig navn for denne LLM-konfigurasjonen (f.eks. "Produksjon OpenAI", "Lokal Ollama")
 - **Beskrivelse** (valgfritt): En beskrivelse som hjelper å identifisere formålet med denne leverandøren
-- **LLM-type**: Velg leverandørtype (OpenAI, Anthropic eller Ollama)
-- **API-nøkkel**: API-nøkkelen din (påkrevd for OpenAI og Anthropic)
+- **LLM-type**: Velg leverandørtype (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama eller OpenAI-kompatibel)
+- **API-nøkkel**: API-nøkkelen din (påkrevd for OpenAI, Azure OpenAI, Anthropic, Groq og Mistral; valgfritt for Ollama og OpenAI-kompatible servere)
 - **Modellnavn**: Den spesifikke modellen som skal brukes (f.eks. `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
-- **Basis-URL** (valgfritt): Egendefinert API-endepunkt-URL (påkrevd for Ollama, valgfritt for andre)
+- **Basis-URL** (valgfritt): Egendefinert API-endepunkt-URL (påkrevd for Azure OpenAI, Ollama og OpenAI-kompatibel; valgfritt for andre)
 
 ## Leverandørspesifikk konfigurasjon
 
@@ -117,6 +121,62 @@ Model Name: llama2
 - `codellama` – Kodespesialisert Llama-modell
 - `mixtral` – Mistrals mixture of experts-modell
 
+### OpenAI-kompatibel (vLLM, LocalAI, LM Studio osv.)
+
+Bruk leverandøren **OpenAI-kompatibel** for enhver server som implementerer OpenAIs `/chat/completions`-API, men som ikke er OpenAI selv — for eksempel [vLLM](https://docs.vllm.ai), [LocalAI](https://localai.io), [LM Studio](https://lmstudio.ai) eller text-generation-webui. Disse er som regel selvhostet på din egen URL og kjører ofte uten autentisering.
+
+1. Start din OpenAI-kompatible server og noter basis-URL-en (den ender vanligvis på `/v1`)
+2. Velg **OpenAI-kompatibel** som LLM-type
+3. Skriv inn **basis-URL-en** (påkrevd), f.eks. `http://your-server:8000/v1`
+4. Skriv inn **modellnavnet** (påkrevd) — det må samsvare med en modell serveren din eksponerer
+5. Skriv inn **API-nøkkelen** bare hvis serveren din krever det; la den stå tom for serverne uten nøkkel
+
+**Eksempelkonfigurasjon (vLLM uten nøkkel):**
+
+```
+Name: Self-Hosted vLLM
+LLM Type: OpenAI Compatible
+Base URL: http://vllm.internal:8000/v1
+Model Name: meta-llama/Llama-3.1-8B-Instruct
+API Key: (leave blank)
+```
+
+> Tips: Etter lagring kan du bruke **Test**-knappen på leverandøren for å bekrefte at tilkoblingen, modellnavnet og basis-URL-en er riktige.
+
+### Selvhostet vLLM på Kubernetes (Helm)
+
+Hvis du selvhoster OneUptime med Helm-chartet, kan du kjøre [vLLM](https://docs.vllm.ai) — en OpenAI-kompatibel inferensserver — inne i klyngen din og betjene lokale modeller på dine egne GPU-er. Ingen data forlater infrastrukturen din.
+
+1. Aktiver det i Helm-verdiene dine (krever NVIDIA GPU-noder):
+
+   ```yaml
+   vllm:
+     enabled: true
+     model: Qwen/Qwen2.5-1.5B-Instruct
+   ```
+
+2. Kjør `helm upgrade` og vent til vLLM-poden blir klar (den første oppstarten laster ned modellen)
+3. Det er alt — vLLM registreres automatisk som en global LLM-leverandør ved oppstart (`vllm.globalProvider.enabled`, standard `true`), slik at AI-funksjoner fungerer for alle prosjekter. Merk: prosjektspesifikke AI-agenter kan ikke bruke globale leverandører og trenger fortsatt en prosjektspesifikk LLM-leverandør.
+
+Hvis du deaktiverte automatisk registrering (`vllm.globalProvider.enabled: false`), opprett leverandøren manuelt:
+
+1. Velg **OpenAI-kompatibel** som LLM-type (vLLM snakker OpenAI-APIet)
+2. Skriv inn basis-URL-en i klyngen: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`
+3. Skriv inn modellnavnet: den fullstendige HuggingFace-modell-IDen (eller `vllm.servedModelName` hvis du satte en)
+4. Skriv inn API-nøkkelen bare hvis du satte `vllm.apiKey`; la den stå tom for en vLLM uten nøkkel
+
+**Eksempelkonfigurasjon:**
+
+```
+Name: In-Cluster vLLM
+LLM Type: OpenAI Compatible
+Base URL: http://oneuptime-vllm.default.svc.cluster.local:8000/v1
+Model Name: Qwen/Qwen2.5-1.5B-Instruct
+API Key: (leave blank unless vllm.apiKey is set)
+```
+
+Se [Helm chart README](https://github.com/OneUptime/oneuptime/tree/master/HelmChart/Public/oneuptime#local-models-with-vllm) for GPU-planlegging, sperrede modeller og justeringsalternativer.
+
 ## Bruke egendefinerte basis-URL-er
 
 For bedriftsdistribusjoner eller ved bruk av proxytjenester kan du angi en egendefinert basis-URL:
@@ -138,6 +198,7 @@ For bedriftsdistribusjoner eller ved bruk av proxytjenester kan du angi en egend
 
 - **OpenAI/Anthropic**: Verifiser at API-nøkkelen er gyldig og har tilstrekkelige kreditter
 - **Ollama**: Sørg for at Ollama-serveren kjører og at basis-URL-en er riktig
+- **OpenAI-kompatibel**: Sørg for at basis-URL-en ender på `/v1` (eller samsvarer med serveren din), at modellnavnet samsvarer med en modell serveren din eksponerer, og angi kun en API-nøkkel hvis serveren din krever det
 - **Brannmur**: Kontroller at nettverket tillater utgående tilkoblinger til leverandørens API
 
 ### Modell ikke funnet

@@ -37,21 +37,28 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
     setIsComponentVisible(Boolean(props.showDropdown));
   }, [props.showDropdown]);
 
+  const hasLabel: boolean = Boolean(props.title);
+  const hasDropdown: boolean = Boolean(props.children);
+
+  const sizeClassName: string = hasLabel
+    ? "h-9 gap-1.5 pl-2.5 pr-3"
+    : "h-9 w-9 justify-center";
+
   return (
-    <div className="relative ml-1 flex-shrink-0">
+    <div className="relative ml-2 flex-shrink-0">
       <div>
         <button
           type="button"
-          className="flex items-center justify-center h-9 w-9 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 transition-all duration-150"
-          id="user-menu-button"
-          aria-expanded="false"
-          aria-haspopup="true"
+          className={`flex items-center rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 transition-all duration-150 ${sizeClassName}`}
+          id={hasDropdown ? "user-menu-button" : undefined}
+          aria-expanded={hasDropdown ? isDropdownVisible : undefined}
+          aria-haspopup={hasDropdown ? "true" : undefined}
           onClick={() => {
             props.onClick?.();
             setIsComponentVisible(!isDropdownVisible);
           }}
         >
-          <span className="sr-only">{props.name}</span>
+          {!hasLabel && <span className="sr-only">{props.name}</span>}
           {props.iconImageUrl && (
             <Image
               className="h-7 w-7 rounded-md object-cover"
@@ -63,14 +70,17 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
             />
           )}
           {props.icon && (
-            <Icon className="h-5 w-5 text-gray-500" icon={props.icon} />
+            <Icon
+              className={`${hasLabel ? "h-4 w-4" : "h-5 w-5"} text-gray-500`}
+              icon={props.icon}
+            />
+          )}
+          {hasLabel && (
+            <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
+              {props.title}
+            </span>
           )}
         </button>
-        {props.title && (
-          <span className="ml-2 text-sm font-medium text-gray-700">
-            {props.title}
-          </span>
-        )}
         {props.badge && props.badge > 0 && (
           <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white ring-2 ring-white">
             {props.badge}

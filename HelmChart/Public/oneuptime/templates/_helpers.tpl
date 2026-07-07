@@ -199,10 +199,9 @@ its userlist at startup.
 Env vars that declaratively seed a Global LLM Provider at startup (see
 App/FeatureSet/Workers/StartupMigrations). Emitted when the bundled vLLM is
 enabled and vllm.globalProvider.enabled is true; when the vars are absent,
-the next boot removes the seeded provider row. The API key always renders:
-LLMService requires an apiKey for OpenAI-type providers, and vLLM without
-VLLM_API_KEY accepts any bearer token, so a placeholder works when no key is
-configured.
+the next boot removes the seeded provider row. The provider type is
+"OpenAICompatible" — vLLM speaks the OpenAI API but is keyless by default — so
+GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
 */}}
 {{- define "oneuptime.env.globalLlmProvider" }}
 {{- if and $.Values.vllm.enabled $.Values.vllm.globalProvider.enabled }}
@@ -211,18 +210,19 @@ configured.
 - name: GLOBAL_LLM_PROVIDER_DESCRIPTION
   value: "Automatically registered by the OneUptime Helm chart (vllm.globalProvider)."
 - name: GLOBAL_LLM_PROVIDER_TYPE
-  value: "OpenAI"
+  value: "OpenAICompatible"
 - name: GLOBAL_LLM_PROVIDER_BASE_URL
   value: http://{{ $.Release.Name }}-vllm.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.vllm.ports.http }}/v1
 - name: GLOBAL_LLM_PROVIDER_MODEL_NAME
   value: {{ if $.Values.vllm.servedModelName }}{{ $.Values.vllm.servedModelName | quote }}{{ else }}{{ $.Values.vllm.model | quote }}{{ end }}
+{{- if $.Values.vllm.existingApiKeySecret.name }}
 - name: GLOBAL_LLM_PROVIDER_API_KEY
-  {{- if $.Values.vllm.existingApiKeySecret.name }}
   valueFrom:
     secretKeyRef:
       name: {{ $.Values.vllm.existingApiKeySecret.name }}
       key: {{ required "vllm.existingApiKeySecret.key is required when vllm.existingApiKeySecret.name is set" $.Values.vllm.existingApiKeySecret.key }}
-  {{- else if $.Values.vllm.apiKey }}
+{{- else if $.Values.vllm.apiKey }}
+- name: GLOBAL_LLM_PROVIDER_API_KEY
   valueFrom:
     secretKeyRef:
       name: {{ printf "%s-%s" $.Release.Name "vllm" }}
@@ -235,9 +235,7 @@ configured.
       # seeds the provider without a key and the every-boot sync on the
       # runtime pods re-seeds the real key once the Secret exists.
       optional: true
-  {{- else }}
-  value: "vllm-no-auth"
-  {{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
 

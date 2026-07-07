@@ -106,20 +106,32 @@ export default class SeedGlobalLlmProviderFromEnv extends StartupMigrationBase {
      * Still seed (warn-and-seed) so the declarative sync semantics hold.
      */
     const missing: Array<string> = [];
-    if (llmType !== LlmType.Ollama && !apiKey) {
+    // Keyless providers: Ollama and generic OpenAI-compatible servers (vLLM, etc.).
+    if (
+      llmType !== LlmType.Ollama &&
+      llmType !== LlmType.OpenAICompatible &&
+      !apiKey
+    ) {
       missing.push("GLOBAL_LLM_PROVIDER_API_KEY");
     }
+    // Providers that need an explicit endpoint.
     if (
-      (llmType === LlmType.AzureOpenAI || llmType === LlmType.Ollama) &&
+      (llmType === LlmType.AzureOpenAI ||
+        llmType === LlmType.Ollama ||
+        llmType === LlmType.OpenAICompatible) &&
       !baseUrl
     ) {
       missing.push("GLOBAL_LLM_PROVIDER_BASE_URL");
+    }
+    // Generic OpenAI-compatible servers have no default model.
+    if (llmType === LlmType.OpenAICompatible && !modelName) {
+      missing.push("GLOBAL_LLM_PROVIDER_MODEL_NAME");
     }
     if (missing.length > 0) {
       logger.error(
         `Global LLM provider type "${llmType}" requires ${missing.join(
           " and ",
-        )} to be set - AI requests will fail until it is. For keyless OpenAI-compatible servers (e.g. vLLM without VLLM_API_KEY), set GLOBAL_LLM_PROVIDER_API_KEY to any placeholder value.`,
+        )} to be set - AI requests will fail until it is. For a keyless OpenAI-compatible server (e.g. vLLM without an API key), set GLOBAL_LLM_PROVIDER_TYPE to "OpenAICompatible" with GLOBAL_LLM_PROVIDER_BASE_URL and GLOBAL_LLM_PROVIDER_MODEL_NAME; no API key is needed.`,
       );
     }
 

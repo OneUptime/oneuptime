@@ -46,6 +46,8 @@ If the pod stays `Pending`, check the scheduling events with `kubectl describe p
 
 Set `vllm.model` (and optionally `vllm.servedModelName`) and run `helm upgrade`. The pod restarts and downloads the new model into the same cache volume. Remember to update the Model Name in the OneUptime LLM Provider settings to match.
 
+If you switch to a different model **family**, also update `vllm.toolCalling.parser` to the matching `--tool-call-parser` (see the next section) — the parser is model-family specific, and a mismatch breaks the copilot's tool calls.
+
 For gated models (e.g. `meta-llama/*`), set a HuggingFace token:
 
 ```yaml
@@ -57,6 +59,35 @@ vllm:
     #   name: my-hf-secret
     #   key: token
 ```
+
+### Tool / function calling (required for the AI copilot)
+
+OneUptime's AI features — the **Ask AI** copilot and **AI Agents** — work by having the model call tools (OpenAI-style function calling) to run real queries against your data. vLLM only accepts those requests when it is started with tool calling enabled, so the chart turns it on by default:
+
+```yaml
+vllm:
+  toolCalling:
+    enabled: true
+    parser: hermes        # matches the default Qwen2.5 model
+    chatTemplate: ""      # optional --chat-template; empty uses the model's built-in one
+```
+
+This renders `--enable-auto-tool-choice --tool-call-parser=<parser>` onto `vllm serve`. **The parser is model-family specific.** Pick the value that matches your model from the [vLLM tool-calling docs](https://docs.vllm.ai/en/latest/features/tool_calling.html) — for example:
+
+| Model family | `parser` |
+| --- | --- |
+| Qwen2.5 / Qwen2 (default) | `hermes` |
+| Llama 3.1 / 3.2 | `llama3_json` (or `pythonic` for 3.2) |
+| Mistral / Mixtral | `mistral` |
+
+Some models need a tool-aware chat template; set `vllm.toolCalling.chatTemplate` to a path inside the image, a mounted file, or an inline template if the model's built-in one doesn't emit tool calls.
+
+### Troubleshooting the AI copilot
+
+When the copilot shows an error like `OpenAICompatible API error: ...`, the message is passed straight through from vLLM:
+
+- **`{"detail":"Not Found"}`** — the request reached the server but not a valid route. The base URL is missing the `/v1` path (or has a stray trailing slash). The chart's auto-registered provider already uses `.../v1`; if you configured the provider manually in the dashboard, set the Base URL to `http://<host>:8000/v1`. (OneUptime also normalizes a `/v1`-less base URL, so upgrade the server if you still hit this.)
+- **`"auto" tool choice requires --enable-auto-tool-choice and --tool-call-parser to be set` (HTTP 400)** — tool calling is off on the vLLM server. Ensure `vllm.toolCalling.enabled: true` (the default) and that `vllm.toolCalling.parser` matches your model, then `helm upgrade` and wait for the pod to restart.
 
 ### Fix startup OOM on small GPUs
 
