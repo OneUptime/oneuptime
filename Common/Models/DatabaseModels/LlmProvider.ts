@@ -42,7 +42,7 @@ import LlmType from "../../Types/LLM/LlmType";
   pluralName: "LLM Providers",
   icon: IconProp.Bolt,
   tableDescription:
-    "Manage LLM Provider configurations. Connect to OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama, or other LLM providers to enable AI features.",
+    "Manage LLM Provider configurations. Connect to OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama, OpenAI-compatible servers (e.g. vLLM, LocalAI), or other LLM providers to enable AI features.",
 })
 @TableAccessControl({
   create: [
@@ -190,7 +190,7 @@ export default class LlmProvider extends BaseModel {
     type: TableColumnType.ShortText,
     title: "LLM Type",
     description:
-      "The type of LLM provider (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama, etc.)",
+      "The type of LLM provider (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama, OpenAICompatible, etc.)",
   })
   @Column({
     nullable: false,

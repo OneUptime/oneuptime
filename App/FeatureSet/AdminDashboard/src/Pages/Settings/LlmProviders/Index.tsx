@@ -193,7 +193,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             required: false,
             placeholder: "sk-...",
             description:
-              "Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. Not required for Ollama if self-hosted.",
+              "Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.",
           },
           {
             field: {
@@ -205,7 +205,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             required: false,
             placeholder: "gpt-4o, claude-3-opus, llama-3.3-70b-versatile",
             description:
-              "The specific model or deployment name to use (e.g., gpt-4o for OpenAI, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral).",
+              "The specific model or deployment name to use (e.g., gpt-4o for OpenAI, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.",
           },
           {
             field: {
@@ -217,7 +217,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             required: false,
             placeholder: "http://localhost:11434",
             description:
-              "Required for Azure OpenAI and Ollama. For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint.",
+              "Required for Azure OpenAI, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint.",
           },
           ...(BILLING_ENABLED
             ? [

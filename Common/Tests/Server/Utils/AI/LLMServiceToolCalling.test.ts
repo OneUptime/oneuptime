@@ -227,3 +227,82 @@ describe("LLMService tool calling — Ollama", () => {
     expect(requestBody["stream"]).toBe(false);
   });
 });
+
+describe("LLMService — OpenAI-compatible (generic, e.g. vLLM)", () => {
+  test("works without an API key and omits the Authorization header", async () => {
+    const spy: PostSpy = mockPostResponse({
+      choices: [{ message: { content: "OK" } }],
+      usage: { prompt_tokens: 3, completion_tokens: 1, total_tokens: 4 },
+    });
+
+    const response: LLMCompletionResponse = await LLMService.getCompletion({
+      // No apiKey — a keyless self-hosted vLLM server must work.
+      llmProviderConfig: {
+        llmType: LlmType.OpenAICompatible,
+        baseUrl: "http://vllm.local:8000/v1",
+        modelName: "meta-llama/Llama-3.1-8B-Instruct",
+      },
+      messages: [{ role: "user", content: "ping" }],
+    });
+
+    expect(response.content).toBe("OK");
+
+    const call: {
+      url: { toString: () => string };
+      data: JSONObject;
+      headers: JSONObject;
+    } = spy.mock.calls[0]![0] as {
+      url: { toString: () => string };
+      data: JSONObject;
+      headers: JSONObject;
+    };
+    expect(call.url.toString()).toContain("/v1/chat/completions");
+    expect(call.data["model"]).toBe("meta-llama/Llama-3.1-8B-Instruct");
+    expect(call.headers["Authorization"]).toBeUndefined();
+  });
+
+  test("sends the Authorization header when an API key is provided", async () => {
+    const spy: PostSpy = mockPostResponse({
+      choices: [{ message: { content: "OK" } }],
+    });
+
+    await LLMService.getCompletion({
+      llmProviderConfig: {
+        llmType: LlmType.OpenAICompatible,
+        baseUrl: "http://vllm.local:8000/v1",
+        modelName: "my-model",
+        apiKey: "secret",
+      },
+      messages: [{ role: "user", content: "ping" }],
+    });
+
+    const call: { headers: JSONObject } = spy.mock.calls[0]![0] as {
+      headers: JSONObject;
+    };
+    expect(call.headers["Authorization"]).toBe("Bearer secret");
+  });
+
+  test("requires a base URL", async () => {
+    await expect(
+      LLMService.getCompletion({
+        llmProviderConfig: {
+          llmType: LlmType.OpenAICompatible,
+          modelName: "my-model",
+        },
+        messages: [{ role: "user", content: "ping" }],
+      }),
+    ).rejects.toThrow("Base URL is required");
+  });
+
+  test("requires a model name", async () => {
+    await expect(
+      LLMService.getCompletion({
+        llmProviderConfig: {
+          llmType: LlmType.OpenAICompatible,
+          baseUrl: "http://vllm.local:8000/v1",
+        },
+        messages: [{ role: "user", content: "ping" }],
+      }),
+    ).rejects.toThrow("Model Name is required");
+  });
+});

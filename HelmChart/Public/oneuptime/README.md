@@ -464,10 +464,10 @@ When enabled, vLLM is **registered automatically as a Global LLM Provider** at s
 
 If you prefer to wire it up manually instead, set `vllm.globalProvider.enabled: false` and go to **AI Agents > LLM Providers > Create LLM Provider**:
 
-- **LLM Provider**: `OpenAI`
+- **LLM Provider**: `OpenAI Compatible`
 - **Base URL**: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`
 - **Model Name**: the value of `vllm.servedModelName`, or the full HuggingFace model id if unset
-- **API Key**: the value of `vllm.apiKey` (any placeholder if unset)
+- **API Key**: the value of `vllm.apiKey`; leave blank if you did not set one (vLLM is keyless by default)
 
 Notes on scaling and upgrades:
 

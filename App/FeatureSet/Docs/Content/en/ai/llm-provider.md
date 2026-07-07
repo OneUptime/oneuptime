@@ -22,11 +22,15 @@ If you prefer to use your own API keys or a specific provider, you can still con
 
 OneUptime currently supports the following LLM providers:
 
-| Provider      | Description                                                             | API Key Required | Base URL Required |
-| ------------- | ----------------------------------------------------------------------- | ---------------- | ----------------- |
-| **OpenAI**    | GPT-4, GPT-4o, GPT-3.5 Turbo, and other OpenAI models                   | Yes              | No (uses default) |
-| **Anthropic** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku, and other Claude models | Yes              | No (uses default) |
-| **Ollama**    | Self-hosted open-source models like Llama 2, Mistral, CodeLlama, etc.   | No               | Yes               |
+| Provider              | Description                                                             | API Key Required | Base URL Required |
+| --------------------- | ----------------------------------------------------------------------- | ---------------- | ----------------- |
+| **OpenAI**            | GPT-4, GPT-4o, GPT-3.5 Turbo, and other OpenAI models                   | Yes              | No (uses default) |
+| **Azure OpenAI**      | OpenAI models hosted on your Azure deployment                           | Yes              | Yes               |
+| **Anthropic**         | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku, and other Claude models | Yes              | No (uses default) |
+| **Groq**              | Fast inference for Llama, Mixtral, and other open models                | Yes              | No (uses default) |
+| **Mistral**           | Mistral's hosted models                                                 | Yes              | No (uses default) |
+| **Ollama**            | Self-hosted open-source models like Llama 2, Mistral, CodeLlama, etc.   | No               | Yes               |
+| **OpenAI Compatible** | Any OpenAI-compatible server (vLLM, LocalAI, LM Studio, etc.)           | No (optional)    | Yes               |
 
 ## Setting Up an LLM Provider
 
@@ -42,10 +46,10 @@ Fill in the following fields:
 
 - **Name**: A friendly name for this LLM configuration (e.g., "Production OpenAI", "Local Ollama")
 - **Description** (optional): A description to help identify the purpose of this provider
-- **LLM Provider**: Select the provider type (OpenAI, Anthropic, or Ollama)
-- **API Key**: Your API key (required for OpenAI and Anthropic)
+- **LLM Provider**: Select the provider type (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama, or OpenAI Compatible)
+- **API Key**: Your API key (required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral; optional for Ollama and OpenAI-compatible servers)
 - **Model Name**: The specific model to use (e.g., `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
-- **Base URL** (optional): Custom API endpoint URL (required for Ollama, optional for others)
+- **Base URL** (optional): Custom API endpoint URL (required for Azure OpenAI, Ollama, and OpenAI Compatible; optional for others)
 
 ## Provider-Specific Configuration
 
@@ -117,6 +121,28 @@ Model Name: llama2
 - `codellama` - Code-specialized Llama model
 - `mixtral` - Mistral's mixture of experts model
 
+### OpenAI Compatible (vLLM, LocalAI, LM Studio, etc.)
+
+Use the **OpenAI Compatible** provider for any server that implements the OpenAI `/chat/completions` API but is not OpenAI itself — for example [vLLM](https://docs.vllm.ai), [LocalAI](https://localai.io), [LM Studio](https://lmstudio.ai), or text-generation-webui. These are typically self-hosted at your own URL and often run without authentication.
+
+1. Start your OpenAI-compatible server and note its base URL (it usually ends in `/v1`)
+2. Select **OpenAI Compatible** as the LLM Provider
+3. Enter the **Base URL** (required), e.g. `http://your-server:8000/v1`
+4. Enter the **Model Name** (required) — it must match a model your server exposes
+5. Enter the **API Key** only if your server requires one; leave it blank for keyless servers
+
+**Example Configuration (keyless vLLM):**
+
+```
+Name: Self-Hosted vLLM
+LLM Provider: OpenAI Compatible
+Base URL: http://vllm.internal:8000/v1
+Model Name: meta-llama/Llama-3.1-8B-Instruct
+API Key: (leave blank)
+```
+
+> Tip: After saving, use the **Test** button on the provider to confirm the connection, model name, and base URL are correct.
+
 ### Self-Hosted vLLM on Kubernetes (Helm)
 
 If you self-host OneUptime with the Helm chart, you can run [vLLM](https://docs.vllm.ai) — an OpenAI-compatible inference server — inside your cluster and serve local models on your own GPUs. No data leaves your infrastructure.
@@ -134,19 +160,19 @@ If you self-host OneUptime with the Helm chart, you can run [vLLM](https://docs.
 
 If you disabled auto-registration (`vllm.globalProvider.enabled: false`), create the provider manually:
 
-1. Select **OpenAI** as the LLM Provider (vLLM speaks the OpenAI API)
+1. Select **OpenAI Compatible** as the LLM Provider (vLLM speaks the OpenAI API)
 2. Enter the in-cluster Base URL: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`
 3. Enter the Model Name: the full HuggingFace model id (or `vllm.servedModelName` if you set one)
-4. Enter the API Key: the value of `vllm.apiKey`, or any placeholder if you did not set one
+4. Enter the API Key only if you set `vllm.apiKey`; leave it blank for a keyless vLLM
 
 **Example Configuration:**
 
 ```
 Name: In-Cluster vLLM
-LLM Provider: OpenAI
-API Key: my-secret-key
+LLM Provider: OpenAI Compatible
 Base URL: http://oneuptime-vllm.default.svc.cluster.local:8000/v1
 Model Name: Qwen/Qwen2.5-1.5B-Instruct
+API Key: (leave blank unless vllm.apiKey is set)
 ```
 
 See the [Helm chart README](https://github.com/OneUptime/oneuptime/tree/master/HelmChart/Public/oneuptime#local-models-with-vllm) for GPU scheduling, gated models and tuning options.
@@ -172,6 +198,7 @@ For enterprise deployments or when using proxy services, you can specify a custo
 
 - **OpenAI/Anthropic**: Verify your API key is valid and has sufficient credits
 - **Ollama**: Ensure the Ollama server is running and the Base URL is correct
+- **OpenAI Compatible**: Ensure the Base URL ends in `/v1` (or matches your server), the Model Name matches a model your server exposes, and only set an API Key if your server requires one
 - **Firewall**: Check that your network allows outbound connections to the provider's API
 
 ### Model Not Found

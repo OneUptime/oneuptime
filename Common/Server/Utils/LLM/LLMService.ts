@@ -76,6 +76,7 @@ export default class LLMService {
       case LlmType.OpenAI:
       case LlmType.Groq:
       case LlmType.Mistral:
+      case LlmType.OpenAICompatible:
         return await this.getOpenAICompatibleCompletion(config, request);
       case LlmType.AzureOpenAI:
         return await this.getAzureOpenAICompletion(config, request);
@@ -255,8 +256,30 @@ export default class LLMService {
     config: LLMProviderConfig,
     request: LLMCompletionRequest,
   ): Promise<LLMCompletionResponse> {
-    if (!config.apiKey) {
+    /*
+     * Generic OpenAI-compatible servers (vLLM, LocalAI, etc.) are usually
+     * self-hosted, frequently keyless, and have no canonical endpoint or
+     * default model — so the API key is optional but the base URL and model
+     * name must be provided. The hosted providers (OpenAI, Groq, Mistral)
+     * keep requiring a key and fall back to sensible defaults.
+     */
+    const isGenericOpenAICompatible: boolean =
+      config.llmType === LlmType.OpenAICompatible;
+
+    if (!isGenericOpenAICompatible && !config.apiKey) {
       throw new BadDataException(`${config.llmType} API key is required`);
+    }
+
+    if (isGenericOpenAICompatible && !config.baseUrl) {
+      throw new BadDataException(
+        "Base URL is required for OpenAI-compatible providers (e.g. http://your-vllm-server:8000/v1)",
+      );
+    }
+
+    if (isGenericOpenAICompatible && !config.modelName) {
+      throw new BadDataException(
+        "Model Name is required for OpenAI-compatible providers. It must match a model your server exposes.",
+      );
     }
 
     const defaultBaseUrls: Record<string, string> = {
@@ -282,8 +305,15 @@ export default class LLMService {
         url: URL.fromString(`${baseUrl}/chat/completions`),
         data: this.buildOpenAIRequestBody(modelName, request),
         headers: {
-          Authorization: `Bearer ${config.apiKey}`,
           "Content-Type": "application/json",
+          /*
+           * Only send Authorization when a key is configured — a keyless
+           * server (e.g. vLLM started without --api-key) rejects an empty
+           * bearer token.
+           */
+          ...(config.apiKey
+            ? { Authorization: `Bearer ${config.apiKey}` }
+            : {}),
         },
         options: {
           retries: 2,
