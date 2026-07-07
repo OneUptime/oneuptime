@@ -2143,6 +2143,250 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }
 
   /*
+   * AI Ops: transient acknowledgement text the bot posts before answering. We
+   * must skip these when reconstructing conversation history so the assistant
+   * never treats its own "please wait" filler as a real prior turn.
+   */
+  private static readonly AI_OPS_ACK_TEXT: string = "Looking into it…";
+
+  /*
+   * AI Ops: cap on how many prior turns we feed the assistant as history. The
+   * engine also clamps history internally, but we keep the payload small.
+   */
+  private static readonly AI_OPS_MAX_HISTORY_TURNS: number = 12;
+
+  /*
+   * AI Ops: strip a Teams message body down to plain text - remove <at> bot
+   * mentions and any remaining HTML tags, collapse whitespace, and trim. Teams
+   * channel/chat message bodies are typically HTML (body.contentType "html").
+   */
+  private static toPlainTextFromTeamsMessageBody(rawContent: string): string {
+    return rawContent
+      .replace(/<at[^>]*>.*?<\/at>/g, "")
+      .replace(/<[^>]*>/g, "")
+      .replace(/&nbsp;/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  /*
+   * AI Ops: gather the prior turns of the current Teams conversation/thread and
+   * map them to the assistant's history shape ({ role, content }, oldest-first,
+   * excluding the current triggering message).
+   *
+   * Teams limitation: in channels a bot only receives messages that @mention it
+   * (unless RSC / ChannelMessage.Read.Group is granted at install time), so
+   * channel follow-ups generally require re-@mentioning the bot. 1:1 (personal)
+   * chat follow-ups do not require a mention. If ids can't be parsed or the
+   * Graph call fails, we degrade gracefully to no history - the caller wraps
+   * this in a try/catch and never lets a history failure break the reply.
+   */
+  @CaptureSpan()
+  private static async getConversationHistoryTurns(data: {
+    activity: JSONObject;
+    projectId: ObjectID;
+  }): Promise<Array<{ role: "user" | "assistant"; content: string }>> {
+    const { activity, projectId } = data;
+
+    const conversation: JSONObject =
+      (activity["conversation"] as JSONObject) || {};
+    const channelData: JSONObject =
+      (activity["channelData"] as JSONObject) || {};
+    const conversationType: string =
+      (conversation["conversationType"] as string) || "";
+    const conversationId: string = (conversation["id"] as string) || "";
+    const currentMessageId: string = (activity["id"] as string) || "";
+
+    /*
+     * The bot's id - used to classify each message as "assistant" (from the
+     * bot) vs "user". This is the same id the loop-guard compares against.
+     */
+    const botId: string =
+      ((activity["recipient"] as JSONObject)?.["id"] as string) ||
+      MicrosoftTeamsAppClientId ||
+      "";
+
+    if (!conversationId) {
+      return [];
+    }
+
+    // Acquire a Graph app token using the same mechanism the rest of this file uses.
+    const accessToken: string = await this.getValidAccessToken({
+      authToken: "",
+      projectId: projectId,
+    });
+
+    // Collect raw Graph message objects (unordered; we sort at the end).
+    let rawMessages: Array<JSONObject> = [];
+
+    if (conversationType === "personal") {
+      /*
+       * 1:1 chat: conversation.id is the chat id. Fetch recent chat messages.
+       */
+      const chatId: string = conversationId;
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.get<JSONObject>({
+          url: URL.fromString(
+            `https://graph.microsoft.com/v1.0/chats/${encodeURIComponent(
+              chatId,
+            )}/messages?$top=20`,
+          ),
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        logger.debug("Failed to fetch 1:1 chat history for AI Ops context");
+        logger.debug(response);
+        return [];
+      }
+
+      rawMessages = (response.data["value"] as Array<JSONObject>) || [];
+    } else {
+      /*
+       * Channel thread: conversation.id encodes the root message id as
+       * "<channelId>;messageid=<rootId>". Team & channel ids come from
+       * channelData. Fetch the root message plus its replies.
+       */
+      const teamId: string | undefined = (channelData["team"] as JSONObject)?.[
+        "id"
+      ] as string;
+      const channelId: string | undefined = (
+        channelData["channel"] as JSONObject
+      )?.["id"] as string;
+
+      const messageIdMatch: RegExpMatchArray | null =
+        conversationId.match(/messageid=(\d+)/);
+      const rootMessageId: string | undefined = messageIdMatch?.[1];
+
+      if (!teamId || !channelId || !rootMessageId) {
+        logger.debug(
+          "Could not parse team/channel/root message ids for AI Ops channel history; proceeding without history",
+        );
+        return [];
+      }
+
+      // Fetch replies in the thread.
+      const repliesResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.get<JSONObject>({
+          url: URL.fromString(
+            `https://graph.microsoft.com/v1.0/teams/${teamId}/channels/${channelId}/messages/${rootMessageId}/replies?$top=20`,
+          ),
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+      if (repliesResponse instanceof HTTPErrorResponse) {
+        logger.debug(
+          "Failed to fetch channel thread replies for AI Ops context",
+        );
+        logger.debug(repliesResponse);
+      } else {
+        rawMessages =
+          (repliesResponse.data["value"] as Array<JSONObject>) || [];
+      }
+
+      // Also fetch the root message so the original question is part of context.
+      const rootResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.get<JSONObject>({
+          url: URL.fromString(
+            `https://graph.microsoft.com/v1.0/teams/${teamId}/channels/${channelId}/messages/${rootMessageId}`,
+          ),
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+      if (!(rootResponse instanceof HTTPErrorResponse) && rootResponse.data) {
+        rawMessages.push(rootResponse.data);
+      }
+    }
+
+    // Map each Graph message to a { role, content, createdAt, id } tuple.
+    const mappedTurns: Array<{
+      role: "user" | "assistant";
+      content: string;
+      createdAtMs: number;
+      id: string;
+    }> = [];
+
+    for (const message of rawMessages) {
+      const messageId: string = (message["id"] as string) || "";
+
+      // Exclude the current triggering message - that is the live question.
+      if (messageId && currentMessageId && messageId === currentMessageId) {
+        continue;
+      }
+
+      const body: JSONObject = (message["body"] as JSONObject) || {};
+      const rawContent: string = (body["content"] as string) || "";
+      const content: string = this.toPlainTextFromTeamsMessageBody(rawContent);
+
+      if (!content) {
+        continue;
+      }
+
+      // Skip the bot's transient "Looking into it…" acknowledgements.
+      if (content === this.AI_OPS_ACK_TEXT) {
+        continue;
+      }
+
+      /*
+       * Classify sender. Graph marks bot/app messages via from.application; a
+       * matching application/user id to the bot id also means it is the bot.
+       */
+      const fromObj: JSONObject = (message["from"] as JSONObject) || {};
+      const fromApplication: JSONObject =
+        (fromObj["application"] as JSONObject) || {};
+      const fromUser: JSONObject = (fromObj["user"] as JSONObject) || {};
+      const fromApplicationId: string = (fromApplication["id"] as string) || "";
+      const fromUserId: string = (fromUser["id"] as string) || "";
+
+      const isFromBot: boolean =
+        Boolean(fromApplication["id"]) ||
+        (botId !== "" && (fromApplicationId === botId || fromUserId === botId));
+
+      const role: "user" | "assistant" = isFromBot ? "assistant" : "user";
+
+      const createdAtRaw: string = (message["createdDateTime"] as string) || "";
+      const createdAtMs: number = createdAtRaw
+        ? new Date(createdAtRaw).getTime()
+        : 0;
+
+      mappedTurns.push({
+        role: role,
+        content: content,
+        createdAtMs: createdAtMs,
+        id: messageId,
+      });
+    }
+
+    // Order oldest -> newest so the assistant reads the conversation in order.
+    mappedTurns.sort(
+      (a: { createdAtMs: number }, b: { createdAtMs: number }): number => {
+        return a.createdAtMs - b.createdAtMs;
+      },
+    );
+
+    // Cap to the most recent turns.
+    const cappedTurns: Array<{
+      role: "user" | "assistant";
+      content: string;
+    }> = mappedTurns
+      .slice(-this.AI_OPS_MAX_HISTORY_TURNS)
+      .map((turn: { role: "user" | "assistant"; content: string }) => {
+        return { role: turn.role, content: turn.content };
+      });
+
+    return cappedTurns;
+  }
+
+  /*
    * AI Ops: resolve the OneUptime user for the Teams sender, build their real
    * permission props, ask the observability assistant, and reply in the same
    * conversation with the markdown answer plus a compact "Sources" footer.
@@ -2208,11 +2452,37 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
      * acknowledgement first.
      */
     try {
-      await turnContext.sendActivity("Looking into it…");
+      await turnContext.sendActivity(this.AI_OPS_ACK_TEXT);
     } catch (ackError) {
       // A failed acknowledgement should not stop us from answering.
       logger.debug("Failed to send acknowledgement activity");
       logger.debug(ackError);
+    }
+
+    /*
+     * Make the assistant context-aware: gather the prior turns of this
+     * conversation/thread and pass them as history (oldest-first, excluding the
+     * current question). Any failure here is non-fatal - we simply proceed
+     * statelessly so a history problem never breaks the reply.
+     */
+    let history: Array<{ role: "user" | "assistant"; content: string }> = [];
+    try {
+      history = await this.getConversationHistoryTurns({
+        activity: activity,
+        projectId: projectId,
+      });
+      logger.debug(
+        `AI Ops gathered ${history.length} prior conversation turn(s) as history`,
+        {
+          projectId: projectId.toString(),
+        },
+      );
+    } catch (historyError) {
+      logger.debug(
+        "Failed to gather AI Ops conversation history; proceeding statelessly",
+      );
+      logger.debug(historyError);
+      history = [];
     }
 
     try {
@@ -2231,6 +2501,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           userId: oneUptimeUserId,
           props: props,
           question: question,
+          ...(history.length > 0 && { history: history }),
           feature: "Microsoft Teams ChatOps",
         });
 

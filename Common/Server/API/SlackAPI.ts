@@ -950,16 +950,27 @@ export default class SlackAPI {
           }
 
           /*
-           * Handle "AI Ops" conversational events: the bot being @mentioned in
-           * a channel (app_mention) or direct-messaged (message with
-           * channel_type "im"). Both run the observability assistant and reply
-           * in-thread.
+           * Handle "AI Ops" conversational events. There are three classes:
+           *  - app_mention: the bot was @mentioned in a channel/group.
+           *  - message with channel_type "im": a direct message to the bot.
+           *  - message with channel_type "channel" | "group" | "mpim": a plain
+           *    thread reply. We only treat these as follow-ups when they land
+           *    in a thread the bot already participates in (see below), so we
+           *    never answer arbitrary channel chatter.
            */
+          const eventChannelType: string | undefined = event["channel_type"] as
+            | string
+            | undefined;
           const isAppMention: boolean = event["type"] === "app_mention";
           const isDirectMessage: boolean =
-            event["type"] === "message" && event["channel_type"] === "im";
+            event["type"] === "message" && eventChannelType === "im";
+          const isChannelThreadMessage: boolean =
+            event["type"] === "message" &&
+            (eventChannelType === "channel" ||
+              eventChannelType === "group" ||
+              eventChannelType === "mpim");
 
-          if (isAppMention || isDirectMessage) {
+          if (isAppMention || isDirectMessage || isChannelThreadMessage) {
             /*
              * Slack retries an event if it does not receive a 200 within 3
              * seconds. Acknowledge immediately and do the (slow) assistant
@@ -1004,15 +1015,36 @@ export default class SlackAPI {
               return;
             }
 
+            const eventText: string = (event["text"] as string) || "";
+
+            /*
+             * A mention fires BOTH app_mention and message.* events. Let the
+             * app_mention path own mentions and skip mention-bearing plain
+             * message.* events to avoid answering twice.
+             */
+            const botMentionRegex: RegExp = /<@[A-Z0-9]+>/;
+            if (isChannelThreadMessage && botMentionRegex.test(eventText)) {
+              logger.debug(
+                "Skipping channel message that mentions the bot (handled by app_mention).",
+                getLogAttributesFromRequest(req as any),
+              );
+              return;
+            }
+
             const slackTeamId: string = payload["team_id"] as string;
             const slackChannelId: string = event["channel"] as string;
+            const eventTs: string | undefined = event["ts"] as
+              | string
+              | undefined;
+            const eventThreadTs: string | undefined = event["thread_ts"] as
+              | string
+              | undefined;
             /*
              * Reply in the same thread. For app_mention the mention may be in a
              * thread (thread_ts) or a top-level message (ts). For DMs we thread
-             * off the message ts.
+             * off the message ts (or its thread if present).
              */
-            const threadTs: string =
-              (event["thread_ts"] as string) || (event["ts"] as string);
+            const threadTs: string = eventThreadTs || eventTs || "";
 
             /*
              * Detach the assistant work (fire-and-forget). Everything below is
@@ -1056,11 +1088,11 @@ export default class SlackAPI {
               }
 
               /*
-               * Extract the question text. For app_mention strip the leading
-               * <@BOTID> mention token; DMs are used as-is.
+               * Extract the question text. Strip mention tokens (for
+               * app_mention the leading <@BOTID>) and trim.
                */
-              let questionText: string = (event["text"] as string) || "";
-              questionText = questionText.replace(/<@[A-Z0-9]+>/g, " ").trim();
+              const questionText: string =
+                SlackAPI.cleanSlackMessageText(eventText);
 
               if (!questionText) {
                 logger.debug(
@@ -1068,6 +1100,117 @@ export default class SlackAPI {
                   getLogAttributesFromRequest(req as any),
                 );
                 return;
+              }
+
+              /*
+               * Build conversation history so follow-ups are context-aware.
+               *  - app_mention: history only when inside a thread.
+               *  - channel/group/mpim: MUST be inside a thread AND the bot must
+               *    already participate in that thread (it started/answered it).
+               *    Otherwise we ignore the message entirely.
+               *  - im: history from recent DM messages.
+               */
+              let history:
+                | Array<{ role: "user" | "assistant"; content: string }>
+                | undefined = undefined;
+
+              if (isChannelThreadMessage) {
+                if (!eventThreadTs) {
+                  logger.debug(
+                    "Skipping channel message not in a thread.",
+                    getLogAttributesFromRequest(req as any),
+                  );
+                  return;
+                }
+
+                const threadReplies: Array<{
+                  user?: string | undefined;
+                  bot_id?: string | undefined;
+                  text?: string | undefined;
+                  ts?: string | undefined;
+                  subtype?: string | undefined;
+                }> = await SlackUtil.getThreadReplies({
+                  authToken: context.projectAuthToken,
+                  channelId: slackChannelId,
+                  threadTs: eventThreadTs,
+                });
+
+                const botParticipatesInThread: boolean = threadReplies.some(
+                  (reply: {
+                    user?: string | undefined;
+                    bot_id?: string | undefined;
+                  }) => {
+                    return Boolean(
+                      reply.bot_id ||
+                        (context.botUserId && reply.user === context.botUserId),
+                    );
+                  },
+                );
+
+                if (!botParticipatesInThread) {
+                  logger.debug(
+                    "Skipping channel thread the bot does not participate in.",
+                    getLogAttributesFromRequest(req as any),
+                  );
+                  return;
+                }
+
+                history = SlackAPI.buildHistoryFromSlackMessages({
+                  messages: threadReplies,
+                  botUserId: context.botUserId,
+                  currentMessageTs: eventTs,
+                });
+              } else if (isAppMention && eventThreadTs) {
+                const threadReplies: Array<{
+                  user?: string | undefined;
+                  bot_id?: string | undefined;
+                  text?: string | undefined;
+                  ts?: string | undefined;
+                  subtype?: string | undefined;
+                }> = await SlackUtil.getThreadReplies({
+                  authToken: context.projectAuthToken,
+                  channelId: slackChannelId,
+                  threadTs: eventThreadTs,
+                });
+
+                history = SlackAPI.buildHistoryFromSlackMessages({
+                  messages: threadReplies,
+                  botUserId: context.botUserId,
+                  currentMessageTs: eventTs,
+                });
+              } else if (isDirectMessage) {
+                const dmMessages: Array<{
+                  messageId: string;
+                  text: string;
+                  userId?: string;
+                  username?: string;
+                  timestamp: Date;
+                  isBot: boolean;
+                }> = await SlackUtil.getChannelMessages({
+                  channelId: slackChannelId,
+                  authToken: context.projectAuthToken,
+                  limit: 30,
+                });
+
+                history = SlackAPI.buildHistoryFromSlackMessages({
+                  messages: dmMessages.map(
+                    (message: {
+                      messageId: string;
+                      text: string;
+                      userId?: string;
+                      isBot: boolean;
+                    }) => {
+                      return {
+                        user: message.userId,
+                        bot_id: message.isBot ? "bot" : undefined,
+                        text: message.text,
+                        ts: message.messageId,
+                      };
+                    },
+                  ),
+                  botUserId: context.botUserId,
+                  currentMessageTs: eventTs,
+                });
               }
 
               // If the user's Slack account is not connected to OneUptime.
@@ -1102,6 +1245,7 @@ export default class SlackAPI {
                   projectId: context.projectId,
                   userId: context.userId,
                   question: questionText,
+                  history: history,
                 });
 
               await SlackUtil.sendMessageToThread({
@@ -1335,11 +1479,16 @@ export default class SlackAPI {
   /*
    * Runs the observability assistant for a resolved user + project and returns
    * the finished markdown answer with a compact "Sources" footer appended.
+   * `history` (oldest-first prior turns, excluding the current question) makes
+   * threaded / DM follow-ups context-aware.
    */
   private static async getAiOpsAnswerMarkdown(data: {
     projectId: ObjectID;
     userId: ObjectID;
     question: string;
+    history?:
+      | Array<{ role: "user" | "assistant"; content: string }>
+      | undefined;
   }): Promise<string> {
     const props: DatabaseCommonInteractionProps =
       await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
@@ -1362,6 +1511,7 @@ export default class SlackAPI {
       userId: data.userId,
       props: props,
       question: data.question,
+      history: data.history,
       feature: "Slack ChatOps",
     });
 
@@ -1380,6 +1530,95 @@ export default class SlackAPI {
     }
 
     return answerMarkdown;
+  }
+
+  /*
+   * Removes Slack `<@USER>` / `<@USER|name>` mention tokens and trims the text.
+   * Used both to extract the question and to clean history turns.
+   */
+  private static cleanSlackMessageText(text: string | undefined): string {
+    return (text || "")
+      .replace(/<@[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  /*
+   * The bot posts transient acknowledgements ("Looking into it…", "On it…")
+   * before the real answer. These must never enter the assistant's history or
+   * they pollute context.
+   */
+  private static isTransientAckMessage(text: string): boolean {
+    const normalized: string = text.trim().toLowerCase();
+    return (
+      normalized.startsWith("looking into it") || normalized.startsWith("on it")
+    );
+  }
+
+  /*
+   * Builds oldest-first conversation history for the observability assistant
+   * from a list of Slack messages (thread replies or recent DM messages).
+   *
+   * - Each message becomes a turn: authored by the bot -> "assistant",
+   *   otherwise -> "user".
+   * - Text is stripped of mention tokens; empty messages are skipped.
+   * - The bot's transient acknowledgements are filtered out.
+   * - The current triggering message (matched by its ts) is excluded because it
+   *   is passed separately as the `question`.
+   * - Capped to the most recent ~12 turns.
+   */
+  private static buildHistoryFromSlackMessages(data: {
+    messages: Array<{
+      user?: string | undefined;
+      bot_id?: string | undefined;
+      text?: string | undefined;
+      ts?: string | undefined;
+      subtype?: string | undefined;
+    }>;
+    botUserId: string | undefined;
+    currentMessageTs: string | undefined;
+  }): Array<{ role: "user" | "assistant"; content: string }> {
+    const MAX_HISTORY_TURNS: number = 12;
+
+    const history: Array<{ role: "user" | "assistant"; content: string }> = [];
+
+    for (const message of data.messages) {
+      // Exclude the message that triggered this run.
+      if (
+        data.currentMessageTs &&
+        message.ts &&
+        message.ts === data.currentMessageTs
+      ) {
+        continue;
+      }
+
+      const content: string = SlackAPI.cleanSlackMessageText(message.text);
+
+      if (!content) {
+        continue;
+      }
+
+      const isAssistant: boolean = Boolean(
+        message.bot_id || (data.botUserId && message.user === data.botUserId),
+      );
+
+      // Drop the bot's own transient acknowledgements.
+      if (isAssistant && SlackAPI.isTransientAckMessage(content)) {
+        continue;
+      }
+
+      history.push({
+        role: isAssistant ? "assistant" : "user",
+        content: content,
+      });
+    }
+
+    // Keep only the most recent turns.
+    if (history.length > MAX_HISTORY_TURNS) {
+      return history.slice(history.length - MAX_HISTORY_TURNS);
+    }
+
+    return history;
   }
 
   /*
