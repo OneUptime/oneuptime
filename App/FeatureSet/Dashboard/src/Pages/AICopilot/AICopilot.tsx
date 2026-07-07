@@ -6,15 +6,22 @@ import ChatMessageList from "../../Components/AIChat/ChatMessageList";
 import ProviderPicker from "../../Components/AIChat/ProviderPicker";
 import PermissionModePicker from "../../Components/AIChat/PermissionModePicker";
 import { useAiChat, UseAiChat } from "../../Components/AIChat/useAiChat";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
-import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Page from "Common/UI/Components/Page/Page";
-import React, { FunctionComponent, ReactElement } from "react";
+import UiAnalytics from "Common/UI/Utils/Analytics";
+import ProjectUtil from "Common/UI/Utils/Project";
+import React, { FunctionComponent, ReactElement, useEffect } from "react";
+
+/*
+ * Meaningful, non-redundant page header copy. The title is the feature name;
+ * the description stays high level (the chat card below already lists the data
+ * types it queries), leading with what the copilot does — answer and act.
+ */
+const AI_COPILOT_DESCRIPTION: string =
+  "Ask across your observability data and act on what you find — answers cite the real queries behind them, and actions run with your approval.";
 
 /*
  * The full-page AI Copilot: a calm, focused workspace for asking the OneUptime
@@ -25,6 +32,16 @@ import React, { FunctionComponent, ReactElement } from "react";
  */
 const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const chat: UseAiChat = useAiChat({ enabled: true });
+
+  /*
+   * Page-view analytics: previously driven by breadcrumbLinks (now removed as a
+   * redundant self-duplicate of the title), captured explicitly instead.
+   */
+  useEffect(() => {
+    UiAnalytics.capture("dashboard/ai-copilot", {
+      projectId: ProjectUtil.getCurrentProjectId()?.toString() || "",
+    });
+  }, []);
 
   const composerLeading: ReactElement = (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -43,17 +60,7 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
   );
 
   return (
-    <Page
-      title="AI Copilot"
-      breadcrumbLinks={[
-        {
-          title: "AI Copilot",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.AI_COPILOT] as Route,
-          ),
-        },
-      ]}
-    >
+    <Page title="AI Copilot" description={AI_COPILOT_DESCRIPTION}>
       <div
         className="flex overflow-hidden rounded-2xl border border-gray-200 bg-white"
         style={{ height: "calc(100vh - 220px)", minHeight: "560px" }}
