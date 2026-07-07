@@ -1,4 +1,6 @@
 import Log from "../../../../Models/AnalyticsModels/Log";
+import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
+import ModelPermission from "../../../Types/AnalyticsDatabase/ModelPermission";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import Search from "../../../../Types/BaseDatabase/Search";
@@ -19,6 +21,9 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+
+// Keep pivoted histogram rows under the serializer's 50-row cap.
+const MAX_HISTOGRAM_BUCKETS: number = 48;
 
 const LOG_READ_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
@@ -190,15 +195,34 @@ export const LogHistogramTool: ObservabilityTool = {
 
     const windowMinutes: number =
       (endTime.getTime() - startTime.getTime()) / (60 * 1000);
+    /*
+     * Bound the number of time buckets. getHistogram returns one row per
+     * (bucket, severity); after we pivot to one row per bucket that is at most
+     * MAX_HISTOGRAM_BUCKETS rows, which stays under the serializer's row cap so
+     * the most recent buckets are never dropped (spike detection reads the tail
+     * of the window).
+     */
     const bucketSizeInMinutes: number = Math.max(
       1,
-      Math.round(windowMinutes / 60),
+      Math.ceil(windowMinutes / MAX_HISTOGRAM_BUCKETS),
     );
 
     const serviceId: ObjectID | undefined = ToolArgs.getObjectID(
       args,
       "serviceId",
     );
+
+    /*
+     * getHistogram builds raw aggregation SQL and skips the model layer's
+     * owned-scope filter, so a label-restricted user would otherwise see
+     * project-wide volume. Constrain to the services this user may read.
+     */
+    const accessibleServiceIds: Array<ObjectID> | null =
+      await ModelPermission.getAccessibleServiceIdsForAnalyticsModel(
+        Log,
+        ctx.props,
+        DatabaseRequestType.Read,
+      );
 
     const buckets: Array<HistogramBucket> =
       await LogAggregationService.getHistogram({
@@ -208,12 +232,30 @@ export const LogHistogramTool: ObservabilityTool = {
         bucketSizeInMinutes: bucketSizeInMinutes,
         severityTexts: ToolArgs.getStringArray(args, "severityTexts"),
         bodySearchText: ToolArgs.getString(args, "bodySearchText"),
-        serviceIds: serviceId ? [serviceId] : undefined,
+        serviceIds: ToolArgs.scopeServiceIds(accessibleServiceIds, serviceId),
       });
 
-    const rows: Array<JSONObject> = buckets.map((bucket: HistogramBucket) => {
-      return bucket as unknown as JSONObject;
-    });
+    /*
+     * Pivot (time, severity, count) rows into one row per time bucket with a
+     * column per severity, e.g. "time=… | Error=12 | Warn=3". This is both more
+     * compact for the model and collapses the row count from
+     * buckets×severities down to just buckets.
+     */
+    const rowsByTime: Map<string, JSONObject> = new Map();
+    for (const bucket of buckets) {
+      let row: JSONObject | undefined = rowsByTime.get(bucket.time);
+      if (!row) {
+        row = { time: bucket.time };
+        rowsByTime.set(bucket.time, row);
+      }
+      row[bucket.severity || "Unspecified"] = bucket.count;
+    }
+
+    const rows: Array<JSONObject> = Array.from(rowsByTime.values()).sort(
+      (a: JSONObject, b: JSONObject) => {
+        return String(a["time"]).localeCompare(String(b["time"]));
+      },
+    );
 
     const serialized: SerializedResult =
       ToolResultSerializer.serializeRows(rows);

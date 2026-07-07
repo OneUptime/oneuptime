@@ -116,6 +116,40 @@ export class ToolArgs {
   }
 
   /*
+   * Combines the caller's optional serviceId filter with the user's owned-scope
+   * access (from ModelPermission.getAccessibleServiceIdsForAnalyticsModel) into
+   * the `serviceIds` filter to hand an aggregation service.
+   *
+   * `allowed === null` means the user has project-wide access: pass only the
+   * caller's own filter (or undefined for no filter). Otherwise the user is
+   * label/owned-restricted: intersect with any requested service and NEVER
+   * return undefined or an empty array — an empty result is forced to a
+   * no-match sentinel, because the aggregation services treat a missing/empty
+   * serviceIds as "no filter" (which would leak the whole project).
+   */
+  public static scopeServiceIds(
+    allowed: Array<ObjectID> | null,
+    requested: ObjectID | undefined,
+  ): Array<ObjectID> | undefined {
+    if (allowed === null) {
+      return requested ? [requested] : undefined;
+    }
+
+    let effective: Array<ObjectID> = allowed;
+    if (requested) {
+      effective = allowed.filter((id: ObjectID) => {
+        return id.toString() === requested.toString();
+      });
+    }
+
+    if (effective.length === 0) {
+      return [ObjectID.getZeroObjectID()];
+    }
+
+    return effective;
+  }
+
+  /*
    * Time range for a tool call: explicit ISO startTime/endTime arguments,
    * clamped to a maximum window, defaulting to the last hour.
    */
@@ -132,12 +166,21 @@ export class ToolArgs {
       "startTime",
     );
 
+    /*
+     * Reject unparseable timestamps instead of silently falling back to the
+     * default window — a silent fallback answers a different question than the
+     * one asked. Throwing lets the model see the error and retry with a valid
+     * ISO 8601 value.
+     */
     let endTime: Date = OneUptimeDate.getCurrentDate();
     if (endTimeString) {
       const parsed: Date = new Date(endTimeString);
-      if (!isNaN(parsed.getTime())) {
-        endTime = parsed;
+      if (isNaN(parsed.getTime())) {
+        throw new BadDataException(
+          `endTime "${endTimeString}" is not a valid ISO 8601 timestamp (e.g. 2024-01-31T14:00:00Z).`,
+        );
       }
+      endTime = parsed;
     }
 
     let startTime: Date = OneUptimeDate.addRemoveHours(
@@ -146,9 +189,12 @@ export class ToolArgs {
     );
     if (startTimeString) {
       const parsed: Date = new Date(startTimeString);
-      if (!isNaN(parsed.getTime())) {
-        startTime = parsed;
+      if (isNaN(parsed.getTime())) {
+        throw new BadDataException(
+          `startTime "${startTimeString}" is not a valid ISO 8601 timestamp (e.g. 2024-01-31T13:00:00Z).`,
+        );
       }
+      startTime = parsed;
     }
 
     if (startTime.getTime() >= endTime.getTime()) {

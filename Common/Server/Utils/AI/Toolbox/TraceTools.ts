@@ -1,4 +1,6 @@
 import Span from "../../../../Models/AnalyticsModels/Span";
+import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
+import ModelPermission from "../../../Types/AnalyticsDatabase/ModelPermission";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
@@ -48,6 +50,14 @@ const VALID_GROUP_BY: Array<string> = [
   "statusCode",
   "isRootSpan",
 ];
+
+/*
+ * Upper bound on spans fetched for a single trace waterfall. High enough for
+ * almost every real trace; when a trace exceeds it we say so explicitly rather
+ * than silently dropping spans (which also orphans their children into fake
+ * roots).
+ */
+const MAX_TRACE_SPANS: number = 500;
 
 export const QueryTracesTool: ObservabilityTool = {
   name: "query_traces",
@@ -135,6 +145,19 @@ export const QueryTracesTool: ObservabilityTool = {
     const windowMinutes: number =
       (endTime.getTime() - startTime.getTime()) / (60 * 1000);
 
+    /*
+     * getAnalyticsTable builds raw aggregation SQL and skips the model layer's
+     * owned-scope filter, so a label-restricted user would otherwise see
+     * project-wide trace analytics. Constrain to the services this user may
+     * read (spans are owned through Service, same as logs).
+     */
+    const accessibleServiceIds: Array<ObjectID> | null =
+      await ModelPermission.getAccessibleServiceIdsForAnalyticsModel(
+        Span,
+        ctx.props,
+        DatabaseRequestType.Read,
+      );
+
     const tableRows: Array<TraceAnalyticsTableRow> =
       await TraceAggregationService.getAnalyticsTable({
         projectId: ctx.projectId,
@@ -146,7 +169,7 @@ export const QueryTracesTool: ObservabilityTool = {
         groupBy: [groupBy],
         limit: limit,
         nameSearchText: ToolArgs.getString(args, "nameSearchText"),
-        serviceIds: serviceId ? [serviceId] : undefined,
+        serviceIds: ToolArgs.scopeServiceIds(accessibleServiceIds, serviceId),
         hasException: ToolArgs.getBoolean(args, "hasException"),
         rootOnly: ToolArgs.getBoolean(args, "rootOnly"),
       });
@@ -228,10 +251,12 @@ export const GetTraceTool: ObservabilityTool = {
       sort: {
         startTimeUnixNano: SortOrder.Ascending,
       } as never,
-      limit: 100,
+      limit: MAX_TRACE_SPANS,
       skip: 0,
       props: ctx.props,
     });
+
+    const isSpanLimitHit: boolean = spans.length >= MAX_TRACE_SPANS;
 
     // Build the tree.
     const nodesBySpanId: Map<string, SpanTreeNode> = new Map();
@@ -277,6 +302,12 @@ export const GetTraceTool: ObservabilityTool = {
       renderNode(root, 0);
     }
 
+    if (isSpanLimitHit) {
+      lines.push(
+        `… trace truncated at ${MAX_TRACE_SPANS} spans; deeper spans are omitted and some shown here may appear as roots because their parent was cut off.`,
+      );
+    }
+
     const serialized: SerializedResult = ToolResultSerializer.serializeText(
       lines.join("\n"),
       spans.length,
@@ -285,13 +316,13 @@ export const GetTraceTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `Trace ${traceId} (${spans.length} spans)`,
+      citationLabel: `Trace ${traceId} (${spans.length}${isSpanLimitHit ? "+" : ""} spans)`,
       citationTarget: {
         type: AIChatCitationTargetType.TraceView,
         params: { traceId: traceId },
       },
       redactionCount: serialized.redactionCount,
-      isTruncated: serialized.isTruncated,
+      isTruncated: serialized.isTruncated || isSpanLimitHit,
     };
   },
 };

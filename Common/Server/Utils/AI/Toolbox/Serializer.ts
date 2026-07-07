@@ -43,8 +43,18 @@ const REDACTION_RULES: Array<RedactionRule> = [
     replacement: "[redacted-ip]",
   },
   {
+    /*
+     * Long hex blobs are usually secrets (SHA-256 digests, 40+ char API
+     * keys). But W3C/OTel trace IDs are exactly 32 hex chars and span IDs
+     * exactly 16 — redacting those would break the documented
+     * search_logs → get_trace pivot, since the model would never see the ID
+     * it needs to pass back. So only redact runs of 33+ hex chars, which
+     * preserves both ID lengths while still catching typical hash-length
+     * secrets. Labeled secrets of any length are still caught by
+     * key-value-secret below.
+     */
     name: "hex-secret",
-    regex: /\b[0-9a-fA-F]{32,}\b/g,
+    regex: /\b[0-9a-fA-F]{33,}\b/g,
     replacement: "[redacted-hex]",
   },
   {
@@ -198,6 +208,15 @@ export default class ToolResultSerializer {
 
     if (rows.length === 0) {
       text = "(no rows found)";
+    }
+
+    /*
+     * Tell the model when it is only seeing a slice. Without this marker a
+     * capped result looks complete, and the model reports partial data as if it
+     * were the whole picture.
+     */
+    if (rows.length > MAX_ROWS) {
+      text = `${text}\n… [showing the first ${MAX_ROWS} of ${rowCount} rows; narrow the query — a shorter time range or more filters — to see the rest]`;
     }
 
     return {
