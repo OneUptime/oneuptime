@@ -22,8 +22,10 @@ export interface EventStateAction {
   icon?: IconProp | undefined;
   buttonStyle: ButtonStyleType;
   id?: string | undefined;
-  // The color of the state this action moves the event to. When set, the button
-  // is rendered in that color so it visually matches the state it belongs to.
+  /*
+   * The color of the state this action moves the event to. When set, the button
+   * is rendered in that color so it visually matches the state it belongs to.
+   */
   color?: Color | undefined;
 }
 
@@ -115,8 +117,10 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
   const getActionButton: (action: EventStateAction) => ReactElement = (
     action: EventStateAction,
   ): ReactElement => {
-    // When the action carries the color of the state it moves the event to,
-    // render the button in that color instead of the generic button palette.
+    /*
+     * When the action carries the color of the state it moves the event to,
+     * render the button in that color instead of the generic button palette.
+     */
     if (action.color) {
       const isSolid: boolean = action.buttonStyle === ButtonStyleType.PRIMARY;
       const colorString: string = action.color.toString();
