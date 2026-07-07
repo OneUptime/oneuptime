@@ -14,10 +14,9 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
-import LlmType from "Common/Types/LLM/LlmType";
+import LlmTypeDropdownOptions from "Common/UI/Utils/LlmTypeDropdownOptions";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import TestLLMProvider, {
   LLMProviderTestResult,
 } from "Common/UI/Utils/TestLLMProvider";
@@ -181,7 +180,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
             placeholder: "Select LLM Provider",
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(LlmType),
+            dropdownOptions: LlmTypeDropdownOptions,
           },
           {
             field: {

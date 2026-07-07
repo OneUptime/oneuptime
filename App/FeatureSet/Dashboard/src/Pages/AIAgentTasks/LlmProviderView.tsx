@@ -16,7 +16,7 @@ import TestLLMProvider, {
   LLMProviderTestResult,
 } from "Common/UI/Utils/TestLLMProvider";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
-import LlmType from "Common/Types/LLM/LlmType";
+import LlmTypeDropdownOptions from "Common/UI/Utils/LlmTypeDropdownOptions";
 import React, {
   Fragment,
   FunctionComponent,
@@ -25,7 +25,6 @@ import React, {
 } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 
 const LlmProviderView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -123,7 +122,7 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
             placeholder: "Select LLM Provider",
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(LlmType),
+            dropdownOptions: LlmTypeDropdownOptions,
           },
           {
             field: {
