@@ -83,6 +83,20 @@ manual pass before merge.
 
 ---
 
+## Phase 2 additions (branch `feature/incident-pages-linear-overhaul-phase2`)
+
+- **Undoable inline edits** — `InlineEditField` shows a brief Undo after every successful
+  save (6s), reverting + re-persisting. Makes every rename reversible.
+- **Alert investigation inline + routes retired** — Description / Root Cause / Remediation
+  now inline on the alert overview; the three sub-routes redirect to it (mirrors incidents).
+- **Scheduled maintenance description inline + route retired** — description now inline on
+  the SM overview; `/description` redirects.
+- **Inline "Post update" composer** — `Components/EventView/PostUpdateComposer.tsx` at the
+  top of the incident, alert and maintenance feeds. Default-safe to Internal; any public /
+  status-page option shows a "customers will see this" warning. One box, many surfaces.
+
+---
+
 ## Next phases (not yet built)
 
 **Phase 1 — finish the interaction layer**

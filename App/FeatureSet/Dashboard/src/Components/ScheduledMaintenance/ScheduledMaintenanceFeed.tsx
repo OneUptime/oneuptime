@@ -24,6 +24,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import OneUptimeDate from "Common/Types/Date";
 import ScheduledMaintenanceInternalNote from "Common/Models/DatabaseModels/ScheduledMaintenanceInternalNote";
+import PostUpdateComposer from "../EventView/PostUpdateComposer";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
@@ -302,6 +303,37 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
       ]}
     >
       <div>
+        <PostUpdateComposer
+          placeholder="Post an update or note…"
+          successMessage="Note added"
+          visibilityOptions={[
+            { key: "internal", label: "Internal note" },
+            { key: "public", label: "Public · status page", danger: true },
+          ]}
+          onPost={async (args: { note: string; visibility: string }) => {
+            if (args.visibility === "public") {
+              const publicNote: ScheduledMaintenancePublicNote =
+                new ScheduledMaintenancePublicNote();
+              publicNote.note = args.note;
+              publicNote.scheduledMaintenanceId = props.scheduledMaintenanceId;
+              publicNote.postedAt = OneUptimeDate.getCurrentDate();
+              await ModelAPI.create<ScheduledMaintenancePublicNote>({
+                model: publicNote,
+                modelType: ScheduledMaintenancePublicNote,
+              });
+            } else {
+              const privateNote: ScheduledMaintenanceInternalNote =
+                new ScheduledMaintenanceInternalNote();
+              privateNote.note = args.note;
+              privateNote.scheduledMaintenanceId = props.scheduledMaintenanceId;
+              await ModelAPI.create<ScheduledMaintenanceInternalNote>({
+                model: privateNote,
+                modelType: ScheduledMaintenanceInternalNote,
+              });
+            }
+            await fetchItems();
+          }}
+        />
         {isLoading && <ComponentLoader />}
         {error && <ErrorMessage message={error} />}
         {!isLoading && !error && (
