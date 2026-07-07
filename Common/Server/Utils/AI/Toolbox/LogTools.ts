@@ -8,17 +8,17 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
-import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
+import {
+  AIChatCitationTarget,
+  AIChatCitationTargetType,
+  AIChatWidgetSeries,
+} from "../../../../Types/AI/AIChatTypes";
 import LogService from "../../../Services/LogService";
 import LogAggregationService, {
   HistogramBucket,
 } from "../../../Services/LogAggregationService";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
-import {
-  AIChatWidgetSeries,
-  AIChatCitationTarget,
-} from "../../../../Types/AI/AIChatTypes";
 import {
   ObservabilityTool,
   TimeRangeSchemaProperties,

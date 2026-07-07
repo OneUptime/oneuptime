@@ -5,11 +5,15 @@
  * AIConversation.permissionMode and enforced in ChatAgentRunner.
  */
 enum AIChatPermissionMode {
-  // The agent pauses before every mutating tool and asks the user to approve
-  // it. This is the safe default.
+  /*
+   * The agent pauses before every mutating tool and asks the user to approve
+   * it. This is the safe default.
+   */
   AskForApproval = "AskForApproval",
-  // The agent runs mutating tools immediately (still gated by the user's RBAC
-  // permissions). "Bypass permissions" / YOLO mode.
+  /*
+   * The agent runs mutating tools immediately (still gated by the user's RBAC
+   * permissions). "Bypass permissions" / YOLO mode.
+   */
   AutoRun = "AutoRun",
   // Mutating tools are not even offered to the model. The agent can only read.
   ReadOnly = "ReadOnly",
@@ -28,7 +32,9 @@ export class AIChatPermissionModeHelper {
     return AIChatPermissionMode.AskForApproval;
   }
 
-  public static isValid(value: string | undefined): value is AIChatPermissionMode {
+  public static isValid(
+    value: string | undefined,
+  ): value is AIChatPermissionMode {
     return Object.values(AIChatPermissionMode).includes(
       value as AIChatPermissionMode,
     );

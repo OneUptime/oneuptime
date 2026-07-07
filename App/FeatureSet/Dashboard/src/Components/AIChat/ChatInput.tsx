@@ -112,8 +112,8 @@ const ChatInput: FunctionComponent<ComponentProps> = (
             </span>
           )}
         </div>
-        <span className="flex-shrink-0">
-          Read-only · every answer cites its queries
+        <span className="hidden flex-shrink-0 sm:inline">
+          Every answer cites its queries
         </span>
       </div>
     </div>

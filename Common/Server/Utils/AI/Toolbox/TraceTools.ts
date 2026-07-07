@@ -6,14 +6,16 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
-import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
+import {
+  AIChatCitationTargetType,
+  AIChatWidgetSpan,
+} from "../../../../Types/AI/AIChatTypes";
 import SpanService from "../../../Services/SpanService";
 import TraceAggregationService, {
   TraceAnalyticsTableRow,
 } from "../../../Services/TraceAggregationService";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
-import { AIChatWidgetSpan } from "../../../../Types/AI/AIChatTypes";
 import {
   ObservabilityTool,
   TimeRangeSchemaProperties,

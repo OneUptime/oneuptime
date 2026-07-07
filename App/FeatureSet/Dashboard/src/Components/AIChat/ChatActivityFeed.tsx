@@ -26,6 +26,11 @@ const friendlyToolNames: { [key: string]: string } = {
   query_traces: "Analyzing traces",
   get_trace: "Reading trace",
   lookup_context: "Resolving names",
+  create_incident: "Creating incident",
+  acknowledge_incident: "Acknowledging incident",
+  resolve_incident: "Resolving incident",
+  acknowledge_alert: "Acknowledging alert",
+  resolve_alert: "Resolving alert",
 };
 
 function friendlyToolName(toolName: string | undefined): string {

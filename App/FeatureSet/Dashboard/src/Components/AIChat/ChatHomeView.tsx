@@ -26,29 +26,30 @@ interface SuggestedQuestion {
 
 const suggestions: Array<SuggestedQuestion> = [
   {
+    icon: IconProp.ChartBar,
+    iconClassName: "bg-indigo-50 text-indigo-500",
+    title: "Latency chart",
+    question:
+      "Chart the p95 latency of my slowest endpoints over the last 24 hours.",
+  },
+  {
+    icon: IconProp.Logs,
+    iconClassName: "bg-amber-50 text-amber-600",
+    title: "Error volume",
+    question: "Show me error log volume over the last 6 hours by severity.",
+  },
+  {
     icon: IconProp.Error,
     iconClassName: "bg-rose-50 text-rose-500",
     title: "Top exceptions",
     question: "What are the top exceptions this week?",
   },
   {
-    icon: IconProp.Activity,
-    iconClassName: "bg-violet-50 text-violet-500",
-    title: "Slow endpoints",
+    icon: IconProp.Alert,
+    iconClassName: "bg-emerald-50 text-emerald-600",
+    title: "Investigate & act",
     question:
-      "Which endpoints have the highest p95 latency in the last 24 hours?",
-  },
-  {
-    icon: IconProp.Cube,
-    iconClassName: "bg-sky-50 text-sky-500",
-    title: "Monitor status",
-    question: "Which monitors are down right now?",
-  },
-  {
-    icon: IconProp.Logs,
-    iconClassName: "bg-amber-50 text-amber-600",
-    title: "Recent errors",
-    question: "Summarize the error logs from the last hour.",
+      "Investigate the most recent errors, and if it looks like an outage, open an incident.",
   },
 ];
 
@@ -62,12 +63,12 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
           <Icon icon={IconProp.Sparkles} className="h-6 w-6 text-white" />
         </div>
         <h3 className="text-base font-semibold text-gray-900">
-          Ask about your observability data
+          Ask about your data — or tell me to act
         </h3>
-        <p className="mx-auto mt-1 max-w-xs text-xs leading-5 text-gray-400">
-          I answer by running real queries against this project&apos;s logs,
-          traces, metrics, incidents and monitors — and I cite every query I
-          run.
+        <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-gray-400">
+          I run real queries against your logs, traces, metrics, incidents and
+          monitors — rendering charts and tables inline — and I can create
+          incidents or acknowledge alerts, always with your approval.
         </p>
       </div>
 

@@ -2,6 +2,7 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import Permission from "../../../../Types/Permission";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
@@ -16,8 +17,10 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
-const CREATE_PERMISSIONS = new Incident().getCreatePermissions();
-const UPDATE_PERMISSIONS = new Incident().getUpdatePermissions();
+const CREATE_PERMISSIONS: Array<Permission> =
+  new Incident().getCreatePermissions();
+const UPDATE_PERMISSIONS: Array<Permission> =
+  new Incident().getUpdatePermissions();
 
 /*
  * Write tools mutate the project. They are gated twice: once by the tool's

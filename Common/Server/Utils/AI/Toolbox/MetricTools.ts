@@ -5,14 +5,16 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import BadDataException from "../../../../Types/Exception/BadDataException";
-import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
+import {
+  AIChatCitationTargetType,
+  AIChatWidgetPoint,
+} from "../../../../Types/AI/AIChatTypes";
 import AggregateBy from "../../../Types/AnalyticsDatabase/AggregateBy";
 import MetricService from "../../../Services/MetricService";
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
-import { AIChatWidgetPoint } from "../../../../Types/AI/AIChatTypes";
 import OneUptimeDate from "../../../../Types/Date";
 import {
   ObservabilityTool,

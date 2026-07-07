@@ -7,6 +7,10 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import AIChatMessageRole from "Common/Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "Common/Types/AI/AIChatMessageStatus";
+import AIChatPermissionMode, {
+  AIChatPermissionModeHelper,
+} from "Common/Types/AI/AIChatPermissionMode";
+import { AIChatToolAction } from "Common/Types/AI/AIChatTypes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
@@ -45,6 +49,7 @@ export interface UseAiChat {
   setInputValue: (value: string) => void;
   isSending: boolean;
   isWorking: boolean;
+  isAwaitingApproval: boolean;
   isConversationView: boolean;
   error: string;
   setError: (error: string) => void;
@@ -52,6 +57,13 @@ export interface UseAiChat {
   selectedProviderId: string | undefined;
   setSelectedProviderId: (id: string | undefined) => void;
   selectedProvider: ChatProvider | undefined;
+  permissionMode: AIChatPermissionMode;
+  setPermissionMode: (mode: AIChatPermissionMode) => void;
+  isSubmittingApproval: boolean;
+  respondToApproval: (
+    assistantMessageId: string,
+    decisions: Array<{ toolCallId: string; approved: boolean }>,
+  ) => Promise<void>;
   sendMessage: (contentOverride?: string) => Promise<void>;
   openConversation: (conversationId: string) => void;
   newConversation: () => void;
@@ -88,6 +100,11 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
   const [selectedProviderId, setSelectedProviderId] = useState<
     string | undefined
   >(undefined);
+  const [permissionMode, setPermissionMode] = useState<AIChatPermissionMode>(
+    AIChatPermissionModeHelper.getDefault(),
+  );
+  const [isSubmittingApproval, setIsSubmittingApproval] =
+    useState<boolean>(false);
 
   const activeConversationIdRef: React.MutableRefObject<string | undefined> =
     useRef<string | undefined>(undefined);
@@ -96,6 +113,10 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
   const selectedProviderIdRef: React.MutableRefObject<string | undefined> =
     useRef<string | undefined>(undefined);
   selectedProviderIdRef.current = selectedProviderId;
+
+  const permissionModeRef: React.MutableRefObject<AIChatPermissionMode> =
+    useRef<AIChatPermissionMode>(permissionMode);
+  permissionModeRef.current = permissionMode;
 
   const latestRunIdRef: React.MutableRefObject<string | undefined> = useRef<
     string | undefined
@@ -185,6 +206,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
               title: true,
               lastMessageAt: true,
               llmProviderId: true,
+              permissionMode: true,
             },
             sort: {
               lastMessageAt: SortOrder.Descending,
@@ -248,6 +270,8 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
               contentInMarkdown: true,
               status: true,
               citations: true,
+              widgets: true,
+              toolActions: true,
               errorMessage: true,
               aiRunId: true,
               createdAt: true,
@@ -271,7 +295,11 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
           .map((message: AIConversationMessage) => {
             return `${message.id?.toString()}:${message.status}:${
               (message.citations || []).length
-            }:${(message.contentInMarkdown || "").length}`;
+            }:${(message.widgets || []).length}:${(message.toolActions || [])
+              .map((action: AIChatToolAction) => {
+                return action.status;
+              })
+              .join(",")}:${(message.contentInMarkdown || "").length}`;
           })
           .join("|");
 
@@ -354,6 +382,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     activeConversationIdRef.current = undefined;
     setProviders([]);
     setSelectedProviderId(undefined);
+    setPermissionMode(AIChatPermissionModeHelper.getDefault());
     resetConversationState();
     setError("");
     if (enabled) {
@@ -397,6 +426,13 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
   );
 
   const isWorking: boolean = hasWorkingMessage || isAwaitingResponse;
+
+  // A message is paused waiting for the user to approve pending tool actions.
+  const isAwaitingApproval: boolean = messages.some(
+    (message: AIConversationMessage) => {
+      return message.status === AIChatMessageStatus.WaitingForApproval;
+    },
+  );
 
   useEffect(() => {
     if (!enabled || !isWorking || !activeConversationId) {
@@ -488,6 +524,12 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
       if (conversation?.llmProviderId) {
         setSelectedProviderId(conversation.llmProviderId.toString());
       }
+      if (
+        conversation?.permissionMode &&
+        AIChatPermissionModeHelper.isValid(conversation.permissionMode)
+      ) {
+        setPermissionMode(conversation.permissionMode);
+      }
 
       fetchMessages(conversationId).then(
         () => {
@@ -573,6 +615,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
             ),
             data: {
               content: content,
+              permissionMode: permissionModeRef.current,
               ...(activeConversationIdRef.current
                 ? { conversationId: activeConversationIdRef.current }
                 : {}),
@@ -624,6 +667,73 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     [inputValue, isSending, isWorking, fetchConversations, fetchMessages],
   );
 
+  const respondToApproval: (
+    assistantMessageId: string,
+    decisions: Array<{ toolCallId: string; approved: boolean }>,
+  ) => Promise<void> = useCallback(
+    async (
+      assistantMessageId: string,
+      decisions: Array<{ toolCallId: string; approved: boolean }>,
+    ): Promise<void> => {
+      if (isSubmittingApproval || !activeConversationIdRef.current) {
+        return;
+      }
+
+      setError("");
+      setIsSubmittingApproval(true);
+
+      /*
+       * Optimistically move the message off "waiting" so the spinner and
+       * polling resume immediately — the detached resume flips it server-side a
+       * moment later and the poll reconciles.
+       */
+      setMessages((current: Array<AIConversationMessage>) => {
+        return current.map((message: AIConversationMessage) => {
+          if (message.id?.toString() === assistantMessageId) {
+            message.status = AIChatMessageStatus.InProgress;
+          }
+          return message;
+        });
+      });
+      setIsAwaitingResponse(true);
+      isPinnedToBottomRef.current = true;
+
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: URL.fromString(
+              APP_API_URL.toString() + "/ai-chat/respond-to-approval",
+            ),
+            data: {
+              conversationId: activeConversationIdRef.current,
+              assistantMessageId: assistantMessageId,
+              decisions: decisions,
+            },
+            headers: ModelAPI.getCommonHeaders(),
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        if (activeConversationIdRef.current) {
+          await fetchMessages(activeConversationIdRef.current);
+        }
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+        if (activeConversationIdRef.current) {
+          fetchMessages(activeConversationIdRef.current).catch(() => {
+            // handled in fetchMessages
+          });
+        }
+      }
+
+      setIsSubmittingApproval(false);
+      setIsAwaitingResponse(false);
+    },
+    [isSubmittingApproval, fetchMessages],
+  );
+
   return {
     conversations,
     activeConversationId,
@@ -635,6 +745,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     setInputValue,
     isSending,
     isWorking,
+    isAwaitingApproval,
     isConversationView,
     error,
     setError,
@@ -642,6 +753,10 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     selectedProviderId,
     setSelectedProviderId,
     selectedProvider,
+    permissionMode,
+    setPermissionMode,
+    isSubmittingApproval,
+    respondToApproval,
     sendMessage,
     openConversation,
     newConversation,

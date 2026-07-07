@@ -1,6 +1,7 @@
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import Permission from "../../../../Types/Permission";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import AlertService from "../../../Services/AlertService";
@@ -13,7 +14,8 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
-const UPDATE_PERMISSIONS = new Alert().getUpdatePermissions();
+const UPDATE_PERMISSIONS: Array<Permission> =
+  new Alert().getUpdatePermissions();
 
 async function changeAlertStateTool(data: {
   args: JSONObject;

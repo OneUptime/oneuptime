@@ -4,6 +4,7 @@ import ChatHomeView from "../../Components/AIChat/ChatHomeView";
 import ChatInput from "../../Components/AIChat/ChatInput";
 import ChatMessageList from "../../Components/AIChat/ChatMessageList";
 import ProviderPicker from "../../Components/AIChat/ProviderPicker";
+import PermissionModePicker from "../../Components/AIChat/PermissionModePicker";
 import getUserInitials from "../../Components/AIChat/UserInitials";
 import { useAiChat, UseAiChat } from "../../Components/AIChat/useAiChat";
 import PageMap from "../../Utils/PageMap";
@@ -27,13 +28,20 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const chat: UseAiChat = useAiChat({ enabled: true });
   const userInitials: string = getUserInitials();
 
-  const providerPicker: ReactElement = (
-    <ProviderPicker
-      providers={chat.providers}
-      selectedProviderId={chat.selectedProviderId}
-      onSelect={chat.setSelectedProviderId}
-      disabled={false}
-    />
+  const composerLeading: ReactElement = (
+    <div className="flex items-center gap-1.5">
+      <ProviderPicker
+        providers={chat.providers}
+        selectedProviderId={chat.selectedProviderId}
+        onSelect={chat.setSelectedProviderId}
+        disabled={false}
+      />
+      <PermissionModePicker
+        value={chat.permissionMode}
+        onChange={chat.setPermissionMode}
+        disabled={chat.isWorking}
+      />
+    </div>
   );
 
   return (
@@ -219,6 +227,17 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   messages={chat.messages}
                   latestRun={chat.latestRun}
                   userInitials={userInitials}
+                  isSubmittingApproval={chat.isSubmittingApproval}
+                  onRespondToApproval={(
+                    assistantMessageId: string,
+                    decisions: Array<{ toolCallId: string; approved: boolean }>,
+                  ) => {
+                    chat
+                      .respondToApproval(assistantMessageId, decisions)
+                      .catch(() => {
+                        // handled in the hook
+                      });
+                  }}
                 />
 
                 {chat.isWorking && (
@@ -235,9 +254,11 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
             <ChatInput
               value={chat.inputValue}
               onChange={chat.setInputValue}
-              canSend={!chat.isSending && !chat.isWorking}
+              canSend={
+                !chat.isSending && !chat.isWorking && !chat.isAwaitingApproval
+              }
               isWorking={chat.isWorking}
-              leading={providerPicker}
+              leading={composerLeading}
               onSend={() => {
                 chat.sendMessage().catch(() => {
                   // handled in the hook

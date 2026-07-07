@@ -26,10 +26,7 @@ import {
   CreateIncidentTool,
   ResolveIncidentTool,
 } from "./IncidentWriteTools";
-import {
-  AcknowledgeAlertTool,
-  ResolveAlertTool,
-} from "./AlertWriteTools";
+import { AcknowledgeAlertTool, ResolveAlertTool } from "./AlertWriteTools";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
 
 export interface ToolCallOutcome {

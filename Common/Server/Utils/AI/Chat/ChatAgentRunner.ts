@@ -448,9 +448,14 @@ export default class ChatAgentRunner {
 
           const isMutation: boolean = AIToolbox.isMutationTool(toolCall.name);
 
-          if (isMutation && request.permissionMode === AIChatPermissionMode.ReadOnly) {
-            // Defense in depth: mutation tools are withheld from the model in
-            // read-only mode, but never execute one if it somehow appears.
+          if (
+            isMutation &&
+            request.permissionMode === AIChatPermissionMode.ReadOnly
+          ) {
+            /*
+             * Defense in depth: mutation tools are withheld from the model in
+             * read-only mode, but never execute one if it somehow appears.
+             */
             this.upsertToolAction(
               state,
               toolCall,

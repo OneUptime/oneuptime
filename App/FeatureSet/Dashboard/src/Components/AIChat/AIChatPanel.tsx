@@ -17,6 +17,7 @@ import ChatHomeView from "./ChatHomeView";
 import ChatInput from "./ChatInput";
 import ChatMessageList from "./ChatMessageList";
 import ProviderPicker from "./ProviderPicker";
+import PermissionModePicker from "./PermissionModePicker";
 import getUserInitials from "./UserInitials";
 import { useAiChat, UseAiChat } from "./useAiChat";
 
@@ -91,12 +92,19 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
     return <></>;
   }
 
-  const providerPicker: ReactElement = (
-    <ProviderPicker
-      providers={chat.providers}
-      selectedProviderId={chat.selectedProviderId}
-      onSelect={chat.setSelectedProviderId}
-    />
+  const composerLeading: ReactElement = (
+    <div className="flex items-center gap-1.5">
+      <ProviderPicker
+        providers={chat.providers}
+        selectedProviderId={chat.selectedProviderId}
+        onSelect={chat.setSelectedProviderId}
+      />
+      <PermissionModePicker
+        value={chat.permissionMode}
+        onChange={chat.setPermissionMode}
+        disabled={chat.isWorking}
+      />
+    </div>
   );
 
   return (
@@ -234,6 +242,17 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
                 messages={chat.messages}
                 latestRun={chat.latestRun}
                 userInitials={userInitials}
+                isSubmittingApproval={chat.isSubmittingApproval}
+                onRespondToApproval={(
+                  assistantMessageId: string,
+                  decisions: Array<{ toolCallId: string; approved: boolean }>,
+                ) => {
+                  chat
+                    .respondToApproval(assistantMessageId, decisions)
+                    .catch(() => {
+                      // handled in the hook
+                    });
+                }}
               />
 
               {chat.isWorking && (
@@ -249,9 +268,11 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
         <ChatInput
           value={chat.inputValue}
           onChange={chat.setInputValue}
-          canSend={!chat.isSending && !chat.isWorking}
+          canSend={
+            !chat.isSending && !chat.isWorking && !chat.isAwaitingApproval
+          }
           isWorking={chat.isWorking}
-          leading={providerPicker}
+          leading={composerLeading}
           onSend={() => {
             chat.sendMessage().catch(() => {
               // handled in the hook

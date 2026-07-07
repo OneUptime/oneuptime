@@ -76,8 +76,10 @@ export enum AIChatWidgetType {
   ResourceCard = "ResourceCard",
 }
 
-// One point in a chart series. x is an ISO timestamp (time charts) or a
-// category label (categorical charts); y is the numeric value.
+/*
+ * One point in a chart series. x is an ISO timestamp (time charts) or a
+ * category label (categorical charts); y is the numeric value.
+ */
 export interface AIChatWidgetPoint {
   x: string;
   y: number | null;
