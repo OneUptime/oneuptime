@@ -105,18 +105,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         /> */}
       </SideMenuSection>
 
-      <SideMenuSection title="Alert Notes">
-        <SideMenuItem
-          link={{
-            title: "Private Notes",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERT_VIEW_INTERNAL_NOTE] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Lock}
-        />
-      </SideMenuSection>
+      {/*
+       * Notes now live in the Overview activity feed (viewed there and added
+       * via the inline composer); their route redirects there as a fallback.
+       */}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

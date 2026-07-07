@@ -143,28 +143,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Notes">
-        <SideMenuItem
-          link={{
-            title: "Private Notes",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENT_VIEW_INTERNAL_NOTE] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Lock}
-        />
-        <SideMenuItem
-          link={{
-            title: "Public Notes",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENT_VIEW_PUBLIC_NOTE] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Public}
-        />
-      </SideMenuSection>
+      {/*
+       * Notes now live in the Overview activity feed (viewed there and added
+       * via the inline composer); their routes redirect there as fallbacks.
+       */}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem
