@@ -1446,7 +1446,7 @@ vllm:
   globalProvider:
     enabled: true
     # Display name of the auto-registered provider in the dashboard.
-    name: Self-Hosted vLLM
+    name: OneUptime AI
   # Persistent cache for model weights (HF_HOME) and vLLM compile cache
   # (VLLM_CACHE_ROOT). One PVC per replica; size it to ~2-3x the total model
   # weights. When disabled, a node-disk emptyDir capped at `size` is used

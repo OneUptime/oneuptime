@@ -21,6 +21,11 @@ import SubscriptionPlan, {
 import { IsBillingEnabled, getAllEnvVars } from "../EnvironmentConfig";
 import AIChatMessageRole from "../../Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "../../Types/AI/AIChatMessageStatus";
+import AIChatPermissionMode, {
+  AIChatPermissionModeHelper,
+} from "../../Types/AI/AIChatPermissionMode";
+import { AIChatToolAction } from "../../Types/AI/AIChatTypes";
+import { JSONArray, JSONObject } from "../../Types/JSON";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIConversation from "../../Models/DatabaseModels/AIConversation";
@@ -33,7 +38,10 @@ import AIRunService from "../Services/AIRunService";
 import ProjectService from "../Services/ProjectService";
 import LlmProviderService from "../Services/LlmProviderService";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
-import ChatAgentRunner from "../Utils/AI/Chat/ChatAgentRunner";
+import ChatAgentRunner, {
+  ResumeToolDecision,
+} from "../Utils/AI/Chat/ChatAgentRunner";
+import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
 
 const MAX_USER_MESSAGE_LENGTH: number = 8000;
@@ -121,6 +129,19 @@ router.post(
         }
       }
 
+      /*
+       * Optional per-conversation permission mode chosen in the composer
+       * (AskForApproval | AutoRun | ReadOnly). Like the provider, it is sticky:
+       * persisted on the conversation and reused across turns. Invalid values
+       * are ignored (fall through to the conversation's current mode / default).
+       */
+      const requestedPermissionMode: AIChatPermissionMode | undefined =
+        AIChatPermissionModeHelper.isValid(
+          req.body["permissionMode"] as string,
+        )
+          ? (req.body["permissionMode"] as AIChatPermissionMode)
+          : undefined;
+
       // Plan gate: custom endpoints get no automatic billing check.
       if (
         IsBillingEnabled &&
@@ -192,6 +213,10 @@ router.post(
        */
       let effectiveLlmProviderId: ObjectID | undefined = requestedLlmProviderId;
 
+      // Same stickiness for the permission mode; default is AskForApproval.
+      let effectivePermissionMode: AIChatPermissionMode =
+        requestedPermissionMode || AIChatPermissionModeHelper.getDefault();
+
       if (req.body["conversationId"]) {
         conversationId = new ObjectID(req.body["conversationId"] as string);
 
@@ -199,7 +224,7 @@ router.post(
         const conversation: AIConversation | null =
           await AIConversationService.findOneById({
             id: conversationId,
-            select: { _id: true, llmProviderId: true },
+            select: { _id: true, llmProviderId: true, permissionMode: true },
             props: props,
           });
 
@@ -225,19 +250,45 @@ router.post(
         effectiveLlmProviderId =
           requestedLlmProviderId || conversation.llmProviderId;
 
-        const runningRunsInConversation: number = (
+        effectivePermissionMode = AIChatPermissionModeHelper.parse(
+          requestedPermissionMode || conversation.permissionMode,
+        );
+
+        if (
+          requestedPermissionMode &&
+          requestedPermissionMode !== conversation.permissionMode
+        ) {
+          // The user switched the permission mode mid-conversation — persist it.
+          await AIConversationService.updateOneById({
+            id: conversationId,
+            data: {
+              permissionMode: requestedPermissionMode,
+            } as never,
+            props: { isRoot: true },
+          });
+        }
+
+        /*
+         * Block a new send while the conversation is busy: a run is either
+         * actively generating (Running) or paused waiting for the user to
+         * approve pending actions (WaitingForApproval).
+         */
+        const busyRunsInConversation: number = (
           await AIRunService.countBy({
             query: {
               conversationId: conversationId,
-              status: AIRunStatus.Running,
+              status: QueryHelper.any([
+                AIRunStatus.Running,
+                AIRunStatus.WaitingForApproval,
+              ]),
             },
             props: { isRoot: true },
           })
         ).toNumber();
 
-        if (runningRunsInConversation > 0) {
+        if (busyRunsInConversation > 0) {
           throw new BadDataException(
-            "A response is already being generated in this conversation.",
+            "A response is already being generated (or is waiting for your approval) in this conversation.",
           );
         }
       } else {
@@ -261,6 +312,7 @@ router.post(
           id: conversationId,
           data: {
             title: content.substring(0, 90),
+            permissionMode: effectivePermissionMode,
             ...(requestedLlmProviderId
               ? { llmProviderId: requestedLlmProviderId }
               : {}),

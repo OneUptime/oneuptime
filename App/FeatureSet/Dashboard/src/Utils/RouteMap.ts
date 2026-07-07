@@ -4824,75 +4824,75 @@ const RouteMap: Dictionary<Route> = {
 
   // AI Agents section (tasks, agents, MCP server, LLM providers, credits, logs)
   [PageMap.AI_AGENT_TASKS_ROOT]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-agents/*`,
+    `/dashboard/${RouteParams.ProjectID}/ai/agents/*`,
   ),
 
   [PageMap.AI_AGENT_TASKS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-agents`,
+    `/dashboard/${RouteParams.ProjectID}/ai/agents`,
   ),
 
   [PageMap.AI_AGENT_TASK_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-agents/${
+    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
       AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW]
     }`,
   ),
 
   [PageMap.AI_AGENT_TASK_VIEW_LOGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-agents/${
+    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
       AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW_LOGS]
     }`,
   ),
 
   [PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-agents/${
+    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
       AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS]
     }`,
   ),
 
   [PageMap.AI_AGENT_TASK_VIEW_DELETE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-agents/${
+    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
       AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW_DELETE]
     }`,
   ),
 
   [PageMap.AI_AGENTS_MCP_SERVER]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-agents/${
+    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
       AIAgentTasksRoutePath[PageMap.AI_AGENTS_MCP_SERVER]
     }`,
   ),
 
   [PageMap.AI_AGENTS_AGENTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-agents/${
+    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
       AIAgentTasksRoutePath[PageMap.AI_AGENTS_AGENTS]
     }`,
   ),
 
   [PageMap.AI_AGENTS_AGENT_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-agents/${
+    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
       AIAgentTasksRoutePath[PageMap.AI_AGENTS_AGENT_VIEW]
     }`,
   ),
 
   [PageMap.AI_AGENTS_LLM_PROVIDERS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-agents/${
+    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
       AIAgentTasksRoutePath[PageMap.AI_AGENTS_LLM_PROVIDERS]
     }`,
   ),
 
   [PageMap.AI_AGENTS_LLM_PROVIDER_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-agents/${
+    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
       AIAgentTasksRoutePath[PageMap.AI_AGENTS_LLM_PROVIDER_VIEW]
     }`,
   ),
 
   [PageMap.AI_AGENTS_AI_CREDITS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-agents/${
+    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
       AIAgentTasksRoutePath[PageMap.AI_AGENTS_AI_CREDITS]
     }`,
   ),
 
   [PageMap.AI_AGENTS_AI_LOGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-agents/${
+    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
       AIAgentTasksRoutePath[PageMap.AI_AGENTS_AI_LOGS]
     }`,
   ),
@@ -4911,7 +4911,7 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.LLM_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/llm/*`),
 
   [PageMap.AI_COPILOT]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-copilot`,
+    `/dashboard/${RouteParams.ProjectID}/ai/chat`,
   ),
 
   [PageMap.LLM]: new Route(

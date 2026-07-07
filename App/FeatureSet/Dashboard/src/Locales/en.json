@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Essentials",
       "observability": "Observability",
+      "ai": "AI",
       "resources": "Resources",
       "analyticsAutomation": "More",
       "settings": "Settings"
@@ -96,8 +97,10 @@
       "workflowsDescription": "No-code automation builder.",
       "runbooksTitle": "Runbooks",
       "runbooksDescription": "Reusable response procedures: manual checklists or scripts.",
-      "aiAgentTitle": "AI Agents",
-      "aiAgentDescription": "AI agents, MCP server, and LLM settings.",
+      "aiChatTitle": "Chat",
+      "aiChatDescription": "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
+      "aiAgentsTitle": "Agents",
+      "aiAgentsDescription": "AI agents, MCP server, and LLM settings.",
       "codeRepositoriesTitle": "Code Repositories",
       "codeRepositoriesDescription": "GitHub and GitLab integrations.",
       "usersTitle": "Users",

@@ -7,6 +7,7 @@ import TelemetryExceptionService from "../../../Services/TelemetryExceptionServi
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import OneUptimeDate from "../../../../Types/Date";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
+import WidgetBuilder from "./WidgetBuilder";
 import {
   ObservabilityTool,
   ToolArgs,
@@ -119,6 +120,15 @@ export const TopExceptionsTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
+      widget:
+        rows.length > 0
+          ? WidgetBuilder.exceptionList({
+              title: `Top exceptions (${rows.length})`,
+              description: `Last ${lastSeenWithinHours}h, by occurrence count`,
+              items: rows,
+              link: { type: AIChatCitationTargetType.Exceptions },
+            })
+          : undefined,
     };
   },
 };

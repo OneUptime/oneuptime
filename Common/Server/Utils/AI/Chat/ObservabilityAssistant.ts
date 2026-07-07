@@ -7,6 +7,7 @@ import logger from "../../Logger";
 import { LLMMessage } from "../../LLM/LLMService";
 import AIToolbox, { ToolCallOutcome } from "../Toolbox/Index";
 import { ToolContext } from "../Toolbox/ToolTypes";
+import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
 import { buildObservabilityChatSystemPrompt } from "./ObservabilityChatPrompt";
 import {
   escapeToolResultContent,
@@ -79,6 +80,8 @@ export default class ObservabilityAssistant {
         role: "system",
         content: buildObservabilityChatSystemPrompt({
           currentTime: OneUptimeDate.getCurrentDate(),
+          // Slack/Teams have no approval UI, so this surface stays read-only.
+          permissionMode: AIChatPermissionMode.ReadOnly,
         }),
       },
     ];
@@ -119,7 +122,9 @@ export default class ObservabilityAssistant {
         llmProviderId: request.llmProviderId,
         feature: request.feature,
         messages: messages,
-        tools: budgetExhausted ? undefined : AIToolbox.getLlmToolDefinitions(),
+        tools: budgetExhausted
+          ? undefined
+          : AIToolbox.getLlmToolDefinitions(AIChatPermissionMode.ReadOnly),
         maxTokens: MAX_OUTPUT_TOKENS,
         temperature: TEMPERATURE,
         // Chat-ops content is per-user — do not persist previews to LlmLog.

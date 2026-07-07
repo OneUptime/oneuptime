@@ -205,6 +205,36 @@ export default class AIConversation extends BaseModel {
   })
   public llmProviderId?: ObjectID = undefined;
 
+  /*
+   * How much autonomy the agent has to run mutating tools in this conversation
+   * (see AIChatPermissionMode: AskForApproval | AutoRun | ReadOnly). Set
+   * server-side from /ai-chat/send-message so a member can't forge a conversation
+   * into a wider permission mode than the endpoint would grant.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Permission Mode",
+    description:
+      "How the agent is allowed to run mutating tools: AskForApproval, AutoRun or ReadOnly.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public permissionMode?: string = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],

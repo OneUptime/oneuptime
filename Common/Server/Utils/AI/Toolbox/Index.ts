@@ -21,6 +21,16 @@ import { LogHistogramTool, SearchLogsTool } from "./LogTools";
 import { QueryMetricsTool } from "./MetricTools";
 import { GetTraceTool, QueryTracesTool } from "./TraceTools";
 import { LookupContextTool } from "./ContextTools";
+import {
+  AcknowledgeIncidentTool,
+  CreateIncidentTool,
+  ResolveIncidentTool,
+} from "./IncidentWriteTools";
+import {
+  AcknowledgeAlertTool,
+  ResolveAlertTool,
+} from "./AlertWriteTools";
+import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
 
 export interface ToolCallOutcome {
   success: boolean;
@@ -36,9 +46,11 @@ export interface ToolCallOutcome {
 const TOOL_EXECUTION_TIMEOUT_MS: number = 45 * 1000;
 
 /*
- * The curated, read-only tool belt for AI features (chat today, the
- * Investigation Engine later). Every tool wraps an existing deterministic
- * query and executes under the requesting user's permission props.
+ * The curated tool belt for AI features (chat today, the Investigation Engine
+ * later). Read tools wrap an existing deterministic query; write tools mutate
+ * the project (create/acknowledge/resolve). Every tool executes under the
+ * requesting user's permission props, and write tools are additionally gated by
+ * the conversation's permission mode (see ChatAgentRunner).
  */
 export default class AIToolbox {
   private static readonly tools: Array<ObservabilityTool> = [
@@ -52,13 +64,23 @@ export default class AIToolbox {
     QueryMetricsTool,
     QueryTracesTool,
     GetTraceTool,
+    // Write tools (mutations). Gated by conversation permission mode.
+    CreateIncidentTool,
+    AcknowledgeIncidentTool,
+    ResolveIncidentTool,
+    AcknowledgeAlertTool,
+    ResolveAlertTool,
   ];
 
   public static getTools(): Array<ObservabilityTool> {
     return this.tools;
   }
 
-  private static llmToolDefinitions: Array<LLMToolDefinition> | null = null;
+  // LLM tool definitions cached per permission mode (ReadOnly hides mutations).
+  private static llmToolDefinitionsByMode: Map<
+    AIChatPermissionMode,
+    Array<LLMToolDefinition>
+  > = new Map();
 
   public static getToolByName(name: string): ObservabilityTool | undefined {
     return this.tools.find((tool: ObservabilityTool) => {
@@ -66,17 +88,41 @@ export default class AIToolbox {
     });
   }
 
-  public static getLlmToolDefinitions(): Array<LLMToolDefinition> {
-    if (!this.llmToolDefinitions) {
-      this.llmToolDefinitions = this.tools.map((tool: ObservabilityTool) => {
+  public static isMutationTool(name: string): boolean {
+    const tool: ObservabilityTool | undefined = this.getToolByName(name);
+    return Boolean(tool?.isMutation);
+  }
+
+  /*
+   * The tool definitions offered to the model for a given permission mode. In
+   * ReadOnly mode the mutating tools are withheld entirely, so the model never
+   * even proposes an action it isn't allowed to take.
+   */
+  public static getLlmToolDefinitions(
+    mode: AIChatPermissionMode,
+  ): Array<LLMToolDefinition> {
+    const cached: Array<LLMToolDefinition> | undefined =
+      this.llmToolDefinitionsByMode.get(mode);
+    if (cached) {
+      return cached;
+    }
+
+    const includeMutations: boolean = mode !== AIChatPermissionMode.ReadOnly;
+
+    const definitions: Array<LLMToolDefinition> = this.tools
+      .filter((tool: ObservabilityTool) => {
+        return includeMutations || !tool.isMutation;
+      })
+      .map((tool: ObservabilityTool) => {
         return {
           name: tool.name,
           description: tool.description,
           inputSchema: tool.inputSchema,
         };
       });
-    }
-    return this.llmToolDefinitions;
+
+    this.llmToolDefinitionsByMode.set(mode, definitions);
+    return definitions;
   }
 
   public static hasPermissionForTool(

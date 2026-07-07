@@ -25,6 +25,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
   const essentialsCategory: string = t("navbar.categories.essentials");
   const observabilityCategory: string = t("navbar.categories.observability");
+  const aiCategory: string = t("navbar.categories.ai", "AI");
   const resourcesCategory: string = t("navbar.categories.resources");
   const analyticsAutomationCategory: string = t(
     "navbar.categories.analyticsAutomation",
@@ -156,20 +157,6 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: observabilityCategory,
     },
     {
-      title: t("navbar.items.aiCopilotTitle", "AI Copilot"),
-      description: t(
-        "navbar.items.aiCopilotDescription",
-        "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
-      ),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.AI_COPILOT] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.AI_COPILOT],
-      icon: IconProp.Sparkles,
-      iconColor: "violet",
-      category: observabilityCategory,
-    },
-    {
       title: t("navbar.items.llmObservabilityTitle", "AI / LLM"),
       description: t(
         "navbar.items.llmObservabilityDescription",
@@ -180,6 +167,35 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       icon: IconProp.Sparkles,
       iconColor: "violet",
       category: observabilityCategory,
+    },
+    // AI
+    {
+      title: t("navbar.items.aiChatTitle", "Chat"),
+      description: t(
+        "navbar.items.aiChatDescription",
+        "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.AI_COPILOT] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.AI_COPILOT],
+      icon: IconProp.ChatBubbleLeftRight,
+      iconColor: "violet",
+      category: aiCategory,
+    },
+    {
+      title: t("navbar.items.aiAgentsTitle", "Agents"),
+      description: t(
+        "navbar.items.aiAgentsDescription",
+        "AI agents, MCP server, and LLM settings.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.AI_AGENT_TASKS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.AI_AGENT_TASKS],
+      icon: IconProp.CPUChip,
+      iconColor: "violet",
+      category: aiCategory,
     },
     /*
      * {
@@ -371,17 +387,6 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       activeRoute: RouteMap[PageMap.RUNBOOKS],
       icon: IconProp.BookOpen,
       iconColor: "teal",
-      category: analyticsAutomationCategory,
-    },
-    {
-      title: t("navbar.items.aiAgentTitle"),
-      description: t("navbar.items.aiAgentDescription"),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.AI_AGENT_TASKS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.AI_AGENT_TASKS],
-      icon: IconProp.Brain,
-      iconColor: "violet",
       category: analyticsAutomationCategory,
     },
     {

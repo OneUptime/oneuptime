@@ -14,6 +14,11 @@ import LogAggregationService, {
   HistogramBucket,
 } from "../../../Services/LogAggregationService";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
+import WidgetBuilder from "./WidgetBuilder";
+import {
+  AIChatWidgetSeries,
+  AIChatCitationTarget,
+} from "../../../../Types/AI/AIChatTypes";
 import {
   ObservabilityTool,
   TimeRangeSchemaProperties,
@@ -147,15 +152,32 @@ export const SearchLogsTool: ObservabilityTool = {
     const serialized: SerializedResult =
       ToolResultSerializer.serializeRows(rows);
 
+    const logsLink: AIChatCitationTarget = {
+      type: AIChatCitationTargetType.Logs,
+    };
+
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
       citationLabel: `Logs ${startTime.toISOString()} – ${endTime.toISOString()} (${serialized.rowCount} shown)`,
-      citationTarget: {
-        type: AIChatCitationTargetType.Logs,
-      },
+      citationTarget: logsLink,
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
+      widget:
+        rows.length > 0
+          ? WidgetBuilder.table({
+              title: `Logs (${rows.length})`,
+              description: `${startTime.toISOString()} – ${endTime.toISOString()}`,
+              columns: [
+                { key: "time", title: "Time", type: "date" },
+                { key: "severity", title: "Severity", type: "text" },
+                { key: "body", title: "Message", type: "text" },
+                { key: "traceId", title: "Trace", type: "text" },
+              ],
+              rows: rows,
+              link: logsLink,
+            })
+          : undefined,
     };
   },
 };
@@ -260,6 +282,37 @@ export const LogHistogramTool: ObservabilityTool = {
     const serialized: SerializedResult =
       ToolResultSerializer.serializeRows(rows);
 
+    /*
+     * Pivot the per-bucket rows into one series per severity so the widget can
+     * render a stacked bar chart (Error on top of Warn on top of Info, etc).
+     */
+    const severityKeys: Array<string> = Array.from(
+      new Set(
+        rows.flatMap((row: JSONObject) => {
+          return Object.keys(row).filter((key: string) => {
+            return key !== "time";
+          });
+        }),
+      ),
+    );
+
+    const series: Array<AIChatWidgetSeries> = severityKeys.map(
+      (severity: string) => {
+        return {
+          name: severity,
+          points: rows.map((row: JSONObject) => {
+            return {
+              x: String(row["time"]),
+              y:
+                typeof row[severity] === "number"
+                  ? (row[severity] as number)
+                  : 0,
+            };
+          }),
+        };
+      },
+    );
+
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
@@ -269,6 +322,18 @@ export const LogHistogramTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
+      widget:
+        series.length > 0 && rows.length > 0
+          ? WidgetBuilder.bars({
+              title: "Log volume by severity",
+              description: `${startTime.toISOString()} – ${endTime.toISOString()}`,
+              series: series,
+              stacked: true,
+              xIsTime: true,
+              unit: "logs",
+              link: { type: AIChatCitationTargetType.Logs },
+            })
+          : undefined,
     };
   },
 };
