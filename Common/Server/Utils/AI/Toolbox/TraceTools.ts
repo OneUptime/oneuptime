@@ -51,6 +51,14 @@ const VALID_GROUP_BY: Array<string> = [
   "isRootSpan",
 ];
 
+/*
+ * Upper bound on spans fetched for a single trace waterfall. High enough for
+ * almost every real trace; when a trace exceeds it we say so explicitly rather
+ * than silently dropping spans (which also orphans their children into fake
+ * roots).
+ */
+const MAX_TRACE_SPANS: number = 500;
+
 export const QueryTracesTool: ObservabilityTool = {
   name: "query_traces",
   description:
@@ -243,10 +251,12 @@ export const GetTraceTool: ObservabilityTool = {
       sort: {
         startTimeUnixNano: SortOrder.Ascending,
       } as never,
-      limit: 100,
+      limit: MAX_TRACE_SPANS,
       skip: 0,
       props: ctx.props,
     });
+
+    const isSpanLimitHit: boolean = spans.length >= MAX_TRACE_SPANS;
 
     // Build the tree.
     const nodesBySpanId: Map<string, SpanTreeNode> = new Map();
@@ -292,6 +302,12 @@ export const GetTraceTool: ObservabilityTool = {
       renderNode(root, 0);
     }
 
+    if (isSpanLimitHit) {
+      lines.push(
+        `… trace truncated at ${MAX_TRACE_SPANS} spans; deeper spans are omitted and some shown here may appear as roots because their parent was cut off.`,
+      );
+    }
+
     const serialized: SerializedResult = ToolResultSerializer.serializeText(
       lines.join("\n"),
       spans.length,
@@ -300,13 +316,13 @@ export const GetTraceTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `Trace ${traceId} (${spans.length} spans)`,
+      citationLabel: `Trace ${traceId} (${spans.length}${isSpanLimitHit ? "+" : ""} spans)`,
       citationTarget: {
         type: AIChatCitationTargetType.TraceView,
         params: { traceId: traceId },
       },
       redactionCount: serialized.redactionCount,
-      isTruncated: serialized.isTruncated,
+      isTruncated: serialized.isTruncated || isSpanLimitHit,
     };
   },
 };

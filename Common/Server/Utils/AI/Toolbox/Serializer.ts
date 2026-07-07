@@ -210,6 +210,15 @@ export default class ToolResultSerializer {
       text = "(no rows found)";
     }
 
+    /*
+     * Tell the model when it is only seeing a slice. Without this marker a
+     * capped result looks complete, and the model reports partial data as if it
+     * were the whole picture.
+     */
+    if (rows.length > MAX_ROWS) {
+      text = `${text}\n… [showing the first ${MAX_ROWS} of ${rowCount} rows; narrow the query — a shorter time range or more filters — to see the rest]`;
+    }
+
     return {
       text,
       rowCount,
