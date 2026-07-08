@@ -115,12 +115,11 @@ describe("LayerUtil HIGH-1: intervalCount >= 2 rotation stays on boundaries", ()
     }
 
     // Users alternate B, A, B, A ...
-    expect(events.slice(0, 4).map((e: CalendarEvent) => e.title)).toEqual([
-      "B",
-      "A",
-      "B",
-      "A",
-    ]);
+    expect(
+      events.slice(0, 4).map((e: CalendarEvent) => {
+        return e.title;
+      }),
+    ).toEqual(["B", "A", "B", "A"]);
   });
 
   test("every-3-hours rotation lands on 3-hour boundaries", () => {
@@ -241,8 +240,10 @@ describe("LayerUtil M-1: long-lived rotation resolves the correct current user (
       calendarEndDate: calEnd,
     });
 
-    // 12000 boundaries elapsed -> index 12000 % 3 = 0 -> user A.
-    // The old capped simulation returned 10000 % 3 = 1 -> user B (wrong).
+    /*
+     * 12000 boundaries elapsed -> index 12000 % 3 = 0 -> user A.
+     * The old capped simulation returned 10000 % 3 = 1 -> user B (wrong).
+     */
     expect(events[0]!.title).toBe("A");
   });
 });
