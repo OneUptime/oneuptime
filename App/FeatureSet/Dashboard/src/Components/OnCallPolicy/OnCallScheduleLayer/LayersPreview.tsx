@@ -396,8 +396,8 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       <div className="mt-2 text-xs text-gray-500">
         Note: this preview reflects <span className="font-medium">global</span>{" "}
         user overrides only. Policy-specific overrides are applied when a
-        particular on-call policy escalates and are not shown here, so the person
-        actually paged by a given policy may differ.
+        particular on-call policy escalates and are not shown here, so the
+        person actually paged by a given policy may differ.
       </div>
 
       <Calendar

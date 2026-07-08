@@ -12,7 +12,11 @@ function at(
   return new Date(2026, 0, 1, hours, minutes, seconds, ms);
 }
 
-function event(title: string, startHour: number, endHour: number): CalendarEvent {
+function event(
+  title: string,
+  startHour: number,
+  endHour: number,
+): CalendarEvent {
   return {
     id: 1,
     title: title,
@@ -22,10 +26,7 @@ function event(title: string, startHour: number, endHour: number): CalendarEvent
   };
 }
 
-function resolvedAt(
-  events: Array<CalendarEvent>,
-  t: Date,
-): string | null {
+function resolvedAt(events: Array<CalendarEvent>, t: Date): string | null {
   for (const e of events) {
     if (t.getTime() >= e.start.getTime() && t.getTime() < e.end.getTime()) {
       return e.title;
@@ -53,12 +54,11 @@ describe("UserOverrideUtil M-4: overrides are non-transitive", () => {
   };
 
   test("chain A->B then B->C does NOT double-substitute (stays B)", () => {
-    const result: Array<CalendarEvent> = UserOverrideUtil.applyOverridesToEvents(
-      {
+    const result: Array<CalendarEvent> =
+      UserOverrideUtil.applyOverridesToEvents({
         events: [base],
         overrides: [g1, g2],
-      },
-    );
+      });
     // At 11:00 the override result of A->B must remain B, not become C.
     expect(resolvedAt(result, at(11))).toBe("B");
     // Segments outside the override window remain A.
@@ -92,9 +92,11 @@ describe("UserOverrideUtil INFO-1: consistent second-precision boundary handling
       endsAt: at(13),
       onCallDutyPolicyId: null,
     };
-    const result: Array<CalendarEvent> = UserOverrideUtil.applyOverridesToEvents(
-      { events: [base], overrides: [override] },
-    );
+    const result: Array<CalendarEvent> =
+      UserOverrideUtil.applyOverridesToEvents({
+        events: [base],
+        overrides: [override],
+      });
     expect(result.length).toBe(1);
     expect(result[0]!.title).toBe("A");
   });
@@ -108,9 +110,11 @@ describe("UserOverrideUtil INFO-1: consistent second-precision boundary handling
       endsAt: at(13),
       onCallDutyPolicyId: null,
     };
-    const result: Array<CalendarEvent> = UserOverrideUtil.applyOverridesToEvents(
-      { events: [base], overrides: [override] },
-    );
+    const result: Array<CalendarEvent> =
+      UserOverrideUtil.applyOverridesToEvents({
+        events: [base],
+        overrides: [override],
+      });
     // No inverted/negative-length segment; event returned unchanged.
     expect(result.length).toBe(1);
     expect(result[0]!.title).toBe("A");
@@ -130,9 +134,11 @@ describe("UserOverrideUtil: baseline substitution still works", () => {
       endsAt: at(12),
       onCallDutyPolicyId: null,
     };
-    const result: Array<CalendarEvent> = UserOverrideUtil.applyOverridesToEvents(
-      { events: [base], overrides: [override] },
-    );
+    const result: Array<CalendarEvent> =
+      UserOverrideUtil.applyOverridesToEvents({
+        events: [base],
+        overrides: [override],
+      });
     expect(resolvedAt(result, at(9))).toBe("A");
     expect(resolvedAt(result, at(11))).toBe("B");
     expect(resolvedAt(result, at(13))).toBe("A");
@@ -154,13 +160,12 @@ describe("UserOverrideUtil: baseline substitution still works", () => {
       endsAt: at(13),
       onCallDutyPolicyId: "policy-1",
     };
-    const result: Array<CalendarEvent> = UserOverrideUtil.applyOverridesToEvents(
-      {
+    const result: Array<CalendarEvent> =
+      UserOverrideUtil.applyOverridesToEvents({
         events: [base],
         overrides: [globalOverride, policyOverride],
         currentOnCallDutyPolicyId: "policy-1",
-      },
-    );
+      });
     // Policy-scoped C wins over global B.
     expect(resolvedAt(result, at(11))).toBe("C");
   });

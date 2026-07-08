@@ -27,7 +27,10 @@ function user(id: string): User {
   } as User;
 }
 
-function rotation(intervalType: EventInterval, intervalCount: number): Recurring {
+function rotation(
+  intervalType: EventInterval,
+  intervalCount: number,
+): Recurring {
   return Recurring.fromJSON({
     _type: "Recurring",
     value: {

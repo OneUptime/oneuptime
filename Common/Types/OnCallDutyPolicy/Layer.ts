@@ -318,9 +318,8 @@ export default class LayerUtil {
        * rotation landing on odd-day boundaries and paging the wrong user).
        */
       intervalBetweenStartTimeAndHandoffTime =
-        Math.ceil(
-          intervalBetweenStartTimeAndHandoffTime / rotationInterval,
-        ) * rotationInterval;
+        Math.ceil(intervalBetweenStartTimeAndHandoffTime / rotationInterval) *
+        rotationInterval;
 
       // add intervalBetweenStartTimeAndHandoffTime to handoff time
 
@@ -353,9 +352,8 @@ export default class LayerUtil {
        * rotation landing on odd-day boundaries and paging the wrong user).
        */
       intervalBetweenStartTimeAndHandoffTime =
-        Math.ceil(
-          intervalBetweenStartTimeAndHandoffTime / rotationInterval,
-        ) * rotationInterval;
+        Math.ceil(intervalBetweenStartTimeAndHandoffTime / rotationInterval) *
+        rotationInterval;
 
       // add intervalBetweenStartTimeAndHandoffTime to handoff time
 
@@ -388,9 +386,8 @@ export default class LayerUtil {
        * rotation landing on odd-day boundaries and paging the wrong user).
        */
       intervalBetweenStartTimeAndHandoffTime =
-        Math.ceil(
-          intervalBetweenStartTimeAndHandoffTime / rotationInterval,
-        ) * rotationInterval;
+        Math.ceil(intervalBetweenStartTimeAndHandoffTime / rotationInterval) *
+        rotationInterval;
 
       // add intervalBetweenStartTimeAndHandoffTime to handoff time
 
@@ -423,9 +420,8 @@ export default class LayerUtil {
        * rotation landing on odd-day boundaries and paging the wrong user).
        */
       intervalBetweenStartTimeAndHandoffTime =
-        Math.ceil(
-          intervalBetweenStartTimeAndHandoffTime / rotationInterval,
-        ) * rotationInterval;
+        Math.ceil(intervalBetweenStartTimeAndHandoffTime / rotationInterval) *
+        rotationInterval;
 
       // add intervalBetweenStartTimeAndHandoffTime to handoff time
 
@@ -458,9 +454,8 @@ export default class LayerUtil {
        * rotation landing on odd-day boundaries and paging the wrong user).
        */
       intervalBetweenStartTimeAndHandoffTime =
-        Math.ceil(
-          intervalBetweenStartTimeAndHandoffTime / rotationInterval,
-        ) * rotationInterval;
+        Math.ceil(intervalBetweenStartTimeAndHandoffTime / rotationInterval) *
+        rotationInterval;
 
       // add intervalBetweenStartTimeAndHandoffTime to handoff time
 

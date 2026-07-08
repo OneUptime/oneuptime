@@ -237,9 +237,10 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
         query: {
           _id: executionLog.id!,
           status: OnCallDutyPolicyStatus.Executing,
-          lastEscalationRuleExecutedAt: executionLog.lastEscalationRuleExecutedAt
-            ? executionLog.lastEscalationRuleExecutedAt
-            : QueryHelper.isNull(),
+          lastEscalationRuleExecutedAt:
+            executionLog.lastEscalationRuleExecutedAt
+              ? executionLog.lastEscalationRuleExecutedAt
+              : QueryHelper.isNull(),
         },
         data: {
           lastEscalationRuleExecutedAt: currentDate,
