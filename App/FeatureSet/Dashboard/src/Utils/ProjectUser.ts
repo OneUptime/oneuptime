@@ -25,14 +25,37 @@ export default class ProjectUser {
       requestOptions: {},
     });
 
-    return teamMembers.data.map((teamMember: TeamMember) => {
-      return {
-        value: teamMember.user?._id as string,
+    /*
+     * A user can belong to more than one team in the same project, which
+     * returns one TeamMember row per membership. Dedupe by user id so each
+     * user appears exactly once in the dropdown.
+     */
+    const seenUserIds: Set<string> = new Set<string>();
+    const options: Array<DropdownOption> = [];
+
+    for (const teamMember of teamMembers.data) {
+      const userId: string | undefined = teamMember.user?._id?.toString();
+
+      if (!userId || seenUserIds.has(userId)) {
+        continue;
+      }
+
+      seenUserIds.add(userId);
+
+      options.push({
+        value: userId,
         label:
           teamMember.user?.name?.toString() ||
           teamMember.user?.email?.toString() ||
           "",
-      };
+      });
+    }
+
+    // Alphabetical order so the searchable dropdown is easy to scan.
+    options.sort((a: DropdownOption, b: DropdownOption) => {
+      return a.label.localeCompare(b.label);
     });
+
+    return options;
   }
 }
