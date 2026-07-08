@@ -1077,6 +1077,59 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     return undefined;
   }
 
+  /**
+   * Re-resolve and persist the roster for every schedule in the project whose
+   * layers include `userId`. Called when a user override is created / updated /
+   * deleted so the persisted roster, handoff notifications and on-call time logs
+   * reflect the override mid-period instead of waiting for the next natural
+   * handoff or the per-minute cron (which does not re-select an established
+   * roster) — audit F4. Best-effort and idempotent: refreshing an unaffected
+   * schedule simply recomputes the same roster; per-schedule errors are logged
+   * and never abort the rest.
+   */
+  public async refreshRostersForUserInProject(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<void> {
+    const layerUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
+      await OnCallDutyPolicyScheduleLayerUserService.findBy({
+        query: {
+          projectId: data.projectId,
+          userId: data.userId,
+        },
+        select: {
+          onCallDutyPolicyScheduleId: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const scheduleIds: Set<string> = new Set<string>();
+    for (const layerUser of layerUsers) {
+      const scheduleId: string | undefined =
+        layerUser.onCallDutyPolicyScheduleId?.toString();
+      if (scheduleId) {
+        scheduleIds.add(scheduleId);
+      }
+    }
+
+    for (const scheduleId of scheduleIds) {
+      try {
+        await this.refreshCurrentUserIdAndHandoffTimeInSchedule(
+          new ObjectID(scheduleId),
+        );
+      } catch (err) {
+        logger.error(
+          `Error refreshing roster for schedule ${scheduleId} after a user override change.`,
+        );
+        logger.error(err);
+      }
+    }
+  }
+
   private async getScheduleLayerProps(data: { scheduleId: ObjectID }): Promise<{
     layerProps: Array<LayerProps>;
     projectId: ObjectID | null;

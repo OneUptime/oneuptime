@@ -153,6 +153,48 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    /*
+     * Capture the layer's order + schedule id as carryForward so onDeleteSuccess
+     * can re-sequence the remaining layers AND refresh the schedule roster after
+     * a layer is removed. Without this hook, onDeleteSuccess (which gates all of
+     * its work on onDelete.carryForward) was dead code: deleting a layer never
+     * re-sequenced order and never called
+     * refreshCurrentUserIdAndHandoffTimeInSchedule, so the schedule kept showing
+     * the removed layer's user as on-call and the genuinely-now-on-call user got
+     * no handoff notification for up to a full rotation period (audit F3).
+     * Mirrors OnCallDutyPolicyScheduleLayerUserService.onBeforeDelete.
+     */
+    if (!deleteBy.query._id && !deleteBy.props.isRoot) {
+      throw new BadDataException(
+        "_id should be present when deleting a schedule layer. Please try the delete with objectId",
+      );
+    }
+
+    let resource: Model | null = null;
+
+    if (!deleteBy.props.isRoot) {
+      resource = await this.findOneBy({
+        query: deleteBy.query,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          order: true,
+          onCallDutyPolicyScheduleId: true,
+        },
+      });
+    }
+
+    return {
+      deleteBy,
+      carryForward: resource,
+    };
+  }
+
+  @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: ObjectID[],

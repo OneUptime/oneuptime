@@ -316,31 +316,66 @@ export class Service extends DatabaseService<Model> {
     );
 
     type StartUserNotificationRuleExecutionFunction = (
-      userId: ObjectID,
+      originalUserId: ObjectID,
+      alertSentToUserId: ObjectID,
       teamId: ObjectID | null,
       scheduleId: ObjectID | null,
     ) => Promise<void>;
 
-    const startUserNotificationRuleExecution: StartUserNotificationRuleExecutionFunction =
-      async (
-        userId: ObjectID,
-        teamId: ObjectID | null,
-        scheduleId: ObjectID | null,
-      ): Promise<void> => {
-        // This is where user is notified.
+    /*
+     * Resolve the FINAL alert recipient for a target, applying a user override
+     * (getRouteAlertToUserId) exactly ONCE per paging decision.
+     *
+     * Schedule targets are already override-resolved: getCurrentUserIdInSchedule
+     * applies overrides via UserOverrideUtil. Applying getRouteAlertToUserId to
+     * them again re-substituted an already-substituted user (transitive), so the
+     * schedule paging path could page a different person than the roster,
+     * dashboard, handoff notification, and a rule that lists the same user
+     * directly — all of which apply overrides only once (audit F5). So team and
+     * direct-user targets (the RAW roster user) get the single override hop here;
+     * schedule targets do not.
+     */
+    const resolveAlertRecipientUserId: (
+      userId: ObjectID,
+      isFromSchedule: boolean,
+    ) => Promise<ObjectID> = async (
+      userId: ObjectID,
+      isFromSchedule: boolean,
+    ): Promise<ObjectID> => {
+      if (isFromSchedule) {
+        return userId;
+      }
 
-        // get route alert to user id.
-        let routeAlertToUserId: ObjectID | null = null;
-
-        if (options.onCallPolicyId) {
-          routeAlertToUserId = await this.getRouteAlertToUserId({
+      if (options.onCallPolicyId) {
+        const routeAlertToUserId: ObjectID | null =
+          await this.getRouteAlertToUserId({
             userId,
             onCallDutyPolicyId: options.onCallPolicyId,
             projectId: options.projectId,
           });
-        }
 
-        const alertSentToUserId: ObjectID = routeAlertToUserId || userId;
+        if (routeAlertToUserId) {
+          return routeAlertToUserId;
+        }
+      }
+
+      return userId;
+    };
+
+    const startUserNotificationRuleExecution: StartUserNotificationRuleExecutionFunction =
+      async (
+        originalUserId: ObjectID,
+        alertSentToUserId: ObjectID,
+        teamId: ObjectID | null,
+        scheduleId: ObjectID | null,
+      ): Promise<void> => {
+        /*
+         * This is where user is notified. alertSentToUserId is already resolved
+         * (override applied at most once by resolveAlertRecipientUserId).
+         */
+
+        const wasOverridden: boolean =
+          alertSentToUserId.toString() !== originalUserId.toString();
 
         logger.debug(
           `Starting notification rule execution for userId: ${alertSentToUserId.toString()}`,
@@ -355,8 +390,8 @@ export class Service extends DatabaseService<Model> {
         log.status = OnCallDutyExecutionLogTimelineStatus.Executing;
         log.alertSentToUserId = alertSentToUserId;
 
-        if (routeAlertToUserId) {
-          log.overridedByUserId = userId;
+        if (wasOverridden) {
+          log.overridedByUserId = originalUserId;
         }
 
         if (teamId) {
@@ -391,12 +426,27 @@ export class Service extends DatabaseService<Model> {
             onCallDutyPolicyExecutionLogTimelineId: log.id!,
             projectId: options.projectId,
             onCallScheduleId: scheduleId || undefined,
-            overridedByUserId: routeAlertToUserId ? userId : undefined,
+            overridedByUserId: wasOverridden ? originalUserId : undefined,
           },
         );
       };
 
+    /*
+     * Dedup on the RESOLVED recipient (post-override), not the pre-route id.
+     * Keying on the pre-route id let two different targets that both reroute to
+     * the same backup each fire a full notification chain for the same person in
+     * one rule (audit F6).
+     */
     const uniqueUserIds: Array<ObjectID> = [];
+    const alreadyNotified: (recipientId: ObjectID) => boolean = (
+      recipientId: ObjectID,
+    ): boolean => {
+      return Boolean(
+        uniqueUserIds.find((userId: ObjectID) => {
+          return recipientId.toString() === userId.toString();
+        }),
+      );
+    };
 
     /*
      * M-5: tracks whether any schedule target for this rule momentarily had no
@@ -413,14 +463,16 @@ export class Service extends DatabaseService<Model> {
       );
 
       for (const user of usersInTeam) {
-        if (
-          !uniqueUserIds.find((userId: ObjectID) => {
-            return user.id?.toString() === userId.toString();
-          })
-        ) {
-          uniqueUserIds.push(user.id!);
+        const recipientUserId: ObjectID = await resolveAlertRecipientUserId(
+          user.id!,
+          false,
+        );
+
+        if (!alreadyNotified(recipientUserId)) {
+          uniqueUserIds.push(recipientUserId);
           await startUserNotificationRuleExecution(
             user.id!,
+            recipientUserId,
             teamInRule.teamId!,
             null,
           );
@@ -429,7 +481,7 @@ export class Service extends DatabaseService<Model> {
           log.statusMessage =
             "Skipped because notification sent to this user already.";
           log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
-          log.alertSentToUserId = user.id!;
+          log.alertSentToUserId = recipientUserId;
           log.userBelongsToTeamId = teamInRule.teamId!;
 
           await OnCallDutyPolicyExecutionLogTimelineService.create({
@@ -443,19 +495,25 @@ export class Service extends DatabaseService<Model> {
     }
 
     for (const userRule of usersInRule) {
-      if (
-        !uniqueUserIds.find((userId: ObjectID) => {
-          return userRule.userId?.toString() === userId.toString();
-        })
-      ) {
-        uniqueUserIds.push(userRule.userId!);
-        await startUserNotificationRuleExecution(userRule.userId!, null, null);
+      const recipientUserId: ObjectID = await resolveAlertRecipientUserId(
+        userRule.userId!,
+        false,
+      );
+
+      if (!alreadyNotified(recipientUserId)) {
+        uniqueUserIds.push(recipientUserId);
+        await startUserNotificationRuleExecution(
+          userRule.userId!,
+          recipientUserId,
+          null,
+          null,
+        );
       } else {
         const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
         log.statusMessage =
           "Skipped because notification sent to this user already.";
         log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
-        log.alertSentToUserId = userRule.userId!;
+        log.alertSentToUserId = recipientUserId;
 
         await OnCallDutyPolicyExecutionLogTimelineService.create({
           data: log,
@@ -492,14 +550,17 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
-      if (
-        !uniqueUserIds.find((userId: ObjectID) => {
-          return userIdInSchedule?.toString() === userId.toString();
-        })
-      ) {
-        uniqueUserIds.push(userIdInSchedule);
+      // Schedule users are already override-resolved; no second override hop (F5).
+      const recipientUserId: ObjectID = await resolveAlertRecipientUserId(
+        userIdInSchedule,
+        true,
+      );
+
+      if (!alreadyNotified(recipientUserId)) {
+        uniqueUserIds.push(recipientUserId);
         await startUserNotificationRuleExecution(
           userIdInSchedule,
+          recipientUserId,
           null,
           scheduleRule.onCallDutyPolicyScheduleId!,
         );
@@ -508,7 +569,7 @@ export class Service extends DatabaseService<Model> {
         log.statusMessage =
           "Skipped because notification sent to this user already.";
         log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
-        log.alertSentToUserId = userIdInSchedule;
+        log.alertSentToUserId = recipientUserId;
         log.onCallDutyScheduleId = scheduleRule.onCallDutyPolicyScheduleId!;
 
         await OnCallDutyPolicyExecutionLogTimelineService.create({

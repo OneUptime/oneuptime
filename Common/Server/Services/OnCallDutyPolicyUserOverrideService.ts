@@ -4,7 +4,7 @@ import DatabaseConfig from "../DatabaseConfig";
 import URL from "../../Types/API/URL";
 import OnCallDutyPolicyUserOverride from "../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -16,10 +16,48 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import Timezone from "../../Types/Timezone";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
   public constructor() {
     super(OnCallDutyPolicyUserOverride);
+  }
+
+  /**
+   * Re-resolve the persisted roster of every schedule in the project that
+   * contains the override user, so a created / updated / deleted override is
+   * reflected in the dashboard roster, handoff notifications and on-call time
+   * logs mid-period instead of only at the next natural handoff (audit F4).
+   * Best-effort: never throws into the CRUD path. Lazy require avoids a static
+   * circular import (OnCallDutyPolicyScheduleService imports this service).
+   */
+  private async refreshRostersForOverrideUser(data: {
+    projectId: ObjectID | null | undefined;
+    overrideUserId: ObjectID | null | undefined;
+  }): Promise<void> {
+    if (!data.projectId || !data.overrideUserId) {
+      return;
+    }
+
+    try {
+      const scheduleService: {
+        refreshRostersForUserInProject: (d: {
+          projectId: ObjectID;
+          userId: ObjectID;
+        }) => Promise<void>;
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      } = require("./OnCallDutyPolicyScheduleService").default;
+
+      await scheduleService.refreshRostersForUserInProject({
+        projectId: data.projectId,
+        userId: data.overrideUserId,
+      });
+    } catch (err) {
+      logger.error(
+        "Error refreshing rosters after a user override change (best-effort).",
+      );
+      logger.error(err);
+    }
   }
 
   @CaptureSpan()
@@ -145,7 +183,75 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
       });
     }
 
+    // Reflect the new override in the persisted roster immediately (audit F4).
+    await this.refreshRostersForOverrideUser({
+      projectId,
+      overrideUserId,
+    });
+
     return createdItem;
+  }
+
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<OnCallDutyPolicyUserOverride>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<OnCallDutyPolicyUserOverride>> {
+    /*
+     * An override edit (times, route target, or the override user) must also be
+     * reflected in the persisted roster (audit F4). Refresh the schedules of
+     * each edited override's current override user.
+     */
+    for (const id of updatedItemIds) {
+      const item: OnCallDutyPolicyUserOverride | null = await this.findOneById({
+        id: id,
+        select: {
+          projectId: true,
+          overrideUserId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!item) {
+        continue;
+      }
+
+      await this.refreshRostersForOverrideUser({
+        projectId: item.projectId || item.project?.id,
+        overrideUserId: item.overrideUserId || item.overrideUser?.id,
+      });
+    }
+
+    return onUpdate;
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<OnCallDutyPolicyUserOverride>,
+    _itemIdsBeforeDelete: ObjectID[],
+  ): Promise<OnDelete<OnCallDutyPolicyUserOverride>> {
+    /*
+     * After an override is removed, recompute the roster so the original user
+     * (or whoever the schedule now resolves to) is reflected immediately, rather
+     * than waiting for the next natural handoff (audit F4). The affected
+     * project/user pairs were captured in onBeforeDelete (the rows are gone now).
+     */
+    const affected: Array<{ projectId: ObjectID; overrideUserId: ObjectID }> =
+      (onDelete.carryForward as Array<{
+        projectId: ObjectID;
+        overrideUserId: ObjectID;
+      }>) || [];
+
+    for (const entry of affected) {
+      await this.refreshRostersForOverrideUser({
+        projectId: entry.projectId,
+        overrideUserId: entry.overrideUserId,
+      });
+    }
+
+    return onDelete;
   }
 
   protected override async onBeforeDelete(
@@ -169,6 +275,16 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
       limit: LIMIT_PER_PROJECT,
     });
 
+    /*
+     * Capture the project + override-user of each row being deleted so
+     * onDeleteSuccess can refresh those schedules' rosters AFTER the rows are
+     * gone (audit F4). Collected for global overrides too (no policy id).
+     */
+    const affectedRosters: Array<{
+      projectId: ObjectID;
+      overrideUserId: ObjectID;
+    }> = [];
+
     for (const item of itemsToDelete) {
       const onCallDutyPolicyId: ObjectID | undefined | null =
         item.onCallDutyPolicyId || item.onCallDutyPolicy?.id;
@@ -181,6 +297,10 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
 
       const routeAlertsToUserId: ObjectID | undefined | null =
         item.routeAlertsToUserId || item.routeAlertsToUser?.id;
+
+      if (projectId && overrideUserId) {
+        affectedRosters.push({ projectId, overrideUserId });
+      }
 
       if (
         onCallDutyPolicyId &&
@@ -239,7 +359,7 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
 
     return {
       deleteBy,
-      carryForward: null,
+      carryForward: affectedRosters,
     };
   }
 
