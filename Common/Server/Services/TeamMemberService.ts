@@ -383,6 +383,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       OnCallDutyPolicyTimeLogService.endTimeForUser({
         projectId: member.projectId!,
         userId: member.userId!,
+        // scope to the team being left so the user's still-active logs from
+        // other teams, direct escalation assignments, and schedule rosters stay
+        // open (audit F17).
+        teamId: member.teamId!,
         endsAt: OneUptimeDate.getCurrentDate(),
       }).catch((err: Error) => {
         logger.error(err, {

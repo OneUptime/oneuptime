@@ -261,22 +261,30 @@ export class Service extends DatabaseService<Model> {
               notifyUserId: userId || undefined,
             },
           });
-
-          // also remove on-call duty time log.
-          OnCallDutyPolicyTimeLogService.endTimeLogForUser({
-            projectId: projectId,
-            onCallDutyPolicyId: onCallDutyPolicyId,
-            onCallDutyPolicyEscalationRuleId:
-              item.onCallDutyPolicyEscalationRule!.id!,
-            userId: userId,
-            endsAt: OneUptimeDate.getCurrentDate(),
-          }).catch((error: Error) => {
-            logger.error(`Error ending time log for user ${userId}: ${error}`, {
-              projectId: projectId?.toString(),
-              userId: userId?.toString(),
-            } as LogAttributes);
-          });
         }
+
+        /*
+         * Close the removed user's open on-call time log. This MUST run
+         * independently of whether the user has a display name — invited users
+         * who have not finished signup commonly have a null/empty name, and the
+         * ADD path (onCreateSuccess) opens their time log regardless of name.
+         * Nesting this inside `if (user && user.name)` left those users' logs
+         * open forever, showing them as perpetually on-call in reporting
+         * (audit F19).
+         */
+        OnCallDutyPolicyTimeLogService.endTimeLogForUser({
+          projectId: projectId,
+          onCallDutyPolicyId: onCallDutyPolicyId,
+          onCallDutyPolicyEscalationRuleId:
+            item.onCallDutyPolicyEscalationRule!.id!,
+          userId: userId,
+          endsAt: OneUptimeDate.getCurrentDate(),
+        }).catch((error: Error) => {
+          logger.error(`Error ending time log for user ${userId}: ${error}`, {
+            projectId: projectId?.toString(),
+            userId: userId?.toString(),
+          } as LogAttributes);
+        });
       }
     }
 

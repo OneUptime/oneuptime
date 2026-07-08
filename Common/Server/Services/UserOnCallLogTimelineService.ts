@@ -15,6 +15,8 @@ import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNo
 import User from "../../Models/DatabaseModels/User";
 import Model from "../../Models/DatabaseModels/UserOnCallLogTimeline";
 import AlertService from "./AlertService";
+import AlertEpisodeService from "./AlertEpisodeService";
+import IncidentEpisodeService from "./IncidentEpisodeService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -40,6 +42,8 @@ export class Service extends DatabaseService<Model> {
           onCallDutyPolicyExecutionLogId: true,
           triggeredByIncidentId: true,
           triggeredByAlertId: true,
+          triggeredByAlertEpisodeId: true,
+          triggeredByIncidentEpisodeId: true,
           onCallDutyPolicyExecutionLogTimelineId: true,
         },
         skip: 0,
@@ -52,6 +56,21 @@ export class Service extends DatabaseService<Model> {
       for (const item of items) {
         const isIncident: boolean = Boolean(item.triggeredByIncidentId);
         const isAlert: boolean = Boolean(item.triggeredByAlertId);
+        /*
+         * Alert-episode and incident-episode pages were never handled here, so
+         * acknowledging one via call/SMS/email/push marked only this user's log
+         * done but never acknowledged the EPISODE. ExecutePendingExecutions gates
+         * every co-notified user's continuation solely on isEpisodeAcknowledged,
+         * so the other responders kept escalating and the episode stayed
+         * unacknowledged in its own state (audit F15). Handle both episode kinds
+         * the same way incident/alert are handled below.
+         */
+        const isAlertEpisode: boolean = Boolean(
+          item.triggeredByAlertEpisodeId,
+        );
+        const isIncidentEpisode: boolean = Boolean(
+          item.triggeredByIncidentEpisodeId,
+        );
 
         // this incident is acknowledged.
 
@@ -73,7 +92,16 @@ export class Service extends DatabaseService<Model> {
           throw new BadDataException("User not found.");
         }
 
-        const statusMessage: string = `${isIncident ? "Incident" : "Alert"} acknowledged by ${user.name} (${user.email})`;
+        const entityLabel: string =
+          isIncident || isIncidentEpisode
+            ? isIncidentEpisode
+              ? "Incident Episode"
+              : "Incident"
+            : isAlertEpisode
+              ? "Alert Episode"
+              : "Alert";
+
+        const statusMessage: string = `${entityLabel} acknowledged by ${user.name} (${user.email})`;
 
         await UserOnCallLogService.updateOneById({
           id: item.userNotificationLogId!,
@@ -130,6 +158,22 @@ export class Service extends DatabaseService<Model> {
           // alert.
           await AlertService.acknowledgeAlert(
             item.triggeredByAlertId!,
+            item.userId!,
+          );
+        }
+
+        if (isAlertEpisode) {
+          // alert episode — stops co-notified responders from escalating.
+          await AlertEpisodeService.acknowledgeEpisode(
+            item.triggeredByAlertEpisodeId!,
+            item.userId!,
+          );
+        }
+
+        if (isIncidentEpisode) {
+          // incident episode — stops co-notified responders from escalating.
+          await IncidentEpisodeService.acknowledgeEpisode(
+            item.triggeredByIncidentEpisodeId!,
             item.userId!,
           );
         }

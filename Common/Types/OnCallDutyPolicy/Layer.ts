@@ -138,8 +138,32 @@ export default class LayerUtil {
       return events;
     }
 
-    // break clause. This loop executes 50 times at max.
-    const maxLoopCount: number = 100;
+    /*
+     * Bound the loop by the actual calendar window instead of a fixed count.
+     * Each iteration advances currentEventStartTime by at least one rotation
+     * period (fully-restricted periods produce no event but still advance the
+     * handoff), so at most ~windowUnits/periodUnits periods can fall inside
+     * [start, end]. A fixed cap of 100 silently truncated long windows for short
+     * rotations (audit F1) and could even return ZERO events — the schedule
+     * reporting nobody on-call and no next user — when "now" sat in a restriction
+     * gap longer than 100 periods (audit F8, e.g. an hourly rotation with a
+     * weekend-only restriction). Scale the cap to the window with a generous
+     * margin, keeping a hard ceiling to bound pathological inputs.
+     */
+    const rawRotationCount: number = rotation.intervalCount.toNumber();
+    const periodUnitsForBound: number =
+      Number.isFinite(rawRotationCount) && rawRotationCount >= 1
+        ? Math.floor(rawRotationCount)
+        : 1;
+    const windowUnits: number = this.getUnitsBetweenDates(
+      start,
+      end,
+      rotation.intervalType,
+    );
+    const maxLoopCount: number = Math.min(
+      1000000,
+      Math.max(100, Math.ceil(windowUnits / periodUnitsForBound) + 10),
+    );
     let loopCount: number = 0;
 
     while (!hasReachedTheEndOfTheCalendar) {
@@ -344,10 +368,11 @@ export default class LayerUtil {
       handOffTime = OneUptimeDate.addRemoveDays(
         handOffTime,
         intervalBetweenStartTimeAndHandoffTime,
+        this.timezone,
       );
 
       if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
-        handOffTime = OneUptimeDate.addRemoveDays(handOffTime, 1);
+        handOffTime = OneUptimeDate.addRemoveDays(handOffTime, 1, this.timezone);
       }
 
       return handOffTime;
@@ -412,10 +437,11 @@ export default class LayerUtil {
       handOffTime = OneUptimeDate.addRemoveWeeks(
         handOffTime,
         intervalBetweenStartTimeAndHandoffTime,
+        this.timezone,
       );
 
       if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
-        handOffTime = OneUptimeDate.addRemoveWeeks(handOffTime, 1);
+        handOffTime = OneUptimeDate.addRemoveWeeks(handOffTime, 1, this.timezone);
       }
 
       return handOffTime;
@@ -446,10 +472,11 @@ export default class LayerUtil {
       handOffTime = OneUptimeDate.addRemoveMonths(
         handOffTime,
         intervalBetweenStartTimeAndHandoffTime,
+        this.timezone,
       );
 
       if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
-        handOffTime = OneUptimeDate.addRemoveMonths(handOffTime, 1);
+        handOffTime = OneUptimeDate.addRemoveMonths(handOffTime, 1, this.timezone);
       }
 
       return handOffTime;
@@ -480,10 +507,11 @@ export default class LayerUtil {
       handOffTime = OneUptimeDate.addRemoveYears(
         handOffTime,
         intervalBetweenStartTimeAndHandoffTime,
+        this.timezone,
       );
 
       if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
-        handOffTime = OneUptimeDate.addRemoveYears(handOffTime, 1);
+        handOffTime = OneUptimeDate.addRemoveYears(handOffTime, 1, this.timezone);
       }
 
       return handOffTime;
@@ -566,12 +594,30 @@ export default class LayerUtil {
       });
 
     /*
-     * Generous safety bound: 10000 covers ~27 years of daily rotation or
-     * ~14 months of hourly rotation. The loop normally exits via the
-     * isBefore check; this cap only fires for pathologically long-running
-     * schedules to keep the function bounded.
+     * Bound the simulation by the actual number of rotation periods between the
+     * layer start and the target, so the cap is always large enough to REACH the
+     * target for any realistic schedule age. A fixed 10000 cap (~14 months of
+     * hourly rotation) stopped early for long-lived sub-daily restricted
+     * schedules and returned the index at iteration 10000 instead of the index at
+     * "now" — paging the wrong current user (audit F9). We keep a very high
+     * ceiling to still bound pathological inputs. Restricted periods must be
+     * simulated one at a time (they must not advance the rotation), so this stays
+     * O(elapsed periods); for realistic ages that is small.
      */
-    const maxIterations: number = 10000;
+    const rawSimCount: number = data.rotation.intervalCount.toNumber();
+    const simPeriodUnits: number =
+      Number.isFinite(rawSimCount) && rawSimCount >= 1
+        ? Math.floor(rawSimCount)
+        : 1;
+    const simUnitsBetween: number = this.getUnitsBetweenDates(
+      data.startDateTimeOfLayer,
+      data.currentEventStartTime,
+      data.rotation.intervalType,
+    );
+    const maxIterations: number = Math.min(
+      5000000,
+      Math.max(10000, Math.ceil(simUnitsBetween / simPeriodUnits) + 10),
+    );
     let iterations: number = 0;
 
     while (
@@ -633,6 +679,40 @@ export default class LayerUtil {
     const periodUnits: number =
       Number.isFinite(rawCount) && rawCount >= 1 ? Math.floor(rawCount) : 1;
 
+    /*
+     * Month and Year have variable calendar length (moment clamps end-of-month:
+     * Jan 31 + 1mo = Feb 29, and Feb 29 + 1mo = Mar 29). Because of that,
+     * boundary_k computed as a SINGLE multiplied step (anchor + k*units) does
+     * NOT equal advancing one period at a time — which is exactly how the real
+     * rotation in getEvents (via moveHandsOffTimeAfterCurrentEventStartTime)
+     * steps. Using the multiplied form here under-counted elapsed periods by one
+     * at month-end anchors and paged the previous on-call user (audit F0). So we
+     * iterate one clamped period at a time for Month/Year. The boundary count
+     * stays small even over decades of monthly/yearly rotation, so this is cheap.
+     */
+    if (
+      intervalType === EventInterval.Month ||
+      intervalType === EventInterval.Year
+    ) {
+      let periods: number = 0;
+      let boundary: Date = firstBoundary;
+      let safety: number = 0;
+      while (
+        OneUptimeDate.isOnOrBefore(boundary, target) &&
+        safety < 100000
+      ) {
+        periods++;
+        // step from the PREVIOUS boundary, mirroring the main-loop rotation.
+        boundary = this.addRotationUnits(boundary, periodUnits, intervalType);
+        safety++;
+      }
+      return periods;
+    }
+
+    /*
+     * Hour/Day/Week have no calendar-length clamping, so the O(1) analytic count
+     * (a multiplied step) is exact and equals iterating.
+     */
     const unitsBetween: number = this.getUnitsBetweenDates(
       firstBoundary,
       target,
@@ -673,19 +753,22 @@ export default class LayerUtil {
     units: number,
     intervalType: EventInterval,
   ): Date {
+    // Day/Week/Month/Year preserve schedule wall-clock across DST (consistent
+    // with moveHandsOffTimeAfterCurrentEventStartTime); Hour is absolute.
+    const tz: string | undefined = this.timezone;
     switch (intervalType) {
       case EventInterval.Hour:
         return OneUptimeDate.addRemoveHours(date, units);
       case EventInterval.Day:
-        return OneUptimeDate.addRemoveDays(date, units);
+        return OneUptimeDate.addRemoveDays(date, units, tz);
       case EventInterval.Week:
-        return OneUptimeDate.addRemoveWeeks(date, units);
+        return OneUptimeDate.addRemoveWeeks(date, units, tz);
       case EventInterval.Month:
-        return OneUptimeDate.addRemoveMonths(date, units);
+        return OneUptimeDate.addRemoveMonths(date, units, tz);
       case EventInterval.Year:
-        return OneUptimeDate.addRemoveYears(date, units);
+        return OneUptimeDate.addRemoveYears(date, units, tz);
       default:
-        return OneUptimeDate.addRemoveDays(date, units);
+        return OneUptimeDate.addRemoveDays(date, units, tz);
     }
   }
 
@@ -803,7 +886,58 @@ export default class LayerUtil {
       ];
     }
 
-    return trimmedStartAndEndTimes;
+    /*
+     * Collapse overlapping/touching segments. The wrap-around split in
+     * getWeeklyRestrictionTimesForWeek emits a head segment (early-week tail)
+     * plus a main segment, and getEventsByDailyRestriction tiles each weekly
+     * across the event window. For a rotation event spanning more than one ISO
+     * week, week k's main segment already covers the Sunday->Monday that week
+     * (k+1)'s head segment re-covers, producing duplicate/overlapping events for
+     * the same user (audit F3). Merging contiguous coverage is always safe here
+     * because every segment belongs to the same layer/user.
+     */
+    return this.mergeOverlappingStartAndEndTimes(trimmedStartAndEndTimes);
+  }
+
+  private mergeOverlappingStartAndEndTimes(
+    times: Array<StartAndEndTime>,
+  ): Array<StartAndEndTime> {
+    if (times.length <= 1) {
+      return times;
+    }
+
+    const sorted: Array<StartAndEndTime> = [...times].sort(
+      (a: StartAndEndTime, b: StartAndEndTime) => {
+        if (OneUptimeDate.isBefore(a.startTime, b.startTime)) {
+          return -1;
+        }
+        if (OneUptimeDate.isAfter(a.startTime, b.startTime)) {
+          return 1;
+        }
+        return 0;
+      },
+    );
+
+    const merged: Array<StartAndEndTime> = [];
+
+    for (const current of sorted) {
+      const last: StartAndEndTime | undefined = merged[merged.length - 1];
+
+      // overlapping or directly touching the previous window -> extend it.
+      if (last && OneUptimeDate.isOnOrAfter(last.endTime, current.startTime)) {
+        if (OneUptimeDate.isAfter(current.endTime, last.endTime)) {
+          last.endTime = current.endTime;
+        }
+        continue;
+      }
+
+      merged.push({
+        startTime: current.startTime,
+        endTime: current.endTime,
+      });
+    }
+
+    return merged;
   }
 
   public getWeeklyRestrictionTimesForWeek(data: {
@@ -867,6 +1001,7 @@ export default class LayerUtil {
          */
         const startOfWeek: Date = OneUptimeDate.getStartOfTheWeek(
           data.eventStartTime,
+          this.timezone, // anchor to the schedule zone's week boundary (audit F6)
         );
 
         /*
@@ -967,7 +1102,23 @@ export default class LayerUtil {
       );
       const absoluteEventEnd: Date = data.eventEndTime;
       let safetyCounter: number = 0;
-      const maxDays: number = 62; // generous safeguard
+      /*
+       * Scale the day-by-day safeguard to the actual event span. A fixed 62-day
+       * cap dropped every night past ~day 62 for rotation events longer than
+       * that (e.g. a quarterly/annual rotation with an overnight restriction),
+       * leaving those nights with no on-call coverage (audit F2). Bound to the
+       * event length plus margin, with a hard ceiling for pathological inputs.
+       */
+      const maxDays: number = Math.min(
+        4000,
+        Math.max(
+          62,
+          OneUptimeDate.getDaysBetweenTwoDates(
+            data.eventStartTime,
+            data.eventEndTime,
+          ) + 3,
+        ),
+      );
 
       while (
         OneUptimeDate.isOnOrBefore(currentDayStart, absoluteEventEnd) &&
@@ -1039,9 +1190,23 @@ export default class LayerUtil {
 
     let reachedTheEndOfTheCurrentEvent: boolean = false;
 
-    // create a break clause. This loop executes 100 times at max.
-
-    const maxLoopCount: number = 50;
+    /*
+     * Scale the break clause to the event span. The loop advances one restriction
+     * period (1 day for a Daily restriction, 7 days for a Weekly one) per
+     * iteration, so a single rotation event longer than ~50 days had its later
+     * days silently dropped, leaving no on-call coverage (audit F2). Days-in-event
+     * is a safe upper bound for both the daily (+1/day) and weekly (+7/day) paths.
+     */
+    const maxLoopCount: number = Math.min(
+      4000,
+      Math.max(
+        50,
+        OneUptimeDate.getDaysBetweenTwoDates(
+          data.eventStartTime,
+          data.eventEndTime,
+        ) + 10,
+      ),
+    );
     let loopCount: number = 0;
 
     while (!reachedTheEndOfTheCurrentEvent) {
@@ -1123,10 +1288,12 @@ export default class LayerUtil {
         restrictionStartTime = OneUptimeDate.addRemoveDays(
           restrictionStartTime,
           data.props.intervalType === EventInterval.Day ? 1 : 7, // daily or weekly
+          this.timezone, // preserve wall-clock across DST (audit F5)
         );
         restrictionEndTime = OneUptimeDate.addRemoveDays(
           restrictionEndTime,
           data.props.intervalType === EventInterval.Day ? 1 : 7, // daily or weekly
+          this.timezone, // preserve wall-clock across DST (audit F5)
         );
       } else if (
         // 3 - End Restriction - the event starts before the window and ends inside it.
@@ -1159,10 +1326,12 @@ export default class LayerUtil {
         restrictionStartTime = OneUptimeDate.addRemoveDays(
           restrictionStartTime,
           data.props.intervalType === EventInterval.Day ? 1 : 7, // daily or weekly
+          this.timezone, // preserve wall-clock across DST (audit F5)
         );
         restrictionEndTime = OneUptimeDate.addRemoveDays(
           restrictionEndTime,
           data.props.intervalType === EventInterval.Day ? 1 : 7, // daily or weekly
+          this.timezone, // preserve wall-clock across DST (audit F5)
         );
       }
     }

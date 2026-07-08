@@ -85,8 +85,20 @@ export default class OneUptimeDate {
     return new Date(timestamp * 1000);
   }
 
-  public static getStartOfTheWeek(date: Date): Date {
+  public static getStartOfTheWeek(
+    date: Date,
+    timezone?: string | undefined,
+  ): Date {
     date = this.fromString(date);
+    if (timezone) {
+      /*
+       * Timezone-aware start of week so on-call weekly-restriction boundaries
+       * anchor to the schedule's zone, consistent with the other boundary
+       * computations (keepTimeButMoveDay / getStartOfDay). Without a timezone
+       * the boundary is taken in the server's local zone (legacy behavior).
+       */
+      return moment.tz(date, timezone).startOf("week").toDate();
+    }
     return moment(date).startOf("week").toDate();
   }
 
@@ -653,8 +665,24 @@ export default class OneUptimeDate {
     return moment(date).add(minutes, "minutes").toDate();
   }
 
-  public static addRemoveDays(date: Date, days: number): Date {
+  /*
+   * Calendar-unit arithmetic. When `timezone` is provided the step preserves
+   * the wall-clock time in that zone across DST transitions (e.g. an on-call
+   * handoff/restriction authored for 09:00 stays at 09:00 local after
+   * spring-forward/fall-back). Without a timezone the step is taken in the
+   * server's local zone — fully backward compatible for existing callers.
+   * Hours/minutes/seconds are absolute units and intentionally have no
+   * timezone-aware variant.
+   */
+  public static addRemoveDays(
+    date: Date,
+    days: number,
+    timezone?: string | undefined,
+  ): Date {
     date = this.fromString(date);
+    if (timezone) {
+      return moment.tz(date, timezone).add(days, "days").toDate();
+    }
     return moment(date).add(days, "days").toDate();
   }
 
@@ -663,18 +691,39 @@ export default class OneUptimeDate {
     return moment(date).add(hours, "hours").toDate();
   }
 
-  public static addRemoveYears(date: Date, years: number): Date {
+  public static addRemoveYears(
+    date: Date,
+    years: number,
+    timezone?: string | undefined,
+  ): Date {
     date = this.fromString(date);
+    if (timezone) {
+      return moment.tz(date, timezone).add(years, "years").toDate();
+    }
     return moment(date).add(years, "years").toDate();
   }
 
-  public static addRemoveMonths(date: Date, months: number): Date {
+  public static addRemoveMonths(
+    date: Date,
+    months: number,
+    timezone?: string | undefined,
+  ): Date {
     date = this.fromString(date);
+    if (timezone) {
+      return moment.tz(date, timezone).add(months, "months").toDate();
+    }
     return moment(date).add(months, "months").toDate();
   }
 
-  public static addRemoveWeeks(date: Date, weeks: number): Date {
+  public static addRemoveWeeks(
+    date: Date,
+    weeks: number,
+    timezone?: string | undefined,
+  ): Date {
     date = this.fromString(date);
+    if (timezone) {
+      return moment.tz(date, timezone).add(weeks, "weeks").toDate();
+    }
     return moment(date).add(weeks, "weeks").toDate();
   }
 
