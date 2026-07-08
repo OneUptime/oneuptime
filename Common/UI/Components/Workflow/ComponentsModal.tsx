@@ -7,6 +7,8 @@ import {
   COMMON_CATEGORY_NAME,
   getCommonComponents,
 } from "./CommonComponents";
+import DatabaseStepPicker from "./DatabaseStepPicker";
+import { groupComponentsByModel } from "./DatabaseStepUtils";
 import IconProp from "../../../Types/Icon/IconProp";
 import ComponentMetadata, {
   ComponentCategory,
@@ -86,6 +88,9 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
   >([]);
   const [selectedComponentMetadata, setSelectedComponentMetadata] =
     useState<ComponentMetadata | null>(null);
+
+  // When on, browse database records by model → operation instead of the list.
+  const [databaseMode, setDatabaseMode] = useState<boolean>(false);
 
   useEffect(() => {
     setComponents(props.components);
@@ -193,6 +198,8 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
   };
   const hasCommonComponents: boolean =
     getCommonComponents(components, props.componentsType).length > 0;
+  const hasModelComponents: boolean =
+    groupComponentsByModel(components, props.componentsType).length > 0;
   const displayCategories: Array<ComponentCategory> =
     hasSearchTerm || !hasCommonComponents
       ? categories
@@ -376,235 +383,282 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                   })}
                 </div>
               )}
+
+              {hasModelComponents && (
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDatabaseMode((value: boolean) => {
+                        return !value;
+                      });
+                    }}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
+                      databaseMode
+                        ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Icon icon={IconProp.Database} className="h-3 w-3" />
+                    {databaseMode
+                      ? "Back to all steps"
+                      : "Work with database records"}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
           <div className="overflow-y-auto overflow-x-hidden flex-1">
-            {!componentsToShow ||
-              (componentsToShow.length === 0 && (
-                <div className="mt-20 flex w-full flex-col items-center justify-center gap-4 px-4">
-                  <div className="max-w-2xl">
-                    <ErrorMessage message="No components that match your search. If you are looking for an integration that does not exist currently - you can use Custom Code or API component to build anything you like." />
-                  </div>
-                  {hasSearchTerm && (
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition-colors duration-150 hover:bg-slate-50 hover:text-slate-800"
-                      onClick={() => {
-                        setSearch("");
-                        searchInputRef.current?.focus();
-                      }}
-                    >
-                      <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
-                      Reset search
-                    </button>
-                  )}
-                </div>
-              ))}
-
-            {displayCategories &&
-              displayCategories.length > 0 &&
-              displayCategories.map(
-                (category: ComponentCategory, i: number) => {
-                  const categoryComponents: Array<ComponentMetadata> =
-                    category.name === COMMON_CATEGORY_NAME
-                      ? getCommonComponents(
-                          componentsToShow,
-                          props.componentsType,
-                        )
-                      : componentsToShow.filter(
-                          (componentMetadata: ComponentMetadata) => {
-                            return componentMetadata.category === category.name;
-                          },
-                        );
-
-                  if (categoryComponents.length === 0) {
-                    return <div key={i}></div>;
-                  }
-
-                  return (
-                    <div key={i} className="mb-6">
-                      {/* Category header */}
-                      <div className="flex items-center gap-2 mb-3 px-1">
-                        <div
-                          className="flex items-center justify-center rounded-md"
-                          style={{
-                            width: "28px",
-                            height: "28px",
-                            backgroundColor: "#f1f5f9",
+            {databaseMode ? (
+              <div className="p-1">
+                <DatabaseStepPicker
+                  components={components}
+                  componentType={props.componentsType}
+                  selectedComponentId={selectedComponentMetadata?.id}
+                  onSelect={(component: ComponentMetadata) => {
+                    setSelectedComponentMetadata(component);
+                  }}
+                />
+              </div>
+            ) : (
+              <>
+                {!componentsToShow ||
+                  (componentsToShow.length === 0 && (
+                    <div className="mt-20 flex w-full flex-col items-center justify-center gap-4 px-4">
+                      <div className="max-w-2xl">
+                        <ErrorMessage message="No components that match your search. If you are looking for an integration that does not exist currently - you can use Custom Code or API component to build anything you like." />
+                      </div>
+                      {hasSearchTerm && (
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition-colors duration-150 hover:bg-slate-50 hover:text-slate-800"
+                          onClick={() => {
+                            setSearch("");
+                            searchInputRef.current?.focus();
                           }}
                         >
-                          <Icon
-                            icon={category.icon}
-                            className="h-4 w-4 text-gray-500"
-                          />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-semibold text-gray-700 leading-tight">
-                            {category.name}
-                          </h4>
-                          <p className="text-xs text-gray-400 leading-tight">
-                            {category.description}
-                          </p>
-                        </div>
-                      </div>
+                          <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+                          Reset search
+                        </button>
+                      )}
+                    </div>
+                  ))}
 
-                      {/* Component cards grid */}
-                      <div className="grid grid-cols-1 gap-2">
-                        {categoryComponents.map(
-                          (componentMetadata: ComponentMetadata, j: number) => {
-                            const isSelected: boolean =
-                              selectedComponentMetadata !== null &&
-                              selectedComponentMetadata.id ===
-                                componentMetadata.id;
+                {displayCategories &&
+                  displayCategories.length > 0 &&
+                  displayCategories.map(
+                    (category: ComponentCategory, i: number) => {
+                      const categoryComponents: Array<ComponentMetadata> =
+                        category.name === COMMON_CATEGORY_NAME
+                          ? getCommonComponents(
+                              componentsToShow,
+                              props.componentsType,
+                            )
+                          : componentsToShow.filter(
+                              (componentMetadata: ComponentMetadata) => {
+                                return (
+                                  componentMetadata.category === category.name
+                                );
+                              },
+                            );
 
-                            return (
-                              <div
-                                key={j}
-                                onClick={() => {
-                                  setSelectedComponentMetadata(
-                                    componentMetadata,
-                                  );
-                                }}
-                                className="cursor-pointer transition-all duration-150"
-                                style={{
-                                  padding: "0.75rem",
-                                  borderRadius: "10px",
-                                  border: isSelected
-                                    ? "2px solid #6366f1"
-                                    : "1px solid #e2e8f0",
-                                  backgroundColor: isSelected
-                                    ? "#eef2ff"
-                                    : "#ffffff",
-                                  display: "flex",
-                                  alignItems: "flex-start",
-                                  gap: "0.75rem",
-                                  boxShadow: isSelected
-                                    ? "0 0 0 3px rgba(99, 102, 241, 0.1)"
-                                    : "0 1px 2px 0 rgba(0, 0, 0, 0.03)",
-                                }}
-                              >
-                                {/* Icon */}
-                                <div
-                                  style={{
-                                    width: "36px",
-                                    height: "36px",
-                                    borderRadius: "8px",
-                                    backgroundColor: isSelected
-                                      ? "#6366f1"
-                                      : "#f1f5f9",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    flexShrink: 0,
-                                    transition: "all 0.15s ease",
-                                  }}
-                                >
-                                  <Icon
-                                    icon={componentMetadata.iconProp}
-                                    style={{
-                                      color: isSelected ? "#ffffff" : "#64748b",
-                                      width: "1rem",
-                                      height: "1rem",
+                      if (categoryComponents.length === 0) {
+                        return <div key={i}></div>;
+                      }
+
+                      return (
+                        <div key={i} className="mb-6">
+                          {/* Category header */}
+                          <div className="flex items-center gap-2 mb-3 px-1">
+                            <div
+                              className="flex items-center justify-center rounded-md"
+                              style={{
+                                width: "28px",
+                                height: "28px",
+                                backgroundColor: "#f1f5f9",
+                              }}
+                            >
+                              <Icon
+                                icon={category.icon}
+                                className="h-4 w-4 text-gray-500"
+                              />
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-700 leading-tight">
+                                {category.name}
+                              </h4>
+                              <p className="text-xs text-gray-400 leading-tight">
+                                {category.description}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Component cards grid */}
+                          <div className="grid grid-cols-1 gap-2">
+                            {categoryComponents.map(
+                              (
+                                componentMetadata: ComponentMetadata,
+                                j: number,
+                              ) => {
+                                const isSelected: boolean =
+                                  selectedComponentMetadata !== null &&
+                                  selectedComponentMetadata.id ===
+                                    componentMetadata.id;
+
+                                return (
+                                  <div
+                                    key={j}
+                                    onClick={() => {
+                                      setSelectedComponentMetadata(
+                                        componentMetadata,
+                                      );
                                     }}
-                                  />
-                                </div>
-
-                                {/* Text */}
-                                <div style={{ minWidth: 0, flex: 1 }}>
-                                  <div className="flex items-start justify-between gap-2">
-                                    <p
+                                    className="cursor-pointer transition-all duration-150"
+                                    style={{
+                                      padding: "0.75rem",
+                                      borderRadius: "10px",
+                                      border: isSelected
+                                        ? "2px solid #6366f1"
+                                        : "1px solid #e2e8f0",
+                                      backgroundColor: isSelected
+                                        ? "#eef2ff"
+                                        : "#ffffff",
+                                      display: "flex",
+                                      alignItems: "flex-start",
+                                      gap: "0.75rem",
+                                      boxShadow: isSelected
+                                        ? "0 0 0 3px rgba(99, 102, 241, 0.1)"
+                                        : "0 1px 2px 0 rgba(0, 0, 0, 0.03)",
+                                    }}
+                                  >
+                                    {/* Icon */}
+                                    <div
                                       style={{
-                                        fontSize: "0.8125rem",
-                                        fontWeight: 600,
-                                        color: isSelected
-                                          ? "#4338ca"
-                                          : "#1e293b",
-                                        margin: 0,
-                                        lineHeight: "1.25rem",
+                                        width: "36px",
+                                        height: "36px",
+                                        borderRadius: "8px",
+                                        backgroundColor: isSelected
+                                          ? "#6366f1"
+                                          : "#f1f5f9",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        flexShrink: 0,
+                                        transition: "all 0.15s ease",
                                       }}
                                     >
-                                      {renderHighlightedText(
-                                        componentMetadata.title,
-                                        isSelected
-                                          ? "rounded bg-white/80 px-0.5 text-current"
-                                          : "rounded bg-amber-100 px-0.5 text-current",
-                                      )}
-                                    </p>
+                                      <Icon
+                                        icon={componentMetadata.iconProp}
+                                        style={{
+                                          color: isSelected
+                                            ? "#ffffff"
+                                            : "#64748b",
+                                          width: "1rem",
+                                          height: "1rem",
+                                        }}
+                                      />
+                                    </div>
 
-                                    {hasSearchTerm && (
-                                      <span
-                                        className={`mt-0.5 inline-flex flex-shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                                          isSelected
-                                            ? "bg-white/80 text-indigo-700"
-                                            : "bg-slate-100 text-slate-500"
-                                        }`}
+                                    {/* Text */}
+                                    <div style={{ minWidth: 0, flex: 1 }}>
+                                      <div className="flex items-start justify-between gap-2">
+                                        <p
+                                          style={{
+                                            fontSize: "0.8125rem",
+                                            fontWeight: 600,
+                                            color: isSelected
+                                              ? "#4338ca"
+                                              : "#1e293b",
+                                            margin: 0,
+                                            lineHeight: "1.25rem",
+                                          }}
+                                        >
+                                          {renderHighlightedText(
+                                            componentMetadata.title,
+                                            isSelected
+                                              ? "rounded bg-white/80 px-0.5 text-current"
+                                              : "rounded bg-amber-100 px-0.5 text-current",
+                                          )}
+                                        </p>
+
+                                        {hasSearchTerm && (
+                                          <span
+                                            className={`mt-0.5 inline-flex flex-shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                                              isSelected
+                                                ? "bg-white/80 text-indigo-700"
+                                                : "bg-slate-100 text-slate-500"
+                                            }`}
+                                          >
+                                            {renderHighlightedText(
+                                              componentMetadata.category,
+                                              isSelected
+                                                ? "rounded bg-indigo-100 px-0.5 text-current"
+                                                : "rounded bg-white px-0.5 text-current",
+                                            )}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p
+                                        style={{
+                                          fontSize: "0.75rem",
+                                          color: isSelected
+                                            ? "#6366f1"
+                                            : "#94a3b8",
+                                          margin: 0,
+                                          marginTop: "2px",
+                                          lineHeight: "1rem",
+                                          display: "-webkit-box",
+                                          WebkitLineClamp: 2,
+                                          WebkitBoxOrient: "vertical",
+                                          overflow: "hidden",
+                                        }}
                                       >
                                         {renderHighlightedText(
-                                          componentMetadata.category,
+                                          componentMetadata.description,
                                           isSelected
-                                            ? "rounded bg-indigo-100 px-0.5 text-current"
-                                            : "rounded bg-white px-0.5 text-current",
+                                            ? "rounded bg-white/80 px-0.5 text-current"
+                                            : "rounded bg-amber-100 px-0.5 text-current",
                                         )}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p
-                                    style={{
-                                      fontSize: "0.75rem",
-                                      color: isSelected ? "#6366f1" : "#94a3b8",
-                                      margin: 0,
-                                      marginTop: "2px",
-                                      lineHeight: "1rem",
-                                      display: "-webkit-box",
-                                      WebkitLineClamp: 2,
-                                      WebkitBoxOrient: "vertical",
-                                      overflow: "hidden",
-                                    }}
-                                  >
-                                    {renderHighlightedText(
-                                      componentMetadata.description,
-                                      isSelected
-                                        ? "rounded bg-white/80 px-0.5 text-current"
-                                        : "rounded bg-amber-100 px-0.5 text-current",
-                                    )}
-                                  </p>
-                                </div>
+                                      </p>
+                                    </div>
 
-                                {/* Selection indicator */}
-                                {isSelected && (
-                                  <div
-                                    style={{
-                                      width: "20px",
-                                      height: "20px",
-                                      borderRadius: "50%",
-                                      backgroundColor: "#6366f1",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      flexShrink: 0,
-                                      marginTop: "2px",
-                                    }}
-                                  >
-                                    <Icon
-                                      icon={IconProp.Check}
-                                      style={{
-                                        color: "#ffffff",
-                                        width: "0.625rem",
-                                        height: "0.625rem",
-                                      }}
-                                    />
+                                    {/* Selection indicator */}
+                                    {isSelected && (
+                                      <div
+                                        style={{
+                                          width: "20px",
+                                          height: "20px",
+                                          borderRadius: "50%",
+                                          backgroundColor: "#6366f1",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          flexShrink: 0,
+                                          marginTop: "2px",
+                                        }}
+                                      >
+                                        <Icon
+                                          icon={IconProp.Check}
+                                          style={{
+                                            color: "#ffffff",
+                                            width: "0.625rem",
+                                            height: "0.625rem",
+                                          }}
+                                        />
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-                              </div>
-                            );
-                          },
-                        )}
-                      </div>
-                    </div>
-                  );
-                },
-              )}
+                                );
+                              },
+                            )}
+                          </div>
+                        </div>
+                      );
+                    },
+                  )}
+              </>
+            )}
           </div>
         </div>
       </>
