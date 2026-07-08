@@ -1,6 +1,6 @@
 import LayerConfigForm from "./LayerConfigForm";
 import LayerUser from "./LayerUser";
-import { getColorForUserId } from "./LayerUserColors";
+import { getColorForUserId, getUserInitials } from "./LayerUserColors";
 import { summarizeRestriction, summarizeRotation } from "./LayerSummary";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -29,20 +29,6 @@ export interface ComponentProps {
   onLayerChange: (layer: OnCallDutyPolicyScheduleLayer) => void;
   onUsersChange: (users: Array<OnCallDutyPolicyScheduleLayerUser>) => void;
 }
-
-type GetInitialsFunction = (name: string, email: string) => string;
-
-const getInitials: GetInitialsFunction = (
-  name: string,
-  email: string,
-): string => {
-  const source: string = (name || email || "?").trim();
-  const parts: Array<string> = source.split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0]![0]}${parts[1]![0]}`.toUpperCase();
-  }
-  return source.substring(0, 2).toUpperCase();
-};
 
 interface SummaryChipProps {
   icon: IconProp;
@@ -103,7 +89,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
                     className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold text-white ring-2 ring-white"
                     style={{ backgroundColor: getColorForUserId(userId) }}
                   >
-                    {getInitials(name, email)}
+                    {getUserInitials(name, email)}
                   </span>
                 </Tooltip>
               );
@@ -280,7 +266,8 @@ const LayerCard: FunctionComponent<ComponentProps> = (
               On-call users
             </h4>
             <p className="mb-3 mt-0.5 text-sm text-gray-500">
-              Users rotate in this order. Drag to reorder the rotation.
+              On-call duty rotates through these users top to bottom. Use the
+              arrows to change the order.
             </p>
             <LayerUser layer={layer} onUpdateUsers={props.onUsersChange} />
           </div>

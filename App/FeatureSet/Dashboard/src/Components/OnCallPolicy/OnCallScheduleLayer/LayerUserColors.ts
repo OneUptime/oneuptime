@@ -20,3 +20,17 @@ export function getColorForUserId(userId: string): string {
     Math.abs(HashCode.fromString(userId)) % colorListLength;
   return (BrightColors[colorIndex] as Color)?.toString() || Blue500.toString();
 }
+
+/*
+ * Up-to-two-letter initials for a user's avatar, derived from their name (or
+ * email as a fallback). Shared by the collapsed header avatar stack and the
+ * on-call users list so the same user always shows the same initials.
+ */
+export function getUserInitials(name: string, email: string): string {
+  const source: string = (name || email || "?").trim();
+  const parts: Array<string> = source.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0]![0]}${parts[1]![0]}`.toUpperCase();
+  }
+  return source.substring(0, 2).toUpperCase();
+}
