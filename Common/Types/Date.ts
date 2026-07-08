@@ -482,7 +482,23 @@ export default class OneUptimeDate {
     return this.getSomeDaysAgo(new PositiveNumber(1));
   }
 
-  public static fromUnixNano(timestamp: number): Date {
+  public static fromUnixNano(timestamp: string | number): Date {
+    /*
+     * Nanosecond epoch values are far larger than Number.MAX_SAFE_INTEGER, so
+     * parsing them as a float (or dividing that float by 1e6) silently drops
+     * up to a full millisecond of precision. When the raw value is an integer
+     * string, divide with BigInt to keep exact millisecond precision; fall
+     * back to numeric division for number inputs and non-integer strings.
+     */
+    if (typeof timestamp === "string") {
+      const trimmed: string = timestamp.trim();
+      if (/^[+-]?\d+$/.test(trimmed)) {
+        const nanosPerMilli: bigint = BigInt(1000000);
+        const millis: number = Number(BigInt(trimmed) / nanosPerMilli);
+        return moment(millis).toDate();
+      }
+      return moment(Number(trimmed) / 1000000).toDate();
+    }
     return moment(timestamp / 1000000).toDate();
   }
 

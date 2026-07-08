@@ -242,31 +242,34 @@ function parseUnixNanoToDate(
   value: string | number | undefined,
   context: string,
 ): Date {
-  let numericValue: number = OneUptimeDate.getCurrentDateAsUnixNano();
-
   if (value !== undefined && value !== null) {
     try {
       if (typeof value === "string") {
-        const parsed: number = Number.parseFloat(value);
-        if (isNaN(parsed)) {
+        const trimmed: string = value.trim();
+        if (trimmed === "" || isNaN(Number(trimmed))) {
           throw new Error(`Invalid timestamp string: ${value}`);
         }
-        numericValue = parsed;
-      } else if (typeof value === "number") {
+        /*
+         * Hand the raw nanosecond string to fromUnixNano so it can divide
+         * with BigInt — nanosecond epochs exceed Number.MAX_SAFE_INTEGER, so
+         * parsing to a float here would drop up to a full millisecond.
+         */
+        return OneUptimeDate.fromUnixNano(trimmed);
+      }
+      if (typeof value === "number") {
         if (!Number.isFinite(value)) {
           throw new Error(`Invalid timestamp number: ${value}`);
         }
-        numericValue = value;
+        return OneUptimeDate.fromUnixNano(value);
       }
     } catch (error) {
       logger.warn(
         `Error processing ${context}: ${error instanceof Error ? error.message : String(error)}, using current time`,
       );
-      numericValue = OneUptimeDate.getCurrentDateAsUnixNano();
     }
   }
 
-  return OneUptimeDate.fromUnixNano(numericValue);
+  return OneUptimeDate.getCurrentDate();
 }
 
 // Same trim-or-null read contract as OtelIngestBaseService.getStringAttribute.
