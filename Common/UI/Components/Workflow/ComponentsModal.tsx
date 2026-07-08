@@ -2,6 +2,11 @@
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Icon from "../Icon/Icon";
 import SideOver from "../SideOver/SideOver";
+import {
+  COMMON_CATEGORY_DESCRIPTION,
+  COMMON_CATEGORY_NAME,
+  getCommonComponents,
+} from "./CommonComponents";
 import IconProp from "../../../Types/Icon/IconProp";
 import ComponentMetadata, {
   ComponentCategory,
@@ -176,6 +181,22 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
       });
     })
     .slice(0, 4);
+
+  /*
+   * Lead the list with a curated "Common steps" section (a shortcut over the
+   * full catalog, hidden while searching so search stays a flat ranked list).
+   */
+  const commonCategory: ComponentCategory = {
+    name: COMMON_CATEGORY_NAME,
+    description: COMMON_CATEGORY_DESCRIPTION,
+    icon: IconProp.Star,
+  };
+  const hasCommonComponents: boolean =
+    getCommonComponents(components, props.componentsType).length > 0;
+  const displayCategories: Array<ComponentCategory> =
+    hasSearchTerm || !hasCommonComponents
+      ? categories
+      : [commonCategory, ...categories];
 
   const renderHighlightedText: (
     text: string,
@@ -381,198 +402,209 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                 </div>
               ))}
 
-            {categories &&
-              categories.length > 0 &&
-              categories.map((category: ComponentCategory, i: number) => {
-                const categoryComponents: Array<ComponentMetadata> =
-                  componentsToShow.filter(
-                    (componentMetadata: ComponentMetadata) => {
-                      return componentMetadata.category === category.name;
-                    },
-                  );
+            {displayCategories &&
+              displayCategories.length > 0 &&
+              displayCategories.map(
+                (category: ComponentCategory, i: number) => {
+                  const categoryComponents: Array<ComponentMetadata> =
+                    category.name === COMMON_CATEGORY_NAME
+                      ? getCommonComponents(
+                          componentsToShow,
+                          props.componentsType,
+                        )
+                      : componentsToShow.filter(
+                          (componentMetadata: ComponentMetadata) => {
+                            return componentMetadata.category === category.name;
+                          },
+                        );
 
-                if (categoryComponents.length === 0) {
-                  return <div key={i}></div>;
-                }
+                  if (categoryComponents.length === 0) {
+                    return <div key={i}></div>;
+                  }
 
-                return (
-                  <div key={i} className="mb-6">
-                    {/* Category header */}
-                    <div className="flex items-center gap-2 mb-3 px-1">
-                      <div
-                        className="flex items-center justify-center rounded-md"
-                        style={{
-                          width: "28px",
-                          height: "28px",
-                          backgroundColor: "#f1f5f9",
-                        }}
-                      >
-                        <Icon
-                          icon={category.icon}
-                          className="h-4 w-4 text-gray-500"
-                        />
+                  return (
+                    <div key={i} className="mb-6">
+                      {/* Category header */}
+                      <div className="flex items-center gap-2 mb-3 px-1">
+                        <div
+                          className="flex items-center justify-center rounded-md"
+                          style={{
+                            width: "28px",
+                            height: "28px",
+                            backgroundColor: "#f1f5f9",
+                          }}
+                        >
+                          <Icon
+                            icon={category.icon}
+                            className="h-4 w-4 text-gray-500"
+                          />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-semibold text-gray-700 leading-tight">
+                            {category.name}
+                          </h4>
+                          <p className="text-xs text-gray-400 leading-tight">
+                            {category.description}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-700 leading-tight">
-                          {category.name}
-                        </h4>
-                        <p className="text-xs text-gray-400 leading-tight">
-                          {category.description}
-                        </p>
-                      </div>
-                    </div>
 
-                    {/* Component cards grid */}
-                    <div className="grid grid-cols-1 gap-2">
-                      {categoryComponents.map(
-                        (componentMetadata: ComponentMetadata, j: number) => {
-                          const isSelected: boolean =
-                            selectedComponentMetadata !== null &&
-                            selectedComponentMetadata.id ===
-                              componentMetadata.id;
+                      {/* Component cards grid */}
+                      <div className="grid grid-cols-1 gap-2">
+                        {categoryComponents.map(
+                          (componentMetadata: ComponentMetadata, j: number) => {
+                            const isSelected: boolean =
+                              selectedComponentMetadata !== null &&
+                              selectedComponentMetadata.id ===
+                                componentMetadata.id;
 
-                          return (
-                            <div
-                              key={j}
-                              onClick={() => {
-                                setSelectedComponentMetadata(componentMetadata);
-                              }}
-                              className="cursor-pointer transition-all duration-150"
-                              style={{
-                                padding: "0.75rem",
-                                borderRadius: "10px",
-                                border: isSelected
-                                  ? "2px solid #6366f1"
-                                  : "1px solid #e2e8f0",
-                                backgroundColor: isSelected
-                                  ? "#eef2ff"
-                                  : "#ffffff",
-                                display: "flex",
-                                alignItems: "flex-start",
-                                gap: "0.75rem",
-                                boxShadow: isSelected
-                                  ? "0 0 0 3px rgba(99, 102, 241, 0.1)"
-                                  : "0 1px 2px 0 rgba(0, 0, 0, 0.03)",
-                              }}
-                            >
-                              {/* Icon */}
+                            return (
                               <div
+                                key={j}
+                                onClick={() => {
+                                  setSelectedComponentMetadata(
+                                    componentMetadata,
+                                  );
+                                }}
+                                className="cursor-pointer transition-all duration-150"
                                 style={{
-                                  width: "36px",
-                                  height: "36px",
-                                  borderRadius: "8px",
+                                  padding: "0.75rem",
+                                  borderRadius: "10px",
+                                  border: isSelected
+                                    ? "2px solid #6366f1"
+                                    : "1px solid #e2e8f0",
                                   backgroundColor: isSelected
-                                    ? "#6366f1"
-                                    : "#f1f5f9",
+                                    ? "#eef2ff"
+                                    : "#ffffff",
                                   display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  flexShrink: 0,
-                                  transition: "all 0.15s ease",
+                                  alignItems: "flex-start",
+                                  gap: "0.75rem",
+                                  boxShadow: isSelected
+                                    ? "0 0 0 3px rgba(99, 102, 241, 0.1)"
+                                    : "0 1px 2px 0 rgba(0, 0, 0, 0.03)",
                                 }}
                               >
-                                <Icon
-                                  icon={componentMetadata.iconProp}
+                                {/* Icon */}
+                                <div
                                   style={{
-                                    color: isSelected ? "#ffffff" : "#64748b",
-                                    width: "1rem",
-                                    height: "1rem",
+                                    width: "36px",
+                                    height: "36px",
+                                    borderRadius: "8px",
+                                    backgroundColor: isSelected
+                                      ? "#6366f1"
+                                      : "#f1f5f9",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    flexShrink: 0,
+                                    transition: "all 0.15s ease",
                                   }}
-                                />
-                              </div>
+                                >
+                                  <Icon
+                                    icon={componentMetadata.iconProp}
+                                    style={{
+                                      color: isSelected ? "#ffffff" : "#64748b",
+                                      width: "1rem",
+                                      height: "1rem",
+                                    }}
+                                  />
+                                </div>
 
-                              {/* Text */}
-                              <div style={{ minWidth: 0, flex: 1 }}>
-                                <div className="flex items-start justify-between gap-2">
+                                {/* Text */}
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                  <div className="flex items-start justify-between gap-2">
+                                    <p
+                                      style={{
+                                        fontSize: "0.8125rem",
+                                        fontWeight: 600,
+                                        color: isSelected
+                                          ? "#4338ca"
+                                          : "#1e293b",
+                                        margin: 0,
+                                        lineHeight: "1.25rem",
+                                      }}
+                                    >
+                                      {renderHighlightedText(
+                                        componentMetadata.title,
+                                        isSelected
+                                          ? "rounded bg-white/80 px-0.5 text-current"
+                                          : "rounded bg-amber-100 px-0.5 text-current",
+                                      )}
+                                    </p>
+
+                                    {hasSearchTerm && (
+                                      <span
+                                        className={`mt-0.5 inline-flex flex-shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                                          isSelected
+                                            ? "bg-white/80 text-indigo-700"
+                                            : "bg-slate-100 text-slate-500"
+                                        }`}
+                                      >
+                                        {renderHighlightedText(
+                                          componentMetadata.category,
+                                          isSelected
+                                            ? "rounded bg-indigo-100 px-0.5 text-current"
+                                            : "rounded bg-white px-0.5 text-current",
+                                        )}
+                                      </span>
+                                    )}
+                                  </div>
                                   <p
                                     style={{
-                                      fontSize: "0.8125rem",
-                                      fontWeight: 600,
-                                      color: isSelected ? "#4338ca" : "#1e293b",
+                                      fontSize: "0.75rem",
+                                      color: isSelected ? "#6366f1" : "#94a3b8",
                                       margin: 0,
-                                      lineHeight: "1.25rem",
+                                      marginTop: "2px",
+                                      lineHeight: "1rem",
+                                      display: "-webkit-box",
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: "vertical",
+                                      overflow: "hidden",
                                     }}
                                   >
                                     {renderHighlightedText(
-                                      componentMetadata.title,
+                                      componentMetadata.description,
                                       isSelected
                                         ? "rounded bg-white/80 px-0.5 text-current"
                                         : "rounded bg-amber-100 px-0.5 text-current",
                                     )}
                                   </p>
-
-                                  {hasSearchTerm && (
-                                    <span
-                                      className={`mt-0.5 inline-flex flex-shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                                        isSelected
-                                          ? "bg-white/80 text-indigo-700"
-                                          : "bg-slate-100 text-slate-500"
-                                      }`}
-                                    >
-                                      {renderHighlightedText(
-                                        componentMetadata.category,
-                                        isSelected
-                                          ? "rounded bg-indigo-100 px-0.5 text-current"
-                                          : "rounded bg-white px-0.5 text-current",
-                                      )}
-                                    </span>
-                                  )}
                                 </div>
-                                <p
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: isSelected ? "#6366f1" : "#94a3b8",
-                                    margin: 0,
-                                    marginTop: "2px",
-                                    lineHeight: "1rem",
-                                    display: "-webkit-box",
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: "vertical",
-                                    overflow: "hidden",
-                                  }}
-                                >
-                                  {renderHighlightedText(
-                                    componentMetadata.description,
-                                    isSelected
-                                      ? "rounded bg-white/80 px-0.5 text-current"
-                                      : "rounded bg-amber-100 px-0.5 text-current",
-                                  )}
-                                </p>
-                              </div>
 
-                              {/* Selection indicator */}
-                              {isSelected && (
-                                <div
-                                  style={{
-                                    width: "20px",
-                                    height: "20px",
-                                    borderRadius: "50%",
-                                    backgroundColor: "#6366f1",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    flexShrink: 0,
-                                    marginTop: "2px",
-                                  }}
-                                >
-                                  <Icon
-                                    icon={IconProp.Check}
+                                {/* Selection indicator */}
+                                {isSelected && (
+                                  <div
                                     style={{
-                                      color: "#ffffff",
-                                      width: "0.625rem",
-                                      height: "0.625rem",
+                                      width: "20px",
+                                      height: "20px",
+                                      borderRadius: "50%",
+                                      backgroundColor: "#6366f1",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      flexShrink: 0,
+                                      marginTop: "2px",
                                     }}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          );
-                        },
-                      )}
+                                  >
+                                    <Icon
+                                      icon={IconProp.Check}
+                                      style={{
+                                        color: "#ffffff",
+                                        width: "0.625rem",
+                                        height: "0.625rem",
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          },
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                },
+              )}
           </div>
         </div>
       </>
