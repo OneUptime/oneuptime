@@ -172,15 +172,20 @@ export async function recordSchemaMigrationFailureBestEffort(
      */
     await diagnosticDataSource.initialize();
 
+    const definedMigrationClasses: Array<new () => { name: string }> =
+      Array.isArray(dataSourceOptions.migrations)
+        ? (dataSourceOptions.migrations as unknown as Array<
+            new () => { name: string }
+          >)
+        : [];
+
     const definedNames: Array<string> = Array.from(
       new Set(
-        (
-          (dataSourceOptions.migrations as
-            | Array<new () => { name: string }>
-            | undefined) || []
-        ).map((MigrationClass: new () => { name: string }): string => {
-          return new MigrationClass().name;
-        }),
+        definedMigrationClasses.map(
+          (MigrationClass: new () => { name: string }): string => {
+            return new MigrationClass().name;
+          },
+        ),
       ),
     ).sort((a: string, b: string): number => {
       return parseMigrationTimestamp(a) - parseMigrationTimestamp(b);
