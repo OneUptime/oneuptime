@@ -10,7 +10,10 @@ import {
   buildTemplateGraph,
   TemplateGraph,
 } from "./WorkflowTemplates";
-import { getUpstreamComponentIds } from "./GraphUtils";
+import {
+  getUpstreamComponentIds,
+  renameComponentReferences,
+} from "./GraphUtils";
 import { loadComponentsAndCategories } from "./Utils";
 import { VoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -734,16 +737,22 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               setShowComponentSettingsModal(false);
             }}
             onSave={(componentData: NodeDataProp) => {
-              // Update the node.
+              // Update the node, then follow any identifier rename downstream.
+              const previousId: string = selectedNodeData.id;
 
               setNodes((nds: Array<Node>) => {
-                return nds.map((n: Node) => {
+                const updated: Array<Node> = nds.map((n: Node) => {
                   if (n.data.internalId === componentData.internalId) {
-                    n.data = componentData;
+                    return { ...n, data: componentData };
                   }
-
                   return n;
                 });
+
+                return renameComponentReferences(
+                  updated,
+                  previousId,
+                  componentData.id,
+                );
               });
 
               setShowComponentSettingsModal(false);
