@@ -13,6 +13,7 @@ import {
 import {
   getUpstreamComponentIds,
   renameComponentReferences,
+  deriveDataEdges,
 } from "./GraphUtils";
 import { loadComponentsAndCategories } from "./Utils";
 import { VoidFunction } from "../../../Types/FunctionTypes";
@@ -339,6 +340,8 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
   const [showOutline, setShowOutline] = useState<boolean>(false);
 
+  const [showDataFlow, setShowDataFlow] = useState<boolean>(false);
+
   type LoadTemplateFunction = (template: WorkflowTemplate) => void;
 
   const loadTemplate: LoadTemplateFunction = (
@@ -513,7 +516,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
       </style>
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={showDataFlow ? edges.concat(deriveDataEdges(nodes)) : edges}
         fitView={true}
         onEdgeClick={() => {
           refreshEdges();
@@ -590,29 +593,49 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         )}
 
       {/*
-        Outline: a read-only "what does this workflow do" panel. The toggle
-        appears once there is at least one real step; the panel docks on the
-        left so it doesn't collide with the right-side settings inspector.
+        Canvas toolbar (top-left): the read-only Outline and the "Show data
+        flow" overlay. Both appear once there's at least one real step and are
+        hidden while the Outline panel is open (it docks over this corner).
       */}
       {!showOutline &&
         nodes.some((node: Node) => {
           return (node.data as NodeDataProp).nodeType === NodeType.Node;
         }) && (
-          <button
-            type="button"
-            onClick={() => {
-              setShowOutline(true);
-            }}
+          <div
             style={{
               position: "absolute",
               top: "12px",
               left: "12px",
               zIndex: 5,
+              display: "flex",
+              gap: "6px",
             }}
-            className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 shadow-sm hover:bg-gray-50 cursor-pointer"
           >
-            Outline
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowOutline(true);
+              }}
+              className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 shadow-sm hover:bg-gray-50 cursor-pointer"
+            >
+              Outline
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowDataFlow((value: boolean) => {
+                  return !value;
+                });
+              }}
+              className={
+                showDataFlow
+                  ? "rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-600 shadow-sm cursor-pointer"
+                  : "rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 shadow-sm hover:bg-gray-50 cursor-pointer"
+              }
+            >
+              {showDataFlow ? "Hide data flow" : "Data flow"}
+            </button>
+          </div>
         )}
 
       {showOutline && (

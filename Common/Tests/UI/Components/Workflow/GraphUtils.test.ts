@@ -5,6 +5,7 @@ import {
   buildOutline,
   WorkflowOutline,
   renameComponentReferences,
+  deriveDataEdges,
 } from "../../../../UI/Components/Workflow/GraphUtils";
 import {
   ComponentInputType,
@@ -533,5 +534,64 @@ describe("GraphUtils.renameComponentReferences", () => {
       "x",
     );
     expect(result[0]).toBe(untouched);
+  });
+});
+
+describe("GraphUtils.deriveDataEdges", () => {
+  const refNode: (
+    rfId: string,
+    dataId: string,
+    args: Record<string, unknown>,
+  ) => Node = (
+    rfId: string,
+    dataId: string,
+    args: Record<string, unknown>,
+  ): Node => {
+    return {
+      id: rfId,
+      position: { x: 0, y: 0 },
+      data: { id: dataId, arguments: args },
+    } as unknown as Node;
+  };
+
+  test("draws a ghost edge from the referenced step to the consumer", () => {
+    const nodes: Array<Node> = [
+      refNode("rf-slack", "slack-1", {}),
+      refNode("rf-log", "log-1", {
+        text: "Was {{local.components.slack-1.returnValues.error}}",
+      }),
+    ];
+
+    const ghosts: Array<Edge> = deriveDataEdges(nodes);
+    expect(ghosts).toHaveLength(1);
+    expect(ghosts[0]!.source).toBe("rf-slack");
+    expect(ghosts[0]!.target).toBe("rf-log");
+    expect(ghosts[0]!.id).toBe("data-ghost-rf-slack->rf-log");
+  });
+
+  test("dedupes multiple references between the same pair", () => {
+    const nodes: Array<Node> = [
+      refNode("rf-slack", "slack-1", {}),
+      refNode("rf-log", "log-1", {
+        a: "{{local.components.slack-1.returnValues.error}}",
+        b: "{{local.components.slack-1.returnValues.text}}",
+      }),
+    ];
+    expect(deriveDataEdges(nodes)).toHaveLength(1);
+  });
+
+  test("ignores references to unknown steps and self-references", () => {
+    const nodes: Array<Node> = [
+      refNode("rf-log", "log-1", {
+        a: "{{local.components.ghost-9.returnValues.x}}",
+        b: "{{local.components.log-1.returnValues.self}}",
+      }),
+    ];
+    expect(deriveDataEdges(nodes)).toHaveLength(0);
+  });
+
+  test("returns nothing when there are no references", () => {
+    const nodes: Array<Node> = [refNode("rf-a", "a-1", { text: "plain text" })];
+    expect(deriveDataEdges(nodes)).toHaveLength(0);
   });
 });
