@@ -42,6 +42,7 @@ export default class LlmProviderAPI extends BaseAPI<
               select: {
                 name: true,
                 description: true,
+                costPerMillionTokensInUSDCents: true,
               },
               props: {
                 isRoot: true,
