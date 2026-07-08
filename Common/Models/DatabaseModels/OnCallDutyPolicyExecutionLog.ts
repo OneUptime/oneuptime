@@ -1017,7 +1017,16 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
       Permission.OnCallMember,
       Permission.CreateProjectOnCallDutyPolicyExecutionLog,
     ],
-    read: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
     update: [],
   })
   @Index()
@@ -1180,7 +1189,16 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
       Permission.OnCallMember,
       Permission.CreateProjectOnCallDutyPolicyExecutionLog,
     ],
-    read: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
     update: [],
   })
   @Index()
