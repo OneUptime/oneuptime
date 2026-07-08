@@ -7,8 +7,10 @@ import ModelForm, {
   ComponentProps as ModelFormComponentProps,
 } from "../Forms/ModelForm";
 import FormValues from "../Forms/Types/FormValues";
+import { IconType } from "../Icon/Icon";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
@@ -31,6 +33,12 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     | ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>)
     | undefined;
   footer?: ReactElement | undefined;
+  /*
+   * A header icon (rendered in a colored circle) to make the modal feel
+   * purpose-built. Forwarded to the underlying <Modal> via the props spread.
+   */
+  icon?: IconProp | undefined;
+  iconType?: IconType | undefined;
   formRef?: undefined | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
 }
 

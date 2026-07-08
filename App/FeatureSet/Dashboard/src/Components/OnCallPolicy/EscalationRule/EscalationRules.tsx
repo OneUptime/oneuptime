@@ -14,7 +14,7 @@ import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Icon from "Common/UI/Components/Icon/Icon";
+import Icon, { IconType } from "Common/UI/Components/Icon/Icon";
 import Image from "Common/UI/Components/Image/Image";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -642,9 +642,23 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           title="Add Escalation Rule"
           name="Create Escalation Rule"
           description="Escalation rules determine who to contact, and when, once an incident is triggered."
+          icon={IconProp.Bell}
+          iconType={IconType.Info}
           modalWidth={ModalWidth.Medium}
           modelType={OnCallDutyEscalationRule}
           submitButtonText="Create Rule"
+          footer={
+            <div className="mt-5 flex items-start gap-2.5 rounded-lg bg-indigo-50 px-3.5 py-3 ring-1 ring-inset ring-indigo-100">
+              <Icon
+                icon={IconProp.LightBulb}
+                className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500"
+              />
+              <p className="text-sm leading-relaxed text-indigo-900/80">
+                Tip: prefer on-call schedules over individual users, so the
+                right person is always reached even as your rotation changes.
+              </p>
+            </div>
+          }
           onClose={() => {
             return setShowCreateModal(false);
           }}
@@ -762,6 +776,8 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           title="Edit Escalation Rule"
           name="Edit Escalation Rule"
           description="Update the name, description, and escalation timing for this rule."
+          icon={IconProp.Pencil}
+          iconType={IconType.Info}
           modelType={OnCallDutyEscalationRule}
           modelIdToEdit={ruleToEdit.id!}
           submitButtonText="Save Changes"
