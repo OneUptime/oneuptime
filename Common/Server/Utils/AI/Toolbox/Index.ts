@@ -18,6 +18,7 @@ import { QueryAlertsTool } from "./AlertTools";
 import { QueryMonitorsTool } from "./MonitorTools";
 import { TopExceptionsTool } from "./ExceptionTools";
 import { LogHistogramTool, SearchLogsTool } from "./LogTools";
+import { RecentChangesTool } from "./RecentChangesTools";
 import { QueryMetricsTool } from "./MetricTools";
 import { GetTraceTool, QueryTracesTool } from "./TraceTools";
 import { LookupContextTool } from "./ContextTools";
@@ -62,6 +63,7 @@ export default class AIToolbox {
     QueryMetricsTool,
     QueryTracesTool,
     GetTraceTool,
+    RecentChangesTool,
     // Write tools (mutations). Gated by conversation permission mode.
     CreateIncidentTool,
     AcknowledgeIncidentTool,
