@@ -277,6 +277,44 @@ describe("LayerUtil audit fixes round 2", () => {
     });
   });
 
+  describe("Follow-up - daily restriction covers later days when the event starts after the window", () => {
+    test("weekly rotation with a 20:00 handoff and 09:00-17:00 daily restriction covers days 2..7", () => {
+      const util: LayerUtil = new LayerUtil();
+
+      // 2026-01-05 is a Monday. Handoff/start at 20:00 — AFTER that day's
+      // 09:00-17:00 restriction window.
+      const layer: LayerProps = {
+        users: [u("A")],
+        startDateTimeOfLayer: d("2026-01-05T20:00:00.000Z"),
+        handOffTime: d("2026-01-05T20:00:00.000Z"),
+        restrictionTimes: dailyRestrictionFromInstants(
+          "2026-01-05T09:00:00.000Z",
+          "2026-01-05T17:00:00.000Z",
+        ),
+        rotation: rot(EventInterval.Week, 1),
+        timezone: "UTC",
+      };
+
+      const events: Array<CalendarEvent> = util.getEvents({
+        ...layer,
+        calendarStartDate: d("2026-01-05T20:00:00.000Z"),
+        calendarEndDate: d("2026-01-12T20:00:00.000Z"),
+      });
+
+      // Before the fix this returned ZERO events (the whole week uncovered).
+      expect(events.length).toBeGreaterThan(0);
+
+      // Tuesday (day 2) noon is covered by that day's 09:00-17:00 window.
+      const tuesdayNoon: Date = d("2026-01-06T12:00:00.000Z");
+      expect(coveringEvent(events, tuesdayNoon)?.title).toBe("A");
+
+      // The first night (Monday 22:00, after the 20:00 start, outside the
+      // restriction) is correctly NOT covered.
+      const mondayNight: Date = d("2026-01-05T22:00:00.000Z");
+      expect(coveringEvent(events, mondayNight)).toBeUndefined();
+    });
+  });
+
   describe("F4 - rotation handoff preserves schedule wall-clock across DST", () => {
     test("daily 09:00 America/New_York handoff stays at 09:00 local after spring-forward", () => {
       const util: LayerUtil = new LayerUtil();
