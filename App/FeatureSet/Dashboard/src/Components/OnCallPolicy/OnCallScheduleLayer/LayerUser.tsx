@@ -223,7 +223,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
         {users.length > 1 && (
           <div className="flex flex-col">
             {getReorderButton({
-              icon: IconProp.ChevronUp,
+              icon: IconProp.ArrowUp,
               label: "Move user earlier in the rotation",
               disabled: index === 0,
               onClick: () => {
@@ -231,7 +231,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
               },
             })}
             {getReorderButton({
-              icon: IconProp.ChevronDown,
+              icon: IconProp.ArrowDown,
               label: "Move user later in the rotation",
               disabled: index === users.length - 1,
               onClick: () => {

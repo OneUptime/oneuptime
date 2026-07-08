@@ -208,13 +208,13 @@ const LayerCard: FunctionComponent<ComponentProps> = (
           {props.total > 1 && (
             <div className="mr-0.5 flex flex-col">
               {getReorderButton({
-                icon: IconProp.ChevronUp,
+                icon: IconProp.ArrowUp,
                 label: "Move layer up (higher priority)",
                 disabled: props.index === 0,
                 onClick: props.onMoveUp,
               })}
               {getReorderButton({
-                icon: IconProp.ChevronDown,
+                icon: IconProp.ArrowDown,
                 label: "Move layer down (lower priority)",
                 disabled: props.index === props.total - 1,
                 onClick: props.onMoveDown,
