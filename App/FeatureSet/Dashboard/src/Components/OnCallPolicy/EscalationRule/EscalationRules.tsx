@@ -10,10 +10,12 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon, { IconType } from "Common/UI/Components/Icon/Icon";
 import Image from "Common/UI/Components/Image/Image";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -25,6 +27,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import OnCallDutyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
@@ -36,6 +39,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useRef,
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
@@ -45,13 +49,71 @@ export interface ComponentProps {
   projectId: ObjectID;
 }
 
+/*
+ * The join rows for a single escalation rule. We keep the whole join row (not
+ * just the entity) so we have both the entity to render AND the join-row id,
+ * which is what we delete when a responder is removed during an edit.
+ */
 interface RuleMembers {
-  users: Array<User>;
-  teams: Array<Team>;
-  schedules: Array<OnCallDutyPolicySchedule>;
+  userJoins: Array<OnCallDutyPolicyEscalationRuleUser>;
+  teamJoins: Array<OnCallDutyPolicyEscalationRuleTeam>;
+  scheduleJoins: Array<OnCallDutyPolicyEscalationRuleSchedule>;
 }
 
 type MembersByRuleId = Record<string, RuleMembers>;
+
+/*
+ * The selected responder ids captured live from the edit form, keyed by the
+ * override-field name used in the form.
+ */
+interface SelectedMembers {
+  users: Array<string>;
+  teams: Array<string>;
+  onCallSchedules: Array<string>;
+}
+
+// Prefill values for the edit form's member multi-selects.
+interface MemberDefaults {
+  users: Array<DropdownOption>;
+  teams: Array<DropdownOption>;
+  onCallSchedules: Array<DropdownOption>;
+}
+
+const emptyRuleMembers: () => RuleMembers = (): RuleMembers => {
+  return { userJoins: [], teamJoins: [], scheduleJoins: [] };
+};
+
+/*
+ * Normalizes a form multi-select value (which may be an array of ids, or an
+ * array of { value, label } option envelopes when seeded as a default) into a
+ * plain array of id strings.
+ */
+const toIdArray: (value: unknown) => Array<string> = (
+  value: unknown,
+): Array<string> => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const ids: Array<string> = [];
+  for (const item of value) {
+    if (item === null || item === undefined) {
+      continue;
+    }
+    if (
+      typeof item === "object" &&
+      "value" in (item as Record<string, unknown>)
+    ) {
+      const inner: unknown = (item as Record<string, unknown>)["value"];
+      if (inner !== null && inner !== undefined) {
+        ids.push(String(inner));
+      }
+    } else {
+      ids.push(String(item));
+    }
+  }
+  return ids;
+};
 
 // Turns a raw minutes value into a compact human-readable string, e.g. "1 hr 30 min".
 const formatMinutes: (minutes: number | undefined | null) => string = (
@@ -75,6 +137,169 @@ const formatMinutes: (minutes: number | undefined | null) => string = (
   return `${hours} hr ${remainingMinutes} min`;
 };
 
+const RULE_FORM_STEPS: Array<{ title: string; id: string }> = [
+  { title: "Overview", id: "overview" },
+  { title: "Notify", id: "notification" },
+  { title: "Escalation", id: "escalation" },
+];
+
+/*
+ * getDefaultValue is typed to return a scalar, but a multi-select form value is
+ * an array of option envelopes. The form assigns whatever we return verbatim,
+ * so we cast to satisfy the type while returning the option array at runtime.
+ */
+const memberFieldDefault: (
+  options: Array<DropdownOption>,
+) => (item: FormValues<OnCallDutyEscalationRule>) => string = (
+  options: Array<DropdownOption>,
+): ((item: FormValues<OnCallDutyEscalationRule>) => string) => {
+  return (() => {
+    return options;
+  }) as unknown as (item: FormValues<OnCallDutyEscalationRule>) => string;
+};
+
+/*
+ * Builds the create/edit form fields. When memberDefaults is provided (edit
+ * mode), the member multi-selects are pre-populated with the rule's current
+ * responders via getDefaultValue.
+ */
+const buildRuleFormFields: (
+  memberDefaults?: MemberDefaults,
+) => Array<ModelField<OnCallDutyEscalationRule>> = (
+  memberDefaults?: MemberDefaults,
+): Array<ModelField<OnCallDutyEscalationRule>> => {
+  return [
+    {
+      field: { name: true },
+      stepId: "overview",
+      title: "Name",
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+      placeholder: "First Responders",
+      description: "A short name to identify this escalation rule.",
+    },
+    {
+      field: { description: true },
+      stepId: "overview",
+      title: "Description",
+      fieldType: FormFieldSchemaType.LongText,
+      required: false,
+      placeholder: "Describe who this level notifies and why.",
+      description: "An optional description for this escalation rule.",
+    },
+    {
+      overrideField: { onCallSchedules: true },
+      showEvenIfPermissionDoesNotExist: true,
+      title: "On-Call Schedules",
+      stepId: "notification",
+      description:
+        "On-call schedules to notify. The person currently on-call will be contacted.",
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+      dropdownModal: {
+        type: OnCallDutyPolicySchedule,
+        labelField: "name",
+        valueField: "_id",
+      },
+      required: false,
+      placeholder: "Select on-call schedules",
+      overrideFieldKey: "onCallSchedules",
+      getDefaultValue: memberDefaults
+        ? memberFieldDefault(memberDefaults.onCallSchedules)
+        : undefined,
+    },
+    {
+      overrideField: { teams: true },
+      showEvenIfPermissionDoesNotExist: true,
+      title: "Teams",
+      stepId: "notification",
+      description: "Every member of the selected teams will be notified.",
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+      dropdownModal: {
+        type: Team,
+        labelField: "name",
+        valueField: "_id",
+      },
+      required: false,
+      placeholder: "Select teams",
+      overrideFieldKey: "teams",
+      getDefaultValue: memberDefaults
+        ? memberFieldDefault(memberDefaults.teams)
+        : undefined,
+    },
+    {
+      overrideField: { users: true },
+      showEvenIfPermissionDoesNotExist: true,
+      title: "Users",
+      stepId: "notification",
+      description: "Specific users to notify directly.",
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+      fetchDropdownOptions: async () => {
+        return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+          ProjectUtil.getCurrentProjectId()!,
+        );
+      },
+      required: false,
+      placeholder: "Select users",
+      overrideFieldKey: "users",
+      getDefaultValue: memberDefaults
+        ? memberFieldDefault(memberDefaults.users)
+        : undefined,
+    },
+    {
+      field: { escalateAfterInMinutes: true },
+      stepId: "escalation",
+      title: "Escalate after (in minutes)",
+      fieldType: FormFieldSchemaType.Number,
+      placeholder: "30",
+      required: true,
+      description:
+        "How long to wait for an acknowledgement before escalating to the next rule.",
+    },
+  ];
+};
+
+/*
+ * Reconciles one join-table (users/teams/schedules) for a rule: creates rows
+ * for newly-added responders and deletes rows for removed ones.
+ */
+const syncJoinType: <TJoin extends BaseModel>(config: {
+  latestIds: Array<string>;
+  joins: Array<TJoin>;
+  getEntityId: (join: TJoin) => string | undefined;
+  createOne: (entityId: string) => Promise<void>;
+  modelType: { new (): TJoin };
+}) => Promise<void> = async <TJoin extends BaseModel>(config: {
+  latestIds: Array<string>;
+  joins: Array<TJoin>;
+  getEntityId: (join: TJoin) => string | undefined;
+  createOne: (entityId: string) => Promise<void>;
+  modelType: { new (): TJoin };
+}): Promise<void> => {
+  const originalIds: Set<string> = new Set(
+    config.joins
+      .map((join: TJoin) => {
+        return config.getEntityId(join);
+      })
+      .filter((id: string | undefined): id is string => {
+        return Boolean(id);
+      }),
+  );
+  const latestIdSet: Set<string> = new Set(config.latestIds);
+
+  for (const id of config.latestIds) {
+    if (!originalIds.has(id)) {
+      await config.createOne(id);
+    }
+  }
+
+  for (const join of config.joins) {
+    const entityId: string | undefined = config.getEntityId(join);
+    if (entityId && !latestIdSet.has(entityId) && join.id) {
+      await ModelAPI.deleteItem({ modelType: config.modelType, id: join.id });
+    }
+  }
+};
+
 const EscalationRules: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -92,6 +317,13 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     useState<OnCallDutyEscalationRule | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [reorderingRuleId, setReorderingRuleId] = useState<string | null>(null);
+
+  /*
+   * The live responder selection captured from the edit form. Seeded to the
+   * rule's current responders when the edit modal opens.
+   */
+  const editedMembersRef: React.MutableRefObject<SelectedMembers> =
+    useRef<SelectedMembers>({ users: [], teams: [], onCallSchedules: [] });
 
   const loadData: () => Promise<void> = async (): Promise<void> => {
     try {
@@ -130,6 +362,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           limit: LIMIT_PER_PROJECT,
           skip: 0,
           select: {
+            _id: true,
             onCallDutyPolicyEscalationRuleId: true,
             user: {
               _id: true,
@@ -146,6 +379,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           limit: LIMIT_PER_PROJECT,
           skip: 0,
           select: {
+            _id: true,
             onCallDutyPolicyEscalationRuleId: true,
             team: {
               _id: true,
@@ -160,6 +394,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           limit: LIMIT_PER_PROJECT,
           skip: 0,
           select: {
+            _id: true,
             onCallDutyPolicyEscalationRuleId: true,
             onCallDutyPolicySchedule: {
               _id: true,
@@ -179,7 +414,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           return null;
         }
         if (!members[ruleId]) {
-          members[ruleId] = { users: [], teams: [], schedules: [] };
+          members[ruleId] = emptyRuleMembers();
         }
         return members[ruleId]!;
       };
@@ -189,7 +424,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           join.onCallDutyPolicyEscalationRuleId?.toString(),
         );
         if (bucket && join.user) {
-          bucket.users.push(join.user);
+          bucket.userJoins.push(join);
         }
       }
 
@@ -198,7 +433,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           join.onCallDutyPolicyEscalationRuleId?.toString(),
         );
         if (bucket && join.team) {
-          bucket.teams.push(join.team);
+          bucket.teamJoins.push(join);
         }
       }
 
@@ -207,7 +442,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           join.onCallDutyPolicyEscalationRuleId?.toString(),
         );
         if (bucket && join.onCallDutyPolicySchedule) {
-          bucket.schedules.push(join.onCallDutyPolicySchedule);
+          bucket.scheduleJoins.push(join);
         }
       }
 
@@ -271,6 +506,84 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     }
 
     setIsDeleting(false);
+  };
+
+  /*
+   * Reconciles the rule's responders against the edit form selection by
+   * creating/deleting the relevant join rows.
+   */
+  const syncEditedMembers: (ruleId: ObjectID) => Promise<void> = async (
+    ruleId: ObjectID,
+  ): Promise<void> => {
+    const original: RuleMembers =
+      membersByRuleId[ruleId.toString()] || emptyRuleMembers();
+    const latest: SelectedMembers = editedMembersRef.current;
+
+    // On-call schedules
+    await syncJoinType<OnCallDutyPolicyEscalationRuleSchedule>({
+      latestIds: latest.onCallSchedules,
+      joins: original.scheduleJoins,
+      getEntityId: (join: OnCallDutyPolicyEscalationRuleSchedule) => {
+        return join.onCallDutyPolicySchedule?.id?.toString();
+      },
+      modelType: OnCallDutyPolicyEscalationRuleSchedule,
+      createOne: async (scheduleId: string) => {
+        const model: OnCallDutyPolicyEscalationRuleSchedule =
+          new OnCallDutyPolicyEscalationRuleSchedule();
+        model.projectId = props.projectId;
+        model.onCallDutyPolicyId = props.onCallDutyPolicyId;
+        model.onCallDutyPolicyEscalationRuleId = ruleId;
+        model.onCallDutyPolicyScheduleId = new ObjectID(scheduleId);
+        await ModelAPI.create({
+          modelType: OnCallDutyPolicyEscalationRuleSchedule,
+          model: model,
+        });
+      },
+    });
+
+    // Teams
+    await syncJoinType<OnCallDutyPolicyEscalationRuleTeam>({
+      latestIds: latest.teams,
+      joins: original.teamJoins,
+      getEntityId: (join: OnCallDutyPolicyEscalationRuleTeam) => {
+        return join.team?.id?.toString();
+      },
+      modelType: OnCallDutyPolicyEscalationRuleTeam,
+      createOne: async (teamId: string) => {
+        const model: OnCallDutyPolicyEscalationRuleTeam =
+          new OnCallDutyPolicyEscalationRuleTeam();
+        model.projectId = props.projectId;
+        model.onCallDutyPolicyId = props.onCallDutyPolicyId;
+        model.onCallDutyPolicyEscalationRuleId = ruleId;
+        model.teamId = new ObjectID(teamId);
+        await ModelAPI.create({
+          modelType: OnCallDutyPolicyEscalationRuleTeam,
+          model: model,
+        });
+      },
+    });
+
+    // Users
+    await syncJoinType<OnCallDutyPolicyEscalationRuleUser>({
+      latestIds: latest.users,
+      joins: original.userJoins,
+      getEntityId: (join: OnCallDutyPolicyEscalationRuleUser) => {
+        return join.user?.id?.toString();
+      },
+      modelType: OnCallDutyPolicyEscalationRuleUser,
+      createOne: async (userId: string) => {
+        const model: OnCallDutyPolicyEscalationRuleUser =
+          new OnCallDutyPolicyEscalationRuleUser();
+        model.projectId = props.projectId;
+        model.onCallDutyPolicyId = props.onCallDutyPolicyId;
+        model.onCallDutyPolicyEscalationRuleId = ruleId;
+        model.userId = new ObjectID(userId);
+        await ModelAPI.create({
+          modelType: OnCallDutyPolicyEscalationRuleUser,
+          model: model,
+        });
+      },
+    });
   };
 
   const getUserChip: (user: User) => ReactElement = (
@@ -340,8 +653,33 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
   const getNotifiesSection: (members: RuleMembers) => ReactElement = (
     members: RuleMembers,
   ): ReactElement => {
-    const totalCount: number =
-      members.users.length + members.teams.length + members.schedules.length;
+    const schedules: Array<OnCallDutyPolicySchedule> = members.scheduleJoins
+      .map((join: OnCallDutyPolicyEscalationRuleSchedule) => {
+        return join.onCallDutyPolicySchedule;
+      })
+      .filter(
+        (
+          schedule: OnCallDutyPolicySchedule | undefined,
+        ): schedule is OnCallDutyPolicySchedule => {
+          return Boolean(schedule);
+        },
+      );
+    const teams: Array<Team> = members.teamJoins
+      .map((join: OnCallDutyPolicyEscalationRuleTeam) => {
+        return join.team;
+      })
+      .filter((team: Team | undefined): team is Team => {
+        return Boolean(team);
+      });
+    const users: Array<User> = members.userJoins
+      .map((join: OnCallDutyPolicyEscalationRuleUser) => {
+        return join.user;
+      })
+      .filter((user: User | undefined): user is User => {
+        return Boolean(user);
+      });
+
+    const totalCount: number = users.length + teams.length + schedules.length;
 
     if (totalCount === 0) {
       return (
@@ -351,8 +689,8 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             className="h-4 w-4 text-amber-500 mt-0.5 shrink-0"
           />
           <span>
-            No responders assigned. No one will be notified at this level —
-            delete this rule or add responders.
+            No responders assigned. No one will be notified at this level — edit
+            this rule to add responders.
           </span>
         </div>
       );
@@ -360,13 +698,13 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
 
     return (
       <div className="flex flex-wrap gap-2">
-        {members.schedules.map((schedule: OnCallDutyPolicySchedule) => {
+        {schedules.map((schedule: OnCallDutyPolicySchedule) => {
           return getScheduleChip(schedule);
         })}
-        {members.teams.map((team: Team) => {
+        {teams.map((team: Team) => {
           return getTeamChip(team);
         })}
-        {members.users.map((user: User) => {
+        {users.map((user: User) => {
           return getUserChip(user);
         })}
       </div>
@@ -403,6 +741,43 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * Opens the edit modal, seeding the live responder ref with the rule's
+   * current responders so an untouched save is a no-op.
+   */
+  const openEditModal: (rule: OnCallDutyEscalationRule) => void = (
+    rule: OnCallDutyEscalationRule,
+  ): void => {
+    const members: RuleMembers =
+      membersByRuleId[rule.id?.toString() || ""] || emptyRuleMembers();
+
+    editedMembersRef.current = {
+      onCallSchedules: members.scheduleJoins
+        .map((join: OnCallDutyPolicyEscalationRuleSchedule) => {
+          return join.onCallDutyPolicySchedule?.id?.toString();
+        })
+        .filter((id: string | undefined): id is string => {
+          return Boolean(id);
+        }),
+      teams: members.teamJoins
+        .map((join: OnCallDutyPolicyEscalationRuleTeam) => {
+          return join.team?.id?.toString();
+        })
+        .filter((id: string | undefined): id is string => {
+          return Boolean(id);
+        }),
+      users: members.userJoins
+        .map((join: OnCallDutyPolicyEscalationRuleUser) => {
+          return join.user?.id?.toString();
+        })
+        .filter((id: string | undefined): id is string => {
+          return Boolean(id);
+        }),
+    };
+
+    setRuleToEdit(rule);
+  };
+
   const getRuleCard: (
     rule: OnCallDutyEscalationRule,
     index: number,
@@ -411,11 +786,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     index: number,
   ): ReactElement => {
     const ruleId: string = rule.id?.toString() || "";
-    const members: RuleMembers = membersByRuleId[ruleId] || {
-      users: [],
-      teams: [],
-      schedules: [],
-    };
+    const members: RuleMembers = membersByRuleId[ruleId] || emptyRuleMembers();
     const isFirst: boolean = index === 0;
     const isLast: boolean = index === rules.length - 1;
     const isReordering: boolean = reorderingRuleId === ruleId;
@@ -490,7 +861,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
                     icon: IconProp.Edit,
                     label: "Edit rule",
                     onClick: () => {
-                      return setRuleToEdit(rule);
+                      return openEditModal(rule);
                     },
                   })}
                   {getIconButton({
@@ -591,6 +962,52 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     );
   };
 
+  // Prefill options for the edit modal's member multi-selects.
+  const editMemberDefaults: MemberDefaults | undefined = ruleToEdit
+    ? ((): MemberDefaults => {
+        const members: RuleMembers =
+          membersByRuleId[ruleToEdit.id?.toString() || ""] ||
+          emptyRuleMembers();
+        return {
+          onCallSchedules: members.scheduleJoins
+            .filter((join: OnCallDutyPolicyEscalationRuleSchedule) => {
+              return Boolean(join.onCallDutyPolicySchedule);
+            })
+            .map((join: OnCallDutyPolicyEscalationRuleSchedule) => {
+              return {
+                value: join.onCallDutyPolicySchedule!.id!.toString(),
+                label:
+                  join.onCallDutyPolicySchedule!.name?.toString() ||
+                  "On-call schedule",
+              };
+            }),
+          teams: members.teamJoins
+            .filter((join: OnCallDutyPolicyEscalationRuleTeam) => {
+              return Boolean(join.team);
+            })
+            .map((join: OnCallDutyPolicyEscalationRuleTeam) => {
+              return {
+                value: join.team!.id!.toString(),
+                label: join.team!.name?.toString() || "Team",
+              };
+            }),
+          users: members.userJoins
+            .filter((join: OnCallDutyPolicyEscalationRuleUser) => {
+              return Boolean(join.user);
+            })
+            .map((join: OnCallDutyPolicyEscalationRuleUser) => {
+              return {
+                value: join.user!.id!.toString(),
+                label:
+                  join.user!.name?.toString() ||
+                  join.user!.email?.toString() ||
+                  "User",
+              };
+            }),
+        };
+      })()
+    : undefined;
+
   return (
     <Fragment>
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -678,92 +1095,8 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             modelType: OnCallDutyEscalationRule,
             id: "create-escalation-rule-form",
             formType: FormType.Create,
-            steps: [
-              { title: "Overview", id: "overview" },
-              { title: "Notify", id: "notification" },
-              { title: "Escalation", id: "escalation" },
-            ],
-            fields: [
-              {
-                field: { name: true },
-                stepId: "overview",
-                title: "Name",
-                fieldType: FormFieldSchemaType.Text,
-                required: true,
-                placeholder: "First Responders",
-                description: "A short name to identify this escalation rule.",
-              },
-              {
-                field: { description: true },
-                stepId: "overview",
-                title: "Description",
-                fieldType: FormFieldSchemaType.LongText,
-                required: false,
-                placeholder: "Describe who this level notifies and why.",
-                description:
-                  "An optional description for this escalation rule.",
-              },
-              {
-                overrideField: { onCallSchedules: true },
-                showEvenIfPermissionDoesNotExist: true,
-                title: "On-Call Schedules",
-                stepId: "notification",
-                description:
-                  "On-call schedules to notify. The person currently on-call will be contacted.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: OnCallDutyPolicySchedule,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Select on-call schedules",
-                overrideFieldKey: "onCallSchedules",
-              },
-              {
-                overrideField: { teams: true },
-                showEvenIfPermissionDoesNotExist: true,
-                title: "Teams",
-                stepId: "notification",
-                description:
-                  "Every member of the selected teams will be notified.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Team,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Select teams",
-                overrideFieldKey: "teams",
-              },
-              {
-                overrideField: { users: true },
-                showEvenIfPermissionDoesNotExist: true,
-                title: "Users",
-                stepId: "notification",
-                description: "Specific users to notify directly.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                fetchDropdownOptions: async () => {
-                  return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                    ProjectUtil.getCurrentProjectId()!,
-                  );
-                },
-                required: false,
-                placeholder: "Select users",
-                overrideFieldKey: "users",
-              },
-              {
-                field: { escalateAfterInMinutes: true },
-                stepId: "escalation",
-                title: "Escalate after (in minutes)",
-                fieldType: FormFieldSchemaType.Number,
-                placeholder: "30",
-                required: true,
-                description:
-                  "How long to wait for an acknowledgement before escalating to the next rule.",
-              },
-            ],
+            steps: RULE_FORM_STEPS,
+            fields: buildRuleFormFields(),
           }}
         />
       ) : (
@@ -775,9 +1108,10 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
         <ModelFormModal<OnCallDutyEscalationRule>
           title="Edit Escalation Rule"
           name="Edit Escalation Rule"
-          description="Update the name, description, and escalation timing for this rule."
+          description="Update the rule's details and change who it notifies."
           icon={IconProp.Pencil}
           iconType={IconType.Info}
+          modalWidth={ModalWidth.Medium}
           modelType={OnCallDutyEscalationRule}
           modelIdToEdit={ruleToEdit.id!}
           submitButtonText="Save Changes"
@@ -785,42 +1119,48 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             return setRuleToEdit(null);
           }}
           onSuccess={() => {
+            const editedRuleId: ObjectID | null | undefined = ruleToEdit?.id;
             setRuleToEdit(null);
-            loadData().catch(() => {});
+            if (!editedRuleId) {
+              loadData().catch(() => {});
+              return;
+            }
+            // The rule's own fields are already saved; now reconcile responders.
+            setIsLoading(true);
+            syncEditedMembers(editedRuleId)
+              .catch((err: Error) => {
+                setError(API.getFriendlyMessage(err));
+              })
+              .finally(() => {
+                loadData().catch(() => {});
+              });
           }}
           formProps={{
             name: "Edit Escalation Rule",
             modelType: OnCallDutyEscalationRule,
             id: "edit-escalation-rule-form",
             formType: FormType.Update,
-            fields: [
-              {
-                field: { name: true },
-                title: "Name",
-                fieldType: FormFieldSchemaType.Text,
-                required: true,
-                placeholder: "First Responders",
-                description: "A short name to identify this escalation rule.",
-              },
-              {
-                field: { description: true },
-                title: "Description",
-                fieldType: FormFieldSchemaType.LongText,
-                required: false,
-                placeholder: "Describe who this level notifies and why.",
-                description:
-                  "An optional description for this escalation rule.",
-              },
-              {
-                field: { escalateAfterInMinutes: true },
-                title: "Escalate after (in minutes)",
-                fieldType: FormFieldSchemaType.Number,
-                placeholder: "30",
-                required: true,
-                description:
-                  "How long to wait for an acknowledgement before escalating to the next rule.",
-              },
-            ],
+            steps: RULE_FORM_STEPS,
+            fields: buildRuleFormFields(editMemberDefaults),
+            onChange: (values: FormValues<OnCallDutyEscalationRule>) => {
+              const currentValues: Record<string, unknown> =
+                values as unknown as Record<string, unknown>;
+              if (currentValues["onCallSchedules"] !== undefined) {
+                editedMembersRef.current.onCallSchedules = toIdArray(
+                  currentValues["onCallSchedules"],
+                );
+              }
+              if (currentValues["teams"] !== undefined) {
+                editedMembersRef.current.teams = toIdArray(
+                  currentValues["teams"],
+                );
+              }
+              if (currentValues["users"] !== undefined) {
+                editedMembersRef.current.users = toIdArray(
+                  currentValues["users"],
+                );
+              }
+            },
           }}
         />
       ) : (
