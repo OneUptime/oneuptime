@@ -97,9 +97,9 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
           field: {
             handOffTime: true,
           },
-          title: "Hand-off time",
+          title: "First hand-off time",
           description:
-            "The time of day the current user hands off to the next user.",
+            "The date and time of the first hand-off to the next user. Hand-offs then repeat every rotation interval.",
           fieldType: FormFieldSchemaType.DateTime,
           required: true,
         },
