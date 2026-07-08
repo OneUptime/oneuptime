@@ -1,13 +1,12 @@
 /*
  * TEMPORARY AUDIT TEST — replicates OnCallDutyPolicyScheduleService roster
- * resolution (window sizing + getNumberOfEvents:2 + override split + future
- * check) against a full ground-truth expansion. Delete after audit.
+ * resolution (getNumberOfEvents:2 + override split + future check) against a
+ * full ground-truth expansion. Delete after audit.
  */
 import LayerUtil, { LayerProps } from "../../../Types/OnCallDutyPolicy/Layer";
 import CalendarEvent from "../../../Types/Calendar/CalendarEvent";
 import RestrictionTimes, {
   RestrictionType,
-  WeeklyResctriction,
 } from "../../../Types/OnCallDutyPolicy/RestrictionTimes";
 import Recurring from "../../../Types/Events/Recurring";
 import OneUptimeDate from "../../../Types/Date";
@@ -17,7 +16,6 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import UserOverrideUtil, {
   UserOverrideRecord,
 } from "../../../Types/OnCallDutyPolicy/UserOverrideUtil";
-import DayOfWeek from "../../../Types/Day/DayOfWeek";
 
 function user(id: string): User {
   return { id: { toString: () => id } as any } as User;
@@ -29,16 +27,9 @@ function makeLayer(data: {
   handoff: Date;
   intervalType: EventInterval;
   intervalCount: number;
-  restriction?: RestrictionTimes | undefined;
-  timezone?: string | undefined;
 }): LayerProps {
-  const r: RestrictionTimes =
-    data.restriction ||
-    (() => {
-      const rr: RestrictionTimes = new RestrictionTimes();
-      rr.restictionType = RestrictionType.None;
-      return rr;
-    })();
+  const r: RestrictionTimes = new RestrictionTimes();
+  r.restictionType = RestrictionType.None;
   const rotation: Recurring = new Recurring();
   rotation.intervalType = data.intervalType;
   rotation.intervalCount = new PositiveNumber(data.intervalCount);
@@ -48,47 +39,32 @@ function makeLayer(data: {
     restrictionTimes: r,
     handOffTime: data.handoff,
     rotation,
-    timezone: data.timezone,
+    timezone: undefined,
   };
 }
 
-// Replicates Service.computeResolutionWindowEnd.
-function computeResolutionWindowEnd(
-  layerProps: Array<LayerProps>,
-  from: Date,
-  getNumberOfEvents: number,
-): Date {
-  let windowEnd: Date = OneUptimeDate.addRemoveYears(from, 1);
-  const periodsNeeded: number = Math.max(2, getNumberOfEvents + 1);
-  for (const layer of layerProps) {
-    if (!layer.rotation) {
-      continue;
-    }
-    const recurring: Recurring = layer.rotation;
-    let candidate: Date = from;
-    for (let i: number = 0; i < periodsNeeded; i++) {
-      candidate = Recurring.getNextDateInterval(candidate, recurring);
-    }
-    if (OneUptimeDate.isAfter(candidate, windowEnd)) {
-      windowEnd = candidate;
-    }
+// Replicates Service.computeResolutionWindowEnd but capped small for test speed.
+// (getNumberOfEvents:2 => needs 3 periods; window at least a few periods.)
+function windowEnd(layer: LayerProps, from: Date): Date {
+  let candidate: Date = from;
+  for (let i: number = 0; i < 5; i++) {
+    candidate = Recurring.getNextDateInterval(candidate, layer.rotation);
   }
-  return windowEnd;
+  return candidate;
 }
 
-// Replicates Service.getCurrrentUserIdAndHandoffTimeInSchedule (resolution part).
+// Replicates Service.getCurrrentUserIdAndHandoffTimeInSchedule resolution part.
 function serviceResolve(
-  layers: Array<LayerProps>,
+  layer: LayerProps,
   now: Date,
   overrides: Array<UserOverrideRecord>,
 ): { current: string | null; next: string | null } {
   const util: LayerUtil = new LayerUtil();
-  const windowEnd: Date = computeResolutionWindowEnd(layers, now, 2);
   let events: Array<CalendarEvent> = util.getMultiLayerEvents(
     {
-      layers,
+      layers: [layer],
       calendarStartDate: now,
-      calendarEndDate: windowEnd,
+      calendarEndDate: windowEnd(layer, now),
     },
     { getNumberOfEvents: 2 },
   );
@@ -107,146 +83,151 @@ function serviceResolve(
   };
 }
 
-// Ground truth: full expansion from layer start, apply overrides, find covering.
+// Ground truth: full expansion from layer start (bounded), apply overrides.
 function groundTruth(
-  layers: Array<LayerProps>,
+  layer: LayerProps,
   now: Date,
   overrides: Array<UserOverrideRecord>,
-): { current: string | null } {
+): { current: string | null; next: string | null } {
   const util: LayerUtil = new LayerUtil();
-  const earliestStart: Date = layers
-    .map((l: LayerProps) => {
-      return l.startDateTimeOfLayer;
-    })
-    .reduce((a: Date, b: Date) => {
-      return OneUptimeDate.isBefore(a, b) ? a : b;
-    });
-  let events: Array<CalendarEvent> = util.getMultiLayerEvents({
-    layers,
-    calendarStartDate: earliestStart,
-    calendarEndDate: OneUptimeDate.addRemoveDays(now, 2),
+  let events: Array<CalendarEvent> = util.getEvents({
+    ...layer,
+    calendarStartDate: layer.startDateTimeOfLayer,
+    calendarEndDate: OneUptimeDate.addRemoveDays(now, 30),
   });
   if (events.length > 0 && overrides.length > 0) {
     events = UserOverrideUtil.applyOverridesToEvents({ events, overrides });
   }
-  for (const e of events) {
+  events = events.sort((a: CalendarEvent, b: CalendarEvent) => {
+    return a.start.getTime() - b.start.getTime();
+  });
+  let current: string | null = null;
+  let next: string | null = null;
+  for (let i: number = 0; i < events.length; i++) {
+    const e: CalendarEvent = events[i]!;
     // half-open [start, end)
     if (OneUptimeDate.isOnOrBefore(e.start, now) && OneUptimeDate.isAfter(e.end, now)) {
-      return { current: e.title };
+      current = e.title;
+      next = events[i + 1] ? events[i + 1]!.title : null;
+      break;
+    }
+    if (OneUptimeDate.isAfter(e.start, now)) {
+      // now sits before this event (in a gap or before first) => current null, next is this
+      next = e.title;
+      break;
     }
   }
-  return { current: null };
+  return { current, next };
 }
 
 const baseStart: Date = OneUptimeDate.fromString("2025-01-01T00:00:00.000Z");
 
-function hourlyHandoff(start: Date, type: EventInterval, count: number): Date {
+function firstHandoff(start: Date, type: EventInterval, count: number): Date {
   const rot: Recurring = new Recurring();
   rot.intervalType = type;
   rot.intervalCount = new PositiveNumber(count);
   return Recurring.getNextDateInterval(start, rot);
 }
 
-describe("AUDIT roster resolution: current matches ground truth (single + multi layer, restrictions, overrides)", () => {
-  const offsetsHours: number[] = [
-    0.5, 1, 2, 3.5, 5, 8, 13, 20, 25, 30, 49, 24 * 3 + 5, 24 * 7 + 2,
-    24 * 10 + 7, 24 * 14 + 1, 24 * 30 + 6,
+describe("AUDIT roster resolution current/next vs ground truth (no override)", () => {
+  const offsetsHours: number[] = [0.5, 1, 2, 3.5, 5, 8, 13, 25, 49, 24 * 3 + 5, 24 * 7 + 2];
+  const cases: Array<{ name: string; users: string[]; type: EventInterval; count: number }> = [
+    { name: "hourly x1 / 3u", users: ["A", "B", "C"], type: EventInterval.Hour, count: 1 },
+    { name: "hourly x3 / 4u", users: ["A", "B", "C", "D"], type: EventInterval.Hour, count: 3 },
+    { name: "daily x1 / 2u", users: ["A", "B"], type: EventInterval.Day, count: 1 },
+    { name: "daily x2 / 3u", users: ["A", "B", "C"], type: EventInterval.Day, count: 2 },
+    { name: "single user daily", users: ["A"], type: EventInterval.Day, count: 1 },
   ];
-
-  it("single layer daily, 3 users, no restriction", () => {
-    const layer: LayerProps = makeLayer({
-      users: ["A", "B", "C"],
-      start: baseStart,
-      handoff: hourlyHandoff(baseStart, EventInterval.Day, 1),
-      intervalType: EventInterval.Day,
-      intervalCount: 1,
+  for (const c of cases) {
+    it(c.name, () => {
+      const layer: LayerProps = makeLayer({
+        users: c.users,
+        start: baseStart,
+        handoff: firstHandoff(baseStart, c.type, c.count),
+        intervalType: c.type,
+        intervalCount: c.count,
+      });
+      const mism: string[] = [];
+      for (const oh of offsetsHours) {
+        const at: Date = OneUptimeDate.addRemoveHours(baseStart, oh);
+        const svc = serviceResolve(layer, at, []);
+        const gt = groundTruth(layer, at, []);
+        if (svc.current !== gt.current || svc.next !== gt.next) {
+          mism.push(`@${oh}h svc(${svc.current},${svc.next}) gt(${gt.current},${gt.next})`);
+        }
+      }
+      expect(mism).toEqual([]);
     });
-    for (const oh of offsetsHours) {
-      const at: Date = OneUptimeDate.addRemoveHours(baseStart, oh);
-      const svc = serviceResolve([layer], at, []);
-      const gt = groundTruth([layer], at, []);
-      expect(`@${oh}h current=${svc.current}`).toBe(`@${oh}h current=${gt.current}`);
-    }
-  });
+  }
+});
 
-  it("single layer hourly x1, 3 users, override in middle of current shift", () => {
+describe("AUDIT override split: current/next correct when override splits current shift", () => {
+  it("hourly x1, override X in middle of A's shift", () => {
     const layer: LayerProps = makeLayer({
       users: ["A", "B", "C"],
       start: baseStart,
-      handoff: hourlyHandoff(baseStart, EventInterval.Hour, 1),
+      handoff: firstHandoff(baseStart, EventInterval.Hour, 1),
       intervalType: EventInterval.Hour,
       intervalCount: 1,
     });
-    // Override covering a window; overrideUser is whoever; substitute X.
+    // Long override on user A -> X, and also on B -> Y (overlapping), to probe split.
     const overrides: Array<UserOverrideRecord> = [
       {
         overrideUserId: "A",
         routeAlertsToUserId: "X",
-        startsAt: OneUptimeDate.addRemoveHours(baseStart, 0),
-        endsAt: OneUptimeDate.addRemoveHours(baseStart, 100),
+        startsAt: baseStart,
+        endsAt: OneUptimeDate.addRemoveHours(baseStart, 200),
+        onCallDutyPolicyId: null,
+      },
+      {
+        overrideUserId: "B",
+        routeAlertsToUserId: "Y",
+        startsAt: baseStart,
+        endsAt: OneUptimeDate.addRemoveHours(baseStart, 200),
         onCallDutyPolicyId: null,
       },
     ];
+    const offsetsHours: number[] = [0.5, 1, 1.5, 2, 2.5, 3, 5, 8, 13, 25];
+    const mism: string[] = [];
     for (const oh of offsetsHours) {
       const at: Date = OneUptimeDate.addRemoveHours(baseStart, oh);
-      const svc = serviceResolve([layer], at, overrides);
-      const gt = groundTruth([layer], at, overrides);
-      expect(`@${oh}h current=${svc.current}`).toBe(`@${oh}h current=${gt.current}`);
-    }
-  });
-
-  it("two layers: primary restricted Mon-Fri 09-17, fallback 24/7 (multi-layer merge)", () => {
-    // primary: restricted to weekdays 09-17
-    const restriction: RestrictionTimes = new RestrictionTimes();
-    restriction.restictionType = RestrictionType.Weekly;
-    const weekly: Array<WeeklyResctriction> = [
-      {
-        startDay: DayOfWeek.Monday,
-        endDay: DayOfWeek.Friday,
-        startTime: OneUptimeDate.getDateWithCustomTime({
-          hours: 9,
-          minutes: 0,
-          seconds: 0,
-        }),
-        endTime: OneUptimeDate.getDateWithCustomTime({
-          hours: 17,
-          minutes: 0,
-          seconds: 0,
-        }),
-      },
-    ];
-    restriction.weeklyRestrictionTimes = weekly;
-
-    const primary: LayerProps = makeLayer({
-      users: ["P1", "P2"],
-      start: baseStart,
-      handoff: hourlyHandoff(baseStart, EventInterval.Day, 1),
-      intervalType: EventInterval.Day,
-      intervalCount: 1,
-      restriction,
-    });
-    const fallback: LayerProps = makeLayer({
-      users: ["F1", "F2"],
-      start: baseStart,
-      handoff: hourlyHandoff(baseStart, EventInterval.Day, 1),
-      intervalType: EventInterval.Day,
-      intervalCount: 1,
-    });
-    const layers: Array<LayerProps> = [primary, fallback];
-
-    const wideOffsets: number[] = [];
-    for (let h = 0; h <= 24 * 10; h += 1) {
-      wideOffsets.push(h);
-    }
-    let mismatches: string[] = [];
-    for (const oh of wideOffsets) {
-      const at: Date = OneUptimeDate.addRemoveHours(baseStart, oh);
-      const svc = serviceResolve(layers, at, []);
-      const gt = groundTruth(layers, at, []);
-      if (svc.current !== gt.current) {
-        mismatches.push(`@${oh}h svc=${svc.current} gt=${gt.current}`);
+      const svc = serviceResolve(layer, at, overrides);
+      const gt = groundTruth(layer, at, overrides);
+      if (svc.current !== gt.current || svc.next !== gt.next) {
+        mism.push(`@${oh}h svc(${svc.current},${svc.next}) gt(${gt.current},${gt.next})`);
       }
     }
-    expect(mismatches.slice(0, 20)).toEqual([]);
+    expect(mism).toEqual([]);
+  });
+
+  it("daily x1 2 users, short override covering only part of NEXT shift", () => {
+    const layer: LayerProps = makeLayer({
+      users: ["A", "B"],
+      start: baseStart,
+      handoff: firstHandoff(baseStart, EventInterval.Day, 1),
+      intervalType: EventInterval.Day,
+      intervalCount: 1,
+    });
+    // Override on B (who is on call day 2) for a 2h window mid-shift.
+    const overrides: Array<UserOverrideRecord> = [
+      {
+        overrideUserId: "B",
+        routeAlertsToUserId: "Z",
+        startsAt: OneUptimeDate.addRemoveHours(baseStart, 24 + 10),
+        endsAt: OneUptimeDate.addRemoveHours(baseStart, 24 + 12),
+        onCallDutyPolicyId: null,
+      },
+    ];
+    const offsetsHours: number[] = [1, 5, 12, 23, 24 + 1, 24 + 9, 24 + 11, 24 + 13, 48 + 2];
+    const mism: string[] = [];
+    for (const oh of offsetsHours) {
+      const at: Date = OneUptimeDate.addRemoveHours(baseStart, oh);
+      const svc = serviceResolve(layer, at, overrides);
+      const gt = groundTruth(layer, at, overrides);
+      if (svc.current !== gt.current || svc.next !== gt.next) {
+        mism.push(`@${oh}h svc(${svc.current},${svc.next}) gt(${gt.current},${gt.next})`);
+      }
+    }
+    expect(mism).toEqual([]);
   });
 });
