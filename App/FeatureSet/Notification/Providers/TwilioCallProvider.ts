@@ -146,7 +146,21 @@ export default class TwilioCallProvider implements ICallProvider {
   }
 
   public async releaseNumber(phoneNumberId: string): Promise<void> {
-    await this.client.incomingPhoneNumbers(phoneNumberId).remove();
+    try {
+      await this.client.incomingPhoneNumbers(phoneNumberId).remove();
+    } catch (err) {
+      /*
+       * Treat "already released / not found" as success so releasing is
+       * idempotent — a number deleted out-of-band (e.g. in the Twilio console)
+       * must not wedge the policy and block reprovisioning.
+       */
+      const status: number | undefined = (err as { status?: number }).status;
+      const code: number | undefined = (err as { code?: number }).code;
+      if (status === 404 || code === 20404) {
+        return;
+      }
+      throw err;
+    }
   }
 
   public async updateWebhookUrl(

@@ -1,9 +1,7 @@
-import { Blue500, BrightColors } from "Common/Types/BrandColors";
+import { getColorForUserId } from "./LayerUserColors";
 import CalendarEvent from "Common/Types/Calendar/CalendarEvent";
-import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
-import HashCode from "Common/Types/HashCode";
 import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
 import UserOverrideUtil, {
   OverrideEventMeta,
@@ -50,20 +48,6 @@ interface UserColorAssignment {
   color: string;
   isSubstitute?: boolean;
 }
-
-const getColorForUserId: (userId: string) => string = (
-  userId: string,
-): string => {
-  const colorListLength: number = BrightColors.length;
-  /*
-   * HashCode.fromString may return a negative 32-bit int; abs first so the
-   * modulo lands inside the BrightColors array instead of falling through to
-   * the Blue500 default for every user with a negative hash.
-   */
-  const colorIndex: number =
-    Math.abs(HashCode.fromString(userId)) % colorListLength;
-  return (BrightColors[colorIndex] as Color)?.toString() || Blue500.toString();
-};
 
 const getDisplayName: (info: UserInfo | undefined) => string = (
   info: UserInfo | undefined,
