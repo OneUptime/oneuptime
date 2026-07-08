@@ -1,21 +1,16 @@
-import ProjectUser from "../../../Utils/ProjectUser";
+import AddLayerUserModal from "./AddLayerUserModal";
 import { getColorForUserId, getUserInitials } from "./LayerUserColors";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import User from "Common/Models/DatabaseModels/User";
@@ -355,61 +350,27 @@ const LayerUser: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const onCloseModal: PromiseVoidFunction = async (): Promise<void> => {
-    setShowAddUserModal(false);
-  };
-
   return (
     <div>
       {getContent()}
       {getAddUserButton()}
 
       {showAddUserModal && (
-        <ModelFormModal
-          modelType={OnCallDutyPolicyScheduleLayerUser}
-          name="Add user to layer"
-          title="Add User"
+        <AddLayerUserModal
+          layer={props.layer}
+          existingUserIds={users
+            .map((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
+              return layerUser.user?.id?.toString() || "";
+            })
+            .filter(Boolean)}
           onClose={() => {
-            onCloseModal().catch(() => {});
+            setShowAddUserModal(false);
           }}
-          submitButtonText="Add User to Layer"
-          onBeforeCreate={async (model: OnCallDutyPolicyScheduleLayerUser) => {
-            model.onCallDutyPolicyScheduleId =
-              props.layer.onCallDutyPolicyScheduleId!;
-            model.projectId = props.layer.projectId!;
-            model.onCallDutyPolicyScheduleLayerId = props.layer.id!;
-
-            return model;
-          }}
-          onSuccess={() => {
+          onUserAdded={() => {
             setShowAddUserModal(false);
             fetchUsers(true).catch((err: Error) => {
               setError(API.getFriendlyMessage(err));
             });
-          }}
-          formProps={{
-            name: "Add user to layer",
-            modelType: OnCallDutyPolicyScheduleLayerUser,
-            id: "add-user-to-layer",
-            fields: [
-              {
-                field: {
-                  user: true,
-                },
-                title: "User",
-                description:
-                  "Select a team member to add to this layer's rotation.",
-                fieldType: FormFieldSchemaType.Dropdown,
-                fetchDropdownOptions: async () => {
-                  return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                    ProjectUtil.getCurrentProjectId()!,
-                  );
-                },
-                required: true,
-                placeholder: "Select User",
-              },
-            ],
-            formType: FormType.Create,
           }}
         />
       )}
