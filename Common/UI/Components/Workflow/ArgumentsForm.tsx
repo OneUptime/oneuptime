@@ -7,6 +7,7 @@ import ComponentValuePickerModal from "./ComponentValuePickerModal";
 import ConditionBuilder from "./ConditionBuilder";
 import DataReferenceInput from "./DataReferenceInput";
 import JSONArgumentInput from "./JSONArgumentInput";
+import KeyValueInput from "./KeyValueInput";
 import ModelFieldPicker from "./ModelFieldPicker";
 import { componentInputTypeToFormFieldType } from "./Utils";
 import VariableModal from "./VariableModal";
@@ -35,6 +36,7 @@ import React, {
  * Argument types that are edited as JSON. These used to render as a plain
  * textarea; they now use the validating JSONArgumentInput. Select is included
  * only when the component has no tableName (otherwise it uses ModelFieldPicker).
+ * StringDictionary is handled separately (key/value rows, see KeyValueInput).
  */
 const JSON_INPUT_TYPES: Array<ComponentInputType> = [
   ComponentInputType.JSON,
@@ -43,7 +45,6 @@ const JSON_INPUT_TYPES: Array<ComponentInputType> = [
   ComponentInputType.BaseModelArray,
   ComponentInputType.Query,
   ComponentInputType.Select,
-  ComponentInputType.StringDictionary,
 ];
 
 export interface ComponentProps {
@@ -313,6 +314,13 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                 const useJsonEditor: boolean =
                   !useFieldPicker && JSON_INPUT_TYPES.includes(arg.type);
 
+                /*
+                 * StringDictionary args (HTTP headers, query params) are
+                 * edited as key/value rows rather than raw JSON.
+                 */
+                const useKeyValueEditor: boolean =
+                  arg.type === ComponentInputType.StringDictionary;
+
                 let baseField: {
                   fieldType: import("../Forms/Types/FormFieldSchemaType").default;
                   dropdownOptions?: Array<DropdownOption> | undefined;
@@ -366,6 +374,28 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                       );
                     },
                   };
+                } else if (useKeyValueEditor) {
+                  baseField = {
+                    fieldType: FormFieldSchemaType.CustomComponent,
+                    getCustomElement: (
+                      _values: FormValues<JSONObject>,
+                      customProps: CustomElementProps,
+                    ): ReactElement => {
+                      return (
+                        <KeyValueInput
+                          value={(customProps.initialValue as string) || ""}
+                          placeholder={arg.placeholder}
+                          error={customProps.error}
+                          onChange={(value: string) => {
+                            void customProps.onChange?.(value);
+                          }}
+                          onValidationChange={(isInvalid: boolean) => {
+                            setJsonFieldError(arg.id, isInvalid);
+                          }}
+                        />
+                      );
+                    },
+                  };
                 } else {
                   baseField = componentInputTypeToFormFieldType(
                     arg.type,
@@ -389,7 +419,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                  * expression) or to WorkflowSelect.
                  */
                 const showVariableFooter: boolean =
-                  !isWorkflowSelect && !useFieldPicker;
+                  !isWorkflowSelect && !useFieldPicker && !useKeyValueEditor;
 
                 /*
                  * Plain text fields get the inline chip helper: existing
