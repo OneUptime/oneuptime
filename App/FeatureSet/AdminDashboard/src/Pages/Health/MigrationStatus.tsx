@@ -38,9 +38,7 @@ const countLabel: (value: unknown) => string = (value: unknown): string => {
 };
 
 // Render an ISO timestamp as readable local date/time; blank/unparseable -> em dash.
-const formatDateTime: (value: unknown) => string = (
-  value: unknown,
-): string => {
+const formatDateTime: (value: unknown) => string = (value: unknown): string => {
   const raw: string = String(value || "");
   if (!raw) {
     return "—";
@@ -74,7 +72,9 @@ const buildFailureMap: (failures: JSONArray) => Map<string, JSONObject> = (
 const renderFailureDetail: (failure: JSONObject) => ReactElement = (
   failure: JSONObject,
 ): ReactElement => {
-  const errorMessage: string = String(failure["errorMessage"] || "Unknown error");
+  const errorMessage: string = String(
+    failure["errorMessage"] || "Unknown error",
+  );
   const errorStack: string = String(failure["errorStack"] || "");
   const hostName: string = String(failure["hostName"] || "");
   const appVersion: string = String(failure["appVersion"] || "");
@@ -338,7 +338,9 @@ const MigrationStatus: FunctionComponent = (): ReactElement => {
               {recentFailures.map(
                 (failure: unknown, index: number): ReactElement => {
                   return (
-                    <div key={index}>{renderFailureDetail(asObject(failure))}</div>
+                    <div key={index}>
+                      {renderFailureDetail(asObject(failure))}
+                    </div>
                   );
                 },
               )}
