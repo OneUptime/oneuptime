@@ -24,6 +24,7 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
+import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
@@ -43,6 +44,17 @@ const Layers: FunctionComponent<ComponentProps> = (
   const [layerUsers, setLayerUsers] = React.useState<
     Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>
   >({});
+
+  /*
+   * The schedule's IANA timezone. The "Final schedule" preview must resolve
+   * restriction wall-clock windows in this zone (as the server does and as the
+   * sibling FinalPreview does), otherwise the editing preview shows on-call
+   * hours in the viewer's browser zone and contradicts who actually gets paged
+   * (audit F21).
+   */
+  const [scheduleTimezone, setScheduleTimezone] = React.useState<
+    string | undefined
+  >(undefined);
 
   const [isAddButtonLoading, setIsAddButtonLoading] =
     React.useState<boolean>(false);
@@ -91,6 +103,22 @@ const Layers: FunctionComponent<ComponentProps> = (
     }
 
     try {
+      /*
+       * Load the schedule's timezone so the "Final schedule" preview resolves
+       * restriction windows in the same zone the server uses to page people
+       * (audit F21).
+       */
+      const schedule: OnCallDutyPolicySchedule | null =
+        await ModelAPI.getItem<OnCallDutyPolicySchedule>({
+          modelType: OnCallDutyPolicySchedule,
+          id: props.onCallDutyPolicyScheduleId,
+          select: {
+            timezone: true,
+          },
+        });
+
+      setScheduleTimezone(schedule?.timezone?.toString() || undefined);
+
       const layersResult: ListResult<OnCallDutyPolicyScheduleLayer> =
         await ModelAPI.getList<OnCallDutyPolicyScheduleLayer>({
           modelType: OnCallDutyPolicyScheduleLayer,
@@ -563,12 +591,21 @@ const Layers: FunctionComponent<ComponentProps> = (
         <Card
           title={"Final schedule"}
           description={
-            "A combined preview of who is on call and when, after all layers and priorities are applied. Shown in your local timezone — " +
-            OneUptimeDate.getCurrentTimezoneString() +
-            "."
+            "A combined preview of who is on call and when, after all layers and priorities are applied. " +
+            (scheduleTimezone
+              ? "Restriction windows are resolved in this schedule's timezone — " +
+                scheduleTimezone +
+                "."
+              : "Shown in your local timezone — " +
+                OneUptimeDate.getCurrentTimezoneString() +
+                ".")
           }
         >
-          <LayersPreview layers={layers} allLayerUsers={layerUsers} />
+          <LayersPreview
+            layers={layers}
+            allLayerUsers={layerUsers}
+            timezone={scheduleTimezone}
+          />
         </Card>
       </div>
 

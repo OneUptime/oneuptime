@@ -21,6 +21,23 @@ RunCron(
     // get all pending on-call executions and execute them all at once.
     const fiveMinsAgo: Date = OneUptimeDate.getSomeMinutesAgo(5);
 
+    /*
+     * A log sits in "Started" only for the brief moment between creation and the
+     * first notification rule beginning to execute. If it is still "Started"
+     * after 5 minutes it is genuinely stuck, so we time it out.
+     *
+     * We deliberately DO NOT time out "Executing" logs on wall-clock alone. An
+     * Executing log stays Executing until its LAST staggered notification rule
+     * fires — ExecutePendingExecutions skips rules whose notifyAfterMinutes has
+     * not elapsed yet and only marks the log Completed once every rule has run.
+     * notifyAfterMinutes has no upper bound, so a user with a last-resort channel
+     * configured beyond 3 hours (e.g. "call at 240 min") legitimately stays
+     * Executing that long. The previous 3-hour cutoff force-errored these healthy
+     * logs and silently dropped the not-yet-fired rules, so the loudest
+     * last-resort page was never made (audit F16). This mirrors the sibling
+     * OnCallDutyPolicyExecutionLog:TimeoutStuckExecutions, which only reaps
+     * "Started".
+     */
     const stuckExecutions: Array<UserOnCallLog> =
       await UserOnCallLogService.findAllBy({
         query: {
@@ -37,29 +54,7 @@ RunCron(
         },
       });
 
-    // check for executing logs more than 3 hours ago and mark them as timed out.
-    const stuckExecutingLogs: Array<UserOnCallLog> =
-      await UserOnCallLogService.findAllBy({
-        query: {
-          status: UserNotificationExecutionStatus.Executing,
-          createdAt: QueryHelper.lessThan(OneUptimeDate.getSomeHoursAgo(3)),
-        },
-        select: {
-          _id: true,
-          createdAt: true,
-        },
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const totalStuckExecutions: Array<UserOnCallLog> = [
-      ...stuckExecutions,
-      ...stuckExecutingLogs,
-    ];
-
-    for (const executionLog of totalStuckExecutions) {
+    for (const executionLog of stuckExecutions) {
       await UserOnCallLogService.updateOneById({
         id: executionLog.id!,
         data: {

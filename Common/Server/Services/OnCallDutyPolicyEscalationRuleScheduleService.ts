@@ -22,6 +22,9 @@ import PushNotificationMessage from "../../Types/PushNotification/PushNotificati
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
+import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
+import OneUptimeDate from "../../Types/Date";
+import logger, { LogAttributes } from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -287,6 +290,35 @@ export class Service extends DatabaseService<Model> {
 
       if (!userOnSchedule) {
         continue;
+      }
+
+      /*
+       * Close the roster user's open on-call time log for this schedule/rule/
+       * policy. Roster handoffs open a time log keyed by schedule + rule + policy
+       * (OnCallDutyPolicyScheduleService.startTimeLogForUser); the user-link and
+       * team-link delete handlers close theirs, but detaching a SCHEDULE from the
+       * rule left the log open forever, so the roster user kept showing as
+       * on-call in reporting (audit F18).
+       */
+      if (
+        deletedItem.onCallDutyPolicy?.id &&
+        deletedItem.onCallDutyPolicyEscalationRule?.id &&
+        deletedItem.projectId
+      ) {
+        OnCallDutyPolicyTimeLogService.endTimeLogForUser({
+          projectId: deletedItem.projectId,
+          onCallDutyPolicyId: deletedItem.onCallDutyPolicy.id,
+          onCallDutyPolicyEscalationRuleId:
+            deletedItem.onCallDutyPolicyEscalationRule.id,
+          userId: userOnSchedule,
+          onCallDutyPolicyScheduleId: deletedItem.onCallDutyPolicyScheduleId!,
+          endsAt: OneUptimeDate.getCurrentDate(),
+        }).catch((error: Error) => {
+          logger.error(error, {
+            projectId: deletedItem.projectId?.toString(),
+            userId: userOnSchedule?.toString(),
+          } as LogAttributes);
+        });
       }
 
       const sendEmailToUserId: ObjectID | undefined | null = userOnSchedule;
