@@ -1220,6 +1220,37 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
   public onCallPolicyExecutionRepeatCount?: number = undefined;
 
   @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: true,
+    isDefaultValueColumn: true,
+    title: "Schedule Gap Retry Count",
+    description:
+      "How many times the current escalation rule has been re-sampled because its target schedule(s) momentarily had no on-call user.",
+    defaultValue: 0,
+    example: 0,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 0,
+  })
+  public scheduleGapRetryCount?: number = undefined;
+
+  @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

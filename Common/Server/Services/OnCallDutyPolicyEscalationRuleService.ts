@@ -10,6 +10,7 @@ import OnCallDutyPolicyEscalationRuleScheduleService from "./OnCallDutyPolicyEsc
 import OnCallDutyPolicyEscalationRuleTeamService from "./OnCallDutyPolicyEscalationRuleTeamService";
 import OnCallDutyPolicyEscalationRuleUserService from "./OnCallDutyPolicyEscalationRuleUserService";
 import OnCallDutyPolicyExecutionLogService from "./OnCallDutyPolicyExecutionLogService";
+import OnCallDutyPolicyExecutionLog from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicyExecutionLogTimelineService from "./OnCallDutyPolicyExecutionLogTimelineService";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import TeamMemberService from "./TeamMemberService";
@@ -397,6 +398,15 @@ export class Service extends DatabaseService<Model> {
 
     const uniqueUserIds: Array<ObjectID> = [];
 
+    /*
+     * M-5: tracks whether any schedule target for this rule momentarily had no
+     * on-call user (a restriction gap / future start / empty layer). If a rule
+     * reaches NO ONE solely because of such a gap, we re-sample the same rule on
+     * the next cron ticks (bounded) instead of permanently skipping it, so a
+     * user coming on-call moments later still gets paged.
+     */
+    let hadScheduleGap: boolean = false;
+
     for (const teamInRule of teamsInRule) {
       const usersInTeam: Array<User> = await TeamMemberService.getUsersInTeam(
         teamInRule.teamId!,
@@ -464,6 +474,8 @@ export class Service extends DatabaseService<Model> {
         );
 
       if (!userIdInSchedule) {
+        hadScheduleGap = true;
+
         const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
         log.statusMessage =
           "Skipped because no active users are found in this schedule.";
@@ -515,6 +527,77 @@ export class Service extends DatabaseService<Model> {
 
       await OnCallDutyPolicyExecutionLogTimelineService.create({
         data: log,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    /*
+     * M-5: if this rule reached NO ONE and the only reason was a schedule gap
+     * (a schedule target with no on-call user right now), re-sample the SAME
+     * rule on the next cron ticks — bounded — instead of permanently skipping.
+     * ExecutePendingExecutions selects the rule with order =
+     * lastExecutedEscalationRuleOrder + 1, so rewinding the order by one makes
+     * it re-run this rule. No notifications were sent (uniqueUserIds is empty),
+     * so a re-sample cannot double-page anyone.
+     */
+    const maxScheduleGapRetries: number = 5;
+    const scheduleGapRetryIntervalMinutes: number = 1;
+    const reachedNoOne: boolean = uniqueUserIds.length === 0;
+
+    if (reachedNoOne && hadScheduleGap && rule.order) {
+      const executionLog: OnCallDutyPolicyExecutionLog | null =
+        await OnCallDutyPolicyExecutionLogService.findOneById({
+          id: options.onCallPolicyExecutionLogId,
+          select: {
+            scheduleGapRetryCount: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      const retryCount: number = executionLog?.scheduleGapRetryCount || 0;
+
+      if (retryCount < maxScheduleGapRetries) {
+        await OnCallDutyPolicyExecutionLogService.updateOneById({
+          id: options.onCallPolicyExecutionLogId,
+          data: {
+            lastExecutedEscalationRuleOrder: rule.order - 1,
+            executeNextEscalationRuleInMinutes: scheduleGapRetryIntervalMinutes,
+            scheduleGapRetryCount: retryCount + 1,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        logger.debug(
+          `Rule ${ruleId.toString()} reached no one due to a schedule gap; re-sampling ${retryCount + 1}/${maxScheduleGapRetries}.`,
+          {
+            onCallDutyPolicyEscalationRuleId: ruleId.toString(),
+          } as LogAttributes,
+        );
+      } else {
+        // Retries exhausted — advance normally next tick and reset the counter.
+        await OnCallDutyPolicyExecutionLogService.updateOneById({
+          id: options.onCallPolicyExecutionLogId,
+          data: {
+            scheduleGapRetryCount: 0,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    } else {
+      // Reached someone (or no schedule gap): clear retry state for the next rule.
+      await OnCallDutyPolicyExecutionLogService.updateOneById({
+        id: options.onCallPolicyExecutionLogId,
+        data: {
+          scheduleGapRetryCount: 0,
+        },
         props: {
           isRoot: true,
         },

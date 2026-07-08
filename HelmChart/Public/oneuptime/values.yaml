@@ -896,6 +896,23 @@ probes:
     replicaCount: 1
     syntheticMonitorScriptTimeoutInMs: 60000
     customCodeMonitorScriptTimeoutInMs: 60000
+    # DNS settings for this probe. When unset, the probe inherits the chart-wide
+    # `dnsConfig`/`dnsPolicy` defaults (ndots:1 + fallback nameservers — see the
+    # top-level `dnsConfig:` block) that prevent intermittent "getaddrinfo
+    # EAI_AGAIN" false alerts. Uncomment to override for this probe only; a
+    # per-probe value fully replaces the chart-wide default (it is not merged).
+    # dnsConfig:
+    #   options:
+    #     - name: ndots
+    #       value: "1"
+    #     - name: timeout
+    #       value: "2"
+    #     - name: attempts
+    #       value: "2"
+    #   nameservers:
+    #     - "8.8.8.8"
+    #     - "1.1.1.1"
+    # dnsPolicy: ClusterFirst
     disableTelemetryCollection: false
     enableProfiling: false
     disableAutoscaler: false
@@ -960,6 +977,18 @@ probes:
 #     http: 3874
 #   syntheticMonitorScriptTimeoutInMs: 60000
 #   customCodeMonitorScriptTimeoutInMs: 60000
+#   # DNS override for this probe (otherwise inherits the chart-wide dnsConfig default).
+#   dnsConfig:
+#     options:
+#       - name: ndots
+#         value: "1"
+#       - name: timeout
+#         value: "2"
+#       - name: attempts
+#         value: "2"
+#     nameservers:
+#       - "8.8.8.8"
+#       - "1.1.1.1"
 #   disableTelemetryCollection: false
 #   disableAutoscaler: false
 #   # Proxy configuration for probe connections
@@ -1024,6 +1053,34 @@ affinity:
 tolerations:
 nodeSelector:
 hostAliases:
+
+# Chart-wide fallback DNS settings. Services that support DNS overrides (currently
+# the probes) use their per-service dnsConfig/dnsPolicy if set, otherwise these.
+#
+# Probes resolve mostly EXTERNAL hostnames, so the Kubernetes default (ndots:5 +
+# a multi-entry search list) turns every lookup into ~7 DNS queries funneled
+# through a single upstream resolver, causing intermittent "getaddrinfo EAI_AGAIN"
+# failures (false monitor-down alerts) under load. These defaults:
+#  - ndots:1 removes the search-domain fan-out for external names.
+#  - timeout/attempts make the resolver fail over faster instead of hanging.
+#  - nameservers are appended AFTER the cluster resolver (which stays primary via
+#    dnsPolicy: ClusterFirst) as a fallback, so one overloaded upstream no longer
+#    breaks name resolution.
+# Air-gapped clusters with no egress to public DNS: drop the `nameservers` list
+# (or set `dnsConfig: {}`) and keep only the `options` block.
+# dnsPolicy is left unset so Kubernetes uses ClusterFirst (in-cluster API keeps resolving).
+dnsPolicy:
+dnsConfig:
+  options:
+    - name: ndots
+      value: "1"
+    - name: timeout
+      value: "2"
+    - name: attempts
+      value: "2"
+  nameservers:
+    - "8.8.8.8"
+    - "1.1.1.1"
 
 # This can be one of the following: DEBUG, INFO, WARN, ERROR, OFF
 # Please do not set this to DEBUG in production. This is only for development / debugging purposes.

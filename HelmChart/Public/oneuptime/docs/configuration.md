@@ -72,6 +72,10 @@ Configured per probe under `probes.<key>`.
 | `probes.<key>.proxy.noProxy`                      | Comma-separated hosts that bypass the proxy (optional).               | `nil`   |
 | `probes.<key>.additionalContainers`              | Additional containers to add to the probe pod.                        | `nil`   |
 | `probes.<key>.resources`                          | Pod resources (limits, requests).                                     | `nil`   |
+| `probes.<key>.dnsConfig`                          | Per-probe [`dnsConfig`](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-dns-config) override. Unset by default — the probe inherits the chart-wide `dnsConfig` (see below). A per-probe value fully replaces the chart-wide default (not merged). | `nil` (inherits chart-wide) |
+| `probes.<key>.dnsPolicy`                          | Per-probe `dnsPolicy` override. Unset by default — inherits the chart-wide `dnsPolicy`. | `nil` (inherits chart-wide) |
+
+> **Why probes have custom DNS settings.** Probes resolve mostly *external* hostnames. The Kubernetes default (`ndots:5` plus a multi-entry search list) turns every external lookup into ~7 DNS queries funneled through a single upstream resolver, which under load causes intermittent `getaddrinfo EAI_AGAIN` failures and false monitor-down alerts. The chart ships a **chart-wide `dnsConfig` default** (`ndots:1`, which removes the search-domain fan-out, plus public fallback nameservers `8.8.8.8`/`1.1.1.1`); `dnsPolicy` stays `ClusterFirst` so `*.svc.cluster.local` (the OneUptime API the probe calls) still resolves. Each probe inherits this fallback unless it sets its own `probes.<key>.dnsConfig`. On **air-gapped clusters** with no egress to public DNS, drop the chart-wide `nameservers` list (keep the `options` block) or set `dnsConfig: {}`.
 
 ## Incidents & alerts
 
@@ -124,6 +128,8 @@ features. See the full [Local AI with vLLM](ai-vllm.md) guide.
 |------------------------------------|------------------------------------------|---------|
 | `extraTemplates`                   | Extra templates to add to the deployment.| `[]`    |
 | `script.workflowScriptTimeoutInMs` | Timeout for workflow scripts.            | `5000`  |
+| `dnsConfig`                        | Chart-wide fallback pod `dnsConfig` used by services that support DNS overrides (currently the probes) when they don't set their own. Ships an `ndots:1` + fallback-nameservers default to avoid `getaddrinfo EAI_AGAIN` — see [Probes](#probes). | `ndots:1` + `8.8.8.8`/`1.1.1.1` |
+| `dnsPolicy`                        | Chart-wide fallback pod `dnsPolicy`. Left unset so Kubernetes uses `ClusterFirst` (in-cluster API keeps resolving). | `nil`   |
 
 ## Related pages
 

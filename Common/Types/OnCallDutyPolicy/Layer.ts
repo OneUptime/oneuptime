@@ -16,6 +16,13 @@ export interface LayerProps {
   restrictionTimes: RestrictionTimes;
   handOffTime: Date;
   rotation: Recurring;
+  /*
+   * IANA timezone (e.g. "America/New_York") the schedule's wall-clock
+   * restriction/handoff times are authored in. When omitted (existing
+   * schedules), restriction windows are reconstructed in the server's local
+   * time exactly as before — fully backward compatible.
+   */
+  timezone?: string | undefined;
 }
 
 export interface EventProps extends LayerProps {
@@ -34,6 +41,15 @@ export interface PriorityCalendarEvents extends CalendarEvent {
 }
 
 export default class LayerUtil {
+  /*
+   * The timezone of the layer currently being expanded. Set at the start of
+   * getEvents and read by the restriction-trimming helpers so wall-clock
+   * restriction windows resolve in the schedule's zone. undefined => local
+   * time (legacy behavior). getEvents runs synchronously, so this per-call
+   * field is not subject to interleaving.
+   */
+  private timezone: string | undefined = undefined;
+
   public getEvents(
     data: EventProps,
     options?:
@@ -49,6 +65,8 @@ export default class LayerUtil {
     }
 
     data = this.sanitizeData(data);
+
+    this.timezone = data.timezone;
 
     let start: Date = data.calendarStartDate;
     const end: Date = data.calendarEndDate;
@@ -717,12 +735,14 @@ export default class LayerUtil {
         OneUptimeDate.keepTimeButMoveDay(
           restrictionTimes.dayRestrictionTimes.startTime,
           data.eventStartTime,
+          this.timezone,
         );
 
       restrictionTimes.dayRestrictionTimes.endTime =
         OneUptimeDate.keepTimeButMoveDay(
           restrictionTimes.dayRestrictionTimes.endTime,
           data.eventStartTime,
+          this.timezone,
         );
 
       return this.getEventsByDailyRestriction({
@@ -809,13 +829,15 @@ export default class LayerUtil {
       startTime = OneUptimeDate.moveDateToTheDayOfWeek(
         startTime,
         eventStartTime,
-        OneUptimeDate.getDayOfWeek(startTime),
+        OneUptimeDate.getDayOfWeek(startTime, this.timezone),
+        this.timezone,
       );
 
       endTime = OneUptimeDate.moveDateToTheDayOfWeek(
         endTime,
         eventStartTime,
-        OneUptimeDate.getDayOfWeek(endTime),
+        OneUptimeDate.getDayOfWeek(endTime, this.timezone),
+        this.timezone,
       );
 
       // now we have true start and end times of the weekly restriction
@@ -910,7 +932,7 @@ export default class LayerUtil {
        * segment of the extra leading day that falls outside the event.
        */
       let currentDayStart: Date = OneUptimeDate.addRemoveDays(
-        OneUptimeDate.getStartOfDay(data.eventStartTime),
+        OneUptimeDate.getStartOfDay(data.eventStartTime, this.timezone),
         -1,
       );
       const absoluteEventEnd: Date = data.eventEndTime;
@@ -926,19 +948,25 @@ export default class LayerUtil {
         const segmentNightStart: Date = OneUptimeDate.keepTimeButMoveDay(
           restrictionStartTime,
           currentDayStart,
+          this.timezone,
         );
-        const segmentNightEnd: Date =
-          OneUptimeDate.getEndOfDay(segmentNightStart);
+        const segmentNightEnd: Date = OneUptimeDate.getEndOfDay(
+          segmentNightStart,
+          this.timezone,
+        );
 
         const nextDayStart: Date = OneUptimeDate.addRemoveDays(
           currentDayStart,
           1,
         );
-        const segmentMorningStart: Date =
-          OneUptimeDate.getStartOfDay(nextDayStart);
+        const segmentMorningStart: Date = OneUptimeDate.getStartOfDay(
+          nextDayStart,
+          this.timezone,
+        );
         const segmentMorningEnd: Date = OneUptimeDate.keepTimeButMoveDay(
           restrictionEndTime,
           nextDayStart,
+          this.timezone,
         );
 
         // helper to add intersection if it overlaps the event window
@@ -1168,6 +1196,7 @@ export default class LayerUtil {
         restrictionTimes: layer.restrictionTimes,
         handOffTime: layer.handOffTime,
         rotation: layer.rotation,
+        timezone: layer.timezone,
         calendarStartDate: data.calendarStartDate,
         calendarEndDate: data.calendarEndDate,
       });

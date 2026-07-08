@@ -1019,6 +1019,24 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
         },
       });
 
+    /*
+     * The schedule's timezone (if set) is applied to every layer so restriction
+     * wall-clock times resolve in that zone. When null (existing schedules), the
+     * layer engine falls back to server-local time — unchanged legacy behavior.
+     */
+    const schedule: OnCallDutyPolicySchedule | null = await this.findOneById({
+      id: scheduleId,
+      select: {
+        timezone: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const scheduleTimezone: string | undefined =
+      schedule?.timezone?.toString() || undefined;
+
     const layerProps: Array<LayerProps> = [];
     const scheduleUserIds: Array<ObjectID> = [];
     const seenUserIds: Set<string> = new Set<string>();
@@ -1052,6 +1070,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
         restrictionTimes: layer.restrictionTimes!,
         rotation: layer.rotation!,
         handOffTime: layer.handOffTime!,
+        timezone: scheduleTimezone,
       });
     }
 
