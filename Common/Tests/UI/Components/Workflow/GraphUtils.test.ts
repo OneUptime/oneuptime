@@ -1,6 +1,7 @@
 import {
   getUpstreamComponentIds,
   getComponentSummary,
+  getNodeStatus,
 } from "../../../../UI/Components/Workflow/GraphUtils";
 import {
   ComponentInputType,
@@ -230,5 +231,65 @@ describe("GraphUtils.getComponentSummary", () => {
       { a: "   ", b: "real" },
     );
     expect(getComponentSummary(data)).toBe("B: real");
+  });
+});
+
+describe("GraphUtils.getNodeStatus", () => {
+  const requiredArgData: (values: Record<string, unknown>) => NodeDataProp = (
+    values: Record<string, unknown>,
+  ): NodeDataProp => {
+    return {
+      error: "",
+      metadata: {
+        arguments: [
+          {
+            id: "url",
+            name: "URL",
+            type: ComponentInputType.URL,
+            description: "",
+            required: true,
+          },
+          {
+            id: "note",
+            name: "Note",
+            type: ComponentInputType.Text,
+            description: "",
+            required: false,
+          },
+        ],
+      },
+      arguments: values,
+    } as unknown as NodeDataProp;
+  };
+
+  test("is 'error' when the node reported an error", () => {
+    const data: NodeDataProp = requiredArgData({ url: "https://x" });
+    (data as { error: string }).error = "boom";
+    expect(getNodeStatus(data)).toBe("error");
+  });
+
+  test("is 'incomplete' when a required argument is empty", () => {
+    expect(getNodeStatus(requiredArgData({}))).toBe("incomplete");
+    expect(getNodeStatus(requiredArgData({ url: "" }))).toBe("incomplete");
+  });
+
+  test("is 'ready' when all required arguments are filled", () => {
+    expect(getNodeStatus(requiredArgData({ url: "https://x" }))).toBe("ready");
+  });
+
+  test("ignores optional arguments", () => {
+    // note is optional and empty, url is filled -> still ready.
+    expect(getNodeStatus(requiredArgData({ url: "https://x", note: "" }))).toBe(
+      "ready",
+    );
+  });
+
+  test("is 'ready' for a step with no arguments", () => {
+    const data: NodeDataProp = {
+      error: "",
+      metadata: { arguments: [] },
+      arguments: {},
+    } as unknown as NodeDataProp;
+    expect(getNodeStatus(data)).toBe("ready");
   });
 });
