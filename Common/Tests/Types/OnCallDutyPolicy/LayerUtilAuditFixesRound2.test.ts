@@ -314,8 +314,10 @@ describe("LayerUtil audit fixes round 2", () => {
 
       const layer: LayerProps = {
         users: [u("A")],
-        startDateTimeOfLayer: d("2026-03-05T00:00:00.000Z"),
-        handOffTime: d("2026-03-05T00:00:00.000Z"),
+        // 2026-03-05 00:00 America/New_York (EST) = 05:00 UTC — a NY-day-aligned
+        // handoff, as real weekly schedules use.
+        startDateTimeOfLayer: d("2026-03-05T05:00:00.000Z"),
+        handOffTime: d("2026-03-05T05:00:00.000Z"),
         // 09:00 EST and 17:00 EST reference instants -> 09:00/17:00 New York.
         restrictionTimes: dailyRestrictionFromInstants(
           "2026-03-05T14:00:00.000Z",
@@ -327,8 +329,8 @@ describe("LayerUtil audit fixes round 2", () => {
 
       const events: Array<CalendarEvent> = util.getEvents({
         ...layer,
-        calendarStartDate: d("2026-03-05T00:00:00.000Z"),
-        calendarEndDate: d("2026-03-12T00:00:00.000Z"),
+        calendarStartDate: d("2026-03-05T05:00:00.000Z"),
+        calendarEndDate: d("2026-03-12T05:00:00.000Z"),
       });
 
       // The March 10 window (EDT) must be 09:00-17:00 local = 13:00-21:00 UTC.
