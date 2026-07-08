@@ -34,6 +34,11 @@ export interface ComponentProps {
   allLayerUsers: Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>;
   showFieldLabel?: boolean;
   id?: string | undefined;
+  /*
+   * The schedule's IANA timezone; when set the preview resolves restriction
+   * windows in that zone so it matches how the server pages people.
+   */
+  timezone?: string | undefined;
 }
 
 interface UserInfo {
@@ -276,6 +281,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         handOffTime: layer.handOffTime!,
         rotation: layer.rotation!,
         restrictionTimes: layer.restrictionTimes!,
+        timezone: props.timezone,
       });
     }
 
@@ -335,6 +341,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
   }, [
     props.layers,
     props.allLayerUsers,
+    props.timezone,
     startTime,
     endTime,
     overrides,
@@ -351,8 +358,11 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
           required={true}
           title="Layer Preview"
           description={
-            "Here is a preview of who is on call and when. This is based on your local timezone - " +
-            OneUptimeDate.getCurrentTimezoneString()
+            props.timezone
+              ? "Here is a preview of who is on call and when. Restriction windows are resolved in this schedule's timezone - " +
+                props.timezone
+              : "Here is a preview of who is on call and when. This is based on your local timezone - " +
+                OneUptimeDate.getCurrentTimezoneString()
           }
         />
       )}

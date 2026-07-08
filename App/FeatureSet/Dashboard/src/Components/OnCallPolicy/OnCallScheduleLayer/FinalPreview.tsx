@@ -14,6 +14,7 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
+import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
@@ -34,6 +35,10 @@ const Layers: FunctionComponent<ComponentProps> = (
     Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>
   >({});
 
+  const [scheduleTimezone, setScheduleTimezone] = React.useState<
+    string | undefined
+  >(undefined);
+
   const [error, setError] = React.useState<string>("");
 
   useEffect(() => {
@@ -47,6 +52,21 @@ const Layers: FunctionComponent<ComponentProps> = (
     setIsLoading(true);
 
     try {
+      /*
+       * Load the schedule's timezone so the preview resolves restriction windows
+       * in the same zone the server uses to page people.
+       */
+      const schedule: OnCallDutyPolicySchedule | null =
+        await ModelAPI.getItem<OnCallDutyPolicySchedule>({
+          modelType: OnCallDutyPolicySchedule,
+          id: props.onCallDutyPolicyScheduleId,
+          select: {
+            timezone: true,
+          },
+        });
+
+      setScheduleTimezone(schedule?.timezone?.toString() || undefined);
+
       const layers: ListResult<OnCallDutyPolicyScheduleLayer> =
         await ModelAPI.getList<OnCallDutyPolicyScheduleLayer>({
           modelType: OnCallDutyPolicyScheduleLayer,
@@ -152,11 +172,18 @@ const Layers: FunctionComponent<ComponentProps> = (
         <Card
           title={`Final Schedule`}
           description={
-            "Here is the final schedule of who is on call and when. This is based on your local timezone - " +
-            OneUptimeDate.getCurrentTimezoneString()
+            scheduleTimezone
+              ? "Here is the final schedule of who is on call and when. Restriction windows are resolved in this schedule's timezone - " +
+                scheduleTimezone
+              : "Here is the final schedule of who is on call and when. This is based on your local timezone - " +
+                OneUptimeDate.getCurrentTimezoneString()
           }
         >
-          <LayersPreview layers={layers} allLayerUsers={layerUsers} />
+          <LayersPreview
+            layers={layers}
+            allLayerUsers={layerUsers}
+            timezone={scheduleTimezone}
+          />
         </Card>
       )}
     </div>
