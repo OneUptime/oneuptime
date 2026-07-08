@@ -31,7 +31,11 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
     <ModelForm<OnCallDutyPolicyScheduleLayer>
       modelType={OnCallDutyPolicyScheduleLayer}
       name="Layer Configuration"
-      id="layer-configuration"
+      /*
+       * Unique per layer: several layers can be expanded at once, and a static
+       * id would produce duplicate DOM ids (and colliding submit-button ids).
+       */
+      id={`layer-configuration-${props.layer.id?.toString() || "new"}`}
       fields={[
         {
           field: {

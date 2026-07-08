@@ -16,7 +16,11 @@ export interface ComponentProps {
   index: number;
   total: number;
   isExpanded: boolean;
-  isReordering: boolean;
+  /*
+   * Disables delete + reorder while any layer mutation is in flight, so
+   * concurrent add / delete / reorder cannot interleave and corrupt ordering.
+   */
+  actionsDisabled: boolean;
   isDeleteButtonLoading: boolean;
   onToggleExpand: () => void;
   onMoveUp: () => void;
@@ -87,8 +91,14 @@ const LayerCard: FunctionComponent<ComponentProps> = (
               const userId: string = user?.id?.toString() || `unknown-${i}`;
               const name: string = user?.name?.toString() || "";
               const email: string = user?.email?.toString() || "";
+              /*
+               * Key by the per-assignment row id, not the user id: the same user
+               * can appear twice in a layer, which would collide on user id.
+               */
+              const rowKey: string =
+                layerUser.id?.toString() || `${userId}-${i}`;
               return (
-                <Tooltip key={userId} text={name || email || "Unknown user"}>
+                <Tooltip key={rowKey} text={name || email || "Unknown user"}>
                   <span
                     className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold text-white ring-2 ring-white"
                     style={{ backgroundColor: getColorForUserId(userId) }}
@@ -127,13 +137,13 @@ const LayerCard: FunctionComponent<ComponentProps> = (
       <button
         type="button"
         aria-label={params.label}
-        disabled={params.disabled || props.isReordering}
+        disabled={params.disabled || props.actionsDisabled}
         onClick={(e: React.MouseEvent) => {
           e.stopPropagation();
           params.onClick();
         }}
         className={`flex h-5 w-6 items-center justify-center rounded transition-colors ${
-          params.disabled || props.isReordering
+          params.disabled || props.actionsDisabled
             ? "cursor-not-allowed text-gray-300"
             : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
         }`}
@@ -227,7 +237,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               aria-label="Delete layer"
-              disabled={props.isDeleteButtonLoading}
+              disabled={props.isDeleteButtonLoading || props.actionsDisabled}
               onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
                 props.onDeleteLayer();

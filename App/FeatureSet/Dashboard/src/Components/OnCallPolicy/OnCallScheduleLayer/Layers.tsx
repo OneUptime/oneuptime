@@ -434,11 +434,24 @@ const Layers: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * A single in-flight flag that serializes every mutation. Add / delete /
+   * reorder each re-sequence the server-side `order`; letting two run at once
+   * (e.g. deleting one layer while another is mid-reorder) would interleave
+   * those re-sequences and corrupt the order values. While any mutation is in
+   * flight, all add / delete / reorder controls are disabled.
+   */
+  const isMutating: boolean =
+    isAddButtonLoading ||
+    reorderingLayerId !== null ||
+    deletingLayerIds.size > 0;
+
   const addLayerButton: GetReactElementFunction = (): ReactElement => {
     return (
       <Button
         title="Add Layer"
         isLoading={isAddButtonLoading}
+        disabled={isMutating}
         onClick={async () => {
           await addLayer();
         }}
@@ -502,7 +515,7 @@ const Layers: FunctionComponent<ComponentProps> = (
               index={i}
               total={layers.length}
               isExpanded={expandedLayerIds.has(layerId)}
-              isReordering={reorderingLayerId !== null}
+              actionsDisabled={isMutating}
               isDeleteButtonLoading={deletingLayerIds.has(layerId)}
               onToggleExpand={() => {
                 toggleExpand(layerId);
@@ -533,7 +546,7 @@ const Layers: FunctionComponent<ComponentProps> = (
         onClick={async () => {
           await addLayer();
         }}
-        disabled={isAddButtonLoading}
+        disabled={isMutating}
         className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-white py-4 text-sm font-medium text-gray-500 transition-colors hover:border-indigo-300 hover:bg-indigo-50/40 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Icon
