@@ -74,7 +74,10 @@ Le tout est **100 % open source (Apache 2.0)** et gratuit à héberger soi-même
 
 ---
 
-## 🌙 Un incident, géré de bout en bout
+<details>
+<summary><b>🌙 Un incident, géré de bout en bout</b></summary>
+
+<br/>
 
 Il est 2 h 47 du matin. Le paiement commence à expirer. Voici ce que fait OneUptime avant que la plupart des outils n'aient même déclenché la première alerte — et ce que montrent réellement les captures d'écran ci-dessous.
 
@@ -107,6 +110,8 @@ Traces, logs et métriques sont corrélés jusqu'au span exact : un `SELECT … 
 L'agent IA ouvre une pull request avec le correctif, liée à l'incident, avec des tests au vert — vous relisez et fusionnez. Comme un SRE qui ne dort jamais.
 
 ![Corriger automatiquement — l'agent IA ouvre une pull request avec le correctif](/Home/Static/img/readme/autofix.png?raw=true)
+
+</details>
 
 ---
 

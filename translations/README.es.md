@@ -74,7 +74,10 @@ Todo ello es **100 % de código abierto (Apache 2.0)** y gratis para alojar por 
 
 ---
 
-## 🌙 Un incidente, gestionado de principio a fin
+<details>
+<summary><b>🌙 Un incidente, gestionado de principio a fin</b></summary>
+
+<br/>
 
 Son las 2:47 a. m. El proceso de pago empieza a agotar el tiempo de espera. Esto es lo que hace OneUptime antes de que la mayoría de las herramientas siquiera dispararan la primera alerta, y lo que las capturas de pantalla de abajo muestran realmente.
 
@@ -107,6 +110,8 @@ Las trazas, los registros y las métricas se correlacionan hasta el span exacto:
 El agente de IA abre una solicitud de incorporación de cambios con la solución, vinculada al incidente y con las pruebas en verde: tú la revisas y la fusionas. Como un SRE que nunca duerme.
 
 ![Auto-corregir — el agente de IA abre una solicitud de incorporación de cambios con la solución](/Home/Static/img/readme/autofix.png?raw=true)
+
+</details>
 
 ---
 

@@ -74,7 +74,10 @@ Alt sammen er **100 % åpen kildekode (Apache 2.0)** og gratis å drifte selv.
 
 ---
 
-## 🌙 Én hendelse, håndtert fra ende til ende
+<details>
+<summary><b>🌙 Én hendelse, håndtert fra ende til ende</b></summary>
+
+<br/>
 
 Klokken er 02.47. Utsjekk begynner å få tidsavbrudd. Her er hva OneUptime gjør før de fleste verktøy i det hele tatt ville utløst det første varselet — og hva skjermbildene nedenfor faktisk viser.
 
@@ -107,6 +110,8 @@ Spor, logger og metrikker korreleres ned til nøyaktig span: en treg `SELECT …
 AI-agenten åpner en pull request med rettelsen, koblet til hendelsen, med grønne tester — du gjennomgår og fletter inn. Som en SRE som aldri sover.
 
 ![Auto-rett — AI-agenten åpner en pull request med rettelsen](/Home/Static/img/readme/autofix.png?raw=true)
+
+</details>
 
 ---
 

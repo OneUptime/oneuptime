@@ -74,7 +74,10 @@ All of it is **100% open source (Apache 2.0)** and free to self-host.
 
 ---
 
-## 🌙 One incident, handled end to end
+<details>
+<summary><b>🌙 One incident, handled end to end</b></summary>
+
+<br/>
 
 It's 2:47 AM. Checkout starts timing out. Here's what OneUptime does before most tools would even fire the first alert — and what the screenshots below actually show.
 
@@ -107,6 +110,8 @@ Traces, logs, and metrics are correlated down to the exact span: a slow `SELECT 
 The AI agent opens a pull request with the fix, linked to the incident, with tests green — you review and merge. Like an SRE that never sleeps.
 
 ![Auto-Fix — the AI agent opens a pull request with the fix](/Home/Static/img/readme/autofix.png?raw=true)
+
+</details>
 
 ---
 

@@ -74,7 +74,10 @@ Tudo isso é **100% open source (Apache 2.0)** e gratuito para auto-hospedar.
 
 ---
 
-## 🌙 Um incidente, resolvido de ponta a ponta
+<details>
+<summary><b>🌙 Um incidente, resolvido de ponta a ponta</b></summary>
+
+<br/>
 
 São 2h47 da manhã. O checkout começa a dar timeout. Veja o que a OneUptime faz antes que a maioria das ferramentas sequer dispare o primeiro alerta — e o que as capturas de tela abaixo realmente mostram.
 
@@ -107,6 +110,8 @@ Traces, logs e métricas são correlacionados até o span exato: um `SELECT … 
 O agente de IA abre um pull request com a correção, vinculado ao incidente, com os testes passando — você revisa e faz o merge. Como um SRE que nunca dorme.
 
 ![Correção Automática — o agente de IA abre um pull request com a correção](/Home/Static/img/readme/autofix.png?raw=true)
+
+</details>
 
 ---
 

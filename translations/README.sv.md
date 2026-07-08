@@ -74,7 +74,10 @@ Allt är **100 % öppen källkod (Apache 2.0)** och gratis att drifta själv.
 
 ---
 
-## 🌙 En incident, hanterad från början till slut
+<details>
+<summary><b>🌙 En incident, hanterad från början till slut</b></summary>
+
+<br/>
 
 Klockan är 02:47. Kassan börjar få timeouter. Så här gör OneUptime innan de flesta verktyg ens hunnit utlösa det första larmet — och det är precis vad skärmbilderna nedan faktiskt visar.
 
@@ -107,6 +110,8 @@ Spårningar, loggar och mätvärden korreleras ner till exakt span: en långsam 
 AI-agenten öppnar en pull request med åtgärden, länkad till incidenten och med gröna tester — du granskar och mergar. Som en SRE som aldrig sover.
 
 ![Auto-åtgärda — AI-agenten öppnar en pull request med åtgärden](/Home/Static/img/readme/autofix.png?raw=true)
+
+</details>
 
 ---
 

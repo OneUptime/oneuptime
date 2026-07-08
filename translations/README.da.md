@@ -74,7 +74,10 @@ Det hele er **100 % open source (Apache 2.0)** og gratis at hoste selv.
 
 ---
 
-## 🌙 Én hændelse, håndteret fra start til slut
+<details>
+<summary><b>🌙 Én hændelse, håndteret fra start til slut</b></summary>
+
+<br/>
 
 Klokken er 2:47 om natten. Checkout begynder at få timeouts. Her er, hvad OneUptime gør, før de fleste værktøjer overhovedet ville udløse den første alarm — og hvad skærmbillederne nedenfor faktisk viser.
 
@@ -107,6 +110,8 @@ Traces, logs og metrics korreleres helt ned til det præcise span: en langsom `S
 AI-agenten åbner en pull request med rettelsen, koblet til hændelsen, med grønne tests — du gennemgår og merger. Som en SRE, der aldrig sover.
 
 ![Auto-rettelse — AI-agenten åbner en pull request med rettelsen](/Home/Static/img/readme/autofix.png?raw=true)
+
+</details>
 
 ---
 

@@ -74,7 +74,10 @@ Alles is **100% open source (Apache 2.0)** en gratis om zelf te hosten.
 
 ---
 
-## 🌙 Eén incident, van begin tot eind afgehandeld
+<details>
+<summary><b>🌙 Eén incident, van begin tot eind afgehandeld</b></summary>
+
+<br/>
 
 Het is 02:47 uur. De checkout begint time-outs te geven. Dit is wat OneUptime doet nog voordat de meeste tools de eerste melding zouden versturen — en wat de screenshots hieronder daadwerkelijk laten zien.
 
@@ -107,6 +110,8 @@ Traces, logs en metrics worden gecorreleerd tot op de exacte span: een trage `SE
 De AI-agent opent een pull request met de oplossing, gekoppeld aan het incident, met groene tests — jij beoordeelt en merget. Als een SRE die nooit slaapt.
 
 ![Automatisch oplossen — de AI-agent opent een pull request met de oplossing](/Home/Static/img/readme/autofix.png?raw=true)
+
+</details>
 
 ---
 

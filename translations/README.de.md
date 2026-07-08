@@ -74,7 +74,10 @@ Das alles ist **zu 100 % Open Source (Apache 2.0)** und kostenlos selbst hostbar
 
 ---
 
-## 🌙 Ein Vorfall, von Anfang bis Ende bewältigt
+<details>
+<summary><b>🌙 Ein Vorfall, von Anfang bis Ende bewältigt</b></summary>
+
+<br/>
 
 Es ist 2:47 Uhr. Der Checkout beginnt, in Timeouts zu laufen. Hier sehen Sie, was OneUptime tut, bevor die meisten Tools überhaupt den ersten Alarm auslösen würden — und was die folgenden Screenshots tatsächlich zeigen.
 
@@ -107,6 +110,8 @@ Traces, Logs und Metriken werden bis auf den exakten Span korreliert: ein langsa
 Der KI-Agent öffnet einen Pull Request mit der Lösung, verknüpft mit dem Vorfall und mit grünen Tests — Sie prüfen und mergen. Wie ein SRE, der niemals schläft.
 
 ![Automatisch beheben — der KI-Agent öffnet einen Pull Request mit der Lösung](/Home/Static/img/readme/autofix.png?raw=true)
+
+</details>
 
 ---
 
