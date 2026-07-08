@@ -4663,7 +4663,7 @@
   "Send a notification to the Teams channel confirming the subscription.": "向 Teams 頻道發送確認訂閱的通知。",
   "Send a webhook notification confirming the subscription.": "發送確認訂閱的 webhook 通知。",
   "Send Email with the confirmation link to the subscribers. The subscribers need to click on the link to confirm the subscription.": "向訂閱者發送含確認連結的電子郵件。訂閱者需要點擊該連結以確認訂閱。",
-  "Send Email with the confrimation link to the subscriber. The subscriber needs to click on the link to confirm the subscription.": "向訂閱者發送含確認連結的電子郵件。訂閱者需要點擊該連結以確認訂閱。",
+  "Send Email with the confirmation link to the subscriber. The subscriber needs to click on the link to confirm the subscription.": "向訂閱者發送含確認連結的電子郵件。訂閱者需要點擊該連結以確認訂閱。",
   "Send First Report At": "首次報告發送於",
   "Send First Report On": "首次報告發送日",
   "Send incoming OneUptime notifications to your own HTTPS endpoints as JSON POST requests.": "將傳入的 OneUptime 通知以 JSON POST 請求發送至您自己的 HTTPS 端點。",
