@@ -492,7 +492,8 @@ export default class OneUptimeDate {
      */
     if (typeof timestamp === "string") {
       const trimmed: string = timestamp.trim();
-      if (/^[+-]?\d+$/.test(trimmed)) {
+      const integerPattern: RegExp = /^[+-]?\d+$/;
+      if (integerPattern.test(trimmed)) {
         const nanosPerMilli: bigint = BigInt(1000000);
         const millis: number = Number(BigInt(trimmed) / nanosPerMilli);
         return moment(millis).toDate();
