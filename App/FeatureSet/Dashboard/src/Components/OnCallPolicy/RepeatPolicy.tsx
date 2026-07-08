@@ -8,7 +8,7 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Icon, { IconType } from "Common/UI/Components/Icon/Icon";
+import Icon from "Common/UI/Components/Icon/Icon";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -194,8 +194,6 @@ const RepeatPolicy: FunctionComponent<ComponentProps> = (
           title="Edit Repeat Policy"
           name="Edit Repeat Policy"
           description="Decide whether to run the whole on-call policy again if the incident is still unacknowledged."
-          icon={IconProp.Reload}
-          iconType={IconType.Info}
           modelType={OnCallDutyPolicy}
           modelIdToEdit={props.onCallDutyPolicyId}
           submitButtonText="Save Changes"
