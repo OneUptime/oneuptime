@@ -21,7 +21,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
-import { AIRunEgressManifest } from "../../Types/AI/AIChatTypes";
+import {
+  AIRunEgressManifest,
+  AIRunPausedState,
+} from "../../Types/AI/AIChatTypes";
 
 /*
  * One AI agent execution (a chat turn today; an investigation later). Runs
@@ -454,6 +457,31 @@ export default class AIRun extends BaseModel {
     type: ColumnType.JSON,
   })
   public egressManifest?: AIRunEgressManifest = undefined;
+
+  /*
+   * The serialized in-flight state of a turn that paused to wait for tool
+   * approval (see AIRunPausedState). Server-only: it carries the full LLM
+   * conversation for this turn, so it is never exposed through the CRUD API
+   * (empty read ACL). ChatAgentRunner.resumeTurn reads it with isRoot to
+   * continue the loop, and clears it once the run finalizes.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Paused State",
+    description:
+      "Internal: the serialized turn state saved while waiting for tool approval.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public pausedState?: AIRunPausedState = undefined;
 
   @ColumnAccessControl({
     create: [],

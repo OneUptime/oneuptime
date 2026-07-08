@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Esenciales",
       "observability": "Observabilidad",
+      "ai": "AI",
       "resources": "Recursos",
       "analyticsAutomation": "Más",
       "settings": "Ajustes"
@@ -66,6 +67,10 @@
       "exceptionsDescription": "Rastree y resuelva errores en sus servicios.",
       "llmObservabilityTitle": "AI / LLM",
       "llmObservabilityDescription": "Observe las llamadas a LLM y agentes de IA: tokens, coste, latencia, prompts y completions.",
+      "entitiesTitle": "Entidades",
+      "entitiesDescription": "Explore las entidades descubiertas a partir de su telemetría.",
+      "topologyTitle": "Topología",
+      "topologyDescription": "Vea cómo se conectan sus servicios y su infraestructura.",
       "servicesTitle": "Servicios",
       "servicesDescription": "Cataloga cada servicio que ejecutas.",
       "kubernetesTitle": "Kubernetes",
@@ -92,8 +97,10 @@
       "workflowsDescription": "Constructor de automatización sin código.",
       "runbooksTitle": "Runbooks",
       "runbooksDescription": "Procedimientos de respuesta reutilizables: listas de verificación manuales o scripts.",
-      "aiAgentTitle": "Agente IA",
-      "aiAgentDescription": "Resolución de problemas con IA.",
+      "aiChatTitle": "AI Chat",
+      "aiChatDescription": "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
+      "aiAgentsTitle": "Agents",
+      "aiAgentsDescription": "AI agents and their tasks.",
       "codeRepositoriesTitle": "Repositorios de código",
       "codeRepositoriesDescription": "Integraciones con GitHub y GitLab.",
       "usersTitle": "Usuarios",
@@ -101,11 +108,7 @@
       "teamsTitle": "Equipos",
       "teamsDescription": "Organice a los usuarios en equipos y asigne permisos.",
       "projectSettingsTitle": "Ajustes del proyecto",
-      "projectSettingsDescription": "Configure su proyecto.",
-      "entitiesTitle": "Entidades",
-      "entitiesDescription": "Explore las entidades descubiertas a partir de su telemetría.",
-      "topologyTitle": "Topología",
-      "topologyDescription": "Vea cómo se conectan sus servicios y su infraestructura."
+      "projectSettingsDescription": "Configure su proyecto."
     },
     "moreFooter": {
       "title": "Reportar un error o solicitar una función.",

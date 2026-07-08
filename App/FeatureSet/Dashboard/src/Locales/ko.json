@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "필수",
       "observability": "관측 가능성",
+      "ai": "AI",
       "resources": "리소스",
       "analyticsAutomation": "더보기",
       "settings": "설정"
@@ -66,6 +67,10 @@
       "exceptionsDescription": "서비스 전반의 버그를 추적하고 해결하세요.",
       "llmObservabilityTitle": "AI / LLM",
       "llmObservabilityDescription": "LLM 및 AI 에이전트 호출을 관측 — 토큰, 비용, 지연 시간, 프롬프트 및 완성.",
+      "entitiesTitle": "엔티티",
+      "entitiesDescription": "텔레메트리에서 발견된 엔티티를 탐색하세요.",
+      "topologyTitle": "토폴로지",
+      "topologyDescription": "서비스와 인프라가 어떻게 연결되어 있는지 확인하세요.",
       "servicesTitle": "서비스",
       "servicesDescription": "실행 중인 모든 서비스를 카탈로그화하세요.",
       "kubernetesTitle": "Kubernetes",
@@ -92,8 +97,10 @@
       "workflowsDescription": "노코드 자동화 빌더.",
       "runbooksTitle": "런북",
       "runbooksDescription": "재사용 가능한 대응 절차: 수동 체크리스트 또는 스크립트.",
-      "aiAgentTitle": "AI 에이전트",
-      "aiAgentDescription": "AI 기반 문제 해결.",
+      "aiChatTitle": "AI Chat",
+      "aiChatDescription": "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
+      "aiAgentsTitle": "Agents",
+      "aiAgentsDescription": "AI agents and their tasks.",
       "codeRepositoriesTitle": "코드 저장소",
       "codeRepositoriesDescription": "GitHub 및 GitLab 통합.",
       "usersTitle": "사용자",
@@ -101,11 +108,7 @@
       "teamsTitle": "팀",
       "teamsDescription": "사용자를 팀으로 구성하고 권한을 할당합니다.",
       "projectSettingsTitle": "프로젝트 설정",
-      "projectSettingsDescription": "프로젝트를 구성하세요.",
-      "entitiesTitle": "엔티티",
-      "entitiesDescription": "텔레메트리에서 발견된 엔티티를 탐색하세요.",
-      "topologyTitle": "토폴로지",
-      "topologyDescription": "서비스와 인프라가 어떻게 연결되어 있는지 확인하세요."
+      "projectSettingsDescription": "프로젝트를 구성하세요."
     },
     "moreFooter": {
       "title": "버그를 신고하거나 기능을 요청하세요.",

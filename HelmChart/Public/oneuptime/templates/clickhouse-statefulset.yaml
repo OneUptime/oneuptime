@@ -135,22 +135,46 @@ spec:
               {{- end }}
         - name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT
           value: "1"
+        # ClickHouse can be slow to answer /ping while it loads a large number of
+        # data parts at startup, or replays/cleans up merges that were interrupted
+        # by a previous restart. The startupProbe grants a generous window (default
+        # up to ~5 min: 30 x 10s) before liveness is allowed to act. Without it, a
+        # slow start trips liveness, the kill interrupts in-flight merges, the next
+        # start is even slower, and the pod enters a CrashLoop death spiral.
+        {{- $sp := .Values.clickhouse.startupProbe | default dict }}
+        startupProbe:
+          httpGet:
+            path: /ping
+            port: http
+          initialDelaySeconds: {{ $sp.initialDelaySeconds | default 10 }}
+          periodSeconds: {{ $sp.periodSeconds | default 10 }}
+          timeoutSeconds: {{ $sp.timeoutSeconds | default 5 }}
+          failureThreshold: {{ $sp.failureThreshold | default 30 }}
+        # Liveness is deliberately tolerant: once started, ClickHouse may be briefly
+        # unresponsive to /ping while merging big parts. Only restart after a
+        # sustained outage (default 6 x 15s = 90s) so a transient load spike does
+        # not needlessly kill it and interrupt merges.
+        {{- $lp := .Values.clickhouse.livenessProbe | default dict }}
         livenessProbe:
           httpGet:
             path: /ping
             port: http
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
+          initialDelaySeconds: {{ $lp.initialDelaySeconds | default 30 }}
+          periodSeconds: {{ $lp.periodSeconds | default 15 }}
+          timeoutSeconds: {{ $lp.timeoutSeconds | default 10 }}
+          failureThreshold: {{ $lp.failureThreshold | default 6 }}
+        # Readiness gates the Service endpoints. timeoutSeconds must not be too tight
+        # (the old 1s flapped the pod out of the Service under load, so clients saw
+        # connection-refused even though ClickHouse was alive).
+        {{- $rp := .Values.clickhouse.readinessProbe | default dict }}
         readinessProbe:
           httpGet:
             path: /ping
             port: http
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          timeoutSeconds: 1
-          failureThreshold: 3
+          initialDelaySeconds: {{ $rp.initialDelaySeconds | default 10 }}
+          periodSeconds: {{ $rp.periodSeconds | default 10 }}
+          timeoutSeconds: {{ $rp.timeoutSeconds | default 5 }}
+          failureThreshold: {{ $rp.failureThreshold | default 3 }}
         {{- with .Values.clickhouse.resources }}
         resources:
           {{- toYaml . | nindent 10 }}

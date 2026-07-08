@@ -5,12 +5,17 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import BadDataException from "../../../../Types/Exception/BadDataException";
-import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
+import {
+  AIChatCitationTargetType,
+  AIChatWidgetPoint,
+} from "../../../../Types/AI/AIChatTypes";
 import AggregateBy from "../../../Types/AnalyticsDatabase/AggregateBy";
 import MetricService from "../../../Services/MetricService";
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
+import WidgetBuilder from "./WidgetBuilder";
+import OneUptimeDate from "../../../../Types/Date";
 import {
   ObservabilityTool,
   TimeRangeSchemaProperties,
@@ -137,6 +142,19 @@ export const QueryMetricsTool: ObservabilityTool = {
     const serialized: SerializedResult =
       ToolResultSerializer.serializeRows(rows);
 
+    const points: Array<AIChatWidgetPoint> = result.data.map(
+      (item: AggregatedModel) => {
+        return {
+          x: OneUptimeDate.toString(OneUptimeDate.fromString(item.timestamp)),
+          y: typeof item.value === "number" ? item.value : null,
+        };
+      },
+    );
+
+    const seriesName: string = entityId
+      ? `${aggregationTypeString}(${metricName}) · ${entityId.toString()}`
+      : `${aggregationTypeString}(${metricName})`;
+
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
@@ -146,6 +164,16 @@ export const QueryMetricsTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
+      widget:
+        points.length > 0
+          ? WidgetBuilder.timeSeries({
+              title: `${aggregationTypeString} of ${metricName}`,
+              description: `${startTime.toISOString()} – ${endTime.toISOString()}`,
+              series: [{ name: seriesName, points: points }],
+              valueLabel: aggregationTypeString,
+              link: { type: AIChatCitationTargetType.Metrics },
+            })
+          : undefined,
     };
   },
 };

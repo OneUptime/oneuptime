@@ -111,6 +111,11 @@ export default class MicrosoftTeamsAPI {
                     "Show instructions for interacting with the OneUptime bot.",
                 },
                 {
+                  title: "ask",
+                  description:
+                    "Ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
+                },
+                {
                   title: "create incident",
                   description:
                     "Launch the adaptive card to declare a new incident in OneUptime.",

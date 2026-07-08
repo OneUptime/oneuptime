@@ -171,6 +171,70 @@ export default class AIConversation extends BaseModel {
   })
   public lastMessageAt?: Date = undefined;
 
+  /*
+   * The LLM provider the user chose for this conversation. Stored as a plain
+   * ObjectID (no foreign key) so it can reference either a project-scoped
+   * provider or a cross-tenant global provider, and so deleting the provider
+   * gracefully falls back to the project default rather than cascading. Set
+   * server-side from the /ai-chat/send-message endpoint (never member-writable
+   * through CRUD), so the model can't be forged to point at another project's
+   * provider.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ObjectID,
+    canReadOnRelationQuery: true,
+    title: "LLM Provider ID",
+    description:
+      "The LLM provider selected for this conversation. If empty, the project default (or global) provider is used.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public llmProviderId?: ObjectID = undefined;
+
+  /*
+   * How much autonomy the agent has to run mutating tools in this conversation
+   * (see AIChatPermissionMode: AskForApproval | AutoRun | ReadOnly). Set
+   * server-side from /ai-chat/send-message so a member can't forge a conversation
+   * into a wider permission mode than the endpoint would grant.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Permission Mode",
+    description:
+      "How the agent is allowed to run mutating tools: AskForApproval, AutoRun or ReadOnly.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public permissionMode?: string = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],

@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Основные",
       "observability": "Наблюдаемость",
+      "ai": "AI",
       "resources": "Ресурсы",
       "analyticsAutomation": "Ещё",
       "settings": "Настройки"
@@ -66,6 +67,10 @@
       "exceptionsDescription": "Отслеживайте и устраняйте баги во всех ваших сервисах.",
       "llmObservabilityTitle": "AI / LLM",
       "llmObservabilityDescription": "Наблюдайте за вызовами LLM и ИИ-агентов — токены, стоимость, задержка, промпты и ответы.",
+      "entitiesTitle": "Сущности",
+      "entitiesDescription": "Исследуйте сущности, обнаруженные в вашей телеметрии.",
+      "topologyTitle": "Топология",
+      "topologyDescription": "Посмотрите, как связаны ваши сервисы и инфраструктура.",
       "servicesTitle": "Сервисы",
       "servicesDescription": "Каталогизируйте каждый сервис, который вы запускаете.",
       "kubernetesTitle": "Kubernetes",
@@ -92,8 +97,10 @@
       "workflowsDescription": "Конструктор автоматизации без кода.",
       "runbooksTitle": "Сборники инструкций",
       "runbooksDescription": "Многократно используемые процедуры реагирования: ручные чек-листы или скрипты.",
-      "aiAgentTitle": "ИИ-агент",
-      "aiAgentDescription": "Решение проблем на основе ИИ.",
+      "aiChatTitle": "AI Chat",
+      "aiChatDescription": "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
+      "aiAgentsTitle": "Agents",
+      "aiAgentsDescription": "AI agents and their tasks.",
       "codeRepositoriesTitle": "Репозитории кода",
       "codeRepositoriesDescription": "Интеграции с GitHub и GitLab.",
       "usersTitle": "Пользователи",
@@ -101,11 +108,7 @@
       "teamsTitle": "Команды",
       "teamsDescription": "Объединяйте пользователей в команды и назначайте разрешения.",
       "projectSettingsTitle": "Настройки проекта",
-      "projectSettingsDescription": "Настройте ваш проект.",
-      "entitiesTitle": "Сущности",
-      "entitiesDescription": "Исследуйте сущности, обнаруженные в вашей телеметрии.",
-      "topologyTitle": "Топология",
-      "topologyDescription": "Посмотрите, как связаны ваши сервисы и инфраструктура."
+      "projectSettingsDescription": "Настройте ваш проект."
     },
     "moreFooter": {
       "title": "Сообщить об ошибке или запросить функцию.",

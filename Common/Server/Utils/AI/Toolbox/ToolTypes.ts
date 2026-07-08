@@ -4,7 +4,10 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import Permission from "../../../../Types/Permission";
-import { AIChatCitationTarget } from "../../../../Types/AI/AIChatTypes";
+import {
+  AIChatCitationTarget,
+  AIChatWidget,
+} from "../../../../Types/AI/AIChatTypes";
 
 /*
  * The execution context for a tool call. projectId is ALWAYS the tenant from
@@ -24,6 +27,13 @@ export interface ToolExecutionResult {
   citationTarget?: AIChatCitationTarget | undefined;
   redactionCount: number;
   isTruncated: boolean;
+  /*
+   * Optional structured widget (chart, table, trace waterfall, resource card)
+   * rendered inline in the chat. Built from the RAW rows the tool fetched — not
+   * the redacted LLM payload — because it is rendered back to the same user who
+   * already has RBAC access to this data.
+   */
+  widget?: AIChatWidget | undefined;
 }
 
 export interface ObservabilityTool {
@@ -38,6 +48,20 @@ export interface ObservabilityTool {
    * the authorization.
    */
   requiredPermissions: Array<Permission>;
+  /*
+   * True for tools that MUTATE project data (create/acknowledge/resolve, etc).
+   * These are gated by the conversation's permission mode: paused for approval
+   * in AskForApproval mode, run immediately in AutoRun, and not offered to the
+   * model at all in ReadOnly. Undefined/false = a read-only tool that always
+   * runs.
+   */
+  isMutation?: boolean | undefined;
+  /*
+   * Optional human-readable label for the approval card, derived from the
+   * (already validated) tool arguments — e.g. "Create incident: Checkout down".
+   * Falls back to the tool name when omitted.
+   */
+  buildActionTitle?: ((args: JSONObject) => string) | undefined;
   execute(args: JSONObject, ctx: ToolContext): Promise<ToolExecutionResult>;
 }
 

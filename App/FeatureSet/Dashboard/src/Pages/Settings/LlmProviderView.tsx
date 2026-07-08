@@ -240,7 +240,7 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
         onDeleteSuccess={() => {
           Navigation.navigate(
             RouteUtil.populateRouteParams(
-              RouteMap[PageMap.AI_AGENTS_LLM_PROVIDERS] as Route,
+              RouteMap[PageMap.SETTINGS_AI_LLM_PROVIDERS] as Route,
               { modelId },
             ),
           );

@@ -1530,6 +1530,86 @@ export default class SlackUtil extends WorkspaceBase {
     return messageText || null;
   }
 
+  /*
+   * Fetches the replies of a Slack thread (oldest-first, as Slack returns them)
+   * using the bot token. Used by the AI Ops threaded follow-up feature to build
+   * conversation history for the observability assistant.
+   */
+  @CaptureSpan()
+  public static async getThreadReplies(data: {
+    authToken: string;
+    channelId: string;
+    threadTs: string;
+  }): Promise<
+    Array<{
+      user?: string | undefined;
+      bot_id?: string | undefined;
+      text?: string | undefined;
+      ts?: string | undefined;
+      subtype?: string | undefined;
+    }>
+  > {
+    const getRepliesLogAttributes: LogAttributes = {
+      channelId: data.channelId,
+    };
+
+    logger.debug("Getting thread replies with data:", getRepliesLogAttributes);
+    logger.debug(data, getRepliesLogAttributes);
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post({
+        url: URL.fromString("https://slack.com/api/conversations.replies"),
+        data: {
+          channel: data.channelId,
+          ts: data.threadTs,
+          limit: 50,
+        },
+        headers: {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/x-www-form-urlencoded",
+        },
+        options: {
+          retries: 3,
+          exponentialBackoff: true,
+        },
+      });
+
+    logger.debug(
+      "Response from Slack API for getting thread replies:",
+      getRepliesLogAttributes,
+    );
+    logger.debug(response, getRepliesLogAttributes);
+
+    if (response instanceof HTTPErrorResponse) {
+      logger.error("Error response from Slack API:", getRepliesLogAttributes);
+      logger.error(response, getRepliesLogAttributes);
+      throw response;
+    }
+
+    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
+      logger.error("Invalid response from Slack API:", getRepliesLogAttributes);
+      logger.error(response.jsonData, getRepliesLogAttributes);
+      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
+        "error"
+      ] as string;
+      throw new BadRequestException("Error from Slack " + messageFromSlack);
+    }
+
+    const messages: Array<JSONObject> =
+      ((response.jsonData as JSONObject)?.["messages"] as Array<JSONObject>) ||
+      [];
+
+    return messages.map((message: JSONObject) => {
+      return {
+        user: message["user"] as string | undefined,
+        bot_id: message["bot_id"] as string | undefined,
+        text: message["text"] as string | undefined,
+        ts: message["ts"] as string | undefined,
+        subtype: message["subtype"] as string | undefined,
+      };
+    });
+  }
+
   @CaptureSpan()
   public static override getButtonsBlock(data: {
     payloadButtonsBlock: WorkspacePayloadButtons;

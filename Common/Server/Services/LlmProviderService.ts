@@ -6,6 +6,7 @@ import ObjectID from "../../Types/ObjectID";
 import UpdateBy from "../Types/Database/UpdateBy";
 import QueryHelper from "../Types/Database/QueryHelper";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
@@ -152,6 +153,115 @@ export class Service extends DatabaseService<Model> {
     }
 
     return null;
+  }
+
+  /*
+   * Resolve the provider to use for a chat turn. When the user has explicitly
+   * chosen a provider (llmProviderId), use it — but only if it is actually
+   * usable by this project: either a global provider, or one owned by the
+   * project. Otherwise fall back to the project default / global provider.
+   * A stale id (e.g. the chosen provider was deleted) also falls back, so a
+   * conversation never breaks because its provider went away.
+   */
+  @CaptureSpan()
+  public async getProviderForChat(data: {
+    projectId: ObjectID;
+    llmProviderId?: ObjectID | undefined;
+  }): Promise<Model | null> {
+    if (data.llmProviderId) {
+      const provider: Model | null = await this.findOneBy({
+        query: {
+          _id: data.llmProviderId.toString(),
+        },
+        select: {
+          _id: true,
+          name: true,
+          llmType: true,
+          apiKey: true,
+          baseUrl: true,
+          modelName: true,
+          isGlobalLlm: true,
+          projectId: true,
+          costPerMillionTokensInUSDCents: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (provider) {
+        const isGlobal: boolean = provider.isGlobalLlm === true;
+        const belongsToProject: boolean =
+          provider.projectId?.toString() === data.projectId.toString();
+
+        if (isGlobal || belongsToProject) {
+          return provider;
+        }
+      }
+      // Fall through to default resolution when the id is invalid/inaccessible.
+    }
+
+    return this.getLLMProviderForProject(data.projectId);
+  }
+
+  /*
+   * The providers a project member can pick from in the chat provider switcher:
+   * every provider configured for the project plus every global provider.
+   * Secrets (apiKey) are never selected here — this only feeds the picker UI.
+   */
+  @CaptureSpan()
+  public async getSelectableProvidersForProject(
+    projectId: ObjectID,
+  ): Promise<Array<Model>> {
+    const [projectProviders, globalProviders]: [Array<Model>, Array<Model>] =
+      await Promise.all([
+        this.findBy({
+          query: {
+            projectId: projectId,
+          },
+          select: {
+            _id: true,
+            name: true,
+            llmType: true,
+            modelName: true,
+            isDefault: true,
+            isGlobalLlm: true,
+          },
+          sort: {
+            isDefault: SortOrder.Descending,
+            name: SortOrder.Ascending,
+          },
+          skip: 0,
+          limit: LIMIT_MAX,
+          props: {
+            isRoot: true,
+          },
+        }),
+        this.findBy({
+          query: {
+            projectId: QueryHelper.isNull(),
+            isGlobalLlm: true,
+          },
+          select: {
+            _id: true,
+            name: true,
+            llmType: true,
+            modelName: true,
+            isDefault: true,
+            isGlobalLlm: true,
+          },
+          sort: {
+            name: SortOrder.Ascending,
+          },
+          skip: 0,
+          limit: LIMIT_MAX,
+          props: {
+            isRoot: true,
+          },
+        }),
+      ]);
+
+    return [...projectProviders, ...globalProviders];
   }
 }
 

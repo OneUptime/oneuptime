@@ -11,6 +11,22 @@ Usage:
     {{- end }}
 {{- end -}}
 
+{{/*
+Convert a Kubernetes memory quantity (e.g. "3Gi", "512Mi", "2G", "1500M") to a
+plain byte count. Used to derive Redis' `maxmemory` from its container memory
+limit so the two never drift apart. Unsuffixed input is treated as bytes.
+*/}}
+{{- define "oneuptime.memoryToBytes" -}}
+{{- $q := . | toString -}}
+{{- if hasSuffix "Gi" $q -}}{{ trimSuffix "Gi" $q | float64 | mulf 1073741824 | int64 }}
+{{- else if hasSuffix "Mi" $q -}}{{ trimSuffix "Mi" $q | float64 | mulf 1048576 | int64 }}
+{{- else if hasSuffix "Ki" $q -}}{{ trimSuffix "Ki" $q | float64 | mulf 1024 | int64 }}
+{{- else if hasSuffix "G" $q -}}{{ trimSuffix "G" $q | float64 | mulf 1000000000 | int64 }}
+{{- else if hasSuffix "M" $q -}}{{ trimSuffix "M" $q | float64 | mulf 1000000 | int64 }}
+{{- else if hasSuffix "k" $q -}}{{ trimSuffix "k" $q | float64 | mulf 1000 | int64 }}
+{{- else -}}{{ $q | float64 | int64 }}{{- end -}}
+{{- end -}}
+
 {{- define "oneuptime.image.tag" -}}
   {{- $values := .Values -}}
   {{- $tag := default "release" $values.image.tag -}}

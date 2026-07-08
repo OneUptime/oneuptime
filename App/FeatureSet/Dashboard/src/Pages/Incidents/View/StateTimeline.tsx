@@ -62,7 +62,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
       <ModelTable<IncidentStateTimeline>
         modelType={IncidentStateTimeline}
         id="table-incident-status-timeline"
-        name="Monitor > State Timeline"
+        name="Incident > State Timeline"
         userPreferencesKey="incident-status-timeline-table"
         saveFilterProps={{
           tableId: "incident-status-timeline-table",
@@ -292,7 +292,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
       {showViewLogsModal ? (
         <Modal
           title={"Why did the status change?"}
-          description="Here is more information about why the status changed for this monitor."
+          description="Here is more information about why the status changed for this incident."
           isLoading={false}
           modalWidth={ModalWidth.Large}
           onSubmit={() => {

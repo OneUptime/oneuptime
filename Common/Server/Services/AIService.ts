@@ -22,12 +22,17 @@ import logger, { LogAttributes } from "../Utils/Logger";
 
 export interface AILogRequest {
   projectId: ObjectID;
-  userId?: ObjectID;
+  userId?: ObjectID | undefined;
   feature: string; // e.g., "IncidentPostmortem", "IncidentNote"
   incidentId?: ObjectID;
   alertId?: ObjectID;
   scheduledMaintenanceId?: ObjectID;
   aiRunId?: ObjectID;
+  /*
+   * When set, use this specific provider (validated against the project) rather
+   * than the project default. Powers the in-chat provider/model switcher.
+   */
+  llmProviderId?: ObjectID | undefined;
   messages: Array<LLMMessage>;
   tools?: Array<LLMToolDefinition> | undefined;
   maxTokens?: number | undefined;
@@ -57,9 +62,12 @@ export class Service extends BaseService {
   ): Promise<AILogResponse> {
     const startTime: Date = new Date();
 
-    // Get LLM provider for the project
+    // Get LLM provider for the project (honoring an explicit per-chat choice).
     const llmProvider: LlmProvider | null =
-      await LlmProviderService.getLLMProviderForProject(request.projectId);
+      await LlmProviderService.getProviderForChat({
+        projectId: request.projectId,
+        llmProviderId: request.llmProviderId,
+      });
 
     if (!llmProvider) {
       throw new BadDataException(

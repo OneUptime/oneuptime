@@ -34,11 +34,6 @@ export function getAIAgentTasksBreadcrumbs(
       "View Task",
       "Delete Task",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENTS_MCP_SERVER, [
-      "Project",
-      "AI Agents",
-      "MCP Server",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENTS_AGENTS, [
       "Project",
       "AI Agents",
@@ -49,27 +44,6 @@ export function getAIAgentTasksBreadcrumbs(
       "AI Agents",
       "Agents",
       "View Agent",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENTS_LLM_PROVIDERS, [
-      "Project",
-      "AI Agents",
-      "LLM Providers",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENTS_LLM_PROVIDER_VIEW, [
-      "Project",
-      "AI Agents",
-      "LLM Providers",
-      "View Provider",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENTS_AI_CREDITS, [
-      "Project",
-      "AI Agents",
-      "AI Credits",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENTS_AI_LOGS, [
-      "Project",
-      "AI Agents",
-      "AI Logs",
     ]),
   };
   return breadcrumpLinksMap[path];

@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "基本",
       "observability": "オブザーバビリティ",
+      "ai": "AI",
       "resources": "リソース",
       "analyticsAutomation": "その他",
       "settings": "設定"
@@ -66,6 +67,10 @@
       "exceptionsDescription": "サービス全体のバグを追跡・解決。",
       "llmObservabilityTitle": "AI / LLM",
       "llmObservabilityDescription": "LLM および AI エージェントの呼び出しを観測 — トークン、コスト、レイテンシ、プロンプト、補完。",
+      "entitiesTitle": "エンティティ",
+      "entitiesDescription": "テレメトリから検出されたエンティティを探索します。",
+      "topologyTitle": "トポロジー",
+      "topologyDescription": "サービスとインフラストラクチャがどのようにつながっているかを確認します。",
       "servicesTitle": "サービス",
       "servicesDescription": "実行中のすべてのサービスをカタログ化。",
       "kubernetesTitle": "Kubernetes",
@@ -92,8 +97,10 @@
       "workflowsDescription": "ノーコード自動化ビルダー。",
       "runbooksTitle": "Runbook",
       "runbooksDescription": "再利用可能な対応手順：手動チェックリストまたはスクリプト。",
-      "aiAgentTitle": "AIエージェント",
-      "aiAgentDescription": "AI駆動の問題解決。",
+      "aiChatTitle": "AI Chat",
+      "aiChatDescription": "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
+      "aiAgentsTitle": "Agents",
+      "aiAgentsDescription": "AI agents and their tasks.",
       "codeRepositoriesTitle": "コードリポジトリ",
       "codeRepositoriesDescription": "GitHubとGitLabの統合。",
       "usersTitle": "ユーザー",
@@ -101,11 +108,7 @@
       "teamsTitle": "チーム",
       "teamsDescription": "ユーザーをチームに編成し、権限を割り当てます。",
       "projectSettingsTitle": "プロジェクト設定",
-      "projectSettingsDescription": "プロジェクトを設定。",
-      "entitiesTitle": "エンティティ",
-      "entitiesDescription": "テレメトリから検出されたエンティティを探索します。",
-      "topologyTitle": "トポロジー",
-      "topologyDescription": "サービスとインフラストラクチャがどのようにつながっているかを確認します。"
+      "projectSettingsDescription": "プロジェクトを設定。"
     },
     "moreFooter": {
       "title": "バグを報告するか機能をリクエスト。",

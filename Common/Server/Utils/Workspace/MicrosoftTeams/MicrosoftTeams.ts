@@ -91,6 +91,16 @@ import MicrosoftTeamsMonitorActions from "./Actions/Monitor";
 import MicrosoftTeamsScheduledMaintenanceActions from "./Actions/ScheduledMaintenance";
 import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
 
+/*
+ * AI Ops - observability assistant imports. These power the natural-language
+ * "ask" experience where a Teams user can question the OneUptime AI about
+ * their logs, traces, metrics, incidents and monitors.
+ */
+import type { ObservabilityAssistantResult } from "../../AI/Chat/ObservabilityAssistant";
+import AccessTokenService from "../../../Services/AccessTokenService";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
+
 // Microsoft Teams apps should always be single-tenant
 const MICROSOFT_TEAMS_APP_TYPE: string = "SingleTenant";
 
@@ -1890,6 +1900,27 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(`Channel data: ${JSON.stringify(channelData)}`);
     logger.debug(`Entities: ${JSON.stringify(entities)}`);
 
+    /*
+     * Loop-guard: never process the bot's own messages. Teams generally does not
+     * echo the bot to itself, but if the sender is the bot recipient (same id) or
+     * is flagged with the "bot" role, ignore the activity to avoid a self-reply
+     * loop when routing free-form text to the AI assistant.
+     */
+    const senderId: string = (from["id"] as string) || "";
+    const botRecipientId: string = (data.activity["recipient"] as JSONObject)?.[
+      "id"
+    ] as string;
+    const senderRole: string = (from["role"] as string) || "";
+    if (
+      senderRole === "bot" ||
+      (senderId && botRecipientId && senderId === botRecipientId)
+    ) {
+      logger.debug(
+        "Message activity originates from the bot itself; ignoring to prevent a loop",
+      );
+      return;
+    }
+
     // If this is actually an Adaptive Card submit wrapped as a message, route to invoke handler
     if (
       (possibleActionValue["action"] as string) ||
@@ -1974,6 +2005,15 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       .trim()
       .toLowerCase();
 
+    /*
+     * Preserve the original casing of the user's question. The AI assistant
+     * should receive the free-form text exactly as the user typed it (case,
+     * punctuation and spacing all matter), with only the bot @mention stripped.
+     */
+    const originalQuestionText: string = messageText
+      .replace(/<at[^>]*>.*?<\/at>/g, "")
+      .trim();
+
     let responseText: string = "";
 
     try {
@@ -1985,7 +2025,38 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         cleanText === "create maintenance" ||
         cleanText.startsWith("create maintenance ");
 
-      if (cleanText.includes("help") || cleanText === "") {
+      /*
+       * Explicit commands are matched precisely so that natural-language
+       * questions (which may incidentally contain words like "help" or
+       * "alerts") fall through to the AI assistant instead of a canned command.
+       */
+      const isHelpCommand: boolean =
+        cleanText === "help" || cleanText === "" || cleanText === "?";
+
+      const isShowActiveIncidentsCommand: boolean =
+        cleanText === "show active incidents" ||
+        cleanText === "active incidents";
+
+      const isShowScheduledMaintenanceCommand: boolean =
+        cleanText === "show scheduled maintenance" ||
+        cleanText === "scheduled maintenance";
+
+      const isShowOngoingMaintenanceCommand: boolean =
+        cleanText === "show ongoing maintenance" ||
+        cleanText === "ongoing maintenance";
+
+      const isShowActiveAlertsCommand: boolean =
+        cleanText === "show active alerts" || cleanText === "active alerts";
+
+      /*
+       * "ask <question>" is an explicit prefix that always routes to the AI
+       * assistant. When present, strip the prefix and use the remainder as the
+       * question.
+       */
+      const isAskCommand: boolean =
+        cleanText === "ask" || cleanText.startsWith("ask ");
+
+      if (isHelpCommand) {
         responseText = this.getHelpMessage();
       } else if (isCreateIncidentCommand) {
         // Handle create incident command (legacy slash command supported)
@@ -2019,28 +2090,38 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         });
         logger.debug("New scheduled maintenance card sent successfully");
         return;
-      } else if (
-        cleanText.includes("show active incidents") ||
-        cleanText.includes("active incidents")
-      ) {
+      } else if (isShowActiveIncidentsCommand) {
         responseText = await this.getActiveIncidentsMessage(projectId);
-      } else if (
-        cleanText.includes("show scheduled maintenance") ||
-        cleanText.includes("scheduled maintenance")
-      ) {
+      } else if (isShowScheduledMaintenanceCommand) {
         responseText = await this.getScheduledMaintenanceMessage(projectId);
-      } else if (
-        cleanText.includes("show ongoing maintenance") ||
-        cleanText.includes("ongoing maintenance")
-      ) {
+      } else if (isShowOngoingMaintenanceCommand) {
         responseText = await this.getOngoingMaintenanceMessage(projectId);
-      } else if (
-        cleanText.includes("show active alerts") ||
-        cleanText.includes("active alerts")
-      ) {
+      } else if (isShowActiveAlertsCommand) {
         responseText = await this.getActiveAlertsMessage(projectId);
       } else {
-        responseText = `I received your message: "${cleanText}". Type 'help' to see what I can do for you.`;
+        /*
+         * AI Ops: any message that is not one of the explicit commands above is
+         * treated as a natural-language question for the observability
+         * assistant. This also handles the explicit "ask <question>" prefix.
+         */
+        const question: string = isAskCommand
+          ? originalQuestionText.replace(/^ask\s*/i, "").trim()
+          : originalQuestionText;
+
+        if (!question) {
+          // Bare "ask" with no question - point the user at help.
+          responseText = this.getHelpMessage();
+          await data.turnContext.sendActivity(responseText);
+          return;
+        }
+
+        await this.answerObservabilityQuestion({
+          activity: data.activity,
+          turnContext: data.turnContext,
+          projectId: projectId,
+          question: question,
+        });
+        return;
       }
 
       // Send response directly using TurnContext - this is the recommended Bot Framework pattern
@@ -2059,12 +2140,419 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
   }
 
+  /*
+   * AI Ops: transient acknowledgement text the bot posts before answering. We
+   * must skip these when reconstructing conversation history so the assistant
+   * never treats its own "please wait" filler as a real prior turn.
+   */
+  private static readonly AI_OPS_ACK_TEXT: string = "Looking into it…";
+
+  /*
+   * AI Ops: cap on how many prior turns we feed the assistant as history. The
+   * engine also clamps history internally, but we keep the payload small.
+   */
+  private static readonly AI_OPS_MAX_HISTORY_TURNS: number = 12;
+
+  /*
+   * AI Ops: strip a Teams message body down to plain text - remove <at> bot
+   * mentions and any remaining HTML tags, collapse whitespace, and trim. Teams
+   * channel/chat message bodies are typically HTML (body.contentType "html").
+   */
+  private static toPlainTextFromTeamsMessageBody(rawContent: string): string {
+    return rawContent
+      .replace(/<at[^>]*>.*?<\/at>/g, "")
+      .replace(/<[^>]*>/g, "")
+      .replace(/&nbsp;/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  /*
+   * AI Ops: gather the prior turns of the current Teams conversation/thread and
+   * map them to the assistant's history shape ({ role, content }, oldest-first,
+   * excluding the current triggering message).
+   *
+   * Teams limitation: in channels a bot only receives messages that @mention it
+   * (unless RSC / ChannelMessage.Read.Group is granted at install time), so
+   * channel follow-ups generally require re-@mentioning the bot. 1:1 (personal)
+   * chat follow-ups do not require a mention. If ids can't be parsed or the
+   * Graph call fails, we degrade gracefully to no history - the caller wraps
+   * this in a try/catch and never lets a history failure break the reply.
+   */
+  @CaptureSpan()
+  private static async getConversationHistoryTurns(data: {
+    activity: JSONObject;
+    projectId: ObjectID;
+  }): Promise<Array<{ role: "user" | "assistant"; content: string }>> {
+    const { activity, projectId } = data;
+
+    const conversation: JSONObject =
+      (activity["conversation"] as JSONObject) || {};
+    const channelData: JSONObject =
+      (activity["channelData"] as JSONObject) || {};
+    const conversationType: string =
+      (conversation["conversationType"] as string) || "";
+    const conversationId: string = (conversation["id"] as string) || "";
+    const currentMessageId: string = (activity["id"] as string) || "";
+
+    /*
+     * The bot's id - used to classify each message as "assistant" (from the
+     * bot) vs "user". This is the same id the loop-guard compares against.
+     */
+    const botId: string =
+      ((activity["recipient"] as JSONObject)?.["id"] as string) ||
+      MicrosoftTeamsAppClientId ||
+      "";
+
+    if (!conversationId) {
+      return [];
+    }
+
+    // Acquire a Graph app token using the same mechanism the rest of this file uses.
+    const accessToken: string = await this.getValidAccessToken({
+      authToken: "",
+      projectId: projectId,
+    });
+
+    // Collect raw Graph message objects (unordered; we sort at the end).
+    let rawMessages: Array<JSONObject> = [];
+
+    if (conversationType === "personal") {
+      /*
+       * 1:1 chat: conversation.id is the chat id. Fetch recent chat messages.
+       */
+      const chatId: string = conversationId;
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.get<JSONObject>({
+          url: URL.fromString(
+            `https://graph.microsoft.com/v1.0/chats/${encodeURIComponent(
+              chatId,
+            )}/messages?$top=20`,
+          ),
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        logger.debug("Failed to fetch 1:1 chat history for AI Ops context");
+        logger.debug(response);
+        return [];
+      }
+
+      rawMessages = (response.data["value"] as Array<JSONObject>) || [];
+    } else {
+      /*
+       * Channel thread: conversation.id encodes the root message id as
+       * "<channelId>;messageid=<rootId>". Team & channel ids come from
+       * channelData. Fetch the root message plus its replies.
+       */
+      const teamId: string | undefined = (channelData["team"] as JSONObject)?.[
+        "id"
+      ] as string;
+      const channelId: string | undefined = (
+        channelData["channel"] as JSONObject
+      )?.["id"] as string;
+
+      const messageIdMatch: RegExpMatchArray | null =
+        conversationId.match(/messageid=(\d+)/);
+      const rootMessageId: string | undefined = messageIdMatch?.[1];
+
+      if (!teamId || !channelId || !rootMessageId) {
+        logger.debug(
+          "Could not parse team/channel/root message ids for AI Ops channel history; proceeding without history",
+        );
+        return [];
+      }
+
+      // Fetch replies in the thread.
+      const repliesResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.get<JSONObject>({
+          url: URL.fromString(
+            `https://graph.microsoft.com/v1.0/teams/${teamId}/channels/${channelId}/messages/${rootMessageId}/replies?$top=20`,
+          ),
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+      if (repliesResponse instanceof HTTPErrorResponse) {
+        logger.debug(
+          "Failed to fetch channel thread replies for AI Ops context",
+        );
+        logger.debug(repliesResponse);
+      } else {
+        rawMessages =
+          (repliesResponse.data["value"] as Array<JSONObject>) || [];
+      }
+
+      // Also fetch the root message so the original question is part of context.
+      const rootResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.get<JSONObject>({
+          url: URL.fromString(
+            `https://graph.microsoft.com/v1.0/teams/${teamId}/channels/${channelId}/messages/${rootMessageId}`,
+          ),
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+      if (!(rootResponse instanceof HTTPErrorResponse) && rootResponse.data) {
+        rawMessages.push(rootResponse.data);
+      }
+    }
+
+    // Map each Graph message to a { role, content, createdAt, id } tuple.
+    const mappedTurns: Array<{
+      role: "user" | "assistant";
+      content: string;
+      createdAtMs: number;
+      id: string;
+    }> = [];
+
+    for (const message of rawMessages) {
+      const messageId: string = (message["id"] as string) || "";
+
+      // Exclude the current triggering message - that is the live question.
+      if (messageId && currentMessageId && messageId === currentMessageId) {
+        continue;
+      }
+
+      const body: JSONObject = (message["body"] as JSONObject) || {};
+      const rawContent: string = (body["content"] as string) || "";
+      const content: string = this.toPlainTextFromTeamsMessageBody(rawContent);
+
+      if (!content) {
+        continue;
+      }
+
+      // Skip the bot's transient "Looking into it…" acknowledgements.
+      if (content === this.AI_OPS_ACK_TEXT) {
+        continue;
+      }
+
+      /*
+       * Classify sender. Graph marks bot/app messages via from.application; a
+       * matching application/user id to the bot id also means it is the bot.
+       */
+      const fromObj: JSONObject = (message["from"] as JSONObject) || {};
+      const fromApplication: JSONObject =
+        (fromObj["application"] as JSONObject) || {};
+      const fromUser: JSONObject = (fromObj["user"] as JSONObject) || {};
+      const fromApplicationId: string = (fromApplication["id"] as string) || "";
+      const fromUserId: string = (fromUser["id"] as string) || "";
+
+      const isFromBot: boolean =
+        Boolean(fromApplication["id"]) ||
+        (botId !== "" && (fromApplicationId === botId || fromUserId === botId));
+
+      const role: "user" | "assistant" = isFromBot ? "assistant" : "user";
+
+      const createdAtRaw: string = (message["createdDateTime"] as string) || "";
+      const createdAtMs: number = createdAtRaw
+        ? new Date(createdAtRaw).getTime()
+        : 0;
+
+      mappedTurns.push({
+        role: role,
+        content: content,
+        createdAtMs: createdAtMs,
+        id: messageId,
+      });
+    }
+
+    // Order oldest -> newest so the assistant reads the conversation in order.
+    mappedTurns.sort(
+      (a: { createdAtMs: number }, b: { createdAtMs: number }): number => {
+        return a.createdAtMs - b.createdAtMs;
+      },
+    );
+
+    // Cap to the most recent turns.
+    const cappedTurns: Array<{
+      role: "user" | "assistant";
+      content: string;
+    }> = mappedTurns
+      .slice(-this.AI_OPS_MAX_HISTORY_TURNS)
+      .map((turn: { role: "user" | "assistant"; content: string }) => {
+        return { role: turn.role, content: turn.content };
+      });
+
+    return cappedTurns;
+  }
+
+  /*
+   * AI Ops: resolve the OneUptime user for the Teams sender, build their real
+   * permission props, ask the observability assistant, and reply in the same
+   * conversation with the markdown answer plus a compact "Sources" footer.
+   */
+  @CaptureSpan()
+  private static async answerObservabilityQuestion(data: {
+    activity: JSONObject;
+    turnContext: TurnContext;
+    projectId: ObjectID;
+    question: string;
+  }): Promise<void> {
+    const { activity, turnContext, projectId, question } = data;
+
+    /*
+     * Resolve the Teams user. Teams identifies the sender by their Azure AD
+     * object id (aadObjectId), which is what WorkspaceUserAuthToken stores as
+     * the workspaceUserId. This mirrors how handleBotInvokeActivity resolves
+     * the acting user.
+     */
+    const fromObj: JSONObject = (activity["from"] as JSONObject) || {};
+    const teamsUserId: string | undefined =
+      (fromObj["aadObjectId"] as string) || undefined;
+
+    if (!teamsUserId) {
+      logger.error(
+        "AAD Object ID (teamsUserId) not found in message activity from object",
+        {
+          projectId: projectId.toString(),
+        },
+      );
+      await turnContext.sendActivity(
+        "Sorry, I couldn't identify you. Please try again later.",
+      );
+      return;
+    }
+
+    // Resolve the OneUptime user linked to this Teams user.
+    let oneUptimeUserId: ObjectID;
+    try {
+      oneUptimeUserId =
+        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
+          teamsUserId: teamsUserId,
+          projectId: projectId,
+        });
+    } catch (error) {
+      logger.debug(
+        "No OneUptime user linked to Teams user; prompting to connect account",
+        {
+          projectId: projectId.toString(),
+          workspaceUserId: teamsUserId,
+        },
+      );
+      logger.debug(error);
+      await turnContext.sendActivity(
+        "I couldn't find your OneUptime account. Please connect your Microsoft Teams account in OneUptime User Settings before asking me questions.",
+      );
+      return;
+    }
+
+    /*
+     * Let the user know we're working on it. The assistant runs a bounded,
+     * tool-grounded agent loop and can take several seconds, so send a quick
+     * acknowledgement first.
+     */
+    try {
+      await turnContext.sendActivity(this.AI_OPS_ACK_TEXT);
+    } catch (ackError) {
+      // A failed acknowledgement should not stop us from answering.
+      logger.debug("Failed to send acknowledgement activity");
+      logger.debug(ackError);
+    }
+
+    /*
+     * Make the assistant context-aware: gather the prior turns of this
+     * conversation/thread and pass them as history (oldest-first, excluding the
+     * current question). Any failure here is non-fatal - we simply proceed
+     * statelessly so a history problem never breaks the reply.
+     */
+    let history: Array<{ role: "user" | "assistant"; content: string }> = [];
+    try {
+      history = await this.getConversationHistoryTurns({
+        activity: activity,
+        projectId: projectId,
+      });
+      logger.debug(
+        `AI Ops gathered ${history.length} prior conversation turn(s) as history`,
+        {
+          projectId: projectId.toString(),
+        },
+      );
+    } catch (historyError) {
+      logger.debug(
+        "Failed to gather AI Ops conversation history; proceeding statelessly",
+      );
+      logger.debug(historyError);
+      history = [];
+    }
+
+    try {
+      // Build the user's real permission props - the assistant's tools run under these.
+      const props: DatabaseCommonInteractionProps =
+        await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
+          {
+            userId: oneUptimeUserId,
+            projectId: projectId,
+          },
+        );
+
+      /*
+       * Loaded on demand via require(): importing the AI toolbox at module top
+       * pulls the entire observability tool graph — and its database
+       * infrastructure — into the core API module graph at import time, which
+       * trips circular-dependency init-order crashes. Teams ChatOps is the only
+       * caller, so it is resolved lazily here. A value-position dynamic
+       * import() is avoided because it fails TS1323 under the consuming
+       * projects' module configuration.
+       */
+      /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+      const ObservabilityAssistant: typeof import("../../AI/Chat/ObservabilityAssistant").default =
+        require("../../AI/Chat/ObservabilityAssistant").default;
+      /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+
+      const result: ObservabilityAssistantResult =
+        await ObservabilityAssistant.answerQuestion({
+          projectId: projectId,
+          userId: oneUptimeUserId,
+          props: props,
+          question: question,
+          ...(history.length > 0 && { history: history }),
+          feature: "Microsoft Teams ChatOps",
+        });
+
+      // Build a compact "Sources" footer from the server-minted citations.
+      let replyText: string = result.contentInMarkdown;
+
+      if (result.citations && result.citations.length > 0) {
+        const sourceLines: Array<string> = result.citations.map(
+          (citation: AIChatCitation) => {
+            return `• ${citation.label} (${citation.rowCount} rows)`;
+          },
+        );
+        replyText += `\n\n**Sources**\n${sourceLines.join("\n")}`;
+      }
+
+      await turnContext.sendActivity(replyText);
+      logger.debug("AI Ops answer sent successfully using TurnContext", {
+        projectId: projectId.toString(),
+      });
+    } catch (error) {
+      logger.error(
+        "Error answering observability question via AI Ops: " + error,
+        {
+          projectId: projectId.toString(),
+        },
+      );
+      await turnContext.sendActivity(
+        "Sorry, I ran into a problem answering that question. Please try again later.",
+      );
+    }
+  }
+
   // Helper methods for bot commands
   private static getHelpMessage(): string {
     return `Hello! I'm the OneUptime bot. I can help you with the following commands:
 
 **Available Commands:**
 - **help** - Show this help message
+- **ask <question>** - Ask OneUptime AI about your logs, traces, metrics, incidents and monitors
 - **create incident** - Create a new incident
 - **create maintenance** - Create a new scheduled maintenance event
 - **show active incidents** - Display all currently active incidents
@@ -2072,7 +2560,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 - **show ongoing maintenance** - Display currently ongoing maintenance events
 - **show active alerts** - Display all active alerts
 
-Just type any of these commands to get the information you need!`;
+You can also just ask me a question in plain language - for example, "which monitors are down right now?" - and I'll look into your observability data for you.`;
   }
 
   private static async getActiveIncidentsMessage(
@@ -2948,6 +3436,11 @@ All monitoring checks are passing normally.`;
             {
               title: "help",
               value: "Show quick help and useful links",
+            },
+            {
+              title: "ask",
+              value:
+                "Ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
             },
             {
               title: "create incident",

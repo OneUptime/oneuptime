@@ -32,6 +32,7 @@ import { RoutesProps } from "./Types/RoutesProps";
 // Static page imports
 import Welcome from "./Pages/Onboarding/Welcome";
 import Home from "./Pages/Home/Home";
+import AICopilot from "./Pages/AICopilot/AICopilot";
 import Sso from "./Pages/Onboarding/SSO";
 import NotOperationalMonitors from "./Pages/Home/NotOperationalMonitors";
 import HomeActiveAlerts from "./Pages/Home/ActiveAlerts";
@@ -570,6 +571,18 @@ const App: () => JSX.Element = () => {
               <Sso
                 {...commonPageProps}
                 pageRoute={RouteMap[PageMap.PROJECT_SSO] as Route}
+              />
+            }
+          />
+
+          {/* AI Copilot */}
+
+          <PageRoute
+            path={RouteMap[PageMap.AI_COPILOT]?.toString() || ""}
+            element={
+              <AICopilot
+                {...commonPageProps}
+                pageRoute={RouteMap[PageMap.AI_COPILOT] as Route}
               />
             }
           />

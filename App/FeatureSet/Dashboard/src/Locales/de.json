@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Grundlagen",
       "observability": "Observability",
+      "ai": "AI",
       "resources": "Ressourcen",
       "analyticsAutomation": "Mehr",
       "settings": "Einstellungen"
@@ -66,6 +67,10 @@
       "exceptionsDescription": "Bugs über Ihre Dienste hinweg verfolgen und beheben.",
       "llmObservabilityTitle": "AI / LLM",
       "llmObservabilityDescription": "Beobachten Sie LLM- und KI-Agent-Aufrufe – Tokens, Kosten, Latenz, Prompts und Completions.",
+      "entitiesTitle": "Entitäten",
+      "entitiesDescription": "Erkunden Sie Entitäten, die aus Ihrer Telemetrie entdeckt wurden.",
+      "topologyTitle": "Topologie",
+      "topologyDescription": "Sehen Sie, wie Ihre Dienste und Ihre Infrastruktur verbunden sind.",
       "servicesTitle": "Dienste",
       "servicesDescription": "Katalogisieren Sie jeden Dienst, den Sie betreiben.",
       "kubernetesTitle": "Kubernetes",
@@ -92,8 +97,10 @@
       "workflowsDescription": "No-Code-Automatisierungs-Builder.",
       "runbooksTitle": "Runbooks",
       "runbooksDescription": "Wiederverwendbare Reaktionsverfahren: manuelle Checklisten oder Skripte.",
-      "aiAgentTitle": "KI-Agent",
-      "aiAgentDescription": "KI-gestützte Problemlösung.",
+      "aiChatTitle": "AI Chat",
+      "aiChatDescription": "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
+      "aiAgentsTitle": "Agents",
+      "aiAgentsDescription": "AI agents and their tasks.",
       "codeRepositoriesTitle": "Code-Repositories",
       "codeRepositoriesDescription": "GitHub- und GitLab-Integrationen.",
       "usersTitle": "Benutzer",
@@ -101,11 +108,7 @@
       "teamsTitle": "Teams",
       "teamsDescription": "Organisieren Sie Benutzer in Teams und weisen Sie Berechtigungen zu.",
       "projectSettingsTitle": "Projekteinstellungen",
-      "projectSettingsDescription": "Konfigurieren Sie Ihr Projekt.",
-      "entitiesTitle": "Entitäten",
-      "entitiesDescription": "Erkunden Sie Entitäten, die aus Ihrer Telemetrie entdeckt wurden.",
-      "topologyTitle": "Topologie",
-      "topologyDescription": "Sehen Sie, wie Ihre Dienste und Ihre Infrastruktur verbunden sind."
+      "projectSettingsDescription": "Konfigurieren Sie Ihr Projekt."
     },
     "moreFooter": {
       "title": "Einen Fehler melden oder ein Feature anfordern.",

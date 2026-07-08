@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Grundläggande",
       "observability": "Observerbarhet",
+      "ai": "AI",
       "resources": "Resurser",
       "analyticsAutomation": "Mer",
       "settings": "Inställningar"
@@ -66,6 +67,10 @@
       "exceptionsDescription": "Spåra och lös buggar över dina tjänster.",
       "llmObservabilityTitle": "AI / LLM",
       "llmObservabilityDescription": "Observera LLM- och AI-agent-anrop — tokens, kostnad, latens, prompts och completions.",
+      "entitiesTitle": "Entiteter",
+      "entitiesDescription": "Utforska entiteter som upptäckts från din telemetri.",
+      "topologyTitle": "Topologi",
+      "topologyDescription": "Se hur dina tjänster och din infrastruktur hänger ihop.",
       "servicesTitle": "Tjänster",
       "servicesDescription": "Katalogisera varje tjänst du kör.",
       "kubernetesTitle": "Kubernetes",
@@ -92,8 +97,10 @@
       "workflowsDescription": "Automationsbyggare utan kod.",
       "runbooksTitle": "Runbooks",
       "runbooksDescription": "Återanvändbara åtgärdsprocedurer: manuella checklistor eller skript.",
-      "aiAgentTitle": "AI-agent",
-      "aiAgentDescription": "AI-driven problemlösning.",
+      "aiChatTitle": "AI Chat",
+      "aiChatDescription": "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
+      "aiAgentsTitle": "Agents",
+      "aiAgentsDescription": "AI agents and their tasks.",
       "codeRepositoriesTitle": "Kodförråd",
       "codeRepositoriesDescription": "GitHub- och GitLab-integrationer.",
       "usersTitle": "Användare",
@@ -101,11 +108,7 @@
       "teamsTitle": "Team",
       "teamsDescription": "Organisera användare i team och tilldela behörigheter.",
       "projectSettingsTitle": "Projektinställningar",
-      "projectSettingsDescription": "Konfigurera ditt projekt.",
-      "entitiesTitle": "Entiteter",
-      "entitiesDescription": "Utforska entiteter som upptäckts från din telemetri.",
-      "topologyTitle": "Topologi",
-      "topologyDescription": "Se hur dina tjänster och din infrastruktur hänger ihop."
+      "projectSettingsDescription": "Konfigurera ditt projekt."
     },
     "moreFooter": {
       "title": "Rapportera en bugg eller begär en funktion.",

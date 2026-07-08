@@ -8,6 +8,7 @@ import AlertService from "../../../Services/AlertService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import OneUptimeDate from "../../../../Types/Date";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
+import WidgetBuilder from "./WidgetBuilder";
 import {
   ObservabilityTool,
   ToolArgs,
@@ -15,8 +16,21 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
-// Derived from the model ACL so the tool gate can never drift from RBAC.
-const READ_PERMISSIONS: Array<Permission> = new Alert().getReadPermissions();
+/*
+ * Derived from the model ACL so the tool gate can never drift from RBAC.
+ * Resolved lazily rather than at module load: this module is pulled in through
+ * the service import graph before the Alert model class is fully wired up, so
+ * calling a model method at import time throws a circular-dependency
+ * TypeError. By the time a tool actually executes, every module is loaded.
+ */
+let cachedReadPermissions: Array<Permission> | null = null;
+const resolveReadPermissions: () => Array<Permission> =
+  (): Array<Permission> => {
+    if (!cachedReadPermissions) {
+      cachedReadPermissions = new Alert().getReadPermissions();
+    }
+    return cachedReadPermissions;
+  };
 
 export const QueryAlertsTool: ObservabilityTool = {
   name: "query_alerts",
@@ -40,7 +54,9 @@ export const QueryAlertsTool: ObservabilityTool = {
       },
     },
   },
-  requiredPermissions: READ_PERMISSIONS,
+  get requiredPermissions(): Array<Permission> {
+    return resolveReadPermissions();
+  },
   execute: async (
     args: JSONObject,
     ctx: ToolContext,
@@ -93,6 +109,17 @@ export const QueryAlertsTool: ObservabilityTool = {
         },
         redactionCount: serialized.redactionCount,
         isTruncated: serialized.isTruncated,
+        widget:
+          rows.length > 0
+            ? WidgetBuilder.alertList({
+                title: `Alert #${alert?.alertNumber ?? ""}`.trim(),
+                items: rows,
+                link: {
+                  type: AIChatCitationTargetType.AlertView,
+                  params: { alertId: alertId.toString() },
+                },
+              })
+            : undefined,
       };
     }
 
@@ -160,6 +187,15 @@ export const QueryAlertsTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
+      widget:
+        rows.length > 0
+          ? WidgetBuilder.alertList({
+              title: `Alerts (${rows.length})`,
+              description: `Created in the last ${createdWithinHours}h`,
+              items: rows,
+              link: { type: AIChatCitationTargetType.Alerts },
+            })
+          : undefined,
     };
   },
 };

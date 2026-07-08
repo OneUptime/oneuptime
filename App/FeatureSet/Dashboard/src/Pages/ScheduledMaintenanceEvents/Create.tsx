@@ -52,8 +52,8 @@ import FetchTeams from "../../Components/Team/FetchTeams";
 import FetchUsers from "../../Components/User/FetchUsers";
 import User from "Common/Models/DatabaseModels/User";
 import FetchLabels from "../../Components/Label/FetchLabels";
-import Incident from "Common/Models/DatabaseModels/Incident";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
+import OneUptimeDate from "Common/Types/Date";
 
 const ScheduledMaintenanceCreate: FunctionComponent<
   PageComponentProps
@@ -317,6 +317,10 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                   title: "Event Starts At",
                   stepId: "event-time",
+                  description:
+                    "Shown in your local timezone (" +
+                    OneUptimeDate.getCurrentTimezoneString() +
+                    ").",
                   fieldType: FormFieldSchemaType.DateTime,
                   required: true,
                   placeholder: "Pick Date and Time",
@@ -327,6 +331,10 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                   title: "Ends At",
                   stepId: "event-time",
+                  description:
+                    "Shown in your local timezone (" +
+                    OneUptimeDate.getCurrentTimezoneString() +
+                    ").",
                   fieldType: FormFieldSchemaType.DateTime,
                   required: true,
                   placeholder: "Pick Date and Time",
@@ -861,7 +869,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                   required: false,
                   placeholder: "Labels",
-                  getSummaryElement: (item: FormValues<Incident>) => {
+                  getSummaryElement: (
+                    item: FormValues<ScheduledMaintenance>,
+                  ) => {
                     if (!item.labels || !Array.isArray(item.labels)) {
                       return <p>No labels assigned.</p>;
                     }

@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "基础",
       "observability": "可观测性",
+      "ai": "AI",
       "resources": "资源",
       "analyticsAutomation": "更多",
       "settings": "设置"
@@ -66,6 +67,10 @@
       "exceptionsDescription": "跨服务跟踪和解决错误。",
       "llmObservabilityTitle": "AI / LLM",
       "llmObservabilityDescription": "观测 LLM 和 AI 智能体调用 — 令牌、成本、延迟、提示词和补全。",
+      "entitiesTitle": "实体",
+      "entitiesDescription": "探索从您的遥测数据中发现的实体。",
+      "topologyTitle": "拓扑",
+      "topologyDescription": "查看您的服务和基础设施如何连接。",
       "servicesTitle": "服务",
       "servicesDescription": "为运行的每个服务建立目录。",
       "kubernetesTitle": "Kubernetes",
@@ -92,8 +97,10 @@
       "workflowsDescription": "无代码自动化构建器。",
       "runbooksTitle": "运行手册",
       "runbooksDescription": "可重用的响应流程：手动检查清单或脚本。",
-      "aiAgentTitle": "AI 代理",
-      "aiAgentDescription": "AI 驱动的问题解决。",
+      "aiChatTitle": "AI Chat",
+      "aiChatDescription": "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
+      "aiAgentsTitle": "Agents",
+      "aiAgentsDescription": "AI agents and their tasks.",
       "codeRepositoriesTitle": "代码仓库",
       "codeRepositoriesDescription": "GitHub 和 GitLab 集成。",
       "usersTitle": "用户",
@@ -101,11 +108,7 @@
       "teamsTitle": "团队",
       "teamsDescription": "将用户组织成团队并分配权限。",
       "projectSettingsTitle": "项目设置",
-      "projectSettingsDescription": "配置您的项目。",
-      "entitiesTitle": "实体",
-      "entitiesDescription": "探索从您的遥测数据中发现的实体。",
-      "topologyTitle": "拓扑",
-      "topologyDescription": "查看您的服务和基础设施如何连接。"
+      "projectSettingsDescription": "配置您的项目。"
     },
     "moreFooter": {
       "title": "报告错误或请求功能。",

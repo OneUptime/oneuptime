@@ -767,6 +767,15 @@
                         "null"
                     ]
                 },
+                "startupProbe": {
+                    "type": "object"
+                },
+                "livenessProbe": {
+                    "type": "object"
+                },
+                "readinessProbe": {
+                    "type": "object"
+                },
                 "configuration": {
                     "type": "string"
                 },
