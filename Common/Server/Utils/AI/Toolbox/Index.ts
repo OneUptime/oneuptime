@@ -13,7 +13,7 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
-import { QueryIncidentsTool } from "./IncidentTools";
+import { QueryIncidentsTool, SearchIncidentsTool } from "./IncidentTools";
 import { QueryAlertsTool } from "./AlertTools";
 import { QueryMonitorsTool } from "./MonitorTools";
 import { TopExceptionsTool } from "./ExceptionTools";
@@ -53,6 +53,7 @@ export default class AIToolbox {
   private static readonly tools: Array<ObservabilityTool> = [
     LookupContextTool,
     QueryIncidentsTool,
+    SearchIncidentsTool,
     QueryAlertsTool,
     QueryMonitorsTool,
     TopExceptionsTool,

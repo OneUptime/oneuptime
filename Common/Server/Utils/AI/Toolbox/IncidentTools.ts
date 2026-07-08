@@ -242,3 +242,145 @@ export const QueryIncidentsTool: ObservabilityTool = {
     };
   },
 };
+
+export const SearchIncidentsTool: ObservabilityTool = {
+  name: "search_incidents",
+  description:
+    "Search PAST incidents by free text across their title, description, root cause, remediation notes and postmortem. Use this to ground root-cause analysis in history — e.g. 'have we seen this error before, and how was it resolved?'. Returns matching incidents (most recent first) with their root cause and postmortem so you can reuse prior resolutions.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      searchText: {
+        type: "string",
+        description:
+          "Text to match (case-insensitive substring) across incident title, description, root cause, remediation notes and postmortem.",
+      },
+      createdWithinHours: {
+        type: "number",
+        description:
+          "Only incidents created within this many hours (default 2160 = 90 days, max 8760 = 1 year).",
+      },
+      limit: {
+        type: "number",
+        description: "Maximum incidents to return (default 5, max 15).",
+      },
+    },
+    required: ["searchText"],
+  },
+  get requiredPermissions(): Array<Permission> {
+    return resolveReadPermissions();
+  },
+  execute: async (
+    args: JSONObject,
+    ctx: ToolContext,
+  ): Promise<ToolExecutionResult> => {
+    const searchText: string | undefined = ToolArgs.getString(
+      args,
+      "searchText",
+    );
+
+    if (!searchText) {
+      return {
+        dataForLlm:
+          "Error: searchText is required. Provide the text to search past incidents for.",
+        rowCount: 0,
+        citationLabel: "Incident search (no query)",
+        redactionCount: 0,
+        isTruncated: false,
+      };
+    }
+
+    const createdWithinHours: number = ToolArgs.getNumber(
+      args,
+      "createdWithinHours",
+      { defaultValue: 2160, min: 1, max: 8760 },
+    );
+    const limit: number = ToolArgs.getNumber(args, "limit", {
+      defaultValue: 5,
+      min: 1,
+      max: 15,
+    });
+
+    const endTime: Date = OneUptimeDate.getCurrentDate();
+    const startTime: Date = OneUptimeDate.addRemoveHours(
+      endTime,
+      -1 * createdWithinHours,
+    );
+
+    const incidents: Array<Incident> = await IncidentService.findBy({
+      query: {
+        createdAt: QueryHelper.inBetween(startTime, endTime),
+        /*
+         * The OR-joined ILIKE Raw references the listed columns, not the
+         * attached property — this is the established multiSearch attachment
+         * pattern (see QueryUtil).
+         */
+        title: QueryHelper.multiSearch(
+          [
+            "title",
+            "description",
+            "rootCause",
+            "remediationNotes",
+            "postmortemNote",
+          ],
+          searchText,
+        ),
+      },
+      select: {
+        _id: true,
+        title: true,
+        incidentNumber: true,
+        createdAt: true,
+        currentIncidentState: {
+          name: true,
+        },
+        incidentSeverity: {
+          name: true,
+        },
+        rootCause: true,
+        postmortemNote: true,
+      },
+      sort: {
+        createdAt: SortOrder.Descending,
+      },
+      limit: limit,
+      skip: 0,
+      props: ctx.props,
+    });
+
+    const rows: Array<JSONObject> = incidents.map((incident: Incident) => {
+      return {
+        id: incident.id?.toString(),
+        incidentNumber: incident.incidentNumber,
+        title: incident.title,
+        state: incident.currentIncidentState?.name,
+        severity: incident.incidentSeverity?.name,
+        createdAt: incident.createdAt,
+        rootCause: incident.rootCause,
+        postmortemNote: incident.postmortemNote,
+      };
+    });
+
+    const serialized: SerializedResult =
+      ToolResultSerializer.serializeRows(rows);
+
+    return {
+      dataForLlm: serialized.text,
+      rowCount: serialized.rowCount,
+      citationLabel: `Incident search "${searchText}" (${serialized.rowCount} found)`,
+      citationTarget: {
+        type: AIChatCitationTargetType.Incidents,
+      },
+      redactionCount: serialized.redactionCount,
+      isTruncated: serialized.isTruncated,
+      widget:
+        rows.length > 0
+          ? WidgetBuilder.incidentList({
+              title: `Incidents matching "${searchText}" (${rows.length})`,
+              items: rows,
+              link: { type: AIChatCitationTargetType.Incidents },
+            })
+          : undefined,
+    };
+  },
+};
