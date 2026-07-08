@@ -47,6 +47,17 @@ interface ValueColumn {
 
 const TUPLE_SEPARATOR: string = "";
 
+/*
+ * sortConfig.columnKey namespaces which column the viewer sorted on:
+ *   - "attr:<index>" → a group-by attribute column (grouped mode)
+ *   - "timestamp"     → the time column (time-bucketed mode)
+ *   - anything else   → a value column (its ValueColumn.key, e.g. "col:<id>")
+ * Value column keys are always "col:"/"legacy:" prefixed, so they never
+ * collide with these.
+ */
+const ATTR_SORT_PREFIX: string = "attr:";
+const TIMESTAMP_SORT_KEY: string = "timestamp";
+
 interface ResolvedQueryData {
   queryConfigs: Array<MetricQueryConfigData>;
   formulaConfigs: Array<MetricFormulaConfigData>;
@@ -318,54 +329,71 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
         )
       : [...allRowTuples];
 
-    if (sortConfig.columnKey) {
-      const colKey: string = sortConfig.columnKey;
+    type Row = { tupleKey: string; values: Array<string> };
+
+    /*
+     * Default order (also used as the tie-break): alphabetical across the
+     * whole attribute tuple.
+     */
+    const compareByTuple: (a: Row, b: Row) => number = (
+      a: Row,
+      b: Row,
+    ): number => {
+      for (let i: number = 0; i < a.values.length; i++) {
+        const cmp: number = compareStrings(
+          a.values[i] || "",
+          b.values[i] || "",
+        );
+        if (cmp !== 0) {
+          return cmp;
+        }
+      }
+      return 0;
+    };
+
+    const colKey: string | null = sortConfig.columnKey;
+
+    if (colKey && colKey.startsWith(ATTR_SORT_PREFIX)) {
+      // Sort by a single group-by attribute column (e.g. the tenant name).
+      const attrIndex: number = Number.parseInt(
+        colKey.slice(ATTR_SORT_PREFIX.length),
+        10,
+      );
       const dir: 1 | -1 = sortConfig.direction === "asc" ? 1 : -1;
-      filtered.sort(
-        (
-          a: { tupleKey: string; values: Array<string> },
-          b: { tupleKey: string; values: Array<string> },
-        ): number => {
-          const av: number | undefined = reducedByColumnAndTuple
-            .get(colKey)
-            ?.get(a.tupleKey);
-          const bv: number | undefined = reducedByColumnAndTuple
-            .get(colKey)
-            ?.get(b.tupleKey);
-          const aMissing: boolean = av === undefined || Number.isNaN(av);
-          const bMissing: boolean = bv === undefined || Number.isNaN(bv);
-          // Missing values always sink to the bottom.
-          if (aMissing && bMissing) {
-            return 0;
-          }
-          if (aMissing) {
-            return 1;
-          }
-          if (bMissing) {
-            return -1;
-          }
-          return ((av as number) - (bv as number)) * dir;
-        },
-      );
-    } else {
-      filtered.sort(
-        (
-          a: { tupleKey: string; values: Array<string> },
-          b: { tupleKey: string; values: Array<string> },
-        ): number => {
-          for (let i: number = 0; i < a.values.length; i++) {
-            const av: string = a.values[i] || "";
-            const bv: string = b.values[i] || "";
-            if (av < bv) {
-              return -1;
-            }
-            if (av > bv) {
-              return 1;
-            }
-          }
+      filtered.sort((a: Row, b: Row): number => {
+        const cmp: number = compareStrings(
+          a.values[attrIndex] || "",
+          b.values[attrIndex] || "",
+        );
+        // Fall back to full-tuple order so equal values stay deterministic.
+        return (cmp !== 0 ? cmp : compareByTuple(a, b)) * dir;
+      });
+    } else if (colKey) {
+      // Sort by a value column (metric/formula), reduced per row tuple.
+      const dir: 1 | -1 = sortConfig.direction === "asc" ? 1 : -1;
+      filtered.sort((a: Row, b: Row): number => {
+        const av: number | undefined = reducedByColumnAndTuple
+          .get(colKey)
+          ?.get(a.tupleKey);
+        const bv: number | undefined = reducedByColumnAndTuple
+          .get(colKey)
+          ?.get(b.tupleKey);
+        const aMissing: boolean = av === undefined || Number.isNaN(av);
+        const bMissing: boolean = bv === undefined || Number.isNaN(bv);
+        // Missing values always sink to the bottom, regardless of direction.
+        if (aMissing && bMissing) {
           return 0;
-        },
-      );
+        }
+        if (aMissing) {
+          return 1;
+        }
+        if (bMissing) {
+          return -1;
+        }
+        return ((av as number) - (bv as number)) * dir;
+      });
+    } else {
+      filtered.sort(compareByTuple);
     }
     return filtered.slice(0, maxRows);
   }, [
@@ -377,24 +405,63 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
     maxRows,
   ]);
 
-  const toggleValueColumnSort: (columnKey: string) => void = (
+  /*
+   * Three-state header toggle: first click → the column's natural direction
+   * (asc for text/timestamp, desc for metric values), second click reverses,
+   * third click clears back to the default order. firstDirection lets each
+   * column pick the direction that surfaces the interesting rows first.
+   */
+  const toggleSort: (
     columnKey: string,
-  ): void => {
+    firstDirection: "asc" | "desc",
+  ) => void = (columnKey: string, firstDirection: "asc" | "desc"): void => {
     setSortConfig(
       (prev: {
         columnKey: string | null;
         direction: "asc" | "desc";
       }): { columnKey: string | null; direction: "asc" | "desc" } => {
         if (prev.columnKey !== columnKey) {
-          // First click on a new column → descending (largest first).
-          return { columnKey, direction: "desc" };
+          return { columnKey, direction: firstDirection };
         }
-        if (prev.direction === "desc") {
-          return { columnKey, direction: "asc" };
+        if (prev.direction === firstDirection) {
+          return {
+            columnKey,
+            direction: firstDirection === "desc" ? "asc" : "desc",
+          };
         }
-        // Third click clears the sort and falls back to alphabetical.
         return { columnKey: null, direction: "desc" };
       },
+    );
+  };
+
+  const renderSortableHeaderContent: (
+    label: string,
+    columnKey: string,
+    align: "left" | "right",
+  ) => ReactElement = (
+    label: string,
+    columnKey: string,
+    align: "left" | "right",
+  ): ReactElement => {
+    const isActive: boolean = sortConfig.columnKey === columnKey;
+    const indicator: string = !isActive
+      ? "↕"
+      : sortConfig.direction === "asc"
+        ? "↑"
+        : "↓";
+    return (
+      <span
+        className={`inline-flex items-center gap-1 ${
+          align === "right" ? "justify-end" : ""
+        }`}
+      >
+        <span>{label}</span>
+        <span
+          className={isActive ? "text-indigo-500" : "text-gray-300 opacity-60"}
+        >
+          {indicator}
+        </span>
+      </span>
     );
   };
 
@@ -426,11 +493,12 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
         }
       }
     }
-    const rows: Array<{
+    type TimestampRow = {
       timestampIso: string;
       timestampLabel: string;
       valuesByColumnKey: Map<string, number>;
-    }> = [];
+    };
+    const rows: Array<TimestampRow> = [];
     for (const [iso, perColumn] of timestampToValues) {
       rows.push({
         timestampIso: iso,
@@ -440,16 +508,53 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
         valuesByColumnKey: perColumn,
       });
     }
-    rows.sort(
-      (a: { timestampIso: string }, b: { timestampIso: string }): number => {
-        return (
-          OneUptimeDate.fromString(a.timestampIso).getTime() -
-          OneUptimeDate.fromString(b.timestampIso).getTime()
-        );
-      },
-    );
+
+    const byTimestampAsc: (a: TimestampRow, b: TimestampRow) => number = (
+      a: TimestampRow,
+      b: TimestampRow,
+    ): number => {
+      return (
+        OneUptimeDate.fromString(a.timestampIso).getTime() -
+        OneUptimeDate.fromString(b.timestampIso).getTime()
+      );
+    };
+
+    const colKey: string | null = sortConfig.columnKey;
+
+    if (colKey && colKey !== TIMESTAMP_SORT_KEY) {
+      // Sort by one of the value columns; ties fall back to chronological.
+      const dir: 1 | -1 = sortConfig.direction === "asc" ? 1 : -1;
+      rows.sort((a: TimestampRow, b: TimestampRow): number => {
+        const av: number | undefined = a.valuesByColumnKey.get(colKey);
+        const bv: number | undefined = b.valuesByColumnKey.get(colKey);
+        const aMissing: boolean = av === undefined || Number.isNaN(av);
+        const bMissing: boolean = bv === undefined || Number.isNaN(bv);
+        if (aMissing && bMissing) {
+          return byTimestampAsc(a, b);
+        }
+        if (aMissing) {
+          return 1;
+        }
+        if (bMissing) {
+          return -1;
+        }
+        return ((av as number) - (bv as number)) * dir;
+      });
+    } else {
+      /*
+       * Time column or default: order chronologically. Default (no active
+       * sort) stays ascending as before; an explicit click can flip it.
+       */
+      const dir: 1 | -1 =
+        colKey === TIMESTAMP_SORT_KEY && sortConfig.direction === "desc"
+          ? -1
+          : 1;
+      rows.sort((a: TimestampRow, b: TimestampRow): number => {
+        return byTimestampAsc(a, b) * dir;
+      });
+    }
     return rows.slice(0, maxRows);
-  }, [isGroupedMode, metricResults, valueColumns, maxRows]);
+  }, [isGroupedMode, metricResults, valueColumns, maxRows, sortConfig]);
 
   if (isLoading && metricResults.length === 0) {
     return (
@@ -600,13 +705,25 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
             <tr>
               {isGroupedMode
                 ? widgetGroupByAttributes.map(
-                    (attr: TableGroupByAttribute): ReactElement => {
+                    (
+                      attr: TableGroupByAttribute,
+                      attrIndex: number,
+                    ): ReactElement => {
+                      const columnKey: string = `${ATTR_SORT_PREFIX}${attrIndex}`;
                       return (
                         <th
-                          key={`attr:${attr.key}`}
-                          className="px-3 py-2 font-medium tracking-wider"
+                          key={`attr:${attrIndex}:${attr.key}`}
+                          className="px-3 py-2 font-medium tracking-wider cursor-pointer select-none hover:bg-gray-100/60"
+                          onClick={(): void => {
+                            toggleSort(columnKey, "asc");
+                          }}
+                          title="Click to sort"
                         >
-                          {attr.header || attr.key}
+                          {renderSortableHeaderContent(
+                            attr.header || attr.key,
+                            columnKey,
+                            "left",
+                          )}
                         </th>
                       );
                     },
@@ -614,39 +731,34 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                 : [
                     <th
                       key="timestamp"
-                      className="px-3 py-2 font-medium tracking-wider"
+                      className="px-3 py-2 font-medium tracking-wider cursor-pointer select-none hover:bg-gray-100/60"
+                      onClick={(): void => {
+                        toggleSort(TIMESTAMP_SORT_KEY, "desc");
+                      }}
+                      title="Click to sort"
                     >
-                      Timestamp
+                      {renderSortableHeaderContent(
+                        "Timestamp",
+                        TIMESTAMP_SORT_KEY,
+                        "left",
+                      )}
                     </th>,
                   ]}
-              {visibleValueColumns.map((column: ValueColumn) => {
-                const isActive: boolean = sortConfig.columnKey === column.key;
-                const indicator: string = !isActive
-                  ? "↕"
-                  : sortConfig.direction === "asc"
-                    ? "↑"
-                    : "↓";
+              {visibleValueColumns.map((column: ValueColumn): ReactElement => {
                 return (
                   <th
                     key={column.key}
                     className="px-3 py-2 font-medium tracking-wider text-right cursor-pointer select-none hover:bg-gray-100/60"
                     onClick={(): void => {
-                      toggleValueColumnSort(column.key);
+                      toggleSort(column.key, "desc");
                     }}
                     title="Click to sort"
                   >
-                    <span className="inline-flex items-center gap-1 justify-end">
-                      <span>{column.label}</span>
-                      <span
-                        className={
-                          isActive
-                            ? "text-indigo-500"
-                            : "text-gray-300 opacity-60"
-                        }
-                      >
-                        {indicator}
-                      </span>
-                    </span>
+                    {renderSortableHeaderContent(
+                      column.label,
+                      column.key,
+                      "right",
+                    )}
                   </th>
                 );
               })}
@@ -1016,6 +1128,15 @@ function extractTupleValues(
     }
     return String(value);
   });
+}
+
+function compareStrings(a: string, b: string): number {
+  /*
+   * Locale-aware, case-insensitive, and numeric-aware so attribute values
+   * like hostnames sort naturally: "server2" before "server10", and casing
+   * doesn't split otherwise-identical groups.
+   */
+  return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
 }
 
 function getAttributes(row: AggregatedModel): Record<string, unknown> {
