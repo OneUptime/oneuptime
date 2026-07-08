@@ -254,3 +254,34 @@ export const getComponentSummary: GetComponentSummaryFunction = (
 
   return parts.join(" · ");
 };
+
+export type NodeStatus = "error" | "incomplete" | "ready";
+
+/*
+ * Classify a node for the at-a-glance status indicator on its face:
+ *  - "error"      → the last run reported an error on this step.
+ *  - "incomplete" → a required argument is still empty (needs setup).
+ *  - "ready"      → everything required is filled in.
+ */
+export type GetNodeStatusFunction = (data: NodeDataProp) => NodeStatus;
+
+export const getNodeStatus: GetNodeStatusFunction = (
+  data: NodeDataProp,
+): NodeStatus => {
+  if (data.error) {
+    return "error";
+  }
+
+  const args: Array<Argument> = data.metadata?.arguments || [];
+  const values: JSONObject = (data.arguments as JSONObject) || {};
+
+  const hasMissingRequired: boolean = args.some((arg: Argument) => {
+    if (!arg.required) {
+      return false;
+    }
+    const value: unknown = values[arg.id];
+    return value === undefined || value === null || value === "";
+  });
+
+  return hasMissingRequired ? "incomplete" : "ready";
+};

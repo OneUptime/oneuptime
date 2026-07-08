@@ -1,6 +1,6 @@
 import Icon, { ThickProp } from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
-import { getComponentSummary } from "./GraphUtils";
+import { getComponentSummary, getNodeStatus } from "./GraphUtils";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   ComponentType,
@@ -281,6 +281,8 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
   // Regular node
   const hasError: boolean = Boolean(props.data.error);
+  const needsSetup: boolean =
+    !hasError && getNodeStatus(props.data) === "incomplete";
 
   return (
     <div
@@ -353,6 +355,25 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               })}
           </div>
         )}
+
+      {/* Needs-setup indicator (a required field is still empty) */}
+      {!props.data.isPreview && needsSetup && (
+        <div
+          title="Needs setup — a required field is empty"
+          style={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            zIndex: 10,
+            width: "12px",
+            height: "12px",
+            borderRadius: "50%",
+            backgroundColor: "#f59e0b",
+            border: "2px solid #ffffff",
+            boxShadow: "0 0 0 1px #fde68a",
+          }}
+        />
+      )}
 
       {/* Error indicator */}
       {!props.data.isPreview && hasError && (
