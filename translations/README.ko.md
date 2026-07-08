@@ -173,11 +173,16 @@ helm install oneuptime oneuptime/oneuptime
 | ⚡ | **워크플로** | Slack, Jira, GitHub, Microsoft Teams 및 5,000개 이상의 앱과 자동화하고 통합하세요. |
 | 🤖 | **AI 코파일럿** | 로그, 트레이스, 메트릭 전반의 이상을 찾고, 근본 원인을 짚어내며, 수정 사항을 담은 PR을 여는 상시 가동 에이전트. |
 
-### ⚡ 반복 작업을 자동화하세요
+<details>
+<summary><b>⚡ 반복 작업을 자동화하세요</b></summary>
+
+<br/>
 
 에스컬레이션, 티켓 발행, 알림을 시각적인 노코드 캔버스에서 연결하거나 — 맞춤형 코드를 넣으세요. 위의 인시던트는 아무도 손대지 않고도 온콜을 호출하고, Jira 티켓을 열고, Slack에 게시했습니다.
 
 ![워크플로 — 인시던트 에스컬레이션을 위한 노코드 자동화 캔버스](/Home/Static/img/readme/workflows.png?raw=true)
+
+</details>
 
 ### 🖥️ 인프라 모니터링
 

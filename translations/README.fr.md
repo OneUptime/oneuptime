@@ -173,11 +173,16 @@ helm install oneuptime oneuptime/oneuptime
 | ⚡ | **Workflows** | Automatisez et intégrez avec Slack, Jira, GitHub, Microsoft Teams et plus de 5 000 applications. |
 | 🤖 | **Copilote IA** | Un agent toujours actif qui détecte les anomalies dans les logs, les traces et les métriques, repère les causes racines et ouvre des PR avec des correctifs. |
 
-### ⚡ Automatisez les tâches répétitives
+<details>
+<summary><b>⚡ Automatisez les tâches répétitives</b></summary>
+
+<br/>
 
 Configurez escalades, tickets et notifications sur un canevas visuel sans code — ou insérez du code personnalisé. L'incident ci-dessus a alerté l'astreinte, ouvert un ticket Jira et publié sur Slack sans que personne ne lève le petit doigt.
 
 ![Workflows — un canevas d'automatisation sans code pour l'escalade des incidents](/Home/Static/img/readme/workflows.png?raw=true)
+
+</details>
 
 ### 🖥️ Surveillance de l'infrastructure
 

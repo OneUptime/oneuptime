@@ -173,11 +173,16 @@ helm install oneuptime oneuptime/oneuptime
 | ⚡ | **工作流** | 与 Slack、Jira、GitHub、Microsoft Teams 及 5,000 多个应用自动化集成。 |
 | 🤖 | **AI Copilot** | 一个始终在线的智能体，在日志、追踪与指标间发现异常、定位根因，并提交带修复的 PR。 |
 
-### ⚡ 让繁琐工作自动化
+<details>
+<summary><b>⚡ 让繁琐工作自动化</b></summary>
+
+<br/>
 
 在可视化的无代码画布上串联升级、工单和通知 —— 或直接嵌入自定义代码。上述事件在无人动手的情况下就呼叫了值班人员、开了一个 Jira 工单并发布到了 Slack。
 
 ![工作流 —— 用于事件升级的无代码自动化画布](/Home/Static/img/readme/workflows.png?raw=true)
+
+</details>
 
 ### 🖥️ 基础设施监控
 

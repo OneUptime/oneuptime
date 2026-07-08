@@ -173,11 +173,16 @@ helm install oneuptime oneuptime/oneuptime
 | ⚡ | **工作流程** | 與 Slack、Jira、GitHub、Microsoft Teams 及 5,000+ 個應用程式自動化整合。 |
 | 🤖 | **AI 副駕駛** | 一個永不停歇的代理，在日誌、追蹤與指標中找出異常、定位根本原因，並開出包含修復的 PR。 |
 
-### ⚡ 讓繁瑣工作自動化
+<details>
+<summary><b>⚡ 讓繁瑣工作自動化</b></summary>
+
+<br/>
 
 在視覺化、無需編碼的畫布上串接升級、工單與通知 — 或直接嵌入自訂程式碼。上述那場事件呼叫了待命人員、開立了 Jira 工單並發佈到 Slack，全程無須任何人動手。
 
 ![工作流程 — 用於事件升級的無代碼自動化畫布](/Home/Static/img/readme/workflows.png?raw=true)
+
+</details>
 
 ### 🖥️ 基礎設施監控
 
