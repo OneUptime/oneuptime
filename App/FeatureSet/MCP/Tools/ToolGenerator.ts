@@ -97,6 +97,68 @@ function buildSelectProperty(
   };
 }
 
+/*
+ * Server-side write policy. The advisory annotations (readOnlyHint /
+ * destructiveHint) are honored by well-behaved clients only — many auto-approve
+ * any non-read tool, so a broad API key could be used to modify or irreversibly
+ * delete resources. These env switches let an operator hard-remove mutating
+ * tools from the surface entirely:
+ *   - MCP_READ_ONLY=true          → expose only read / list / count tools.
+ *   - MCP_ALLOW_DESTRUCTIVE=false  → keep create/update but drop delete tools.
+ * Defaults preserve today's behavior (every tool exposed).
+ */
+function isEnvFlagTrue(value: string | undefined): boolean {
+  if (value === undefined) {
+    return false;
+  }
+  const normalized: string = value.trim().toLowerCase();
+  return normalized === "true" || normalized === "1" || normalized === "yes";
+}
+
+const MCP_READ_ONLY: boolean = isEnvFlagTrue(process.env["MCP_READ_ONLY"]);
+const MCP_ALLOW_DESTRUCTIVE: boolean =
+  process.env["MCP_ALLOW_DESTRUCTIVE"] === undefined
+    ? true
+    : isEnvFlagTrue(process.env["MCP_ALLOW_DESTRUCTIVE"]);
+
+const WRITE_OPERATIONS: ReadonlySet<OneUptimeOperation> = new Set([
+  OneUptimeOperation.Create,
+  OneUptimeOperation.Update,
+  OneUptimeOperation.Delete,
+]);
+
+function applyWritePolicy(tools: McpToolInfo[]): McpToolInfo[] {
+  // Fast path: default policy exposes everything.
+  if (!MCP_READ_ONLY && MCP_ALLOW_DESTRUCTIVE) {
+    return tools;
+  }
+
+  const kept: McpToolInfo[] = tools.filter((tool: McpToolInfo) => {
+    const isWrite: boolean =
+      WRITE_OPERATIONS.has(tool.operation) ||
+      tool.annotations?.readOnlyHint === false;
+    const isDestructive: boolean =
+      tool.operation === OneUptimeOperation.Delete ||
+      tool.annotations?.destructiveHint === true;
+
+    if (MCP_READ_ONLY && isWrite) {
+      return false;
+    }
+    if (!MCP_ALLOW_DESTRUCTIVE && isDestructive) {
+      return false;
+    }
+    return true;
+  });
+
+  const removed: number = tools.length - kept.length;
+  if (removed > 0) {
+    MCPLogger.info(
+      `MCP write policy active (readOnly=${MCP_READ_ONLY}, allowDestructive=${MCP_ALLOW_DESTRUCTIVE}): removed ${removed} mutating tool(s) from the surface.`,
+    );
+  }
+  return kept;
+}
+
 /**
  * Generate all MCP tools for all OneUptime models
  */
@@ -140,10 +202,12 @@ export function generateAllTools(): McpToolInfo[] {
     uniqueTools.push(tool);
   }
 
+  const policedTools: McpToolInfo[] = applyWritePolicy(uniqueTools);
+
   MCPLogger.info(
-    `Generated ${uniqueTools.length} MCP tools for OneUptime models (including ${workflowTools.length} workflow tools, ${helperTools.length} helper tools and ${publicStatusPageTools.length} public status page tools)`,
+    `Generated ${policedTools.length} MCP tools for OneUptime models (including ${workflowTools.length} workflow tools, ${helperTools.length} helper tools and ${publicStatusPageTools.length} public status page tools)`,
   );
-  return uniqueTools;
+  return policedTools;
 }
 
 /**

@@ -35,7 +35,7 @@ const resolveReadPermissions: () => Array<Permission> =
 export const QueryIncidentsTool: ObservabilityTool = {
   name: "query_incidents",
   description:
-    "Query incidents in this project. Returns the most recent incidents with their current state and severity. Pass incidentId to get full details of one incident.",
+    "Query incidents in this project. Returns the most recent incidents with their current state and severity. Pass incidentId to get full details of one incident — including its affected monitors, labels, root cause, remediation and postmortem notes, and the incident window (telemetryWindowStart) to pivot into logs/traces/metrics for the affected services.",
   inputSchema: {
     type: "object",
     properties: {
@@ -81,9 +81,43 @@ export const QueryIncidentsTool: ObservabilityTool = {
           incidentSeverity: {
             name: true,
           },
+          monitors: {
+            _id: true,
+            name: true,
+          },
+          labels: {
+            name: true,
+          },
+          rootCause: true,
+          remediationNotes: true,
+          postmortemNote: true,
         },
         props: ctx.props,
       });
+
+      /*
+       * Surface the incident's blast radius (affected monitors + labels) and
+       * its own window so the model can pivot from an incident into the
+       * logs/traces/metrics of the affected services over the right time
+       * range, instead of guessing which service or hour to look at.
+       */
+      const affectedMonitors: string = (incident?.monitors || [])
+        .map((monitor: { name?: string }) => {
+          return monitor.name || "";
+        })
+        .filter((value: string) => {
+          return value.length > 0;
+        })
+        .join(", ");
+
+      const incidentLabels: string = (incident?.labels || [])
+        .map((label: { name?: string }) => {
+          return label.name || "";
+        })
+        .filter((value: string) => {
+          return value.length > 0;
+        })
+        .join(", ");
 
       const rows: Array<JSONObject> = incident
         ? [
@@ -95,6 +129,12 @@ export const QueryIncidentsTool: ObservabilityTool = {
               state: incident.currentIncidentState?.name,
               severity: incident.incidentSeverity?.name,
               createdAt: incident.createdAt,
+              affectedMonitors: affectedMonitors || undefined,
+              labels: incidentLabels || undefined,
+              rootCause: incident.rootCause,
+              remediationNotes: incident.remediationNotes,
+              postmortemNote: incident.postmortemNote,
+              telemetryWindowStart: incident.createdAt,
             },
           ]
         : [];
