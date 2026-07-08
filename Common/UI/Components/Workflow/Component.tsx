@@ -1,5 +1,6 @@
 import Icon, { ThickProp } from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
+import { getComponentSummary } from "./GraphUtils";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   ComponentType,
@@ -472,7 +473,11 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           </div>
         )}
 
-        {/* Description */}
+        {/*
+          Show a summary of the step's configured values so the canvas is
+          self-documenting; fall back to the static description when nothing
+          is configured yet (and always in the components-picker preview).
+        */}
         <p
           style={{
             color: "#64748b",
@@ -483,9 +488,11 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
             overflow: "hidden",
+            overflowWrap: "anywhere",
           }}
         >
-          {props.data.metadata.description}
+          {(!props.data.isPreview && getComponentSummary(props.data)) ||
+            props.data.metadata.description}
         </p>
       </div>
 
