@@ -25,6 +25,14 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import {
+  DragDropContext,
+  Draggable,
+  DraggableProvided,
+  DropResult,
+  Droppable,
+  DroppableProvided,
+} from "react-beautiful-dnd";
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
@@ -130,38 +138,53 @@ const LayerUser: FunctionComponent<ComponentProps> = (
     });
   };
 
-  type MoveUserFunction = (index: number, direction: "up" | "down") => void;
+  const isBusy: boolean = isReordering || deletingUserIds.size > 0;
 
-  const moveUser: MoveUserFunction = async (
-    index: number,
-    direction: "up" | "down",
+  const onDragEnd: (result: DropResult) => void = async (
+    result: DropResult,
   ): Promise<void> => {
-    const targetIndex: number = direction === "up" ? index - 1 : index + 1;
-
-    if (targetIndex < 0 || targetIndex >= users.length) {
+    if (!result.destination) {
       return;
     }
 
-    const current: OnCallDutyPolicyScheduleLayerUser | undefined = users[index];
-    const target: OnCallDutyPolicyScheduleLayerUser | undefined =
-      users[targetIndex];
+    const fromIndex: number = result.source.index;
+    const toIndex: number = result.destination.index;
 
-    if (!current?.id || target?.order === undefined) {
+    if (fromIndex === toIndex) {
       return;
     }
+
+    const moved: OnCallDutyPolicyScheduleLayerUser | undefined =
+      users[fromIndex];
+    const destination: OnCallDutyPolicyScheduleLayerUser | undefined =
+      users[toIndex];
+
+    if (!moved?.id || destination?.order === undefined) {
+      return;
+    }
+
+    /*
+     * Optimistically reorder so the drop feels instant; the refetch below
+     * reconciles with the server's authoritative ordering.
+     */
+    const optimistic: Array<OnCallDutyPolicyScheduleLayerUser> = [...users];
+    const [removed] = optimistic.splice(fromIndex, 1);
+    optimistic.splice(toIndex, 0, removed!);
+    setUsers(optimistic);
+    props.onUpdateUsers(optimistic);
 
     setIsReordering(true);
     setError("");
 
     try {
       /*
-       * The server re-sequences the other users when one user's order changes,
-       * so a single write to the neighbour's order performs the swap.
+       * Set the dragged user's order to the order of whoever currently sits at
+       * the drop position. The server re-sequences the rest around it.
        */
       await ModelAPI.updateById({
         modelType: OnCallDutyPolicyScheduleLayerUser,
-        id: current.id,
-        data: { order: target.order },
+        id: moved.id,
+        data: { order: destination.order },
       });
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -171,42 +194,16 @@ const LayerUser: FunctionComponent<ComponentProps> = (
     setIsReordering(false);
   };
 
-  const isBusy: boolean = isReordering || deletingUserIds.size > 0;
-
-  const getReorderButton: (params: {
-    icon: IconProp;
-    label: string;
-    disabled: boolean;
-    onClick: () => void;
-  }) => ReactElement = (params: {
-    icon: IconProp;
-    label: string;
-    disabled: boolean;
-    onClick: () => void;
-  }): ReactElement => {
-    return (
-      <button
-        type="button"
-        aria-label={params.label}
-        disabled={params.disabled || isBusy}
-        onClick={params.onClick}
-        className={`flex h-4 w-5 items-center justify-center rounded transition-colors ${
-          params.disabled || isBusy
-            ? "cursor-not-allowed text-gray-300"
-            : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-        }`}
-      >
-        <Icon icon={params.icon} className="h-3.5 w-3.5" />
-      </button>
-    );
-  };
-
   const getUserRow: (
     layerUser: OnCallDutyPolicyScheduleLayerUser,
     index: number,
+    dragProvided: DraggableProvided,
+    canReorder: boolean,
   ) => ReactElement = (
     layerUser: OnCallDutyPolicyScheduleLayerUser,
     index: number,
+    dragProvided: DraggableProvided,
+    canReorder: boolean,
   ): ReactElement => {
     const user: User | undefined = layerUser.user;
     const userId: string = user?.id?.toString() || `unknown-${index}`;
@@ -217,28 +214,20 @@ const LayerUser: FunctionComponent<ComponentProps> = (
 
     return (
       <div
-        key={rowId}
-        className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-gray-50"
+        ref={dragProvided.innerRef}
+        {...dragProvided.draggableProps}
+        className="flex items-center gap-3 bg-white px-3 py-2.5 transition-colors hover:bg-gray-50"
       >
-        {users.length > 1 && (
-          <div className="flex flex-col">
-            {getReorderButton({
-              icon: IconProp.ArrowUp,
-              label: "Move user earlier in the rotation",
-              disabled: index === 0,
-              onClick: () => {
-                moveUser(index, "up");
-              },
-            })}
-            {getReorderButton({
-              icon: IconProp.ArrowDown,
-              label: "Move user later in the rotation",
-              disabled: index === users.length - 1,
-              onClick: () => {
-                moveUser(index, "down");
-              },
-            })}
-          </div>
+        {canReorder ? (
+          <span
+            {...dragProvided.dragHandleProps}
+            aria-label="Drag to reorder"
+            className="flex h-8 w-5 flex-shrink-0 cursor-grab items-center justify-center text-gray-300 transition-colors hover:text-gray-500 active:cursor-grabbing"
+          >
+            <Icon icon={IconProp.GripVertical} className="h-5 w-5" />
+          </span>
+        ) : (
+          <span className="w-1 flex-shrink-0" />
         )}
 
         <span
@@ -316,13 +305,52 @@ const LayerUser: FunctionComponent<ComponentProps> = (
       );
     }
 
+    const canReorder: boolean = users.length > 1 && !isBusy;
+
     return (
-      <div className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200 bg-white">
-        {users.map(
-          (layerUser: OnCallDutyPolicyScheduleLayerUser, i: number) => {
-            return getUserRow(layerUser, i);
-          },
-        )}
+      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId={`layer-users-${props.layer.id?.toString()}`}>
+            {(dropProvided: DroppableProvided) => {
+              return (
+                <div
+                  ref={dropProvided.innerRef}
+                  {...dropProvided.droppableProps}
+                  className="divide-y divide-gray-100"
+                >
+                  {users.map(
+                    (
+                      layerUser: OnCallDutyPolicyScheduleLayerUser,
+                      i: number,
+                    ) => {
+                      const rowId: string =
+                        layerUser.id?.toString() ||
+                        `${layerUser.user?.id?.toString()}-${i}`;
+                      return (
+                        <Draggable
+                          key={rowId}
+                          draggableId={rowId}
+                          index={i}
+                          isDragDisabled={!canReorder}
+                        >
+                          {(dragProvided: DraggableProvided) => {
+                            return getUserRow(
+                              layerUser,
+                              i,
+                              dragProvided,
+                              users.length > 1,
+                            );
+                          }}
+                        </Draggable>
+                      );
+                    },
+                  )}
+                  {dropProvided.placeholder}
+                </div>
+              );
+            }}
+          </Droppable>
+        </DragDropContext>
       </div>
     );
   };

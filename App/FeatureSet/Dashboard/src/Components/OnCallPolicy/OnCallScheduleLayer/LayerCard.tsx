@@ -266,8 +266,8 @@ const LayerCard: FunctionComponent<ComponentProps> = (
               On-call users
             </h4>
             <p className="mb-3 mt-0.5 text-sm text-gray-500">
-              On-call duty rotates through these users top to bottom. Use the
-              arrows to change the order.
+              On-call duty rotates through these users top to bottom. Drag the
+              handle to reorder.
             </p>
             <LayerUser layer={layer} onUpdateUsers={props.onUsersChange} />
           </div>
