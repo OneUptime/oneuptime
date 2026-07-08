@@ -1,7 +1,10 @@
 import {
   Argument,
   ComponentInputType,
+  ComponentType,
   NodeDataProp,
+  NodeType,
+  Port,
 } from "../../../Types/Workflow/Component";
 import { JSONObject } from "../../../Types/JSON";
 import { Edge, Node } from "reactflow";
@@ -284,4 +287,140 @@ export const getNodeStatus: GetNodeStatusFunction = (
   });
 
   return hasMissingRequired ? "incomplete" : "ready";
+};
+
+export interface OutlineEntry {
+  // The component's human id (NodeDataProp.id), stable per node.
+  nodeId: string;
+  title: string;
+  summary: string | null;
+  // Indentation level; the trigger is 0.
+  depth: number;
+  // The out-port that led here, shown only when the parent branches.
+  branchLabel?: string | undefined;
+  /*
+   * True when this step was already listed (a loop or a merge/fan-in) — it's
+   * a reference back, not re-expanded.
+   */
+  repeated: boolean;
+}
+
+export interface WorkflowOutline {
+  hasTrigger: boolean;
+  entries: Array<OutlineEntry>;
+  // A step is reached from more than one path (fan-in or loop).
+  hasMultiplePaths: boolean;
+}
+
+/*
+ * Linearise the graph into an ordered, indented list of steps for the
+ * read-only Outline — a plain "read back what this workflow does" view. It
+ * walks forward from the trigger following edges; branches nest under their
+ * port label, and a step reached twice (loop / merge) is listed once more as a
+ * reference rather than re-expanded, so this always terminates.
+ */
+export type BuildOutlineFunction = (
+  nodes: Array<Node>,
+  edges: Array<Edge>,
+) => WorkflowOutline;
+
+export const buildOutline: BuildOutlineFunction = (
+  nodes: Array<Node>,
+  edges: Array<Edge>,
+): WorkflowOutline => {
+  const nodeById: Map<string, Node> = new Map<string, Node>();
+  for (const node of nodes) {
+    nodeById.set(node.id, node);
+  }
+
+  const adjacency: Map<
+    string,
+    Array<{ port: string | null | undefined; target: string }>
+  > = new Map();
+  for (const edge of edges) {
+    if (!edge.source || !edge.target) {
+      continue;
+    }
+    const list: Array<{ port: string | null | undefined; target: string }> =
+      adjacency.get(edge.source) || [];
+    list.push({ port: edge.sourceHandle, target: edge.target });
+    adjacency.set(edge.source, list);
+  }
+
+  const trigger: Node | undefined = nodes.find((node: Node) => {
+    const data: NodeDataProp = node.data as NodeDataProp;
+    return (
+      data &&
+      data.nodeType === NodeType.Node &&
+      data.componentType === ComponentType.Trigger
+    );
+  });
+
+  if (!trigger) {
+    return { hasTrigger: false, entries: [], hasMultiplePaths: false };
+  }
+
+  const entries: Array<OutlineEntry> = [];
+  const visited: Set<string> = new Set<string>();
+  let hasMultiplePaths: boolean = false;
+
+  type VisitFunction = (
+    reactFlowId: string,
+    depth: number,
+    branchLabel: string | undefined,
+  ) => void;
+
+  const visit: VisitFunction = (
+    reactFlowId: string,
+    depth: number,
+    branchLabel: string | undefined,
+  ): void => {
+    const node: Node | undefined = nodeById.get(reactFlowId);
+    if (!node) {
+      return;
+    }
+
+    const data: NodeDataProp = node.data as NodeDataProp;
+    const alreadySeen: boolean = visited.has(reactFlowId);
+    if (alreadySeen) {
+      hasMultiplePaths = true;
+    }
+
+    entries.push({
+      nodeId: data.id,
+      title: data.metadata?.title || data.id,
+      summary: getComponentSummary(data),
+      depth: depth,
+      branchLabel: branchLabel,
+      repeated: alreadySeen,
+    });
+
+    if (alreadySeen) {
+      return;
+    }
+    visited.add(reactFlowId);
+
+    const outPorts: Array<Port> = data.metadata?.outPorts || [];
+    const branches: boolean = outPorts.length > 1;
+    const outEdges: Array<{ port: string | null | undefined; target: string }> =
+      adjacency.get(reactFlowId) || [];
+
+    for (const outEdge of outEdges) {
+      const port: Port | undefined = outPorts.find((p: Port) => {
+        return p.id === outEdge.port;
+      });
+      const label: string | undefined = branches
+        ? port?.title || outEdge.port || undefined
+        : undefined;
+      visit(outEdge.target, depth + 1, label);
+    }
+  };
+
+  visit(trigger.id, 0, undefined);
+
+  return {
+    hasTrigger: true,
+    entries: entries,
+    hasMultiplePaths: hasMultiplePaths,
+  };
 };

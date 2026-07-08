@@ -2,10 +2,14 @@ import {
   getUpstreamComponentIds,
   getComponentSummary,
   getNodeStatus,
+  buildOutline,
+  WorkflowOutline,
 } from "../../../../UI/Components/Workflow/GraphUtils";
 import {
   ComponentInputType,
+  ComponentType,
   NodeDataProp,
+  NodeType,
 } from "../../../../Types/Workflow/Component";
 import { describe, expect, test } from "@jest/globals";
 import { Edge, Node } from "reactflow";
@@ -291,5 +295,148 @@ describe("GraphUtils.getNodeStatus", () => {
       arguments: {},
     } as unknown as NodeDataProp;
     expect(getNodeStatus(data)).toBe("ready");
+  });
+});
+
+describe("GraphUtils.buildOutline", () => {
+  const wfNode: (
+    rfId: string,
+    dataId: string,
+    title: string,
+    componentType: ComponentType,
+    outPorts: Array<{ id: string; title: string }>,
+  ) => Node = (
+    rfId: string,
+    dataId: string,
+    title: string,
+    componentType: ComponentType,
+    outPorts: Array<{ id: string; title: string }>,
+  ): Node => {
+    return {
+      id: rfId,
+      position: { x: 0, y: 0 },
+      data: {
+        id: dataId,
+        nodeType: NodeType.Node,
+        componentType: componentType,
+        metadata: {
+          title: title,
+          outPorts: outPorts.map((p: { id: string; title: string }) => {
+            return { id: p.id, title: p.title, description: "" };
+          }),
+          arguments: [],
+        },
+        arguments: {},
+      },
+    } as unknown as Node;
+  };
+
+  const edge: (source: string, target: string, handle: string) => Edge = (
+    source: string,
+    target: string,
+    handle: string,
+  ): Edge => {
+    return {
+      id: `${source}->${target}`,
+      source: source,
+      target: target,
+      sourceHandle: handle,
+    };
+  };
+
+  test("returns hasTrigger=false with no trigger", () => {
+    const nodes: Array<Node> = [
+      wfNode("n1", "log-1", "Log", ComponentType.Component, []),
+    ];
+    const outline: WorkflowOutline = buildOutline(nodes, []);
+    expect(outline.hasTrigger).toBe(false);
+    expect(outline.entries).toHaveLength(0);
+  });
+
+  test("linearises a simple chain with increasing depth", () => {
+    const nodes: Array<Node> = [
+      wfNode("t", "schedule-1", "Schedule", ComponentType.Trigger, [
+        { id: "execute", title: "Execute" },
+      ]),
+      wfNode("a", "slack-1", "Slack", ComponentType.Component, [
+        { id: "success", title: "Success" },
+      ]),
+      wfNode("b", "log-1", "Log", ComponentType.Component, []),
+    ];
+    const edges: Array<Edge> = [
+      edge("t", "a", "execute"),
+      edge("a", "b", "success"),
+    ];
+
+    const outline: WorkflowOutline = buildOutline(nodes, edges);
+    expect(outline.hasTrigger).toBe(true);
+    expect(
+      outline.entries.map((e: { title: string; depth: number }) => {
+        return `${e.depth}:${e.title}`;
+      }),
+    ).toEqual(["0:Schedule", "1:Slack", "2:Log"]);
+    expect(outline.hasMultiplePaths).toBe(false);
+  });
+
+  test("labels branches by their out-port when a step has multiple ports", () => {
+    const nodes: Array<Node> = [
+      wfNode("t", "schedule-1", "Schedule", ComponentType.Trigger, [
+        { id: "execute", title: "Execute" },
+      ]),
+      wfNode("if", "if-else-1", "If / Else", ComponentType.Component, [
+        { id: "yes", title: "Yes" },
+        { id: "no", title: "No" },
+      ]),
+      wfNode("x", "slack-1", "Slack", ComponentType.Component, []),
+      wfNode("y", "log-1", "Log", ComponentType.Component, []),
+    ];
+    const edges: Array<Edge> = [
+      edge("t", "if", "execute"),
+      edge("if", "x", "yes"),
+      edge("if", "y", "no"),
+    ];
+
+    const outline: WorkflowOutline = buildOutline(nodes, edges);
+    const branchLabels: Record<string, string | undefined> = {};
+    for (const entry of outline.entries) {
+      branchLabels[entry.title] = entry.branchLabel;
+    }
+    expect(branchLabels["Slack"]).toBe("Yes");
+    expect(branchLabels["Log"]).toBe("No");
+    // The trigger's single out-port doesn't get a branch label.
+    expect(branchLabels["If / Else"]).toBeUndefined();
+  });
+
+  test("marks a merge/loop step as repeated and flags multiple paths", () => {
+    // t -> a -> c, t -> b -> c  (c is a fan-in)
+    const nodes: Array<Node> = [
+      wfNode("t", "schedule-1", "Schedule", ComponentType.Trigger, [
+        { id: "execute", title: "Execute" },
+      ]),
+      wfNode("a", "slack-1", "Slack", ComponentType.Component, [
+        { id: "out", title: "Out" },
+      ]),
+      wfNode("b", "email-1", "Email", ComponentType.Component, [
+        { id: "out", title: "Out" },
+      ]),
+      wfNode("c", "log-1", "Log", ComponentType.Component, []),
+    ];
+    const edges: Array<Edge> = [
+      edge("t", "a", "execute"),
+      edge("t", "b", "execute"),
+      edge("a", "c", "out"),
+      edge("b", "c", "out"),
+    ];
+
+    const outline: WorkflowOutline = buildOutline(nodes, edges);
+    expect(outline.hasMultiplePaths).toBe(true);
+    const logEntries: Array<{ repeated: boolean }> = outline.entries.filter(
+      (e: { title: string }) => {
+        return e.title === "Log";
+      },
+    );
+    expect(logEntries).toHaveLength(2);
+    expect(logEntries[0]!.repeated).toBe(false);
+    expect(logEntries[1]!.repeated).toBe(true);
   });
 });
