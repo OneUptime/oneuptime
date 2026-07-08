@@ -8,6 +8,7 @@ import ConditionBuilder from "./ConditionBuilder";
 import DataReferenceInput from "./DataReferenceInput";
 import JSONArgumentInput from "./JSONArgumentInput";
 import KeyValueInput from "./KeyValueInput";
+import QueryFilterInput from "./QueryFilterInput";
 import ModelFieldPicker from "./ModelFieldPicker";
 import { componentInputTypeToFormFieldType } from "./Utils";
 import VariableModal from "./VariableModal";
@@ -43,7 +44,6 @@ const JSON_INPUT_TYPES: Array<ComponentInputType> = [
   ComponentInputType.JSONArray,
   ComponentInputType.BaseModel,
   ComponentInputType.BaseModelArray,
-  ComponentInputType.Query,
   ComponentInputType.Select,
 ];
 
@@ -321,6 +321,13 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                 const useKeyValueEditor: boolean =
                   arg.type === ComponentInputType.StringDictionary;
 
+                /*
+                 * Database Query args are edited as "field = value" filter
+                 * rows (with a JSON escape for operators).
+                 */
+                const useQueryEditor: boolean =
+                  arg.type === ComponentInputType.Query;
+
                 let baseField: {
                   fieldType: import("../Forms/Types/FormFieldSchemaType").default;
                   dropdownOptions?: Array<DropdownOption> | undefined;
@@ -396,6 +403,28 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                       );
                     },
                   };
+                } else if (useQueryEditor) {
+                  baseField = {
+                    fieldType: FormFieldSchemaType.CustomComponent,
+                    getCustomElement: (
+                      _values: FormValues<JSONObject>,
+                      customProps: CustomElementProps,
+                    ): ReactElement => {
+                      return (
+                        <QueryFilterInput
+                          value={(customProps.initialValue as string) || ""}
+                          placeholder={arg.placeholder}
+                          error={customProps.error}
+                          onChange={(value: string) => {
+                            void customProps.onChange?.(value);
+                          }}
+                          onValidationChange={(isInvalid: boolean) => {
+                            setJsonFieldError(arg.id, isInvalid);
+                          }}
+                        />
+                      );
+                    },
+                  };
                 } else {
                   baseField = componentInputTypeToFormFieldType(
                     arg.type,
@@ -419,7 +448,10 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                  * expression) or to WorkflowSelect.
                  */
                 const showVariableFooter: boolean =
-                  !isWorkflowSelect && !useFieldPicker && !useKeyValueEditor;
+                  !isWorkflowSelect &&
+                  !useFieldPicker &&
+                  !useKeyValueEditor &&
+                  !useQueryEditor;
 
                 /*
                  * Plain text fields get the inline chip helper: existing
