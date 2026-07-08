@@ -4,6 +4,7 @@ import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPoli
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import OnCallDutyPolicyEscalationRuleService from "Common/Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyExecutionLogService from "Common/Server/Services/OnCallDutyPolicyExecutionLogService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -217,6 +218,40 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
     ) {
       logger.debug(
         `Execution not needed yet. Waiting for ${executionLog.executeNextEscalationRuleInMinutes} minutes.`,
+      );
+      return;
+    }
+
+    /*
+     * Atomically CLAIM this tick before advancing the escalation. This job is
+     * fanned out with Promise.allSettled and has no per-log lock, so two
+     * overlapping runs (a run exceeding the 1-minute cadence, or multiple
+     * worker replicas) could both read the same lastEscalationRuleExecutedAt,
+     * both pass the time gate above, and both start the same next rule —
+     * paging responders twice. The compare-and-set below (a single atomic
+     * UPDATE ... WHERE lastEscalationRuleExecutedAt = <the value we just read>)
+     * lets exactly one run win; the loser sees 0 affected rows and bows out.
+     */
+    const claimed: number =
+      await OnCallDutyPolicyExecutionLogService.updateOneBy({
+        query: {
+          _id: executionLog.id!,
+          status: OnCallDutyPolicyStatus.Executing,
+          lastEscalationRuleExecutedAt: executionLog.lastEscalationRuleExecutedAt
+            ? executionLog.lastEscalationRuleExecutedAt
+            : QueryHelper.isNull(),
+        },
+        data: {
+          lastEscalationRuleExecutedAt: currentDate,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (claimed === 0) {
+      logger.debug(
+        `Execution log ${executionLog.id} was already claimed by a concurrent run; skipping to avoid double-paging.`,
       );
       return;
     }

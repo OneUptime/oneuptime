@@ -1899,7 +1899,16 @@ export default class AnalyticsDatabaseService<
     return data;
   }
 
-  protected async getException(error: Exception): Promise<void> {
+  /*
+   * Rethrow hook for the catch blocks below. MUST stay synchronous and
+   * `never`-returning: the call sites use `throw this.getException(error)`,
+   * so if this were `async` it would return a Promise that `throw` then
+   * throws verbatim (never awaited) — the real exception is lost, callers up
+   * the stack catch a bare Promise (surfacing as "[object Promise]"), and the
+   * un-awaited rejection becomes an unhandled rejection. Throwing directly
+   * propagates the original exception on the synchronous throw path.
+   */
+  protected getException(error: Exception): never {
     throw error;
   }
 

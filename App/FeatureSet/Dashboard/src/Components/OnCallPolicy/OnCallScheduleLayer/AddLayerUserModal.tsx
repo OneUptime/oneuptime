@@ -121,21 +121,49 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
   };
 
   const getResultsBody: () => ReactElement = (): ReactElement => {
+    // Initial load: skeleton rows that mirror the real row geometry.
     if (isSearching && visibleUsers.length === 0) {
       return (
-        <div className="flex items-center justify-center gap-2 px-4 py-8 text-sm text-gray-400">
-          <Icon icon={IconProp.Spinner} className="h-4 w-4 animate-spin" />
-          Searching…
+        <div className="divide-y divide-gray-100" aria-hidden="true">
+          {["w-1/3", "w-2/5", "w-1/4", "w-1/2"].map(
+            (width: string, i: number) => {
+              return (
+                <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+                  <span className="h-8 w-8 flex-shrink-0 rounded-full bg-gray-100 motion-safe:animate-pulse" />
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div
+                      className={`h-3 rounded bg-gray-100 motion-safe:animate-pulse ${width}`}
+                    />
+                    <div className="h-2.5 w-1/2 rounded bg-gray-100 motion-safe:animate-pulse" />
+                  </div>
+                </div>
+              );
+            },
+          )}
         </div>
       );
     }
 
     if (visibleUsers.length === 0) {
+      const hasSearch: boolean = debouncedSearch.trim().length > 0;
       return (
-        <div className="px-4 py-8 text-center text-sm text-gray-500">
-          {debouncedSearch.trim()
-            ? "No matching users found."
-            : "No project users available to add."}
+        <div className="flex flex-col items-center justify-center gap-3 px-6 py-10 text-center">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 text-gray-400 ring-1 ring-inset ring-gray-100">
+            <Icon
+              icon={hasSearch ? IconProp.MagnifyingGlass : IconProp.UserGroup}
+              className="h-5 w-5"
+            />
+          </span>
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-gray-900">
+              {hasSearch ? "No matching members" : "No members to add"}
+            </p>
+            <p className="mx-auto max-w-[16rem] text-xs leading-relaxed text-gray-500">
+              {hasSearch
+                ? "No members match your search. Try a different name or email."
+                : "Everyone in this project is already on this layer."}
+            </p>
+          </div>
         </div>
       );
     }
@@ -148,21 +176,34 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
             <button
               key={user.userId}
               type="button"
+              aria-pressed={isSelected}
               onClick={() => {
                 setSelectedUserId(user.userId);
               }}
-              className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+              className={`group relative flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
                 isSelected ? "bg-indigo-50" : "hover:bg-gray-50"
               }`}
             >
+              {isSelected ? (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-y-0 left-0 w-0.5 rounded-r-full bg-indigo-600"
+                />
+              ) : null}
+
               <span
-                className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+                className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white shadow-sm ring-2 ring-white"
                 style={{ backgroundColor: getColorForUserId(user.userId) }}
               >
                 {getUserInitials(user.name, user.email)}
               </span>
+
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium text-gray-900">
+                <div
+                  className={`truncate text-sm font-medium ${
+                    isSelected ? "text-indigo-900" : "text-gray-900"
+                  }`}
+                >
                   {user.name || user.email || "Unknown user"}
                 </div>
                 {user.name && user.email ? (
@@ -171,12 +212,17 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
                   </div>
                 ) : null}
               </div>
-              {isSelected ? (
-                <Icon
-                  icon={IconProp.CheckCircle}
-                  className="h-5 w-5 flex-shrink-0 text-indigo-600"
-                />
-              ) : null}
+
+              <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center">
+                {isSelected ? (
+                  <Icon
+                    icon={IconProp.CheckCircle}
+                    className="h-5 w-5 text-indigo-600"
+                  />
+                ) : (
+                  <span className="h-4 w-4 rounded-full opacity-0 ring-1 ring-inset ring-gray-300 transition-opacity duration-150 group-hover:opacity-100" />
+                )}
+              </span>
             </button>
           );
         })}
@@ -184,10 +230,12 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const showMeta: boolean = !isSearching && visibleUsers.length > 0;
+
   return (
     <Modal
-      title="Add User"
-      submitButtonText="Add User to Layer"
+      title="Add user"
+      submitButtonText="Add to layer"
       submitButtonStyleType={ButtonStyleType.PRIMARY}
       closeButtonText="Cancel"
       onClose={props.onClose}
@@ -200,17 +248,16 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
       icon={IconProp.User}
       modalWidth={ModalWidth.Normal}
     >
-      <div>
-        <p className="mb-3 text-sm text-gray-500">
+      <div className="pt-1">
+        <p className="mb-4 text-sm leading-relaxed text-gray-500">
           Search your project members by name or email and add one to this
           layer&apos;s rotation.
         </p>
 
-        <div className="relative">
-          <Icon
-            icon={IconProp.Search}
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-          />
+        <div className="group relative">
+          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400 transition-colors duration-150 group-focus-within:text-indigo-500">
+            <Icon icon={IconProp.Search} className="h-4 w-4" />
+          </span>
           <input
             autoFocus
             type="text"
@@ -219,12 +266,49 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
               setSearchText(e.target.value);
             }}
             placeholder="Search by name or email…"
-            className="w-full rounded-md border border-gray-300 py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="h-11 w-full rounded-md border border-gray-300 bg-white pl-10 pr-10 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition duration-150 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
           />
+          <div className="absolute inset-y-0 right-2 flex items-center">
+            {isSearching ? (
+              <Icon
+                icon={IconProp.Spinner}
+                className="h-4 w-4 text-gray-300 motion-safe:animate-spin"
+              />
+            ) : searchText ? (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={() => {
+                  setSearchText("");
+                }}
+                className="flex h-6 w-6 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+          </div>
         </div>
 
-        <div className="mt-3 max-h-72 divide-y divide-gray-100 overflow-y-auto rounded-md border border-gray-200">
-          {getResultsBody()}
+        {showMeta ? (
+          <div className="mb-1.5 mt-4 flex items-center justify-between px-0.5">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+              Project members
+            </span>
+            <span className="text-[11px] font-medium tabular-nums text-gray-400">
+              {selectedUserId ? "1 selected · " : ""}
+              {visibleUsers.length}
+            </span>
+          </div>
+        ) : null}
+
+        <div
+          className={`${
+            showMeta ? "" : "mt-4"
+          } overflow-hidden rounded-lg border border-gray-200 bg-white`}
+        >
+          <div className="max-h-72 divide-y divide-gray-100 overflow-y-auto">
+            {getResultsBody()}
+          </div>
         </div>
       </div>
     </Modal>

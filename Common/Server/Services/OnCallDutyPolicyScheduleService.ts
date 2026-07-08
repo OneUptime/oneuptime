@@ -8,6 +8,7 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import ObjectID from "../../Types/ObjectID";
 import LayerUtil, { LayerProps } from "../../Types/OnCallDutyPolicy/Layer";
+import Recurring from "../../Types/Events/Recurring";
 import UserOverrideUtil, {
   UserOverrideRecord,
 } from "../../Types/OnCallDutyPolicy/UserOverrideUtil";
@@ -384,7 +385,19 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
           });
         }
 
-        if (newInformation.currentUserIdOnRoster?.toString()) {
+        /*
+         * Only notify "you are now on-call" when the current user ACTUALLY
+         * changed — not merely when the handoff time changed. The enclosing
+         * guard also fires on a rosterHandoffAt change, which happens every
+         * rotation period; without this user-changed check a continuing (e.g.
+         * single-user) roster was re-sent the full email + SMS + phone call +
+         * push + WhatsApp bundle every period. Mirrors the removal branch above.
+         */
+        if (
+          previousInformation.currentUserIdOnRoster?.toString() !==
+            newInformation.currentUserIdOnRoster?.toString() &&
+          newInformation.currentUserIdOnRoster?.toString()
+        ) {
           // send email to the new current user.
           const sendEmailToUserId: ObjectID =
             newInformation.currentUserIdOnRoster;
@@ -1114,6 +1127,49 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       });
   }
 
+  /*
+   * Compute how far out to resolve calendar events. Returns at least 1 year
+   * from `from`, but extends far enough to contain (getNumberOfEvents + 1)
+   * rotation periods for the slowest layer, so multi-year rotations still yield
+   * a current and next event.
+   */
+  private computeResolutionWindowEnd(
+    layerProps: Array<LayerProps>,
+    from: Date,
+    getNumberOfEvents: number,
+  ): Date {
+    let windowEnd: Date = OneUptimeDate.addRemoveYears(from, 1);
+
+    const periodsNeeded: number = Math.max(2, getNumberOfEvents + 1);
+
+    for (const layer of layerProps) {
+      if (!layer.rotation) {
+        continue;
+      }
+
+      let recurring: Recurring;
+      try {
+        recurring =
+          layer.rotation instanceof Recurring
+            ? layer.rotation
+            : Recurring.fromJSON(layer.rotation as any);
+      } catch {
+        continue;
+      }
+
+      let candidate: Date = from;
+      for (let i: number = 0; i < periodsNeeded; i++) {
+        candidate = Recurring.getNextDateInterval(candidate, recurring);
+      }
+
+      if (OneUptimeDate.isAfter(candidate, windowEnd)) {
+        windowEnd = candidate;
+      }
+    }
+
+    return windowEnd;
+  }
+
   public async getEventByIndexInSchedule(data: {
     scheduleId: ObjectID;
     getNumberOfEvents: number; // which event would you like to get. First event, second event, etc.
@@ -1150,9 +1206,18 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       onCallDutyPolicyScheduleId: data.scheduleId.toString(),
     } as LogAttributes);
 
-    const currentEndTime: Date = OneUptimeDate.addRemoveYears(
+    /*
+     * Size the resolution window from the layers' rotations rather than a fixed
+     * 1 year. A rotation period longer than a year (e.g. a 3-year rotation)
+     * would otherwise clamp the current event's end to now+1yr and report a
+     * bogus handoff time with no "next" user. The window is at least 1 year and
+     * large enough to contain the requested number of events for the slowest
+     * layer.
+     */
+    const currentEndTime: Date = this.computeResolutionWindowEnd(
+      layerProps,
       currentStartTime,
-      1,
+      data.getNumberOfEvents,
     );
     logger.debug("Current end time: " + currentEndTime.toISOString(), {
       onCallDutyPolicyScheduleId: data.scheduleId.toString(),

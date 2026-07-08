@@ -7,6 +7,8 @@ import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
+import OneUptimeDate from "Common/Types/Date";
+import { JSONObject } from "Common/Types/JSON";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -126,6 +128,35 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
           },
         },
       ]}
+      onValidate={(values: FormValues<OnCallDutyPolicyScheduleLayer>) => {
+        const errors: JSONObject = {};
+
+        const startsAt: Date | undefined = values.startsAt as Date | undefined;
+        const handOffTime: Date | undefined = values.handOffTime as
+          | Date
+          | undefined;
+
+        /*
+         * The first hand-off must not precede the rotation start. A hand-off
+         * before the start is almost always a misconfiguration (the engine
+         * silently moves it forward to the first real boundary, which is
+         * confusing). We intentionally allow hand-off == start, and we do NOT
+         * validate weekly restriction windows here — a "start day/time after
+         * end day/time" window is a supported wrap-around (e.g. Fri -> Mon)
+         * coverage feature, not an error.
+         */
+        if (startsAt && handOffTime) {
+          const start: Date = OneUptimeDate.fromString(startsAt as any);
+          const handoff: Date = OneUptimeDate.fromString(handOffTime as any);
+
+          if (OneUptimeDate.isBefore(handoff, start)) {
+            errors["handOffTime"] =
+              "The first hand-off time must be at or after the rotation start.";
+          }
+        }
+
+        return errors;
+      }}
       onSuccess={(item: OnCallDutyPolicyScheduleLayer) => {
         props.onLayerChange(item);
       }}

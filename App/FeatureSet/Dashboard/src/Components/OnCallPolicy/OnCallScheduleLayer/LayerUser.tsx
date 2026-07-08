@@ -226,7 +226,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
         )}
 
         <span
-          className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+          className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white shadow-sm ring-2 ring-white"
           style={{ backgroundColor: getColorForUserId(userId) }}
         >
           {getUserInitials(name, email)}
@@ -279,8 +279,22 @@ const LayerUser: FunctionComponent<ComponentProps> = (
   const getContent: () => ReactElement = (): ReactElement => {
     if (isLoading) {
       return (
-        <div className="rounded-lg border border-gray-200 bg-white px-3 py-6 text-center text-sm text-gray-400">
-          Loading users…
+        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+          <div className="divide-y divide-gray-100" aria-hidden="true">
+            {["w-1/3", "w-2/5", "w-1/4"].map((width: string, i: number) => {
+              return (
+                <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+                  <span className="h-8 w-8 flex-shrink-0 rounded-full bg-gray-100 motion-safe:animate-pulse" />
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div
+                      className={`h-3 rounded bg-gray-100 motion-safe:animate-pulse ${width}`}
+                    />
+                    <div className="h-2.5 w-1/2 rounded bg-gray-100 motion-safe:animate-pulse" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       );
     }
@@ -292,6 +306,9 @@ const LayerUser: FunctionComponent<ComponentProps> = (
     if (users.length === 0) {
       return (
         <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/50 px-4 py-6 text-center">
+          <span className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-400 ring-1 ring-inset ring-gray-100">
+            <Icon icon={IconProp.UserGroup} className="h-5 w-5" />
+          </span>
           <p className="text-sm font-medium text-gray-900">No users yet</p>
           <p className="mt-0.5 text-sm text-gray-500">
             Add users to put them into this layer&apos;s on-call rotation.
