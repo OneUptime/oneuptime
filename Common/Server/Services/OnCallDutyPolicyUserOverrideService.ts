@@ -30,8 +30,14 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
       throw new BadDataException("Start time and end time are required");
     }
 
-    // make sure start time is before end time
-    if (OneUptimeDate.isAfter(createBy.data.startsAt, createBy.data.endsAt)) {
+    /*
+     * make sure start time is STRICTLY before end time. Using !isBefore (rather
+     * than isAfter) also rejects equal start/end and same-second reversed
+     * sub-second values, which the downstream event splitter would otherwise
+     * turn into a zero-length / inverted substitution segment and a spurious
+     * "you are next on-call" notification.
+     */
+    if (!OneUptimeDate.isBefore(createBy.data.startsAt, createBy.data.endsAt)) {
       throw new BadDataException("Start time must be before end time");
     }
 

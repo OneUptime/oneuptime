@@ -278,10 +278,18 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
         `No next escalation rule found. Checking if we need to repeat this execution.`,
       );
 
-      // check if we need to repeat this execution.
+      /*
+       * check if we need to repeat this execution.
+       * onCallPolicyExecutionRepeatCount is seeded to 1 on create (the initial
+       * pass), and repeatPolicyIfNoOneAcknowledgesNoOfTimes is the number of
+       * additional repeats requested. Use <= so the policy repeats exactly that
+       * many times: with a strict <, "repeat 1 time" never repeated at all and
+       * "repeat N" only repeated N-1 times, leaving unacknowledged incidents
+       * under-escalated.
+       */
       if (
         executionLog.onCallPolicyExecutionRepeatCount &&
-        executionLog.onCallPolicyExecutionRepeatCount <
+        executionLog.onCallPolicyExecutionRepeatCount <=
           executionLog.onCallDutyPolicy!
             .repeatPolicyIfNoOneAcknowledgesNoOfTimes!
       ) {

@@ -557,7 +557,20 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
         previousInformation.nextRosterStartAt?.toString() !==
           newInformation.nextRosterStartAt?.toString()
       ) {
-        if (newInformation.nextUserIdOnRoster?.toString()) {
+        /*
+         * Only notify "you are next on-call" when the next user ACTUALLY
+         * changed — not merely when the next handoff/start time advanced. The
+         * enclosing guard also fires when nextHandOffTimeAt / nextRosterStartAt
+         * change, which happens every rotation period; without this
+         * user-changed check a continuing (e.g. single-user) roster re-sent the
+         * full email + SMS + phone call + push + WhatsApp bundle every period.
+         * Mirrors the current-user "now on-call" branch above.
+         */
+        if (
+          previousInformation.nextUserIdOnRoster?.toString() !==
+            newInformation.nextUserIdOnRoster?.toString() &&
+          newInformation.nextUserIdOnRoster?.toString()
+        ) {
           // send email to the next user.
           const sendEmailToUserId: ObjectID = newInformation.nextUserIdOnRoster;
           const userTimezone: Timezone | null =

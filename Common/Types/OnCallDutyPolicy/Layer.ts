@@ -851,18 +851,48 @@ export default class LayerUtil {
          * and the other for end of the week .
          */
 
-        const startOfWeek: Date = data.eventStartTime;
-        // add 7 days to the end time to get the end of the week
-        const endOfTheWeek: Date = OneUptimeDate.addRemoveDays(startOfWeek, 7);
+        /*
+         * Anchor the split to the START OF THE ISO WEEK that contains the event,
+         * NOT to data.eventStartTime. When resolution begins mid-week (the live
+         * "who is on call now" path always starts its window at the current
+         * instant), using eventStartTime made the head segment
+         * [eventStartTime, endTime] inverted (start > end) whenever "now" was
+         * already past the window's end-day. getEventsByDailyRestriction then
+         * mis-read that inverted segment as an overnight window and sprayed
+         * phantom all-day on-call coverage across every day of the week, paging
+         * the wrong user during hours the restriction excludes. Using the real
+         * week start keeps the head segment correctly ordered; the later
+         * intersection with the event window discards any portion that has
+         * already elapsed.
+         */
+        const startOfWeek: Date = OneUptimeDate.getStartOfTheWeek(
+          data.eventStartTime,
+        );
 
+        /*
+         * Head segment: the early-week tail (week start -> endTime) of a weekend
+         * window that opened the PREVIOUS period. This is what covers an
+         * in-progress wrap-around window when resolution starts mid-weekend
+         * (e.g. resolving on the Sunday of a Fri 20:00 -> Mon 08:00 window).
+         */
         startAndEndTimesOfWeeklyRestrictions.push({
           startTime: startOfWeek,
           endTime: endTime,
         });
 
+        /*
+         * Main segment: the contiguous window from startTime (this week) through
+         * endTime moved to the NEXT week. Because this is a wrap-around,
+         * startTime is later in the week than endTime, so endTime + 7 days is the
+         * window's true close (e.g. Fri 20:00 -> the following Mon 08:00).
+         * Expressing it as one forward window — rather than clipping to the end
+         * of THIS ISO week — lets getEventsByDailyRestriction tile it weekly
+         * across a multi-week rotation event without leaving the Sunday/Monday
+         * portion of the weekend uncovered.
+         */
         startAndEndTimesOfWeeklyRestrictions.push({
           startTime: startTime,
-          endTime: endOfTheWeek,
+          endTime: OneUptimeDate.addRemoveDays(endTime, 7),
         });
       } else {
         /*
@@ -1046,8 +1076,16 @@ export default class LayerUtil {
         );
       }
 
-      // 1 - if the current event falls within the restriction times, we need to return the current event.
+      /*
+       * The four cases below are mutually exclusive for a given iteration and
+       * are expressed as an if / else-if chain. This matters because cases 2 and
+       * 4 MUTATE currentStartTime / restrictionStartTime / restrictionEndTime and
+       * then continue the loop; without else-if, a later case would re-evaluate
+       * against the freshly-mutated state within the same iteration and emit a
+       * duplicate (or overlapping) window.
+       */
 
+      // 1 - the event falls entirely within the restriction window: emit it and finish.
       if (
         OneUptimeDate.isOnOrAfter(currentStartTime, restrictionStartTime) &&
         OneUptimeDate.isOnOrAfter(restrictionEndTime, currentEndTime)
@@ -1057,14 +1095,18 @@ export default class LayerUtil {
           endTime: currentEndTime,
         });
         reachedTheEndOfTheCurrentEvent = true;
-      }
-
-      /*
-       * 2 - Start Restriction: If the current event starts after the restriction start time and ends after the restriction end time, we need to return the current event with the start time of the current event and end time of the restriction
-       * Use strict isAfter on the end so this branch does not double-fire with case 1 when currentEnd === restrictionEnd.
-       */
-
-      if (
+      } else if (
+        /*
+         * 2 - Start Restriction: the event starts inside the restriction window
+         * but extends past its end. Emit [currentStart, restrictionEnd], then
+         * ADVANCE to the next restriction day/week and continue, so every
+         * remaining day of a multi-day rotation event is emitted. Previously this
+         * terminated the loop after the first day, dropping on-call coverage for
+         * every subsequent day of the rotation period (e.g. a weekly rotation
+         * with a 09:00-17:00 daily restriction and a handoff at/after 09:00
+         * covered only day 1). This now mirrors case 4's advance-and-continue.
+         * Strict isAfter on the end keeps this exclusive from case 1.
+         */
         OneUptimeDate.isOnOrAfter(currentStartTime, restrictionStartTime) &&
         OneUptimeDate.isAfter(currentEndTime, restrictionEndTime)
       ) {
@@ -1072,12 +1114,22 @@ export default class LayerUtil {
           startTime: currentStartTime,
           endTime: restrictionEndTime,
         });
-        reachedTheEndOfTheCurrentEvent = true;
-      }
 
-      // 3 - End Restriction - If the current event starts before the restriction start time and ends before the restriction end time, we need to return the current event with the start time of the restriction and end time of the current event.
+        currentStartTime = OneUptimeDate.addRemoveSeconds(
+          restrictionEndTime,
+          1,
+        );
 
-      if (
+        restrictionStartTime = OneUptimeDate.addRemoveDays(
+          restrictionStartTime,
+          data.props.intervalType === EventInterval.Day ? 1 : 7, // daily or weekly
+        );
+        restrictionEndTime = OneUptimeDate.addRemoveDays(
+          restrictionEndTime,
+          data.props.intervalType === EventInterval.Day ? 1 : 7, // daily or weekly
+        );
+      } else if (
+        // 3 - End Restriction - the event starts before the window and ends inside it.
         OneUptimeDate.isBefore(currentStartTime, restrictionStartTime) &&
         OneUptimeDate.isBefore(currentEndTime, restrictionEndTime) &&
         OneUptimeDate.isAfter(currentEndTime, restrictionStartTime)
@@ -1087,11 +1139,8 @@ export default class LayerUtil {
           endTime: currentEndTime,
         });
         reachedTheEndOfTheCurrentEvent = true;
-      }
-
-      // 4 - If the current event starts before the restriction start time and ends after the restriction end time, we need to return the current event with the start time of the restriction and end time of the restriction.
-
-      if (
+      } else if (
+        // 4 - the event spans the whole window: emit it, advance a day/week, continue.
         OneUptimeDate.isBefore(currentStartTime, restrictionStartTime) &&
         OneUptimeDate.isOnOrAfter(currentEndTime, restrictionEndTime)
       ) {
@@ -1307,11 +1356,40 @@ export default class LayerUtil {
              */
             const tempFinalEventEnd: Date = finalEvent.end;
 
+            /*
+             * Reconstruct the trailing tail FIRST, before the front-collapse
+             * removal below. If the lower-priority (fallback) event originally
+             * extended past the higher-priority event, the portion AFTER the
+             * higher-priority window must survive as its own segment — even when
+             * the FRONT of the final event collapses to zero/negative length
+             * (which happens when the higher-priority event starts at or before
+             * the final event's start, e.g. two back-to-back higher-priority
+             * rotation windows over a 24/7 fallback layer). Previously this block
+             * ran only AFTER the collapse checks, whose `continue` skipped it,
+             * silently deleting the fallback layer's coverage after the higher-
+             * priority window and leaving on-call gaps where nobody is paged.
+             */
+            if (OneUptimeDate.isAfter(tempFinalEventEnd, event.end)) {
+              // add the trailing segment of the lower-priority event
+              const trimmedEvent: PriorityCalendarEvents = {
+                ...finalEvent,
+                priority: finalEvent.priority,
+                start: OneUptimeDate.addRemoveSeconds(event.end, 1),
+                end: tempFinalEventEnd,
+              };
+
+              // only keep it if it has positive length
+              if (OneUptimeDate.isAfter(trimmedEvent.end, trimmedEvent.start)) {
+                finalEvents.push(trimmedEvent);
+              }
+            }
+
             finalEvent.end = OneUptimeDate.addRemoveSeconds(event.start, -1);
 
             /*
              * check if the final event end time is before the start time of the current event
              * if it is, we need to remove the final event from the final events array
+             * (the trailing tail, if any, was already preserved above)
              */
             if (OneUptimeDate.isBefore(finalEvent.end, finalEvent.start)) {
               finalEvents.splice(i, 1);
@@ -1324,22 +1402,6 @@ export default class LayerUtil {
               finalEvents.splice(i, 1);
               i--; // Adjust index after removal
               continue;
-            }
-
-            // final event was originally ending after the current event, so we need to add the trimmed event to the final events array
-            if (OneUptimeDate.isAfter(tempFinalEventEnd, event.end)) {
-              // add the trimmed event to the final events array
-              const trimmedEvent: PriorityCalendarEvents = {
-                ...finalEvent,
-                priority: finalEvent.priority,
-                start: OneUptimeDate.addRemoveSeconds(event.end, 1),
-                end: tempFinalEventEnd,
-              };
-
-              // check if the event end time is before the start time of the trimmed event
-              if (OneUptimeDate.isAfter(trimmedEvent.end, trimmedEvent.start)) {
-                finalEvents.push(trimmedEvent);
-              }
             }
           } else {
             /*
