@@ -34,6 +34,11 @@ export interface ComponentProps {
   allLayerUsers: Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>;
   showFieldLabel?: boolean;
   id?: string | undefined;
+  /*
+   * The schedule's IANA timezone; when set the preview resolves restriction
+   * windows in that zone so it matches how the server pages people.
+   */
+  timezone?: string | undefined;
 }
 
 interface UserInfo {
@@ -276,6 +281,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         handOffTime: layer.handOffTime!,
         rotation: layer.rotation!,
         restrictionTimes: layer.restrictionTimes!,
+        timezone: props.timezone,
       });
     }
 
@@ -335,6 +341,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
   }, [
     props.layers,
     props.allLayerUsers,
+    props.timezone,
     startTime,
     endTime,
     overrides,
@@ -351,8 +358,11 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
           required={true}
           title="Layer Preview"
           description={
-            "Here is a preview of who is on call and when. This is based on your local timezone - " +
-            OneUptimeDate.getCurrentTimezoneString()
+            props.timezone
+              ? "Here is a preview of who is on call and when. Restriction windows are resolved in this schedule's timezone - " +
+                props.timezone
+              : "Here is a preview of who is on call and when. This is based on your local timezone - " +
+                OneUptimeDate.getCurrentTimezoneString()
           }
         />
       )}
@@ -392,6 +402,13 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
           handled by a substitute user via an active override.
         </div>
       )}
+
+      <div className="mt-2 text-xs text-gray-500">
+        Note: this preview reflects <span className="font-medium">global</span>{" "}
+        user overrides only. Policy-specific overrides are applied when a
+        particular on-call policy escalates and are not shown here, so the
+        person actually paged by a given policy may differ.
+      </div>
 
       <Calendar
         events={calendarEvents}

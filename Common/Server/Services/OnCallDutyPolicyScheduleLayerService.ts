@@ -8,6 +8,8 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
+import Recurring from "../../Types/Events/Recurring";
+import UpdateBy from "../Types/Database/UpdateBy";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
@@ -17,6 +19,35 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  /*
+   * A rotation interval count of 0 / NaN / negative breaks the handoff math
+   * (division by zero, Invalid Date), so reject it at the persistence boundary.
+   * The client also guards this, and the engine defensively clamps, but a raw
+   * API write must not be able to store an invalid rotation.
+   */
+  private validateRotationInterval(rotation: unknown): void {
+    if (!rotation || typeof rotation === "function") {
+      return;
+    }
+
+    let count: number;
+    try {
+      const recurring: Recurring =
+        rotation instanceof Recurring
+          ? rotation
+          : Recurring.fromJSON(rotation as any);
+      count = recurring.intervalCount.toNumber();
+    } catch {
+      throw new BadDataException("Invalid rotation configuration.");
+    }
+
+    if (!Number.isFinite(count) || isNaN(count) || count < 1) {
+      throw new BadDataException(
+        "Rotation interval must be a whole number greater than or equal to 1.",
+      );
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -24,6 +55,8 @@ export class Service extends DatabaseService<Model> {
     if (!createBy.data.onCallDutyPolicyScheduleId) {
       throw new BadDataException("onCallDutyPolicyScheduleId is required");
     }
+
+    this.validateRotationInterval(createBy.data.rotation);
 
     if (!createBy.data.order) {
       // count number of users in this layer.
@@ -75,6 +108,18 @@ export class Service extends DatabaseService<Model> {
     );
 
     return createdItem;
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    this.validateRotationInterval(updateBy.data.rotation);
+
+    return {
+      updateBy,
+      carryForward: null,
+    };
   }
 
   protected override async onUpdateSuccess(

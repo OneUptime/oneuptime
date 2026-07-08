@@ -234,14 +234,6 @@ describe("AnalyticsDatabaseService", () => {
       jest.spyOn(logger, "error").mockImplementation(() => {
         return undefined!;
       });
-
-      /*
-       * The base getException method is async and throws without await in the
-       * catch block, creating unhandled rejections. Override to throw synchronously.
-       */
-      (service as any).getException = (error: Error): never => {
-        throw error;
-      };
     });
 
     afterEach(() => {

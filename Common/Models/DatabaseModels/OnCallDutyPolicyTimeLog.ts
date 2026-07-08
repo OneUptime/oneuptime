@@ -458,7 +458,7 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "SET NULL",
+      onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
   )

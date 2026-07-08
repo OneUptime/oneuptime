@@ -21,6 +21,20 @@ RunCron(
     // get all pending on-call executions and execute them all at once.
     const fiveMinsAgo: Date = OneUptimeDate.getSomeMinutesAgo(5);
 
+    /*
+     * A log sits in "Started" only for the brief moment between creation and the
+     * first rule beginning to execute. If it is still "Started" after 5 minutes
+     * it is genuinely stuck, so we time it out.
+     *
+     * We deliberately DO NOT time out "Executing" logs on wall-clock alone. An
+     * Executing log is a live, in-progress escalation: ExecutePendingExecutions
+     * advances it every minute and marks it Completed once the alert/incident is
+     * acknowledged/resolved or all escalation rules and repeats are exhausted.
+     * A policy with several rules and repeat cycles can legitimately stay
+     * Executing for many hours; the previous 3-hour cutoff force-errored these
+     * healthy escalations and silently dropped every remaining rule/repeat,
+     * meaning later responders were never paged for an unacknowledged incident.
+     */
     const stuckExecutions: Array<OnCallDutyPolicyExecutionLog> =
       await OnCallDutyPolicyExecutionLogService.findAllBy({
         query: {
@@ -36,25 +50,8 @@ RunCron(
         },
       });
 
-    // check for executing logs more than 3 hours ago and mark them as timed out.
-    const stuckExecutingLogs: Array<OnCallDutyPolicyExecutionLog> =
-      await OnCallDutyPolicyExecutionLogService.findAllBy({
-        query: {
-          status: OnCallDutyPolicyStatus.Executing,
-          createdAt: QueryHelper.lessThan(OneUptimeDate.getSomeHoursAgo(3)),
-        },
-        select: {
-          _id: true,
-          createdAt: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
     const totalStuckExecutions: Array<OnCallDutyPolicyExecutionLog> = [
       ...stuckExecutions,
-      ...stuckExecutingLogs,
     ];
 
     for (const executionLog of totalStuckExecutions) {

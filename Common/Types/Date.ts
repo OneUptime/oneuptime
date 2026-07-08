@@ -211,15 +211,16 @@ export default class OneUptimeDate {
     date: Date,
     moveToWeek: Date,
     dayOfWeek: DayOfWeek,
+    timezone?: string | undefined,
   ): Date {
     // date will be moved to the week of "moveToWeek" and then to the day of week "dayOfWeek"
 
     date = this.fromString(date);
-    date = this.keepTimeButMoveDay(date, moveToWeek);
+    date = this.keepTimeButMoveDay(date, moveToWeek, timezone);
 
     // now move the date to the day of week
 
-    const dateDayOfWeek: DayOfWeek = this.getDayOfWeek(date);
+    const dateDayOfWeek: DayOfWeek = this.getDayOfWeek(date, timezone);
 
     if (dateDayOfWeek === dayOfWeek) {
       return date;
@@ -435,9 +436,34 @@ export default class OneUptimeDate {
     return moment();
   }
 
-  public static keepTimeButMoveDay(keepTimeFor: Date, moveDayTo: Date): Date {
+  public static keepTimeButMoveDay(
+    keepTimeFor: Date,
+    moveDayTo: Date,
+    timezone?: string | undefined,
+  ): Date {
     keepTimeFor = this.fromString(keepTimeFor);
     moveDayTo = this.fromString(moveDayTo);
+
+    if (timezone) {
+      /*
+       * Timezone-aware: keep the wall-clock time of `keepTimeFor` AS SEEN IN
+       * `timezone`, and place it on the day of `moveDayTo` (also in `timezone`).
+       * This is what makes an on-call restriction like "09:00-17:00" resolve to
+       * 09:00 in the schedule's zone regardless of the server's zone, and lets
+       * moment-timezone handle DST transitions correctly.
+       */
+      const src: moment.Moment = moment.tz(keepTimeFor, timezone);
+      return moment
+        .tz(moveDayTo, timezone)
+        .set({
+          hour: src.hour(),
+          minute: src.minute(),
+          second: src.second(),
+          millisecond: src.millisecond(),
+        })
+        .toDate();
+    }
+
     return moment(moveDayTo)
       .set({
         hour: keepTimeFor.getHours(),
@@ -941,13 +967,22 @@ export default class OneUptimeDate {
     return moment().year();
   }
 
-  public static getStartOfDay(date: Date): Date {
+  public static getStartOfDay(
+    date: Date,
+    timezone?: string | undefined,
+  ): Date {
     date = this.fromString(date);
+    if (timezone) {
+      return moment.tz(date, timezone).startOf("day").toDate();
+    }
     return moment(date).startOf("day").toDate();
   }
 
-  public static getEndOfDay(date: Date): Date {
+  public static getEndOfDay(date: Date, timezone?: string | undefined): Date {
     date = this.fromString(date);
+    if (timezone) {
+      return moment.tz(date, timezone).endOf("day").toDate();
+    }
     return moment(date).endOf("day").toDate();
   }
 
@@ -970,8 +1005,11 @@ export default class OneUptimeDate {
     return moment(date).isSameOrAfter(startDate, "seconds");
   }
 
-  public static getDayOfWeek(date: Date): DayOfWeek {
-    const dayOfWeek: number = this.geyDayOfWeekAsNumber(date);
+  public static getDayOfWeek(
+    date: Date,
+    timezone?: string | undefined,
+  ): DayOfWeek {
+    const dayOfWeek: number = this.geyDayOfWeekAsNumber(date, timezone);
 
     if (dayOfWeek === 1) {
       return DayOfWeek.Monday;
@@ -992,8 +1030,14 @@ export default class OneUptimeDate {
     throw new BadDataException("Invalid day of week");
   }
 
-  public static geyDayOfWeekAsNumber(date: Date): number {
+  public static geyDayOfWeekAsNumber(
+    date: Date,
+    timezone?: string | undefined,
+  ): number {
     date = this.fromString(date);
+    if (timezone) {
+      return moment.tz(date, timezone).isoWeekday();
+    }
     return moment(date).isoWeekday();
   }
 
