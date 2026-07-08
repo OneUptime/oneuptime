@@ -967,10 +967,7 @@ export default class OneUptimeDate {
     return moment().year();
   }
 
-  public static getStartOfDay(
-    date: Date,
-    timezone?: string | undefined,
-  ): Date {
+  public static getStartOfDay(date: Date, timezone?: string | undefined): Date {
     date = this.fromString(date);
     if (timezone) {
       return moment.tz(date, timezone).startOf("day").toDate();

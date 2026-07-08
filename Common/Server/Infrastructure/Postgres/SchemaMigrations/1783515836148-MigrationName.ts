@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class MigrationName1783515836148 implements MigrationInterface {
-  name = "MigrationName1783515836148";
+  public name = "MigrationName1783515836148";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // HIGH-5: schedule timezone (nullable => existing schedules keep legacy server-local behavior).

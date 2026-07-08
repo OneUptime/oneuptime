@@ -399,7 +399,9 @@ const Layers: FunctionComponent<ComponentProps> = (
         if (savedLayer.name !== undefined) {
           layer.name = savedLayer.name;
         }
-        layer.description = savedLayer.description;
+        if (savedLayer.description !== undefined) {
+          layer.description = savedLayer.description;
+        }
         if (savedLayer.startsAt !== undefined) {
           layer.startsAt = savedLayer.startsAt;
         }
