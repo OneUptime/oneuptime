@@ -3,6 +3,7 @@ import ComponentSettingsPanel from "./ComponentSettingsPanel";
 import ComponentsModal from "./ComponentsModal";
 import RunModal from "./RunModal";
 import WorkflowTemplateGallery from "./WorkflowTemplateGallery";
+import WorkflowOutline from "./WorkflowOutline";
 import {
   WorkflowTemplate,
   WorkflowTemplates,
@@ -333,6 +334,8 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   // Dismissed once the user picks a template or chooses to start from scratch.
   const [templatesDismissed, setTemplatesDismissed] = useState<boolean>(false);
 
+  const [showOutline, setShowOutline] = useState<boolean>(false);
+
   type LoadTemplateFunction = (template: WorkflowTemplate) => void;
 
   const loadTemplate: LoadTemplateFunction = (
@@ -582,6 +585,56 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             }}
           />
         )}
+
+      {/*
+        Outline: a read-only "what does this workflow do" panel. The toggle
+        appears once there is at least one real step; the panel docks on the
+        left so it doesn't collide with the right-side settings inspector.
+      */}
+      {!showOutline &&
+        nodes.some((node: Node) => {
+          return (node.data as NodeDataProp).nodeType === NodeType.Node;
+        }) && (
+          <button
+            type="button"
+            onClick={() => {
+              setShowOutline(true);
+            }}
+            style={{
+              position: "absolute",
+              top: "12px",
+              left: "12px",
+              zIndex: 5,
+            }}
+            className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 shadow-sm hover:bg-gray-50 cursor-pointer"
+          >
+            Outline
+          </button>
+        )}
+
+      {showOutline && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            bottom: 0,
+            width: "min(360px, 100%)",
+            zIndex: 6,
+            backgroundColor: "#ffffff",
+            borderRight: "1px solid #e2e8f0",
+            boxShadow: "4px 0 12px -6px rgba(0, 0, 0, 0.15)",
+          }}
+        >
+          <WorkflowOutline
+            nodes={nodes}
+            edges={edges}
+            onClose={() => {
+              setShowOutline(false);
+            }}
+          />
+        </div>
+      )}
 
       {showComponentsModal && (
         <ComponentsModal
