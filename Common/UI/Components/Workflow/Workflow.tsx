@@ -2,6 +2,7 @@ import WorkflowComponent from "./Component";
 import ComponentSettingsModal from "./ComponentSettingsModal";
 import ComponentsModal from "./ComponentsModal";
 import RunModal from "./RunModal";
+import { getUpstreamComponentIds } from "./GraphUtils";
 import { loadComponentsAndCategories } from "./Utils";
 import { VoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -562,6 +563,18 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           graphComponents={nodes.map((node: Node) => {
             return node.data as NodeDataProp;
           })}
+          upstreamComponentIds={getUpstreamComponentIds(
+            (
+              nodes.find((node: Node) => {
+                return (
+                  (node.data as NodeDataProp).internalId ===
+                  selectedNodeData.internalId
+                );
+              }) || { id: "" }
+            ).id,
+            nodes,
+            edges,
+          )}
           workflowId={props.workflowId}
           webhookSecretKey={props.webhookSecretKey}
           component={selectedNodeData}

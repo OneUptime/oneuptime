@@ -24,6 +24,8 @@ export interface ComponentProps {
   onDelete: (component: NodeDataProp) => void;
   component: NodeDataProp;
   graphComponents: Array<NodeDataProp>;
+  // Component data ids that run before this step (their output is referenceable).
+  upstreamComponentIds?: Set<string> | undefined;
   workflowId: ObjectID;
   webhookSecretKey?: string | undefined;
 }
@@ -68,10 +70,18 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   const [showDeleteConfirmation, setShowDeleteConfirmation] =
     useState<boolean>(false);
 
+  /*
+   * The Identifier is a technical detail most authors never touch (it's used
+   * to reference this step from others). It's tucked behind an "Advanced"
+   * disclosure so the panel stays focused on the actual settings.
+   */
+  const [showIdentifier, setShowIdentifier] = useState<boolean>(false);
+
   const settingsSection: ReactElement = (
     <SectionCard icon={IconProp.Settings} title="Settings">
       <ArgumentsForm
         graphComponents={props.graphComponents}
+        upstreamComponentIds={props.upstreamComponentIds}
         workflowId={props.workflowId}
         component={component}
         onFormChange={(c: NodeDataProp) => {
@@ -224,11 +234,23 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2 space-y-4">{settingsSection}</div>
           <div className="md:col-span-1 space-y-4">
-            {idSection}
             {documentationSection}
             {inputsSection}
             {outputsSection}
             {returnsSection}
+            {showIdentifier ? (
+              idSection
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowIdentifier(true);
+                }}
+                className="text-sm font-medium text-blue-500 hover:text-blue-600 cursor-pointer"
+              >
+                Show advanced (identifier)
+              </button>
+            )}
           </div>
         </div>
       </>

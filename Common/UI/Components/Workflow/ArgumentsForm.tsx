@@ -48,6 +48,8 @@ export interface ComponentProps {
   onHasFormValidationErrors: (values: Dictionary<boolean>) => void;
   workflowId: ObjectID;
   graphComponents: Array<NodeDataProp>;
+  // Component data ids upstream of this step (their output is referenceable).
+  upstreamComponentIds?: Set<string> | undefined;
   onFormChange: (value: NodeDataProp) => void;
 }
 
@@ -432,6 +434,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       {showComponentPickerModal && (
         <ComponentValuePickerModal
           components={props.graphComponents}
+          upstreamComponentIds={props.upstreamComponentIds}
+          currentComponentId={component.id}
           onClose={() => {
             setShowComponentPickerModal(false);
           }}
