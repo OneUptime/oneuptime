@@ -542,6 +542,7 @@ const Layers: FunctionComponent<ComponentProps> = (
               key={layerId}
               layer={layer}
               users={layerUsers[layerId] || []}
+              timezone={scheduleTimezone}
               index={i}
               total={layers.length}
               isExpanded={expandedLayerIds.has(layerId)}

@@ -15,6 +15,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
+  // Schedule timezone — restriction times are entered/enforced in it (audit F1).
+  timezone?: string | undefined;
   onLayerChange: (layer: OnCallDutyPolicyScheduleLayer) => void;
 }
 
@@ -125,6 +127,7 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
               <RestrictionTimesFieldElement
                 {...fieldProps}
                 value={value.restrictionTimes as RestrictionTimes}
+                timezone={props.timezone}
               />
             );
           },

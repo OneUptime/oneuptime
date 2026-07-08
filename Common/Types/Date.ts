@@ -266,6 +266,76 @@ export default class OneUptimeDate {
     return moment(date).weekday();
   }
 
+  /**
+   * Format the wall-clock time (HH:mm, respecting the 12/24h preference) of an
+   * instant AS SEEN IN `timezone`. With no timezone, falls back to the
+   * process/browser local wall-clock. Used to show on-call restriction hours in
+   * the schedule's timezone rather than the viewer's browser zone (audit F10).
+   */
+  public static getHourAndMinuteInTimezoneString(
+    date: Date | string,
+    timezone?: string | undefined,
+  ): string {
+    date = this.fromString(date);
+    if (!timezone) {
+      return this.getLocalHourAndMinuteFromDate(date);
+    }
+    const use12HourFormat: boolean = this.getUserPrefers12HourFormat();
+    return moment
+      .tz(date, timezone)
+      .format(use12HourFormat ? "h:mm A" : "HH:mm");
+  }
+
+  /**
+   * Reinterpret the wall-clock components of `date` — read in the process /
+   * browser local zone — as the SAME wall-clock in `timezone`, and return that
+   * instant. Used to store a time the user typed for the schedule's timezone
+   * even though the time picker captured it in the browser's local zone (audit
+   * F1). Inverse of getLocalDateFromWallClockInTimezone.
+   */
+  public static getInstantFromLocalWallClockInTimezone(
+    date: Date | string,
+    timezone: string,
+  ): Date {
+    date = this.fromString(date);
+    const local: moment.Moment = moment(date);
+    return moment
+      .tz(
+        {
+          year: local.year(),
+          month: local.month(),
+          day: local.date(),
+          hour: local.hour(),
+          minute: local.minute(),
+          second: local.second(),
+        },
+        timezone,
+      )
+      .toDate();
+  }
+
+  /**
+   * Inverse of getInstantFromLocalWallClockInTimezone: return a process /
+   * browser local Date whose LOCAL wall-clock equals `date`'s wall-clock as seen
+   * in `timezone`. Used to display a stored schedule-timezone time inside a
+   * browser-local time picker (audit F1).
+   */
+  public static getLocalDateFromWallClockInTimezone(
+    date: Date | string,
+    timezone: string,
+  ): Date {
+    date = this.fromString(date);
+    const zoned: moment.Moment = moment.tz(date, timezone);
+    return moment({
+      year: zoned.year(),
+      month: zoned.month(),
+      day: zoned.date(),
+      hour: zoned.hour(),
+      minute: zoned.minute(),
+      second: zoned.second(),
+    }).toDate();
+  }
+
   public static isOverlapping(
     start: Date,
     end: Date,

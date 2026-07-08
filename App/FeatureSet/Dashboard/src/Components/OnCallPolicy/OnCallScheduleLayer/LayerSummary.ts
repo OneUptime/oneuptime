@@ -76,6 +76,14 @@ export function summarizeHandOff(handOffTime: Date | undefined): string | null {
 
 export function summarizeRestriction(
   restrictionTimes: RestrictionTimes | undefined,
+  /*
+   * The schedule's timezone. Restriction wall-clock hours are ENFORCED by the
+   * engine in this zone, so the summary must render them in it too — otherwise
+   * the chip shows the viewer's browser-zone hours and contradicts both the
+   * schedule-timezone preview on the same screen and who actually gets paged
+   * (audit F10). Omitted => viewer local time (legacy behavior).
+   */
+  timezone?: string | undefined,
 ): string {
   if (!restrictionTimes) {
     return "On call 24/7";
@@ -88,13 +96,20 @@ export function summarizeRestriction(
     return "On call 24/7";
   }
 
+  // A short "(<tz>)" suffix so it is unambiguous which zone the hours are in.
+  const tzSuffix: string = timezone ? ` (${timezone})` : "";
+
   if (restrictionType === RestrictionType.Daily) {
     const day: { startTime: Date; endTime: Date } | null =
       restrictionTimes.dayRestrictionTimes;
     if (day && day.startTime && day.endTime) {
-      return `Daily ${OneUptimeDate.getLocalHourAndMinuteFromDate(
+      return `Daily ${OneUptimeDate.getHourAndMinuteInTimezoneString(
         day.startTime,
-      )} – ${OneUptimeDate.getLocalHourAndMinuteFromDate(day.endTime)}`;
+        timezone,
+      )} – ${OneUptimeDate.getHourAndMinuteInTimezoneString(
+        day.endTime,
+        timezone,
+      )}${tzSuffix}`;
     }
     return "Restricted to specific hours daily";
   }
@@ -109,9 +124,13 @@ export function summarizeRestriction(
 
   if (weekly.length === 1) {
     const w: WeeklyResctriction = weekly[0]!;
-    return `${w.startDay} ${OneUptimeDate.getLocalHourAndMinuteFromDate(
+    return `${w.startDay} ${OneUptimeDate.getHourAndMinuteInTimezoneString(
       w.startTime,
-    )} – ${w.endDay} ${OneUptimeDate.getLocalHourAndMinuteFromDate(w.endTime)}`;
+      timezone,
+    )} – ${w.endDay} ${OneUptimeDate.getHourAndMinuteInTimezoneString(
+      w.endTime,
+      timezone,
+    )}${tzSuffix}`;
   }
 
   return `${weekly.length} weekly time windows`;

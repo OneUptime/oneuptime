@@ -13,6 +13,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
   users: Array<OnCallDutyPolicyScheduleLayerUser>;
+  // The schedule's timezone — restriction hours are shown/entered in it (F1/F10).
+  timezone?: string | undefined;
   index: number;
   total: number;
   isExpanded: boolean;
@@ -56,6 +58,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
 
   const restrictionSummary: string = summarizeRestriction(
     layer.restrictionTimes,
+    props.timezone,
   );
 
   const userCount: number = props.users.length;
@@ -275,6 +278,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
           <div className="border-t border-gray-200 pt-5">
             <LayerConfigForm
               layer={layer}
+              timezone={props.timezone}
               onLayerChange={props.onLayerChange}
             />
           </div>
