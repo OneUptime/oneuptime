@@ -4,6 +4,7 @@ import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import { CustomElementProps } from "../Forms/Types/Field";
 import FormValues from "../Forms/Types/FormValues";
 import ComponentValuePickerModal from "./ComponentValuePickerModal";
+import DataReferenceInput from "./DataReferenceInput";
 import JSONArgumentInput from "./JSONArgumentInput";
 import ModelFieldPicker from "./ModelFieldPicker";
 import { componentInputTypeToFormFieldType } from "./Utils";
@@ -345,18 +346,23 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                 }
 
                 /*
-                 * The "pick from component / variable" footer doesn't
-                 * apply to the field picker (it edits a structured object,
-                 * not a free-text expression) or to WorkflowSelect. JSON
-                 * editors keep it so authors can drop {{ tokens }} into a
-                 * request body or payload.
+                 * The data-reference footer doesn't apply to the field
+                 * picker (it edits a structured object, not a free-text
+                 * expression) or to WorkflowSelect.
                  */
                 const showVariableFooter: boolean =
                   !isWorkflowSelect && !useFieldPicker;
 
-                return {
-                  title: `${arg.name}`,
-                  footerElement: showVariableFooter ? (
+                /*
+                 * Plain text fields get the inline chip helper: existing
+                 * {{ tokens }} render as friendly, removable chips and new
+                 * references are inserted from an upstream-scoped menu. JSON
+                 * editors keep the modal-based picker (inserting into a raw
+                 * body is better served by the full picker for now).
+                 */
+                let footerElement: ReactElement | undefined = undefined;
+                if (showVariableFooter && useJsonEditor) {
+                  footerElement = (
                     <div className="text-gray-500">
                       <p className="text-sm">
                         Pick this value from other{" "}
@@ -381,7 +387,29 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                         </button>
                       </p>
                     </div>
-                  ) : undefined,
+                  );
+                } else if (showVariableFooter) {
+                  footerElement = (
+                    <DataReferenceInput
+                      value={
+                        component.arguments && component.arguments[arg.id]
+                          ? String(component.arguments[arg.id])
+                          : ""
+                      }
+                      components={props.graphComponents}
+                      upstreamComponentIds={props.upstreamComponentIds}
+                      currentComponentId={component.id}
+                      workflowId={props.workflowId}
+                      onChange={(newValue: string) => {
+                        formRef.current?.setFieldValue(arg.id, newValue);
+                      }}
+                    />
+                  );
+                }
+
+                return {
+                  title: `${arg.name}`,
+                  footerElement: footerElement,
                   description: `${
                     arg.required ? "Required" : "Optional"
                   }. ${arg.description}`,
