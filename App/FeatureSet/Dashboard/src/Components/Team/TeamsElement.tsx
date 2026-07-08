@@ -27,7 +27,7 @@ const TeamsElement: FunctionComponent<ComponentProps> = (
           />
         );
       }}
-      noItemsMessage="No monitors."
+      noItemsMessage="No teams."
     />
   );
 };

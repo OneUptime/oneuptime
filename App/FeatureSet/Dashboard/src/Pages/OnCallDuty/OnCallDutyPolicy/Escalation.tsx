@@ -1,341 +1,89 @@
-import OnCallDutyScheduleView from "../../../Components/OnCallPolicy/EscalationRule/OnCallScheduleView";
-import TeamView from "../../../Components/OnCallPolicy/EscalationRule/TeamView";
-import UserView from "../../../Components/OnCallPolicy/EscalationRule/UserView";
-import ProjectUser from "../../../Utils/ProjectUser";
+import EscalationRules from "../../../Components/OnCallPolicy/EscalationRule/EscalationRules";
 import PageComponentProps from "../../PageComponentProps";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import OnCallDutyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
-import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
-import Team from "Common/Models/DatabaseModels/Team";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
-  props: PageComponentProps,
-): ReactElement => {
+const OnCallPolicyEscalation: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
+  // The policy id comes from the route and the project id from ProjectUtil.
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
   return (
     <Fragment>
-      <ModelTable<OnCallDutyEscalationRule>
-        modelType={OnCallDutyEscalationRule}
-        id="table-scheduled-maintenance-internal-note"
-        userPreferencesKey="scheduled-maintenance-internal-note-table"
-        saveFilterProps={{
-          tableId: "on-call-policy-escalation-rules-table",
-        }}
-        name="Scheduled Maintenance Events > Public Notes"
-        isDeleteable={true}
-        isCreateable={true}
-        isEditable={false}
-        sortBy="order"
-        sortOrder={SortOrder.Ascending}
-        showViewIdButton={true}
-        isViewable={false}
-        enableDragAndDrop={true}
-        dragDropIndexField="order"
-        listDetailOptions={{
-          showDetailsInNumberOfColumns: 2,
-        }}
-        query={{
-          onCallDutyPolicyId: modelId,
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
-        onBeforeCreate={(
-          item: OnCallDutyEscalationRule,
-        ): Promise<OnCallDutyEscalationRule> => {
-          if (!props.currentProject || !props.currentProject._id) {
-            throw new BadDataException("Project ID cannot be null");
-          }
-          item.onCallDutyPolicyId = modelId;
-          item.projectId = new ObjectID(props.currentProject._id);
-          return Promise.resolve(item);
-        }}
-        cardProps={{
-          title: "Escalation Rules",
-          description:
-            "Escalation rules are used to determine who to contact and when to contact them when an incident is triggered.",
-        }}
-        noItemsMessage={
-          "There are no escalation rules for this on-call policy."
-        }
-        formSteps={[
-          {
-            title: "Overview",
-            id: "overview",
-          },
-          {
-            title: "Notification",
-            id: "notification",
-          },
-          {
-            title: "Escalation",
-            id: "escalation",
-          },
-        ]}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            stepId: "overview",
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            description:
-              "The name of the escalation rule. This is used to identify the rule.",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "overview",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            description:
-              "The description of the escalation rule. This is used to describe the rule.",
-          },
-          {
-            overrideField: {
-              teams: true,
-            },
-            showEvenIfPermissionDoesNotExist: true,
-            title: "Teams",
-            stepId: "notification",
-            description:
-              "Select which teams will be notified when incident is triggered.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Team,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Teams",
-            overrideFieldKey: "teams",
-          },
-          {
-            overrideField: {
-              onCallSchedules: true,
-            },
-            showEvenIfPermissionDoesNotExist: true,
-            title: "On Call Duty Schedules",
-            stepId: "notification",
-            description:
-              "Select which on-call duty schedules will be notified when incident is triggered.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: OnCallDutyPolicySchedule,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select On Call Duty Schedules",
-            overrideFieldKey: "onCallSchedules",
-          },
-          {
-            overrideField: {
-              users: true,
-            },
-            showEvenIfPermissionDoesNotExist: true,
-            title: "Users",
-            stepId: "notification",
-            description:
-              "Select which users will be notified when incident is triggered.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            fetchDropdownOptions: async () => {
-              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                ProjectUtil.getCurrentProjectId()!,
-              );
-            },
-            required: false,
-            placeholder: "Select Users",
-            overrideFieldKey: "users",
-          },
-          {
-            field: {
-              escalateAfterInMinutes: true,
-            },
-            stepId: "escalation",
-            title: "Escalate after (in minutes)",
-            fieldType: FormFieldSchemaType.Number,
-            placeholder: "30",
-            required: true,
-            description:
-              "The amount of time to wait before escalating to the next escalation rule.",
-          },
-        ]}
-        showRefreshButton={true}
-        showAs={ShowAs.List}
-        filters={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            type: FieldType.LongText,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              order: true,
-            },
+      <EscalationRules onCallDutyPolicyId={modelId} projectId={projectId} />
 
-            title: "Escalation Rule Order",
-            description: "The order of the escalation rule.",
-            type: FieldType.Number,
-          },
-          {
-            field: {
-              name: true,
-            },
-
-            title: "Name",
-            description: "The name of the escalation rule.",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              description: true,
-            },
-            noValueMessage: "-",
-            title: "Description",
-            description: "The description of the escalation rule.",
-            type: FieldType.Text,
-          },
-
-          {
-            field: {
-              name: true,
-            },
-            title: "Teams",
+      <div className="mt-6">
+        <CardModelDetail
+          name="On-Call Policy > Repeat Policy"
+          cardProps={{
+            title: "Repeat Policy",
             description:
-              "Teams who will be notified when incident is triggered.",
-            type: FieldType.Element,
-            getElement: (item: OnCallDutyEscalationRule): ReactElement => {
-              return <TeamView escalationRuleId={item.id!} />;
-            },
-          },
-          {
-            field: {
-              name: true,
-            },
-            title: "On Call Schedules",
-            description:
-              "On call schedules which will be executed when incident is triggered.",
-            type: FieldType.Element,
-            getElement: (item: OnCallDutyEscalationRule): ReactElement => {
-              return <OnCallDutyScheduleView escalationRuleId={item.id!} />;
-            },
-          },
-          {
-            field: {
-              escalateAfterInMinutes: true,
-            },
-
-            title: "Escalate after (in minutes)",
-            description:
-              "The amount of minutes to wait before escalating to the next escalation rule.",
-            type: FieldType.Minutes,
-          },
-          {
-            field: {
-              name: true,
-            },
-            title: "Users",
-            description:
-              "Users who will be notified when incident is triggered.",
-            type: FieldType.Element,
-            getElement: (item: OnCallDutyEscalationRule): ReactElement => {
-              return <UserView escalationRuleId={item.id!} />;
-            },
-          },
-        ]}
-      />
-
-      <CardModelDetail
-        name="On-Call Policy > On-Call Policy Details"
-        cardProps={{
-          title: "Repeat Policy",
-          description:
-            "Repeat policies are used to determine how often an on-call policy should be repeated.",
-        }}
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              repeatPolicyIfNoOneAcknowledges: true,
-            },
-            title: "Repeat Policy If No One Acknowledges",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "If enabled, the on-call policy will repeat if no one acknowledges the incident.",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
-            },
-            title: "Number of Times to Repeat",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            description:
-              "The number of times to repeat the on-call policy if no one acknowledges the incident.",
-            placeholder: "3",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 2,
-          modelType: OnCallDutyPolicy,
-          id: "model-detail-monitors",
-          fields: [
+              "If every escalation rule has been exhausted and the incident is still unacknowledged, decide whether to run the whole policy again.",
+          }}
+          isEditable={true}
+          formFields={[
             {
               field: {
                 repeatPolicyIfNoOneAcknowledges: true,
               },
-              title: "Repeat Policy If No One Acknowledges",
-              fieldType: FieldType.Boolean,
+              title: "Repeat if no one acknowledges",
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
               description:
-                "If enabled, the on-call policy will repeat if no one acknowledges the incident.",
-              placeholder: "No",
+                "If enabled, the on-call policy restarts from the first escalation rule when no one acknowledges the incident.",
             },
             {
               field: {
                 repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
               },
-              title: "Number of Times to Repeat",
-              fieldType: FieldType.Number,
-              placeholder: "0",
+              title: "Number of times to repeat",
+              fieldType: FormFieldSchemaType.Number,
+              required: false,
               description:
-                "The number of times to repeat the on-call policy if no one acknowledges the incident.",
+                "How many times to repeat the on-call policy if no one acknowledges the incident.",
+              placeholder: "3",
             },
-          ],
-          modelId: modelId,
-        }}
-      />
+          ]}
+          modelDetailProps={{
+            showDetailsInNumberOfColumns: 2,
+            modelType: OnCallDutyPolicy,
+            id: "model-detail-repeat-policy",
+            fields: [
+              {
+                field: {
+                  repeatPolicyIfNoOneAcknowledges: true,
+                },
+                title: "Repeat if no one acknowledges",
+                fieldType: FieldType.Boolean,
+                description:
+                  "If enabled, the on-call policy restarts from the first escalation rule when no one acknowledges the incident.",
+                placeholder: "No",
+              },
+              {
+                field: {
+                  repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
+                },
+                title: "Number of times to repeat",
+                fieldType: FieldType.Number,
+                placeholder: "0",
+                description:
+                  "How many times to repeat the on-call policy if no one acknowledges the incident.",
+              },
+            ],
+            modelId: modelId,
+          }}
+        />
+      </div>
     </Fragment>
   );
 };
 
-export default OnCallPolicyDelete;
+export default OnCallPolicyEscalation;
