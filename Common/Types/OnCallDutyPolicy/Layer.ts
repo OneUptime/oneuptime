@@ -96,7 +96,10 @@ export default class LayerUtil {
 
     // before we do this, we need to update the user index.
 
-    currentUserIndex = this.getCurrentUserIndexBasedOnHandoffTime({
+    const currentUserResolution: {
+      currentUserIndex: number;
+      currentPeriodStart: Date;
+    } = this.getCurrentUserIndexBasedOnHandoffTime({
       rotation,
       handOffTime,
       currentUserIndex,
@@ -105,6 +108,17 @@ export default class LayerUtil {
       currentEventStartTime,
       restrictionTimes: data.restrictionTimes,
     });
+    currentUserIndex = currentUserResolution.currentUserIndex;
+
+    /*
+     * True (un-clamped) start of the first rotation period we are about to
+     * expand. When the calendar window starts partway through a period (the
+     * live "who is on call now" path always starts its window at the current
+     * instant), currentEventStartTime is clamped to that instant. The advance
+     * guard in the loop below uses this to decide whether the first period
+     * consumed a rotation turn based on its FULL-span coverage (audit F2).
+     */
+    const firstPeriodTrueStart: Date = currentUserResolution.currentPeriodStart;
 
     // update handoff time to the same day as current start time
 
@@ -166,12 +180,23 @@ export default class LayerUtil {
     );
     let loopCount: number = 0;
 
+    /*
+     * The first loop iteration expands the rotation period that CONTAINS the
+     * window start; its currentEventStartTime may be clamped to the window
+     * start (now) rather than the true period start. Tracked so the rotation
+     * advance can be decided against the period's full span (audit F2).
+     */
+    let isFirstPeriod: boolean = true;
+
     while (!hasReachedTheEndOfTheCalendar) {
       loopCount++;
       if (loopCount > maxLoopCount) {
         break;
       }
       currentEventEndTime = handOffTime;
+
+      // The rotation boundary that ends this period, before any clamp to `end`.
+      const periodBoundaryEnd: Date = handOffTime;
 
       // if current event start time and end time is the same then increase current event start time by 1 second.
 
@@ -235,18 +260,50 @@ export default class LayerUtil {
       });
 
       /*
-       * Only advance the rotation if at least one event was actually generated
-       * for this rotation period. Otherwise the user "lost" their turn to a
-       * fully restricted window (e.g. a weekend with Mon-Fri restrictions),
-       * which would skip rotations and break ordering across the gap. See
-       * issue #2413.
+       * Only advance the rotation if this rotation period actually produced
+       * coverage. Otherwise the user "lost" their turn to a fully restricted
+       * window (e.g. a weekend with Mon-Fri restrictions), which would skip
+       * rotations and break ordering across the gap. See issue #2413.
        */
-      if (trimmedStartAndEndTimes.length > 0) {
+      let periodProducedCoverage: boolean = trimmedStartAndEndTimes.length > 0;
+
+      /*
+       * First-period correction (audit F2): when the window starts partway
+       * through the current period AND begins after that period's restriction
+       * window has already closed (the live roster refresh resolving in a
+       * daily/weekend off-hours gap), the clamped [now, periodEnd] slice trims
+       * to nothing even though the period DID have coverage earlier. Deciding
+       * the advance on that empty clamped slice carried the current user into
+       * the next period, so every subsequent shift resolved one user off from
+       * the calendar/full expansion — paging/notifying the wrong "next" user.
+       * Re-evaluate the advance against the period's FULL span so a
+       * partially-elapsed period still consumes its rotation turn, while a
+       * genuinely fully-restricted period (full-span trim also empty) still
+       * correctly skips its turn and preserves the #2413 behavior.
+       */
+      if (
+        isFirstPeriod &&
+        !periodProducedCoverage &&
+        data.restrictionTimes &&
+        data.restrictionTimes.restictionType !== RestrictionType.None
+      ) {
+        const fullSpanTrim: Array<StartAndEndTime> =
+          this.trimStartAndEndTimesBasedOnRestrictionTimes({
+            eventStartTime: firstPeriodTrueStart,
+            eventEndTime: periodBoundaryEnd,
+            restrictionTimes: data.restrictionTimes,
+          });
+        periodProducedCoverage = fullSpanTrim.length > 0;
+      }
+
+      if (periodProducedCoverage) {
         currentUserIndex = this.incrementUserIndex(
           currentUserIndex,
           data.users.length,
         );
       }
+
+      isFirstPeriod = false;
     }
 
     // increment ids of all the events and return them, to make sure they are unique
@@ -544,7 +601,16 @@ export default class LayerUtil {
     users: Array<UserModel>;
     currentEventStartTime: Date;
     restrictionTimes: RestrictionTimes;
-  }): number {
+  }): { currentUserIndex: number; currentPeriodStart: Date } {
+    /*
+     * Returns both the on-call user index for the rotation period that CONTAINS
+     * currentEventStartTime AND the true (un-clamped) start of that period.
+     * getEvents needs the true period start so it can decide, for the first
+     * (possibly clamped) period, whether that period consumed a rotation turn
+     * based on its FULL-span restriction coverage rather than the coverage in
+     * the clamped [now, periodEnd] slice (see the first-period advance guard in
+     * getEvents — audit F2).
+     */
     let currentUserIndex: number = data.currentUserIndex;
 
     // if current event start time is before layer start, idx unchanged.
@@ -554,12 +620,22 @@ export default class LayerUtil {
         data.startDateTimeOfLayer,
       )
     ) {
-      return currentUserIndex;
+      return {
+        currentUserIndex,
+        currentPeriodStart: data.currentEventStartTime,
+      };
     }
 
     // if handoff is after current start, no rotation has occurred yet — idx unchanged.
     if (OneUptimeDate.isAfter(data.handOffTime, data.currentEventStartTime)) {
-      return currentUserIndex;
+      /*
+       * No handoff has happened yet, so we are still inside the very first
+       * rotation period, which starts at the layer start.
+       */
+      return {
+        currentUserIndex,
+        currentPeriodStart: data.startDateTimeOfLayer,
+      };
     }
 
     /*
@@ -591,7 +667,16 @@ export default class LayerUtil {
       );
 
       const length: number = data.users.length;
-      return (((currentUserIndex + periodsElapsed) % length) + length) % length;
+      /*
+       * Unrestricted layers never have coverage gaps, so getEvents never needs
+       * the full-span first-period fallback for them; currentPeriodStart is
+       * returned for interface symmetry only and is not read on this path.
+       */
+      return {
+        currentUserIndex:
+          (((currentUserIndex + periodsElapsed) % length) + length) % length,
+        currentPeriodStart: data.currentEventStartTime,
+      };
     }
 
     /*
@@ -671,7 +756,13 @@ export default class LayerUtil {
       });
     }
 
-    return currentUserIndex;
+    /*
+     * simulatedTime is now the true (un-clamped) start of the rotation period
+     * that contains data.currentEventStartTime — the loop advances it to the
+     * next period start each covered iteration and breaks once a period would
+     * extend past the target, so it holds the current period's real start.
+     */
+    return { currentUserIndex, currentPeriodStart: simulatedTime };
   }
 
   /*
@@ -1042,7 +1133,15 @@ export default class LayerUtil {
          */
         startAndEndTimesOfWeeklyRestrictions.push({
           startTime: startTime,
-          endTime: OneUptimeDate.addRemoveDays(endTime, 7),
+          /*
+           * Forward the schedule timezone so this +7-day step is a wall-clock
+           * week in the schedule's zone, consistent with every sibling
+           * day-step in the weekly tiling path (audit F8). Without it, when the
+           * server zone differs from the schedule zone across a DST transition,
+           * the wrap-around window's close drifted by the DST offset and that
+           * drift then propagated to every subsequent weekend of the expansion.
+           */
+          endTime: OneUptimeDate.addRemoveDays(endTime, 7, this.timezone),
         });
       } else {
         /*

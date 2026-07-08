@@ -250,7 +250,15 @@ export default class OneUptimeDate {
       return date;
     }
 
-    return this.addRemoveDays(date, difference);
+    /*
+     * Forward the timezone to the final day-shift too. The first two steps
+     * (keepTimeButMoveDay, getDayOfWeek) are already timezone-aware; without
+     * the timezone here this last shift used the process zone, so a shift that
+     * straddles a DST transition in the target zone (but not the process zone)
+     * drifted the resolved weekly-restriction boundary by the DST offset
+     * (audit F9).
+     */
+    return this.addRemoveDays(date, difference, timezone);
   }
 
   public static getDayOfTheWeekIndex(date: Date): number {
