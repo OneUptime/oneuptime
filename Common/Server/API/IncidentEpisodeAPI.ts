@@ -133,7 +133,7 @@ export default class IncidentEpisodeAPI extends BaseAPI<
       feature: "Incident Episode Postmortem",
       messages: aiContext.messages,
       maxTokens: 8192,
-      temperature: 0.7,
+      temperature: 0.2,
     };
 
     if (props.userId) {

@@ -122,7 +122,7 @@ export default class AlertAPI extends BaseAPI<Alert, AlertServiceType> {
       alertId: alertId,
       messages: aiContext.messages,
       maxTokens: 4096,
-      temperature: 0.7,
+      temperature: 0.2,
     };
 
     if (props.userId) {

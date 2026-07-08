@@ -908,9 +908,21 @@ export default class ChatAgentRunner {
         continue;
       }
 
+      const isUserMessage: boolean = message.role === AIChatMessageRole.User;
+
       messages.push({
-        role: message.role === AIChatMessageRole.User ? "user" : "assistant",
-        content: message.contentInMarkdown,
+        role: isUserMessage ? "user" : "assistant",
+        /*
+         * A prior assistant answer carries [C#] citation markers that pointed
+         * at that turn's tool results — citations that no longer exist in this
+         * turn. Left in the replayed history the model echoes and renumbers
+         * them, and this turn's stripFabricatedCitationMarkers then deletes the
+         * unmatched ones, leaving claims that look uncited. Strip the markers
+         * from replayed answers so only freshly minted citations ever appear.
+         */
+        content: isUserMessage
+          ? message.contentInMarkdown
+          : message.contentInMarkdown.replace(/\s?\[C\d+\]/g, ""),
       });
     }
 

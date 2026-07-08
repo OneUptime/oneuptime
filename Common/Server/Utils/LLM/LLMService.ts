@@ -565,6 +565,32 @@ export default class LLMService {
         continue;
       }
 
+      /*
+       * Anthropic requires strictly alternating user/assistant turns and
+       * returns a 400 on two consecutive same-role messages. The agent loop
+       * can legitimately emit back-to-back user turns (e.g. a tool_result
+       * user message immediately followed by the "budget exhausted, answer
+       * now" nudge), so coalesce a run of same-role messages into one instead
+       * of failing the whole request.
+       */
+      const previousMessage: JSONObject | undefined =
+        anthropicMessages[anthropicMessages.length - 1];
+
+      if (previousMessage && previousMessage["role"] === msg.role) {
+        if (typeof previousMessage["content"] === "string") {
+          previousMessage["content"] =
+            `${previousMessage["content"] as string}\n\n${msg.content}`;
+          continue;
+        }
+        if (Array.isArray(previousMessage["content"])) {
+          (previousMessage["content"] as Array<JSONObject>).push({
+            type: "text",
+            text: msg.content,
+          });
+          continue;
+        }
+      }
+
       anthropicMessages.push({
         role: msg.role,
         content: msg.content,
@@ -812,11 +838,29 @@ export default class LLMService {
       });
     }
 
+    /*
+     * Ollama reports token counts on the final /api/chat response as
+     * prompt_eval_count (input) and eval_count (output). Populate usage from
+     * them so LlmLog, the AI dashboards and (costed self-hosted Ollama)
+     * billing are not silently blind to token spend.
+     */
+    const ollamaPromptTokens: number =
+      (jsonData["prompt_eval_count"] as number) || 0;
+    const ollamaCompletionTokens: number =
+      (jsonData["eval_count"] as number) || 0;
+
     return {
       content: (message["content"] as string) || "",
       toolCalls: toolCalls,
       stopReason: toolCalls && toolCalls.length > 0 ? "tool_use" : "stop",
-      usage: undefined, // Ollama doesn't provide token usage in the same way
+      usage:
+        ollamaPromptTokens || ollamaCompletionTokens
+          ? {
+              promptTokens: ollamaPromptTokens,
+              completionTokens: ollamaCompletionTokens,
+              totalTokens: ollamaPromptTokens + ollamaCompletionTokens,
+            }
+          : undefined,
     };
   }
 }

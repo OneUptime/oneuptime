@@ -230,7 +230,7 @@ export default class IncidentAPI extends BaseAPI<
       incidentId: incidentId,
       messages: aiContext.messages,
       maxTokens: 8192,
-      temperature: 0.7,
+      temperature: 0.2,
     };
 
     if (props.userId) {
@@ -347,7 +347,7 @@ export default class IncidentAPI extends BaseAPI<
       incidentId: incidentId,
       messages: aiContext.messages,
       maxTokens: 4096,
-      temperature: 0.7,
+      temperature: 0.2,
     };
 
     if (props.userId) {
