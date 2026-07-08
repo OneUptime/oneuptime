@@ -479,3 +479,87 @@ export const renameComponentReferences: RenameComponentReferencesFunction = (
     return { ...node, data: { ...data, arguments: nextArgs } };
   });
 };
+
+// Captures the source component's data id from a data-reference token.
+const COMPONENT_TOKEN_SOURCE_REGEX: RegExp =
+  /\{\{local\.components\.([^.}]+)\.returnValues\.[^}]+\}\}/g;
+
+/*
+ * Derive "ghost" edges that visualise the data flow: for every
+ * {{local.components.<id>.returnValues.…}} reference in a step's arguments,
+ * draw a faint dashed edge from the referenced (source) step to the step that
+ * consumes it. These are display-only — they are never added to the persisted
+ * edges state — so they can't leak into a saved graph. Ids are deterministic
+ * so React Flow doesn't churn across renders.
+ */
+export type DeriveDataEdgesFunction = (nodes: Array<Node>) => Array<Edge>;
+
+export const deriveDataEdges: DeriveDataEdgesFunction = (
+  nodes: Array<Node>,
+): Array<Edge> => {
+  const dataIdToNodeId: Map<string, string> = new Map<string, string>();
+  for (const node of nodes) {
+    const data: NodeDataProp = node.data as NodeDataProp;
+    if (data?.id) {
+      dataIdToNodeId.set(data.id, node.id);
+    }
+  }
+
+  const ghostEdges: Array<Edge> = [];
+  const seen: Set<string> = new Set<string>();
+
+  for (const node of nodes) {
+    const data: NodeDataProp = node.data as NodeDataProp;
+    const args: JSONObject | undefined = data?.arguments as
+      | JSONObject
+      | undefined;
+    if (!args) {
+      continue;
+    }
+
+    for (const key of Object.keys(args)) {
+      const value: unknown = args[key];
+      if (typeof value !== "string") {
+        continue;
+      }
+
+      COMPONENT_TOKEN_SOURCE_REGEX.lastIndex = 0;
+      let match: RegExpExecArray | null = null;
+      while ((match = COMPONENT_TOKEN_SOURCE_REGEX.exec(value)) !== null) {
+        const sourceDataId: string | undefined = match[1];
+        if (!sourceDataId) {
+          continue;
+        }
+        const sourceNodeId: string | undefined =
+          dataIdToNodeId.get(sourceDataId);
+        // Skip unknown sources and self-references.
+        if (!sourceNodeId || sourceNodeId === node.id) {
+          continue;
+        }
+
+        const pairKey: string = `${sourceNodeId}->${node.id}`;
+        if (seen.has(pairKey)) {
+          continue;
+        }
+        seen.add(pairKey);
+
+        ghostEdges.push({
+          id: `data-ghost-${pairKey}`,
+          source: sourceNodeId,
+          target: node.id,
+          type: "smoothstep",
+          animated: true,
+          deletable: false,
+          style: {
+            stroke: "#a5b4fc",
+            strokeWidth: 1.5,
+            strokeDasharray: "4 4",
+            opacity: 0.7,
+          },
+        });
+      }
+    }
+  }
+
+  return ghostEdges;
+};
