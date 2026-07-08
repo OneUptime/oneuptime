@@ -271,6 +271,27 @@ clickhouse:
   podSecurityContext: {}
   containerSecurityContext: {}
   resources: {}
+  # Health probes for the ClickHouse container. All keys are optional — the
+  # StatefulSet applies the tolerant defaults shown below when a key is unset.
+  # The startupProbe is what prevents the CrashLoop death spiral on a node that
+  # holds a lot of data parts (a slow start no longer trips liveness). Raise
+  # startupProbe.failureThreshold if your ClickHouse routinely needs more than
+  # ~5 minutes (failureThreshold x periodSeconds) to become ready after a boot.
+  startupProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 10
+    failureThreshold: 6
+  readinessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
   # Custom ClickHouse configuration
   configuration: |-
     <clickhouse>
