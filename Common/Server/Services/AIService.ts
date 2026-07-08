@@ -129,9 +129,17 @@ export class Service extends BaseService {
       logEntry.aiRunId = request.aiRunId;
     }
 
-    // Check if billing should apply
+    /*
+     * Check if billing should apply. Only bill for the global (OneUptime-hosted)
+     * provider, and only when it actually has a per-token cost. A free global
+     * provider (costPerMillionTokensInUSDCents = 0, the default) consumes no
+     * balance, so it must not require or block on one either — otherwise a $0
+     * provider would still fail with "Insufficient AI balance".
+     */
     const shouldBill: boolean =
-      IsBillingEnabled && (llmProvider.isGlobalLlm || false);
+      IsBillingEnabled &&
+      (llmProvider.isGlobalLlm || false) &&
+      (llmProvider.costPerMillionTokensInUSDCents || 0) > 0;
 
     // Check balance if billing enabled and using global provider
     if (shouldBill) {
