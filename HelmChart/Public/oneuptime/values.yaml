@@ -1469,7 +1469,7 @@ vllm:
     # Display name of the auto-registered provider in the dashboard.
     name: OneUptime AI
     # Description of the auto-registered provider shown in the dashboard.
-    description: Automatically registered by the OneUptime Helm chart (vllm.globalProvider).
+    description: Investigate, analyze and fix with OneUptime AI.
   # Persistent cache for model weights (HF_HOME) and vLLM compile cache
   # (VLLM_CACHE_ROOT). One PVC per replica; size it to ~2-3x the total model
   # weights. When disabled, a node-disk emptyDir capped at `size` is used
