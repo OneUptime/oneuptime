@@ -4,6 +4,7 @@ import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import { CustomElementProps } from "../Forms/Types/Field";
 import FormValues from "../Forms/Types/FormValues";
 import ComponentValuePickerModal from "./ComponentValuePickerModal";
+import ConditionBuilder from "./ConditionBuilder";
 import DataReferenceInput from "./DataReferenceInput";
 import JSONArgumentInput from "./JSONArgumentInput";
 import ModelFieldPicker from "./ModelFieldPicker";
@@ -12,6 +13,7 @@ import VariableModal from "./VariableModal";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import ComponentID from "../../../Types/Workflow/ComponentID";
 import {
   Argument,
   ComponentInputType,
@@ -199,6 +201,13 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     });
   };
 
+  /*
+   * The If / Else step gets a purpose-built condition editor instead of the
+   * five generic fields (its ValueType/Operator inputs are used nowhere else).
+   */
+  const isConditionComponent: boolean =
+    component.metadata.id === ComponentID.IfElse;
+
   const allArguments: Array<Argument> = component.metadata.arguments || [];
   const advancedArguments: Array<Argument> = allArguments.filter(
     (arg: Argument) => {
@@ -226,7 +235,36 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           the user briefly sees an empty dropdown which is confusing.
         */}
         {hasWorkflowSelectArg && isLoadingWorkflows && <ComponentLoader />}
-        {allArguments.length > 0 &&
+
+        {isConditionComponent && (
+          <ConditionBuilder
+            arguments={(component.arguments as JSONObject) || {}}
+            components={props.graphComponents}
+            upstreamComponentIds={props.upstreamComponentIds}
+            currentComponentId={component.id}
+            workflowId={props.workflowId}
+            onArgumentsChange={(patch: JSONObject) => {
+              setComponent({
+                ...component,
+                arguments: {
+                  ...((component.arguments as JSONObject) || {}),
+                  ...patch,
+                },
+              });
+            }}
+            onValidityChange={(hasError: boolean) => {
+              setHasFormValidationErrors((prev: Dictionary<boolean>) => {
+                if (prev["condition"] === hasError) {
+                  return prev;
+                }
+                return { ...prev, condition: hasError };
+              });
+            }}
+          />
+        )}
+
+        {!isConditionComponent &&
+          allArguments.length > 0 &&
           !(hasWorkflowSelectArg && isLoadingWorkflows) && (
             <BasicForm
               hideSubmitButton={true}
