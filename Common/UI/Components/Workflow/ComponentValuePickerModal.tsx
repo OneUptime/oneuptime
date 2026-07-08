@@ -47,12 +47,13 @@ const ComponentValuePickerModal: FunctionComponent<ComponentProps> = (
       return components;
     }
 
+    const query: string = searchText.toLowerCase();
     const searched: Array<NodeDataProp> = [];
 
     for (const component of components) {
       if (
-        component.metadata.title.includes(searchText) ||
-        component.metadata.description.includes(searchText)
+        component.metadata.title.toLowerCase().includes(query) ||
+        component.metadata.description.toLowerCase().includes(query)
       ) {
         searched.push(component);
         continue;
@@ -60,8 +61,8 @@ const ComponentValuePickerModal: FunctionComponent<ComponentProps> = (
 
       for (const returnVal of component.metadata.returnValues) {
         if (
-          returnVal.name.includes(searchText) ||
-          returnVal.description.includes(searchText)
+          returnVal.name.toLowerCase().includes(query) ||
+          returnVal.description.toLowerCase().includes(query)
         ) {
           searched.push(component);
           break;
