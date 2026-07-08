@@ -142,13 +142,13 @@ const LayerCard: FunctionComponent<ComponentProps> = (
           e.stopPropagation();
           params.onClick();
         }}
-        className={`flex h-5 w-6 items-center justify-center rounded transition-colors ${
+        className={`flex h-4 w-6 items-center justify-center rounded transition-colors ${
           params.disabled || props.actionsDisabled
             ? "cursor-not-allowed text-gray-300"
             : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
         }`}
       >
-        <Icon icon={params.icon} className="h-4 w-4" />
+        <Icon icon={params.icon} className="h-3.5 w-3.5" />
       </button>
     );
   };
@@ -162,37 +162,23 @@ const LayerCard: FunctionComponent<ComponentProps> = (
       }`}
     >
       {/* Header */}
-      <div className="flex items-start gap-3 p-4 md:gap-4 md:p-5">
-        {/* Priority + reorder controls */}
-        <div className="flex flex-col items-center gap-0.5 pt-0.5">
-          {getReorderButton({
-            icon: IconProp.ChevronUp,
-            label: "Increase layer priority",
-            disabled: props.index === 0,
-            onClick: props.onMoveUp,
-          })}
-          <Tooltip
-            text={
-              isTopPriority
-                ? "Highest priority layer"
-                : `Priority ${props.index + 1}`
-            }
+      <div className="flex items-start gap-3 p-4 md:p-5">
+        {/* Priority badge, aligned inline with the layer name */}
+        <Tooltip
+          text={
+            isTopPriority
+              ? "Highest priority layer"
+              : `Priority ${props.index + 1}`
+          }
+        >
+          <span
+            className={`mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-sm font-semibold text-white ${
+              isTopPriority ? "bg-indigo-600" : "bg-gray-400"
+            }`}
           >
-            <span
-              className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-semibold text-white ${
-                isTopPriority ? "bg-indigo-600" : "bg-gray-400"
-              }`}
-            >
-              {props.index + 1}
-            </span>
-          </Tooltip>
-          {getReorderButton({
-            icon: IconProp.ChevronDown,
-            label: "Decrease layer priority",
-            disabled: props.index === props.total - 1,
-            onClick: props.onMoveDown,
-          })}
-        </div>
+            {props.index + 1}
+          </span>
+        </Tooltip>
 
         {/* Main clickable info */}
         <div
@@ -213,7 +199,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
               {layer.name?.toString() || `Layer ${props.index + 1}`}
             </span>
             {isTopPriority && props.total > 1 && (
-              <span className="inline-flex items-center rounded-full bg-gradient-to-r from-indigo-50 to-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200/80">
+              <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200/70">
                 Highest priority
               </span>
             )}
@@ -232,7 +218,23 @@ const LayerCard: FunctionComponent<ComponentProps> = (
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-0.5">
+        <div className="flex flex-shrink-0 items-center gap-0.5">
+          {props.total > 1 && (
+            <div className="mr-0.5 flex flex-col">
+              {getReorderButton({
+                icon: IconProp.ChevronUp,
+                label: "Move layer up (higher priority)",
+                disabled: props.index === 0,
+                onClick: props.onMoveUp,
+              })}
+              {getReorderButton({
+                icon: IconProp.ChevronDown,
+                label: "Move layer down (lower priority)",
+                disabled: props.index === props.total - 1,
+                onClick: props.onMoveDown,
+              })}
+            </div>
+          )}
           <Tooltip text="Delete layer">
             <button
               type="button"
