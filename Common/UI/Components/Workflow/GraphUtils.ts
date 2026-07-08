@@ -424,3 +424,58 @@ export const buildOutline: BuildOutlineFunction = (
     hasMultiplePaths: hasMultiplePaths,
   };
 };
+
+/*
+ * Rewrite every downstream reference to a renamed step. Data references are
+ * stored as {{local.components.<id>.returnValues.<rv>}} tokens inside argument
+ * strings; when a step's identifier changes, those tokens must follow or they
+ * silently break. Matching includes the trailing ".returnValues." so an id
+ * that is a prefix of another (slack-1 vs slack-10) is never mis-rewritten.
+ * Returns new node objects only where something changed.
+ */
+export type RenameComponentReferencesFunction = (
+  nodes: Array<Node>,
+  oldId: string,
+  newId: string,
+) => Array<Node>;
+
+export const renameComponentReferences: RenameComponentReferencesFunction = (
+  nodes: Array<Node>,
+  oldId: string,
+  newId: string,
+): Array<Node> => {
+  if (!oldId || !newId || oldId === newId) {
+    return nodes;
+  }
+
+  const needle: string = `{{local.components.${oldId}.returnValues.`;
+  const replacement: string = `{{local.components.${newId}.returnValues.`;
+
+  return nodes.map((node: Node) => {
+    const data: NodeDataProp = node.data as NodeDataProp;
+    const args: JSONObject | undefined = data?.arguments as
+      | JSONObject
+      | undefined;
+    if (!args) {
+      return node;
+    }
+
+    let changed: boolean = false;
+    const nextArgs: JSONObject = {};
+    for (const key of Object.keys(args)) {
+      const value: unknown = args[key];
+      if (typeof value === "string" && value.includes(needle)) {
+        nextArgs[key] = value.split(needle).join(replacement);
+        changed = true;
+      } else {
+        nextArgs[key] = args[key];
+      }
+    }
+
+    if (!changed) {
+      return node;
+    }
+
+    return { ...node, data: { ...data, arguments: nextArgs } };
+  });
+};

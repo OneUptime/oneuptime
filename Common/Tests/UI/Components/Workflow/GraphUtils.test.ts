@@ -4,6 +4,7 @@ import {
   getNodeStatus,
   buildOutline,
   WorkflowOutline,
+  renameComponentReferences,
 } from "../../../../UI/Components/Workflow/GraphUtils";
 import {
   ComponentInputType,
@@ -438,5 +439,99 @@ describe("GraphUtils.buildOutline", () => {
     expect(logEntries).toHaveLength(2);
     expect(logEntries[0]!.repeated).toBe(false);
     expect(logEntries[1]!.repeated).toBe(true);
+  });
+});
+
+describe("GraphUtils.renameComponentReferences", () => {
+  const nodeWithArgs: (
+    dataId: string,
+    args: Record<string, unknown>,
+  ) => Node = (dataId: string, args: Record<string, unknown>): Node => {
+    return {
+      id: `rf-${dataId}`,
+      position: { x: 0, y: 0 },
+      data: { id: dataId, arguments: args },
+    } as unknown as Node;
+  };
+
+  const argsOf: (node: Node) => Record<string, unknown> = (
+    node: Node,
+  ): Record<string, unknown> => {
+    return (node.data as { arguments: Record<string, unknown> }).arguments;
+  };
+
+  test("rewrites a downstream reference to the renamed step", () => {
+    const nodes: Array<Node> = [
+      nodeWithArgs("slack-1", {}),
+      nodeWithArgs("log-1", {
+        text: "Error was {{local.components.slack-1.returnValues.error}}",
+      }),
+    ];
+
+    const result: Array<Node> = renameComponentReferences(
+      nodes,
+      "slack-1",
+      "notify-slack",
+    );
+
+    expect(argsOf(result[1]!)["text"]).toBe(
+      "Error was {{local.components.notify-slack.returnValues.error}}",
+    );
+  });
+
+  test("does not rewrite a step whose id is only a prefix of the renamed one", () => {
+    const nodes: Array<Node> = [
+      nodeWithArgs("log-1", {
+        a: "{{local.components.slack-1.returnValues.x}}",
+        b: "{{local.components.slack-10.returnValues.y}}",
+      }),
+    ];
+
+    const result: Array<Node> = renameComponentReferences(
+      nodes,
+      "slack-1",
+      "NEW",
+    );
+
+    expect(argsOf(result[0]!)["a"]).toBe(
+      "{{local.components.NEW.returnValues.x}}",
+    );
+    // slack-10 must be untouched.
+    expect(argsOf(result[0]!)["b"]).toBe(
+      "{{local.components.slack-10.returnValues.y}}",
+    );
+  });
+
+  test("rewrites every occurrence within a value", () => {
+    const nodes: Array<Node> = [
+      nodeWithArgs("log-1", {
+        text:
+          "{{local.components.a-1.returnValues.x}} and " +
+          "{{local.components.a-1.returnValues.y}}",
+      }),
+    ];
+
+    const result: Array<Node> = renameComponentReferences(nodes, "a-1", "b-1");
+    expect(argsOf(result[0]!)["text"]).toBe(
+      "{{local.components.b-1.returnValues.x}} and " +
+        "{{local.components.b-1.returnValues.y}}",
+    );
+  });
+
+  test("is a no-op (same reference) when id is unchanged or empty", () => {
+    const nodes: Array<Node> = [nodeWithArgs("slack-1", { text: "hi" })];
+    expect(renameComponentReferences(nodes, "slack-1", "slack-1")).toBe(nodes);
+    expect(renameComponentReferences(nodes, "", "x")).toBe(nodes);
+  });
+
+  test("leaves unaffected nodes as the same object", () => {
+    const untouched: Node = nodeWithArgs("log-1", { text: "no refs here" });
+    const nodes: Array<Node> = [untouched];
+    const result: Array<Node> = renameComponentReferences(
+      nodes,
+      "slack-1",
+      "x",
+    );
+    expect(result[0]).toBe(untouched);
   });
 });
