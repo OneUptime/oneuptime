@@ -364,7 +364,7 @@ export default class IncidentMember extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "SET NULL",
+      onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
   )

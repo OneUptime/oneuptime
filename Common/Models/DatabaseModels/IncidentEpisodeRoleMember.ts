@@ -356,7 +356,7 @@ export default class IncidentEpisodeRoleMember extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "SET NULL",
+      onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
   )

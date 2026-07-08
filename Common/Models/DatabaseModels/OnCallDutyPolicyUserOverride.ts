@@ -357,7 +357,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "SET NULL",
+      onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
   )
@@ -435,7 +435,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "SET NULL",
+      onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
   )
