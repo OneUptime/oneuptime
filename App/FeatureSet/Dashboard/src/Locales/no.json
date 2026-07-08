@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Grunnleggende",
       "observability": "Observerbarhet",
+      "ai": "AI",
       "resources": "Ressurser",
       "analyticsAutomation": "Mer",
       "settings": "Innstillinger"
@@ -66,6 +67,10 @@
       "exceptionsDescription": "Spor og løs feil på tvers av tjenestene dine.",
       "llmObservabilityTitle": "AI / LLM",
       "llmObservabilityDescription": "Observer LLM- og AI-agent-kall — tokens, kostnad, latens, prompts og completions.",
+      "entitiesTitle": "Entiteter",
+      "entitiesDescription": "Utforsk entiteter oppdaget fra telemetrien din.",
+      "topologyTitle": "Topologi",
+      "topologyDescription": "Se hvordan tjenestene og infrastrukturen din henger sammen.",
       "servicesTitle": "Tjenester",
       "servicesDescription": "Katalogiser hver tjeneste du kjører.",
       "kubernetesTitle": "Kubernetes",
@@ -92,8 +97,10 @@
       "workflowsDescription": "No-code automatiseringsbygger.",
       "runbooksTitle": "Runbooks",
       "runbooksDescription": "Gjenbrukbare responsprosedyrer: manuelle sjekklister eller skript.",
-      "aiAgentTitle": "KI-agent",
-      "aiAgentDescription": "KI-drevet problemløsning.",
+      "aiChatTitle": "AI Chat",
+      "aiChatDescription": "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
+      "aiAgentsTitle": "Agents",
+      "aiAgentsDescription": "AI agents and their tasks.",
       "codeRepositoriesTitle": "Kode-repositorier",
       "codeRepositoriesDescription": "GitHub- og GitLab-integrasjoner.",
       "usersTitle": "Brukere",
@@ -101,11 +108,7 @@
       "teamsTitle": "Team",
       "teamsDescription": "Organiser brukere i team og tildel tillatelser.",
       "projectSettingsTitle": "Prosjektinnstillinger",
-      "projectSettingsDescription": "Konfigurer prosjektet ditt.",
-      "entitiesTitle": "Entiteter",
-      "entitiesDescription": "Utforsk entiteter oppdaget fra telemetrien din.",
-      "topologyTitle": "Topologi",
-      "topologyDescription": "Se hvordan tjenestene og infrastrukturen din henger sammen."
+      "projectSettingsDescription": "Konfigurer prosjektet ditt."
     },
     "moreFooter": {
       "title": "Rapporter en feil eller be om en funksjon.",

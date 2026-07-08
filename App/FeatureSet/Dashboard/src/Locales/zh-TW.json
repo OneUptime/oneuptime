@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "基礎",
       "observability": "可觀測性",
+      "ai": "AI",
       "resources": "資源",
       "analyticsAutomation": "更多",
       "settings": "設定"
@@ -66,6 +67,10 @@
       "exceptionsDescription": "跨服務追蹤並解決錯誤。",
       "llmObservabilityTitle": "AI / LLM",
       "llmObservabilityDescription": "觀測 LLM 和 AI 代理呼叫 — 權杖、成本、延遲、提示詞和補全。",
+      "entitiesTitle": "實體",
+      "entitiesDescription": "探索從您的遙測資料中發現的實體。",
+      "topologyTitle": "拓撲",
+      "topologyDescription": "查看您的服務與基礎設施如何連接。",
       "servicesTitle": "服務",
       "servicesDescription": "為運行的每個服務建立目錄。",
       "kubernetesTitle": "Kubernetes",
@@ -92,8 +97,10 @@
       "workflowsDescription": "無程式碼自動化建構器。",
       "runbooksTitle": "運行手冊",
       "runbooksDescription": "可重複使用的回應流程：手動檢查清單或指令碼。",
-      "aiAgentTitle": "AI 代理",
-      "aiAgentDescription": "AI 驅動的問題解決。",
+      "aiChatTitle": "AI Chat",
+      "aiChatDescription": "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
+      "aiAgentsTitle": "Agents",
+      "aiAgentsDescription": "AI agents and their tasks.",
       "codeRepositoriesTitle": "程式碼儲存庫",
       "codeRepositoriesDescription": "GitHub 與 GitLab 整合。",
       "usersTitle": "使用者",
@@ -101,11 +108,7 @@
       "teamsTitle": "團隊",
       "teamsDescription": "將使用者組織成團隊並指派權限。",
       "projectSettingsTitle": "專案設定",
-      "projectSettingsDescription": "設定您的專案。",
-      "entitiesTitle": "實體",
-      "entitiesDescription": "探索從您的遙測資料中發現的實體。",
-      "topologyTitle": "拓撲",
-      "topologyDescription": "查看您的服務與基礎設施如何連接。"
+      "projectSettingsDescription": "設定您的專案。"
     },
     "moreFooter": {
       "title": "回報錯誤或請求功能。",

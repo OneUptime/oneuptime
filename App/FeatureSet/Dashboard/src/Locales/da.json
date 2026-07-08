@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Grundlæggende",
       "observability": "Observabilitet",
+      "ai": "AI",
       "resources": "Ressourcer",
       "analyticsAutomation": "Mere",
       "settings": "Indstillinger"
@@ -66,6 +67,10 @@
       "exceptionsDescription": "Spor og løs fejl på tværs af dine tjenester.",
       "llmObservabilityTitle": "AI / LLM",
       "llmObservabilityDescription": "Observér LLM- og AI-agent-kald — tokens, omkostninger, latens, prompts og completions.",
+      "entitiesTitle": "Entiteter",
+      "entitiesDescription": "Udforsk entiteter opdaget fra din telemetri.",
+      "topologyTitle": "Topologi",
+      "topologyDescription": "Se hvordan dine tjenester og din infrastruktur hænger sammen.",
       "servicesTitle": "Tjenester",
       "servicesDescription": "Katalogiser hver tjeneste du kører.",
       "kubernetesTitle": "Kubernetes",
@@ -92,8 +97,10 @@
       "workflowsDescription": "Automatiseringsbygger uden kode.",
       "runbooksTitle": "Runbooks",
       "runbooksDescription": "Genanvendelige reaktionsprocedurer: manuelle tjeklister eller scripts.",
-      "aiAgentTitle": "AI-agent",
-      "aiAgentDescription": "AI-drevet problemløsning.",
+      "aiChatTitle": "AI Chat",
+      "aiChatDescription": "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
+      "aiAgentsTitle": "Agents",
+      "aiAgentsDescription": "AI agents and their tasks.",
       "codeRepositoriesTitle": "Kode-repositorier",
       "codeRepositoriesDescription": "GitHub- og GitLab-integrationer.",
       "usersTitle": "Brugere",
@@ -101,11 +108,7 @@
       "teamsTitle": "Teams",
       "teamsDescription": "Organiser brugere i teams og tildel tilladelser.",
       "projectSettingsTitle": "Projektindstillinger",
-      "projectSettingsDescription": "Konfigurer dit projekt.",
-      "entitiesTitle": "Entiteter",
-      "entitiesDescription": "Udforsk entiteter opdaget fra din telemetri.",
-      "topologyTitle": "Topologi",
-      "topologyDescription": "Se hvordan dine tjenester og din infrastruktur hænger sammen."
+      "projectSettingsDescription": "Konfigurer dit projekt."
     },
     "moreFooter": {
       "title": "Rapportér en fejl eller anmod om en funktion.",

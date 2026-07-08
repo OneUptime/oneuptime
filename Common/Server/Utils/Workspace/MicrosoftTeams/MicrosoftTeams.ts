@@ -2494,15 +2494,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         );
 
       /*
-       * Loaded on demand: importing the AI toolbox at module top pulls the
-       * entire observability tool graph — and its database infrastructure —
-       * into the core API module graph at import time, which trips
-       * circular-dependency init-order crashes. Teams ChatOps is the only
-       * caller, so it is resolved lazily here instead.
+       * Loaded on demand via require(): importing the AI toolbox at module top
+       * pulls the entire observability tool graph — and its database
+       * infrastructure — into the core API module graph at import time, which
+       * trips circular-dependency init-order crashes. Teams ChatOps is the only
+       * caller, so it is resolved lazily here. A value-position dynamic
+       * import() is avoided because it fails TS1323 under the consuming
+       * projects' module configuration.
        */
-      const { default: ObservabilityAssistant } = await import(
-        "../../AI/Chat/ObservabilityAssistant"
-      );
+      /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+      const ObservabilityAssistant: typeof import("../../AI/Chat/ObservabilityAssistant").default =
+        require("../../AI/Chat/ObservabilityAssistant").default;
+      /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
       const result: ObservabilityAssistantResult =
         await ObservabilityAssistant.answerQuestion({

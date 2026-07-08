@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "मूल बातें",
       "observability": "अवलोकनीयता",
+      "ai": "AI",
       "resources": "संसाधन",
       "analyticsAutomation": "अधिक",
       "settings": "सेटिंग्स"
@@ -66,6 +67,10 @@
       "exceptionsDescription": "अपनी सेवाओं में बग्स को ट्रैक करें और हल करें।",
       "llmObservabilityTitle": "AI / LLM",
       "llmObservabilityDescription": "LLM और AI-एजेंट कॉल का अवलोकन करें — टोकन, लागत, विलंबता, प्रॉम्प्ट और कंप्लीशन।",
+      "entitiesTitle": "एंटिटीज़",
+      "entitiesDescription": "अपनी टेलीमेट्री से खोजी गई एंटिटीज़ का अन्वेषण करें।",
+      "topologyTitle": "टोपोलॉजी",
+      "topologyDescription": "देखें कि आपकी सेवाएं और बुनियादी ढांचा कैसे जुड़े हैं।",
       "servicesTitle": "सेवाएं",
       "servicesDescription": "अपनी हर सेवा को कैटलॉग करें।",
       "kubernetesTitle": "Kubernetes",
@@ -92,8 +97,10 @@
       "workflowsDescription": "नो-कोड स्वचालन बिल्डर।",
       "runbooksTitle": "रनबुक",
       "runbooksDescription": "पुन: प्रयोज्य प्रतिक्रिया प्रक्रियाएँ: मैनुअल चेकलिस्ट या स्क्रिप्ट।",
-      "aiAgentTitle": "AI एजेंट",
-      "aiAgentDescription": "AI-संचालित समस्या समाधान।",
+      "aiChatTitle": "AI Chat",
+      "aiChatDescription": "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
+      "aiAgentsTitle": "Agents",
+      "aiAgentsDescription": "AI agents and their tasks.",
       "codeRepositoriesTitle": "कोड रिपॉजिटरी",
       "codeRepositoriesDescription": "GitHub और GitLab एकीकरण।",
       "usersTitle": "उपयोगकर्ता",
@@ -101,11 +108,7 @@
       "teamsTitle": "टीमें",
       "teamsDescription": "उपयोगकर्ताओं को टीमों में व्यवस्थित करें और अनुमतियाँ असाइन करें।",
       "projectSettingsTitle": "प्रोजेक्ट सेटिंग्स",
-      "projectSettingsDescription": "अपना प्रोजेक्ट कॉन्फ़िगर करें।",
-      "entitiesTitle": "एंटिटीज़",
-      "entitiesDescription": "अपनी टेलीमेट्री से खोजी गई एंटिटीज़ का अन्वेषण करें।",
-      "topologyTitle": "टोपोलॉजी",
-      "topologyDescription": "देखें कि आपकी सेवाएं और बुनियादी ढांचा कैसे जुड़े हैं।"
+      "projectSettingsDescription": "अपना प्रोजेक्ट कॉन्फ़िगर करें।"
     },
     "moreFooter": {
       "title": "बग की रिपोर्ट करें या सुविधा का अनुरोध करें।",

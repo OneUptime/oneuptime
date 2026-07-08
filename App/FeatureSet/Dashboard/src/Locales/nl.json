@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Essenties",
       "observability": "Observability",
+      "ai": "AI",
       "resources": "Bronnen",
       "analyticsAutomation": "Meer",
       "settings": "Instellingen"
@@ -66,6 +67,10 @@
       "exceptionsDescription": "Volg en los bugs op in uw services.",
       "llmObservabilityTitle": "AI / LLM",
       "llmObservabilityDescription": "Observeer LLM- en AI-agent-aanroepen — tokens, kosten, latency, prompts en completions.",
+      "entitiesTitle": "Entiteiten",
+      "entitiesDescription": "Verken entiteiten die uit uw telemetrie zijn ontdekt.",
+      "topologyTitle": "Topologie",
+      "topologyDescription": "Bekijk hoe uw services en infrastructuur met elkaar verbonden zijn.",
       "servicesTitle": "Services",
       "servicesDescription": "Catalogiseer elke service die je draait.",
       "kubernetesTitle": "Kubernetes",
@@ -92,8 +97,10 @@
       "workflowsDescription": "No-code automatisering builder.",
       "runbooksTitle": "Runbooks",
       "runbooksDescription": "Herbruikbare responsprocedures: handmatige checklists of scripts.",
-      "aiAgentTitle": "AI-agent",
-      "aiAgentDescription": "AI-aangedreven probleemoplossing.",
+      "aiChatTitle": "AI Chat",
+      "aiChatDescription": "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
+      "aiAgentsTitle": "Agents",
+      "aiAgentsDescription": "AI agents and their tasks.",
       "codeRepositoriesTitle": "Code-opslagplaatsen",
       "codeRepositoriesDescription": "GitHub- en GitLab-integraties.",
       "usersTitle": "Gebruikers",
@@ -101,11 +108,7 @@
       "teamsTitle": "Teams",
       "teamsDescription": "Organiseer gebruikers in teams en wijs machtigingen toe.",
       "projectSettingsTitle": "Projectinstellingen",
-      "projectSettingsDescription": "Configureer uw project.",
-      "entitiesTitle": "Entiteiten",
-      "entitiesDescription": "Verken entiteiten die uit uw telemetrie zijn ontdekt.",
-      "topologyTitle": "Topologie",
-      "topologyDescription": "Bekijk hoe uw services en infrastructuur met elkaar verbonden zijn."
+      "projectSettingsDescription": "Configureer uw project."
     },
     "moreFooter": {
       "title": "Een bug melden of een functie aanvragen.",
