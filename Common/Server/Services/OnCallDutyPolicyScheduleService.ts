@@ -964,9 +964,12 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       // get start time
       const startTime: Date | undefined = currentEvent?.start; // this is user id in string.
       if (startTime) {
-        logger.debug("Current rosterStartAt (clamped): " + startTime.toISOString(), {
-          onCallDutyPolicyScheduleId: scheduleId.toString(),
-        } as LogAttributes);
+        logger.debug(
+          "Current rosterStartAt (clamped): " + startTime.toISOString(),
+          {
+            onCallDutyPolicyScheduleId: scheduleId.toString(),
+          } as LogAttributes,
+        );
 
         /*
          * currentEvent.start is clamped to the resolution window start (now).
@@ -1040,9 +1043,9 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
   ): Promise<ObjectID | undefined> {
     try {
       const escalationRuleScheduleService: {
-        findBy: (args: unknown) => Promise<
-          Array<{ onCallDutyPolicyId?: ObjectID | undefined }>
-        >;
+        findBy: (
+          args: unknown,
+        ) => Promise<Array<{ onCallDutyPolicyId?: ObjectID | undefined }>>;
         // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       } = require("./OnCallDutyPolicyEscalationRuleScheduleService").default;
 
@@ -1057,7 +1060,8 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
 
       const distinctPolicyIds: Set<string> = new Set<string>();
       for (const link of links) {
-        const policyId: string | undefined = link.onCallDutyPolicyId?.toString();
+        const policyId: string | undefined =
+          link.onCallDutyPolicyId?.toString();
         if (policyId) {
           distinctPolicyIds.add(policyId);
         }

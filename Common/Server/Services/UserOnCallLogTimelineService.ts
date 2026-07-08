@@ -65,9 +65,7 @@ export class Service extends DatabaseService<Model> {
          * unacknowledged in its own state (audit F15). Handle both episode kinds
          * the same way incident/alert are handled below.
          */
-        const isAlertEpisode: boolean = Boolean(
-          item.triggeredByAlertEpisodeId,
-        );
+        const isAlertEpisode: boolean = Boolean(item.triggeredByAlertEpisodeId);
         const isIncidentEpisode: boolean = Boolean(
           item.triggeredByIncidentEpisodeId,
         );

@@ -372,7 +372,11 @@ export default class LayerUtil {
       );
 
       if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
-        handOffTime = OneUptimeDate.addRemoveDays(handOffTime, 1, this.timezone);
+        handOffTime = OneUptimeDate.addRemoveDays(
+          handOffTime,
+          1,
+          this.timezone,
+        );
       }
 
       return handOffTime;
@@ -441,7 +445,11 @@ export default class LayerUtil {
       );
 
       if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
-        handOffTime = OneUptimeDate.addRemoveWeeks(handOffTime, 1, this.timezone);
+        handOffTime = OneUptimeDate.addRemoveWeeks(
+          handOffTime,
+          1,
+          this.timezone,
+        );
       }
 
       return handOffTime;
@@ -476,7 +484,11 @@ export default class LayerUtil {
       );
 
       if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
-        handOffTime = OneUptimeDate.addRemoveMonths(handOffTime, 1, this.timezone);
+        handOffTime = OneUptimeDate.addRemoveMonths(
+          handOffTime,
+          1,
+          this.timezone,
+        );
       }
 
       return handOffTime;
@@ -511,7 +523,11 @@ export default class LayerUtil {
       );
 
       if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
-        handOffTime = OneUptimeDate.addRemoveYears(handOffTime, 1, this.timezone);
+        handOffTime = OneUptimeDate.addRemoveYears(
+          handOffTime,
+          1,
+          this.timezone,
+        );
       }
 
       return handOffTime;
@@ -697,10 +713,7 @@ export default class LayerUtil {
       let periods: number = 0;
       let boundary: Date = firstBoundary;
       let safety: number = 0;
-      while (
-        OneUptimeDate.isOnOrBefore(boundary, target) &&
-        safety < 100000
-      ) {
+      while (OneUptimeDate.isOnOrBefore(boundary, target) && safety < 100000) {
         periods++;
         // step from the PREVIOUS boundary, mirroring the main-loop rotation.
         boundary = this.addRotationUnits(boundary, periodUnits, intervalType);
@@ -753,8 +766,10 @@ export default class LayerUtil {
     units: number,
     intervalType: EventInterval,
   ): Date {
-    // Day/Week/Month/Year preserve schedule wall-clock across DST (consistent
-    // with moveHandsOffTimeAfterCurrentEventStartTime); Hour is absolute.
+    /*
+     * Day/Week/Month/Year preserve schedule wall-clock across DST (consistent
+     * with moveHandsOffTimeAfterCurrentEventStartTime); Hour is absolute.
+     */
     const tz: string | undefined = this.timezone;
     switch (intervalType) {
       case EventInterval.Hour:

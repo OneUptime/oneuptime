@@ -273,15 +273,28 @@ describe("Recurring", () => {
     });
 
     test("leaves a start date equal to now unchanged (zero intervals to add)", () => {
-      const now: Date = OneUptimeDate.getCurrentDate();
+      /*
+       * getNextDate() reads the clock internally via getCurrentDate(). Pin it so
+       * the start date and the internal "now" resolve to the exact same instant;
+       * otherwise a sub-millisecond gap between the two clock reads makes diff a
+       * tiny positive number and Math.ceil() rounds it up to a full extra day.
+       */
+      const now: Date = OneUptimeDate.fromString("2023-01-01T00:00:00.000Z");
+      const getCurrentDateSpy: jest.SpyInstance = jest
+        .spyOn(OneUptimeDate, "getCurrentDate")
+        .mockReturnValue(now);
 
-      const next: Date = Recurring.getNextDate(
-        now,
-        makeRecurring(EventInterval.Day, 1),
-      );
+      try {
+        const next: Date = Recurring.getNextDate(
+          now,
+          makeRecurring(EventInterval.Day, 1),
+        );
 
-      // The <= branch is entered, diff is 0, so Math.ceil(0) === 0 intervals are added.
-      expect(next.getTime()).toBe(now.getTime());
+        // The <= branch is entered, diff is 0, so Math.ceil(0) === 0 intervals are added.
+        expect(next.getTime()).toBe(now.getTime());
+      } finally {
+        getCurrentDateSpy.mockRestore();
+      }
     });
 
     test("throws BadDataException for an unknown interval type when the start date is in the past", () => {

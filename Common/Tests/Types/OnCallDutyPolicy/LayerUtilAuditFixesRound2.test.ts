@@ -47,8 +47,10 @@ function noRestriction(): RestrictionTimes {
   return r;
 }
 
-// Daily restriction whose From/To are given as absolute instants (so their
-// wall-clock is unambiguous under the layer's timezone).
+/*
+ * Daily restriction whose From/To are given as absolute instants (so their
+ * wall-clock is unambiguous under the layer's timezone).
+ */
 function dailyRestrictionFromInstants(
   startInstant: string,
   endInstant: string,
@@ -78,13 +80,7 @@ describe("LayerUtil audit fixes round 2", () => {
   describe("F0 - month/year rotation current-user near month-end", () => {
     test("monthly rotation anchored on Jan 31 pages the correct user on Mar 30", () => {
       const util: LayerUtil = new LayerUtil();
-      const users: Array<User> = [
-        u("A"),
-        u("B"),
-        u("C"),
-        u("D"),
-        u("E"),
-      ];
+      const users: Array<User> = [u("A"), u("B"), u("C"), u("D"), u("E")];
       const base: LayerProps = {
         users,
         startDateTimeOfLayer: d("2024-01-01T10:00:00.000Z"),
@@ -109,8 +105,10 @@ describe("LayerUtil audit fixes round 2", () => {
       // Jan31 -> Feb29 -> Mar29 -> Apr29 : on Mar 30, D (index 3) is on call.
       expect(groundTruth?.title).toBe("D");
 
-      // The live "who is on call now" path resolves via a window that STARTS at
-      // the target instant; it must agree with the full-expansion ground truth.
+      /*
+       * The live "who is on call now" path resolves via a window that STARTS at
+       * the target instant; it must agree with the full-expansion ground truth.
+       */
       const nowWindow: Array<CalendarEvent> = util.getEvents({
         ...base,
         calendarStartDate: target,
@@ -175,8 +173,10 @@ describe("LayerUtil audit fixes round 2", () => {
         calendarEndDate: d("2026-04-01T00:00:00.000Z"),
       });
 
-      // There must be a real 09:00-17:00 coverage window in mid-March (well past
-      // the old 50-day cap). Before the fix, coverage stopped around Feb 19.
+      /*
+       * There must be a real 09:00-17:00 coverage window in mid-March (well past
+       * the old 50-day cap). Before the fix, coverage stopped around Feb 19.
+       */
       const midMarch: Date = d("2026-03-16T12:00:00.000Z");
       const covering: CalendarEvent | undefined = coveringEvent(
         events,
@@ -255,9 +255,11 @@ describe("LayerUtil audit fixes round 2", () => {
         timezone: "UTC",
       };
 
-      // "now" is Tuesday 01:00, just after the Monday window ended. The next
-      // covered window is next Monday (~143h away) — more than the old 100-period
-      // cap, which returned [] (schedule reporting nobody on-call).
+      /*
+       * "now" is Tuesday 01:00, just after the Monday window ended. The next
+       * covered window is next Monday (~143h away) — more than the old 100-period
+       * cap, which returned [] (schedule reporting nobody on-call).
+       */
       const calendarStart: Date = d("2026-01-06T01:00:00.000Z");
       const events: Array<CalendarEvent> = util.getEvents({
         ...layer,
@@ -281,8 +283,10 @@ describe("LayerUtil audit fixes round 2", () => {
     test("weekly rotation with a 20:00 handoff and 09:00-17:00 daily restriction covers days 2..7", () => {
       const util: LayerUtil = new LayerUtil();
 
-      // 2026-01-05 is a Monday. Handoff/start at 20:00 — AFTER that day's
-      // 09:00-17:00 restriction window.
+      /*
+       * 2026-01-05 is a Monday. Handoff/start at 20:00 — AFTER that day's
+       * 09:00-17:00 restriction window.
+       */
       const layer: LayerProps = {
         users: [u("A")],
         startDateTimeOfLayer: d("2026-01-05T20:00:00.000Z"),
@@ -308,8 +312,10 @@ describe("LayerUtil audit fixes round 2", () => {
       const tuesdayNoon: Date = d("2026-01-06T12:00:00.000Z");
       expect(coveringEvent(events, tuesdayNoon)?.title).toBe("A");
 
-      // The first night (Monday 22:00, after the 20:00 start, outside the
-      // restriction) is correctly NOT covered.
+      /*
+       * The first night (Monday 22:00, after the 20:00 start, outside the
+       * restriction) is correctly NOT covered.
+       */
       const mondayNight: Date = d("2026-01-05T22:00:00.000Z");
       expect(coveringEvent(events, mondayNight)).toBeUndefined();
     });
@@ -334,8 +340,10 @@ describe("LayerUtil audit fixes round 2", () => {
         calendarEndDate: d("2026-03-12T00:00:00.000Z"),
       });
 
-      // US spring-forward is 2026-03-08. On March 10 (EDT, UTC-4), 09:00 local is
-      // 13:00 UTC. Before the fix, absolute +24h stepping drifted it to 14:00 UTC.
+      /*
+       * US spring-forward is 2026-03-08. On March 10 (EDT, UTC-4), 09:00 local is
+       * 13:00 UTC. Before the fix, absolute +24h stepping drifted it to 14:00 UTC.
+       */
       const march10Afternoon: Date = d("2026-03-10T18:00:00.000Z");
       const covering: CalendarEvent | undefined = coveringEvent(
         events,
@@ -352,8 +360,10 @@ describe("LayerUtil audit fixes round 2", () => {
 
       const layer: LayerProps = {
         users: [u("A")],
-        // 2026-03-05 00:00 America/New_York (EST) = 05:00 UTC — a NY-day-aligned
-        // handoff, as real weekly schedules use.
+        /*
+         * 2026-03-05 00:00 America/New_York (EST) = 05:00 UTC — a NY-day-aligned
+         * handoff, as real weekly schedules use.
+         */
         startDateTimeOfLayer: d("2026-03-05T05:00:00.000Z"),
         handOffTime: d("2026-03-05T05:00:00.000Z"),
         // 09:00 EST and 17:00 EST reference instants -> 09:00/17:00 New York.
@@ -371,9 +381,11 @@ describe("LayerUtil audit fixes round 2", () => {
         calendarEndDate: d("2026-03-12T05:00:00.000Z"),
       });
 
-      // The March 10 window (EDT) must be 09:00-17:00 local = 13:00-21:00 UTC.
-      // A drifted window would be 10:00-18:00 local (14:00-22:00 UTC), leaving
-      // 13:30 UTC uncovered.
+      /*
+       * The March 10 window (EDT) must be 09:00-17:00 local = 13:00-21:00 UTC.
+       * A drifted window would be 10:00-18:00 local (14:00-22:00 UTC), leaving
+       * 13:30 UTC uncovered.
+       */
       const march10Morning: Date = d("2026-03-10T13:30:00.000Z"); // 09:30 EDT
       const covering: CalendarEvent | undefined = coveringEvent(
         events,

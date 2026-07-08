@@ -127,9 +127,11 @@ export class Service extends DatabaseService<Model> {
   public async endTimeForUser(data: {
     projectId: ObjectID;
     userId: ObjectID;
-    // When set, only close logs derived from this team. Leaving one team must
-    // not close a user's still-active logs from other teams, direct escalation
-    // assignments, or schedule rosters (audit F17).
+    /*
+     * When set, only close logs derived from this team. Leaving one team must
+     * not close a user's still-active logs from other teams, direct escalation
+     * assignments, or schedule rosters (audit F17).
+     */
     teamId?: ObjectID | undefined;
     endsAt: Date;
   }): Promise<void> {
