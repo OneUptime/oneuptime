@@ -1227,10 +1227,29 @@ export default class LayerUtil {
         return trimmedStartAndEndTimes;
       }
 
-      // if current event start time is after the restriction end time then we need to return empty array as there is no event.
-
+      /*
+       * The event begins after THIS day's restriction window has already ended.
+       * Do NOT drop the whole event — a multi-day rotation event (e.g. a WEEKLY
+       * rotation whose handoff/start is at 20:00, with a 09:00-17:00 daily
+       * restriction) must still be covered on its subsequent days. Advance the
+       * restriction window to the next day/week and re-test instead of returning
+       * empty. Termination is preserved: after at most one advance the window's
+       * end moves past currentStartTime, and the "restrictionStart past
+       * currentEnd" guard above returns once the window moves past the event end
+       * (so a short event entirely after the window still yields no coverage).
+       */
       if (OneUptimeDate.isOnOrAfter(currentStartTime, restrictionEndTime)) {
-        return trimmedStartAndEndTimes;
+        restrictionStartTime = OneUptimeDate.addRemoveDays(
+          restrictionStartTime,
+          data.props.intervalType === EventInterval.Day ? 1 : 7, // daily or weekly
+          this.timezone,
+        );
+        restrictionEndTime = OneUptimeDate.addRemoveDays(
+          restrictionEndTime,
+          data.props.intervalType === EventInterval.Day ? 1 : 7, // daily or weekly
+          this.timezone,
+        );
+        continue;
       }
 
       // if the restriction end time is before the restriction start time, we need to add one day to the restriction end time
