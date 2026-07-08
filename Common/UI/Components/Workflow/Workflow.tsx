@@ -2,6 +2,13 @@ import WorkflowComponent from "./Component";
 import ComponentSettingsPanel from "./ComponentSettingsPanel";
 import ComponentsModal from "./ComponentsModal";
 import RunModal from "./RunModal";
+import WorkflowTemplateGallery from "./WorkflowTemplateGallery";
+import {
+  WorkflowTemplate,
+  WorkflowTemplates,
+  buildTemplateGraph,
+  TemplateGraph,
+} from "./WorkflowTemplates";
 import { getUpstreamComponentIds } from "./GraphUtils";
 import { loadComponentsAndCategories } from "./Utils";
 import { VoidFunction } from "../../../Types/FunctionTypes";
@@ -323,6 +330,38 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
   const [showRunModal, setShowRunModal] = useState<boolean>(false);
 
+  // Dismissed once the user picks a template or chooses to start from scratch.
+  const [templatesDismissed, setTemplatesDismissed] = useState<boolean>(false);
+
+  type LoadTemplateFunction = (template: WorkflowTemplate) => void;
+
+  const loadTemplate: LoadTemplateFunction = (
+    template: WorkflowTemplate,
+  ): void => {
+    const graph: TemplateGraph | null = buildTemplateGraph(
+      template,
+      allComponentMetadata,
+    );
+
+    setTemplatesDismissed(true);
+
+    if (!graph) {
+      return;
+    }
+
+    setNodes(
+      graph.nodes.map((node: Node) => {
+        node.data.onClick = onNodeClick;
+        return node;
+      }),
+    );
+    setEdges(
+      graph.edges.map((edge: Edge) => {
+        return { ...edge, ...getEdgeDefaultProps(edge.selected || false) };
+      }),
+    );
+  };
+
   useEffect(() => {
     props.onComponentPickerModalUpdate(showComponentsModal);
   }, [showComponentsModal]);
@@ -522,6 +561,27 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           color="#cbd5e1"
         />
       </ReactFlow>
+
+      {/*
+        Blank-canvas cold start: when the graph has no real steps yet (only the
+        placeholder trigger), offer starter templates. Shown until the user
+        picks one or dismisses it.
+      */}
+      {!templatesDismissed &&
+        allComponentMetadata.length > 0 &&
+        !nodes.some((node: Node) => {
+          return (node.data as NodeDataProp).nodeType === NodeType.Node;
+        }) && (
+          <WorkflowTemplateGallery
+            templates={WorkflowTemplates}
+            onSelect={(template: WorkflowTemplate) => {
+              loadTemplate(template);
+            }}
+            onDismiss={() => {
+              setTemplatesDismissed(true);
+            }}
+          />
+        )}
 
       {showComponentsModal && (
         <ComponentsModal
