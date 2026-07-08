@@ -1620,14 +1620,26 @@ ${createdItem.description?.trim() || "No description provided."}
 
     /*
      * Each monitor appears at most once for a given probeId (composite
-     * unique on MonitorProbe), so concurrent refreshes operate on
-     * disjoint rows and are safe to run in parallel.
+     * unique on MonitorProbe), so concurrent refreshes operate on disjoint
+     * rows and are safe to run in parallel. A global/shared probe can be
+     * attached to thousands of monitors, though, so refresh in bounded
+     * batches instead of firing every refresh at once — an unbounded
+     * Promise.all here would exhaust the database connection pool.
      */
-    await Promise.all(
-      monitorProbes.map((monitorProbe: MonitorProbe) => {
-        return this.refreshMonitorProbeStatus(monitorProbe.monitorId!);
-      }),
-    );
+    const refreshConcurrency: number = 50;
+
+    for (let i: number = 0; i < monitorProbes.length; i += refreshConcurrency) {
+      const batch: Array<MonitorProbe> = monitorProbes.slice(
+        i,
+        i + refreshConcurrency,
+      );
+
+      await Promise.all(
+        batch.map((monitorProbe: MonitorProbe) => {
+          return this.refreshMonitorProbeStatus(monitorProbe.monitorId!);
+        }),
+      );
+    }
   }
 
   @CaptureSpan()

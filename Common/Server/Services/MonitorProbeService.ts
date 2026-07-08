@@ -310,8 +310,14 @@ export class Service extends DatabaseService<MonitorProbe> {
     _onCreate: OnCreate<MonitorProbe>,
     createdItem: MonitorProbe,
   ): Promise<MonitorProbe> {
-    if (createdItem.probeId) {
-      await MonitorService.refreshProbeStatus(createdItem.probeId);
+    /*
+     * Refresh only the monitor this probe was just added to. Do NOT call
+     * refreshProbeStatus(probeId) here: a global/shared probe can be attached
+     * to thousands of monitors, and refreshing every one of them on a single
+     * create storms the database and can 500 the request.
+     */
+    if (createdItem.monitorId) {
+      await this.refreshMonitorStatusSafely(createdItem.monitorId);
     }
 
     return Promise.resolve(createdItem);
@@ -321,7 +327,7 @@ export class Service extends DatabaseService<MonitorProbe> {
     onUpdate: OnUpdate<MonitorProbe>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<MonitorProbe>> {
-    // if isEnabled is updated, refresh the probe status
+    // if isEnabled is updated, refresh the status of the affected monitors.
     if (onUpdate.updateBy.data.isEnabled !== undefined) {
       const monitorProbes: Array<MonitorProbe> = await this.findBy({
         query: {
@@ -329,8 +335,6 @@ export class Service extends DatabaseService<MonitorProbe> {
         },
         select: {
           monitorId: true,
-          probeId: true,
-          nextPingAt: true,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -340,15 +344,37 @@ export class Service extends DatabaseService<MonitorProbe> {
       });
 
       for (const monitorProbe of monitorProbes) {
-        if (!monitorProbe.probeId) {
+        if (!monitorProbe.monitorId) {
           continue;
         }
 
-        await MonitorService.refreshProbeStatus(monitorProbe.probeId);
+        /*
+         * Refresh only the monitor whose probe row changed. Do NOT call
+         * refreshProbeStatus(probeId) here: a global/shared probe can be
+         * attached to thousands of monitors, and refreshing all of them on a
+         * single enable/disable toggle storms the database and 500s the
+         * request (the row itself is already saved by this point).
+         */
+        await this.refreshMonitorStatusSafely(monitorProbe.monitorId);
       }
     }
 
     return onUpdate;
+  }
+
+  /*
+   * Refresh a single monitor's aggregate probe status without letting a
+   * failure bubble up. These refreshes run in post-commit hooks
+   * (onCreateSuccess / onUpdateSuccess) after the MonitorProbe row is already
+   * persisted, so a status-refresh error must not turn a successful save into
+   * a 500 for the user — log it instead.
+   */
+  private async refreshMonitorStatusSafely(monitorId: ObjectID): Promise<void> {
+    try {
+      await MonitorService.refreshMonitorProbeStatus(monitorId);
+    } catch (err) {
+      logger.error(err);
+    }
   }
 }
 
