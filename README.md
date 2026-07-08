@@ -1,4 +1,23 @@
 <!-- markdownlint-disable MD033 MD041 -->
+<p align="center">
+  <a href="/README.md">English</a> ·
+  <a href="/README.zh-CN.md">简体中文</a> ·
+  <a href="/README.zh-TW.md">繁體中文</a> ·
+  <a href="/README.ja.md">日本語</a> ·
+  <a href="/README.ko.md">한국어</a> ·
+  <a href="/README.es.md">Español</a> ·
+  <a href="/README.fr.md">Français</a> ·
+  <a href="/README.de.md">Deutsch</a> ·
+  <a href="/README.pt.md">Português</a> ·
+  <a href="/README.it.md">Italiano</a> ·
+  <a href="/README.ru.md">Русский</a> ·
+  <a href="/README.hi.md">हिन्दी</a> ·
+  <a href="/README.nl.md">Nederlands</a> ·
+  <a href="/README.da.md">Dansk</a> ·
+  <a href="/README.sv.md">Svenska</a> ·
+  <a href="/README.no.md">Norsk</a>
+</p>
+
 <div align="center">
   <a href="https://oneuptime.com">
     <img alt="OneUptime logo" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/OneUptimePNG/7.png"/>
@@ -19,9 +38,9 @@
   <p>
     <a href="https://oneuptime.com"><b>Website</b></a> &nbsp;•&nbsp;
     <a href="https://oneuptime.com/docs"><b>Docs</b></a> &nbsp;•&nbsp;
-    <a href="#-quick-start"><b>Quick Start</b></a> &nbsp;•&nbsp;
+    <a href="#quick-start"><b>Quick Start</b></a> &nbsp;•&nbsp;
     <a href="https://oneuptime.com/pricing"><b>Pricing</b></a> &nbsp;•&nbsp;
-    <a href="#-contributing"><b>Contribute</b></a>
+    <a href="#contributing"><b>Contribute</b></a>
   </p>
 
   <a href="https://oneuptime.com"><b>🚀 Try OneUptime Cloud — free forever plan, no credit card →</b></a>
@@ -52,6 +71,8 @@ OneUptime brings monitoring, alerting, incident response, and observability into
 All of it is **100% open source (Apache 2.0)** and free to self-host.
 
 ---
+
+<a name="quick-start"></a>
 
 ## ⚡ Quick Start
 
@@ -164,6 +185,8 @@ Drop in copy-paste, **OpenTelemetry-based** agents to watch everything your serv
 Our mission is simple: **reduce downtime and help more products succeed.** Instead of duct-taping seven vendors together, you get one platform that helps you understand *why* things break, respond to incidents fast, and cut operational toil — fully open source, so you own your data and your stack.
 
 ---
+
+<a name="contributing"></a>
 
 ## 🤝 Contributing
 
