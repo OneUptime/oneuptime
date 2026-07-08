@@ -12,6 +12,8 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
 import IncomingCallPolicyEscalationRuleService from "Common/Server/Services/IncomingCallPolicyEscalationRuleService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IncomingCallLogService from "Common/Server/Services/IncomingCallLogService";
 import IncomingCallLogItemService from "Common/Server/Services/IncomingCallLogItemService";
 import OnCallDutyPolicyScheduleService from "Common/Server/Services/OnCallDutyPolicyScheduleService";
@@ -231,31 +233,26 @@ router.post(
           },
         });
 
-      // Get the first escalation rule
-      const firstRule: IncomingCallPolicyEscalationRule | null =
-        await IncomingCallPolicyEscalationRuleService.findOneBy({
-          query: {
-            incomingCallPolicyId: new ObjectID(policyId),
-            order: 1,
-          },
-          select: {
-            _id: true,
-            name: true,
-            escalateAfterSeconds: true,
-            onCallDutyPolicyScheduleId: true,
-            userId: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+      /*
+       * Find the first escalation rule that currently has an available user.
+       * This skips rules whose user is momentarily unresolvable (empty schedule
+       * or no verified number) instead of hanging up on the caller.
+       */
+      const firstResolved: {
+        rule: IncomingCallPolicyEscalationRule;
+        user: UserToCall;
+      } | null = await getNextRuleWithAvailableUser(
+        new ObjectID(policyId),
+        policy.projectId!,
+        0,
+      );
 
-      if (!firstRule) {
+      if (!firstResolved) {
         await IncomingCallLogService.updateOneById({
           id: createdCallLog.id!,
           data: {
             status: IncomingCallStatus.Failed,
-            statusMessage: "No escalation rules configured",
+            statusMessage: "No on-call user available in any escalation rule",
             endedAt: new Date(),
           },
           props: { isRoot: true },
@@ -269,30 +266,21 @@ router.post(
         return res.send(twiml);
       }
 
-      // Get the user to call
-      const userToCall: UserToCall | null = await getUserToCall(
-        firstRule,
-        policy.projectId!,
-      );
+      const firstRule: IncomingCallPolicyEscalationRule = firstResolved.rule;
+      const userToCall: UserToCall = firstResolved.user;
 
-      if (!userToCall) {
+      /*
+       * Persist the order of the rule we're actually dialing (gap-safe; may be
+       * greater than 1 if earlier rules had no available user).
+       */
+      if (firstRule.order && firstRule.order !== 1) {
         await IncomingCallLogService.updateOneById({
           id: createdCallLog.id!,
           data: {
-            status: IncomingCallStatus.Failed,
-            statusMessage:
-              "No on-call user available or user has no phone number",
-            endedAt: new Date(),
+            currentEscalationRuleOrder: firstRule.order,
           },
           props: { isRoot: true },
         });
-
-        const twiml: string = provider.generateHangupResponse(
-          policy.noOneAvailableMessage ||
-            "We're sorry, but no on-call engineer is currently available.",
-        );
-        res.type("text/xml");
-        return res.send(twiml);
       }
 
       // Create call log item
@@ -508,156 +496,104 @@ router.post(
         return res.send(twiml);
       }
 
-      // Call was not answered, try next escalation rule
-      const nextOrder: number = (callLog.currentEscalationRuleOrder || 1) + 1;
+      /*
+       * Call was not answered. Advance to the next escalation rule that has an
+       * available user. Skips rules whose user is momentarily unavailable and
+       * is gap-safe (does not assume contiguous order values).
+       */
+      const nextResolved: {
+        rule: IncomingCallPolicyEscalationRule;
+        user: UserToCall;
+      } | null = await getNextRuleWithAvailableUser(
+        callLog.incomingCallPolicyId!,
+        policy.projectId!,
+        callLog.currentEscalationRuleOrder || 0,
+      );
 
-      // Get the next escalation rule
-      const nextRule: IncomingCallPolicyEscalationRule | null =
-        await IncomingCallPolicyEscalationRuleService.findOneBy({
-          query: {
-            incomingCallPolicyId: callLog.incomingCallPolicyId!,
-            order: nextOrder,
-          },
-          select: {
-            _id: true,
-            name: true,
-            escalateAfterSeconds: true,
-            onCallDutyPolicyScheduleId: true,
-            userId: true,
+      if (nextResolved) {
+        await IncomingCallLogService.updateOneById({
+          id: new ObjectID(callLogId),
+          data: {
+            currentEscalationRuleOrder: nextResolved.rule.order!,
+            status: IncomingCallStatus.Escalated,
           },
           props: {
             isRoot: true,
           },
         });
 
-      if (!nextRule) {
-        // No more rules, check if we should repeat
-        if (
-          policy.repeatPolicyIfNoOneAnswers &&
-          (callLog.repeatCount || 0) <
-            (policy.repeatPolicyIfNoOneAnswersTimes || 1)
-        ) {
-          // Restart from first rule
+        return await dialNextUser(
+          res,
+          provider,
+          policy,
+          callLog,
+          nextResolved.rule,
+          nextResolved.user,
+        );
+      }
+
+      /*
+       * No further rule with an available user. If the policy is configured to
+       * repeat, restart from the first available rule. State (repeatCount /
+       * order) is only mutated once we've confirmed there is someone to dial,
+       * so a failed repeat doesn't leave misleading audit state.
+       */
+      if (
+        policy.repeatPolicyIfNoOneAnswers &&
+        (callLog.repeatCount || 0) <
+          (policy.repeatPolicyIfNoOneAnswersTimes || 1)
+      ) {
+        const repeatResolved: {
+          rule: IncomingCallPolicyEscalationRule;
+          user: UserToCall;
+        } | null = await getNextRuleWithAvailableUser(
+          callLog.incomingCallPolicyId!,
+          policy.projectId!,
+          0,
+        );
+
+        if (repeatResolved) {
           await IncomingCallLogService.updateOneById({
             id: new ObjectID(callLogId),
             data: {
-              currentEscalationRuleOrder: 1,
+              currentEscalationRuleOrder: repeatResolved.rule.order!,
               repeatCount: (callLog.repeatCount || 0) + 1,
+              status: IncomingCallStatus.Escalated,
             },
             props: {
               isRoot: true,
             },
           });
 
-          // Get first rule again
-          const firstRule: IncomingCallPolicyEscalationRule | null =
-            await IncomingCallPolicyEscalationRuleService.findOneBy({
-              query: {
-                incomingCallPolicyId: callLog.incomingCallPolicyId!,
-                order: 1,
-              },
-              select: {
-                _id: true,
-                name: true,
-                escalateAfterSeconds: true,
-                onCallDutyPolicyScheduleId: true,
-                userId: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-          if (firstRule && policy.projectId) {
-            const userToCall: UserToCall | null = await getUserToCall(
-              firstRule,
-              policy.projectId,
-            );
-            if (userToCall) {
-              // Continue with the call
-              return await dialNextUser(
-                res,
-                provider,
-                policy,
-                callLog,
-                firstRule,
-                userToCall,
-              );
-            }
-          }
+          return await dialNextUser(
+            res,
+            provider,
+            policy,
+            callLog,
+            repeatResolved.rule,
+            repeatResolved.user,
+          );
         }
-
-        // No more options, end the call
-        await IncomingCallLogService.updateOneById({
-          id: new ObjectID(callLogId),
-          data: {
-            status: IncomingCallStatus.NoAnswer,
-            endedAt: now,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        const twiml: string = provider.generateHangupResponse(
-          policy.noAnswerMessage ||
-            "No one is available. Please try again later.",
-        );
-        res.type("text/xml");
-        return res.send(twiml);
       }
 
-      // Update call log with new escalation rule order
+      // No more options, end the call.
       await IncomingCallLogService.updateOneById({
         id: new ObjectID(callLogId),
         data: {
-          currentEscalationRuleOrder: nextOrder,
-          status: IncomingCallStatus.Escalated,
+          status: IncomingCallStatus.NoAnswer,
+          endedAt: now,
         },
         props: {
           isRoot: true,
         },
       });
 
-      // Get the user to call
-      const userToCall: UserToCall | null = await getUserToCall(
-        nextRule,
-        policy.projectId!,
+      const twiml: string = provider.generateHangupResponse(
+        policy.noAnswerMessage ||
+          "No one is available. Please try again later.",
       );
-
-      if (!userToCall) {
-        /*
-         * Skip this rule and try the next one (recursive approach via TwiML redirect would be complex)
-         * For simplicity, end the call if no user available
-         */
-        await IncomingCallLogService.updateOneById({
-          id: new ObjectID(callLogId),
-          data: {
-            status: IncomingCallStatus.Failed,
-            statusMessage:
-              "No on-call user available or user has no phone number",
-            endedAt: new Date(),
-          },
-          props: { isRoot: true },
-        });
-
-        const twiml: string = provider.generateHangupResponse(
-          policy.noOneAvailableMessage ||
-            "We're sorry, but no on-call engineer is currently available.",
-        );
-        res.type("text/xml");
-        return res.send(twiml);
-      }
-
-      // Dial the next user
-      return await dialNextUser(
-        res,
-        provider,
-        policy,
-        callLog,
-        nextRule,
-        userToCall,
-      );
+      res.type("text/xml");
+      return res.send(twiml);
     } catch (err) {
       logger.error(err, getLogAttributesFromRequest(req as RequestLike));
       return next(err);
@@ -734,6 +670,64 @@ async function getUserToCall(
     name: user?.name?.toString(),
     email: user?.email?.toString(),
   };
+}
+
+/*
+ * Finds the next escalation rule (strictly after `afterOrder`, ascending) that
+ * currently has an available user to call. Rules whose user cannot be resolved
+ * right now (empty schedule, or user without a verified incoming-call number)
+ * are skipped rather than dead-ending the call. Gap-safe: does not assume
+ * `order` values are contiguous.
+ */
+async function getNextRuleWithAvailableUser(
+  incomingCallPolicyId: ObjectID,
+  projectId: ObjectID,
+  afterOrder: number,
+): Promise<{
+  rule: IncomingCallPolicyEscalationRule;
+  user: UserToCall;
+} | null> {
+  let currentAfterOrder: number = afterOrder;
+
+  /*
+   * Each iteration strictly increases currentAfterOrder, so this terminates
+   * once there are no more rules with a higher order.
+   */
+  for (;;) {
+    const rule: IncomingCallPolicyEscalationRule | null =
+      await IncomingCallPolicyEscalationRuleService.findOneBy({
+        query: {
+          incomingCallPolicyId: incomingCallPolicyId,
+          order: QueryHelper.greaterThan(currentAfterOrder),
+        },
+        select: {
+          _id: true,
+          name: true,
+          order: true,
+          escalateAfterSeconds: true,
+          onCallDutyPolicyScheduleId: true,
+          userId: true,
+        },
+        sort: {
+          order: SortOrder.Ascending,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!rule) {
+      return null;
+    }
+
+    const user: UserToCall | null = await getUserToCall(rule, projectId);
+    if (user) {
+      return { rule: rule, user: user };
+    }
+
+    // This rule has no available user right now; skip to the next one.
+    currentAfterOrder = rule.order!;
+  }
 }
 
 // Helper function to generate greeting and dial TwiML

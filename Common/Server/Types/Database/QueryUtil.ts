@@ -549,6 +549,63 @@ export default class QueryUtil {
           _id: QueryHelper.any(query[key] as Array<string>),
         };
       }
+
+      /*
+       * Text-search operator nested under a single-Entity relation, e.g.
+       * { user: { name: new Search("foo") } }. serializeQuery otherwise only
+       * visits top-level keys, so the nested operator reaches TypeORM as a raw
+       * class instance and silently degrades to an exact equality
+       * (`user.name = 'foo'` instead of `user.name ILIKE '%foo%'`) — which is
+       * why the Owner / user picker "search" appeared to do nothing once a
+       * project had more than a page of members.
+       *
+       * We deliberately touch ONLY the ILIKE-family leaf operators here and
+       * leave every other nested value (arrays, ids, plain equality, other
+       * operators) exactly as it was, so existing nested relation filters (the
+       * access-control label filters built by @CanAccessIfCanReadOn, etc.)
+       * serialize unchanged.
+       */
+      if (
+        tableColumnMetadata &&
+        tableColumnMetadata.modelType &&
+        tableColumnMetadata.type === TableColumnType.Entity &&
+        query[key] &&
+        typeof query[key] === Typeof.Object &&
+        !Array.isArray(query[key]) &&
+        (Object.getPrototypeOf(query[key]) === Object.prototype ||
+          Object.getPrototypeOf(query[key]) === null)
+      ) {
+        const relationModel: BaseModel = new tableColumnMetadata.modelType();
+        const relationQuery: Record<string, any> = query[key] as Record<
+          string,
+          any
+        >;
+        for (const relationKey in relationQuery) {
+          const relationColumnMetadata: TableColumnMetadata =
+            relationModel.getTableColumnMetadata(relationKey);
+          if (!relationColumnMetadata) {
+            continue;
+          }
+          const nestedValue: any = relationQuery[relationKey];
+          if (nestedValue instanceof Search) {
+            relationQuery[relationKey] = QueryHelper.search(
+              (nestedValue as Search<string>).toString(),
+            ) as any;
+          } else if (nestedValue instanceof StartsWith) {
+            relationQuery[relationKey] = QueryHelper.startsWith(
+              (nestedValue as StartsWith<string>).toString(),
+            ) as any;
+          } else if (nestedValue instanceof EndsWith) {
+            relationQuery[relationKey] = QueryHelper.endsWith(
+              (nestedValue as EndsWith<string>).toString(),
+            ) as any;
+          } else if (nestedValue instanceof NotContains) {
+            relationQuery[relationKey] = QueryHelper.notContains(
+              (nestedValue as NotContains<string>).toString(),
+            ) as any;
+          }
+        }
+      }
     }
 
     return query;

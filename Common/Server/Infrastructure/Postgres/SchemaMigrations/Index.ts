@@ -413,6 +413,7 @@ import { AddAIChatModels1783363279075 } from "./1783363279075-AddAIChatModels";
 import { AddLlmProviderToAIConversation1783443471795 } from "./1783443471795-AddLlmProviderToAIConversation";
 import { AddAIChatWriteActionsAndWidgets1783453297388 } from "./1783453297388-AddAIChatWriteActionsAndWidgets";
 import { MigrationName1783461767405 } from "./1783461767405-MigrationName";
+import { AddIncomingCallPolicyRoutingPhoneNumberUnique1783470000000 } from "./1783470000000-AddIncomingCallPolicyRoutingPhoneNumberUnique";
 
 export default [
   InitialMigration,
@@ -830,4 +831,5 @@ export default [
   AddLlmProviderToAIConversation1783443471795,
   AddAIChatWriteActionsAndWidgets1783453297388,
   MigrationName1783461767405,
+  AddIncomingCallPolicyRoutingPhoneNumberUnique1783470000000,
 ];

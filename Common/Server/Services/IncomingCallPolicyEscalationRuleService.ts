@@ -135,6 +135,79 @@ export class Service extends DatabaseService<IncomingCallPolicyEscalationRule> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<IncomingCallPolicyEscalationRule>,
   ): Promise<OnUpdate<IncomingCallPolicyEscalationRule>> {
+    /*
+     * Enforce user/schedule mutual exclusivity on update (parity with onBeforeCreate).
+     * Only runs when the update actually touches one of the routing-target fields, so
+     * internal updates (status/order via isRoot) are unaffected.
+     */
+    const data: UpdateBy<IncomingCallPolicyEscalationRule>["data"] =
+      updateBy.data;
+    const isTouchingTarget: boolean =
+      data.userId !== undefined ||
+      data.onCallDutyPolicyScheduleId !== undefined;
+
+    if (isTouchingTarget && updateBy.query._id) {
+      const settingUser: boolean = Boolean(data.userId);
+      const settingSchedule: boolean = Boolean(data.onCallDutyPolicyScheduleId);
+
+      if (settingUser && settingSchedule) {
+        throw new BadDataException(
+          "Only one of User or On-Call Schedule can be specified, not both",
+        );
+      }
+
+      // Setting one target clears the other so a rule can never hold both.
+      const nullableData: {
+        userId?: ObjectID | null;
+        onCallDutyPolicyScheduleId?: ObjectID | null;
+      } = data as {
+        userId?: ObjectID | null;
+        onCallDutyPolicyScheduleId?: ObjectID | null;
+      };
+      if (settingUser) {
+        nullableData.onCallDutyPolicyScheduleId = null;
+      }
+      if (settingSchedule) {
+        nullableData.userId = null;
+      }
+
+      const existing: IncomingCallPolicyEscalationRule | null =
+        await this.findOneBy({
+          query: {
+            _id: updateBy.query._id!,
+          },
+          select: {
+            userId: true,
+            onCallDutyPolicyScheduleId: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      /*
+       * Whether each target will be present AFTER this update, accounting for
+       * fields left untouched (keep existing) and the opposite-field clearing
+       * done above.
+       */
+      const willHaveUser: boolean = settingUser
+        ? true
+        : data.userId === undefined
+          ? Boolean(existing?.userId)
+          : false;
+      const willHaveSchedule: boolean = settingSchedule
+        ? true
+        : data.onCallDutyPolicyScheduleId === undefined
+          ? Boolean(existing?.onCallDutyPolicyScheduleId)
+          : false;
+
+      if (!willHaveUser && !willHaveSchedule) {
+        throw new BadDataException(
+          "Either a User or an On-Call Schedule must be specified for the escalation rule",
+        );
+      }
+    }
+
     if (updateBy.data.order && !updateBy.props.isRoot && updateBy.query._id) {
       const resource: IncomingCallPolicyEscalationRule | null =
         await this.findOneBy({
@@ -194,8 +267,8 @@ export class Service extends DatabaseService<IncomingCallPolicyEscalationRule> {
       if (newOrder > currentOrder) {
         // moving down.
         for (const resource of resources) {
-          if (resource.order! <= newOrder) {
-            // increment order.
+          if (resource.order! > currentOrder && resource.order! <= newOrder) {
+            // decrement order to fill the gap left by the moved rule.
             await this.updateOneBy({
               query: {
                 _id: resource._id!,

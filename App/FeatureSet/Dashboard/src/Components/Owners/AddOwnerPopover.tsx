@@ -222,39 +222,54 @@ const AddOwnerPopover: FunctionComponent<ComponentProps> = (
 
     const trimmed: string = debouncedSearch.trim();
 
-    const userQuery: Query<TeamMember> = {
-      projectId: projectId,
-    } as Query<TeamMember>;
+    /*
+     * Match the term against the user's name AND email. There's no OR across
+     * two relation fields in a single query, so run one query per field and
+     * union + dedup the users below.
+     */
+    const userQueries: Array<Query<TeamMember>> = trimmed
+      ? [
+          {
+            projectId: projectId,
+            user: { name: new Search(trimmed) },
+          } as unknown as Query<TeamMember>,
+          {
+            projectId: projectId,
+            user: { email: new Search(trimmed) },
+          } as unknown as Query<TeamMember>,
+        ]
+      : [{ projectId: projectId } as Query<TeamMember>];
+
     const teamQuery: Query<Team> = {
       projectId: projectId,
     } as Query<Team>;
-
     if (trimmed) {
-      (userQuery as unknown as Record<string, unknown>)["user"] = {
-        name: new Search(trimmed),
-      };
       (teamQuery as unknown as Record<string, unknown>)["name"] = new Search(
         trimmed,
       );
     }
 
     Promise.all([
-      ModelAPI.getList<TeamMember>({
-        modelType: TeamMember,
-        query: userQuery,
-        limit: PAGE_SIZE,
-        skip: 0,
-        select: {
-          _id: true,
-          user: {
-            _id: true,
-            name: true,
-            email: true,
-            profilePictureId: true,
-          },
-        },
-        sort: {},
-      }),
+      Promise.all(
+        userQueries.map((query: Query<TeamMember>) => {
+          return ModelAPI.getList<TeamMember>({
+            modelType: TeamMember,
+            query: query,
+            limit: PAGE_SIZE,
+            skip: 0,
+            select: {
+              _id: true,
+              user: {
+                _id: true,
+                name: true,
+                email: true,
+                profilePictureId: true,
+              },
+            },
+            sort: {},
+          });
+        }),
+      ),
       ModelAPI.getList<Team>({
         modelType: Team,
         query: teamQuery,
@@ -268,8 +283,8 @@ const AddOwnerPopover: FunctionComponent<ComponentProps> = (
       }),
     ])
       .then(
-        ([userResult, teamResult]: [
-          ListResult<TeamMember>,
+        ([userResults, teamResult]: [
+          Array<ListResult<TeamMember>>,
           ListResult<Team>,
         ]) => {
           if (cancelled) {
@@ -279,22 +294,24 @@ const AddOwnerPopover: FunctionComponent<ComponentProps> = (
           const next: Array<ResultRow> = [];
           const seenUsers: Set<string> = new Set<string>();
 
-          for (const tm of userResult.data) {
-            const u: User | undefined = tm.user as User | undefined;
-            const uid: string | undefined = u?._id?.toString();
-            if (!u || !uid || seenUsers.has(uid)) {
-              continue;
+          for (const userResult of userResults) {
+            for (const tm of userResult.data) {
+              const u: User | undefined = tm.user as User | undefined;
+              const uid: string | undefined = u?._id?.toString();
+              if (!u || !uid || seenUsers.has(uid)) {
+                continue;
+              }
+              seenUsers.add(uid);
+              next.push({
+                key: `user:${uid}`,
+                kind: "user",
+                id: uid,
+                name: u.name?.toString() || u.email?.toString() || uid,
+                email: u.email?.toString(),
+                userId: uid,
+                hasProfilePicture: Boolean(u.profilePictureId),
+              });
             }
-            seenUsers.add(uid);
-            next.push({
-              key: `user:${uid}`,
-              kind: "user",
-              id: uid,
-              name: u.name?.toString() || u.email?.toString() || uid,
-              email: u.email?.toString(),
-              userId: uid,
-              hasProfilePicture: Boolean(u.profilePictureId),
-            });
           }
 
           for (const t of teamResult.data) {

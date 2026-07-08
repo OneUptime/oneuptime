@@ -1458,8 +1458,8 @@ vllm:
   # OneUptime, so AI features work for ALL projects with no dashboard setup.
   # Managed declaratively at startup: disabling this (or vllm.enabled) removes
   # the auto-registered provider on the next deploy, and manual edits to its
-  # env-managed fields (name, type, model, base URL, API key) in the Admin
-  # Dashboard are overwritten (other fields, e.g. token cost, are kept).
+  # env-managed fields (name, description, type, model, base URL, API key) in the
+  # Admin Dashboard are overwritten (other fields, e.g. token cost, are kept).
   # Note: project-scoped AI Agents cannot
   # use global providers (product rule) - they still need a project-specific
   # LLM Provider. Intended for self-hosted installs; with billing.enabled=true
@@ -1468,6 +1468,8 @@ vllm:
     enabled: true
     # Display name of the auto-registered provider in the dashboard.
     name: OneUptime AI
+    # Description of the auto-registered provider shown in the dashboard.
+    description: Automatically registered by the OneUptime Helm chart (vllm.globalProvider).
   # Persistent cache for model weights (HF_HOME) and vLLM compile cache
   # (VLLM_CACHE_ROOT). One PVC per replica; size it to ~2-3x the total model
   # weights. When disabled, a node-disk emptyDir capped at `size` is used

@@ -1105,8 +1105,9 @@ const useResourceOwners: <TResource extends BaseModel>(
   );
 
   /**
-   * Server-side search for the Owner chip. Hits TeamMember + Team in
-   * parallel, dedups users, and returns up to 50 of each kind.
+   * Server-side search for the Owner chip. Matches users by name or email
+   * (via TeamMember) and teams by name, in parallel, dedups users, and returns
+   * up to 50 of each kind.
    */
   const loadOwners: (
     searchTerm: string,
@@ -1118,43 +1119,61 @@ const useResourceOwners: <TResource extends BaseModel>(
       }
 
       const trimmed: string = searchTerm.trim();
-      const userQuery: Query<TeamMember> = {
-        projectId: projectId,
-      } as Query<TeamMember>;
+
+      /*
+       * Project members are searched through TeamMember — the only
+       * project-scoped link to User (the User model itself isn't listable by
+       * project members). We match the term against BOTH the user's name and
+       * email. There's no OR across two relation fields in a single query, so
+       * we run one query per field and union the results, deduping users who
+       * appear on multiple teams or match on both fields.
+       */
+      const userQueries: Array<Query<TeamMember>> = trimmed
+        ? [
+            {
+              projectId: projectId,
+              user: { name: new Search(trimmed) },
+            } as unknown as Query<TeamMember>,
+            {
+              projectId: projectId,
+              user: { email: new Search(trimmed) },
+            } as unknown as Query<TeamMember>,
+          ]
+        : [{ projectId: projectId } as Query<TeamMember>];
+
       const teamQuery: Query<Team> = {
         projectId: projectId,
       } as Query<Team>;
-
       if (trimmed) {
-        // Search nested user.name for TeamMember and name for Team.
-        (userQuery as unknown as Record<string, unknown>)["user"] = {
-          name: new Search(trimmed),
-        };
         (teamQuery as unknown as Record<string, unknown>)["name"] = new Search(
           trimmed,
         );
       }
 
       try {
-        const [teamMembersResult, teamsResult]: [
-          ListResult<TeamMember>,
+        const [teamMemberResults, teamsResult]: [
+          Array<ListResult<TeamMember>>,
           ListResult<Team>,
         ] = await Promise.all([
-          ModelAPI.getList<TeamMember>({
-            modelType: TeamMember,
-            query: userQuery,
-            limit: PICKER_PAGE_SIZE,
-            skip: 0,
-            select: {
-              _id: true,
-              user: {
-                _id: true,
-                name: true,
-                email: true,
-              },
-            },
-            sort: {},
-          }),
+          Promise.all(
+            userQueries.map((q: Query<TeamMember>) => {
+              return ModelAPI.getList<TeamMember>({
+                modelType: TeamMember,
+                query: q,
+                limit: PICKER_PAGE_SIZE,
+                skip: 0,
+                select: {
+                  _id: true,
+                  user: {
+                    _id: true,
+                    name: true,
+                    email: true,
+                  },
+                },
+                sort: {},
+              });
+            }),
+          ),
           ModelAPI.getList<Team>({
             modelType: Team,
             query: teamQuery,
@@ -1170,21 +1189,23 @@ const useResourceOwners: <TResource extends BaseModel>(
 
         const seenUserIds: Set<string> = new Set<string>();
         const userResults: Array<FilterChipDropdownOption> = [];
-        for (const tm of teamMembersResult.data) {
-          const userId: string | undefined = tm.user?._id?.toString();
-          if (!userId || seenUserIds.has(userId)) {
-            continue;
+        for (const teamMembersResult of teamMemberResults) {
+          for (const tm of teamMembersResult.data) {
+            const userId: string | undefined = tm.user?._id?.toString();
+            if (!userId || seenUserIds.has(userId)) {
+              continue;
+            }
+            seenUserIds.add(userId);
+            const label: string =
+              tm.user?.name?.toString() || tm.user?.email?.toString() || "";
+            userResults.push({
+              value: `${OWNER_KEY_PREFIX.user}${userId}`,
+              label: label,
+              initials: getInitials(label),
+              icon: IconProp.User,
+              group: "People",
+            });
           }
-          seenUserIds.add(userId);
-          const label: string =
-            tm.user?.name?.toString() || tm.user?.email?.toString() || "";
-          userResults.push({
-            value: `${OWNER_KEY_PREFIX.user}${userId}`,
-            label: label,
-            initials: getInitials(label),
-            icon: IconProp.User,
-            group: "People",
-          });
         }
 
         const teamResults: Array<FilterChipDropdownOption> =

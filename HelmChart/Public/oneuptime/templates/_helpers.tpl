@@ -224,7 +224,7 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
 - name: GLOBAL_LLM_PROVIDER_NAME
   value: {{ $.Values.vllm.globalProvider.name | quote }}
 - name: GLOBAL_LLM_PROVIDER_DESCRIPTION
-  value: "Automatically registered by the OneUptime Helm chart (vllm.globalProvider)."
+  value: {{ default "Automatically registered by the OneUptime Helm chart (vllm.globalProvider)." $.Values.vllm.globalProvider.description | quote }}
 - name: GLOBAL_LLM_PROVIDER_TYPE
   value: "OpenAICompatible"
 - name: GLOBAL_LLM_PROVIDER_BASE_URL

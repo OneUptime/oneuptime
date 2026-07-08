@@ -13,13 +13,17 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
 import ProjectService from "Common/Server/Services/ProjectService";
+import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
+import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
+import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import Permission from "Common/Types/Permission";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  OneUptimeRequest,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import logger, {
@@ -31,6 +35,47 @@ import Project from "Common/Models/DatabaseModels/Project";
 import Phone from "Common/Types/Phone";
 
 const router: ExpressRouter = Express.getRouter();
+
+/*
+ * Returns the project (tenant) id the caller was authenticated and authorized
+ * for by UserMiddleware. This is the authoritative project for the request —
+ * body/URL-supplied project ids must NOT be trusted for ownership decisions.
+ */
+function getAuthenticatedProjectId(req: ExpressRequest): ObjectID {
+  const tenantId: ObjectID | undefined = (req as OneUptimeRequest).tenantId;
+  if (!tenantId) {
+    throw new BadDataException("Project ID not found in request");
+  }
+  return tenantId;
+}
+
+/*
+ * Verifies the given Call/SMS config belongs to the authenticated project so a
+ * caller cannot operate on another tenant's Twilio account by supplying its
+ * config id.
+ */
+async function assertConfigBelongsToProject(
+  projectCallSMSConfigId: ObjectID,
+  projectId: ObjectID,
+): Promise<void> {
+  const config: ProjectCallSMSConfig | null =
+    await ProjectCallSMSConfigService.findOneById({
+      id: projectCallSMSConfigId,
+      select: {
+        _id: true,
+        projectId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+  if (!config || config.projectId?.toString() !== projectId.toString()) {
+    throw new BadDataException(
+      "Project Call/SMS Config not found for this project",
+    );
+  }
+}
 
 // Search available phone numbers
 router.post(
@@ -49,9 +94,8 @@ router.post(
     try {
       const body: JSONObject = req.body as JSONObject;
 
-      const projectId: ObjectID | undefined = body["projectId"]
-        ? new ObjectID(body["projectId"] as string)
-        : undefined;
+      // Use the authenticated project, not a caller-supplied projectId.
+      const projectId: ObjectID = getAuthenticatedProjectId(req);
 
       const projectCallSMSConfigId: ObjectID | undefined = body[
         "projectCallSMSConfigId"
@@ -59,15 +103,14 @@ router.post(
         ? new ObjectID(body["projectCallSMSConfigId"] as string)
         : undefined;
 
-      if (!projectId) {
-        throw new BadDataException("projectId is required");
-      }
-
       if (!projectCallSMSConfigId) {
         throw new BadDataException(
           "projectCallSMSConfigId is required. Please configure a project-level Twilio configuration.",
         );
       }
+
+      // Ensure the Twilio config belongs to the authenticated project.
+      await assertConfigBelongsToProject(projectCallSMSConfigId, projectId);
 
       const countryCode: string | undefined = body["countryCode"] as
         | string
@@ -183,9 +226,8 @@ router.post(
     try {
       const body: JSONObject = req.body as JSONObject;
 
-      const projectId: ObjectID | undefined = body["projectId"]
-        ? new ObjectID(body["projectId"] as string)
-        : undefined;
+      // Use the authenticated project, not a caller-supplied projectId.
+      const projectId: ObjectID = getAuthenticatedProjectId(req);
 
       const projectCallSMSConfigId: ObjectID | undefined = body[
         "projectCallSMSConfigId"
@@ -193,15 +235,14 @@ router.post(
         ? new ObjectID(body["projectCallSMSConfigId"] as string)
         : undefined;
 
-      if (!projectId) {
-        throw new BadDataException("projectId is required");
-      }
-
       if (!projectCallSMSConfigId) {
         throw new BadDataException(
           "projectCallSMSConfigId is required. Please configure a project-level Twilio configuration.",
         );
       }
+
+      // Ensure the Twilio config belongs to the authenticated project.
+      await assertConfigBelongsToProject(projectCallSMSConfigId, projectId);
 
       // Check if project exists
       const project: Project | null = await ProjectService.findOneById({
@@ -276,9 +317,8 @@ router.post(
     try {
       const body: JSONObject = req.body as JSONObject;
 
-      const projectId: ObjectID | undefined = body["projectId"]
-        ? new ObjectID(body["projectId"] as string)
-        : undefined;
+      // Use the authenticated project, not a caller-supplied projectId.
+      const projectId: ObjectID = getAuthenticatedProjectId(req);
 
       const phoneNumberId: string | undefined = body["phoneNumberId"] as
         | string
@@ -293,10 +333,6 @@ router.post(
       ]
         ? new ObjectID(body["incomingCallPolicyId"] as string)
         : undefined;
-
-      if (!projectId) {
-        throw new BadDataException("projectId is required");
-      }
 
       if (!phoneNumberId) {
         throw new BadDataException("phoneNumberId is required");
@@ -434,9 +470,8 @@ router.post(
     try {
       const body: JSONObject = req.body as JSONObject;
 
-      const projectId: ObjectID | undefined = body["projectId"]
-        ? new ObjectID(body["projectId"] as string)
-        : undefined;
+      // Use the authenticated project, not a caller-supplied projectId.
+      const projectId: ObjectID = getAuthenticatedProjectId(req);
 
       const phoneNumber: string | undefined = body["phoneNumber"] as
         | string
@@ -447,10 +482,6 @@ router.post(
       ]
         ? new ObjectID(body["incomingCallPolicyId"] as string)
         : undefined;
-
-      if (!projectId) {
-        throw new BadDataException("projectId is required");
-      }
 
       if (!phoneNumber) {
         throw new BadDataException("phoneNumber is required");
@@ -535,28 +566,48 @@ router.post(
         webhookUrl,
       );
 
-      // Get country code from phone number
-      const countryCode: string =
-        Phone.getCountryCodeFromPhoneNumber(phoneNumber);
-      const areaCode: string = Phone.getAreaCodeFromPhoneNumber(phoneNumber);
-
       /*
-       * Update the incoming call policy with the purchased number
-       * Customer pays Twilio directly - no billing cost stored
+       * Persist the purchased number on the policy. If this fails, roll back the
+       * Twilio purchase so we never leave a paid, untracked number that can't be
+       * released later (it would have no stored SID otherwise).
+       * Country/area code are derived from the authoritative Twilio-returned
+       * number, not the client-supplied one.
        */
-      await IncomingCallPolicyService.updateOneById({
-        id: incomingCallPolicyId,
-        data: {
-          routingPhoneNumber: new Phone(purchased.phoneNumber),
-          callProviderPhoneNumberId: purchased.phoneNumberId,
-          phoneNumberCountryCode: countryCode,
-          phoneNumberAreaCode: areaCode,
-          phoneNumberPurchasedAt: new Date(),
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      try {
+        const countryCode: string = Phone.getCountryCodeFromPhoneNumber(
+          purchased.phoneNumber,
+        );
+        const areaCode: string = Phone.getAreaCodeFromPhoneNumber(
+          purchased.phoneNumber,
+        );
+
+        await IncomingCallPolicyService.updateOneById({
+          id: incomingCallPolicyId,
+          data: {
+            routingPhoneNumber: new Phone(purchased.phoneNumber),
+            callProviderPhoneNumberId: purchased.phoneNumberId,
+            phoneNumberCountryCode: countryCode,
+            phoneNumberAreaCode: areaCode,
+            phoneNumberPurchasedAt: new Date(),
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      } catch (persistErr) {
+        logger.error(
+          `Failed to persist purchased number ${purchased.phoneNumber} (SID ${purchased.phoneNumberId}) to policy ${incomingCallPolicyId.toString()}. Rolling back the provider purchase to avoid an orphaned paid number.`,
+        );
+        try {
+          await provider.releaseNumber(purchased.phoneNumberId);
+        } catch (releaseErr) {
+          logger.error(
+            `Rollback release failed for orphaned number SID ${purchased.phoneNumberId}. Manual cleanup may be required on the provider account.`,
+          );
+          logger.error(releaseErr);
+        }
+        throw persistErr;
+      }
 
       return Response.sendJsonObjectResponse(req, res, {
         success: true,
@@ -601,6 +652,7 @@ router.delete(
           id: incomingCallPolicyId,
           select: {
             _id: true,
+            projectId: true,
             callProviderPhoneNumberId: true,
             projectCallSMSConfigId: true,
             routingPhoneNumber: true,
@@ -612,6 +664,14 @@ router.delete(
 
       if (!incomingCallPolicy) {
         throw new BadDataException("Incoming Call Policy not found");
+      }
+
+      // Ensure the policy belongs to the authenticated project (tenant isolation).
+      const projectId: ObjectID = getAuthenticatedProjectId(req);
+      if (incomingCallPolicy.projectId?.toString() !== projectId.toString()) {
+        throw new BadDataException(
+          "Incoming Call Policy does not belong to this project",
+        );
       }
 
       if (!incomingCallPolicy.callProviderPhoneNumberId) {
@@ -657,6 +717,60 @@ router.delete(
       return Response.sendJsonObjectResponse(req, res, {
         success: true,
       });
+    } catch (err) {
+      logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+      return next(err);
+    }
+  },
+);
+
+/*
+ * Internal endpoint (cluster-key authenticated) used by Common-layer services to
+ * release a provisioned number when a policy or its Twilio config is deleted.
+ * The Common layer cannot reach the call provider directly, so it delegates here
+ * (mirroring how CallService delegates outbound calls to the notification app).
+ */
+router.post(
+  "/internal/release",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    try {
+      const body: JSONObject = req.body as JSONObject;
+
+      const projectCallSMSConfigId: ObjectID | undefined = body[
+        "projectCallSMSConfigId"
+      ]
+        ? new ObjectID(body["projectCallSMSConfigId"] as string)
+        : undefined;
+
+      const callProviderPhoneNumberId: string | undefined = body[
+        "callProviderPhoneNumberId"
+      ] as string | undefined;
+
+      if (!projectCallSMSConfigId || !callProviderPhoneNumberId) {
+        throw new BadDataException(
+          "projectCallSMSConfigId and callProviderPhoneNumberId are required",
+        );
+      }
+
+      const customTwilioConfig: TwilioConfig | null =
+        await getProjectTwilioConfig(projectCallSMSConfigId);
+
+      if (!customTwilioConfig) {
+        /*
+         * Config is already gone; we cannot build a provider to release the
+         * number. Nothing more to do here — treat as success.
+         */
+        return Response.sendJsonObjectResponse(req, res, { success: true });
+      }
+
+      const provider: ICallProvider =
+        CallProviderFactory.getProviderWithConfig(customTwilioConfig);
+
+      // releaseNumber is idempotent (already-gone is treated as success).
+      await provider.releaseNumber(callProviderPhoneNumberId);
+
+      return Response.sendJsonObjectResponse(req, res, { success: true });
     } catch (err) {
       logger.error(err, getLogAttributesFromRequest(req as RequestLike));
       return next(err);

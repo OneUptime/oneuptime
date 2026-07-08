@@ -1,7 +1,11 @@
 import ProjectUser from "../../../Utils/ProjectUser";
 import UserElement from "../../User/User";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Button from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
@@ -28,9 +32,12 @@ const LayerUser: FunctionComponent<ComponentProps> = (
 
   const getAddUserButton: GetReactElementFunction = (): ReactElement => {
     return (
-      <div className="flex w-full justify-center mt-5">
+      <div className="mt-4">
         <Button
           title="Add User"
+          icon={IconProp.Add}
+          buttonSize={ButtonSize.Small}
+          buttonStyle={ButtonStyleType.OUTLINE}
           onClick={() => {
             setShowAddUserModal(true);
           }}
@@ -41,41 +48,48 @@ const LayerUser: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      <ModelList<OnCallDutyPolicyScheduleLayerUser>
-        id="user-list"
-        modelType={OnCallDutyPolicyScheduleLayerUser}
-        titleField=""
-        query={{
-          onCallDutyPolicyScheduleId: props.layer.onCallDutyPolicyScheduleId,
-          projectId: props.layer.projectId,
-          onCallDutyPolicyScheduleLayerId: props.layer.id!,
-        }}
-        sortBy="order"
-        sortOrder={SortOrder.Ascending}
-        customElement={(item: OnCallDutyPolicyScheduleLayerUser) => {
-          return <UserElement user={item.user} />;
-        }}
-        onListLoaded={(list: OnCallDutyPolicyScheduleLayerUser[]) => {
-          props.onUpdateUsers(list);
-        }}
-        descriptionField=""
-        select={{
-          user: {
-            name: true,
-            email: true,
+      <div className="rounded-lg border border-gray-200 bg-white">
+        <ModelList<OnCallDutyPolicyScheduleLayerUser>
+          id="user-list"
+          modelType={OnCallDutyPolicyScheduleLayerUser}
+          titleField=""
+          query={{
+            onCallDutyPolicyScheduleId: props.layer.onCallDutyPolicyScheduleId,
+            projectId: props.layer.projectId,
+            onCallDutyPolicyScheduleLayerId: props.layer.id!,
+          }}
+          sortBy="order"
+          sortOrder={SortOrder.Ascending}
+          customElement={(item: OnCallDutyPolicyScheduleLayerUser) => {
+            return (
+              <div className="py-1">
+                <UserElement user={item.user} />
+              </div>
+            );
+          }}
+          onListLoaded={(list: OnCallDutyPolicyScheduleLayerUser[]) => {
+            props.onUpdateUsers(list);
+          }}
+          descriptionField=""
+          select={{
+            user: {
+              name: true,
+              email: true,
+              _id: true,
+              profilePictureId: true,
+            },
             _id: true,
-            profilePictureId: true,
-          },
-          _id: true,
-        }}
-        enableDragAndDrop={true}
-        isDeleteable={true}
-        refreshToggle={reloadList}
-        noItemsMessage="No users added to this layer. Please add users to this layer."
-        footer={getAddUserButton()}
-        dragDropIdField="_id"
-        dragDropIndexField="order"
-      />
+          }}
+          enableDragAndDrop={true}
+          isDeleteable={true}
+          refreshToggle={reloadList}
+          noItemsMessage="No users in this layer yet. Add users and drag to set the rotation order."
+          dragDropIdField="_id"
+          dragDropIndexField="order"
+        />
+      </div>
+
+      {getAddUserButton()}
 
       {showAddUserModal && (
         <ModelFormModal
@@ -108,6 +122,9 @@ const LayerUser: FunctionComponent<ComponentProps> = (
                 field: {
                   user: true,
                 },
+                title: "User",
+                description:
+                  "Select a team member to add to this layer's rotation.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 fetchDropdownOptions: async () => {
                   return await ProjectUser.fetchProjectUsersAsDropdownOptions(

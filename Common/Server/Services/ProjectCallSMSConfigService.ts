@@ -5,10 +5,14 @@ import Model from "../../Models/DatabaseModels/ProjectCallSMSConfig";
 import Phone from "../../Types/Phone";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
+import IncomingCallPolicyService from "./IncomingCallPolicyService";
+import IncomingCallPolicy from "../../Models/DatabaseModels/IncomingCallPolicy";
+import releaseIncomingCallPhoneNumber from "../Utils/IncomingCallPhoneNumber";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
@@ -90,6 +94,83 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    /*
+     * When a Call/SMS config is deleted, release any incoming-call numbers
+     * provisioned through it (so they don't keep billing on the provider) and
+     * clear the now-dangling number fields on those policies. The config still
+     * exists at this point, so the provider can be built to release the numbers.
+     */
+    const configs: Array<Model> = await this.findBy({
+      query: deleteBy.query,
+      select: {
+        _id: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const config of configs) {
+      if (!config.id) {
+        continue;
+      }
+
+      const policies: Array<IncomingCallPolicy> =
+        await IncomingCallPolicyService.findBy({
+          query: {
+            projectCallSMSConfigId: config.id,
+          },
+          select: {
+            _id: true,
+            callProviderPhoneNumberId: true,
+            projectCallSMSConfigId: true,
+          },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      for (const policy of policies) {
+        if (
+          !policy.callProviderPhoneNumberId ||
+          !policy.projectCallSMSConfigId
+        ) {
+          continue;
+        }
+
+        await releaseIncomingCallPhoneNumber({
+          projectCallSMSConfigId: policy.projectCallSMSConfigId,
+          callProviderPhoneNumberId: policy.callProviderPhoneNumberId,
+        });
+
+        await IncomingCallPolicyService.updateOneById({
+          id: policy.id!,
+          data: {
+            routingPhoneNumber: null,
+            callProviderPhoneNumberId: null,
+            phoneNumberCountryCode: null,
+            phoneNumberAreaCode: null,
+            phoneNumberPurchasedAt: null,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    }
+
+    return { deleteBy, carryForward: null };
   }
 
   @CaptureSpan()
