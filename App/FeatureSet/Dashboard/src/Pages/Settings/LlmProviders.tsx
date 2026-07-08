@@ -201,6 +201,11 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     getElement: (item: LlmProvider): ReactElement => {
                       const costPerMillionInCents: number =
                         item.costPerMillionTokensInUSDCents || 0;
+
+                      if (costPerMillionInCents <= 0) {
+                        return <Pill text="Free" color={Green} />;
+                      }
+
                       const costPer1000InUSD: number =
                         costPerMillionInCents / 100 / 1000;
                       return <span>${costPer1000InUSD.toFixed(4)} USD</span>;
