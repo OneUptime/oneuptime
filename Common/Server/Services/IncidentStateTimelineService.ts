@@ -27,6 +27,7 @@ import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger, { LogAttributes } from "../Utils/Logger";
 import IncidentFeedService from "./IncidentFeedService";
+import SentinelIncidentPostmortemRunner from "../Utils/AI/Sentinel/IncidentPostmortemRunner";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -555,6 +556,24 @@ ${createdItem.rootCause}`,
           createdItem.startsAt || undefined,
         );
       }
+
+      /*
+       * Sentinel: auto-draft a postmortem now that the incident is resolved
+       * (gated per project; never overwrites an existing postmortem).
+       */
+      SentinelIncidentPostmortemRunner.draftPostmortemOnResolve({
+        incidentId: createdItem.incidentId!,
+        projectId: createdItem.projectId!,
+      }).catch((error: Error) => {
+        logger.error(`Sentinel auto-postmortem failed on resolve:`, {
+          projectId: createdItem.projectId?.toString(),
+          incidentId: createdItem.incidentId?.toString(),
+        } as LogAttributes);
+        logger.error(error, {
+          projectId: createdItem.projectId?.toString(),
+          incidentId: createdItem.incidentId?.toString(),
+        } as LogAttributes);
+      });
     }
 
     if (onCreate.carryForward.publicNote) {
