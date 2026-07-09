@@ -35,6 +35,26 @@ spec:
         {{- end }}
         appname: oneuptime
     spec:
+      # DNS resolution for probe pods. Probes resolve mostly EXTERNAL hostnames,
+      # so the cluster default (ndots:5 + a multi-entry search list) fans every
+      # lookup out into ~7 queries and funnels them through a single upstream
+      # resolver, causing intermittent "getaddrinfo EAI_AGAIN" failures (false
+      # monitor-down alerts) under load. The dnsConfig values (per-probe override
+      # if set, otherwise the chart-wide `dnsConfig` default) set ndots:1 and add
+      # fallback nameservers. dnsPolicy stays ClusterFirst (default) so the
+      # in-cluster API (ONEUPTIME_URL, *.svc.cluster.local) keeps resolving.
+      {{- if $val.dnsPolicy }}
+      dnsPolicy: {{ $val.dnsPolicy }}
+      {{- else if $.Values.dnsPolicy }}
+      dnsPolicy: {{ $.Values.dnsPolicy }}
+      {{- end }}
+      {{- if $val.dnsConfig }}
+      dnsConfig:
+        {{- toYaml $val.dnsConfig | nindent 8 }}
+      {{- else if $.Values.dnsConfig }}
+      dnsConfig:
+        {{- toYaml $.Values.dnsConfig | nindent 8 }}
+      {{- end }}
       {{- if $.Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml $.Values.imagePullSecrets | nindent 8 }}

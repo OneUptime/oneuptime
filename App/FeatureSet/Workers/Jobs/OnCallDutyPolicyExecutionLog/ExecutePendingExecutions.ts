@@ -221,6 +221,33 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
       return;
     }
 
+    /*
+     * Atomically CLAIM this tick before advancing the escalation. This job is
+     * fanned out with Promise.allSettled and has no per-log lock, so two
+     * overlapping runs (a run exceeding the 1-minute cadence, or multiple
+     * worker replicas) could both read the same lastEscalationRuleExecutedAt,
+     * both pass the time gate above, and both start the same next rule —
+     * paging responders twice. claimEscalationAdvance issues a single atomic
+     * conditional UPDATE (returning the affected-row count) so exactly one run
+     * wins; the loser sees `false` and bows out. See audit F13 — the previous
+     * updateOneBy-based claim was NOT atomic (SELECT + save-by-id) so both runs
+     * could win.
+     */
+    const claimed: boolean =
+      await OnCallDutyPolicyExecutionLogService.claimEscalationAdvance({
+        executionLogId: executionLog.id!,
+        previousLastEscalationRuleExecutedAt:
+          executionLog.lastEscalationRuleExecutedAt || null,
+        newLastEscalationRuleExecutedAt: currentDate,
+      });
+
+    if (!claimed) {
+      logger.debug(
+        `Execution log ${executionLog.id} was already claimed by a concurrent run; skipping to avoid double-paging.`,
+      );
+      return;
+    }
+
     // get the next escalation rule to execute.
     const nextEscalationRule: OnCallDutyPolicyEscalationRule | null =
       await OnCallDutyPolicyEscalationRuleService.findOneBy({
@@ -242,10 +269,18 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
         `No next escalation rule found. Checking if we need to repeat this execution.`,
       );
 
-      // check if we need to repeat this execution.
+      /*
+       * check if we need to repeat this execution.
+       * onCallPolicyExecutionRepeatCount is seeded to 1 on create (the initial
+       * pass), and repeatPolicyIfNoOneAcknowledgesNoOfTimes is the number of
+       * additional repeats requested. Use <= so the policy repeats exactly that
+       * many times: with a strict <, "repeat 1 time" never repeated at all and
+       * "repeat N" only repeated N-1 times, leaving unacknowledged incidents
+       * under-escalated.
+       */
       if (
         executionLog.onCallPolicyExecutionRepeatCount &&
-        executionLog.onCallPolicyExecutionRepeatCount <
+        executionLog.onCallPolicyExecutionRepeatCount <=
           executionLog.onCallDutyPolicy!
             .repeatPolicyIfNoOneAcknowledgesNoOfTimes!
       ) {

@@ -389,7 +389,12 @@ The postmortem should:
 
 Use a standard incident postmortem format with sections for: Executive Summary, Timeline, Root Cause Analysis, Impact, Action Items, and Lessons Learned.
 
-Write in a professional, clear, and concise manner. Use markdown formatting for better readability.`;
+Write in a professional, clear, and concise manner. Use markdown formatting for better readability.
+
+Grounding rules (important):
+- Use ONLY facts that appear in the provided episode data. Do NOT invent root causes, timelines, metrics, impact, or actions the data does not support.
+- If a section needs information the data does not contain, write "Not available in the incident record" instead of guessing.
+- Never fabricate numbers or state confidence levels.`;
     }
 
     // Build user message based on whether template is provided

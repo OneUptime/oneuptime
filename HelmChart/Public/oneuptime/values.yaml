@@ -271,6 +271,27 @@ clickhouse:
   podSecurityContext: {}
   containerSecurityContext: {}
   resources: {}
+  # Health probes for the ClickHouse container. All keys are optional — the
+  # StatefulSet applies the tolerant defaults shown below when a key is unset.
+  # The startupProbe is what prevents the CrashLoop death spiral on a node that
+  # holds a lot of data parts (a slow start no longer trips liveness). Raise
+  # startupProbe.failureThreshold if your ClickHouse routinely needs more than
+  # ~5 minutes (failureThreshold x periodSeconds) to become ready after a boot.
+  startupProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 10
+    failureThreshold: 6
+  readinessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
   # Custom ClickHouse configuration
   configuration: |-
     <clickhouse>
@@ -875,6 +896,23 @@ probes:
     replicaCount: 1
     syntheticMonitorScriptTimeoutInMs: 60000
     customCodeMonitorScriptTimeoutInMs: 60000
+    # DNS settings for this probe. When unset, the probe inherits the chart-wide
+    # `dnsConfig`/`dnsPolicy` defaults (ndots:1 + fallback nameservers — see the
+    # top-level `dnsConfig:` block) that prevent intermittent "getaddrinfo
+    # EAI_AGAIN" false alerts. Uncomment to override for this probe only; a
+    # per-probe value fully replaces the chart-wide default (it is not merged).
+    # dnsConfig:
+    #   options:
+    #     - name: ndots
+    #       value: "1"
+    #     - name: timeout
+    #       value: "2"
+    #     - name: attempts
+    #       value: "2"
+    #   nameservers:
+    #     - "8.8.8.8"
+    #     - "1.1.1.1"
+    # dnsPolicy: ClusterFirst
     disableTelemetryCollection: false
     enableProfiling: false
     disableAutoscaler: false
@@ -939,6 +977,18 @@ probes:
 #     http: 3874
 #   syntheticMonitorScriptTimeoutInMs: 60000
 #   customCodeMonitorScriptTimeoutInMs: 60000
+#   # DNS override for this probe (otherwise inherits the chart-wide dnsConfig default).
+#   dnsConfig:
+#     options:
+#       - name: ndots
+#         value: "1"
+#       - name: timeout
+#         value: "2"
+#       - name: attempts
+#         value: "2"
+#     nameservers:
+#       - "8.8.8.8"
+#       - "1.1.1.1"
 #   disableTelemetryCollection: false
 #   disableAutoscaler: false
 #   # Proxy configuration for probe connections
@@ -1003,6 +1053,34 @@ affinity:
 tolerations:
 nodeSelector:
 hostAliases:
+
+# Chart-wide fallback DNS settings. Services that support DNS overrides (currently
+# the probes) use their per-service dnsConfig/dnsPolicy if set, otherwise these.
+#
+# Probes resolve mostly EXTERNAL hostnames, so the Kubernetes default (ndots:5 +
+# a multi-entry search list) turns every lookup into ~7 DNS queries funneled
+# through a single upstream resolver, causing intermittent "getaddrinfo EAI_AGAIN"
+# failures (false monitor-down alerts) under load. These defaults:
+#  - ndots:1 removes the search-domain fan-out for external names.
+#  - timeout/attempts make the resolver fail over faster instead of hanging.
+#  - nameservers are appended AFTER the cluster resolver (which stays primary via
+#    dnsPolicy: ClusterFirst) as a fallback, so one overloaded upstream no longer
+#    breaks name resolution.
+# Air-gapped clusters with no egress to public DNS: drop the `nameservers` list
+# (or set `dnsConfig: {}`) and keep only the `options` block.
+# dnsPolicy is left unset so Kubernetes uses ClusterFirst (in-cluster API keeps resolving).
+dnsPolicy:
+dnsConfig:
+  options:
+    - name: ndots
+      value: "1"
+    - name: timeout
+      value: "2"
+    - name: attempts
+      value: "2"
+  nameservers:
+    - "8.8.8.8"
+    - "1.1.1.1"
 
 # This can be one of the following: DEBUG, INFO, WARN, ERROR, OFF
 # Please do not set this to DEBUG in production. This is only for development / debugging purposes.
@@ -1437,8 +1515,8 @@ vllm:
   # OneUptime, so AI features work for ALL projects with no dashboard setup.
   # Managed declaratively at startup: disabling this (or vllm.enabled) removes
   # the auto-registered provider on the next deploy, and manual edits to its
-  # env-managed fields (name, type, model, base URL, API key) in the Admin
-  # Dashboard are overwritten (other fields, e.g. token cost, are kept).
+  # env-managed fields (name, description, type, model, base URL, API key) in the
+  # Admin Dashboard are overwritten (other fields, e.g. token cost, are kept).
   # Note: project-scoped AI Agents cannot
   # use global providers (product rule) - they still need a project-specific
   # LLM Provider. Intended for self-hosted installs; with billing.enabled=true
@@ -1447,6 +1525,8 @@ vllm:
     enabled: true
     # Display name of the auto-registered provider in the dashboard.
     name: OneUptime AI
+    # Description of the auto-registered provider shown in the dashboard.
+    description: Investigate, analyze and fix with OneUptime AI.
   # Persistent cache for model weights (HF_HOME) and vLLM compile cache
   # (VLLM_CACHE_ROOT). One PVC per replica; size it to ~2-3x the total model
   # weights. When disabled, a node-disk emptyDir capped at `size` is used

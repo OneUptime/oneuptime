@@ -77,6 +77,30 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
 
           return item;
         }}
+        onBeforeEdit={async (
+          item: IncomingCallPolicyEscalationRule,
+        ): Promise<IncomingCallPolicyEscalationRule> => {
+          // Validation: either userId or onCallDutyPolicyScheduleId must be set
+          if (!item.userId && !item.onCallDutyPolicyScheduleId) {
+            throw new BadDataException(
+              "Please select either a User or an On-Call Schedule",
+            );
+          }
+
+          /*
+           * Clear the opposite field so a rule never holds both targets.
+           * The service onBeforeUpdate hook nulls the corresponding column.
+           */
+          if (item.userId) {
+            delete (item as Partial<IncomingCallPolicyEscalationRule>)
+              .onCallDutyPolicyScheduleId;
+          }
+          if (item.onCallDutyPolicyScheduleId) {
+            delete (item as Partial<IncomingCallPolicyEscalationRule>).userId;
+          }
+
+          return item;
+        }}
         cardProps={{
           title: "Escalation Rules",
           description:
@@ -129,7 +153,19 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
             description: "Select who should be notified when a call comes in.",
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
-            defaultValue: NotifyType.OnCallSchedule,
+            getDefaultValue: (
+              values: FormValues<IncomingCallPolicyEscalationRule>,
+            ): string => {
+              /*
+               * On edit, reflect the saved rule's target so the correct
+               * field (User vs On-Call Schedule) is shown; default to
+               * schedule on create.
+               */
+              if ((values as IncomingCallPolicyEscalationRule).userId) {
+                return NotifyType.User;
+              }
+              return NotifyType.OnCallSchedule;
+            },
             fetchDropdownOptions: async () => {
               return [
                 {

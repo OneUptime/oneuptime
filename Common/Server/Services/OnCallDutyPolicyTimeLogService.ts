@@ -2,6 +2,7 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyTimeLog";
+import QueryHelper from "../Types/Database/QueryHelper";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -25,8 +26,14 @@ export class Service extends DatabaseService<Model> {
       startsAt,
     } = data;
 
-    // check if the time log already exists for the user.
-
+    /*
+     * Check if an OPEN (not-yet-ended) time log already exists for the user.
+     * The endsAt IS NULL filter is essential: without it, a user who rotated
+     * off and later rotates back on would match their already-CLOSED prior log
+     * and skip creating a new one, so their later on-call stints would never be
+     * recorded (and a "who is on call now" query filtering endsAt IS NULL would
+     * miss them). Each distinct on-call stint must be its own row.
+     */
     const existingTimeLog: Model | null = await this.findOneBy({
       query: {
         projectId: data.projectId,
@@ -35,6 +42,7 @@ export class Service extends DatabaseService<Model> {
         userId,
         ...(teamId && { teamId }),
         ...(onCallDutyPolicyScheduleId && { onCallDutyPolicyScheduleId }),
+        endsAt: QueryHelper.isNull(),
       },
       props: {
         isRoot: true,
@@ -74,9 +82,11 @@ export class Service extends DatabaseService<Model> {
   }): Promise<void> {
     const { endsAt, onCallDutyPolicyScheduleId } = data;
     await this.updateBy({
+      // only close still-open logs; never overwrite historical closed intervals.
       query: {
         projectId: data.projectId,
         onCallDutyPolicyScheduleId,
+        endsAt: QueryHelper.isNull(),
       },
       data: {
         endsAt: endsAt,
@@ -96,9 +106,11 @@ export class Service extends DatabaseService<Model> {
   }): Promise<void> {
     const { endsAt, teamId } = data;
     await this.updateBy({
+      // only close still-open logs; never overwrite historical closed intervals.
       query: {
         projectId: data.projectId,
         teamId,
+        endsAt: QueryHelper.isNull(),
       },
 
       limit: LIMIT_PER_PROJECT,
@@ -115,13 +127,22 @@ export class Service extends DatabaseService<Model> {
   public async endTimeForUser(data: {
     projectId: ObjectID;
     userId: ObjectID;
+    /*
+     * When set, only close logs derived from this team. Leaving one team must
+     * not close a user's still-active logs from other teams, direct escalation
+     * assignments, or schedule rosters (audit F17).
+     */
+    teamId?: ObjectID | undefined;
     endsAt: Date;
   }): Promise<void> {
-    const { endsAt, userId } = data;
+    const { endsAt, userId, teamId } = data;
     await this.updateBy({
+      // only close still-open logs; never overwrite historical closed intervals.
       query: {
         projectId: data.projectId,
         userId,
+        ...(teamId && { teamId }),
+        endsAt: QueryHelper.isNull(),
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
@@ -152,6 +173,7 @@ export class Service extends DatabaseService<Model> {
     } = data;
 
     await this.updateBy({
+      // only close the still-open stint; leave prior closed stints intact.
       query: {
         projectId: data.projectId,
         onCallDutyPolicyId,
@@ -159,6 +181,7 @@ export class Service extends DatabaseService<Model> {
         userId,
         ...(teamId && { teamId }),
         ...(onCallDutyPolicyScheduleId && { onCallDutyPolicyScheduleId }),
+        endsAt: QueryHelper.isNull(),
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,

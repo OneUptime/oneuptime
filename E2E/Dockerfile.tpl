@@ -81,6 +81,19 @@ WORKDIR /usr/src/app
 COPY ./E2E/package*.json /usr/src/app/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
+# Install the Playwright browser binaries for the LOCKED playwright version
+# (node_modules/.bin/playwright installed by the npm ci above). The package's
+# `preinstall` hook runs `playwright install-deps && playwright install`, but in
+# this image the apt package lists were removed in the earlier layer, so
+# `install-deps` can abort the `&&` chain before the browser download runs —
+# leaving the runtime with no browser executable
+# ("browserType.launch: Executable doesn't exist ... chrome-headless-shell").
+# The required system libraries are already installed by the apt layer above, so
+# only the browser binaries are needed here; installing them explicitly with the
+# pinned playwright guarantees the correct-version chromium + firefox exist at
+# runtime.
+RUN npx playwright install chromium firefox
+
 # Copy app source
 COPY ./E2E /usr/src/app
 

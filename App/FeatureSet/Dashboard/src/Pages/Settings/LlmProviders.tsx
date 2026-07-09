@@ -196,14 +196,28 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     field: {
                       costPerMillionTokensInUSDCents: true,
                     },
-                    title: "Cost per 1000 Tokens",
+                    title: "Cost per Million Tokens",
                     type: FieldType.Text,
                     getElement: (item: LlmProvider): ReactElement => {
                       const costPerMillionInCents: number =
                         item.costPerMillionTokensInUSDCents || 0;
-                      const costPer1000InUSD: number =
-                        costPerMillionInCents / 100 / 1000;
-                      return <span>${costPer1000InUSD.toFixed(4)} USD</span>;
+
+                      const costPerMillionInUSD: number =
+                        costPerMillionInCents / 100;
+                      const formattedCost: string =
+                        costPerMillionInUSD.toFixed(2);
+
+                      /*
+                       * Show a "Free" pill when there is no cost, or when the
+                       * cost is so small it rounds to $0.00 at the precision we
+                       * display - otherwise we'd render a meaningless
+                       * "$0.00 USD".
+                       */
+                      if (Number(formattedCost) <= 0) {
+                        return <Pill text="Free" color={Green} />;
+                      }
+
+                      return <span>${formattedCost} USD</span>;
                     },
                   },
                 ]

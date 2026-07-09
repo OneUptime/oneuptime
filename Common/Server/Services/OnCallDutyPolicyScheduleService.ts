@@ -8,6 +8,7 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import ObjectID from "../../Types/ObjectID";
 import LayerUtil, { LayerProps } from "../../Types/OnCallDutyPolicy/Layer";
+import Recurring from "../../Types/Events/Recurring";
 import UserOverrideUtil, {
   UserOverrideRecord,
 } from "../../Types/OnCallDutyPolicy/UserOverrideUtil";
@@ -384,7 +385,19 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
           });
         }
 
-        if (newInformation.currentUserIdOnRoster?.toString()) {
+        /*
+         * Only notify "you are now on-call" when the current user ACTUALLY
+         * changed — not merely when the handoff time changed. The enclosing
+         * guard also fires on a rosterHandoffAt change, which happens every
+         * rotation period; without this user-changed check a continuing (e.g.
+         * single-user) roster was re-sent the full email + SMS + phone call +
+         * push + WhatsApp bundle every period. Mirrors the removal branch above.
+         */
+        if (
+          previousInformation.currentUserIdOnRoster?.toString() !==
+            newInformation.currentUserIdOnRoster?.toString() &&
+          newInformation.currentUserIdOnRoster?.toString()
+        ) {
           // send email to the new current user.
           const sendEmailToUserId: ObjectID =
             newInformation.currentUserIdOnRoster;
@@ -544,7 +557,20 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
         previousInformation.nextRosterStartAt?.toString() !==
           newInformation.nextRosterStartAt?.toString()
       ) {
-        if (newInformation.nextUserIdOnRoster?.toString()) {
+        /*
+         * Only notify "you are next on-call" when the next user ACTUALLY
+         * changed — not merely when the next handoff/start time advanced. The
+         * enclosing guard also fires when nextHandOffTimeAt / nextRosterStartAt
+         * change, which happens every rotation period; without this
+         * user-changed check a continuing (e.g. single-user) roster re-sent the
+         * full email + SMS + phone call + push + WhatsApp bundle every period.
+         * Mirrors the current-user "now on-call" branch above.
+         */
+        if (
+          previousInformation.nextUserIdOnRoster?.toString() !==
+            newInformation.nextUserIdOnRoster?.toString() &&
+          newInformation.nextUserIdOnRoster?.toString()
+        ) {
           // send email to the next user.
           const sendEmailToUserId: ObjectID = newInformation.nextUserIdOnRoster;
           const userTimezone: Timezone | null =
@@ -749,6 +775,18 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes,
     );
 
+    /*
+     * When this schedule is attached to exactly one on-call policy, resolve the
+     * roster in that policy's context so its policy-scoped overrides are
+     * reflected in the persisted roster, handoff notifications and time logs —
+     * matching the live paging path, which already passes the policy id (audit
+     * F10). Attached to zero or multiple policies, the roster stays
+     * policy-agnostic (global overrides only), because a single schedule-level
+     * roster cannot represent divergent per-policy overrides.
+     */
+    const singleAttachedPolicyId: ObjectID | undefined =
+      await this.getSingleAttachedPolicyId(scheduleId);
+
     const newInformation: {
       currentUserId: ObjectID | null;
       handOffTimeAt: Date | null;
@@ -756,11 +794,51 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       nextHandOffTimeAt: Date | null;
       rosterStartAt: Date | null;
       nextRosterStartAt: Date | null;
-    } = await this.getCurrrentUserIdAndHandoffTimeInSchedule(scheduleId);
+    } = await this.getCurrrentUserIdAndHandoffTimeInSchedule(scheduleId, {
+      onCallDutyPolicyId: singleAttachedPolicyId,
+    });
 
     logger.debug(newInformation, {
       onCallDutyPolicyScheduleId: scheduleId.toString(),
     } as LogAttributes);
+
+    logger.debug(
+      "Updating schedule with new information for scheduleId: " +
+        scheduleId.toString(),
+      { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes,
+    );
+
+    logger.debug(
+      "Sending notifications for schedule handoff for scheduleId: " +
+        scheduleId.toString(),
+      { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes,
+    );
+
+    /*
+     * Send the handoff notification BEFORE persisting the new roster. The
+     * decision to notify is a diff of the persisted-previous vs new roster; if
+     * we persisted first and the notification then threw (a transient DB error
+     * in the notification-settings / timezone lookup, or a partial send), the
+     * row would already show the new user, so the next tick's diff would show
+     * "no change" and the newly-on-call user would NEVER be told they are on
+     * call — the handoff page would be silently and permanently lost (audit
+     * F11). By notifying first, a failed send leaves the roster un-advanced, so
+     * the schedule is re-selected next tick and the notification is retried
+     * (at worst a duplicate send, which is far better than a missed page for an
+     * on-call system).
+     */
+    await this.sendNotificationToUserOnScheduleHandoff({
+      scheduleId: scheduleId,
+      previousInformation: previousInformation,
+      newInformation: {
+        currentUserIdOnRoster: newInformation.currentUserId,
+        rosterHandoffAt: newInformation.handOffTimeAt,
+        nextUserIdOnRoster: newInformation.nextUserId,
+        nextHandOffTimeAt: newInformation.nextHandOffTimeAt,
+        rosterStartAt: newInformation.rosterStartAt,
+        nextRosterStartAt: newInformation.nextRosterStartAt,
+      },
+    });
 
     logger.debug(
       "Updating schedule with new information for scheduleId: " +
@@ -785,26 +863,6 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     });
 
     logger.debug(
-      "Sending notifications for schedule handoff for scheduleId: " +
-        scheduleId.toString(),
-      { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes,
-    );
-
-    // send notification to the users.
-    await this.sendNotificationToUserOnScheduleHandoff({
-      scheduleId: scheduleId,
-      previousInformation: previousInformation,
-      newInformation: {
-        currentUserIdOnRoster: newInformation.currentUserId,
-        rosterHandoffAt: newInformation.handOffTimeAt,
-        nextUserIdOnRoster: newInformation.nextUserId,
-        nextHandOffTimeAt: newInformation.nextHandOffTimeAt,
-        rosterStartAt: newInformation.rosterStartAt,
-        nextRosterStartAt: newInformation.nextRosterStartAt,
-      },
-    });
-
-    logger.debug(
       "Returning new schedule information for scheduleId: " +
         scheduleId.toString(),
       { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes,
@@ -815,6 +873,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
 
   public async getCurrrentUserIdAndHandoffTimeInSchedule(
     scheduleId: ObjectID,
+    options?: { onCallDutyPolicyId?: ObjectID | undefined } | undefined,
   ): Promise<{
     rosterStartAt: Date | null;
     currentUserId: ObjectID | null;
@@ -852,6 +911,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       await this.getEventByIndexInSchedule({
         scheduleId: scheduleId,
         getNumberOfEvents: 2,
+        onCallDutyPolicyId: options?.onCallDutyPolicyId,
       });
 
     logger.debug("Events fetched: " + JSON.stringify(events), {
@@ -904,10 +964,31 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       // get start time
       const startTime: Date | undefined = currentEvent?.start; // this is user id in string.
       if (startTime) {
-        logger.debug("Current rosterStartAt: " + startTime.toISOString(), {
-          onCallDutyPolicyScheduleId: scheduleId.toString(),
-        } as LogAttributes);
-        resultReturn.rosterStartAt = startTime;
+        logger.debug(
+          "Current rosterStartAt (clamped): " + startTime.toISOString(),
+          {
+            onCallDutyPolicyScheduleId: scheduleId.toString(),
+          } as LogAttributes,
+        );
+
+        /*
+         * currentEvent.start is clamped to the resolution window start (now).
+         * Recover the true start of the current coverage window so the
+         * persisted/displayed "on call since" reflects when the shift actually
+         * began, not ~now (audit F12). Best-effort with a fallback to the
+         * clamped value.
+         */
+        if (resultReturn.currentUserId) {
+          resultReturn.rosterStartAt = await this.getTrueRosterStartAt({
+            scheduleId: scheduleId,
+            currentUserId: resultReturn.currentUserId,
+            now: OneUptimeDate.getCurrentDate(),
+            onCallDutyPolicyId: options?.onCallDutyPolicyId,
+            fallbackStart: startTime,
+          });
+        } else {
+          resultReturn.rosterStartAt = startTime;
+        }
       }
     }
 
@@ -949,6 +1030,104 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       onCallDutyPolicyScheduleId: scheduleId.toString(),
     } as LogAttributes);
     return resultReturn;
+  }
+
+  /*
+   * Returns the on-call policy this schedule is attached to IFF it is attached
+   * to exactly one; otherwise undefined (audit F10). A lazy require avoids a
+   * circular import — OnCallDutyPolicyEscalationRuleScheduleService imports this
+   * service.
+   */
+  private async getSingleAttachedPolicyId(
+    scheduleId: ObjectID,
+  ): Promise<ObjectID | undefined> {
+    try {
+      const escalationRuleScheduleService: {
+        findBy: (
+          args: unknown,
+        ) => Promise<Array<{ onCallDutyPolicyId?: ObjectID | undefined }>>;
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      } = require("./OnCallDutyPolicyEscalationRuleScheduleService").default;
+
+      const links: Array<{ onCallDutyPolicyId?: ObjectID | undefined }> =
+        await escalationRuleScheduleService.findBy({
+          query: { onCallDutyPolicyScheduleId: scheduleId },
+          select: { onCallDutyPolicyId: true },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+      const distinctPolicyIds: Set<string> = new Set<string>();
+      for (const link of links) {
+        const policyId: string | undefined =
+          link.onCallDutyPolicyId?.toString();
+        if (policyId) {
+          distinctPolicyIds.add(policyId);
+        }
+      }
+
+      if (distinctPolicyIds.size === 1) {
+        return new ObjectID(Array.from(distinctPolicyIds)[0]!);
+      }
+    } catch (err) {
+      logger.error(err);
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Re-resolve and persist the roster for every schedule in the project whose
+   * layers include `userId`. Called when a user override is created / updated /
+   * deleted so the persisted roster, handoff notifications and on-call time logs
+   * reflect the override mid-period instead of waiting for the next natural
+   * handoff or the per-minute cron (which does not re-select an established
+   * roster) — audit F4. Best-effort and idempotent: refreshing an unaffected
+   * schedule simply recomputes the same roster; per-schedule errors are logged
+   * and never abort the rest.
+   */
+  public async refreshRostersForUserInProject(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<void> {
+    const layerUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
+      await OnCallDutyPolicyScheduleLayerUserService.findBy({
+        query: {
+          projectId: data.projectId,
+          userId: data.userId,
+        },
+        select: {
+          onCallDutyPolicyScheduleId: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const scheduleIds: Set<string> = new Set<string>();
+    for (const layerUser of layerUsers) {
+      const scheduleId: string | undefined =
+        layerUser.onCallDutyPolicyScheduleId?.toString();
+      if (scheduleId) {
+        scheduleIds.add(scheduleId);
+      }
+    }
+
+    for (const scheduleId of scheduleIds) {
+      try {
+        await this.refreshCurrentUserIdAndHandoffTimeInSchedule(
+          new ObjectID(scheduleId),
+        );
+      } catch (err) {
+        logger.error(
+          `Error refreshing roster for schedule ${scheduleId} after a user override change.`,
+        );
+        logger.error(err);
+      }
+    }
   }
 
   private async getScheduleLayerProps(data: { scheduleId: ObjectID }): Promise<{
@@ -1006,6 +1185,24 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
         },
       });
 
+    /*
+     * The schedule's timezone (if set) is applied to every layer so restriction
+     * wall-clock times resolve in that zone. When null (existing schedules), the
+     * layer engine falls back to server-local time — unchanged legacy behavior.
+     */
+    const schedule: OnCallDutyPolicySchedule | null = await this.findOneById({
+      id: scheduleId,
+      select: {
+        timezone: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const scheduleTimezone: string | undefined =
+      schedule?.timezone?.toString() || undefined;
+
     const layerProps: Array<LayerProps> = [];
     const scheduleUserIds: Array<ObjectID> = [];
     const seenUserIds: Set<string> = new Set<string>();
@@ -1039,6 +1236,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
         restrictionTimes: layer.restrictionTimes!,
         rotation: layer.rotation!,
         handOffTime: layer.handOffTime!,
+        timezone: scheduleTimezone,
       });
     }
 
@@ -1114,6 +1312,169 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       });
   }
 
+  /*
+   * Compute how far out to resolve calendar events. Returns at least 1 year
+   * from `from`, but extends far enough to contain (getNumberOfEvents + 1)
+   * rotation periods for the slowest layer, so multi-year rotations still yield
+   * a current and next event.
+   */
+  private computeResolutionWindowEnd(
+    layerProps: Array<LayerProps>,
+    from: Date,
+    getNumberOfEvents: number,
+  ): Date {
+    let windowEnd: Date = OneUptimeDate.addRemoveYears(from, 1);
+
+    const periodsNeeded: number = Math.max(2, getNumberOfEvents + 1);
+
+    for (const layer of layerProps) {
+      if (!layer.rotation) {
+        continue;
+      }
+
+      let recurring: Recurring;
+      try {
+        recurring =
+          layer.rotation instanceof Recurring
+            ? layer.rotation
+            : Recurring.fromJSON(layer.rotation as any);
+      } catch {
+        continue;
+      }
+
+      let candidate: Date = from;
+      for (let i: number = 0; i < periodsNeeded; i++) {
+        candidate = Recurring.getNextDateInterval(candidate, recurring);
+      }
+
+      if (OneUptimeDate.isAfter(candidate, windowEnd)) {
+        windowEnd = candidate;
+      }
+    }
+
+    return windowEnd;
+  }
+
+  /*
+   * Mirror of computeResolutionWindowEnd, stepping BACKWARDS: the earliest of
+   * `from` minus `periodsBack` rotation periods across the layers (at least a
+   * day). Used to recover the true, un-clamped start of the current coverage
+   * window for rosterStartAt (audit F12).
+   */
+  private computeResolutionWindowStart(
+    layerProps: Array<LayerProps>,
+    from: Date,
+    periodsBack: number,
+  ): Date {
+    let windowStart: Date = OneUptimeDate.addRemoveDays(from, -1);
+
+    for (const layer of layerProps) {
+      if (!layer.rotation) {
+        continue;
+      }
+
+      let recurring: Recurring;
+      try {
+        recurring =
+          layer.rotation instanceof Recurring
+            ? layer.rotation
+            : Recurring.fromJSON(layer.rotation as any);
+      } catch {
+        continue;
+      }
+
+      let candidate: Date = from;
+      for (let i: number = 0; i < periodsBack; i++) {
+        candidate = Recurring.getNextDateInterval(candidate, recurring, true);
+      }
+
+      if (OneUptimeDate.isBefore(candidate, windowStart)) {
+        windowStart = candidate;
+      }
+    }
+
+    return windowStart;
+  }
+
+  /*
+   * Recover the TRUE start of the current on-call coverage window for
+   * `currentUserId`. getEventByIndexInSchedule always expands from `now`, and
+   * LayerUtil clamps the first event's start to the window start, so the current
+   * event's start reads ~now rather than when the shift actually began. We
+   * re-expand over a bounded lookback window and return the start of the segment
+   * that covers `now` for the current user. Best-effort: any failure (or no
+   * covering segment found) falls back to the clamped value, so the who-is-paged
+   * path is never affected (audit F12).
+   */
+  private async getTrueRosterStartAt(data: {
+    scheduleId: ObjectID;
+    currentUserId: ObjectID;
+    now: Date;
+    onCallDutyPolicyId?: ObjectID | undefined;
+    fallbackStart: Date;
+  }): Promise<Date> {
+    try {
+      const { layerProps, projectId, scheduleUserIds } =
+        await this.getScheduleLayerProps({ scheduleId: data.scheduleId });
+
+      if (layerProps.length === 0) {
+        return data.fallbackStart;
+      }
+
+      const windowStart: Date = this.computeResolutionWindowStart(
+        layerProps,
+        data.now,
+        2,
+      );
+      const windowEnd: Date = OneUptimeDate.addRemoveSeconds(data.now, 1);
+
+      let events: Array<CalendarEvent> = this.layerUtil.getMultiLayerEvents({
+        layers: layerProps,
+        calendarStartDate: windowStart,
+        calendarEndDate: windowEnd,
+      });
+
+      if (projectId && events.length > 0) {
+        const overrides: Array<UserOverrideRecord> =
+          await this.fetchOverridesForSchedule({
+            projectId,
+            scheduleUserIds,
+            windowStart,
+            windowEnd,
+            currentOnCallDutyPolicyId: data.onCallDutyPolicyId,
+          });
+
+        if (overrides.length > 0) {
+          events = UserOverrideUtil.applyOverridesToEvents({
+            events,
+            overrides,
+            currentOnCallDutyPolicyId: data.onCallDutyPolicyId?.toString(),
+          });
+        }
+      }
+
+      const currentUserIdStr: string = data.currentUserId.toString();
+
+      for (const event of events) {
+        if (!event) {
+          continue;
+        }
+
+        if (
+          event.title === currentUserIdStr &&
+          OneUptimeDate.isOnOrBefore(event.start, data.now) &&
+          OneUptimeDate.isOnOrAfter(event.end, data.now)
+        ) {
+          return event.start;
+        }
+      }
+    } catch (err) {
+      logger.error(err);
+    }
+
+    return data.fallbackStart;
+  }
+
   public async getEventByIndexInSchedule(data: {
     scheduleId: ObjectID;
     getNumberOfEvents: number; // which event would you like to get. First event, second event, etc.
@@ -1150,9 +1511,18 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       onCallDutyPolicyScheduleId: data.scheduleId.toString(),
     } as LogAttributes);
 
-    const currentEndTime: Date = OneUptimeDate.addRemoveYears(
+    /*
+     * Size the resolution window from the layers' rotations rather than a fixed
+     * 1 year. A rotation period longer than a year (e.g. a 3-year rotation)
+     * would otherwise clamp the current event's end to now+1yr and report a
+     * bogus handoff time with no "next" user. The window is at least 1 year and
+     * large enough to contain the requested number of events for the slowest
+     * layer.
+     */
+    const currentEndTime: Date = this.computeResolutionWindowEnd(
+      layerProps,
       currentStartTime,
-      1,
+      data.getNumberOfEvents,
     );
     logger.debug("Current end time: " + currentEndTime.toISOString(), {
       onCallDutyPolicyScheduleId: data.scheduleId.toString(),

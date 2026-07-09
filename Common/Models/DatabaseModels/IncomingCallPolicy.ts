@@ -89,6 +89,19 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
   tableDescription:
     "Manage incoming call routing policies with escalation rules for on-call teams",
 })
+/*
+ * A routing phone number may belong to at most one active policy. The inbound
+ * /voice webhook looks up the policy by routingPhoneNumber and assumes a single
+ * match, so this uniqueness is enforced at the DB level (partial index in the
+ * migration; NULLs are allowed for policies without a number yet).
+ */
+@Index(
+  "IDX_INCOMING_CALL_POLICY_ROUTING_PHONE_UNIQUE",
+  ["routingPhoneNumber"],
+  {
+    unique: true,
+  },
+)
 export default class IncomingCallPolicy extends BaseModel {
   @ColumnAccessControl({
     create: [

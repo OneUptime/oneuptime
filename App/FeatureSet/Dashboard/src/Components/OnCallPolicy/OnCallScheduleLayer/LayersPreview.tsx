@@ -1,9 +1,7 @@
-import { Blue500, BrightColors } from "Common/Types/BrandColors";
+import { getColorForUserId } from "./LayerUserColors";
 import CalendarEvent from "Common/Types/Calendar/CalendarEvent";
-import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
-import HashCode from "Common/Types/HashCode";
 import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
 import UserOverrideUtil, {
   OverrideEventMeta,
@@ -36,6 +34,11 @@ export interface ComponentProps {
   allLayerUsers: Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>;
   showFieldLabel?: boolean;
   id?: string | undefined;
+  /*
+   * The schedule's IANA timezone; when set the preview resolves restriction
+   * windows in that zone so it matches how the server pages people.
+   */
+  timezone?: string | undefined;
 }
 
 interface UserInfo {
@@ -50,20 +53,6 @@ interface UserColorAssignment {
   color: string;
   isSubstitute?: boolean;
 }
-
-const getColorForUserId: (userId: string) => string = (
-  userId: string,
-): string => {
-  const colorListLength: number = BrightColors.length;
-  /*
-   * HashCode.fromString may return a negative 32-bit int; abs first so the
-   * modulo lands inside the BrightColors array instead of falling through to
-   * the Blue500 default for every user with a negative hash.
-   */
-  const colorIndex: number =
-    Math.abs(HashCode.fromString(userId)) % colorListLength;
-  return (BrightColors[colorIndex] as Color)?.toString() || Blue500.toString();
-};
 
 const getDisplayName: (info: UserInfo | undefined) => string = (
   info: UserInfo | undefined,
@@ -292,6 +281,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         handOffTime: layer.handOffTime!,
         rotation: layer.rotation!,
         restrictionTimes: layer.restrictionTimes!,
+        timezone: props.timezone,
       });
     }
 
@@ -351,6 +341,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
   }, [
     props.layers,
     props.allLayerUsers,
+    props.timezone,
     startTime,
     endTime,
     overrides,
@@ -367,8 +358,11 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
           required={true}
           title="Layer Preview"
           description={
-            "Here is a preview of who is on call and when. This is based on your local timezone - " +
-            OneUptimeDate.getCurrentTimezoneString()
+            props.timezone
+              ? "Here is a preview of who is on call and when. Restriction windows are resolved in this schedule's timezone - " +
+                props.timezone
+              : "Here is a preview of who is on call and when. This is based on your local timezone - " +
+                OneUptimeDate.getCurrentTimezoneString()
           }
         />
       )}
@@ -408,6 +402,13 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
           handled by a substitute user via an active override.
         </div>
       )}
+
+      <div className="mt-2 text-xs text-gray-500">
+        Note: this preview reflects <span className="font-medium">global</span>{" "}
+        user overrides only. Policy-specific overrides are applied when a
+        particular on-call policy escalates and are not shown here, so the
+        person actually paged by a given policy may differ.
+      </div>
 
       <Calendar
         events={calendarEvents}

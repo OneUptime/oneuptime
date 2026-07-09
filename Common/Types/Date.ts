@@ -85,8 +85,20 @@ export default class OneUptimeDate {
     return new Date(timestamp * 1000);
   }
 
-  public static getStartOfTheWeek(date: Date): Date {
+  public static getStartOfTheWeek(
+    date: Date,
+    timezone?: string | undefined,
+  ): Date {
     date = this.fromString(date);
+    if (timezone) {
+      /*
+       * Timezone-aware start of week so on-call weekly-restriction boundaries
+       * anchor to the schedule's zone, consistent with the other boundary
+       * computations (keepTimeButMoveDay / getStartOfDay). Without a timezone
+       * the boundary is taken in the server's local zone (legacy behavior).
+       */
+      return moment.tz(date, timezone).startOf("week").toDate();
+    }
     return moment(date).startOf("week").toDate();
   }
 
@@ -211,15 +223,16 @@ export default class OneUptimeDate {
     date: Date,
     moveToWeek: Date,
     dayOfWeek: DayOfWeek,
+    timezone?: string | undefined,
   ): Date {
     // date will be moved to the week of "moveToWeek" and then to the day of week "dayOfWeek"
 
     date = this.fromString(date);
-    date = this.keepTimeButMoveDay(date, moveToWeek);
+    date = this.keepTimeButMoveDay(date, moveToWeek, timezone);
 
     // now move the date to the day of week
 
-    const dateDayOfWeek: DayOfWeek = this.getDayOfWeek(date);
+    const dateDayOfWeek: DayOfWeek = this.getDayOfWeek(date, timezone);
 
     if (dateDayOfWeek === dayOfWeek) {
       return date;
@@ -237,12 +250,90 @@ export default class OneUptimeDate {
       return date;
     }
 
-    return this.addRemoveDays(date, difference);
+    /*
+     * Forward the timezone to the final day-shift too. The first two steps
+     * (keepTimeButMoveDay, getDayOfWeek) are already timezone-aware; without
+     * the timezone here this last shift used the process zone, so a shift that
+     * straddles a DST transition in the target zone (but not the process zone)
+     * drifted the resolved weekly-restriction boundary by the DST offset
+     * (audit F9).
+     */
+    return this.addRemoveDays(date, difference, timezone);
   }
 
   public static getDayOfTheWeekIndex(date: Date): number {
     date = this.fromString(date);
     return moment(date).weekday();
+  }
+
+  /**
+   * Format the wall-clock time (HH:mm, respecting the 12/24h preference) of an
+   * instant AS SEEN IN `timezone`. With no timezone, falls back to the
+   * process/browser local wall-clock. Used to show on-call restriction hours in
+   * the schedule's timezone rather than the viewer's browser zone (audit F10).
+   */
+  public static getHourAndMinuteInTimezoneString(
+    date: Date | string,
+    timezone?: string | undefined,
+  ): string {
+    date = this.fromString(date);
+    if (!timezone) {
+      return this.getLocalHourAndMinuteFromDate(date);
+    }
+    const use12HourFormat: boolean = this.getUserPrefers12HourFormat();
+    return moment
+      .tz(date, timezone)
+      .format(use12HourFormat ? "h:mm A" : "HH:mm");
+  }
+
+  /**
+   * Reinterpret the wall-clock components of `date` — read in the process /
+   * browser local zone — as the SAME wall-clock in `timezone`, and return that
+   * instant. Used to store a time the user typed for the schedule's timezone
+   * even though the time picker captured it in the browser's local zone (audit
+   * F1). Inverse of getLocalDateFromWallClockInTimezone.
+   */
+  public static getInstantFromLocalWallClockInTimezone(
+    date: Date | string,
+    timezone: string,
+  ): Date {
+    date = this.fromString(date);
+    const local: moment.Moment = moment(date);
+    return moment
+      .tz(
+        {
+          year: local.year(),
+          month: local.month(),
+          day: local.date(),
+          hour: local.hour(),
+          minute: local.minute(),
+          second: local.second(),
+        },
+        timezone,
+      )
+      .toDate();
+  }
+
+  /**
+   * Inverse of getInstantFromLocalWallClockInTimezone: return a process /
+   * browser local Date whose LOCAL wall-clock equals `date`'s wall-clock as seen
+   * in `timezone`. Used to display a stored schedule-timezone time inside a
+   * browser-local time picker (audit F1).
+   */
+  public static getLocalDateFromWallClockInTimezone(
+    date: Date | string,
+    timezone: string,
+  ): Date {
+    date = this.fromString(date);
+    const zoned: moment.Moment = moment.tz(date, timezone);
+    return moment({
+      year: zoned.year(),
+      month: zoned.month(),
+      day: zoned.date(),
+      hour: zoned.hour(),
+      minute: zoned.minute(),
+      second: zoned.second(),
+    }).toDate();
   }
 
   public static isOverlapping(
@@ -435,9 +526,34 @@ export default class OneUptimeDate {
     return moment();
   }
 
-  public static keepTimeButMoveDay(keepTimeFor: Date, moveDayTo: Date): Date {
+  public static keepTimeButMoveDay(
+    keepTimeFor: Date,
+    moveDayTo: Date,
+    timezone?: string | undefined,
+  ): Date {
     keepTimeFor = this.fromString(keepTimeFor);
     moveDayTo = this.fromString(moveDayTo);
+
+    if (timezone) {
+      /*
+       * Timezone-aware: keep the wall-clock time of `keepTimeFor` AS SEEN IN
+       * `timezone`, and place it on the day of `moveDayTo` (also in `timezone`).
+       * This is what makes an on-call restriction like "09:00-17:00" resolve to
+       * 09:00 in the schedule's zone regardless of the server's zone, and lets
+       * moment-timezone handle DST transitions correctly.
+       */
+      const src: moment.Moment = moment.tz(keepTimeFor, timezone);
+      return moment
+        .tz(moveDayTo, timezone)
+        .set({
+          hour: src.hour(),
+          minute: src.minute(),
+          second: src.second(),
+          millisecond: src.millisecond(),
+        })
+        .toDate();
+    }
+
     return moment(moveDayTo)
       .set({
         hour: keepTimeFor.getHours(),
@@ -456,7 +572,24 @@ export default class OneUptimeDate {
     return this.getSomeDaysAgo(new PositiveNumber(1));
   }
 
-  public static fromUnixNano(timestamp: number): Date {
+  public static fromUnixNano(timestamp: string | number): Date {
+    /*
+     * Nanosecond epoch values are far larger than Number.MAX_SAFE_INTEGER, so
+     * parsing them as a float (or dividing that float by 1e6) silently drops
+     * up to a full millisecond of precision. When the raw value is an integer
+     * string, divide with BigInt to keep exact millisecond precision; fall
+     * back to numeric division for number inputs and non-integer strings.
+     */
+    if (typeof timestamp === "string") {
+      const trimmed: string = timestamp.trim();
+      const integerPattern: RegExp = /^[+-]?\d+$/;
+      if (integerPattern.test(trimmed)) {
+        const nanosPerMilli: bigint = BigInt(1000000);
+        const millis: number = Number(BigInt(trimmed) / nanosPerMilli);
+        return moment(millis).toDate();
+      }
+      return moment(Number(trimmed) / 1000000).toDate();
+    }
     return moment(timestamp / 1000000).toDate();
   }
 
@@ -610,8 +743,24 @@ export default class OneUptimeDate {
     return moment(date).add(minutes, "minutes").toDate();
   }
 
-  public static addRemoveDays(date: Date, days: number): Date {
+  /*
+   * Calendar-unit arithmetic. When `timezone` is provided the step preserves
+   * the wall-clock time in that zone across DST transitions (e.g. an on-call
+   * handoff/restriction authored for 09:00 stays at 09:00 local after
+   * spring-forward/fall-back). Without a timezone the step is taken in the
+   * server's local zone — fully backward compatible for existing callers.
+   * Hours/minutes/seconds are absolute units and intentionally have no
+   * timezone-aware variant.
+   */
+  public static addRemoveDays(
+    date: Date,
+    days: number,
+    timezone?: string | undefined,
+  ): Date {
     date = this.fromString(date);
+    if (timezone) {
+      return moment.tz(date, timezone).add(days, "days").toDate();
+    }
     return moment(date).add(days, "days").toDate();
   }
 
@@ -620,18 +769,39 @@ export default class OneUptimeDate {
     return moment(date).add(hours, "hours").toDate();
   }
 
-  public static addRemoveYears(date: Date, years: number): Date {
+  public static addRemoveYears(
+    date: Date,
+    years: number,
+    timezone?: string | undefined,
+  ): Date {
     date = this.fromString(date);
+    if (timezone) {
+      return moment.tz(date, timezone).add(years, "years").toDate();
+    }
     return moment(date).add(years, "years").toDate();
   }
 
-  public static addRemoveMonths(date: Date, months: number): Date {
+  public static addRemoveMonths(
+    date: Date,
+    months: number,
+    timezone?: string | undefined,
+  ): Date {
     date = this.fromString(date);
+    if (timezone) {
+      return moment.tz(date, timezone).add(months, "months").toDate();
+    }
     return moment(date).add(months, "months").toDate();
   }
 
-  public static addRemoveWeeks(date: Date, weeks: number): Date {
+  public static addRemoveWeeks(
+    date: Date,
+    weeks: number,
+    timezone?: string | undefined,
+  ): Date {
     date = this.fromString(date);
+    if (timezone) {
+      return moment.tz(date, timezone).add(weeks, "weeks").toDate();
+    }
     return moment(date).add(weeks, "weeks").toDate();
   }
 
@@ -941,13 +1111,19 @@ export default class OneUptimeDate {
     return moment().year();
   }
 
-  public static getStartOfDay(date: Date): Date {
+  public static getStartOfDay(date: Date, timezone?: string | undefined): Date {
     date = this.fromString(date);
+    if (timezone) {
+      return moment.tz(date, timezone).startOf("day").toDate();
+    }
     return moment(date).startOf("day").toDate();
   }
 
-  public static getEndOfDay(date: Date): Date {
+  public static getEndOfDay(date: Date, timezone?: string | undefined): Date {
     date = this.fromString(date);
+    if (timezone) {
+      return moment.tz(date, timezone).endOf("day").toDate();
+    }
     return moment(date).endOf("day").toDate();
   }
 
@@ -970,8 +1146,11 @@ export default class OneUptimeDate {
     return moment(date).isSameOrAfter(startDate, "seconds");
   }
 
-  public static getDayOfWeek(date: Date): DayOfWeek {
-    const dayOfWeek: number = this.geyDayOfWeekAsNumber(date);
+  public static getDayOfWeek(
+    date: Date,
+    timezone?: string | undefined,
+  ): DayOfWeek {
+    const dayOfWeek: number = this.geyDayOfWeekAsNumber(date, timezone);
 
     if (dayOfWeek === 1) {
       return DayOfWeek.Monday;
@@ -992,8 +1171,14 @@ export default class OneUptimeDate {
     throw new BadDataException("Invalid day of week");
   }
 
-  public static geyDayOfWeekAsNumber(date: Date): number {
+  public static geyDayOfWeekAsNumber(
+    date: Date,
+    timezone?: string | undefined,
+  ): number {
     date = this.fromString(date);
+    if (timezone) {
+      return moment.tz(date, timezone).isoWeekday();
+    }
     return moment(date).isoWeekday();
   }
 

@@ -12,6 +12,7 @@ import FinalPreview from "../../../Components/OnCallPolicy/OnCallScheduleLayer/F
 import ProjectUtil from "Common/UI/Utils/Project";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import OneUptimeDate from "Common/Types/Date";
+import TimezoneUtil from "Common/UI/Utils/Timezone";
 import IconProp from "Common/Types/Icon/IconProp";
 import AppLink from "../../../Components/AppLink/AppLink";
 import DashboardUserUtil from "../../../Utils/User";
@@ -159,6 +160,19 @@ const OnCallDutyScheduleView: FunctionComponent<
           },
           {
             field: {
+              timezone: true,
+            },
+            stepId: "on-call-Schedule-info",
+            title: "Timezone",
+            description:
+              "The timezone this schedule's active-hour restrictions and hand-off times are interpreted in. Leave empty to use the server's local timezone.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: TimezoneUtil.getTimezoneDropdownOptions(),
+            required: false,
+            placeholder: "Select Timezone",
+          },
+          {
+            field: {
               labels: true,
             },
             title: "Labels ",
@@ -234,6 +248,13 @@ const OnCallDutyScheduleView: FunctionComponent<
                 description: true,
               },
               title: "Description",
+            },
+            {
+              field: {
+                timezone: true,
+              },
+              title: "Timezone",
+              placeholder: "Server local timezone",
             },
           ],
           modelId: modelId,

@@ -1,5 +1,6 @@
 import logger from "../Utils/Logger";
 import DatabaseDataSourceOptions from "./Postgres/DataSourceOptions";
+import { recordSchemaMigrationFailureBestEffort } from "../Utils/Database/MigrationFailureLog";
 import Sleep from "../../Types/Sleep";
 import { DataSource, DataSourceOptions, QueryRunner } from "typeorm";
 import { createDatabase, dropDatabase } from "typeorm-extension";
@@ -95,6 +96,16 @@ export default class Database {
     } catch (err) {
       logger.error("Postgres Database Connection Failed");
       logger.error(err);
+
+      /*
+       * When this process runs schema migrations on boot (migrationsRun=true),
+       * connect() also fails if a migration threw. Record which migration
+       * failed and why — on a throwaway connection, since the DataSource above
+       * is unusable — so the admin health page can explain the pending schema.
+       * Best-effort and self-contained: it never throws and never masks `err`.
+       */
+      await recordSchemaMigrationFailureBestEffort(dataSourceOptions, err);
+
       throw err;
     }
   }

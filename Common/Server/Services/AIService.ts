@@ -11,7 +11,10 @@ import LLMService, {
   LLMMessage,
   LLMToolCall,
   LLMToolDefinition,
+  LLMUsage,
 } from "../Utils/LLM/LLMService";
+import LlmType from "../../Types/LLM/LlmType";
+import { Span, trace } from "@opentelemetry/api";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import LlmLog from "../../Models/DatabaseModels/LlmLog";
 import LlmLogStatus from "../../Types/LlmLogStatus";
@@ -129,9 +132,17 @@ export class Service extends BaseService {
       logEntry.aiRunId = request.aiRunId;
     }
 
-    // Check if billing should apply
+    /*
+     * Check if billing should apply. Only bill for the global (OneUptime-hosted)
+     * provider, and only when it actually has a per-token cost. A free global
+     * provider (costPerMillionTokensInUSDCents = 0, the default) consumes no
+     * balance, so it must not require or block on one either — otherwise a $0
+     * provider would still fail with "Insufficient AI balance".
+     */
     const shouldBill: boolean =
-      IsBillingEnabled && (llmProvider.isGlobalLlm || false);
+      IsBillingEnabled &&
+      (llmProvider.isGlobalLlm || false) &&
+      (llmProvider.costPerMillionTokensInUSDCents || 0) > 0;
 
     // Check balance if billing enabled and using global provider
     if (shouldBill) {
@@ -234,6 +245,18 @@ export class Service extends BaseService {
         }
       }
 
+      /*
+       * Emit gen_ai.* semantic-convention attributes on the active span so
+       * OneUptime's own AI usage is a first-class LLM span in OneUptime's own
+       * telemetry (dogfooding — LlmSpanUtil detects these). Never fails the call.
+       */
+      this.setGenAiSpanAttributes({
+        llmType: llmProvider.llmType,
+        modelName: llmConfig.modelName,
+        usage: response.usage,
+        costInUSDCents: logEntry.costInUSDCents,
+      });
+
       // Save log entry
       const savedLog: LlmLog = await LlmLogService.create({
         data: logEntry,
@@ -259,6 +282,55 @@ export class Service extends BaseService {
       });
 
       throw error;
+    }
+  }
+
+  /*
+   * Set gen_ai.* attributes (OpenTelemetry GenAI semantic conventions) on the
+   * currently-active span. The @CaptureSpan()-wrapped caller owns that span, so
+   * LlmSpanUtil recognizes these calls as first-class LLM spans.
+   */
+  private setGenAiSpanAttributes(data: {
+    llmType: LlmType;
+    modelName?: string | undefined;
+    usage?: LLMUsage | undefined;
+    costInUSDCents?: number | undefined;
+  }): void {
+    try {
+      const span: Span | undefined = trace.getActiveSpan();
+      if (!span) {
+        return;
+      }
+
+      span.setAttribute("gen_ai.system", data.llmType.toString());
+      span.setAttribute("gen_ai.provider.name", data.llmType.toString());
+      span.setAttribute("gen_ai.operation.name", "chat");
+
+      if (data.modelName) {
+        span.setAttribute("gen_ai.request.model", data.modelName);
+        span.setAttribute("gen_ai.response.model", data.modelName);
+      }
+
+      if (data.usage) {
+        span.setAttribute(
+          "gen_ai.usage.input_tokens",
+          data.usage.promptTokens || 0,
+        );
+        span.setAttribute(
+          "gen_ai.usage.output_tokens",
+          data.usage.completionTokens || 0,
+        );
+        span.setAttribute(
+          "gen_ai.usage.total_tokens",
+          data.usage.totalTokens || 0,
+        );
+      }
+
+      if (data.costInUSDCents) {
+        span.setAttribute("gen_ai.usage.cost_usd", data.costInUSDCents / 100);
+      }
+    } catch {
+      // Telemetry must never fail the LLM call.
     }
   }
 }

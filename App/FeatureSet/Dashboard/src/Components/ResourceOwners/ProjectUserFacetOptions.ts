@@ -40,38 +40,45 @@ const getInitials: (name: string) => string = (name: string): string => {
 };
 
 const toUserOptions: (
-  result: ListResult<TeamMember>,
+  results: Array<ListResult<TeamMember>>,
 ) => Array<FilterChipDropdownOption> = (
-  result: ListResult<TeamMember>,
+  results: Array<ListResult<TeamMember>>,
 ): Array<FilterChipDropdownOption> => {
   const seenUserIds: Set<string> = new Set<string>();
   const options: Array<FilterChipDropdownOption> = [];
 
-  for (const teamMember of result.data) {
-    const userId: string | undefined = teamMember.user?._id?.toString();
-    if (!userId || seenUserIds.has(userId)) {
-      continue;
+  /*
+   * Dedup across every result set (a user can match on name AND email, or
+   * belong to several teams) so each person appears once.
+   */
+  for (const result of results) {
+    for (const teamMember of result.data) {
+      const userId: string | undefined = teamMember.user?._id?.toString();
+      if (!userId || seenUserIds.has(userId)) {
+        continue;
+      }
+      seenUserIds.add(userId);
+      const label: string =
+        teamMember.user?.name?.toString() ||
+        teamMember.user?.email?.toString() ||
+        "";
+      options.push({
+        value: userId,
+        label: label,
+        initials: getInitials(label),
+        icon: IconProp.User,
+        group: "People",
+      });
     }
-    seenUserIds.add(userId);
-    const label: string =
-      teamMember.user?.name?.toString() ||
-      teamMember.user?.email?.toString() ||
-      "";
-    options.push({
-      value: userId,
-      label: label,
-      initials: getInitials(label),
-      icon: IconProp.User,
-      group: "People",
-    });
   }
 
   return options;
 };
 
 /**
- * Search project members by name for a facet picker. Called by the chip on
- * open and on each (debounced) keystroke, so the server does the filtering.
+ * Search project members by name or email for a facet picker. Called by the
+ * chip on open and on each (debounced) keystroke, so the server does the
+ * filtering.
  */
 export const loadProjectUserOptions: (
   projectId: ObjectID,
@@ -80,34 +87,47 @@ export const loadProjectUserOptions: (
   projectId: ObjectID,
   searchTerm: string,
 ): Promise<Array<FilterChipDropdownOption>> => {
-  const query: Query<TeamMember> = {
-    projectId: projectId,
-  } as Query<TeamMember>;
-
   const trimmed: string = searchTerm.trim();
-  if (trimmed) {
-    (query as unknown as Record<string, unknown>)["user"] = {
-      name: new Search(trimmed),
-    };
-  }
 
-  const result: ListResult<TeamMember> = await ModelAPI.getList<TeamMember>({
-    modelType: TeamMember,
-    query: query,
-    limit: PROJECT_USER_PICKER_LIMIT,
-    skip: 0,
-    select: {
-      _id: true,
-      user: {
-        _id: true,
-        name: true,
-        email: true,
-      },
-    },
-    sort: {},
-  });
+  /*
+   * Match the term against the user's name AND email. There's no OR across
+   * two relation fields in a single query, so run one query per field and let
+   * toUserOptions union + dedup the results.
+   */
+  const queries: Array<Query<TeamMember>> = trimmed
+    ? [
+        {
+          projectId: projectId,
+          user: { name: new Search(trimmed) },
+        } as unknown as Query<TeamMember>,
+        {
+          projectId: projectId,
+          user: { email: new Search(trimmed) },
+        } as unknown as Query<TeamMember>,
+      ]
+    : [{ projectId: projectId } as Query<TeamMember>];
 
-  return toUserOptions(result);
+  const results: Array<ListResult<TeamMember>> = await Promise.all(
+    queries.map((query: Query<TeamMember>) => {
+      return ModelAPI.getList<TeamMember>({
+        modelType: TeamMember,
+        query: query,
+        limit: PROJECT_USER_PICKER_LIMIT,
+        skip: 0,
+        select: {
+          _id: true,
+          user: {
+            _id: true,
+            name: true,
+            email: true,
+          },
+        },
+        sort: {},
+      });
+    }),
+  );
+
+  return toUserOptions(results);
 };
 
 /**
@@ -144,7 +164,7 @@ export const resolveProjectUserOptions: (
     sort: {},
   });
 
-  return toUserOptions(result);
+  return toUserOptions([result]);
 };
 
 /**

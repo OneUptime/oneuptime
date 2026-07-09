@@ -45,6 +45,22 @@ const RecurringFieldElement: FunctionComponent<ComponentProps> = (
               valueNumber = parseInt(valueNumber.toString());
             }
 
+            /*
+             * Ignore transient invalid input (e.g. an empty field mid-edit) so
+             * we never persist NaN as the rotation interval, and enforce a
+             * whole-number minimum of 1. A 0 / NaN interval count previously
+             * broke the rotation handoff math.
+             */
+            if (!Number.isFinite(valueNumber) || isNaN(valueNumber)) {
+              return;
+            }
+
+            if (valueNumber < 1) {
+              valueNumber = 1;
+            }
+
+            valueNumber = Math.floor(valueNumber);
+
             let tempRecurring: Recurring | undefined = recurring;
 
             if (!tempRecurring) {

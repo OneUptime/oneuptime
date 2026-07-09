@@ -767,6 +767,15 @@
                         "null"
                     ]
                 },
+                "startupProbe": {
+                    "type": "object"
+                },
+                "livenessProbe": {
+                    "type": "object"
+                },
+                "readinessProbe": {
+                    "type": "object"
+                },
                 "configuration": {
                     "type": "string"
                 },
@@ -1640,6 +1649,42 @@
                         },
                         "enableProfiling": {
                             "type": "boolean"
+                        },
+                        "dnsPolicy": {
+                            "type": ["string", "null"]
+                        },
+                        "dnsConfig": {
+                            "type": ["object", "null"],
+                            "properties": {
+                                "nameservers": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "searches": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "options": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "value": {
+                                                "type": ["string", "null"]
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                }
+                            },
+                            "additionalProperties": false
                         }
                     },
                     "additionalProperties": false
@@ -3056,6 +3101,9 @@
                         },
                         "name": {
                             "type": "string"
+                        },
+                        "description": {
+                            "type": "string"
                         }
                     },
                     "additionalProperties": false
@@ -3178,6 +3226,42 @@
         "altinity-clickhouse-operator": {
             "type": "object",
             "additionalProperties": true
+        },
+        "dnsPolicy": {
+            "type": ["string", "null"]
+        },
+        "dnsConfig": {
+            "type": ["object", "null"],
+            "properties": {
+                "nameservers": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "searches": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "value": {
+                                "type": ["string", "null"]
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                }
+            },
+            "additionalProperties": false
         }
     },
     "additionalProperties": false

@@ -92,16 +92,32 @@ export default class UserOverrideUtil {
     event: CalendarEvent,
     override: UserOverrideRecord,
   ): Array<CalendarEvent> {
+    /*
+     * Overrides are non-transitive: an override must never act on a segment
+     * that is itself the RESULT of a previous override. Otherwise a chain
+     * (global A->B applied first, then B->C) would double-substitute the same
+     * window, and the resolved user would depend on override ordering. A
+     * segment produced by a prior override carries OVERRIDE_META_KEY, so we
+     * leave it untouched here.
+     */
+    if (UserOverrideUtil.getOverrideMeta(event)) {
+      return [event];
+    }
+
     if (event.title !== override.overrideUserId) {
       return [event];
     }
 
-    // Override window doesn't overlap event window at all.
+    /*
+     * Override window doesn't overlap event window at all. Use second-precision
+     * comparisons consistently (isOnOrAfter / isOnOrBefore) so a sub-second
+     * offset cannot slip past as "overlapping" and produce an inverted segment
+     * (previously isSame used millisecond precision while isAfter/isBefore used
+     * seconds, an inconsistent mix).
+     */
     if (
-      OneUptimeDate.isAfter(override.startsAt, event.end) ||
-      OneUptimeDate.isSame(override.startsAt, event.end) ||
-      OneUptimeDate.isBefore(override.endsAt, event.start) ||
-      OneUptimeDate.isSame(override.endsAt, event.start)
+      OneUptimeDate.isOnOrAfter(override.startsAt, event.end) ||
+      OneUptimeDate.isOnOrBefore(override.endsAt, event.start)
     ) {
       return [event];
     }

@@ -306,3 +306,81 @@ describe("LLMService — OpenAI-compatible (generic, e.g. vLLM)", () => {
     ).rejects.toThrow("Model Name is required");
   });
 });
+
+describe("LLMService — prompt caching", () => {
+  test("Anthropic marks system and the last tool with an ephemeral cache breakpoint", async () => {
+    const spy: PostSpy = mockPostResponse({
+      content: [{ type: "text", text: "hi" }],
+      stop_reason: "end_turn",
+      usage: {
+        input_tokens: 12,
+        output_tokens: 4,
+        cache_read_input_tokens: 100,
+        cache_creation_input_tokens: 8,
+      },
+    });
+
+    const response: LLMCompletionResponse = await LLMService.getCompletion({
+      llmProviderConfig: { llmType: LlmType.Anthropic, apiKey: "test-key" },
+      messages: [
+        { role: "system", content: "be helpful" },
+        { role: "user", content: "hi" },
+      ],
+      tools: [
+        {
+          name: "a",
+          description: "a",
+          inputSchema: { type: "object", properties: {} },
+        },
+        {
+          name: "b",
+          description: "b",
+          inputSchema: { type: "object", properties: {} },
+        },
+      ],
+    });
+
+    const requestBody: JSONObject = (
+      spy.mock.calls[0]![0] as { data: JSONObject }
+    ).data;
+
+    // The system prompt is sent as a content-block array with a cache breakpoint.
+    const systemBlocks: Array<JSONObject> = requestBody[
+      "system"
+    ] as Array<JSONObject>;
+    expect(Array.isArray(systemBlocks)).toBe(true);
+    expect(systemBlocks[0]!["cache_control"]).toEqual({ type: "ephemeral" });
+
+    // Only the last tool carries the breakpoint (it caches the whole block).
+    const tools: Array<JSONObject> = requestBody["tools"] as Array<JSONObject>;
+    expect(tools[tools.length - 1]!["cache_control"]).toEqual({
+      type: "ephemeral",
+    });
+    expect(tools[0]!["cache_control"]).toBeUndefined();
+
+    // totalTokens folds in cached + cache-creation input tokens (12+100+8+4).
+    expect(response.usage!.totalTokens).toBe(124);
+    expect(response.usage!.cachedInputTokens).toBe(100);
+    expect(response.usage!.cacheCreationTokens).toBe(8);
+  });
+
+  test("OpenAI surfaces cached prompt tokens from prompt_tokens_details", async () => {
+    mockPostResponse({
+      choices: [{ message: { content: "ok" } }],
+      usage: {
+        prompt_tokens: 50,
+        completion_tokens: 5,
+        total_tokens: 55,
+        prompt_tokens_details: { cached_tokens: 40 },
+      },
+    });
+
+    const response: LLMCompletionResponse = await LLMService.getCompletion({
+      llmProviderConfig: { llmType: LlmType.OpenAI, apiKey: "test-key" },
+      messages: [{ role: "user", content: "hi" }],
+    });
+
+    expect(response.usage!.cachedInputTokens).toBe(40);
+    expect(response.usage!.totalTokens).toBe(55);
+  });
+});

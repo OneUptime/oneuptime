@@ -413,6 +413,10 @@ import { AddAIChatModels1783363279075 } from "./1783363279075-AddAIChatModels";
 import { AddLlmProviderToAIConversation1783443471795 } from "./1783443471795-AddLlmProviderToAIConversation";
 import { AddAIChatWriteActionsAndWidgets1783453297388 } from "./1783453297388-AddAIChatWriteActionsAndWidgets";
 import { MigrationName1783461767405 } from "./1783461767405-MigrationName";
+import { AddIncomingCallPolicyRoutingPhoneNumberUnique1783470000000 } from "./1783470000000-AddIncomingCallPolicyRoutingPhoneNumberUnique";
+import { FixNotNullForeignKeysOnDelete1783510935686 } from "./1783510935686-FixNotNullForeignKeysOnDelete";
+import { MigrationName1783515836148 } from "./1783515836148-MigrationName";
+import { AddMigrationFailureTable1783523076215 } from "./1783523076215-AddMigrationFailureTable";
 
 export default [
   InitialMigration,
@@ -830,4 +834,8 @@ export default [
   AddLlmProviderToAIConversation1783443471795,
   AddAIChatWriteActionsAndWidgets1783453297388,
   MigrationName1783461767405,
+  AddIncomingCallPolicyRoutingPhoneNumberUnique1783470000000,
+  FixNotNullForeignKeysOnDelete1783510935686,
+  MigrationName1783515836148,
+  AddMigrationFailureTable1783523076215,
 ];

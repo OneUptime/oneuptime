@@ -209,11 +209,13 @@ describe("RestrictionTimes", () => {
       expect(restored.dayRestrictionTimes!.endTime).toBeDefined();
     });
 
-    test("falls back to an empty object when weeklyRestrictionTimes is missing", () => {
+    test("falls back to an empty array when weeklyRestrictionTimes is missing", () => {
       /*
-       * The source uses `(data["weeklyRestrictionTimes"] ...) || {}`, so when the
-       * value object omits weeklyRestrictionTimes the fallback is an empty object
-       * (NOT an empty array). This documents that quirky behavior precisely.
+       * When the value object omits weeklyRestrictionTimes, fromJSON must fall
+       * back to an empty ARRAY so the array-type contract holds. A previous
+       * `|| {}` fallback produced a non-array `{}` that slipped past
+       * Layer.getEventsByWeeklyRestriction's length guard and threw
+       * "not iterable" during weekly expansion (audit F20).
        */
       const restored: RestrictionTimes = RestrictionTimes.fromJSON({
         _type: ObjectType.RestrictionTimes,
@@ -223,8 +225,8 @@ describe("RestrictionTimes", () => {
         },
       });
 
-      expect(restored.weeklyRestrictionTimes).toEqual({});
-      expect(Array.isArray(restored.weeklyRestrictionTimes)).toBe(false);
+      expect(restored.weeklyRestrictionTimes).toEqual([]);
+      expect(Array.isArray(restored.weeklyRestrictionTimes)).toBe(true);
     });
 
     test("preserves a provided weeklyRestrictionTimes array on fromJSON", () => {

@@ -111,8 +111,15 @@ export default class RestrictionTimes extends DatabaseProperty {
       "dayRestrictionTimes"
     ] as StartAndEndTime | null;
 
+    /*
+     * Fall back to an empty ARRAY, not an object. `|| {}` produced a non-array
+     * `{}` when the field was absent, which is truthy with an `undefined`
+     * `.length`, so Layer.getEventsByWeeklyRestriction's
+     * `!x || x.length === 0` guard passed through and `for (const w of {})`
+     * threw "not iterable", aborting event expansion for the layer (audit F20).
+     */
     const weeklyRestrictionTimes: Array<WeeklyResctriction> =
-      (data["weeklyRestrictionTimes"] as Array<WeeklyResctriction>) || {};
+      (data["weeklyRestrictionTimes"] as Array<WeeklyResctriction>) || [];
 
     restrictionTimes.weeklyRestrictionTimes = weeklyRestrictionTimes;
 
